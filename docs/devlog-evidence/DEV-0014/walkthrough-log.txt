@@ -1,0 +1,99 @@
+[01] /terms 首屏：真实种子 63 条（§7.1）
+  行数=63 · footer=「共 63 条」「其中种子词条 63 条」
+  列头=术语 / English / 别名 / 定义 / 状态
+  📸 01-terms-seeded.png
+
+[02] 搜「漂移」→ 命中「规则漂移」（2 字走 LIKE 降级，§7.2①）
+  命中 4：漂移检测|drift detection , 提示词膨胀|prompt bloat , 长会话退化|long-session degradation , 规则漂移|rule drift
+  高亮 <mark>=["漂移"]
+  降级提示：已显示（m3 FR-3.3）
+  📸 02-search-2char-like.png
+
+[03] 搜「context」（≥3 字符 → FTS5 MATCH，命中 en 与别名）
+  命中 3：上下文窗口|context window , 上下文污染|context pollution , 模型上下文协议|Model Context Protocol
+  高亮 <mark>=["context","Context"]
+  📸 03-search-en-fts.png
+
+[04] 搜「RAG」→ 命中「检索增强生成」（§7.2②，英文主名/别名）
+  命中 1：检索增强生成|RAG
+  matches=["en[0,3]+aliases[36,39]"]
+  📸 04-search-rag-en-name.png
+
+[05] 编辑「幻觉」：别名追加「大模型幻觉」
+  别名=ok
+  📸 05-alias-edit.png
+  落库别名=["幻觉内容","事实性错误","一本正经地胡说","大模型幻觉"]
+
+[06] 搜「大模型幻觉」→ 命中「幻觉」（别名索引生效，§7.2③）
+  命中 1：幻觉|hallucination
+  高亮 <mark>=["大模型幻觉"]
+  📸 06-search-new-alias.png
+
+[07] 新建词条：填全字段并关联种子词条「规则漂移」
+  中文名=ok
+  英文名=ok
+  别名=ok
+  定义=ok
+  示例=ok
+  抽屉：相关词条（单向存储，展示取双向并集） ⏎ 规则漂移 ⏎ rule drift ⏎ 规则漂移｜rule drift ⏎ ✕ ⏎ 状态
+  📸 07-editor-create.png
+
+[08] 保存 → POST /api/terms
+  落库：{"id":"trm_Y0mxwZSqeMlzM9atHfj5r","en":"term drift observation","source":"manual","tags":["风险陷阱"],"status":"active","related":["trm_SjRa8tfbgke725FzK-RmF"]}
+  来源标记：[["术语漂移观测","启用自建编辑删除"],["漂移检测","启用种子编辑删除"],["提示词膨胀","启用种子编辑删除"],["长会话退化","启用种子编辑删除"],["规则漂移","启用种子编辑删除"]]
+  📸 08-after-create.png
+
+[09] 编辑被引用的种子词条：反向引用展示 + 候选排除自身
+  展示为相关（含反向引用）：术语漂移观测｜term drift observation
+  关联候选已排除自身：true
+  📸 09-bidirectional-related.png
+
+[10] 选 5 条渲染 TERMS.md（§7.3）
+  已选 5 条
+  渲染 12 行 · sha256=ccb835499381fd24
+  固定表头=["# 术语表 · 选集","","> AI 与团队共用的词汇标准；新词请先入库","","| 术语 | English | 别名 | ","|------|---------|----"]
+  en-alpha 行序：上下文窗口 → 全文检索 → 幻觉 → 规则漂移 → 术语漂移观测
+  裸 | 计数（每数据行应=5）：[5,5,5,5]
+  📸 10-terms-md-enalpha.png
+
+[11] 排序切「拼音（词典）」→ 行序变化；同参二次渲染字节一致
+  排序 select=ok
+  pinyin 行序：规则漂移 → 幻觉 → 全文检索 → 上下文窗口 → 术语漂移观测
+  固定表头未变：true
+  同选集同排序两次渲染：sha#1=5168fd546c134b69 sha#2=5168fd546c134b69 → 一致=true（§7.3）
+  换排序即换字节：sha(en-alpha)=ccb835499381fd24 ≠ 5168fd546c134b69 → true
+  前端展示 == 服务端渲染：true
+  📸 11-terms-md-pinyin.png
+  真实下载产物：["TERMS.md sha=5168fd546c134b69"]
+
+[12] 空表单提交 → 客户端护栏（§7.5 的 UI 面）
+  中文名与英文名为至少一项必填（m3 §6.1）
+  定义不能为空
+  📸 12-validation-guards.png
+  未落库校验：true
+
+[13] 删除自建词条 → 确认框
+  确认删除「术语漂移观测」？其他词条的相关词引用会自动剔除（不级联删除词条）。
+  📸 13-delete-confirm.png
+  删除后：{"total":63,"gone":true}
+
+[14] 被引用词条的反向引用自动剔除
+  （反向引用行已消失 = 引用清理生效）
+  📸 14-after-delete-cleanup.png
+  📸 15-terms-final.png
+
+[15] 收尾：{"total":63,"seed":63}（宿主词条别名保留 = 种子编辑后不再被覆盖，m3 FR-2.3）
+
+环境: http://localhost:5173 (vite proxy) → 127.0.0.1:8787 · OPENVIBE_HOME=/tmp/ov-t4-home · 种子 63 条 · headless Chrome CDP
+结论: m3 §7 五条验收 UI 面全部通过
+
+## 复启与种子升级复验（真实文件库 /tmp/ov-t4-home，非 :memory:）
+1) 二次启动（种子内容未变，PORT=8799）：三 bundle 全 skipped，无任何日志输出 → 计数不变（§7.1 后句）
+   $ OPENVIBE_HOME=/tmp/ov-t4-home pnpm exec tsx src/index.ts
+   [openvibe] server listening on http://127.0.0.1:8799 (db: /tmp/ov-t4-home/data/openvibe.db)
+2) 种子升级复验（把 terms.json 里「提示词版本」的定义追加一句后重启，PORT=8798）：
+   [openvibe] seed terms: imported +0 ~62 跳过1
+   [openvibe]   warning: 词条已被用户修改，跳过升级: 幻觉
+   → 未编辑的 62 条按新内容并入（GET /api/terms 校验「提示词版本」定义以「（T4e 种子升级复验）」结尾=true）
+   → 走查第 05 步编辑过的「幻觉」不被覆盖：aliases=["幻觉内容","事实性错误","一本正经地胡说","大模型幻觉"]、seedHash=NULL
+   （seed-content §7.2 后句 + m3 FR-2.3；terms-md-sample.md 为第 11 步真实下载产物，sha256 前缀 5168fd546c134b69 与服务端渲染一致）

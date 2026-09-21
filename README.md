@@ -62,7 +62,8 @@ openvibe/
 - [x] **P1/T1 工程脚手架完成（2026-09-21，DEV-0011）**：GitHub [anyeduke11/OpenVibe](https://github.com/anyeduke11/OpenVibe) 落地（Apache-2.0）；pnpm monorepo + packages/shared 全量 zod schemas + ESLint R1-R4 依赖边界 + vitest 三层；CI 三平台（macOS/Linux/Windows）首跑全绿
 - [x] **P1/T2 存储核心完成（2026-09-21，DEV-0012）**：better-sqlite3 + migrations 0001/0002 + FTS5 trigram 六触发器 + 七 repos（版本快照/entryNo 事务/快照物化等）+ seed 幂等骨架；37 用例全绿
 - [x] **P1/T3 M1 提示词库垂直切片完成（2026-09-21，DEV-0013）**：server 骨架（buildApp DI + 双通道鉴权 + 统一错误）+ 提示词九端点 + 四形态导入解析器 + Web `/library` 十组件（CodeMirror 双栏编辑、变量复制弹窗、版本 diff/回滚、导入导出）；m1 §7 八条验收逐条通过，53 用例全绿，浏览器实测截图与真实导出落 `docs/devlog-evidence/DEV-0013/`
-- [ ] P1：MVP 开发（按 tasks.md T1–T9，6.5 周 = 任务 31.5 人日 + 显式缓冲 1 人日；T4 术语库 + 首批 60 词条为下一步）
+- [x] **P1/T4 M3 术语库垂直切片完成（2026-09-21，DEV-0014）**：首批 **63 条**种子词条入库（附录 B 10 条必含项齐备）+ `pnpm seed:check` 成为 CI 独立闸门 + 术语五端点与确定性 `TERMS.md` 渲染（拼音/英 alphabetic 双序，跨平台字节一致）+ Web `/terms`（搜索降级提示、多选、关联双向展示、TERMS.md 预览/复制/下载）；m3 §7 五条 + seed-content §7 四条逐条通过，67 用例全绿，15 步浏览器走查证据落 `docs/devlog-evidence/DEV-0014/`
+- [ ] P1：MVP 开发（按 tasks.md T1–T9，6.5 周 = 任务 31.5 人日 + 显式缓冲 1 人日；T5 项目流程 + Skill 台账为下一步；T4 的 63 条词条待 owner 审校，T8 补齐至 ≥100 条并将 `seed:check` 阈值切到 100/3/20）
 
 ## 差异化定位（相对竞品）
 
