@@ -1,0 +1,13 @@
+{
+  "name": "@openvibe/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "openvibe": "./src/index.ts"
+  },
+  "dependencies": {
+    "@openvibe/core": "workspace:*",
+    "@openvibe/shared": "workspace:*"
+  }
+}

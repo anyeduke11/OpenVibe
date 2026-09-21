@@ -1,0 +1,13 @@
+{
+  "name": "@openvibe/server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"[server] dev 启动序列随 T2 bootstrap.ts 落地\""
+  },
+  "dependencies": {
+    "@openvibe/shared": "workspace:*",
+    "fastify": "^5.0.0"
+  }
+}
