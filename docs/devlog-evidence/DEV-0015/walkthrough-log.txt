@@ -1,0 +1,229 @@
+OpenVibe T5d · M5 项目流程 + M2 Skill 台账 — 浏览器走查记录
+================================================================
+
+运行时间：2026-09-21 21:41–21:45（本地，UTC 时间戳见各段首行）
+被测代码：工作树 = 6252e63 + T5 未提交改动（本条记录随 T5 一并提交）
+被测进程：`pnpm dev` → vite http://localhost:5173（IPv6 loopback）代理 /api → tsx 127.0.0.1:8787
+数据/夹具沙箱：/Users/duke/.local/share/openvibe-t5d（持久目录；早先放 /tmp 被系统清理，故迁出）
+  home/data/openvibe.db          真实 SQLite 文件库（OPENVIBE_HOME=home）
+  home/.claude/skills/           alpha-skill / beta-skill / gamma-no-frontmatter（3 个，1 个无 frontmatter）
+  proj/README.md                 sha256 d4fc5a3e3237722ab258298431dc2cdad8b43517fa19bea38c3f208dca73e603
+  proj/.openvibe/pack.lock.json  openvibe-baseline@0.1.0，用于 injection-status
+驱动方式：裸 CDP（自启 headless Chrome + Input.dispatchMouseEvent / dispatchKeyEvent），
+  脚本：harness/t5-walk-{skills,flows,projects,kanban}.mjs（幂等，可重跑）
+  · 所有点击/拖拽都是真实鼠标与键盘事件；页内 fetch 走同源 /api（Origin 过 auth，无需 token）
+  · SQLite 断言用只读连接直查同一库文件
+覆盖：m5 §7.1–7.8（8 条）+ m2 §7.1–7.5（5 条）+ design D10 + m5 §6.1/§6.5 + 看板拖拽「键盘可访问 + 按钮兜底」设计裁定
+结果：75 项断言全 PASS（第 1–4 段 20/15/17/23），0 FAIL，截图 34 张
+----------------------------------------------------------------
+第 1 段 · M2 Skill 台账（m2 §7.1–§7.5，截图 01–07）
+----------------------------------------------------------------
+
+# T5d 走查日志 · 第 1 段 Skill 台账  2026-09-21T13:49:17.509Z
+PASS m2 §7 前置：台账空态有引导文案 — true
+# 第 1 次扫描：{"发现":3,"新建":3,"更新":0,"跳过":0}
+# 第 1 次扫描 warnings：["SKILL.md frontmatter 缺失/非法，name 回退目录名: gamma-no-frontmatter","扫描根不存在或不可读，跳过: /Users/duke/Documents/OpenVibe/apps/server/.claude/skills"]
+PASS §7.1 造 3 个 skill 目录（1 个无 frontmatter）→ discovered=3、created=3 — {"发现":3,"新建":3,"更新":0,"跳过":0}
+PASS §7.1 warnings 含 parseWarning（frontmatter 缺失，name 回退目录名） — SKILL.md frontmatter 缺失/非法，name 回退目录名: gamma-no-frontmatter
+PASS §7.1 台账出现 3 行，无 frontmatter 者 name=目录名 — ["alpha-skill","beta-skill","gamma-no-frontmatter"]
+PASS §7.1 该条目来源=本地扫描、版本=1 — ["本地扫描","1"]
+PASS §7.4 手动登记即有 v1，来源=手动登记 — ["手动登记","1"]
+# 第 2 次扫描（扫描根放入同名目录）：{"发现":4,"新建":0,"更新":1,"跳过":3}
+PASS §7.4 同名目录再扫 → 该手动条目 updated=1、skipped=3（不新建） — {"发现":4,"新建":0,"更新":1,"跳过":3}
+PASS §7.4 合并后 my-skill versions=2 — ["my-skill","磁盘上的同名技能（扫描合并）","手动登记","2","claude-code\ncursor","2026-09-21T13:49:24.436Z","编辑删除"]
+PASS §7.4 latestVersionId 指向新扫出的版本（末条） — [2,true]
+# 第 3 次扫描（未变更）：{"发现":4,"新建":0,"更新":0,"跳过":4}
+PASS §7.3 未变更再扫 → created=0、updated=0、skipped=4 — {"发现":4,"新建":0,"更新":0,"跳过":4}
+PASS §7.3 重扫后版本总数不变（无新增版本） — 5 → 5
+# 第 4 次扫描（alpha 的 SKILL.md 已改）：{"发现":4,"新建":0,"更新":1,"跳过":3}
+PASS §7.2 修改 skill 后重扫 → updated=1、skipped=3 — {"发现":4,"新建":0,"更新":1,"跳过":3}
+PASS §7.2 alpha versions=2 — ["alpha-skill","走查用技能甲：演示扫描发现与版本合并","本地扫描","2","—","2026-09-21T13:49:27.627Z","编辑删除"]
+PASS §7.2 latestVersionId 从旧版指向新版，两条版本指纹不同 — [["b9452e50","0aa531ce"],true]
+# 版本历史：["alpha-skill | 当前 | 2026-09-21T13:49:27.627Z |  | 1 个文件 · 目录指纹: 0aa531cec1a37b25","alpha-skill | 2026-09-21T13:49:20.667Z |  | 1 个文件 · 目录指纹: b9452e5024ca2706"]
+PASS §7.2 抽屉「版本历史」两条，「当前」标记在最新版本（倒序首条） — ["alpha-skill | 当前 | 2026-09-2","alpha-skill | 2026-09-21T13:"]
+PASS FR-3.3 搜「beta」只剩 1 行，页脚计数为 1 — [["beta-skill"],"共 1 条"]
+PASS §7.5 删除后 skills 行与 skill_versions 计数同时归零（级联） — {"alphaLeft":0,"versionsLeft":0}
+PASS §7.5 仅删台账，磁盘上的 skill 目录未受影响 — 99 字节
+PASS §7.5 台账剩余 3 条（beta/gamma/my-skill） — ["beta-skill","gamma-no-frontmatter","my-skill"]
+PASS 页面无未捕获异常 — []
+# 第 1 段结论：全部 PASS
+
+----------------------------------------------------------------
+第 2 段 · M5 流程模板（m5 §7.2/§7.3 + 键盘拖拽与按钮兜底设计裁定，截图 08–12）
+----------------------------------------------------------------
+
+# T5d 走查日志 · 第 2 段 流程模板  2026-09-21T13:49:37.076Z
+# 内置卡：Spec 驱动流 | 内置 |  | Spec 驱动流 · 7 个阶段 · 14 项检查 |  | 1. 需求澄清 | 2. PRD | 3. Spec 规格 | 4. 计划 | 5. 实现 | 6. 审查 | 7. 复盘 | 复制为自定义 | 不可直接编辑
+PASS §7.3 内置模板卡无「编辑」入口，仅「复制为自定义」+「不可直接编辑」提示 — [["复制为自定义"],true]
+PASS §7.3 3 张内置卡全部只挂「复制为自定义」（按钮总数=3） — [3,3,3]
+PASS §7.3 PATCH/DELETE 内置模板 → 403 BUILTIN_IMMUTABLE — [[403,"BUILTIN_IMMUTABLE"],[403,"BUILTIN_IMMUTABLE"]]
+# 副本卡：Spec 驱动流 副本 | 自定义 |  | 自定义流 · 7 个阶段 · 14 项检查 |  | 1. 需求澄清 | 2. PRD | 3. Spec 规格 | 4. 计划 | 5. 实现 | 6. 审查 | 7. 复盘 | 编辑 | 复制为自定义 | 删除
+PASS §7.2 复制内置 → 自定义区多出一张「Spec 驱动流 副本」，7 个阶段 / 14 项检查 — ["Spec 驱动流 副本 | 自定义 |  | 自定义流 · 7 个阶段 · 14 项检查 |","1 → 2"]
+PASS FR-2.3 编辑器载入副本的 7 个阶段（与内置同序） — ["需求澄清","PRD","Spec 规格","计划","实现","审查","复盘"]
+PASS §7.2 删除「审查」→ 阶段数 7→6 且该阶段消失 — ["需求澄清","PRD","Spec 规格","计划","实现","复盘"]
+PASS §7.2 首阶段清单项 2→4，新增两项在列尾 — ["五问齐备（谁/现状/期望/为何现在/完成标准）","假设显式标注","走查新增项 A","走查新增项 B"]
+# 键盘拖拽：拖拽中提起的行下标=2｜["需求澄清","PRD","Spec 规格","计划","实现","复盘"] → ["需求澄清","Spec 规格","PRD","计划","实现","复盘"]
+PASS FR-2.3 键盘拖拽（Space→↑→Space）把「Spec 规格」上移一位，拖拽中该行高亮 — ["需求澄清","Spec 规格","PRD","计划","实现","复盘"]
+PASS 设计裁定：「下移阶段」按钮兜底与键盘拖拽等价（顺序复原） — ["需求澄清","PRD","Spec 规格","计划","实现","复盘"]
+PASS 设计裁定：「上移阶段」按钮同样驱动换序（计划 上移到第 3 位） — ["需求澄清","PRD","计划","Spec 规格","实现","复盘"]
+PASS 设计裁定：再按「下移」回到拖拽前顺序 — ["需求澄清","PRD","Spec 规格","计划","实现","复盘"]
+PASS §7.2 保存后 GET 模板：6 阶段 / 15 项，首阶段末两项为新增（自动 id=c3/c4） — [["需求澄清","PRD","Spec 规格","计划","实现","复盘"],15,["spec-1-1","spec-1-2","c3","c4"]]
+PASS §7.2 原内置「Spec 驱动流」未变（仍 7 阶段，stages 逐字相同） — [7,true]
+PASS FR-2.1 自定义模板可删（DELETE 2xx + 卡面消失），与内置 403 形成对照 — [204,true]
+PASS 页面无未捕获异常 — []
+# 第 2 段结论：全部 PASS
+
+----------------------------------------------------------------
+第 3 段 · M5 项目工作台（m5 §7.1/§7.4 + design D10 + §6.1/§6.5，截图 13–22）
+----------------------------------------------------------------
+
+# T5d 走查日志 · 第 3 段 项目工作台  2026-09-21T13:49:55.651Z
+# 空态：新建按钮 + 空提示可见
+PASS m5 §6.1 相对路径被拦（不落库、停在第 1 步）
+PASS FR-1.2 第 3 步为标准包占位（T6 交付，摘要回显三要素）
+PASS FR-1.2 创建后直接进工作台（/projects/:id），快照自模板且当前阶段=启动 — /projects/prj_2aSG-BLHR9jXTwD0SeYho
+# 阶段条：["1. 启动 0/5 · 0%","2. 开发 0/3 · 0%"]
+PASS FR-1.4 快照只含模板的 2 个阶段（复盘不在） — ["1. 启动 0/5 · 0%","2. 开发 0/3 · 0%"]
+PASS §7.2 快照与编辑后模板一致（2 阶段、启动 5 项含新增项），且原内置模板未变 — [[["启动",5],["开发",3]],[3,[3,3,3]]]
+PASS §7.1 lock 读出包名/版本/指纹/注入时间 + CLI 建议命令 — {"lockPresent":true,"pack":{"name":"openvibe-baseline","version":"0.1.0","fingerprint":"352b1f98e26f6ec1209d225138af776e0489582d547c803ae989569e26de690d"},"injectedAt":"2026-09-21T09:00:00.000Z","suggestedCommand":"npx openvibe-cli sync /Users/duke/.local/share/openvibe-t5d/proj --pack openvibe-baseline"}
+PASS §7.1 卡面呈现「lock 文件 存在 / openvibe-baseline@0.1.0 / 注入时间」 — ["存在","openvibe-baseline@0.1.0","2026-09-21T09:00:00.000Z"]
+PASS §7.1 库内版本==lock → 判定「与登记版本一致」
+# 注入行（库内 0.2.0）：可更新：注入 0.1.0 → 库内 0.2.0
+PASS §7.1 库内版本更高 → 提示「可更新：注入 0.1.0 → 库内 0.2.0」 — 可更新：注入 0.1.0 → 库内 0.2.0
+# 启动清单 item id：["light-1-1","light-1-2","c4","light-1-3","c5"]
+# 勾 3 项后：未完项行=3/8 · 38%（期望 3/8 · 38%）｜阶段条=1. 启动 3/5 · 60%
+PASS §7.4 勾 3/5 → 该阶段完成度 60%（全项目行 3/8 · 38%） — ["3/8 · 38%","1. 启动 3/5 · 60%"]
+PASS §7.4 刷新后勾选仍在（PUT check-states 落库） — 3
+# 全勾后阶段条：["1. 启动 ✅ 5/5 · 100%","2. 开发 0/3 · 0%"]
+PASS §7.4 全勾 → 阶段条出现 ✅ 完成标记 — ["1. 启动 ✅ 5/5 · 100%","2. 开发 0/3 · 0%"]
+PASS FR-3.3 未全勾阶段可直接切换并落库 — 开发
+# 模板 +1 阶段后，项目快照：["1. 启动 ✅ 5/5 · 100%","2. 开发 0/3 · 0%"]
+PASS D10 编辑模板（+1 阶段）→ 存量项目快照仍为 2 阶段、5 条勾选记录未动 — [["启动","开发"],5]
+# 模板只剩 1 阶段后，项目快照阶段=["启动","开发"]｜当前清单=["需求一句话写清","标准包已注入（openvibe diff clean）","走查新增项 A","建 DEV_LOG.md","走查新增项 B"]
+PASS D10 模板删阶段 → 项目快照与勾选记录完整保留，清单仍按快照渲染 5 项 — [["启动","开发"],5]
+PASS 页面无未捕获异常 — []
+PASS m5 §6.5 全程未写项目目录（README 基线哈希） — d4fc5a3e3237722ab258298431dc2cdad8b43517fa19bea38c3f208dca73e603
+# 第 3 段结论：全部 PASS｜projectId=prj_2aSG-BLHR9jXTwD0SeYho
+
+----------------------------------------------------------------
+第 4 段 · 看板 / 开发日志 / 回流 / 删除（m5 §7.5–§7.8，截图 23–32）
+----------------------------------------------------------------
+
+# T5d 走查日志 · 第 4 段 看板/日志/回流/删除  2026-09-21T13:50:41.630Z
+# β 项目 id=prj_80whnNGJeyx3UmNZoVx6j
+# 添加按钮重试次数 ["看板卡二","看板卡三"]=[1,1]
+# 待办列：["看板卡一","看板卡二","看板卡三"]｜提示：["任务已创建","Notification 任务已创建"]
+PASS FR-4.2 三条新任务按加入顺序落到待办列尾 — ["看板卡一","看板卡二","看板卡三"]
+PASS FR-4.2 空列有「空」占位与计数徽标 — 进行中|0|空
+# 键盘拖拽 ⠿（第 2 张上移一位），拖拽中提示=true
+PASS FR-4.1 键盘拖拽（Space→↑→Space）换序：卡二排到卡一前 — ["看板卡二","看板卡一","看板卡三"]
+PASS FR-4.1 「下移」按钮兜底与键盘拖拽驱动同一 PATCH（顺序复原） — ["看板卡一","看板卡二","看板卡三"]
+# 指针拖拽 ⠿ 待办→进行中：[["看板卡二","看板卡三"],["看板卡一"]]
+PASS FR-4.1 指针拖拽换列：卡一进入「进行中」列尾 — [["看板卡二","看板卡三"],["看板卡一"]]
+PASS FR-4.1 「移到右列」按钮跨列：卡三并入进行中队尾 — [["看板卡二"],["看板卡一","看板卡三"]]
+# tasks 落库：{"看板卡一":["doing",0,"启动"],"看板卡三":["doing",1,null],"看板卡二":["todo",0,null]}
+PASS FR-4.3 任务可打快照阶段标签 + 三列状态与 order 落库（跨列后列内重排） — ["[[\"doing\",0,\"启动\"],[\"todo\",0,null],[\"doing\",1,null]]","[[\"doing\",0,\"启动\"],[\"todo\",0,null],[\"doing\",1,null]]"]
+PASS §7.5 刷新后列内顺序与状态保持（move 落库） — [["看板卡二"],["看板卡一","看板卡三"]]
+PASS FR-4.3 阶段标签刷新后保持 — 启动
+PASS FR-5.1 正文 CodeMirror 真实按键可输入 — "\n  - \n- **潜在风险**: \n规则漂移：本地 lock 与库内登记版本不一致的现象。"
+# 日志列表编号（时间倒序）：["DEV-0003","DEV-0002","DEV-0001"]
+PASS §7.6 三条日志编号连号 DEV-0001/2/3，列表按时间倒序 — ["DEV-0003","DEV-0002","DEV-0001"]
+PASS FR-5.4 导出 DEV_LOG.md：附件下载名 + 编号有序 + 证据段与关联文件在位 — [200,"attachment; filename=\"DEV_LOG.md\"",[11,264,497]]
+# 导出前 14 行：
+# DEV_LOG
+
+## DEV-0001 · 看板拖拽与按钮兜底
+
+- 关联文件: apps/web/src/components/projects/KanbanBoard.tsx、apps/server/src/routes/tasks.ts
+
+- **时间**: 2026-09-21 21:51
+- **类型**: 功能开发
+- **问题描述**: 
+- **实现思路**: 
+- **核心变更**:
+  - 
+- **潜在风险**: 
+
+# 选中段落：潜在风险: 规则漂移：本地 lock 与库内登记版本不一致的现象。
+PASS FR-7.1 渲染后的正文可选中（回流支持段落级回流） — 潜在风险: 规则漂移：本地 lock 与库内登记版本不一致的现象。
+# 抽屉预填：{"definition":"潜在风险: 规则漂移：本地 lock 与库内登记版本不一致的现象。","status":"草稿"}
+PASS FR-7.1 回流预填：定义=选中段落、状态=草稿(draft) — {"definition":"潜在风险: 规则漂移：本地 lock 与库内登记版本不一致的现象。","status":"草稿"}
+# 术语库命中：["走查回流词","draft","project:走查项目 β"]
+PASS §7.7 术语库出现 draft 词条，source=project:<项目名> — ["走查回流词","draft","project:走查项目 β"]
+PASS §7.7 日志侧回写 linkedAssetIds（含新词条 id）+ 卡面计数徽标 — ["已关联 1 个回流资产",["trm_C3G3qsWNy9x9ZxLGMFSkV"]]
+# DEV-0002 关联资产 → ["prm_M9Png8LfBfVD_IJYJL2oN","项目工作台四页落地","draft"]
+PASS FR-7.3 提示词草稿路径：标题/正文预填自日志，status=draft，日志回写关联 id — [["prm_M9Png8LfBfVD_IJYJL2oN"],"项目工作台四页落地","draft"]
+# 反链 API：{"origin":{"logId":"log_mMPQxf8cYm_EiyX157cPT","projectId":"prj_80whnNGJeyx3UmNZoVx6j","projectName":"走查项目 β","logType":"DEV","entryNo":3,"displayNo":"DEV-0003"}}
+# 词条抽屉反链：来源：项目 走查项目 β 的 DEV-0003
+PASS FR-7.2 词条编辑抽屉显示「来源：项目 走查项目 β 的 DEV-0003」 — 来源：项目 走查项目 β 的 DEV-0003
+# 删除确认文案：将连同 3 条开发日志、3 张任务卡一并硬删（不可恢复）。项目目录内的文件不受影响。
+PASS FR-1.5 删除前说明连带量（3 条日志 / 3 张任务卡） — 将连同 3 条开发日志、3 张任务卡一并硬删（不可恢复）。项目目录内的文件不受影响。
+PASS FR-1.5 删除后 GET 项目 404 — 404
+# SQLite（删除后计数）：{"projects":0,"tasks":0,"dev_log_entries":0,"project_check_states":0,"reflow_links":0}
+PASS §7.8 项目行与 tasks / dev_log_entries / check_states / 回流关联计数归零 — {"projects":0,"tasks":0,"dev_log_entries":0,"project_check_states":0,"reflow_links":0}
+PASS §7.8 目标目录文件原样（README 哈希不变，全程未写项目目录） — d4fc5a3e3237722ab258298431dc2cdad8b43517fa19bea38c3f208dca73e603
+# 目录内容：README.md 
+# 列表剩余项目：["走查项目 α"]
+PASS 页面无未捕获异常 — []
+# 第 4 段结论：全部 PASS
+
+----------------------------------------------------------------
+验收映射（spec §7 原文 → 本记录中的断言行 → 截图）
+----------------------------------------------------------------
+
+m2-skill-registry.md §7
+  1 造 3 个测试 skill 目录（1 个无 frontmatter）→ discovered=3、created=3；无 frontmatter 者 name=目录名且 warnings 含 parseWarning
+      → 第 1 段 4 行 PASS（§7.1 discovered/created、warnings parseWarning、name=目录名、来源=本地扫描/版本=1）｜01–02
+  2 修改其中一个 skill 的 SKILL.md 后重扫 → 该 skill versions=2、latestVersionId 指向新版本，其余 skipped
+      → 第 1 段 4 行 PASS（updated=1/skipped=3、versions=2、latestVersionId 指向末条且指纹不同、抽屉「当前」标记）｜06
+  3 未变更再扫 → 全部 skipped，无新增版本
+      → 第 1 段 2 行 PASS（created=0/updated=0/skipped=4 + skill_versions 总数 5→5）｜05
+  4 手动登记 my-skill → 在扫描根放置同名目录再扫 → 该手动条目 versions=2
+      → 第 1 段 4 行 PASS（手动登记即 v1/来源=手动登记、再扫 updated=1 skipped=3、versions=2、latestVersionId=新扫版本）｜03–04
+  5 删除 skill → 版本级联删除（SQLite 计数验证）
+      → 第 1 段 3 行 PASS（skills 行与 skill_versions 计数归零、磁盘目录未受影响、台账剩 3 条）｜07
+
+m5-project-flow.md §7
+  1 用「个人轻量流」建项目并注入 → 工作台显示该包@版本与注入时间；改登记版本为更新版 → 出现「可更新」提示
+      → 第 3 段 4 行 PASS（lock 读出包名/版本/指纹/注入时间 + CLI 建议、卡面三要素、库内==lock 判「一致」、库内 0.2.0 → 「可更新：注入 0.1.0 → 库内 0.2.0」）｜13–18
+  2 复制「Spec 驱动流」为自定义 → 删除其中 1 个阶段、加 2 条清单项 → 新建项目选该模板 → 快照与编辑后一致；原内置模板未变
+      → 第 2 段 6 行 PASS（复制 7 阶段/14 项、删 1 阶段 7→6、加 2 项 2→4、保存后 6 阶段/15 项且自动 id=c3/c4、内置 stages 逐字未变）
+      → 快照侧由第 3 段承担（走查项目选自定义模板 → 快照 2 阶段/启动 5 项含新增项，与模板一致；内置「个人轻量流」仍 3 阶段）｜08–12、15、16
+  3 编辑内置模板的编辑入口被禁用（API 返回 403 BUILTIN_IMMUTABLE）
+      → 第 2 段 3 行 PASS（内置卡仅「复制为自定义」+「不可直接编辑」、3 张内置卡按钮总数=3 无编辑/删除、PATCH+DELETE 均 403 BUILTIN_IMMUTABLE）｜08
+  4 勾选 3/5 检查项 → 完成度 60%；刷新后状态保持；勾满后阶段 ✅
+      → 第 3 段 3 行 PASS（3/5=60% 文案、刷新后 5 条勾选仍在、全勾 → 阶段条 ✅）｜19–20
+  5 看板拖拽 todo→doing、列内排序 → 刷新后顺序与状态保持
+      → 第 4 段 6 行 PASS（键盘 Space→↑→Space 换序、「下移」按钮兜底驱动同一 PATCH、指针拖拽跨列、「移到右列」按钮跨列、status/order/阶段标签落库、刷新后列内顺序与标签保持）｜23–25
+  6 连续创建 3 条 DEV 日志 → 编号 DEV-0001/0002/0003；导出 DEV_LOG.md 内编号有序、含 evidence 字段段
+      → 第 4 段 3 行 PASS（CodeMirror 真实按键写入、DEV-0001/2/3 连号倒序列表、导出附件名+编号有序+证据段/关联文件在位）｜26-1…27
+  7 从一条日志「存为术语候选」→ 术语库出现 draft 词条，source=project:<名>，日志 linkedAssetIds 含其 id；词条详情显示来源反链
+      → 第 4 段 5 行 PASS（段落级选中→预填 definition/status=草稿、词条 source=project:走查项目 β、linkedAssetIds 回写+「已关联 1 个回流资产」、GET /api/reflow-origin 反链、抽屉「来源：项目 走查项目 β 的 DEV-0003」）+ 提示词草稿路径 1 行（按 id 取回 title/content/status=draft）｜28–30
+  8 删除项目 → tasks/devlog/checkstate 计数为 0（SQLite 验证），目标目录文件原样（哈希对比不变）
+      → 第 4 段 4 行 PASS（删除前说明连带 3 日志/3 卡、GET 404、只读连接按 project_id 统计 projects/tasks/dev_log_entries/project_check_states 与日志 linked_asset_ids 关联总数全部为 0、README sha256 不变且目录仍只有 README.md）｜31–32
+      → 同段收尾打印「列表剩余项目：走查项目 α」，证明删除是定点而非清库
+
+design.md D10（模板变更不回写存量项目）
+  → 第 3 段 2 行 PASS（模板 +1 阶段后存量项目快照仍 2 阶段、5 条勾选未动；模板删阶段后快照与勾选记录完整保留）｜21–22
+m5 §6.1（本地目录只校验不落盘）/ §6.5（不写项目目录）
+  → 第 3 段 1 行 PASS（相对路径被拦、不落库、停在第 1 步）+ 收尾哈希比对；第 4 段末同样比对
+
+----------------------------------------------------------------
+与本仓 P0 文档的偏差（已在 DEV-0015 正文记录，此处只列口径）
+----------------------------------------------------------------
+1. 日志正文以只读 Markdown 预览呈现（spec m5 FR-5.2 的「渲染后」要求满足；未做所见即所得编辑，编辑器仍是 CodeMirror 源码态）。
+2. 补了一个文档未列出的端点 GET/PUT /api/projects/:id/check-states —— 勾选记录需要独立于 PATCH /projects/:id 的写入口，否则「刷新后保持」只能整快照回写。
+3. 未实现 GET /api/flow-templates/:id（列表端点已回完整 stages，前端不需要单查；四端点清单里也没有它）。
+4. 扫描根目录清单的增删改 UI 推到 T8（设置页）；本轮走「默认清单」（~/.claude/skills + <cwd>/.claude/skills），因此扫描报告里恒定带一条「扫描根不存在或不可读，跳过: …apps/server/.claude/skills」警告——属预期，已在 §7.1 断言中只校验 frontmatter 那条。
+5. 建项目向导第 3 步是标准包占位（回显 lock 三要素 + CLI 建议命令），真正的项目↔包关联由 T6 交付。
+6. 日志导出为单文件 DEV_LOG.md / CHECK_LOG.md（m5 FR-5.4 原样），未做 zip。
+7. m2 的版本数没有独立端点：`GET /api/skills` 行内联 versionCount（FR-3.1 的台账列一次取全），版本明细走 GET /api/skills/:id/versions。
+8. 模板编辑器新增 ↑↓ 阶段/检查项按钮（P0 文档只写拖拽）：这是「拖拽必须键盘可访问 + 同语义按钮兜底」裁定的落点——跨列/跨上下文 dnd-kit 键盘传感器不覆盖，兜底按钮让同一 PATCH 仍可驱动。
+9. 走查 harness 从 /tmp 迁到 /Users/duke/.local/share/openvibe-t5d（/tmp 会话中被清理过一次，重跑成本高）。
+
+----------------------------------------------------------------
+收尾
+----------------------------------------------------------------
+· 走查结束状态：skills 表清空、my-skill 目录与 alpha 第二版已回收、Spec 副本已删、β 项目已删（§7.8 本身即删除动作）；
+  α 项目与 轻量流·走改版 模板留在库里作为下一轮重跑的锚点，重跑幂等（4 段脚本 preamble 各自重置）。
+· 已知未闭合（不属 T5 验收）：63 条种子术语待人工审校；T8 需补 ≥37 条术语、20 条种子提示词，并把 seed:check 阈值从 60/3/20 切到 100/3/20。

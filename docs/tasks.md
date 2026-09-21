@@ -88,14 +88,14 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 ### T5 · M5 项目流程 + M2 Skill 台账（W3，预估 4 人日）
 
-- [ ] 项目/模板/看板/日志/勾选状态全套 API（含 builtin 403、导出 DEV_LOG.md）
-- [ ] 回流快捷入口两端点动作（→术语/提示词草稿，source=project、linkedAssetIds 回写）
-- [ ] injection-status 只读端点（lock 解析器按 design §7.5，用夹具文件驱动，不等 T7）
-- [ ] Web `/projects`、`/projects/:id`（健康摘要+阶段条+看板+日志 Tab）
-- [ ] M2：skills 扫描端点（dirHash 算法按 m2 FR-1.3）+ `/skills` 页 + 手动登记
-- [ ] 3 套流程模板数据随本任务入库（阶段定义照抄 seed-content §3.3，先随代码常量，T8 移入 seed 文件）
+- [x] 项目/模板/看板/日志/勾选状态全套 API（含 builtin 403、导出 DEV_LOG.md）——29 端点：projects 9 / tasks 4 / devlog+回流 5 / flow-templates 5 / skills 6；内置模板 PATCH+DELETE → **403 `BUILTIN_IMMUTABLE`**；导出走附件流（`- 测试命令:` / `- 结果:` 证据段在位）
+- [x] 回流快捷入口两端点动作（→术语/提示词草稿，source=project、linkedAssetIds 回写）——`POST /api/projects/:id/devlog/:logId/assets` 幂等并入 `linked_asset_ids` + `GET /api/reflow-origin/:assetId` 反查「来源：项目 X 的 DEV-00NN」
+- [x] injection-status 只读端点（lock 解析器按 design §7.5，用夹具文件驱动，不等 T7）——`packages/core/src/local/lock.ts` 只读 `.openvibe/pack.lock.json`（name/version/fingerprint/injectedAt + CLI 建议命令）；夹具 lock 走查，读写分离由 T7 交付
+- [x] Web `/projects`、`/projects/:id`（健康摘要+阶段条+看板+日志 Tab）——四页 14 组件 5 hooks；看板与模板编辑均为 @dnd-kit 指针+键盘双模，且同一 PATCH 由 ↑↓←→ 按钮等价兜底（T5 裁定）
+- [x] M2：skills 扫描端点（dirHash 算法按 m2 FR-1.3）+ `/skills` 页 + 手动登记——`computeDirHash`/`parseSkillFrontmatter`/`defaultScanRoots` + 手动条目与同名目录合并为 v2（`source` 保持 manual）
+- [x] 3 套流程模板数据随本任务入库（阶段定义照抄 seed-content §3.3，先随代码常量，T8 移入 seed 文件）——**提前于 T4 以 seed 文件形式落盘**（C-15，§11.4 门槛要求 `templates=3`），阶段名与 §3.3 逐字一致（3/7/4 阶段），故本项无代码常量环节
 
-**验收**：m5 §7 全部 8 条 + m2 §7 全部 5 条通过。
+**验收**：m5 §7 全部 8 条 + m2 §7 全部 5 条通过。—— ✅ **T5 完成（2026-09-21，DEV-0015）**：103/103 用例全绿（较 T4 净增 36：core/tasks 14 + lock 5 + server flow.api 10 + skills.api 5 + repos 补 2）；m5 §7 ×8 与 m2 §7 ×5 逐条映射，另覆盖 design D10 与 m5 §6.1/§6.5；浏览器实测四段 **75 项断言全 PASS / 0 FAIL、34 张截图**落 `docs/devlog-evidence/DEV-0015/`；走查中发现并修复 4 处（toast 吞点击、`Runtime.exceptionThrown` 事件名致永真断言、SQL 双引号字面量、我方错误期望 ×3）。**契约级变更 C-18…C-25 已在 DEV-0015 登记**（其中 C-18 `check-states` 双端点为文档未列的新增通道）。
 
 ### T6 · M6a 组包导出 + 契约快照（W3，预估 5.5 人日）★ 关键路径
 
