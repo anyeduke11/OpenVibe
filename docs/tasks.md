@@ -46,14 +46,14 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 - [ ] ~~核验 npm 包名~~（✅ P0 期已关闭：旧名 `vibecanon` 可用；D17 更名后 `openvibe-cli` 2026-09-21 实测可用，直接定名）
 - [ ] ~~平台契约核验收口（G3 尾巴）~~（✅ P0 期已关闭：MiniCode = 专用 adapter `MINI.md`（README 实证）；Trae 多文件 + trigger frontmatter 由社区/半官方来源确认，T6 真机复核文件名行为；Kimi 证据升级「较强」，真机抽测挂 T6）
-- [ ] pnpm workspace + 根 tsconfig（strict、`moduleResolution: bundler`）+ ESLint/Prettier
-- [ ] 建 `apps/{web,server,cli}`、`packages/{core,adapters,shared}`、`content/seed` 空骨架（design §3 目录逐一对齐）
-- [ ] `packages/shared`：zod 实体 schema（specs 各 §3 字段）、错误码枚举、`schemaVersion` 常量
-- [ ] vitest 三层配置（unit / integration / cli-project 夹具 helper）+ GitHub Actions（lint + test，**三平台矩阵 macOS/Linux/Windows（D5）**，预留 `seed:check` 挂点）
-- [ ] 落 LICENSE（Apache-2.0，G4 默认）+ README 徽章；CLI 路径/换行符跨平台纪律清单入 CONTRIBUTING 起点
-- [ ] 仓库落地（D16/D17）：新开 GitHub `OpenVibe` 仓库——初始提交 = 本套 docs/README/DEV_LOG + LICENSE + .gitignore（`.mimosa/`、`.DS_Store` 排除）；**不携带现仓库（Hotspot，GPL-3.0）任何历史**，旧仓库仅存档
+- [x] pnpm workspace + 根 tsconfig（strict、`moduleResolution: bundler`）+ ESLint/Prettier
+- [x] 建 `apps/{web,server,cli}`、`packages/{core,adapters,shared}`、`content/seed` 空骨架（design §3 目录逐一对齐）
+- [x] `packages/shared`：zod 实体 schema（specs 各 §3 字段）、错误码枚举、`schemaVersion` 常量
+- [x] vitest 三层配置（unit / integration / cli-project 夹具 helper）+ GitHub Actions（lint + test，**三平台矩阵 macOS/Linux/Windows（D5）**，预留 `seed:check` 挂点）
+- [x] 落 LICENSE（Apache-2.0，G4 默认）+ README 徽章；CLI 路径/换行符跨平台纪律清单入 CONTRIBUTING 起点
+- [x] 仓库落地（D16/D17，2026-09-21 变体执行）：`git init` 零历史新仓库于 `Documents/OpenVibe`（dev-plan 原文的家目录 orphan 分支会波及 hotspot 未提交改动，改用等效落地）→ 提交本套 docs/README/DEV_LOG + LICENSE + .gitignore → 推送 GitHub `anyeduke11/OpenVibe`（远端存 owner 手建 init 提交，本地提交 rebase 其上，不强推）→ home 存档仓库解除跟踪（历史保留）
 
-**验收**：`pnpm i && pnpm lint && pnpm test` 全绿（含 1 个示例用例/层）；CI 首跑通过。
+**验收**：`pnpm i && pnpm lint && pnpm test` 全绿（含 1 个示例用例/层）；CI 首跑通过。—— ✅ **T1 完成（2026-09-21，DEV-0011）**：本地 lint/typecheck/test 全绿（10 用例，含 UT-LINT-01 R3 边界夹具）；CI run 35558098022 三平台（macos/ubuntu/windows）全部 success。
 
 ### T2 · 存储核心（W1，预估 2.5 人日）
 

@@ -59,7 +59,8 @@ openvibe/
 - [x] 深度竞品对比（2026-09-20）：发现「规则同步」新品类（rulesync/Rulix/rulebook-ai）→ 差异化锚定「标准包治理+流程+回流」，见 [docs/competitive-analysis.md](./docs/competitive-analysis.md)
 - [x] 评审修订（2026-09-20 晚，PRD v0.1.3）：D13 遥测首次注入一次性 opt-in 询问 / D14 内容产能 AI 起草+owner 审校（6.5 周维持）/ D15 M5 两周证伪线 / D16 新仓库策略（发布时新开仓库，不带本仓库历史）
 - [x] **项目更名 OpenVibe（2026-09-21，PRD v0.1.4 / D17）**：npm 包名与冷启动命令 `openvibe-cli`（`openvibe` 被占），bin 命令 `openvibe`；中文名沿用「灵典」
-- [ ] P1：MVP 开发（按 tasks.md T1–T9，6.5 周 = 任务 31.5 人日 + 显式缓冲 1 人日）
+- [x] **P1/T1 工程脚手架完成（2026-09-21，DEV-0011）**：GitHub [anyeduke11/OpenVibe](https://github.com/anyeduke11/OpenVibe) 落地（Apache-2.0）；pnpm monorepo + packages/shared 全量 zod schemas + ESLint R1-R4 依赖边界 + vitest 三层；CI 三平台（macOS/Linux/Windows）首跑全绿
+- [ ] P1：MVP 开发（按 tasks.md T1–T9，6.5 周 = 任务 31.5 人日 + 显式缓冲 1 人日；T2 存储核心为下一步）
 
 ## 差异化定位（相对竞品）
 

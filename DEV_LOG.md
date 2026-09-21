@@ -199,3 +199,26 @@
   - 测试命令: `grep -rn -i "vibecanon" README.md docs/`；`grep -rn "npx openvibe " README.md docs/`（裸命令，应为 0）；`curl -s -o /dev/null -w "%{http_code}" https://registry.npmjs.org/openvibe`（=200，被占）；`…/openvibe-cli`（=404，可用）
   - 验证结果: 旧名残留仅存在于 D17/A8/G5/README 更名记录的**有意历史注记**（约 6 处，逐处确认）；`npx openvibe `（裸命令）清零；npm 核验数据如上（2026-09-21 实测）；PRD 版本引用（dev-plan/competitive-analysis/proposal/README 四处）与 v0.1.4 一致
 - **潜在风险**: ① 与 Inria OpenViBE 搜索撞车（领域不同、大小写不同，非法律阻断）——中文传播需持续用「灵典」关键词区隔，README 已披露；② 冷启动命令 `openvibe-cli` 比理想名长 4 字符，README 首屏与传播物料需醒目统一；③ `openvibe` 包现为他人所有——任何情况下不接盘、不依赖其行为；④ 本地 `.qoder` 项目记忆按路径索引，目录改名后新路径启用新记忆目录（原路径记忆为空，无迁移损失）；⑤ git 远端（duke.git 存档）不受影响，D16 新仓库落地时统一切换。
+
+---
+
+## [DEV-0011] P1/T1 工程脚手架：新仓库落地 + monorepo + shared 全量 + CI 三平台首跑全绿
+- **时间**: 2026-09-21 11:38
+- **类型**: 功能开发（P1 首个任务组，dev-plan §9-T1）
+- **关联文件**: `pnpm-workspace.yaml`, `tsconfig.base.json`, `eslint.config.js`, `vitest.config.ts`, `packages/shared/**`, `apps/{server,cli,web}/**`, `.github/workflows/ci.yml`, `CONTRIBUTING.md`, `LICENSE`, `docs/tasks.md`, `README.md`
+- **问题描述**: P1 启动，按 dev-plan §9-T1 十项工作清单搭建工程脚手架并达成三项验收（本地全绿 / CI 三平台首跑 / R3 边界生效）。
+- **实现思路**: 仓库落地采用「原地改造」变体执行 D16——dev-plan 原文在家目录切 orphan 分支，但家仓库工作树上有 hotspot 未提交改动（344 文件），切分支将波及其他跟踪文件；改为 `Documents/OpenVibe` 内 `git init` 零历史新仓库（等效达成 D16「不带旧历史」），home 存档仓库 `git rm -r --cached` 解除跟踪（历史保留于 647c6e5）并加入其 .gitignore。远端发现 owner 今早 10:49 已手建 `anyeduke11/OpenVibe`（仅 1 个 auto-init 提交 5653ec6），不强推覆盖，将本地两提交 rebase 其上后普通推送。
+- **核心变更**:
+  - 仓库: `git init -b main` + Apache-2.0 LICENSE（官方文本）+ .gitignore（.mimosa/.DS_Store/*.db 排除）+ .gitattributes（eol=lf 跨平台纪律）+ CONTRIBUTING（R1-R4 依赖规则 + 跨平台清单）；提交序列 init(5653ec6, owner) → docs 211a345 → scaffold 4d35a3e
+  - Monorepo: pnpm workspace（apps/{web,server,cli} + packages/{core,adapters,shared}）+ tsconfig.base（strict/bundler/noEmit）+ 根 scripts（dev/build/test/lint/typecheck/seed:check 占位）
+  - `packages/shared` 全量（dev-plan §3.11）: zod schemas×9（prompt/term/skill/flow/project/task+devlog/pack/settings，字段约束对齐各 spec 边界节）+ errors.ts（10 错误码 + code→HTTP 映射 + AppError）+ constants.ts（schemaVersion=1 / 六 adapter / 八类受控词表 / LIMITS / ID 前缀×13）+ ids.ts（前缀 nanoid + idKindOf 反查）+ utils（§7.7 路径安全规则、变量提取正则、TextEncoder 字节口径）
+  - ESLint R1-R4: import-x no-restricted-paths 五 zones（shared←上层层、core←apps/adapters、adapters←apps/core）+ 跨 app no-restricted-imports；Prettier
+  - vitest 三层: unit（packages+tests）/ integration（server app.inject，/api/health 真实端点）/ cli（临时项目夹具 helper makeTempProject/writeProjectFile/cleanup）
+  - CI: GitHub Actions lint+typecheck+test，三平台矩阵（macos/ubuntu/windows，D5），seed:check 挂点注释预留 T4
+- **测试验证**:
+  - 测试命令: `pnpm i && pnpm lint && pnpm typecheck && pnpm test && pnpm seed:check`
+  - 验证结果: lint 0 错误；tsc noEmit 通过；测试 4 文件 10 用例全过（UT-EXAMPLE-01 shared×6 / UT-LINT-01+01b 边界×2 / IT-EXAMPLE-01 health / CLI-EXAMPLE-01 夹具）；CI 首跑 run 35558098022 三平台全 success（2026-09-21 11:37 实测）；R3 生效性以 UT-LINT-01 背书——core 虚拟文件 import `../../../apps/server/src/app` 被 import-x/no-restricted-paths 拒绝，对照组 core→shared 合法
+  - 坑位记录: ① pnpm 11 构建脚本审批需 `pnpm-workspace.yaml` 的 `onlyBuiltDependencies` + `pnpm approve-builds <pkg>` 双动作，仅前者不消除 ERR_PNPM_IGNORED_BUILDS 退出码 1；② UT-LINT-01 夹具相对路径必须真实可解析（no-restricted-paths 按解析后路径匹配 zone），首版少一层 `../` 未触发
+- **潜在风险**: ① 远端 main 保留了 owner 的 auto-init 提交（5653ec6）作历史首提交，与 D16「初始提交=docs」表述有一步之差，语义仍满足「不携带旧仓库历史」；② packages/shared 的 zod 版本锚定 ^4.1，zod 5 若发布需评估；③ `pnpm test` 未含 web 层（占位无测试），T3 引入 Vite/React 后三层配置需回归验证；④ seed-check 为 .mjs 占位，T4 换 TS 实现时需同步根 script。
+
+---
