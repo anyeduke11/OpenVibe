@@ -11,7 +11,8 @@ export type ProjectCreateInput = z.infer<typeof ProjectCreateInput>
 
 export const ProjectUpdateInput = z.object({
   name: z.string().min(1).max(LIMITS.projectNameMax).optional(),
-  localPath: z.string().nullable(),
+  /** 可选：PATCH 允许只改状态/阶段而不触碰路径（仓储层按 undefined 保留原值） */
+  localPath: z.string().nullable().optional(),
   status: z.enum(PROJECT_STATUS).optional(),
   currentStage: z.string().nullable().optional(),
   standardPackId: z.string().nullable().optional(),

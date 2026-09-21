@@ -15,9 +15,18 @@ import { zh } from '../../i18n/zh'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
 import { btnGhost, btnPrimary, inputCls, labelCls } from '../ui/styles'
+import { ReflowOriginLine } from '../projects/ReflowActions'
 import { CodeEditor } from './CodeEditor'
 import { MarkdownPreview } from './MarkdownPreview'
 import { VersionHistoryPanel } from './VersionHistoryPanel'
+
+/** 回流预填（m5 FR-7.1）：content 取日志选中段落，状态落 draft */
+export interface PromptPrefill {
+  title?: string
+  content?: string
+  tags?: string
+  status?: PromptOut['status']
+}
 
 interface FormState {
   title: string
@@ -30,7 +39,7 @@ interface FormState {
   status: PromptOut['status']
 }
 
-function initial(prompt: PromptOut | null): FormState {
+function initial(prompt: PromptOut | null, prefill?: PromptPrefill): FormState {
   return {
     title: prompt?.title ?? '',
     description: prompt?.description ?? '',
@@ -40,6 +49,7 @@ function initial(prompt: PromptOut | null): FormState {
     platformMarks: prompt?.platformMarks ?? [],
     useAs: prompt?.useAs ?? 'reference',
     status: prompt?.status ?? 'draft',
+    ...prefill,
   }
 }
 
@@ -51,9 +61,10 @@ export function PromptEditorDrawer(props: {
   open: boolean
   onClose: () => void
   onSaved: (prompt: PromptOut) => void
+  prefill?: PromptPrefill
 }) {
   const { prompt } = props
-  const [form, setForm] = useState<FormState>(() => initial(prompt))
+  const [form, setForm] = useState<FormState>(() => initial(prompt, props.prefill))
   const [showPreview, setShowPreview] = useState(true)
   const { create, update } = usePromptMutations()
   const pending = create.isPending || update.isPending
@@ -112,7 +123,8 @@ export function PromptEditorDrawer(props: {
         variant="sheet"
         footer={
           <>
-            <span className="mr-auto text-[11px] text-zinc-400">
+            <span className="mr-auto flex items-center gap-2 text-[11px] text-zinc-400">
+              {prompt !== null && <ReflowOriginLine assetId={prompt.id} />}
               {prompt === null ? '' : `updated ${prompt.updatedAt}`}
             </span>
             <button className={btnGhost} onClick={props.onClose}>

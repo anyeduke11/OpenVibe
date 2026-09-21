@@ -54,13 +54,17 @@ export const TERM_STATUS = ['draft', 'active'] as const
 export const TERMS_ORDER_BY = ['en-alpha', 'pinyin', 'manual'] as const
 export type TermsOrderBy = (typeof TERMS_ORDER_BY)[number]
 export const PROJECT_STATUS = ['active', 'paused', 'archived'] as const
+export type ProjectStatus = (typeof PROJECT_STATUS)[number]
 export const TASK_STATUS = ['todo', 'doing', 'done'] as const
+export type TaskStatus = (typeof TASK_STATUS)[number]
 export const FLOW_KINDS = ['light', 'spec_driven', 'retro', 'custom'] as const
 export type FlowKind = (typeof FLOW_KINDS)[number]
 
 export const DEVLOG_TYPES = ['DEV', 'CHECK'] as const
+export type DevLogType = (typeof DEVLOG_TYPES)[number]
 export const EXPORT_CHANNELS = ['download', 'directory'] as const
 export const SKILL_SOURCES = ['local', 'manual'] as const
+export type SkillSource = (typeof SKILL_SOURCES)[number]
 
 /** 遥测事件白名单·仅三类（design §11.5，D3/D13） */
 export const TELEMETRY_EVENTS = ['pack_injected', 'flow_template_used', 'project_active'] as const

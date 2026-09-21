@@ -23,6 +23,13 @@ export const SkillOut = z.object({
 })
 export type SkillOut = z.infer<typeof SkillOut>
 
+/** 台账维护：仅描述与安装标记可改（name/来源由扫描或创建决定，m2 FR-3.2） */
+export const SkillUpdateInput = z.object({
+  description: z.string().optional(),
+  installedTargets: z.array(z.string()).optional(),
+})
+export type SkillUpdateInput = z.infer<typeof SkillUpdateInput>
+
 export const SkillVersionOut = z.object({
   id: z.string(),
   skillId: z.string(),

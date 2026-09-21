@@ -54,3 +54,14 @@ export const DevLogOut = z.object({
   createdAt: z.string(),
 })
 export type DevLogOut = z.infer<typeof DevLogOut>
+
+/** 回流反查：资产 → 产生它的那条日志（m5 FR-7.2，linkedAssetIds 为唯一权威源） */
+export const ReflowOriginOut = z.object({
+  logId: z.string(),
+  projectId: z.string(),
+  projectName: z.string(),
+  logType: z.enum(DEVLOG_TYPES),
+  entryNo: z.number().int().min(1),
+  displayNo: z.string(),
+})
+export type ReflowOriginOut = z.infer<typeof ReflowOriginOut>

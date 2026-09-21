@@ -8,6 +8,7 @@ import {
 } from '@openvibe/shared'
 import { useTermMutations } from '../../hooks/useTerms'
 import { zh } from '../../i18n/zh'
+import { ReflowOriginLine } from '../projects/ReflowActions'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
 import { btnGhost, btnPrimary, chipCls, inputCls, labelCls } from '../ui/styles'
@@ -21,6 +22,15 @@ interface FormState {
   tags: string[]
   relatedTermIds: string[]
   status: TermOut['status']
+  source: string
+}
+
+/** 回流预填（m5 FR-7.1）：definition 取日志段落、source 记项目名、状态落 draft */
+export interface TermPrefill {
+  zh?: string
+  definition?: string
+  status?: TermOut['status']
+  source?: string
 }
 
 const csv = (value: string): string[] =>
@@ -29,7 +39,7 @@ const csv = (value: string): string[] =>
     .map((v) => v.trim())
     .filter((v) => v !== '')
 
-function initial(term: TermOut | null): FormState {
+function initial(term: TermOut | null, prefill?: TermPrefill): FormState {
   return {
     zh: term?.zh ?? '',
     en: term?.en ?? '',
@@ -39,6 +49,8 @@ function initial(term: TermOut | null): FormState {
     tags: term?.tags ?? [],
     relatedTermIds: term?.relatedTermIds ?? [],
     status: term?.status ?? 'active',
+    source: term?.source ?? 'manual',
+    ...prefill,
   }
 }
 
@@ -51,9 +63,10 @@ export function TermEditorDrawer(props: {
   open: boolean
   onClose: () => void
   onSaved: (term: TermOut) => void
+  prefill?: TermPrefill
 }) {
   const { term, allTerms } = props
-  const [form, setForm] = useState<FormState>(() => initial(term))
+  const [form, setForm] = useState<FormState>(() => initial(term, props.prefill))
   const [tagDraft, setTagDraft] = useState('')
   const [relatedFilter, setRelatedFilter] = useState('')
   const { create, update } = useTermMutations()
@@ -113,6 +126,7 @@ export function TermEditorDrawer(props: {
       tags: form.tags,
       relatedTermIds: form.relatedTermIds,
       status: form.status,
+      source: form.source,
     } satisfies TermCreateInput
     const onOk = (created: TermOut) => {
       toast(zh.terms.editor.saved)
@@ -134,7 +148,8 @@ export function TermEditorDrawer(props: {
         footer={
           <>
             {term !== null && (
-              <span className="mr-auto text-xs text-zinc-500">
+              <span className="mr-auto flex items-center gap-2 text-xs text-zinc-500">
+                <ReflowOriginLine assetId={term.id} />
                 {zh.terms.editor.sourceLabel}：
                 {term.source === 'openvibe-seed' ? zh.terms.source.seed : term.source}
                 {term.source === 'openvibe-seed' && ` · ${zh.terms.editor.seedEdited}`}

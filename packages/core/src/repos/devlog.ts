@@ -6,6 +6,7 @@ import {
   type DevLogCreateInput,
   type DevLogEvidence,
   type DevLogOut,
+  type ReflowOriginOut,
 } from '@openvibe/shared'
 import { parseJsonColumn } from './util'
 
@@ -125,6 +126,35 @@ export class DevLogRepo {
     this.db
       .prepare('UPDATE dev_log_entries SET linked_asset_ids = ? WHERE id = ?')
       .run(JSON.stringify([...log.linkedAssetIds, assetId]), entryId)
+  }
+
+  /**
+   * 回流反查（m5 FR-7.2）：从 linkedAssetIds 找回产生该资产的日志，多条命中取最早一条为来源。
+   * 用 json_each 精确比对而非 LIKE '%id%'——前缀相同的资产会互相误命中。
+   */
+  reflowOriginFor(assetId: string): ReflowOriginOut | null {
+    const row = this.db
+      .prepare(
+        `SELECT d.id AS log_id, d.project_id, p.name AS project_name, d.type, d.entry_no
+         FROM dev_log_entries d
+         JOIN projects p ON p.id = d.project_id
+         WHERE json_valid(d.linked_asset_ids)
+           AND EXISTS (SELECT 1 FROM json_each(d.linked_asset_ids) WHERE value = ?)
+         ORDER BY d.created_at ASC, d.rowid ASC
+         LIMIT 1`,
+      )
+      .get(assetId) as
+      | { log_id: string; project_id: string; project_name: string; type: string; entry_no: number }
+      | undefined
+    if (!row) return null
+    return {
+      logId: row.log_id,
+      projectId: row.project_id,
+      projectName: row.project_name,
+      logType: row.type as ReflowOriginOut['logType'],
+      entryNo: row.entry_no,
+      displayNo: `${row.type}-${padEntryNo(row.entry_no)}`,
+    }
   }
 
   /** 导出单类型合并 Markdown（DEV_LOG.md / CHECK_LOG.md，编号有序，m5 FR-5.4） */

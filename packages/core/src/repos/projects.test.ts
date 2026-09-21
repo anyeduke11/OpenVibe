@@ -30,6 +30,22 @@ describe('stagesSnapshot 物化（design D10）', () => {
     expect(copy.name).toContain('副本')
     h.close()
   })
+
+  it('删除在用自定义模板：存量项目快照保留、来源引用置空（design D10）', () => {
+    const h = newDb()
+    const flows = new FlowTemplatesRepo(h.db)
+    const custom = flows.create({ name: '我的流', kind: 'custom', stages })
+    const projects = new ProjectsRepo(h.db)
+    const project = projects.create({ name: 'demo', flowTemplateId: custom.id })
+
+    flows.delete(custom.id)
+
+    const after = projects.get(project.id)
+    expect(after?.flowTemplateId).toBeNull()
+    expect(after?.stagesSnapshot).toEqual(stages)
+    expect(after?.currentStage).toBe('启动')
+    h.close()
+  })
 })
 
 describe('阶段切换与检查清单持久化', () => {

@@ -8,7 +8,9 @@ export { PromptsRepo } from './repos/prompts'
 export { TermsRepo } from './repos/terms'
 export { FlowTemplatesRepo } from './repos/flows'
 export { ProjectsRepo, type ProjectHealthSummary } from './repos/projects'
+export { TasksRepo } from './repos/tasks'
 export { DevLogRepo } from './repos/devlog'
+export { checkLocalPath, readInjectionStatus, PACK_LOCK_REL, type LocalPathCheck } from './local/lock'
 export { PacksRepo } from './repos/packs'
 export {
   parseImportFiles,

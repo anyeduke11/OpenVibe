@@ -45,6 +45,9 @@ export interface ProjectHealthSummary {
   unchecked: number
   total: number
   lastLogAt: string | null
+  /** 删除确认框需明示「将删除 N 条日志」（m5 §6.5），随摘要一并给出避免二次请求 */
+  logCount: number
+  taskCount: number
   injection: { packId: string | null; version: string | null }
 }
 
@@ -128,10 +131,15 @@ export class ProjectsRepo {
     return row ? rowToProject(row) : null
   }
 
-  list(): ProjectOut[] {
-    const rows = this.db
-      .prepare("SELECT * FROM projects WHERE status != 'archived' ORDER BY updated_at DESC")
-      .all() as ProjectRow[]
+  /** 默认隐藏归档项目（m5 FR-1.4）；筛选归档需显式传 includeArchived */
+  list(options: { includeArchived?: boolean } = {}): ProjectOut[] {
+    const rows = (
+      options.includeArchived
+        ? this.db.prepare('SELECT * FROM projects ORDER BY updated_at DESC').all()
+        : this.db
+            .prepare("SELECT * FROM projects WHERE status != 'archived' ORDER BY updated_at DESC")
+            .all()
+    ) as ProjectRow[]
     return rows.map(rowToProject)
   }
 
@@ -195,11 +203,19 @@ export class ProjectsRepo {
     const lastLog = this.db
       .prepare('SELECT MAX(created_at) AS at FROM dev_log_entries WHERE project_id = ?')
       .get(id) as { at: string | null }
+    const counts = this.db
+      .prepare(
+        `SELECT (SELECT COUNT(*) FROM dev_log_entries WHERE project_id = ?) AS logs,
+                (SELECT COUNT(*) FROM tasks WHERE project_id = ?) AS tasks`,
+      )
+      .get(id, id) as { logs: number; tasks: number }
     return {
       stage: project.currentStage,
       unchecked,
       total,
       lastLogAt: lastLog.at,
+      logCount: counts.logs,
+      taskCount: counts.tasks,
       injection: { packId: project.standardPackId, version: project.standardPackVersion },
     }
   }

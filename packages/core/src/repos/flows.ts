@@ -84,7 +84,13 @@ export class FlowTemplatesRepo {
     if (existing.builtin) {
       throw new AppError('BUILTIN_IMMUTABLE', '内置模板不可删除（m5 FR-2）')
     }
-    this.db.prepare('DELETE FROM flow_templates WHERE id = ?').run(id)
+    this.db.transaction(() => {
+      // 存量项目持物化快照，删模板只抹掉来源引用（design D10）；不清 NULL 会撞 FK 约束
+      this.db
+        .prepare('UPDATE projects SET flow_template_id = NULL WHERE flow_template_id = ?')
+        .run(id)
+      this.db.prepare('DELETE FROM flow_templates WHERE id = ?').run(id)
+    })()
   }
 
   get(id: string): FlowTemplateOut | null {

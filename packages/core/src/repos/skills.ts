@@ -191,22 +191,36 @@ export class SkillsRepo {
     }
     const id = newId('skill')
     const ts = nowIso()
-    this.db
-      .prepare(
-        `INSERT INTO skills (id, name, description, source, skill_dir, latest_version_id,
-           installed_targets, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)`,
-      )
-      .run(
-        id,
-        input.name,
-        input.description ?? '',
-        input.source ?? 'manual',
-        input.skillDir ?? null,
-        JSON.stringify(input.installedTargets ?? []),
-        ts,
-        ts,
-      )
+    // 手动登记即为首版本（m2 §3 versionLabel「无则 v1」）：无目录指纹，dirHash 留空串。
+    // §7.4 要求「同名目录再扫 → 该手动条目 versions=2」，没有这一行就永远只涨到 1。
+    this.db.transaction(() => {
+      this.db
+        .prepare(
+          `INSERT INTO skills (id, name, description, source, skill_dir, latest_version_id,
+             installed_targets, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)`,
+        )
+        .run(
+          id,
+          input.name,
+          input.description ?? '',
+          input.source ?? 'manual',
+          input.skillDir ?? null,
+          JSON.stringify(input.installedTargets ?? []),
+          ts,
+          ts,
+        )
+      const versionId = newId('skillVersion')
+      this.db
+        .prepare(
+          `INSERT INTO skill_versions (id, skill_id, version_label, dir_hash, file_count, scanned_at)
+           VALUES (?, ?, 'v1', '', 0, ?)`,
+        )
+        .run(versionId, id, ts)
+      this.db
+        .prepare('UPDATE skills SET latest_version_id = ? WHERE id = ?')
+        .run(versionId, id)
+    })()
     const skill = this.get(id)
     if (!skill) throw new AppError('INTERNAL', '创建后读取失败')
     return skill

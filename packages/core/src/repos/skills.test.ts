@@ -83,3 +83,43 @@ describe('SkillsRepo.scan（m2 FR-1 验收前置）', () => {
     expect(repo.versions(pdf?.id ?? '')).toHaveLength(2)
   })
 })
+
+describe('手动登记与扫描并入（m2 FR-2.2 / §7.4）', () => {
+  it('create 即生成无指纹的 v1 首版本；同名目录扫到后成为版本 2 且主档仍为 manual', () => {
+    const handle = newDb()
+    const dir = mkdtempSync(join(tmpdir(), 'ov-skills-manual-'))
+    try {
+      const repo = new SkillsRepo(handle.db)
+      const manual = repo.create({
+        name: 'my-skill',
+        description: '手工说明',
+        source: 'manual',
+        installedTargets: ['claude-code'],
+      })
+      expect(manual.latestVersionId).toBeTruthy()
+      expect(repo.versions(manual.id).map((v) => v.versionLabel)).toEqual(['v1'])
+
+      mkdirSync(join(dir, 'my-skill'))
+      writeFileSync(
+        join(dir, 'my-skill', 'SKILL.md'),
+        '---\nname: my-skill\ndescription: 扫出来的\n---\nbody',
+      )
+      expect(repo.scan([dir])).toMatchObject({ discovered: 1, created: 0, updated: 1, skipped: 0 })
+
+      const merged = repo.get(manual.id)
+      expect(merged?.source).toBe('manual')
+      expect(merged?.installedTargets).toEqual(['claude-code'])
+      expect(merged?.skillDir).toBe(join(dir, 'my-skill'))
+      const vers = repo.versions(manual.id)
+      expect(vers).toHaveLength(2)
+      expect(merged?.latestVersionId).toBe(vers[1]?.id)
+
+      // 再扫同一目录命中真实指纹 → skipped；空串指纹不参与判重
+      expect(repo.scan([dir])).toMatchObject({ skipped: 1, updated: 0 })
+      expect(repo.versions(manual.id)).toHaveLength(2)
+    } finally {
+      handle.close()
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})

@@ -4,7 +4,12 @@ import { APP_NAME, SCHEMA_VERSION } from '@openvibe/shared'
 import { openDatabase, type SqliteDatabase } from '@openvibe/core'
 import { registerAuth } from './plugins/auth'
 import { registerErrors } from './plugins/errors'
+import { registerDevLogRoutes } from './routes/devlog'
+import { registerFlowTemplateRoutes } from './routes/flowTemplates'
+import { registerProjectRoutes } from './routes/projects'
 import { registerPromptRoutes, type PromptRouteDeps } from './routes/prompts'
+import { registerSkillRoutes } from './routes/skills'
+import { registerTaskRoutes } from './routes/tasks'
 import { registerTermRoutes } from './routes/terms'
 
 export interface BuildAppOptions {
@@ -37,6 +42,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   const deps: PromptRouteDeps = { db }
   registerPromptRoutes(app, deps)
   registerTermRoutes(app, deps)
+  registerFlowTemplateRoutes(app, deps)
+  registerProjectRoutes(app, deps)
+  registerTaskRoutes(app, deps)
+  registerDevLogRoutes(app, deps)
+  registerSkillRoutes(app, deps)
 
   app.get('/api/health', async () => ({
     status: 'ok',
