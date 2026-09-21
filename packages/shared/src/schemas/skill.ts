@@ -8,7 +8,7 @@ export const SkillCreateInput = z.object({
   skillDir: z.string().optional(),
   installedTargets: z.array(z.string()).default([]),
 })
-export type SkillCreateInput = z.infer<typeof SkillCreateInput>
+export type SkillCreateInput = z.input<typeof SkillCreateInput>
 
 export const SkillOut = z.object({
   id: z.string(),

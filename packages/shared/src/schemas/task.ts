@@ -38,7 +38,7 @@ export const DevLogCreateInput = z.object({
   relatedFiles: z.array(z.string()).default([]),
   evidence: DevLogEvidence.optional(),
 })
-export type DevLogCreateInput = z.infer<typeof DevLogCreateInput>
+export type DevLogCreateInput = z.input<typeof DevLogCreateInput>
 
 export const DevLogOut = z.object({
   id: z.string(),

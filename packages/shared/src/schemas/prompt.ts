@@ -28,7 +28,7 @@ export const PromptCreateInput = z.object({
   useAs: z.enum(USE_AS).default('reference'),
   status: z.enum(PROMPT_STATUS).default('draft'),
 })
-export type PromptCreateInput = z.infer<typeof PromptCreateInput>
+export type PromptCreateInput = z.input<typeof PromptCreateInput>
 
 export const PromptUpdateInput = z.object({
   title: z.string().min(1).max(LIMITS.promptTitleMax).optional(),
@@ -75,5 +75,4 @@ export const PromptVersionOut = z.object({
 export type PromptVersionOut = z.infer<typeof PromptVersionOut>
 
 /** 导入条目（JSON 互导 / Markdown / 规则文件反向导入统一形状，m1 FR-6） */
-export const PromptImportItem = PromptCreateInput
-export type PromptImportItem = z.infer<typeof PromptImportItem>
+export type PromptImportItem = z.input<typeof PromptCreateInput>

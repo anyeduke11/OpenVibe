@@ -219,6 +219,24 @@
   - 测试命令: `pnpm i && pnpm lint && pnpm typecheck && pnpm test && pnpm seed:check`
   - 验证结果: lint 0 错误；tsc noEmit 通过；测试 4 文件 10 用例全过（UT-EXAMPLE-01 shared×6 / UT-LINT-01+01b 边界×2 / IT-EXAMPLE-01 health / CLI-EXAMPLE-01 夹具）；CI 首跑 run 35558098022 三平台全 success（2026-09-21 11:37 实测）；R3 生效性以 UT-LINT-01 背书——core 虚拟文件 import `../../../apps/server/src/app` 被 import-x/no-restricted-paths 拒绝，对照组 core→shared 合法
   - 坑位记录: ① pnpm 11 构建脚本审批需 `pnpm-workspace.yaml` 的 `onlyBuiltDependencies` + `pnpm approve-builds <pkg>` 双动作，仅前者不消除 ERR_PNPM_IGNORED_BUILDS 退出码 1；② UT-LINT-01 夹具相对路径必须真实可解析（no-restricted-paths 按解析后路径匹配 zone），首版少一层 `../` 未触发
-- **潜在风险**: ① 远端 main 保留了 owner 的 auto-init 提交（5653ec6）作历史首提交，与 D16「初始提交=docs」表述有一步之差，语义仍满足「不携带旧仓库历史」；② packages/shared 的 zod 版本锚定 ^4.1，zod 5 若发布需评估；③ `pnpm test` 未含 web 层（占位无测试），T3 引入 Vite/React 后三层配置需回归验证；④ seed-check 为 .mjs 占位，T4 换 TS 实现时需同步根 script。
+---
+
+## [DEV-0012] P1/T2 存储核心：SQLite 封装 + migrations + FTS5 + 七 repos + seed 骨架
+- **时间**: 2026-09-21 11:55
+- **类型**: 功能开发（P1 第二个任务组，dev-plan §9-T2）
+- **关联文件**: `packages/core/src/db/{index,runner,seed}.ts`, `packages/core/src/db/migrations/000{1,2}_*.sql`, `packages/core/src/search/fts.ts`, `packages/core/src/repos/{prompts,terms,skills,flows,projects,devlog,packs,util}.ts`, `packages/core/src/test-support/new-db.ts`, `packages/shared/src/schemas/*`（Input 类型口径修订）, `pnpm-workspace.yaml`
+- **问题描述**: 按 dev-plan §9-T2 七项工作清单落地存储层，达成六条验收映射（UT-MIGRATION/VERSION/CASCADE/FTS/SEED/ENTRYNO）。
+- **实现思路**: 严格按 design §5 DDL 逐表建 0001（含 FTS5 trigram 虚表与六触发器，外部内容表方案）+ 0002（app_meta/telemetry_events）；migration runner 自举 schema_migrations 并只前进；FTS 查询路由按 len(q)≥3 MATCH / <3 LIKE；repos 按 §7.1 签名实现，packs 的 preview/export 留待 T6（依赖 composer+adapters）。
+- **核心变更**:
+  - 依赖: core + better-sqlite3@12.11.1（构建白名单+approve-builds；本地 node 26 与 FTS5 trigram 实测通过）
+  - db: openDatabase（WAL/foreign_keys/busy_timeout=5000/自动迁移）；migrate 只前进（文件名升序、单事务、失败回滚）；schema_migrations 由 runner 自举（C 级偏差：dev-plan §2.2 曾把该表放 0001 内，与 runner 自举冲突）
+  - 七 repos: prompts（创建即 v1 / 内容变更快照 / restore 以旧版建新版不改写历史 / importBatch title+hash 去重）；terms（renderMd 码点序确定性 + `\|` 转义 / 删除引用清理）；skills（scan + dirHash 忽略 .DS_Store·node_modules + frontmatter 容错回退目录名）；flows（builtin 403 / duplicate 副本去重）；projects（stagesSnapshot 物化 / switchStage 校验 / checkState upsert-delete / healthSummary 三要素）；devlog（entryNo 事务分配+UNIQUE 重试一次 / displayNo 零填充 / export 按类型合并 md / linkAsset 幂等）；packs（CRUD + recordExport 409/幂等 + reportInjection）
+  - seed: 三 bundle 幂等（registry contentHash 短路；新条目插入 / seed_hash 非 NULL 则更新 / NULL 跳过+warning；单文件失败不阻塞）
+  - shared 口径修订: *Input 类型由 z.infer 改 z.input（默认值字段在调用方可选，repo 内落默认）——修复 T1 遗留的输入类型误用
+- **测试验证**:
+  - 测试命令: `pnpm typecheck && pnpm test && pnpm lint`
+  - 验证结果: 37/37 用例全绿（10 文件）；T2 映射逐条——UT-MIGRATION-01（两版本+重跑空+WAL/FK）✓、UT-VERSION-01/02（3 版本+回滚 v4=v1 / 元数据不变不产生版本）✓、UT-CASCADE-01/02（prompt 版本与 project 三表级联清零）✓、UT-FTS-01/02/03（中文子串「规则漂移」/ 两字 LIKE「漂移」/ 英文「memoiz」/ 术语别名「大模型漂移」）✓、UT-SEED-01/02（跑两遍计数不变 / 升级：新并入+未改更新+用户改过跳过）✓、UT-ENTRYNO-01（1/2/3 递增、跨类型独立、DEV-0001 零填充）✓；另含 dirHash 忽略规则、TERMS.md 两次渲染 sha256 一致、BUILTIN_IMMUTABLE 等前置
+  - 坑位记录: ① zod 的 z.infer 对含 .default() 字段产出必填输出态——*Input 必须用 z.input；② newDb 夹具默认自动迁移，显式 migrate 断言需 autoMigrate:false
+- **潜在风险**: ① migrations 以 fs+import.meta.url 定位，后续若对 server/CLI 做产物打包需确认 .sql 随包分发；② TERMS.md 的 pinyin 排序暂以 en-alpha 近似（T4 复核，m3 FR-4.2）；③ entryNo 并发重试在单连接 better-sqlite3 下天然串行，多进程写库场景依赖 busy_timeout；④ better-sqlite3 在 CI 三平台需预编译产物可用（node 22 主流 ABI，如遇缺失将回落 node-gyp 编译）。
 
 ---

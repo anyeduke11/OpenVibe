@@ -57,14 +57,14 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 ### T2 · 存储核心（W1，预估 2.5 人日）
 
-- [ ] better-sqlite3 封装：打开/建目录/`~/.openvibe/` 布局（design §4）、WAL、migration runner（只前进）
-- [ ] migrations v1：design §5 全表 + 外键 + 索引
-- [ ] FTS：两张 trigram 虚表 + 六触发器 + 查询路由（≥3 MATCH / <3 LIKE，design §12）
-- [ ] 仓储层：prompts（含版本快照/回滚）、terms、skills、flows、projects（stagesSnapshot 物化）、packs；entryNo 事务分配
-- [ ] seed 加载器骨架（幂等规则按 design §15，数据 T4/T8 到位）
-- [ ] 单测：版本快照触发/不触发、级联删除计数、FTS 中英命中、seed 幂等（夹具 bundle 跑两遍）
+- [x] better-sqlite3 封装：打开/建目录/`~/.openvibe/` 布局（design §4）、WAL、migration runner（只前进）
+- [x] migrations v1：design §5 全表 + 外键 + 索引
+- [x] FTS：两张 trigram 虚表 + 六触发器 + 查询路由（≥3 MATCH / <3 LIKE，design §12）
+- [x] 仓储层：prompts（含版本快照/回滚）、terms、skills、flows、projects（stagesSnapshot 物化）、packs；entryNo 事务分配
+- [x] seed 加载器骨架（幂等规则按 design §15，数据 T4/T8 到位）
+- [x] 单测：版本快照触发/不触发、级联删除计数、FTS 中英命中、seed 幂等（夹具 bundle 跑两遍）
 
-**验收**：m3 验收 1/4、m1 验收 2/3 的存储层前置在单测层通过。
+**验收**：m3 验收 1/4、m1 验收 2/3 的存储层前置在单测层通过。—— ✅ **T2 完成（2026-09-21，DEV-0012）**：37/37 用例全绿，六条验收映射（UT-MIGRATION/VERSION/CASCADE/FTS/SEED/ENTRYNO）逐条通过。
 
 ### T3 · M1 提示词库垂直切片（W1末–W2，预估 4 人日）
 

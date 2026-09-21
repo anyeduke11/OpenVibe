@@ -27,7 +27,7 @@ export const PackCreateInput = z.object({
   selection: PackSelection,
   targets: z.array(z.enum(ADAPTER_IDS)).min(1, { message: 'targets 至少一个平台（m6a §6.3）' }),
 })
-export type PackCreateInput = z.infer<typeof PackCreateInput>
+export type PackCreateInput = z.input<typeof PackCreateInput>
 
 export const PackUpdateInput = z.object({
   name: z.string().regex(PACK_NAME_RE).optional(),

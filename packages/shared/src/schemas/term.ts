@@ -30,7 +30,7 @@ export const TermCreateInput = z
     message: 'zh 与 en 至少一项非空（m3 §6.1）',
     path: ['zh'],
   })
-export type TermCreateInput = z.infer<typeof TermCreateInput>
+export type TermCreateInput = z.input<typeof TermCreateInput>
 
 export const TermUpdateInput = z
   .object({
@@ -68,4 +68,4 @@ export const RenderTermsMdInput = z.object({
   termIds: z.array(z.string()).min(1, { message: '空选集（EMPTY_SELECTION）' }),
   orderBy: z.enum(['en-alpha', 'pinyin', 'manual']).default('en-alpha'),
 })
-export type RenderTermsMdInput = z.infer<typeof RenderTermsMdInput>
+export type RenderTermsMdInput = z.input<typeof RenderTermsMdInput>
