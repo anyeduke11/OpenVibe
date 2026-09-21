@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Test & coverage
+coverage/
+
+# Databases (runtime data never in repo)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Runtime dirs
+.openvibe/
+packs/
+
+# Logs
+*.log
+logs/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Tool session state (D16)
+.mimosa/
+
+# Env
+.env
+.env.*
