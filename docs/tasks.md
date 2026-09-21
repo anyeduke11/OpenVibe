@@ -45,7 +45,7 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 ### T1 · 工程脚手架（W1，预估 1.5 人日）
 
 - [ ] ~~核验 npm 包名~~（✅ P0 期已关闭：旧名 `vibecanon` 可用；D17 更名后 `openvibe-cli` 2026-09-21 实测可用，直接定名）
-- [ ] ~~平台契约核验收口（G3 尾巴）~~（✅ P0 期已关闭：MiniCode = 专用 adapter `MINI.md`（README 实证）；Trae 多文件 + trigger frontmatter 由社区/半官方来源确认，T6 真机复核文件名行为；Kimi 证据升级「较强」，真机抽测挂 T6）
+- [ ] ~~平台契约核验收口（G3 尾巴）~~（✅ P0 期已关闭：MiniCode = 专用 adapter `MINI.md`（README 实证）；Trae 多文件由 T6 真机复核确认，但 frontmatter 从 `trigger` 修正为 `alwaysApply`（二进制一手证据，见 DEV-0016 C-26）；Kimi 证据升级「较强」，AGENTS.md 感知由 Codex 二进制 `agents_md.rs` 佐证）
 - [x] pnpm workspace + 根 tsconfig（strict、`moduleResolution: bundler`）+ ESLint/Prettier
 - [x] 建 `apps/{web,server,cli}`、`packages/{core,adapters,shared}`、`content/seed` 空骨架（design §3 目录逐一对齐）
 - [x] `packages/shared`：zod 实体 schema（specs 各 §3 字段）、错误码枚举、`schemaVersion` 常量
@@ -99,15 +99,15 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 ### T6 · M6a 组包导出 + 契约快照（W3，预估 5.5 人日）★ 关键路径
 
-- [ ] `packages/core/pack/`：composer（design §7.3 组合规则）、fingerprint（§7.6）、validate（§7.7 全规则）
-- [ ] `packages/adapters/`：**六 adapter**（claude-code / cursor / generic-agents / **codebuddy / trae / minicode**，D7+D9）+ registry + 兼容矩阵常量（design §8 v1.2）
-- [ ] **真机复核**（半天内）：Trae 实装验证 `.trae/rules/openvibe.md` + `trigger: always` 生效（不符则回退 project_rules.md 并记 DEV_LOG）；Kimi Code 抽测一次 AGENTS.md 感知
-- [ ] API：preview/export/exports/injections（含 409 VERSION_IMMUTABLE、STALE_SELECTION）
-- [ ] bundle 下载 + 目录导出双通道（幂等/409 规则）
-- [ ] Web `/packs/new` 5 步向导 + 预览（文件树+内容+**覆盖平台提示**，读兼容矩阵）+ 导出历史
-- [ ] **golden 快照测试**：3 个固定夹具包（其中一个 targets=codebuddy+trae+minicode）的全部产物文件字节级断言（契约防漂移，此后任何改动 §7/§8 需先改快照=显式升版）
+- [x] `packages/core/pack/`：composer（design §7.3 组合规则）、fingerprint（§7.6）、validate（§7.7 全规则）
+- [x] `packages/adapters/`：**六 adapter**（claude-code / cursor / generic-agents / **codebuddy / trae / minicode**，D7+D9）+ registry + 兼容矩阵常量（design §8 v1.2）
+- [x] **真机复核**（半天内）：Trae CN 二进制一手证据推翻原 `trigger: always`——改 `{ description, alwaysApply: true }`，`.trae/rules/openvibe.md` 自定义名保留（`project_rules.md` 回退预案未触发）；Codex 二进制 `core/src/agents_md.rs` 证实读 `AGENTS.md`（根+嵌套，`AGENTS.override.md`）；证据落 `docs/devlog-evidence/DEV-0016/{trae-frontmatter,codex-agents}-probe.txt`
+- [x] API：preview/export/exports/injections（含 409 VERSION_IMMUTABLE、STALE_SELECTION）——实落 **11 端点**（§3.8 标题「6 端点」为早期估算，见 DEV-0016 C-35）
+- [x] bundle 下载 + 目录导出双通道（幂等/409 规则）
+- [x] Web `/packs/new` 5 步向导 + 预览（文件树+内容+**覆盖平台提示**，读兼容矩阵）+ 导出历史
+- [x] **golden 快照测试**：3 个固定夹具包（其中一个 targets=codebuddy+trae+minicode）的全部产物文件字节级断言（契约防漂移，此后任何改动 §7/§8 需先改快照=显式升版）
 
-**验收**：m6a §7 全部 7 条通过；golden 快照进 CI。
+**验收**：m6a §7 全部 7 条通过（#6 bundle 被 `sync --file` 消费为 T7 联测项）；golden 快照进 CI。—— ✅ **T6 完成（2026-09-22，DEV-0016）**：152/152 用例全绿；浏览器走查两段 **82 项断言全 PASS / 0 FAIL**（第 1 段向导+双通道+版本治理 66、第 2 段列表/详情/编辑/删除+STALE 标红+C-25 包关联 16）落 `docs/devlog-evidence/DEV-0016/`；走查中发现并修复 `.gitignore` 未锚定 `packs/` 吞掉 5 个 Web 组件（C-38）。
 
 ### T7 · CLI：serve/scan/sync/diff（W3末–W4，预估 4.5 人日）★ 关键路径
 

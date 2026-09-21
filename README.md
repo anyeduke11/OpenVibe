@@ -64,7 +64,8 @@ openvibe/
 - [x] **P1/T3 M1 提示词库垂直切片完成（2026-09-21，DEV-0013）**：server 骨架（buildApp DI + 双通道鉴权 + 统一错误）+ 提示词九端点 + 四形态导入解析器 + Web `/library` 十组件（CodeMirror 双栏编辑、变量复制弹窗、版本 diff/回滚、导入导出）；m1 §7 八条验收逐条通过，53 用例全绿，浏览器实测截图与真实导出落 `docs/devlog-evidence/DEV-0013/`
 - [x] **P1/T4 M3 术语库垂直切片完成（2026-09-21，DEV-0014）**：首批 **63 条**种子词条入库（附录 B 10 条必含项齐备）+ `pnpm seed:check` 成为 CI 独立闸门 + 术语五端点与确定性 `TERMS.md` 渲染（拼音/英 alphabetic 双序，跨平台字节一致）+ Web `/terms`（搜索降级提示、多选、关联双向展示、TERMS.md 预览/复制/下载）；m3 §7 五条 + seed-content §7 四条逐条通过，67 用例全绿，15 步浏览器走查证据落 `docs/devlog-evidence/DEV-0014/`
 - [x] **P1/T5 M5 项目流程 + M2 Skill 台账垂直切片完成（2026-09-21，DEV-0015）**：29 个新端点（项目/模板/看板/日志/回流/injection-status/skills 扫描）+ 内置模板 403 只读 + Web 四页（`/projects` 三步向导、`/projects/:id` 阶段条+勾选+看板+日志+回流、`/flows` 模板裁剪、`/skills` 台账）；看板与模板编辑为 @dnd-kit 指针+键盘双模且同一 PATCH 有 ↑↓←→ 按钮兜底；m5 §7 八条 + m2 §7 五条逐条通过，103 用例全绿，四段浏览器走查 75 项断言全 PASS + 34 张截图落 `docs/devlog-evidence/DEV-0015/`
-- [ ] P1：MVP 开发（按 tasks.md T1–T9，6.5 周 = 任务 31.5 人日 + 显式缓冲 1 人日；下一步 T6 组包导出（关键路径）与 T7 CLI；T4 的 63 条词条待 owner 审校，T8 补齐至 ≥100 条并将 `seed:check` 阈值切到 100/3/20）
+- [x] **P1/T6 M6a 组包导出 + 契约快照垂直切片完成（2026-09-22，DEV-0016）**：`packages/shared/pack-contract.ts` 契约类型 + 六 adapter（Trae 壳经二进制复核从 `trigger: always` 修正为 `{ description, alwaysApply: true }`）+ `core/pack`（composer/fingerprint/validate/bundle/resolve）+ server **11 端点**（preview/export/exports/injections + bundle 下载，409 VERSION_IMMUTABLE / 422 版本回退 / STALE_SELECTION）+ 目录导出与 bundle 双通道 + Web `/packs` 列表详情 + `/packs/new` 五步向导（三栏资产挑选 / 预览即产物字节一致 / 覆盖平台提示）+ C-25 项目↔包关联收口；golden 三夹具字节级快照进 CI；m6a §7 七条验收（#6 留 T7 联测）+ 两段浏览器走查 **82 项断言全 PASS**，152 用例全绿，证据落 `docs/devlog-evidence/DEV-0016/`
+- [ ] P1：MVP 开发（按 tasks.md T1–T9，6.5 周 = 任务 31.5 人日 + 显式缓冲 1 人日；下一步 **T7 CLI serve/scan/sync/diff（关键路径）**；T4 的 63 条词条待 owner 审校，T8 补齐至 ≥100 条并将 `seed:check` 阈值切到 100/3/20）
 
 ## 差异化定位（相对竞品）
 

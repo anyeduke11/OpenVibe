@@ -1,0 +1,47 @@
+# Codex CLI AGENTS.md 真机探针  2026-09-21T16:46:53Z
+# binary: /opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex
+# version: codex-cli 0.144.6
+# sha256: 80a3933d11a9d13e
+## strings 命中（AGENTS.md 发现与优先级逻辑，节选去重）
+    - More-deeply-nested AGENTS.md files take precedence in the case of conflict
+    - The scope of an AGENTS.md file is the entire directory tree rooted at t
+ AGENTS files
+ AGENTS.md
+ AGENTS.md instructions
+ AGENTS.md spec
+ blocking task ran twice.AGENTS.override.mdAGENTS.mdbackground task failed
+ check for any AGENTS.md files that may be applicable.
+ check whether AGENTS.md already exists in the current working directo
+ etc. apply only to code within the AGENTS.md file's scope
+ spawn sub-agents unless the user or applicable AGENTS.md/skill instructions explicitly ask for sub-age
+ take precedence over AGENTS.md instructions.
+ you must obey instructions in any AGENTS.md file whose scope includes that file.
+- Instructions in AGENTS.md files
+- Repos often contain AGENTS.md files. These files can appear anywhere within
+- The contents of the AGENTS.md file at the root of the repo and any director
+-enabledclauderead-onlyworkspace-write.mcp.jsonAGENTS.mdCodexmcpServersPreToolUsePermissionRequestPost
+/init - create an AGENTS.md file with instructions for Codex/status - sho
+170AGENTS.override.mdAGENTS.mdevent core/src/agents_md.rs
+3Failed to read global AGENTS.md instructions from 
+AGENTS.md
+AGENTS_MD
+AGENTS_MDCONFIGSKILLSPLUGINSMCP_SERVER_CONFIGSUBAGENTSH
+ExternalAgentConfigImportTypeResultAGENTS_MDCONFIGSKILLSPLUGINSMCP_SERVER_CONFIGSUBAGENTSH
+Use /init to create an AGENTS.md with project-specific guidance.
+ameterstls handshake eofThe previously provided AGENTS.md instructions no longer apply.These AGENTS.md 
+continue this session in Codex Desktopcreate an AGENTS.md file with instructions for Codexsummarize con
+error trying to find AGENTS.md docs
+i.e. AGENTS.md
+includeHomecwdsmigrationItemsAGENTS_MD
+instructions replace all previously provided AGENTS.md instructions.
+lumnsummarydetailsrangeitemTypesuccessesfailuresAGENTS_MDCONFIGSKILLSPLUGINSMCP_SERVER_CONFIGSUBAGENTSH
+migrationItemssourceitemTypedescriptiondetailsAGENTS_MD
+migrationconfig target path has no parent.agentsAGENTS.mdCLAUDE.mdAGENTS.md target path has no parentev
+n    - More-deeply-nested AGENTS.md files take precedence in the case of conflict
+n    - The scope of an AGENTS.md file is the entire directory tree rooted at t
+n migration detection because config load failedAGENTS.md.agentshooks.jsoninvalid existing config.tomle
+n- Instructions in AGENTS.md files
+n- Repos often contain AGENTS.md files. These files can appear anywhere within
+n- The contents of the AGENTS.md file at the root of the repo and any director
+onseimportIdExternalAgentConfigMigrationItemTypeAGENTS_MDCONFIGSKILLSPLUGINSMCP_SERVER_CONFIGSUBAGENTSH
+ry /app again in a moment.Generate a file named AGENTS.md that serves as a contributor guide for this r

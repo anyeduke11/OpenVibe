@@ -1,0 +1,20 @@
+# Trae CN 真机探针（frontmatter 键与规则目录）  2026-09-21T16:47:37Z
+# app: /Applications/Trae CN.app/Contents/Resources/app
+## alwaysApply 出现处（计数）
+/Applications/Trae CN.app/Contents/Resources/app/out/vs/workbench/workbench.desktop.main.js
+alwaysApply!==void 0&&t.push(`alway
+alwaysApply"
+alwaysApply":a.alwaysApply=g.toLowe
+alwaysApply:!0}
+alwaysApply:!1
+alwaysApply:!1}
+alwaysApply===!0?IS.AlwaysApply:e&&
+alwaysApply===!1?IS.Manual:IS.Alway
+alwaysApply}`
+## trigger 作为规则键是否出现
+## .trae/rules 与 project_rules 目录判定
+.trae/rules/
+project_rules.md
+## scene / globs 键
+scene":
+scene:

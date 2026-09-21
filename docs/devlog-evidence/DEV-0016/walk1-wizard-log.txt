@@ -1,0 +1,72 @@
+# T6f 走查日志 · 第 1 段 组装向导  2026-09-21T16:35:30.037Z
+# 环境: vite http://localhost:5173 → tsx http://127.0.0.1:8787, OPENVIBE_HOME=/Users/duke/.local/share/openvibe-t6
+PASS A1 /packs 渲染标题与新建按钮
+PASS A2 跳转 /packs/new 且显示第 1 步
+PASS A3 空包名被拦（包名必填） — Notification 包名必填
+PASS A4 非法 slug 被拦（[a-z0-9-] 规则） — Notification 包名不符合 slug 规则（[a-z0-9-]）
+PASS A5 合法 slug 进入第 2 步流程模板
+PASS B1 内置流程模板可选（含阶段摘要） — 个人轻量流内置 启动 → 开发 → 复盘 · 3 个阶段
+PASS B2 默认选中「不关联流程」 — 不关联流程（不生成 CHECKLIST.md）
+PASS B3 进入第 3 步资产挑选（三栏）
+PASS B4 空选集被前端拦（m6a FR-2.4），仍停在第 3 步 — Notification 提示词 / 术语 / skill / 流程至少挑一项（空选集不可组包，m6a FR-2.4）
+PASS C0 上一步回到第 2 步且跨步状态保留
+# 三栏计数: 提示词（active）（2） | 术语（63） | Skill（1）
+PASS C1 三栏都有数据（提示词/术语/skill 来自真实库存） — 提示词（active）（2） | 术语（63） | Skill（1）
+PASS C2 术语「全选当前结果」把整栏勾满 — {"total":63,"picked":63}
+PASS C3 「清空」后术语 0 选 — picked=0
+PASS C4 逐条勾选：6 术语 + 2 提示词 + 1 skill — 6,2,1
+PASS C5 栏内搜索按标题过滤 — {"n":2,"ok":true}
+PASS C6 搜索词清空后选中项不丢（勾选独立于过滤） — picked=2
+PASS C7 有选集可进第 4 步
+PASS D1 默认勾中 claude-code + generic-agents — Claude Code,AGENTS.md 通用
+PASS D2 六个平台卡片齐列且带主文件映射（design §8.2）
+PASS D3 逐个勾选后共 6 个平台 — Claude Code,Cursor,AGENTS.md 通用,CodeBuddy,Trae,MiniCode
+PASS D4 取消勾选生效（claude/generic/codebuddy/trae/minicode） — Claude Code,AGENTS.md 通用,CodeBuddy,Trae,MiniCode
+PASS D5 保存后进入第 5 步预览
+PASS D6 定义已落库（POST /api/packs）
+PASS D7 落库形状正确（5 targets + 6/2/1 选集 + 流程） — [["claude-code","generic-agents","codebuddy","trae","minicode"],6,2,1,true]
+PASS D8 preview 200 — status=200
+PASS D9 预览文件树 = API 文件集 = 契约预期（5 主文件 + TERMS + SKILLS + CHECKLIST + manifest） — dom=.trae/rules/openvibe.md,AGENTS.md,CHECKLIST.md,CLAUDE.md,CODEBUDDY.md,MINI.md,SKILLS.md,TERMS.md,openvibe.pack.json
+PASS D10 文件树按路径码点序（§7.3 确定性排序） — .trae/rules/openvibe.md,AGENTS.md,CHECKLIST.md,CLAUDE.md,CODEBUDDY.md,MINI.md,SKILLS.md,TERMS.md,openvibe.pack.json
+PASS D11 页内指纹 = API 指纹 — 8044d8331dbc vs 8044d8331dbc
+PASS D12 coveredPlatforms 非空并在页内渲染（只来自兼容矩阵） — Cline,Codex,Kimi Code,OpenCode,Qwen Code,Trae CN,zcode
+PASS D13 点开 .trae/rules/openvibe.md 正文逐字节 = preview 内容 — len=610/610
+PASS D13 点开 AGENTS.md 正文逐字节 = preview 内容 — len=539/539
+PASS D13 点开 CHECKLIST.md 正文逐字节 = preview 内容 — len=297/297
+PASS D13 点开 CLAUDE.md 正文逐字节 = preview 内容 — len=539/539
+PASS D13 点开 CODEBUDDY.md 正文逐字节 = preview 内容 — len=539/539
+PASS D13 点开 MINI.md 正文逐字节 = preview 内容 — len=539/539
+PASS D13 点开 SKILLS.md 正文逐字节 = preview 内容 — len=135/135
+PASS D13 点开 TERMS.md 正文逐字节 = preview 内容 — len=677/677
+PASS D13 点开 openvibe.pack.json 正文逐字节 = preview 内容 — len=4928/4928
+PASS D14 trae 产物 frontmatter = alwaysApply: true + 裸 description（真机二进制证据推翻 design §8 的 trigger: always） — ---\ndescription: OpenVibe 标准包 t6-walk-pack@1.0.0\nalwaysApply: true\n---
+PASS D15 主文件零时间戳 + 注入区块标记齐（§7.3 确定性 / §7.4 区块） — <!-- openvibe:pack=t6-walk-pack@1.0.0 be … \n\n<!-- openvibe:end -->\n
+PASS D16 cursor 未选 ⇒ 不产出 .mdc（主文件只按 targets 生成）
+PASS D17 预览可重复（同版本两次指纹/字节全等）
+# toast 采样（首次导出）: Notification 已导出 v1.0.0
+PASS E1 首次导出 created（bundle 通道，请求 200） — {"req1":{"url":"/api/packs/pk_eOHLpl9o5Iu_6i81pAiFi/export","method":"POST","status":200},"items":[["1.0.0","download"]]}
+PASS E2 bundle 下载响应头齐备（attachment 文件名 + x-pack-fingerprint） — cd=attachment; filename="openvibe-pack-t6-walk-pack-1.0.0.json"
+PASS E3 bundle 体为契约 JSON（bundleSchemaVersion=1 + manifest + files） — files=8
+PASS E4 bundle 路径无 .. 且 = preview 文件集（manifest 除外） — .trae/rules/openvibe.md,AGENTS.md,CHECKLIST.md,CLAUDE.md,CODEBUDDY.md,MINI.md,SKILLS.md,TERMS.md
+PASS E5 manifest.files 不含 manifest 自身（§7.6 自指哈希不存在）
+PASS E6 导出后 preview 指纹 = 导出记录指纹（同一生成器） — 8044d8331dbc vs 8044d8331dbc
+# toast 采样（目录导出）: Notification v1.0.0 指纹一致，回既有导出记录（幂等） | Notification 目录已写入 /Users/duke/.local/share/openvibe-t6/packs/t6-walk-pack@1.0.0
+PASS E7 目录导出请求 200 且页内给出落盘路径 — {"url":"/api/packs/pk_eOHLpl9o5Iu_6i81pAiFi/export","method":"POST","status":200} /Users/duke/.local/share/openvibe-t6/packs/t6-walk-pack@1.0.0
+# 目录导出路径: /Users/duke/.local/share/openvibe-t6/packs/t6-walk-pack@1.0.0
+PASS E8 磁盘正文 = preview 正文（目录形态 files/<相对路径>，manifest 另按 E9）
+PASS E9 磁盘 manifest 与 preview 仅 exportedAt 不同（§7.2 唯一字节例外） — disk=2026-09-21T16:36:03.032Z api=2026-09-21T16:35:52.349Z
+PASS E10 目录导出后导出记录仍 1 条（同版本同指纹幂等回既有记录，§7.8）
+PASS E11 同版本同指纹重导 → 请求 200 + 幂等提示（status=idempotent） — {"reqIdem":{"url":"/api/packs/pk_eOHLpl9o5Iu_6i81pAiFi/export","method":"POST","status":200},"tIdem":"Notification v1.0.0 指纹一致，回既有导出记录（幂等）"}
+PASS E12 幂等重导不新增记录、不改磁盘字节
+PASS E13 两次上一步回到第 3 步（跨步状态仍在）
+PASS E14 加勾第 7 条术语 — picked=7
+PASS E15 选集变化后提示「相对上次导出指纹不同」（m6a FR-4.3） — 相对上次导出 v1.0.0，本次指纹不同（选集或资产内容有变化，m6a FR-4.3）
+PASS E16 变化后 preview 指纹 ≠ 上次导出指纹 — ccb8c6808375 vs 8044d8331dbc
+PASS E17 同版本改内容 → 409 VERSION_IMMUTABLE 且提示升版本号 — {"req409":{"url":"/api/packs/pk_eOHLpl9o5Iu_6i81pAiFi/export","method":"POST","status":409},"t409":"Notification 1.0.0 已导出且内容已变化，请升版本号"}
+PASS E18 409 不产生脏记录（仍 1 条），v1.0.0 磁盘仍是旧内容
+PASS E19 版本号回退被拒（422 + 需 ≥ 1.0.0，m6a FR-4.1） — {"reqLow":{"url":"/api/packs/pk_eOHLpl9o5Iu_6i81pAiFi/export","method":"POST","status":422},"tLow":"Notification 新导出版本必须 ≥ 1.0.0（m6a FR-4.1）"}
+PASS E20 升 v1.1.0 成功（请求 200 + 结果行 created） — 已导出 v1.1.0 · created · download · 指纹（前 12 位） f7a01b6f92e5
+PASS E21 两条导出记录且指纹不同 — 1.1.0:f7a01b6f 1.0.0:8044d833
+PASS E22 旧版本 bundle 仍可下载且指纹不变（导出即物化，m6a §7.5） — status=200 fp=8044d8331dbc
+PASS E23 v1.1.0 目录另起一份（请求 200 + 7 条术语），v1.0.0 目录字节未被覆盖（不可变） — req={"url":"/api/packs/pk_eOHLpl9o5Iu_6i81pAiFi/export","method":"POST","status":200} v1=见 TERMS.md（6 条） v11=见 TERMS.md（7 条）
+PASS X1 全程无未捕获页面异常

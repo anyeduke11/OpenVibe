@@ -1,0 +1,19 @@
+# T6f 走查日志 · 第 2 段 包管理 + STALE + C-25  2026-09-21T16:44:11.759Z
+# 环境: vite http://localhost:5173 → tsx http://127.0.0.1:8787, OPENVIBE_HOME=/Users/duke/.local/share/openvibe-t6
+PASS G1 列表渲染该行：包名 + 选集摘要 + 两个目标平台 chip — t6-w2-pack 第 2 段走查包 Claude Code Trae 提示词 2 · 术语 3 · Skill 1 未关联流程 2026-09-21T16:44:13.687Z 编辑 删除
+PASS G2 详情抽屉：定义 + 导出历史（0）+ 无导出/无注入文案 — 包明细 · t6-w2-pack ✕ 定义 第 2 段走查包 Claude Code Trae 提示词 2 · 术语 3 · Skill 1 · 未关联流程 导出历史（不可变实例）（0） 还没有导出记录 注入历史 还没有注入记录（CLI sync 成功后上报，m6a FR-5） 
+PASS G2b 导出请求 200 且 status=created — {"s":200,"st":"created","fp":"132711ceb4c2"}
+PASS G3 导出历史出现 1 行：v1.0.0 + bundle 下载通道 + 12 位指纹 + bundle 链接 — href=/api/packs/pk_XwKD4vybUeH0ae17xKtIm/exports/pex_TNSKIDVJd3OxgI7kQKdc0/bundle
+PASS G4 bundle 下载 200 + content-disposition=attachment + x-pack-fingerprint 与导出一致 — cd=attachment; filename="openvibe-pack-t6-w fp=132711ceb4c2
+PASS G5 编辑：路由到 /packs/:id/edit 且第 1 步预填包名 — name=t6-w2-pack
+PASS I1 项目向导第 3 步：出现「不关联」+ 已导出包 t6-w2-pack 单选项 — 新建项目 · ③ 标准包（可跳过） ✕ 不关联标准包（可稍后在项目详情里登记） t6-w2-pack 提示词 2 · 术语 3 · Skill 1 t6-walk-pack 提示词 2 · 术语 7 · Skill 1 3 / 3 上一步 
+PASS I2 选中包后给出可复制 sync 命令，版本取最新导出 1.0.0 — openvibe sync /Users/duke/.local/share/openvibe-t6 --pack t6-w2-pack@1.0.0 复制
+PASS I3 创建后 PATCH 关联写入：standardPackId + standardPackVersion=1.0.0 — {"sid":"pk_XwKD4vybUeH0ae17xKtIm","ver":"1.0.0"}
+PASS I4 项目详情注入面板显示「库内登记」该包（未注入 lock） — 已登记
+PASS G6a 删除确认框文案含包名与硬删说明 — 删除标准包 ✕ 确认删除标准包「t6-w2-pack」？ 定义与其导出历史一并硬删；已导出到磁盘/已注入项目的文件不受影响（内容在导出时已物化）。 取消 确认删
+PASS G6b 确认后行消失 + toast「已删除标准包」+ GET 404 — gone=true toast=Notification 已删除标准包 get=404
+PASS H1 建 STALE 包并删除其引用提示词 — pack=201 prompt=204
+PASS H2 第 5 步预览因引用资产删除而失败，出现「回第 3 步重选」 — backBtn=true
+PASS H3 回第 3 步：红色横幅列出失效 id 且带红底样式 — banner=true redEls=2
+PASS X2 全程无未捕获页面异常
+# 第 2 段结果: PASS 16 / FAIL 0

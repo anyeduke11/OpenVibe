@@ -194,6 +194,7 @@ openvibe/
 ├── content/seed/{terms.json,flow-templates.json,prompts.json}
 ├── docs/（PRD/specs/design/tasks/dev-plan/proposal/竞品×2）
 ├── scripts/seed-check.ts（pnpm seed:check 入口）
+├── scripts/golden-update.ts（pnpm golden:update 入口：重新生成 tests/golden/** 契约快照）
 └── .github/workflows/ci.yml
 ```
 
@@ -949,7 +950,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 | cursor | `.cursor/rules/openvibe.mdc` | YAML frontmatter：`{description: "OpenVibe 标准包 <name>@<ver>", globs: "", alwaysApply: true}` |
 | generic-agents | `AGENTS.md` | 主正文原样（Codex/zcode/Kimi 等经兼容矩阵读此文件） |
 | codebuddy | `CODEBUDDY.md` | 主正文原样（无此文件时 CodeBuddy 回退读 AGENTS.md） |
-| trae | `.trae/rules/openvibe.md` | frontmatter `trigger: always`（v1.2 自定义文件名，D10） |
+| trae | `.trae/rules/openvibe.md` | frontmatter `{ description, alwaysApply: true }`（v1.2 自定义文件名，D10；**T6 真机复核推翻原 `trigger: always`**，二进制只认 `globs`/`alwaysApply`/`description`/`scene`） |
 | minicode | `MINI.md` | 主正文原样（MiniCode `/init` 约定，D9） |
 
 辅助产物（**不属 adapter**，composer 直接生成）：`TERMS.md` / `CHECKLIST.md` / `SKILLS.md` / `openvibe.pack.json`。
@@ -960,7 +961,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 
 ### 8.4 T6 真机复核 checklist（半天）
 
-1. Trae 实装 `.trae/rules/openvibe.md` + `trigger: always` 是否生效 → 不符则回退 `project_rules.md` 并记 DEV_LOG（§8 预案）。
+1. ✅ Trae 真机复核（2026-09-22）：`.trae/rules/openvibe.md` 保留自定义文件名，但 frontmatter 从 `trigger: always` 改为 `{ description, alwaysApply: true }`——Trae CN 二进制一手证据显示只解析 `globs`/`alwaysApply`/`description`/`scene`，未知键静默丢弃，`trigger` 不会触发自动加载；`project_rules.md` 回退预案未触发（同二进制证实 `.trae/rules/` 支持多规则文件共存）。见 `docs/devlog-evidence/DEV-0016/trae-frontmatter-probe.txt` + DEV-0016 C-26。owner 的 GUI 手工清单（3 分钟）结果回填于 DEV-0016。
 2. Kimi Code 抽测 AGENTS.md 感知（主会话生效即算过）。
 3. （顺带）三平台产物在真机打开确认无编码/换行问题（CRLF 纪律：一律 `\n`）。
 
@@ -1097,14 +1098,14 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 **SPEC 依据**：m6a FR-1–FR-5；design **§7 契约 / §8 adapter（冻结，A 级变更红线）**。
 
 **工作项**
-- [ ] `core/pack/composer.ts`（§7.2 组合规则/排序键/受管标记/TERMS 转义）
-- [ ] `core/pack/fingerprint.ts` + `validate.ts`（§7.2 全规则）+ `bundle.ts`（单文件 bundle 打包/解包）
-- [ ] `adapters/`：types/registry/compat + 六模块（§8.2 映射）
+- [x] `core/pack/composer.ts`（§7.2 组合规则/排序键/受管标记/TERMS 转义）
+- [x] `core/pack/fingerprint.ts` + `validate.ts`（§7.2 全规则）+ `bundle.ts`（单文件 bundle 打包/解包）
+- [x] `adapters/`：types/registry/compat + 六模块（§8.2 映射）
 - [ ] **真机复核**（§8.4 checklist 半天）
-- [ ] `server/routes/packs.ts`：preview/export/exports/injections（409/STALE_SELECTION/NAME_CONFLICT）
-- [ ] bundle 下载 + 目录导出双通道（幂等/409）
-- [ ] `web/pages/PackNewPage` PackWizard 5 步 + PackPreviewPane（文件树+内容+coveredPlatforms）+ `PacksPage` ExportHistoryPanel
-- [ ] **golden 快照**：三夹具（G1 claude-code+generic-agents / G2 codebuddy+trae+minicode / G3 全六 targets+skill+含变量 rule）全部产物字节级断言，进 CI
+- [x] `server/routes/packs.ts`：preview/export/exports/injections（409/STALE_SELECTION/NAME_CONFLICT）+ 11 端点
+- [x] bundle 下载（migration 0003 `bundle_json`）+ 目录导出双通道（幂等/409 漂移拒写）
+- [x] `web/pages/PackNewPage` PackWizard 5 步 + PackPreviewPane（文件树+内容+coveredPlatforms）+ `PacksPage` ExportHistoryPanel
+- [x] **golden 快照**：三夹具（G1 claude-code+generic-agents / G2 codebuddy+trae+minicode / G3 全六 targets+skill+含变量 rule）全部产物字节级断言，进 CI
 
 **验收-测试映射（m6a §7 ×8）**
 

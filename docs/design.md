@@ -222,7 +222,7 @@ manifest 内嵌资产**内容快照**（prompts 含全文、terms 全字段）�
 
 **.cursor/rules/openvibe.mdc**：YAML frontmatter `{description: "OpenVibe 标准包 <name>@<ver>", globs: "", alwaysApply: true}` + 7.3 正文。
 
-**CLAUDE.md / AGENTS.md / CODEBUDDY.md / MINI.md**：7.3 正文原样（四个根级规则文件仅文件名不同，内容一致——各工具自取所需，多文件生成防遗漏）；**.trae/rules/openvibe.md**：7.3 正文 + Trae frontmatter（`trigger: always`）。
+**CLAUDE.md / AGENTS.md / CODEBUDDY.md / MINI.md**：7.3 正文原样（四个根级规则文件仅文件名不同，内容一致——各工具自取所需，多文件生成防遗漏）；**.trae/rules/openvibe.md**：7.3 正文 + Trae frontmatter `{ description: "OpenVibe 标准包 <name>@<ver>", alwaysApply: true }`（T6 真机复核修正：Trae CN 二进制只解析 `globs`/`alwaysApply`/`description`/`scene` 四键，未知键静默丢弃 ⇒ 原设计的 `trigger: always` 等于没有声明、规则不会自动加载；见 `docs/devlog-evidence/DEV-0016/trae-frontmatter-probe.txt` 与 DEV-0016 C-26）。
 
 ### 7.5 `.openvibe/pack.lock.json`（CLI 写入目标项目）
 
@@ -275,7 +275,7 @@ interface Adapter {
 | `cursor` | ✅ | `.cursor/rules/openvibe.mdc` | YAML frontmatter（description/globs/alwaysApply），新版规则目录 | Cursor rules（`.cursor/rules/*.mdc`） |
 | `generic-agents` | ✅ | `AGENTS.md` | 项目根通用约定（Codex 等读 AGENTS.md 的代理） | agents.md 社区惯例 |
 | `codebuddy` | ✅ | `CODEBUDDY.md` | 项目根单文件规则，正文复用主模板；CodeBuddy 无此文件时回退读 AGENTS.md | CodeBuddy 官网最佳实践 + 腾讯云文档 |
-| `trae` | ✅ | `.trae/rules/openvibe.md` | **v1.2 改用自定义文件名**（裁定 D10）：社区与半官方来源确认 `.trae/rules/` 支持多规则文件共存，自定义名避免覆盖用户已有 `project_rules.md`；frontmatter 用 `trigger: always`（每次对话自动加载） | Trae 官方最佳实践 + W3Cschool/火山引擎教程（多文件与 alwaysApply 机制）+ trae-rules 合集实证；T6 真机复核，不符则回退默认名 |
+| `trae` | ✅ | `.trae/rules/openvibe.md` | **v1.2 改用自定义文件名**（裁定 D10）：社区与半官方来源确认 `.trae/rules/` 支持多规则文件共存，自定义名避免覆盖用户已有 `project_rules.md`；frontmatter 用 `{ description, alwaysApply: true }`（**T6 真机复核推翻原 `trigger: always`**：二进制仅认 `globs`/`alwaysApply`/`description`/`scene`，未知键丢弃 ⇒ `trigger` 不触发自动加载） | Trae CN 二进制一手证据（`alwaysApply===!0?AlwaysApply:…` 解析分支 + `.trae/rules/` 多文件判定）；见 `trae-frontmatter-probe.txt` / DEV-0016 C-26 |
 | `minicode` | ✅ | `MINI.md` | 项目根单文件规则，正文复用主模板（MiniCode 的 `/init` 约定） | GitHub README 实证（`/init` scaffold `.mini-code/` + `MINI.md`；1.1k★ MIT） |
 | `windsurf` | P1 | `.windsurf/rules/openvibe.md` | 随 M2 完整版 skill 分发一起交付 | Windsurf rules 目录 |
 | `gemini` | P1 可选 | `GEMINI.md` | 一行接入（同主模板），需求出现即加 | Gemini CLI 约定 |
