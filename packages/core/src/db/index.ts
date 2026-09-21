@@ -6,8 +6,10 @@ import { migrate } from './runner'
 
 export type SqliteDatabase = Database.Database
 
-/** ~/.openvibe/ 布局（design §4） */
+/** ~/.openvibe/ 布局（design §4）；OPENVIBE_HOME 覆盖供测试/沙箱用 */
 export function openvibeHome(): string {
+  const override = process.env.OPENVIBE_HOME
+  if (override !== undefined && override !== '') return override
   return join(homedir(), '.openvibe')
 }
 

@@ -7,6 +7,10 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
+    },
+    "./test-support": {
+      "types": "./src/test-support/new-db.ts",
+      "default": "./src/test-support/new-db.ts"
     }
   },
   "dependencies": {

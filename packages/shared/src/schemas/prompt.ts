@@ -1,10 +1,5 @@
 import { z } from 'zod'
-import {
-  LIMITS,
-  PLATFORM_MARKS,
-  PROMPT_STATUS,
-  USE_AS,
-} from '../constants'
+import { LIMITS, PLATFORM_MARKS, PROMPT_STATUS, USE_AS } from '../constants'
 import { utf8ByteLength } from '../utils'
 
 export const folderPathSchema = z
@@ -13,10 +8,12 @@ export const folderPathSchema = z
   .refine((p) => !p.includes('\\'), { message: 'folderPath 不允许反斜杠' })
   .default('/')
 
-const contentSchema = z.string().min(1).refine(
-  (s) => utf8ByteLength(s) <= LIMITS.promptContentMaxBytes,
-  { message: `content 超过 ${LIMITS.promptContentMaxBytes} 字节上限（m1 §6.1）` },
-)
+const contentSchema = z
+  .string()
+  .min(1)
+  .refine((s) => utf8ByteLength(s) <= LIMITS.promptContentMaxBytes, {
+    message: `content 超过 ${LIMITS.promptContentMaxBytes} 字节上限（m1 §6.1）`,
+  })
 
 export const PromptCreateInput = z.object({
   title: z.string().min(1).max(LIMITS.promptTitleMax),
@@ -44,7 +41,12 @@ export type PromptUpdateInput = z.infer<typeof PromptUpdateInput>
 
 export const PromptQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  size: z.coerce.number().int().min(1).max(LIMITS.listPageSizeMax).default(LIMITS.listPageSizeDefault),
+  size: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(LIMITS.listPageSizeMax)
+    .default(LIMITS.listPageSizeDefault),
   tag: z.string().optional(),
   folder: z.string().optional(),
   platform: z.enum(PLATFORM_MARKS).optional(),
@@ -74,5 +76,17 @@ export const PromptVersionOut = z.object({
 })
 export type PromptVersionOut = z.infer<typeof PromptVersionOut>
 
-/** 导入条目（JSON 互导 / Markdown / 规则文件反向导入统一形状，m1 FR-6） */
-export type PromptImportItem = z.input<typeof PromptCreateInput>
+/** 导入条目（JSON 互导 / Markdown / 规则文件反向导入统一形状，m1 FR-6）；
+ *  createdAt/updatedAt 可选携带导出值——回导保留原时间戳，保证「再导一次字节级一致」（m1 §7.5） */
+export const PromptImportItem = PromptCreateInput.extend({
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+})
+export type PromptImportItem = z.input<typeof PromptImportItem>
+
+/** FR-7.1 导出文件形状（导入侧回导校验复用） */
+export const PromptExportFile = z.object({
+  schemaVersion: z.literal(1),
+  exportedAt: z.string().optional(),
+  items: z.array(PromptImportItem),
+})

@@ -1,25 +1,48 @@
+import { randomBytes } from 'node:crypto'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { APP_NAME, SCHEMA_VERSION } from '@openvibe/shared'
+import { openDatabase, type SqliteDatabase } from '@openvibe/core'
+import { registerAuth } from './plugins/auth'
+import { registerErrors } from './plugins/errors'
+import { registerPromptRoutes, type PromptRouteDeps } from './routes/prompts'
 
 export interface BuildAppOptions {
+  /** 注入 SQLite 连接（测试用临时库；缺省 :memory:，C-7） */
+  db?: SqliteDatabase
+  /** CLI Bearer token（缺省随机生成；T7 起由 config.json 持久化） */
+  token?: string
   appVersion?: string
+}
+
+export interface BuiltApp {
+  app: FastifyInstance
+  db: SqliteDatabase
+  token: string
 }
 
 /**
  * 构建 Fastify 实例（不 listen，测试用 app.inject）。
- * T1 仅含 /api/health；路由注册器、鉴权与静态托管插件随 T2–T6 落地（dev-plan §4）。
+ * auth/errors 插件与资源路由直接挂根作用域（无封装，见 DEV-0013 C-7）。
  */
-export async function buildApp(options: BuildAppOptions = {}): Promise<FastifyInstance> {
-  const app = Fastify({ logger: false })
+export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp> {
+  const db = options.db ?? openDatabase(':memory:')
+  const token = options.token ?? randomBytes(24).toString('hex')
   const appVersion = options.appVersion ?? '0.0.0'
+  const app = Fastify({ logger: false })
+
+  registerErrors(app)
+  registerAuth(app, { token })
+
+  const deps: PromptRouteDeps = { db }
+  registerPromptRoutes(app, deps)
 
   app.get('/api/health', async () => ({
     status: 'ok',
     app: APP_NAME,
     version: appVersion,
     schemaVersion: SCHEMA_VERSION,
-    db: { status: 'pending', detail: '存储层随 T2 落地' },
+    db: { status: 'ready' },
   }))
 
-  return app
+  return { app, db, token }
 }

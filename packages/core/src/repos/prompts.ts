@@ -101,8 +101,7 @@ export class PromptsRepo {
     patch: PromptUpdateInput,
   ): { prompt: PromptOut; versionCreated: PromptVersionOut | null; warnings: string[] } {
     const existing = this.db.prepare('SELECT * FROM prompts WHERE id = ?').get(id) as
-      | PromptRow
-      | undefined
+      PromptRow | undefined
     if (!existing) throw new AppError('NOT_FOUND', `提示词不存在: ${id}`)
 
     const next = {
@@ -117,16 +116,20 @@ export class PromptsRepo {
     }
     const nextHash = sha256Hex(next.content)
     const contentChanged = nextHash !== existing.content_hash
-    const nextVariables = contentChanged ? extractVariables(next.content) : parseJsonColumn<string[]>(existing.variables, [])
+    const nextVariables = contentChanged
+      ? extractVariables(next.content)
+      : parseJsonColumn<string[]>(existing.variables, [])
     const ts = nowIso()
 
     let versionCreated: PromptVersionOut | null = null
     const run = this.db.transaction(() => {
       if (contentChanged) {
         const versionNo =
-          (this.db
-            .prepare('SELECT MAX(version_no) AS n FROM prompt_versions WHERE prompt_id = ?')
-            .get(id) as { n: number | null }).n ?? 0
+          (
+            this.db
+              .prepare('SELECT MAX(version_no) AS n FROM prompt_versions WHERE prompt_id = ?')
+              .get(id) as { n: number | null }
+          ).n ?? 0
         versionCreated = this.insertVersion(id, versionNo + 1, next.content, nextHash, '')
       }
       this.db
@@ -167,8 +170,7 @@ export class PromptsRepo {
 
   get(id: string): PromptOut | null {
     const row = this.db.prepare('SELECT * FROM prompts WHERE id = ?').get(id) as
-      | PromptRow
-      | undefined
+      PromptRow | undefined
     return row ? rowToPrompt(row) : null
   }
 
@@ -214,12 +216,12 @@ export class PromptsRepo {
 
     const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : ''
     const total = (
-      this.db.prepare(`SELECT COUNT(*) AS c FROM prompts ${whereSql}`).get(...params) as { c: number }
+      this.db.prepare(`SELECT COUNT(*) AS c FROM prompts ${whereSql}`).get(...params) as {
+        c: number
+      }
     ).c
     const rows = this.db
-      .prepare(
-        `SELECT * FROM prompts ${whereSql} ORDER BY updated_at DESC LIMIT ? OFFSET ?`,
-      )
+      .prepare(`SELECT * FROM prompts ${whereSql} ORDER BY updated_at DESC LIMIT ? OFFSET ?`)
       .all(...params, query.size, (query.page - 1) * query.size) as PromptRow[]
     return { items: rows.map(rowToPrompt), total, page: query.page }
   }
@@ -228,17 +230,17 @@ export class PromptsRepo {
     const rowids = searchPromptRowids(this.db, q)
     if (rowids.length === 0) return []
     const placeholders = rowids.map(() => '?').join(',')
-    const whereSql =
-      where.length > 0 ? `AND ${where.join(' AND ')}` : ''
+    const whereSql = where.length > 0 ? `AND ${where.join(' AND ')}` : ''
     const rows = this.db
-      .prepare(
-        `SELECT id FROM prompts WHERE rowid IN (${placeholders}) ${whereSql}`,
-      )
+      .prepare(`SELECT id FROM prompts WHERE rowid IN (${placeholders}) ${whereSql}`)
       .all(...rowids, ...params) as { id: string }[]
+    if (rows.length === 0) return []
     const found = new Set(rows.map((r) => r.id))
     // 保持搜索排序（FTS 走 rank，LIKE 走 updatedAt）
     const orderedRows = this.db
-      .prepare(`SELECT id, rowid AS rid FROM prompts WHERE id IN (${[...found].map(() => '?').join(',')})`)
+      .prepare(
+        `SELECT id, rowid AS rid FROM prompts WHERE id IN (${[...found].map(() => '?').join(',')})`,
+      )
       .all(...found) as { id: string; rid: number }[]
     const rowidToId = new Map(orderedRows.map((r) => [r.rid, r.id]))
     return rowids.map((rid) => rowidToId.get(rid)).filter((x): x is string => x !== undefined)
@@ -297,16 +299,23 @@ export class PromptsRepo {
         skipped.push({ title: item.title, reason: '重复（title + contentHash 一致）' })
         continue
       }
-      created.push(this.create(item).prompt.id)
+      const { prompt } = this.create(item)
+      // 导出回导保留原时间戳（m1 §7.5 再导字节级一致）
+      if (item.createdAt !== undefined || item.updatedAt !== undefined) {
+        this.db
+          .prepare(
+            'UPDATE prompts SET created_at = COALESCE(?, created_at), updated_at = COALESCE(?, updated_at) WHERE id = ?',
+          )
+          .run(item.createdAt ?? null, item.updatedAt ?? null, prompt.id)
+      }
+      created.push(prompt.id)
     }
     return { created, skipped }
   }
 
   exportAll(query?: Partial<PromptQuery>): PromptOut[] {
     if (!query || Object.keys(query).length === 0) {
-      const rows = this.db
-        .prepare('SELECT * FROM prompts ORDER BY title ASC')
-        .all() as PromptRow[]
+      const rows = this.db.prepare('SELECT * FROM prompts ORDER BY title ASC').all() as PromptRow[]
       return rows.map(rowToPrompt)
     }
     const { items } = this.list({ ...query, page: 1, size: query.size ?? 10000 } as PromptQuery)

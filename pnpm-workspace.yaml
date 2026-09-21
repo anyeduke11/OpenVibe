@@ -10,3 +10,8 @@ allowBuilds:
   better-sqlite3: true
   esbuild: true
   unrs-resolver: true
+
+# lang-javascript 6.2.5 声明 @lezer/javascript ^1.0.0，但其语法数据需要 1.5+ 的
+# SingleExpression 顶层规则；旧版会在浏览器里抛 RangeError 打挂整个 /library 首屏。
+overrides:
+  '@lezer/javascript': ^1.5.5

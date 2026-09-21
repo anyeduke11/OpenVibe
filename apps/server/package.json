@@ -4,10 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "echo \"[server] dev 启动序列随 T2 bootstrap.ts 落地\""
+    "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
+    "@openvibe/core": "workspace:*",
     "@openvibe/shared": "workspace:*",
-    "fastify": "^5.0.0"
+    "fastify": "^5.0.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0"
   }
 }
