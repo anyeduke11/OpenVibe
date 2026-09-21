@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { FlowTemplateOut, ProjectCreateInput } from '@openvibe/shared'
 import { useFlowTemplates } from '../../hooks/useFlows'
+import { usePackExports, usePackList } from '../../hooks/usePacks'
 import { useProjectMutations } from '../../hooks/useProjects'
 import { zh } from '../../i18n/zh'
 import { Dialog, DialogPanel } from '../ui/Dialog'
@@ -10,17 +11,28 @@ import { btnGhost, btnPrimary, chipCls, inputCls, labelCls } from '../ui/styles'
 
 const STEPS = [zh.projects.wizard.step1, zh.projects.wizard.step2, zh.projects.wizard.step3]
 
-/** 创建向导三步（m5 FR-1.2）：基本信息 → 选流程模板 →（可选）关联标准包 */
+/** 创建向导三步（m5 FR-1.2）：基本信息 → 选流程模板 →（可选）关联标准包并给出 sync 命令 */
 export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [localPath, setLocalPath] = useState('')
   const [flowTemplateId, setFlowTemplateId] = useState('')
+  const [packId, setPackId] = useState('')
   const flows = useFlowTemplates()
-  const { create } = useProjectMutations()
+  const packs = usePackList()
+  const packExports = usePackExports(packId === '' ? null : packId)
+  const { create, update } = useProjectMutations()
   const navigate = useNavigate()
 
   const items = flows.data?.items ?? []
+  const packItems = packs.data?.items ?? []
+  const selectedPack = packItems.find((p) => p.id === packId)
+  /** 导出历史按 exported_at 倒序，首行即最新（m6a FR-4.1 版本单调，故同序） */
+  const packVersion = packExports.data?.items[0]?.version
+  const syncCommand =
+    selectedPack === undefined
+      ? ''
+      : `openvibe sync ${localPath.trim() === '' ? '<projectPath>' : localPath.trim()} --pack ${selectedPack.name}@${packVersion ?? '<version>'}`
 
   const next = () => {
     if (step === 0) {
@@ -48,16 +60,33 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
       ...(localPath.trim() === '' ? {} : { localPath: localPath.trim() }),
     }
     create.mutate(input, {
-      onSuccess: (project) => {
+      onSuccess: async (project) => {
         toast(zh.projects.wizard.created)
         if (project.localPathWarning !== null) {
           toast(project.localPathWarning, 'error')
+        }
+        if (packId !== '') {
+          try {
+            await update.mutateAsync({
+              id: project.id,
+              patch: { standardPackId: packId, standardPackVersion: packVersion ?? null },
+            })
+          } catch (e) {
+            toast(`${zh.projects.wizard.packLinkFailed}：${(e as Error).message}`, 'error')
+          }
         }
         props.onClose()
         navigate(`/projects/${project.id}`)
       },
       onError: (e: Error) => toast(e.message, 'error'),
     })
+  }
+
+  const copyCommand = () => {
+    navigator.clipboard
+      ?.writeText(syncCommand)
+      .then(() => toast(zh.projects.injection.copied))
+      .catch(() => toast(zh.projects.injection.copyFailed, 'error'))
   }
 
   const radio = (t: FlowTemplateOut) => (
@@ -148,13 +177,62 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
 
         {step === 2 && (
           <div className="space-y-2 text-sm">
-            <p className="text-zinc-600">{zh.projects.wizard.packSkip}</p>
-            <p className="text-[11px] text-zinc-400">{zh.projects.wizard.packHint}</p>
-            <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
-              {`${name} · ${items.find((t) => t.id === flowTemplateId)?.name ?? ''} · ${
-                localPath === '' ? zh.projects.noPath : localPath
+            <label
+              className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 ${
+                packId === '' ? 'border-brand bg-brand-soft' : 'border-zinc-200 bg-white'
               }`}
-            </p>
+            >
+              <input
+                type="radio"
+                name="projectPack"
+                checked={packId === ''}
+                onChange={() => setPackId('')}
+              />
+              <span>{zh.projects.wizard.packNone}</span>
+            </label>
+            {packItems.length === 0 && <p className="text-zinc-500">{zh.projects.wizard.packEmpty}</p>}
+            {packItems.map((p) => (
+              <label
+                key={p.id}
+                className={`flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm ${
+                  packId === p.id ? 'border-brand bg-brand-soft' : 'border-zinc-200 bg-white'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="projectPack"
+                  className="mt-1"
+                  checked={packId === p.id}
+                  onChange={() => setPackId(p.id)}
+                />
+                <span className="min-w-0">
+                  <span className="mono font-medium">{p.name}</span>
+                  <span className="block truncate text-[11px] text-zinc-500">
+                    {zh.packs.assetSummary(
+                      p.selection.promptIds.length,
+                      p.selection.termIds.length,
+                      p.selection.skillIds.length,
+                    )}
+                  </span>
+                </span>
+              </label>
+            ))}
+
+            {packId !== '' && (
+              <div className="space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+                {packVersion === undefined && (
+                  <p className="text-xs text-amber-700">{zh.projects.wizard.packNotExported}</p>
+                )}
+                <button
+                  type="button"
+                  className="mono rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[11px] hover:border-brand"
+                  onClick={copyCommand}
+                >
+                  {`${syncCommand} ${zh.projects.injection.copy}`}
+                </button>
+                <p className="text-[11px] text-zinc-400">{zh.projects.wizard.packWriteNote}</p>
+              </div>
+            )}
           </div>
         )}
       </DialogPanel>

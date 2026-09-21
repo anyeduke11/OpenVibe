@@ -1,0 +1,53 @@
+---
+description: OpenVibe 标准包 full@2.0.0
+alwaysApply: true
+---
+<!-- openvibe:pack=full@2.0.0 begin (regenerate: npx openvibe-cli sync) -->
+# OpenVibe 标准包：full@2.0.0
+
+> 本文件由 OpenVibe 生成。要修改标准，请回资产库改后重新注入；
+> 本地手改会被 `openvibe diff` 漂移检测发现。
+
+## 工作流程
+
+### 启动
+- 需求一句话写清
+- 确认验收标准
+
+**产物**: 需求便签
+
+### 执行
+- 小步提交并自测
+
+### 收口
+
+**产物**: DEV_LOG 条目
+
+## 行为规则
+
+#### 代码审查请求
+评审代码时按下列顺序输出，每条结论都要给出行号：
+1. 正确性与边界条件
+2. 并发与资源释放
+3. 可读性与命名
+不要评论未被修改的行。
+
+#### 发布前核对
+发布前逐条核对：
+发布窗口 {{release_window}}，回滚负责人 {{rollback_owner}}。
+
+#### 需求拆解纪律
+接到需求先复述目标与验收标准，再给拆解；
+拆解每项不超过半天，标注依赖与可验证产物。
+
+## 术语表
+
+见 TERMS.md（2 条）
+
+## 任务提示词参考
+
+#### 提交信息生成
+为当前改动写一条 conventional commit：
+标题 <type>(<scope>): <一句话>，正文说明动机与影响，保留 {{variables}} 供人填。
+
+<!-- openvibe:end -->

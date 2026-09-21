@@ -1,0 +1,1 @@
+rule 提示词「发布前核对」含 2 个变量（release_window, rollback_owner），注入后需人工填充

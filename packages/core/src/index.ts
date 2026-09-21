@@ -21,6 +21,23 @@ export {
   isRuleFile,
   type ImportFile,
 } from './importers'
-export { sha256Hex, stableJson, compareCodeUnit } from './repos/util'
+export { sha256Hex, stableJson } from './repos/util'
+export {
+  composePack,
+  resolvePack,
+  fileSha256,
+  fingerprintOf,
+  validatePackFiles,
+  buildBundle,
+  bundleFileName,
+  bundleJson,
+  directoryFileName,
+  directoryFiles,
+  type AdapterBundle,
+  type ComposeDeps,
+  type RenderedPack,
+  type PackDefinition,
+  type ResolveDeps,
+} from './pack'
 
 export const CORE_VERSION = '0.0.0'

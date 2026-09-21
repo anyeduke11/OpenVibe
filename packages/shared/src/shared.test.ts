@@ -2,16 +2,25 @@ import { describe, expect, it } from 'vitest'
 import {
   ADAPTER_IDS,
   CONTROLLED_TAG_VOCAB,
+  PACK_GENERATOR,
+  PACK_LEAD_QUOTE,
+  PACK_MARKER_BEGIN,
+  PACK_MARKER_END,
+  PACK_SECTION_ORDER,
+  PACK_TITLE,
   PromptCreateInput,
   SCHEMA_VERSION,
   TermCreateInput,
   bidirectionalRelatedIds,
+  compareCodeUnit,
   dedupeAliases,
   extractVariables,
   findMatchRanges,
   idKindOf,
   isValidPackRelativePath,
   newId,
+  packSubject,
+  renderFrontmatter,
   renderTermsMdTable,
 } from './index'
 
@@ -107,5 +116,51 @@ describe('UT-TERMSMD-01 · TERMS.md 契约纯函数（shared）', () => {
     ])
     expect(findMatchRanges('', 'x')).toEqual([])
     expect(findMatchRanges('abc', '')).toEqual([])
+  })
+})
+
+describe('UT-PACKCONTRACT-01 · 标准包正文契约常量（design §7.3/§7.4）', () => {
+  it('受管块标记、标题、引导引用逐字冻结', () => {
+    expect(PACK_MARKER_BEGIN('default', '1.0.0')).toBe(
+      '<!-- openvibe:pack=default@1.0.0 begin (regenerate: npx openvibe-cli sync) -->',
+    )
+    expect(PACK_MARKER_END).toBe('<!-- openvibe:end -->')
+    expect(PACK_TITLE('default', '1.0.0')).toBe('# OpenVibe 标准包：default@1.0.0')
+    expect(PACK_LEAD_QUOTE).toBe(
+      '> 本文件由 OpenVibe 生成。要修改标准，请回资产库改后重新注入；\n' +
+        '> 本地手改会被 `openvibe diff` 漂移检测发现。',
+    )
+    expect(PACK_GENERATOR).toBe('openvibe/0.1.0')
+    expect(packSubject('default', '1.0.0')).toBe('default@1.0.0')
+  })
+
+  it('节序固定为四节且不可配置（确定性来源）', () => {
+    expect([...PACK_SECTION_ORDER]).toEqual([
+      '## 工作流程',
+      '## 行为规则',
+      '## 术语表',
+      '## 任务提示词参考',
+    ])
+  })
+
+  it('renderFrontmatter：键序即写入序、布尔小写、字符串原样、结尾换行', () => {
+    expect(
+      renderFrontmatter({
+        description: '"带引号的值"',
+        globs: '""',
+        alwaysApply: true,
+      }),
+    ).toBe('---\ndescription: "带引号的值"\nglobs: ""\nalwaysApply: true\n---\n')
+    expect(renderFrontmatter({})).toBe('---\n\n---\n')
+  })
+
+  it('compareCodeUnit 用码点序：大写先于小写，不受 locale 影响', () => {
+    expect(['b', 'A', 'a', 'B'].sort(compareCodeUnit)).toEqual(['A', 'B', 'a', 'b'])
+    expect(['AGENTS.md', '.trae/rules/openvibe.md', 'CLAUDE.md'].sort(compareCodeUnit)).toEqual([
+      '.trae/rules/openvibe.md',
+      'AGENTS.md',
+      'CLAUDE.md',
+    ])
+    expect(compareCodeUnit('x', 'x')).toBe(0)
   })
 })

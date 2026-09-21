@@ -8,6 +8,20 @@ export function utf8ByteLength(s: string): number {
 export const SEMVER_RE = /^\d+\.\d+\.\d+$/
 export const SHA256_HEX_RE = /^[0-9a-f]{64}$/
 
+/**
+ * 导出 semver 单调递增比较（m6a FR-4.1）：三段数字逐个比，不看 prerelease
+ * （SEMVER_RE 已排除 prerelease/build 元数据）。非零返回正负号同大小关系。
+ */
+export function compareSemver(a: string, b: string): number {
+  const pa = a.split('.')
+  const pb = b.split('.')
+  for (let i = 0; i < 3; i++) {
+    const diff = Number(pa[i]) - Number(pb[i])
+    if (diff !== 0) return diff < 0 ? -1 : 1
+  }
+  return 0
+}
+
 export const PACK_NAME_RE = /^[a-z0-9][a-z0-9-]{0,63}$/
 
 /**

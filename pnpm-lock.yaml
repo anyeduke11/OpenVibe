@@ -14,6 +14,12 @@ importers:
       '@eslint/js':
         specifier: ^9.39.0
         version: 9.39.5
+      '@openvibe/adapters':
+        specifier: workspace:*
+        version: link:packages/adapters
+      '@openvibe/core':
+        specifier: workspace:*
+        version: link:packages/core
       '@openvibe/shared':
         specifier: workspace:*
         version: link:packages/shared
@@ -59,6 +65,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@openvibe/adapters':
+        specifier: workspace:*
+        version: link:../../packages/adapters
       '@openvibe/core':
         specifier: workspace:*
         version: link:../../packages/core

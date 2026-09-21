@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "pack": {
+    "id": "pk_golden_g2",
+    "name": "domestic",
+    "version": "1.2.0",
+    "description": "CodeBuddy / Trae / MiniCode 三包同名",
+    "exportedAt": "2026-09-21T00:00:00Z",
+    "generator": "openvibe/0.1.0"
+  },
+  "targets": [
+    "codebuddy",
+    "trae",
+    "minicode"
+  ],
+  "flow": null,
+  "prompts": [
+    {
+      "title": "需求拆解纪律",
+      "useAs": "rule",
+      "platformMarks": [
+        "codebuddy"
+      ],
+      "contentHash": "e3c235dfb4f6272fd6b011d7f2fe890868041499678c2c9c480074ca4cd5167a",
+      "content": "接到需求先复述目标与验收标准，再给拆解；\n拆解每项不超过半天，标注依赖与可验证产物。"
+    }
+  ],
+  "terms": [],
+  "skills": [],
+  "files": [
+    {
+      "path": ".trae/rules/openvibe.md",
+      "sha256": "b8ca39057fa4a48edb9310f6cb4b069cfc6d1c0220b2690f3b9eef090d7c9e92"
+    },
+    {
+      "path": "CODEBUDDY.md",
+      "sha256": "fd7b900c35d6da5a5d402c25c2628d1534d5d08dc84e490e1f4c735ff1b9b30f"
+    },
+    {
+      "path": "MINI.md",
+      "sha256": "fd7b900c35d6da5a5d402c25c2628d1534d5d08dc84e490e1f4c735ff1b9b30f"
+    }
+  ],
+  "fingerprint": "0491528335628904e427a787e5833f3226793579940945e6284ef2c554898d1a"
+}

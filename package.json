@@ -16,10 +16,13 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
-    "seed:check": "tsx scripts/seed-check.ts"
+    "seed:check": "tsx scripts/seed-check.ts",
+    "golden:update": "tsx scripts/golden-update.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
+    "@openvibe/adapters": "workspace:*",
+    "@openvibe/core": "workspace:*",
     "@openvibe/shared": "workspace:*",
     "@types/node": "^24.0.0",
     "eslint": "^9.39.0",

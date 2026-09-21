@@ -1,3 +1,5 @@
-pnpm-lock.yaml
 # 种子词条一行一条：便于 owner 逐条审校与 diff，不接受 prettier 拆行
 content/seed/*.json
+# golden 标准包快照：逐字节契约对象，任何格式化（含表格对齐）都会破坏 m6a §7.4 验收
+tests/golden/**/files/**
+tests/golden/**/openvibe.pack.json

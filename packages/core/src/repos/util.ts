@@ -25,11 +25,6 @@ export function parseJsonColumn<T>(raw: unknown, fallback: T): T {
   }
 }
 
-/** 码点序比较（design §7.3 排序键，禁 localeCompare） */
-export function compareCodeUnit(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0
-}
-
 /**
  * 拼音排序键（m3 FR-4.2 的 orderBy=pinyin）：pinyin-pro 词典按词组消歧多音字
  * （重要 zhongyao / 重复 chongfu），去声调与空格后取小写码点序。

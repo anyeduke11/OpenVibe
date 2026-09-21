@@ -3,7 +3,9 @@ import { nowIso } from '../db/runner'
 import {
   AppError,
   newId,
+  type InjectionOut,
   type PackCreateInput,
+  type PackExportBlob,
   type PackExportOut,
   type PackOut,
   type PackSelection,
@@ -122,27 +124,29 @@ export class PacksRepo {
     return rows.map(rowToPack)
   }
 
-  /** 注入历史登记（CLI 上报，m6a FR-5）；pack 已删除时仅留痕（pack_id 可空） */
+  /** 注入历史登记（CLI 上报，m6b FR-5）；pack 已删除时仅留痕（pack_id 可空） */
   reportInjection(input: {
     packId: string | null
     packVersion: string | null
     projectPath: string
-  }): void {
+  }): InjectionOut {
+    const record: InjectionOut = {
+      id: newId('injection'),
+      packId: input.packId,
+      packVersion: input.packVersion,
+      projectPath: input.projectPath,
+      injectedAt: nowIso(),
+    }
     this.db
       .prepare(
         `INSERT INTO injections (id, pack_id, pack_version, project_path, injected_at)
          VALUES (?, ?, ?, ?, ?)`,
       )
-      .run(newId('injection'), input.packId, input.packVersion, input.projectPath, nowIso())
+      .run(record.id, record.packId, record.packVersion, record.projectPath, record.injectedAt)
+    return record
   }
 
-  listInjections(packId?: string): {
-    id: string
-    packId: string | null
-    packVersion: string | null
-    projectPath: string
-    injectedAt: string
-  }[] {
+  listInjections(packId?: string): InjectionOut[] {
     const rows = (
       packId
         ? this.db
@@ -195,6 +199,7 @@ export class PacksRepo {
     version: string
     fingerprint: string
     manifestJson: string
+    bundleJson: string
     channel: PackExportOut['channel']
   }): { status: 'created' | 'idempotent' } {
     const existing = this.db
@@ -206,8 +211,8 @@ export class PacksRepo {
     }
     this.db
       .prepare(
-        `INSERT INTO pack_exports (id, pack_id, version, fingerprint, manifest_json, channel, exported_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO pack_exports (id, pack_id, version, fingerprint, manifest_json, bundle_json, channel, exported_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         newId('packExport'),
@@ -215,9 +220,67 @@ export class PacksRepo {
         input.version,
         input.fingerprint,
         input.manifestJson,
+        input.bundleJson,
         input.channel,
         nowIso(),
       )
     return { status: 'created' }
+  }
+
+  /** 单条导出实例（含 manifest/bundle 全文）——bundle 下载与物化验证的读取口 */
+  getExport(packId: string, exportId: string): PackExportBlob | null {
+    return this.exportBy('e.pack_id = ? AND e.id = ?', [packId, exportId])
+  }
+
+  /** 同 (packId, version) 的导出实例——幂等重导时把既有记录回给调用方 */
+  exportByVersion(packId: string, version: string): PackExportBlob | null {
+    return this.exportBy('e.pack_id = ? AND e.version = ?', [packId, version])
+  }
+
+  private exportBy(where: string, params: unknown[]): PackExportBlob | null {
+    const row = this.db
+      .prepare(
+        `SELECT e.id, e.pack_id, e.version, e.fingerprint, e.manifest_json, e.bundle_json,
+                e.channel, e.exported_at, p.name AS pack_name
+         FROM pack_exports e JOIN standard_packs p ON p.id = e.pack_id
+         WHERE ${where}
+         ORDER BY e.exported_at DESC
+         LIMIT 1`,
+      )
+      .get(...params) as
+      | {
+          id: string
+          pack_id: string
+          version: string
+          fingerprint: string
+          manifest_json: string
+          bundle_json: string
+          channel: string
+          exported_at: string
+          pack_name: string
+        }
+      | undefined
+    if (!row) return null
+    return {
+      id: row.id,
+      packId: row.pack_id,
+      packName: row.pack_name,
+      version: row.version,
+      fingerprint: row.fingerprint,
+      manifestJson: row.manifest_json,
+      bundleJson: row.bundle_json,
+      channel: row.channel as PackExportOut['channel'],
+      exportedAt: row.exported_at,
+    }
+  }
+
+  /** 该包最近一次导出版本（FR-4.1 单调递增校验的基准） */
+  latestExport(packId: string): { version: string; fingerprint: string } | null {
+    const row = this.db
+      .prepare(
+        'SELECT version, fingerprint FROM pack_exports WHERE pack_id = ? ORDER BY exported_at DESC, version DESC LIMIT 1',
+      )
+      .get(packId) as { version: string; fingerprint: string } | undefined
+    return row ?? null
   }
 }

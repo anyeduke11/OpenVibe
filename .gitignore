@@ -15,9 +15,9 @@ coverage/
 *.db-wal
 *.db-shm
 
-# Runtime dirs
-.openvibe/
-packs/
+# Runtime dirs（根锚定：不锚定会吞掉 apps/web/src/components/packs/ 等源码目录，见 DEV-0016）
+/.openvibe/
+/packs/
 
 # Logs
 *.log

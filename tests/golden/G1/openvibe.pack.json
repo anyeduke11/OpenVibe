@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "pack": {
+    "id": "pk_golden_g1",
+    "name": "overseas",
+    "version": "1.0.0",
+    "description": "海外双平台最小包",
+    "exportedAt": "2026-09-21T00:00:00Z",
+    "generator": "openvibe/0.1.0"
+  },
+  "targets": [
+    "claude-code",
+    "generic-agents"
+  ],
+  "flow": null,
+  "prompts": [
+    {
+      "title": "代码审查请求",
+      "useAs": "rule",
+      "platformMarks": [
+        "claude-code",
+        "codex"
+      ],
+      "contentHash": "19473cd270c7e07d60d01b4ad44c8f896d458767dbcd4bedb5472245bec91069",
+      "content": "评审代码时按下列顺序输出，每条结论都要给出行号：\n1. 正确性与边界条件\n2. 并发与资源释放\n3. 可读性与命名\n不要评论未被修改的行。"
+    },
+    {
+      "title": "提交信息生成",
+      "useAs": "reference",
+      "platformMarks": [
+        "generic"
+      ],
+      "contentHash": "e860ed774a20a3cdb6272f5569041ca059ad8139d53df435e8ffdfba489005cf",
+      "content": "为当前改动写一条 conventional commit：\n标题 <type>(<scope>): <一句话>，正文说明动机与影响，保留 {{variables}} 供人填。"
+    }
+  ],
+  "terms": [
+    {
+      "zh": "资产库",
+      "en": "asset library",
+      "aliases": [],
+      "definition": "提示词、术语、skill 的统一来源与版本库。",
+      "example": ""
+    },
+    {
+      "zh": "检查清单",
+      "en": "checklist",
+      "aliases": [
+        "清单"
+      ],
+      "definition": "流程阶段的可勾选产物列表。",
+      "example": ""
+    },
+    {
+      "zh": "指纹",
+      "en": "fingerprint",
+      "aliases": [
+        "内容指纹"
+      ],
+      "definition": "对包内全部文件哈希再聚合得到的内容标识。",
+      "example": ""
+    },
+    {
+      "zh": "注入",
+      "en": "injection",
+      "aliases": [],
+      "definition": "把标准包写入目标项目并登记 lock 的过程。",
+      "example": ""
+    },
+    {
+      "zh": "规则漂移",
+      "en": "rule drift",
+      "aliases": [
+        "规范漂移"
+      ],
+      "definition": "注入的规则文件与资产库定义不一致的状态。",
+      "example": "openvibe diff 检出 CLAUDE.md 漂移。"
+    },
+    {
+      "zh": "标准包",
+      "en": "standard pack",
+      "aliases": [],
+      "definition": "由资产库选集组装出的纯文本项目规则集合。",
+      "example": ""
+    }
+  ],
+  "skills": [],
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "1f4e798e4e28a228febbef886c7b382624fe28a0ab296ac80175c55a716f45cb"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "1f4e798e4e28a228febbef886c7b382624fe28a0ab296ac80175c55a716f45cb"
+    },
+    {
+      "path": "TERMS.md",
+      "sha256": "fb76c471fc843f7f42a64a02ccee5d2c8458307721d8abd6e203d966791fe40f"
+    }
+  ],
+  "fingerprint": "5b2956438a048913abbd13963c97c61212d1d024ba6bb9e153b981dfa356b2bb"
+}

@@ -6,6 +6,7 @@ import { registerAuth } from './plugins/auth'
 import { registerErrors } from './plugins/errors'
 import { registerDevLogRoutes } from './routes/devlog'
 import { registerFlowTemplateRoutes } from './routes/flowTemplates'
+import { registerPackRoutes } from './routes/packs'
 import { registerProjectRoutes } from './routes/projects'
 import { registerPromptRoutes, type PromptRouteDeps } from './routes/prompts'
 import { registerSkillRoutes } from './routes/skills'
@@ -43,6 +44,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerPromptRoutes(app, deps)
   registerTermRoutes(app, deps)
   registerFlowTemplateRoutes(app, deps)
+  registerPackRoutes(app, deps)
   registerProjectRoutes(app, deps)
   registerTaskRoutes(app, deps)
   registerDevLogRoutes(app, deps)

@@ -54,6 +54,14 @@ export const ExportInput = z.object({
 })
 export type ExportInput = z.infer<typeof ExportInput>
 
+/** POST /api/injections（CLI sync 成功后上报，m6a FR-5.1 / dev-plan §3.8） */
+export const InjectionCreateInput = z.object({
+  packId: z.string().nullable().default(null),
+  packVersion: z.string().nullable().default(null),
+  projectPath: z.string().min(1),
+})
+export type InjectionCreateInput = z.input<typeof InjectionCreateInput>
+
 export const PackExportOut = z.object({
   id: z.string(),
   packId: z.string(),
@@ -63,6 +71,44 @@ export const PackExportOut = z.object({
   exportedAt: z.string(),
 })
 export type PackExportOut = z.infer<typeof PackExportOut>
+
+/**
+ * POST /api/packs/:id/export 响应。
+ * bundlePath 是相对路径（web 侧拼 base，CLI 侧拼 server origin）。
+ */
+export const ExportOut = z.object({
+  status: z.enum(['created', 'idempotent']),
+  export: PackExportOut,
+  /** channel=directory 时的落盘绝对路径（design §7.1）；download 通道为 null */
+  directoryPath: z.string().nullable(),
+  bundlePath: z.string(),
+  fingerprint: z.string(),
+  warnings: z.array(z.string()),
+})
+export type ExportOut = z.infer<typeof ExportOut>
+
+/** 注入历史行（m6a FR-5；packId 可空 = 包已删除仍留痕） */
+export const InjectionOut = z.object({
+  id: z.string(),
+  packId: z.string().nullable(),
+  packVersion: z.string().nullable(),
+  projectPath: z.string(),
+  injectedAt: z.string(),
+})
+export type InjectionOut = z.infer<typeof InjectionOut>
+
+/** 导出实例的存储全文（pack_exports 行含 blob 两列，bundle 下载与物化验证读取） */
+export interface PackExportBlob {
+  id: string
+  packId: string
+  packName: string
+  version: string
+  fingerprint: string
+  manifestJson: string
+  bundleJson: string
+  channel: PackExportOut['channel']
+  exportedAt: string
+}
 
 export const PlannedFileOut = z.object({
   path: z.string(),

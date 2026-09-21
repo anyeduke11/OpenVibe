@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "pack": {
+    "id": "pk_golden_g3",
+    "name": "full",
+    "version": "2.0.0",
+    "description": "全 adapter 全产物快照",
+    "exportedAt": "2026-09-21T00:00:00Z",
+    "generator": "openvibe/0.1.0"
+  },
+  "targets": [
+    "claude-code",
+    "cursor",
+    "generic-agents",
+    "codebuddy",
+    "trae",
+    "minicode"
+  ],
+  "flow": {
+    "templateName": "个人轻量流",
+    "kind": "light",
+    "stages": [
+      {
+        "name": "启动",
+        "checklist": [
+          {
+            "id": "st1",
+            "text": "需求一句话写清"
+          },
+          {
+            "id": "st2",
+            "text": "确认验收标准"
+          }
+        ],
+        "artifacts": [
+          "需求便签"
+        ]
+      },
+      {
+        "name": "执行",
+        "checklist": [
+          {
+            "id": "st3",
+            "text": "小步提交并自测"
+          }
+        ],
+        "artifacts": []
+      },
+      {
+        "name": "收口",
+        "checklist": [],
+        "artifacts": [
+          "DEV_LOG 条目"
+        ]
+      }
+    ]
+  },
+  "prompts": [
+    {
+      "title": "代码审查请求",
+      "useAs": "rule",
+      "platformMarks": [
+        "claude-code"
+      ],
+      "contentHash": "19473cd270c7e07d60d01b4ad44c8f896d458767dbcd4bedb5472245bec91069",
+      "content": "评审代码时按下列顺序输出，每条结论都要给出行号：\n1. 正确性与边界条件\n2. 并发与资源释放\n3. 可读性与命名\n不要评论未被修改的行。"
+    },
+    {
+      "title": "发布前核对",
+      "useAs": "rule",
+      "platformMarks": [
+        "generic"
+      ],
+      "contentHash": "1c73c78ad4ec73af4083c87a2805e48c35eddc591b40d6da14a8980a7603845c",
+      "content": "发布前逐条核对：\n发布窗口 {{release_window}}，回滚负责人 {{rollback_owner}}。"
+    },
+    {
+      "title": "提交信息生成",
+      "useAs": "reference",
+      "platformMarks": [
+        "cursor"
+      ],
+      "contentHash": "e860ed774a20a3cdb6272f5569041ca059ad8139d53df435e8ffdfba489005cf",
+      "content": "为当前改动写一条 conventional commit：\n标题 <type>(<scope>): <一句话>，正文说明动机与影响，保留 {{variables}} 供人填。"
+    },
+    {
+      "title": "需求拆解纪律",
+      "useAs": "rule",
+      "platformMarks": [
+        "generic"
+      ],
+      "contentHash": "e3c235dfb4f6272fd6b011d7f2fe890868041499678c2c9c480074ca4cd5167a",
+      "content": "接到需求先复述目标与验收标准，再给拆解；\n拆解每项不超过半天，标注依赖与可验证产物。"
+    }
+  ],
+  "terms": [
+    {
+      "zh": "规则漂移",
+      "en": "rule drift",
+      "aliases": [],
+      "definition": "注入的规则文件与资产库定义不一致的状态。",
+      "example": ""
+    },
+    {
+      "zh": "标准包",
+      "en": "standard pack",
+      "aliases": [],
+      "definition": "由资产库选集组装出的纯文本项目规则集合。",
+      "example": ""
+    }
+  ],
+  "skills": [
+    {
+      "name": "changelog",
+      "description": "按提交历史生成变更记录",
+      "skillDir": "~/.trae/skills/changelog",
+      "versionLabel": ""
+    },
+    {
+      "name": "pdf",
+      "description": "读取与改写 PDF",
+      "skillDir": "~/.claude/skills/pdf",
+      "versionLabel": "v3"
+    }
+  ],
+  "files": [
+    {
+      "path": ".cursor/rules/openvibe.mdc",
+      "sha256": "54c222471d6e9e4e5341474b5737ecf2b6f93efbeaa7f2ca0290e302b3baf514"
+    },
+    {
+      "path": ".trae/rules/openvibe.md",
+      "sha256": "3914abd4fee8a02e6842d46caa24dfc0d83bbb004ca9044dbd52bb9cd00e925d"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "e8410e04da4863b3da64f0dabe02f9371fc6e12eacb6a2ae729f27abdc8a1462"
+    },
+    {
+      "path": "CHECKLIST.md",
+      "sha256": "93005a94ad2d5dad0a9da62966d6768878e869f5361a2d0350cee06221c656f2"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "e8410e04da4863b3da64f0dabe02f9371fc6e12eacb6a2ae729f27abdc8a1462"
+    },
+    {
+      "path": "CODEBUDDY.md",
+      "sha256": "e8410e04da4863b3da64f0dabe02f9371fc6e12eacb6a2ae729f27abdc8a1462"
+    },
+    {
+      "path": "MINI.md",
+      "sha256": "e8410e04da4863b3da64f0dabe02f9371fc6e12eacb6a2ae729f27abdc8a1462"
+    },
+    {
+      "path": "SKILLS.md",
+      "sha256": "9cf7a6e348d30250a15518719619814408ca060989a31618cc43309ad8c1356d"
+    },
+    {
+      "path": "TERMS.md",
+      "sha256": "9a3fb77e81aaa46ff32f035d33220bc85dc45e0a047c48c347875e3c7ec3da0f"
+    }
+  ],
+  "fingerprint": "ffd02d5655bff1986bd8c2d1b3ffece7343f415cfe3521851da826bc78c898ac"
+}

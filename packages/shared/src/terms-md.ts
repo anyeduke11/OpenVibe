@@ -43,6 +43,11 @@ export function renderTermsMdTable(subject: string, rows: readonly TermTableRow[
   return lines.join('\n')
 }
 
+/** 术语排序键（design §7.3）：`(en||zh).toLowerCase()`；调用方用 compareCodeUnit 比较 */
+export function termSortKey(term: { zh?: string | null; en?: string | null }): string {
+  return (term.en || term.zh || '').toLowerCase()
+}
+
 /** m3 §6.2：别名去空白、丢空串，英文按大小写无关去重，保留首次出现的写法 */
 export function dedupeAliases(aliases: readonly string[]): string[] {
   const seen = new Set<string>()

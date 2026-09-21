@@ -2,10 +2,12 @@ import type { SqliteDatabase } from '../db'
 import { nowIso } from '../db/runner'
 import {
   AppError,
+  compareCodeUnit,
   dedupeAliases,
   findMatchRanges,
   newId,
   renderTermsMdTable,
+  termSortKey,
   type RenderTermsMdInput,
   type TermCreateInput,
   type TermMatch,
@@ -14,7 +16,7 @@ import {
   type TermUpdateInput,
   type TermsOrderBy,
 } from '@openvibe/shared'
-import { compareCodeUnit, pinyinKey, parseJsonColumn, sha256Hex, stableJson } from './util'
+import { pinyinKey, parseJsonColumn, sha256Hex, stableJson } from './util'
 import { searchTermRowids } from '../search/fts'
 
 type TermRow = {
@@ -98,7 +100,7 @@ function validateRelatedIds(db: SqliteDatabase, selfId: string, ids: string[]): 
 function sortForMd(terms: TermOut[], orderBy: TermsOrderBy): TermOut[] {
   if (orderBy === 'manual') return terms
   const keyOf = (t: TermOut): string =>
-    orderBy === 'pinyin' ? pinyinKey(t.zh || t.en || '') : (t.en || t.zh || '').toLowerCase()
+    orderBy === 'pinyin' ? pinyinKey(t.zh || t.en || '') : termSortKey(t)
   return [...terms].sort(
     (a, b) =>
       compareCodeUnit(keyOf(a), keyOf(b)) ||

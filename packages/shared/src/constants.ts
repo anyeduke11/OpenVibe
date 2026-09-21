@@ -93,6 +93,12 @@ export const LIMITS = {
   listPageSizeDefault: 50,
 } as const
 
+/**
+ * manifest.pack.generator（design §7.2）。刻意写死而非读 package.json：
+ * 该串进入 manifest 因而参与指纹与 golden 快照，必须跨发布字节稳定，只有契约变更才动。
+ */
+export const PACK_GENERATOR = 'openvibe/0.1.0'
+
 /** ID 前缀（design D12：前缀 + nanoid，日志与外键肉眼可辨） */
 export const ID_PREFIXES = {
   prompt: 'prm_',
