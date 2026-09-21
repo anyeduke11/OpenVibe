@@ -1,0 +1,54 @@
+① 打开 /library（侧栏 7 项渲染完成）
+📸 01-library-empty.png
+  空态文案：文件夹 根目录  把提示词行拖到文件夹可移动  提示词库 导入 导出 JSON 
+② 新建提示词：标题/说明/正文（含 {{language}}、{{task}}）/标签/文件夹
+📸 02-editor-create.png
+  变量识别：{{language, task}}
+③ 创建成功 → 列表 1 条（状态/用途/标签/变量 chips 齐全）
+📸 03-after-create.png
+④ 点「复制」→ 变量弹窗（必填校验 + 实时替换预览）
+  未填变量时复制按钮禁用 = true
+📸 04-copy-modal.png
+  替换预览前 40 字：请以 TypeScript 为背景，对以下改动做代码审查（任务：支付模块重构）。
+📸 05-copy-filled.png
+  复制成功：writeText resolve 后弹窗自动关闭
+  剪贴板内容前 40 字：请以 TypeScript 为背景，对以下改动做代码审查（任务：支付模块重构）。
+📸 06-copy-done.png
+⑤ 两次内容变更 → v1/v2 → 版本历史 diff → 回滚 v1
+  - 新增：并发与幂等检查 → 编辑器写入 true，toast「已保存 关闭 ⏎ 已复制到剪贴板 关闭 ⏎ 已保存 关闭」，抽屉已关
+  - 新增：可观测性埋点 → 编辑器写入 true，toast「已复制到剪贴板 关闭 ⏎ 已保存 关闭 ⏎ 已保存 关闭 ⏎ 已保存 关闭 ⏎ 已保存 关闭」，抽屉已关
+  版本历史接口：v1 v2 v3
+  版本行（勾选 当前 + v1）：当前 | v3 | v2 | v1
+📸 07-version-diff.png
+  diff 行：新增 2 / 删除 0
+  展开确认后按钮组：✕ / 编辑 / 版本历史 / 清除过滤 / 回滚到此版本 / 回滚到此版本 / 确认删除 / 取消 / 取消 / 保存
+  restore 请求：[{"url":"/api/prompts/prm_wVqZMbueLWsK05HA2IbMA/versions/1/restore","status":200},{"url":"/api/prompts?page=1&size=20","status":200},{"url":"/api/prompts?page=1&size=200","status":200},{"url":"/api/prompts/prm_wVqZMbueLWsK05HA2IbMA/versions","status":200}]
+  回滚 toast「已保存 关闭 ⏎ 已保存 关闭 ⏎ 已回滚，新版本 v4 关闭 ⏎ 已保存 关闭 ⏎ 已回滚，新版本 v4 关闭」
+📸 08-rollback-done.png
+  回滚后比对（v3 → 当前）：新增 0 / 删除 2
+📸 09-diff-after-rollback.png
+⑥ 搜索：中文两字词（降级 LIKE 路径 + 提示）
+  短词提示出现 = true，命中 1 条
+📸 10-search-short-hint.png
+  ≥3 字（FTS MATCH）命中 1 条
+⑦ 导入：.cursorrules / CLAUDE.md / commit-rules.md
+📸 11-import-report.png
+  导入报告：导入完成：新建 3 条，跳过 0 条
+⑧ 导出通道（下载锚点无 Origin，靠 Sec-Fetch-Site 子通道放行）
+📸 12-export-buttons.png
+  同源 fetch：{"status":200,"disposition":"attachment; filename=\"prompts-export.json\"","bytes":1896}
+  浏览器实际落盘：prompts-export.json , prompts-export.md
+  落盘大小：prompts-export.json=2146B , prompts-export.md=1271B
+  Markdown 导出正文 1021 字符（样本 export-sample.md）
+⑨ 文件夹树（导入/编辑产生的路径）与列表汇总
+  侧栏可见节点：根目录 / ▾ / review / 规则
+  当前总数：共 4 条
+📸 13-folder-tree.png
+⑩ 删除确认框（含「连同全部版本历史硬删」提示）
+📸 14-delete-confirm.png
+⑪ 再次导入同一文件 → 去重报告（title + contentHash）
+📸 15-import-dedupe.png
+  去重报告：导入完成：新建 0 条，跳过 1 条
+📸 16-library-overview.png
+⑫ 终态：共 4 条
+✅ 走查完成

@@ -61,7 +61,8 @@ openvibe/
 - [x] **项目更名 OpenVibe（2026-09-21，PRD v0.1.4 / D17）**：npm 包名与冷启动命令 `openvibe-cli`（`openvibe` 被占），bin 命令 `openvibe`；中文名沿用「灵典」
 - [x] **P1/T1 工程脚手架完成（2026-09-21，DEV-0011）**：GitHub [anyeduke11/OpenVibe](https://github.com/anyeduke11/OpenVibe) 落地（Apache-2.0）；pnpm monorepo + packages/shared 全量 zod schemas + ESLint R1-R4 依赖边界 + vitest 三层；CI 三平台（macOS/Linux/Windows）首跑全绿
 - [x] **P1/T2 存储核心完成（2026-09-21，DEV-0012）**：better-sqlite3 + migrations 0001/0002 + FTS5 trigram 六触发器 + 七 repos（版本快照/entryNo 事务/快照物化等）+ seed 幂等骨架；37 用例全绿
-- [ ] P1：MVP 开发（按 tasks.md T1–T9，6.5 周 = 任务 31.5 人日 + 显式缓冲 1 人日；T3 提示词库垂直切片为下一步）
+- [x] **P1/T3 M1 提示词库垂直切片完成（2026-09-21，DEV-0013）**：server 骨架（buildApp DI + 双通道鉴权 + 统一错误）+ 提示词九端点 + 四形态导入解析器 + Web `/library` 十组件（CodeMirror 双栏编辑、变量复制弹窗、版本 diff/回滚、导入导出）；m1 §7 八条验收逐条通过，53 用例全绿，浏览器实测截图与真实导出落 `docs/devlog-evidence/DEV-0013/`
+- [ ] P1：MVP 开发（按 tasks.md T1–T9，6.5 周 = 任务 31.5 人日 + 显式缓冲 1 人日；T4 术语库 + 首批 60 词条为下一步）
 
 ## 差异化定位（相对竞品）
 

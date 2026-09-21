@@ -68,14 +68,14 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 ### T3 · M1 提示词库垂直切片（W1末–W2，预估 4 人日）
 
-- [ ] API：design §6 提示词六端点（含 import/export、versions/restore）
-- [ ] 规则文件解析器（`packages/core/importers`）：`.cursorrules`/`.mdc`(frontmatter 剥离)/`CLAUDE.md`/`AGENTS.md`
-- [ ] Web `/library`：列表+文件夹树+过滤器+编辑抽屉（CodeMirror 双栏）+复制变量弹窗
-- [ ] 版本历史 UI + jsdiff 渲染 + 回滚
-- [ ] JSON/Markdown 导入导出 + 去重报告
-- [ ] 集成测试覆盖 m1 §7 全部 8 条验收对应的 API 行为
+- [x] API：design §6 提示词六端点（含 import/export、versions/restore）——实落 **九端点**（list/create/get/patch/delete/versions/restore/import/export），`X-Referenced-Packs` 走 C-6，md 导出单文件拼接（C-5）
+- [x] 规则文件解析器（`packages/core/importers`）：`.cursorrules`/`.mdc`(frontmatter 剥离)/`CLAUDE.md`/`AGENTS.md`——四解析器 + 未知扩展名报错，UT ×7
+- [x] Web `/library`：列表+文件夹树+过滤器+编辑抽屉（CodeMirror 双栏）+复制变量弹窗——design §5.2 十组件全落，中文文案集中 `i18n/zh.ts`
+- [x] 版本历史 UI + jsdiff 渲染 + 回滚——两版勾选 → 行级 diff（新增/删除双向已取证），回滚以旧版建 v4 且草稿内容同步
+- [x] JSON/Markdown 导入导出 + 去重报告——FileReader→解析器→`title+contentHash` 去重，报告「新建 3 跳过 0 / 新建 0 跳过 1」，导出真实落盘
+- [x] 集成测试覆盖 m1 §7 全部 8 条验收对应的 API 行为——IT ×9（含 IT-AUTH-01 与「空 body + JSON header → 400」契约断言）
 
-**验收**：m1 §7 逐条通过（UI 项人工过一遍并录屏存档 DEV_LOG）。
+**验收**：m1 §7 逐条通过（UI 项人工过一遍并录屏存档 DEV_LOG）。—— ✅ **T3 完成（2026-09-21，DEV-0013）**：53/53 用例全绿；m1 §7 八条逐条映射通过；浏览器实测走查 16 张截图 + 走查日志 + 两份真实导出落 `docs/devlog-evidence/DEV-0013/`（走查中修复 4 处测试未覆盖的缺陷：restore 400 / toast 串位 / 回滚后 diff 口径 / `@lezer/javascript` 白屏）。
 
 ### T4 · M3 术语库 + 首批词条（W2，预估 2.5 人日；词条初稿 AI 起草、owner 审校，D14）
 
