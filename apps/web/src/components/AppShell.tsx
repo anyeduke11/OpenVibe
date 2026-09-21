@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { zh } from '../i18n/zh'
 
-// 侧栏固定七项（dev-plan §5.1）；T3 仅 /library 实装，其余路由占位
+// 侧栏固定七项（dev-plan §5.1）；T3 实装 /library，T4 实装 /terms，其余路由占位
 const NAV = [
   { to: '/library', label: zh.nav.library },
   { to: '/terms', label: zh.nav.terms },

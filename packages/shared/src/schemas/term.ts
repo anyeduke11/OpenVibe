@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { LIMITS, TERM_STATUS } from '../constants'
+import { LIMITS, TERM_STATUS, TERMS_ORDER_BY } from '../constants'
 import { utf8ByteLength } from '../utils'
 
 /** source 取值：openvibe-seed | manual | project:<项目名>（m3 §3） */
@@ -57,15 +57,23 @@ export const TermOut = TermCreateInput.extend({
 })
 export type TermOut = z.infer<typeof TermOut>
 
-/** 搜索结果：词条 + 命中字段清单（高亮偏移由 T4 实现细化） */
+/** 搜索结果：词条 + 命中字段清单 + 各字段内的高亮区间（dev-plan §3.3 matches） */
+export const TermMatch = z.object({
+  field: z.enum(['zh', 'en', 'aliases', 'definition']),
+  start: z.number().int().min(0),
+  end: z.number().int().min(0),
+})
+export type TermMatch = z.infer<typeof TermMatch>
+
 export const TermSearchOut = z.object({
   term: TermOut,
   matchedFields: z.array(z.string()),
+  matches: z.array(TermMatch),
 })
 export type TermSearchOut = z.infer<typeof TermSearchOut>
 
 export const RenderTermsMdInput = z.object({
   termIds: z.array(z.string()).min(1, { message: '空选集（EMPTY_SELECTION）' }),
-  orderBy: z.enum(['en-alpha', 'pinyin', 'manual']).default('en-alpha'),
+  orderBy: z.enum(TERMS_ORDER_BY).default('en-alpha'),
 })
 export type RenderTermsMdInput = z.input<typeof RenderTermsMdInput>

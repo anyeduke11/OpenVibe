@@ -2,14 +2,19 @@ import type { SqliteDatabase } from '../db'
 import { nowIso } from '../db/runner'
 import {
   AppError,
+  dedupeAliases,
+  findMatchRanges,
   newId,
+  renderTermsMdTable,
   type RenderTermsMdInput,
   type TermCreateInput,
+  type TermMatch,
   type TermOut,
   type TermSearchOut,
   type TermUpdateInput,
+  type TermsOrderBy,
 } from '@openvibe/shared'
-import { compareCodeUnit, parseJsonColumn, sha256Hex, stableJson } from './util'
+import { compareCodeUnit, pinyinKey, parseJsonColumn, sha256Hex, stableJson } from './util'
 import { searchTermRowids } from '../search/fts'
 
 type TermRow = {
@@ -46,8 +51,63 @@ function rowToTerm(row: TermRow): TermOut {
   }
 }
 
-function escapePipe(s: string): string {
-  return s.replaceAll('|', '\\|')
+/** 命中区间（m3 FR-3.2）：四个展示口径各算一遍，别名按合并串（与 TERMS.md 同口径） */
+function termMatchRanges(term: TermOut, q: string): TermMatch[] {
+  const fields: [TermMatch['field'], string][] = [
+    ['zh', term.zh ?? ''],
+    ['en', term.en ?? ''],
+    ['aliases', term.aliases.join('、')],
+    ['definition', term.definition],
+  ]
+  const out: TermMatch[] = []
+  for (const [field, text] of fields) {
+    for (const range of findMatchRanges(text, q)) {
+      out.push({ field, start: range.start, end: range.end })
+    }
+  }
+  return out
+}
+
+/** m3 FR-1.1：relatedTermIds 只能引用存在且非自指的词条 */
+function validateRelatedIds(db: SqliteDatabase, selfId: string, ids: string[]): void {
+  if (ids.length === 0) return
+  const unique = [...new Set(ids)]
+  const found = new Set(
+    (
+      db
+        .prepare(
+          `SELECT id FROM terms WHERE id IN (${unique.map(() => '?').join(',')})`,
+        )
+        .all(...unique) as { id: string }[]
+    ).map((r) => r.id),
+  )
+  const invalid = unique.filter((id) => id === selfId || !found.has(id))
+  if (invalid.length > 0) {
+    throw new AppError(
+      'VALIDATION_ERROR',
+      `relatedTermIds 引用了自指或不存在的词条: ${invalid.join(', ')}`,
+    )
+  }
+}
+
+/**
+ * TERMS.md 排序键（design §7.3 + m3 FR-4.2）：
+ * en-alpha 用 (en||zh) 小写码点序；pinyin 用词典拼音键；manual 保留选集顺序。
+ * 同键依次以名称码点序、id 兜底，确保任意输入顺序下产物字节一致。
+ */
+function sortForMd(terms: TermOut[], orderBy: TermsOrderBy): TermOut[] {
+  if (orderBy === 'manual') return terms
+  const keyOf = (t: TermOut): string =>
+    orderBy === 'pinyin' ? pinyinKey(t.zh || t.en || '') : (t.en || t.zh || '').toLowerCase()
+  return [...terms].sort(
+    (a, b) =>
+      compareCodeUnit(keyOf(a), keyOf(b)) ||
+      compareCodeUnit(
+        (a.en || a.zh || '').toLowerCase(),
+        (b.en || b.zh || '').toLowerCase(),
+      ) ||
+      compareCodeUnit(a.id, b.id),
+  )
 }
 
 export class TermsRepo {
@@ -55,6 +115,9 @@ export class TermsRepo {
 
   create(input: TermCreateInput): TermOut {
     const id = newId('term')
+    const aliases = dedupeAliases(input.aliases ?? [])
+    const relatedTermIds = input.relatedTermIds ?? []
+    validateRelatedIds(this.db, id, relatedTermIds)
     const ts = nowIso()
     this.db
       .prepare(
@@ -66,10 +129,10 @@ export class TermsRepo {
         id,
         input.zh ?? null,
         input.en ?? null,
-        JSON.stringify(input.aliases ?? []),
+        JSON.stringify(aliases),
         input.definition,
         input.example ?? '',
-        JSON.stringify(input.relatedTermIds ?? []),
+        JSON.stringify(relatedTermIds),
         input.source ?? 'manual',
         JSON.stringify(input.tags ?? []),
         input.status ?? 'draft',
@@ -92,6 +155,9 @@ export class TermsRepo {
     if ((zh ?? '') === '' && (en ?? '') === '') {
       throw new AppError('VALIDATION_ERROR', 'zh 与 en 不得同时置空（m3 §6.1）')
     }
+    const aliases = dedupeAliases(patch.aliases ?? before.aliases)
+    const relatedTermIds = patch.relatedTermIds ?? before.relatedTermIds
+    validateRelatedIds(this.db, id, relatedTermIds)
     this.db
       .prepare(
         `UPDATE terms SET zh=?, en=?, aliases=?, definition=?, example=?, related_term_ids=?,
@@ -100,10 +166,10 @@ export class TermsRepo {
       .run(
         zh ?? null,
         en ?? null,
-        JSON.stringify(patch.aliases ?? before.aliases),
+        JSON.stringify(aliases),
         patch.definition ?? before.definition,
         patch.example ?? before.example,
-        JSON.stringify(patch.relatedTermIds ?? before.relatedTermIds),
+        JSON.stringify(relatedTermIds),
         JSON.stringify(patch.tags ?? before.tags),
         patch.status ?? before.status,
         nowIso(),
@@ -156,7 +222,9 @@ export class TermsRepo {
     return hits
       .map((h) => {
         const term = byRowid.get(h.rowid)
-        return term ? { term, matchedFields: h.matchedFields } : null
+        return term
+          ? { term, matchedFields: h.matchedFields, matches: termMatchRanges(term, q) }
+          : null
       })
       .filter((x): x is TermSearchOut => x !== null)
   }
@@ -178,33 +246,7 @@ export class TermsRepo {
     }
 
     const terms = input.termIds.map((id) => found.get(id)) as TermOut[]
-    const sorted =
-      (input.orderBy ?? 'en-alpha') === 'manual'
-        ? terms
-        : [...terms].sort((a, b) => {
-            // en-alpha：(en||zh).toLowerCase() 码点序；pinyin MVP 以同规则近似（T4 复核）
-            const ka = (a.en ?? a.zh ?? '').toLowerCase()
-            const kb = (b.en ?? b.zh ?? '').toLowerCase()
-            return compareCodeUnit(ka, kb)
-          })
-
-    const lines: string[] = [
-      '# 术语表 · 选集',
-      '',
-      '> AI 与团队共用的词汇标准；新词请先入库再使用。',
-      '',
-      '| 术语 | English | 别名 | 定义 |',
-      '|------|---------|------|------|',
-    ]
-    for (const t of sorted) {
-      const zh = escapePipe(t.zh ?? '')
-      const en = escapePipe(t.en ?? '')
-      const aliases = escapePipe(t.aliases.join('、'))
-      const definition = escapePipe(t.definition.replaceAll('\n', ' '))
-      lines.push(`| ${zh} | ${en} | ${aliases} | ${definition} |`)
-    }
-    lines.push('')
-    return lines.join('\n')
+    return renderTermsMdTable('选集', sortForMd(terms, input.orderBy ?? 'en-alpha'))
   }
 
   setSeedHash(id: string, seedHash: string): void {

@@ -50,6 +50,9 @@ export type UseAs = (typeof USE_AS)[number]
 
 export const PROMPT_STATUS = ['draft', 'active', 'deprecated'] as const
 export const TERM_STATUS = ['draft', 'active'] as const
+/** TERMS.md 排序口径（m3 FR-4.2）：默认英文 alpha，可选拼音（词典）与手动（选集顺序） */
+export const TERMS_ORDER_BY = ['en-alpha', 'pinyin', 'manual'] as const
+export type TermsOrderBy = (typeof TERMS_ORDER_BY)[number]
 export const PROJECT_STATUS = ['active', 'paused', 'archived'] as const
 export const TASK_STATUS = ['todo', 'doing', 'done'] as const
 export const FLOW_KINDS = ['light', 'spec_driven', 'retro', 'custom'] as const

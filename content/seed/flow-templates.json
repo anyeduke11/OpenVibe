@@ -1,4 +1,132 @@
 {
   "schemaVersion": 1,
-  "items": []
+  "items": [
+    {
+      "name": "个人轻量流",
+      "kind": "light",
+      "stages": [
+        {
+          "name": "启动",
+          "checklist": [
+            { "id": "light-1-1", "text": "需求一句话写清" },
+            { "id": "light-1-2", "text": "标准包已注入（openvibe diff clean）" },
+            { "id": "light-1-3", "text": "建 DEV_LOG.md" }
+          ],
+          "artifacts": ["需求便签"]
+        },
+        {
+          "name": "开发",
+          "checklist": [
+            { "id": "light-2-1", "text": "分小步提交" },
+            { "id": "light-2-2", "text": "每轮改动后测试通过" },
+            { "id": "light-2-3", "text": "下班前追加 DEV 日志" }
+          ],
+          "artifacts": ["代码 + DEV_LOG"]
+        },
+        {
+          "name": "复盘",
+          "checklist": [
+            { "id": "light-3-1", "text": "检查清单全勾" },
+            { "id": "light-3-2", "text": "写 CHECK 报告" },
+            { "id": "light-3-3", "text": "新词/新坑回流入库（术语/提示词草稿）" }
+          ],
+          "artifacts": ["CHECK_LOG"]
+        }
+      ]
+    },
+    {
+      "name": "Spec 驱动流",
+      "kind": "spec_driven",
+      "stages": [
+        {
+          "name": "需求澄清",
+          "checklist": [
+            { "id": "spec-1-1", "text": "五问齐备（谁/现状/期望/为何现在/完成标准）" },
+            { "id": "spec-1-2", "text": "假设显式标注" }
+          ],
+          "artifacts": ["需求纪要"]
+        },
+        {
+          "name": "PRD",
+          "checklist": [
+            { "id": "spec-2-1", "text": "目标可衡量" },
+            { "id": "spec-2-2", "text": "边界（In/Out）明确" },
+            { "id": "spec-2-3", "text": "成功指标有数" }
+          ],
+          "artifacts": ["PRD.md"]
+        },
+        {
+          "name": "Spec 规格",
+          "checklist": [{ "id": "spec-3-1", "text": "输入输出/边界/验收标准逐条可测" }],
+          "artifacts": ["specs/"]
+        },
+        {
+          "name": "计划",
+          "checklist": [
+            { "id": "spec-4-1", "text": "任务拆分有依赖序" },
+            { "id": "spec-4-2", "text": "工作量有量级" }
+          ],
+          "artifacts": ["tasks.md"]
+        },
+        {
+          "name": "实现",
+          "checklist": [
+            { "id": "spec-5-1", "text": "按任务序执行" },
+            { "id": "spec-5-2", "text": "每任务完成即验证" },
+            { "id": "spec-5-3", "text": "DEV_LOG 同步" }
+          ],
+          "artifacts": ["代码 + 测试"]
+        },
+        {
+          "name": "审查",
+          "checklist": [
+            { "id": "spec-6-1", "text": "逻辑一致性/批判性/第一性原理三维过一遍（PRD 附录 D 方法）" }
+          ],
+          "artifacts": ["审查记录"]
+        },
+        {
+          "name": "复盘",
+          "checklist": [
+            { "id": "spec-7-1", "text": "CHECK 报告" },
+            { "id": "spec-7-2", "text": "回流候选确认入库" }
+          ],
+          "artifacts": ["CHECK_LOG + 新资产"]
+        }
+      ]
+    },
+    {
+      "name": "复盘流",
+      "kind": "retro",
+      "stages": [
+        {
+          "name": "收集",
+          "checklist": [{ "id": "retro-1-1", "text": "日志/指标/会话摘录齐备" }],
+          "artifacts": ["素材清单"]
+        },
+        {
+          "name": "分析",
+          "checklist": [
+            {
+              "id": "retro-2-1",
+              "text": "问题按维度归类（重复性/达成度/合规性/引用可靠性，对齐全局 CHECK 规范）"
+            }
+          ],
+          "artifacts": ["问题清单"]
+        },
+        {
+          "name": "决议",
+          "checklist": [
+            { "id": "retro-3-1", "text": "每问题有处理方式（修/缓/记录）" },
+            { "id": "retro-3-2", "text": "P0/P1/P2 定级" }
+          ],
+          "artifacts": ["行动项"]
+        },
+        {
+          "name": "回流",
+          "checklist": [{ "id": "retro-4-1", "text": "术语/提示词/模板改进已入库或建草稿" }],
+          "artifacts": ["资产增量"]
+        }
+      ]
+    }
+  ]
 }

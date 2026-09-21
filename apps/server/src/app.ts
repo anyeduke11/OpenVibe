@@ -5,6 +5,7 @@ import { openDatabase, type SqliteDatabase } from '@openvibe/core'
 import { registerAuth } from './plugins/auth'
 import { registerErrors } from './plugins/errors'
 import { registerPromptRoutes, type PromptRouteDeps } from './routes/prompts'
+import { registerTermRoutes } from './routes/terms'
 
 export interface BuildAppOptions {
   /** 注入 SQLite 连接（测试用临时库；缺省 :memory:，C-7） */
@@ -35,6 +36,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
 
   const deps: PromptRouteDeps = { db }
   registerPromptRoutes(app, deps)
+  registerTermRoutes(app, deps)
 
   app.get('/api/health', async () => ({
     status: 'ok',

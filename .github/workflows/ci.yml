@@ -35,6 +35,6 @@ jobs:
       - name: Test
         run: pnpm test
 
-      # T4 起启用（seed:check 阈值 60 先行 → T8 切 100/3/20）：
-      # - name: Seed check
-      #   run: pnpm seed:check
+      # T4 起生效，阈值 terms≥60 / templates=3 / prompts=0（T8 切 100/3/20）
+      - name: Seed check
+        run: pnpm seed:check

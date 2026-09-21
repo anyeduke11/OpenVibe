@@ -11,27 +11,10 @@ import {
 } from '@openvibe/shared'
 import { parseImportFiles, PromptsRepo, type ImportFile, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { referencedPackNames } from '../lib/refs'
 
 export interface PromptRouteDeps {
   db: SqliteDatabase
-}
-
-/** m1 §6.3 / DEV-0013 C-6：引用包名 = standard_packs.selection.promptIds 扫描（包已物化内容快照，删除仅提示） */
-function referencedPackNames(db: SqliteDatabase, promptId: string): string[] {
-  const rows = db.prepare('SELECT name, selection FROM standard_packs').all() as {
-    name: string
-    selection: string
-  }[]
-  const names: string[] = []
-  for (const row of rows) {
-    try {
-      const sel = JSON.parse(row.selection) as { promptIds?: unknown }
-      if (Array.isArray(sel.promptIds) && sel.promptIds.includes(promptId)) names.push(row.name)
-    } catch {
-      // selection 损坏的包不参与引用判定
-    }
-  }
-  return names.sort()
 }
 
 const importFileSchema = z.object({
@@ -121,7 +104,7 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
 
   app.delete('/api/prompts/:id', async (req, reply) => {
     const { id } = req.params as { id: string }
-    const names = referencedPackNames(deps.db, id)
+    const names = referencedPackNames(deps.db, id, 'promptIds')
     if (names.length > 0) reply.header('x-referenced-packs', names.join(','))
     prompts.delete(id)
     return reply.code(204).send()

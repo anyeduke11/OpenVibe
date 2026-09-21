@@ -5,10 +5,14 @@ import {
   PromptCreateInput,
   SCHEMA_VERSION,
   TermCreateInput,
+  bidirectionalRelatedIds,
+  dedupeAliases,
   extractVariables,
+  findMatchRanges,
   idKindOf,
   isValidPackRelativePath,
   newId,
+  renderTermsMdTable,
 } from './index'
 
 describe('UT-EXAMPLE-01 · shared 基础能力', () => {
@@ -51,5 +55,57 @@ describe('UT-EXAMPLE-01 · shared 基础能力', () => {
     expect(isValidPackRelativePath('/abs/path')).toBe(false)
     expect(isValidPackRelativePath('a\\b')).toBe(false)
     expect(isValidPackRelativePath('a//b')).toBe(false)
+  })
+})
+
+describe('UT-TERMSMD-01 · TERMS.md 契约纯函数（shared）', () => {
+  it('表头固定、裸 | 转义、换行折叠', () => {
+    const md = renderTermsMdTable('选集', [
+      {
+        zh: '术语表',
+        en: 'TERMS.md',
+        aliases: ['词汇标准'],
+        definition: '列序为 术语 | English | 别名 | 定义',
+      },
+      { zh: '带换行', en: 'br', aliases: [], definition: '第一行\n第二行' },
+    ])
+    expect(md.split('\n').slice(0, 6)).toEqual([
+      '# 术语表 · 选集',
+      '',
+      '> AI 与团队共用的词汇标准；新词请先入库再使用。',
+      '',
+      '| 术语 | English | 别名 | 定义 |',
+      '|------|---------|------|------|',
+    ])
+    expect(md).toContain('列序为 术语 \\| English \\| 别名 \\| 定义')
+    expect(md).toContain('| 带换行 | br |  | 第一行 第二行 |')
+    expect(md.endsWith('\n')).toBe(true)
+  })
+
+  it('组包标题可注入 packName@version（design §7.4）', () => {
+    const md = renderTermsMdTable('default@1.0.0', [])
+    expect(md.split('\n')[0]).toBe('# 术语表 · default@1.0.0')
+  })
+
+  it('双向相关取并集、排除自指、按 id 码点序', () => {
+    const terms = [
+      { id: 'trm_b', relatedTermIds: ['trm_a', 'trm_a'] },
+      { id: 'trm_a', relatedTermIds: ['trm_c', 'trm_a'] },
+      { id: 'trm_c', relatedTermIds: [] },
+    ]
+    expect(bidirectionalRelatedIds(terms, 'trm_a')).toEqual(['trm_b', 'trm_c'])
+    expect(bidirectionalRelatedIds(terms, 'trm_c')).toEqual(['trm_a'])
+    expect(bidirectionalRelatedIds(terms, 'trm_missing')).toEqual([])
+  })
+
+  it('别名去重忽略大小写与空白；命中区间大小写无关', () => {
+    expect(dedupeAliases([' RAG ', 'rag', 'RAG', '', '检索增强'])).toEqual(['RAG', '检索增强'])
+    expect(findMatchRanges('Rule Drift 规则漂移', 'drift')).toEqual([{ start: 5, end: 10 }])
+    expect(findMatchRanges('a-b-a', 'a')).toEqual([
+      { start: 0, end: 1 },
+      { start: 4, end: 5 },
+    ])
+    expect(findMatchRanges('', 'x')).toEqual([])
+    expect(findMatchRanges('abc', '')).toEqual([])
   })
 })
