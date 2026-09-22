@@ -260,10 +260,11 @@ export class SkillsRepo {
   }
 
   versions(skillId: string): SkillVersionOut[] {
+    // scanned_at 只到毫秒，同一次扫描/登记常落在同一毫秒；随机 id 兜底会让顺序变成抛硬币，故用 rowid（= 落库序）
     const rows = this.db
       .prepare(
         `SELECT sv.*, s.name FROM skill_versions sv JOIN skills s ON s.id = sv.skill_id
-          WHERE sv.skill_id = ? ORDER BY sv.scanned_at ASC, sv.id ASC`,
+          WHERE sv.skill_id = ? ORDER BY sv.scanned_at ASC, sv.rowid ASC`,
       )
       .all(skillId) as {
       id: string

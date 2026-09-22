@@ -112,6 +112,7 @@ describe('手动登记与扫描并入（m2 FR-2.2 / §7.4）', () => {
       expect(merged?.skillDir).toBe(join(dir, 'my-skill'))
       const vers = repo.versions(manual.id)
       expect(vers).toHaveLength(2)
+      expect(vers.map((v) => v.versionLabel)).toEqual(['v1', 'my-skill']) // 时间序：手工 v1 在前
       expect(merged?.latestVersionId).toBe(vers[1]?.id)
 
       // 再扫同一目录命中真实指纹 → skipped；空串指纹不参与判重
@@ -120,6 +121,36 @@ describe('手动登记与扫描并入（m2 FR-2.2 / §7.4）', () => {
     } finally {
       handle.close()
       rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('同一毫秒落库的版本按落库顺序返回（id 兜底会把顺序颠倒）', () => {
+    const handle = newDb()
+    try {
+      const repo = new SkillsRepo(handle.db)
+      const manual = repo.create({
+        name: 'tie',
+        description: 'd',
+        source: 'manual',
+        installedTargets: [],
+      })
+      const ts = '2099-01-01T00:00:00.000Z'
+      // 故意让后落库的行带更小的随机 id：以 id 兜底排序会把两条整个反过来
+      for (const id of ['skv_zzzz', 'skv_aaaa']) {
+        handle.db
+          .prepare(
+            `INSERT INTO skill_versions (id, skill_id, version_label, dir_hash, file_count, scanned_at)
+             VALUES (?, ?, ?, ?, 0, ?)`,
+          )
+          .run(id, manual.id, id, `hash-${id}`, ts)
+      }
+      expect(repo.versions(manual.id).map((v) => v.id)).toEqual([
+        manual.latestVersionId,
+        'skv_zzzz',
+        'skv_aaaa',
+      ])
+    } finally {
+      handle.close()
     }
   })
 })

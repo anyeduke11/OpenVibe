@@ -343,3 +343,19 @@
 - **潜在风险**: ① 63 条词条仍是 AI 起草、owner 审校未发生（承 DEV-0014），标准包 TERMS.md 质量随词条质量，T8 前不闭合；② m6a §7 第 6 条（bundle 被 `sync --file` 消费）本切片只到「bundle 可下载且指纹自证」，真正的 CLI 消费闭环在 T7，T6↔T7 契约缝（`pack.lock.json` 格式、`--pack name@ver` 解析）须 T7 首跑即回测；③ 走查 harness 与探针脚本仍在仓库外（`~/.local/share/openvibe-t6/harness`），`docs/devlog-evidence/DEV-0016/*.txt` 是结果非可重放驱动器，与 DEV-0013/0014/0015 同源，留 T9 E2E 决策点统一收口；④ `.gitignore` 教训（C-38）暴露「源码目录名 == 运行时产物目录名」的系统性风险，T8 应加一条 CI 守卫：`git ls-files --others --ignored --exclude-standard` 命中 `apps/**` 或 `packages/**` 即 fail；⑤ ~~coveredPlatforms 依赖兼容矩阵行正确性，Trae CN/Kimi 的 AGENTS.md 读取行为是二进制/文档推断，真实 GUI 手工清单（owner 3 分钟）结果待回填本节~~ **已闭合（2026-09-22）**：Trae CN 双通道暗号实测全对（C-39，`trae-gui-manual-check.txt`）；余下 Kimi Code 仍为文档证据，待有真实客户端时补同法抽测；⑥ 目录导出落 `OPENVIBE_HOME/packs/`，与仓库运行时同名，多用户共享 HOME 时的并发导出未加锁（单用户 MVP 可接受，T8 开箱复核）。
 
 ---
+
+## [DEV-0017] 缺陷修复：skill 版本时间序被随机 id 兜底翻转（CI macOS 首曝，本地 11/25 复现）
+- **时间**: 2026-09-22 11:02
+- **类型**: 缺陷修复（CI 三平台不对称暴露；T5 遗留，无契约变更、无 migration）
+- **关联文件**: `packages/core/src/repos/skills.ts`、`packages/core/src/repos/skills.test.ts`
+- **问题描述**: push `adf7780`（只改文档 + `compat.ts` 一行展示文案）后，CI run 35680932897 的 `verify (macos-latest)` 在 `packages/core/src/repos/skills.test.ts:115` 失败：`expected 'skv_KI_xxDVseGNTrv-X-Fyqr' to be 'skv_dghoeInU3JI4wW9Fsjzgv'`——同一 commit 的 ubuntu 与 windows 全绿。表面看是「文档提交弄挂了测试」，实际不成立：该 commit 未触碰任何 skill 代码路径。
+- **原因分析**: 根因是**排序键不确定**，不是文档改动。`SkillsRepo.versions()` 用 `ORDER BY scanned_at ASC, id ASC`，而 `nowIso()` 精度只到毫秒（`packages/core/src/db/runner.ts:8`）、`id` 是 `nanoid()`（`packages/shared/src/ids.ts:4`）。`create()` 与紧随其后的 `scan()` 产生的两条版本几乎必然落在同一毫秒，平局于是交给随机字符串——「最后一条 = 最新」变成抛硬币。macOS arm64（runner 与本机）快所以稳定撞见；Linux/Windows 因 `computeDirHash` 的目录走查跨过毫秒边界而侥幸通过。三段证据：① 本机同文件重跑 25 次失败 **11 次**；② 一次性探针 6/6 次采到两条版本 `scanned_at` 逐字符相同（如 `v1@02:55:33.895Z` 与 `my-skill@02:55:33.895Z`），其中 2/6 次排序末条 ≠ `latestVersionId`；③ 新增回归用例以「后落库的行带更小随机 id」构造平局，修复前 **100%** 失败。
+- **解决方案**: `versions()` 的平局兜底由随机 `id` 改为 **`rowid ASC`**（SQLite 隐式 rowid 即落库序，本表非 WITHOUT ROWID），一行改动打在不确定性的源头而非测试断言上。选它而非加 `seq` 列，是因为仓内已有同型先例：`devlog.ts:143` 用 `created_at ASC, rowid ASC`、`prompts.ts:251` 用单调 `version_no ASC`——本表只是漏了这一层。
+  - 同类排查（结论驱动，非顺手改）: `devlog` 有 rowid + `entry_no` 双兜底 ✅；`tasks` 的 `ORDER BY order_, id` 中 `order_` 由 `MAX(order_)+1` 与整列重写保证同列唯一，`id` 兜底不可达 ✅；`packs.ts:176/247` 导出历史列表在同一毫秒双导出时次序不定 ⚠️，但仅影响展示、且 `:281` 取「最新导出」另有 `version DESC` 确定兜底 → 本次不动，记入潜在风险①。
+- **测试验证**:
+  - 测试命令: `npx vitest run packages/core/src/repos/skills.test.ts`（含 25 次循环）+ `pnpm lint && pnpm typecheck && pnpm test`
+  - 新增用例 `同一毫秒落库的版本按落库顺序返回（id 兜底会把顺序颠倒）`（确定性复现根因）；既有 §7.4 用例补 `expect(vers.map(v => v.versionLabel)).toEqual(['v1', 'my-skill'])`，把「时间序」从隐含假设写成显式期望
+  - 验证结果: 修复前本地 11/25 失败 + 新用例 100% 失败 → 修复后 **0/25 失败**；lint 0 错误；tsc 两遍通过；**153/153 用例全绿（21 文件）**；golden ×3 基线未动（确认无契约漂移）
+- **潜在风险**: ① `packs.ts:176/247` 的导出历史列表在同一毫秒双导出时展示次序不定（无正确性反转，仅顺序抖动），T8 与「最新导出」的 `version` 字典序缺陷（`1.0.10 < 1.0.9`）一并收口；② 本缺陷类是「毫秒时间戳 + 随机 id 兜底」，任何只存 ISO 时间戳的新表都会复发，T8 建议加守卫：`ORDER BY` 出现 `<ts 列>, id` 形态即 fail（与 DEV-0016 风险④的 `.gitignore` 守卫同批）；③ 三平台 CI 里 macOS 会持续最先暴露时序类缺陷，「本地 25 次循环重跑」应作为此类 flake 的标准诊断动作，而不是看一次绿就收工。
+
+---
