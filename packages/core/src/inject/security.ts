@@ -53,15 +53,18 @@ export function checkWritePath(
 ): PathCheck {
   if (!isValidPackRelativePath(relPath)) return { ok: false, reason: 'MALFORMED' }
   const realpath = deps.realpath ?? tryRealpath
-  const absPath = resolve(projectPath, relPath)
-  if (!isInside(projectPath, absPath)) return { ok: false, reason: 'ESCAPE' }
+  // 根与目标两侧都先过 resolve 再比对：resolve 出来的目标已经是平台写法（Windows 上把
+  // '/tmp/proj' 归成 '\tmp\proj'），拿未归一的根去 startsWith 必然不等，一次正常注入会被判成逃逸。
+  const rootPath = resolve(projectPath)
+  const absPath = resolve(rootPath, relPath)
+  if (!isInside(rootPath, absPath)) return { ok: false, reason: 'ESCAPE' }
 
   // 项目根自身也可能经符号链接到达（macOS 的 /var → /private/var、Linux 的 /tmp），两侧都要归一。
   // 父目录尚未创建时（NEW 文件要 mkdir -p）realpath 必然失败：在项目根内逐级上溯到最近的存在
   // 祖先再比对，否则「新项目 + 链接来的项目根」会被误判成逃逸，拒掉一次本该成功的注入。
-  const root = realpath(projectPath) ?? projectPath
+  const root = realpath(rootPath) ?? rootPath
   const parent = dirname(absPath)
-  const realParent = realpathNearestWithin(parent, projectPath, realpath) ?? parent
+  const realParent = realpathNearestWithin(parent, rootPath, realpath) ?? parent
   if (!isInside(root, realParent)) return { ok: false, reason: 'ESCAPE' }
   // 目标自身是符号链接时，writeFile 会顺着它写到项目外
   const realSelf = realpath(absPath)

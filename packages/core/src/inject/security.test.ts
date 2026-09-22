@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { LIMITS } from '@openvibe/shared'
 import { checkPackInjectable, checkWritePath, resolveWriteTarget } from './security'
@@ -97,11 +97,13 @@ describe('UT-INJECT-SEC-02 · 符号链接逃逸拒绝（design §7.7 规则 3 /
   })
 
   it('项目根经符号链接到达 + 父目录待创建 → 不误判逃逸（macOS /var→/private/var 的真实形态）', () => {
-    const linkRoot = '/var/tmp/proj'
-    const realRoot = '/private/var/tmp/proj'
+    // 平台原生分隔符构造：Windows CI 上 '/' 开头的根会先被 resolve 归一，桩函数须跟着归一才测得到同一形态
+    const linkRoot = resolve(join('/', 'var', 'tmp', 'proj'))
+    const realRoot = resolve(join('/', 'private', 'var', 'tmp', 'proj'))
     // 假的 realpath 只认「已存在的路径」：新项目里 .cursor/rules 还没建出来
     const check = checkWritePath(linkRoot, '.cursor/rules/openvibe.mdc', {
-      realpath: (p) => (p === linkRoot ? realRoot : p.startsWith(`${realRoot}/`) ? p : null),
+      realpath: (p) =>
+        p === linkRoot ? realRoot : p === realRoot || p.startsWith(`${realRoot}${sep}`) ? p : null,
     })
     expect(check).toEqual({ ok: true, absPath: join(linkRoot, '.cursor/rules/openvibe.mdc') })
   })
@@ -187,5 +189,18 @@ describe('UT-INJECT-SEC-04 · 写入时二次校验（双保险，落盘前逐�
       absPath: join(project, 'nested/x.md'),
     })
     w.close()
+  })
+
+  it('项目根未归一（相对路径 / 结尾多余分隔符 / 异平台分隔符）→ 归一后比对，不误判 ESCAPE', () => {
+    // 归一前拿 resolve() 的结果去 startsWith(原样根) 必然不等：Windows 上 '/' 开头的根会被判逃逸
+    expect(checkWritePath('proj', 'docs/a.md')).toEqual({
+      ok: true,
+      absPath: resolve('proj', 'docs/a.md'),
+    })
+    expect(checkWritePath(`${resolve('proj')}${sep}`, 'docs/a.md')).toEqual({
+      ok: true,
+      absPath: resolve('proj', 'docs/a.md'),
+    })
+    expect(resolveWriteTarget('.', 'CLAUDE.md')).toBe(resolve('CLAUDE.md'))
   })
 })
