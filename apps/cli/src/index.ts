@@ -1,6 +1,8 @@
 import { Command, InvalidArgumentError } from 'commander'
 import { serveAction } from './commands/serve'
 import { askWithClack, syncAction, type SyncOutcome } from './commands/sync'
+import { scanAction, type ScanOutcome } from './commands/scan'
+import { diffAction, type DiffOutcome } from './commands/diff'
 import { createPrinter, ExitCode, type Printer, type ReportRow } from './output'
 import { clientFromConfig } from './client'
 import { resolveConfig } from './config'
@@ -223,6 +225,140 @@ async function runSync(
   }
 }
 
+function clientFrom(global: GlobalOptions, printer: Printer) {
+  const config = resolveConfig({ server: global.server, token: global.token })
+  for (const w of config.warnings) printer.warn(w)
+  return config.token === null ? undefined : clientFromConfig(config)
+}
+
+interface ScanCmdOptions {
+  skills?: boolean
+  project?: string
+  /** commander 的累积式选项：--roots a --roots b / --roots a,b 都收 */
+  roots?: string[]
+}
+
+function scanRows(outcome: ScanOutcome): ReportRow[] {
+  return [
+    ...outcome.probed.map((path) => ({
+      path,
+      kind: 'rule-file',
+      action: outcome.prompts.find((p) => p.title === path)?.action ?? 'unknown',
+    })),
+    ...outcome.skillsRoots.map((path) => ({ path, kind: 'skill-root', action: 'scan' })),
+  ]
+}
+
+async function runScan(cmd: ScanCmdOptions, global: GlobalOptions): Promise<void> {
+  const printer = printerFor('scan', global)
+  try {
+    const client = clientFrom(global, printer)
+    const outcome = await scanAction(
+      {
+        skills: cmd.skills === true,
+        ...(cmd.project === undefined ? {} : { project: cmd.project }),
+        ...(cmd.roots && cmd.roots.length > 0 ? { roots: cmd.roots } : {}),
+      },
+      client ? { client } : {},
+    )
+    for (const w of outcome.warnings) printer.warn(w)
+    for (const row of outcome.prompts)
+      printer.info(
+        `${row.action === 'created' ? '新增' : '跳过'} ${row.title}${row.reason ? `（${row.reason}）` : ''}`,
+      )
+    for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
+    printer.result({
+      report: scanRows(outcome),
+      summary: {
+        ok: true,
+        server: client?.serverUrl ?? null,
+        skills: outcome.skills,
+        skillsRoots: outcome.skillsRoots,
+        probed: outcome.probed,
+        prompts: outcome.prompts,
+        // 键名不叫 counts：printer 一见 counts 就渲染注入侧的五状态表
+        tally: {
+          probed: outcome.probed.length,
+          created: outcome.prompts.filter((p) => p.action === 'created').length,
+          skipped: outcome.prompts.filter((p) => p.action === 'skipped').length,
+        },
+        hints: outcome.hints,
+        exitCode: ExitCode.ok,
+      },
+    })
+    process.exit(ExitCode.ok)
+  } catch (e) {
+    const err = e as { code?: string; message?: string }
+    printer.fail(err.code ?? 'SCAN_FAILED', err.message ?? String(e))
+    process.exit(ExitCode.error)
+  }
+}
+
+function diffRows(outcome: DiffOutcome): ReportRow[] {
+  return [
+    ...outcome.drifted.map((d) => ({
+      path: d.path,
+      state: 'drifted',
+      expected: d.expected,
+      actual: d.actual,
+    })),
+    ...outcome.missing.map((path) => ({ path, state: 'missing' })),
+  ]
+}
+
+async function runDiff(projectPath: string, global: GlobalOptions): Promise<void> {
+  const printer = printerFor('diff', global)
+  try {
+    const client = clientFrom(global, printer)
+    const outcome = await diffAction({ projectPath }, client ? { client } : {})
+    for (const w of outcome.warnings) printer.warn(w)
+    printer.info(
+      `包 ${outcome.pack.name}@${outcome.pack.version}：跟踪 ${outcome.tracked} 项，漂移 ${outcome.drifted.length}，缺失 ${outcome.missing.length}`,
+    )
+    for (const d of outcome.drifted)
+      printer.info(
+        `漂移 ${d.path}（lock ${d.expected.slice(0, 8)} → 磁盘 ${d.actual.slice(0, 8)}）`,
+      )
+    for (const m of outcome.missing) printer.info(`缺失 ${m}`)
+    for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
+    printer.result({
+      report: diffRows(outcome),
+      summary: {
+        ok: outcome.exitCode === ExitCode.ok,
+        projectPath: outcome.projectPath,
+        lockPath: outcome.lockPath,
+        pack: outcome.pack,
+        injectedAt: outcome.injectedAt,
+        tracked: outcome.tracked,
+        clean: outcome.clean,
+        drifted: outcome.drifted,
+        missing: outcome.missing,
+        outdated: outcome.outdated,
+        probedOnline: outcome.probedOnline,
+        hints: outcome.hints,
+        exitCode: outcome.exitCode,
+      },
+    })
+    process.exit(outcome.exitCode)
+  } catch (e) {
+    const err = e as { code?: string; message?: string }
+    printer.fail(err.code ?? 'DIFF_FAILED', err.message ?? String(e))
+    process.exit(ExitCode.error)
+  }
+}
+
+/** roots 允许逗号分隔与重复旗标，交给 scanAction 去重保序 */
+function collectRoots(raw: string, prev: unknown): string[] {
+  const list = Array.isArray(prev) ? (prev as string[]) : []
+  return [
+    ...list,
+    ...raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+  ]
+}
+
 export function buildProgram(): Command {
   const program = new Command()
   program
@@ -264,6 +400,27 @@ export function buildProgram(): Command {
     )
     .action(async (projectPath: string, opts: SyncCmdOptions) => {
       await runSync(projectPath, opts, program.opts<GlobalOptions>())
+    })
+
+  program
+    .command('scan')
+    .description('扫描 skill 目录 / 项目规则文件并登记进服务端（无离线模式）')
+    .option('--skills', '调服务端 skill 扫描（默认扫描标准 skill 目录）')
+    .option('--roots <dir>', 'skill 扫描根目录（可重复，或用逗号分隔）', collectRoots, [])
+    .option(
+      '--project <path>',
+      '探测并导入项目规则文件（.cursorrules / .cursor/rules/*.mdc / CLAUDE.md / AGENTS.md）',
+    )
+    .action(async (opts: ScanCmdOptions) => {
+      await runScan(opts, program.opts<GlobalOptions>())
+    })
+
+  program
+    .command('diff')
+    .description('比对项目产物与 pack.lock.json，并探测是否有更新的导出版本')
+    .argument('<projectPath>', '目标项目目录')
+    .action(async (projectPath: string) => {
+      await runDiff(projectPath, program.opts<GlobalOptions>())
     })
 
   return program
