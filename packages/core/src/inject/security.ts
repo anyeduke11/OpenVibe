@@ -1,7 +1,7 @@
 // packages/core/src/inject/security —— 注入前的「整包拒绝」防线（m6b §6.1/§6.3/§6.7 + design §7.7/§11.3）。
 // 与导出侧 validatePackFiles 的关键差异：导出侧规模越限只警告（m6a §6.4），
 // 注入侧要写用户磁盘，同一越限必须硬拒绝。
-import { realpathSync } from 'node:fs'
+import { lstatSync, realpathSync } from 'node:fs'
 import { dirname, resolve, sep } from 'node:path'
 import {
   AppError,
@@ -68,8 +68,22 @@ export function checkWritePath(
   if (!isInside(root, realParent)) return { ok: false, reason: 'ESCAPE' }
   // 目标自身是符号链接时，writeFile 会顺着它写到项目外
   const realSelf = realpath(absPath)
-  if (realSelf && !isInside(root, realSelf)) return { ok: false, reason: 'ESCAPE' }
+  if (realSelf === null) {
+    // 悬空链接（目标文件还不存在）realpath 必然失败，落点无法证明在项目内：
+    // 注入从不需要顺着链接写，一律拒绝，否则 writeFile 会在项目外凭空建出文件
+    if (isSymbolicLink(absPath)) return { ok: false, reason: 'ESCAPE' }
+  } else if (!isInside(root, realSelf)) {
+    return { ok: false, reason: 'ESCAPE' }
+  }
   return { ok: true, absPath }
+}
+
+function isSymbolicLink(abs: string): boolean {
+  try {
+    return lstatSync(abs).isSymbolicLink()
+  } catch {
+    return false
+  }
 }
 
 /**
