@@ -10,7 +10,12 @@ export { FlowTemplatesRepo } from './repos/flows'
 export { ProjectsRepo, type ProjectHealthSummary } from './repos/projects'
 export { TasksRepo } from './repos/tasks'
 export { DevLogRepo } from './repos/devlog'
-export { checkLocalPath, readInjectionStatus, PACK_LOCK_REL, type LocalPathCheck } from './local/lock'
+export {
+  checkLocalPath,
+  readInjectionStatus,
+  PACK_LOCK_REL,
+  type LocalPathCheck,
+} from './local/lock'
 export { PacksRepo } from './repos/packs'
 export {
   parseImportFiles,
@@ -39,5 +44,38 @@ export {
   type PackDefinition,
   type ResolveDeps,
 } from './pack'
+export {
+  // 注入侧内核（m6b）：安全校验 → 五状态规划 → lock 装配
+  checkPackInjectable,
+  checkWritePath,
+  resolveWriteTarget,
+  planInjection,
+  applyDecisions,
+  strategyToDecisions,
+  diffPackLock,
+  buildPackLock,
+  packLockJson,
+  parsePackLock,
+  PACK_BACKUP_REL,
+  INJECT_STATUSES,
+  INJECT_DECISIONS,
+  type InjectPackFile,
+  type InjectablePack,
+  type InjectionViolations,
+  type PathCheck,
+  type SecurityDeps,
+  type PackFileWithHash,
+  type PlanInput,
+  type InjectPlan,
+  type InjectPlanFile,
+  type InjectStatus,
+  type InjectDecision,
+  type InjectAction,
+  type InjectWrite,
+  type InjectSkip,
+  type ApplyResult,
+  type DiffResult,
+  type BuildLockInput,
+} from './inject'
 
 export const CORE_VERSION = '0.0.0'
