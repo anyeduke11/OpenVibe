@@ -38,7 +38,7 @@ export const COMPAT_MATRIX: CompatRow[] = [
   {
     platform: 'Trae CN',
     reads: 'AGENTS.md',
-    note: '一手证据：T6 真机核验（Trae CN 二进制含「Include AGENTS.md in context」设置且默认开启）',
+    note: '一手证据：T6 真机核验——二进制含「Include AGENTS.md in context」设置且默认开启，GUI 暗号实测确认与 .trae 规则并存时 AGENTS.md 仍被读入',
   },
   {
     platform: 'zcode',

@@ -101,7 +101,7 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 - [x] `packages/core/pack/`：composer（design §7.3 组合规则）、fingerprint（§7.6）、validate（§7.7 全规则）
 - [x] `packages/adapters/`：**六 adapter**（claude-code / cursor / generic-agents / **codebuddy / trae / minicode**，D7+D9）+ registry + 兼容矩阵常量（design §8 v1.2）
-- [x] **真机复核**（半天内）：Trae CN 二进制一手证据推翻原 `trigger: always`——改 `{ description, alwaysApply: true }`，`.trae/rules/openvibe.md` 自定义名保留（`project_rules.md` 回退预案未触发）；Codex 二进制 `core/src/agents_md.rs` 证实读 `AGENTS.md`（根+嵌套，`AGENTS.override.md`）；证据落 `docs/devlog-evidence/DEV-0016/{trae-frontmatter,codex-agents}-probe.txt`
+- [x] **真机复核**（半天内）：Trae CN 二进制一手证据推翻原 `trigger: always`——改 `{ description, alwaysApply: true }`，`.trae/rules/openvibe.md` 自定义名保留（`project_rules.md` 回退预案未触发）；Codex 二进制 `core/src/agents_md.rs` 证实读 `AGENTS.md`（根+嵌套，`AGENTS.override.md`）；证据落 `docs/devlog-evidence/DEV-0016/{trae-frontmatter,codex-agents}-probe.txt`；owner 的 GUI 暗号实测（2026-09-22，不引用文件发问）两枚暗号全对 ⇒ `alwaysApply: true` 自动加载与 `Trae CN → AGENTS.md` 通道升为一级证据，`project_rules.md` 回退正式关闭（C-39，`trae-gui-manual-check.txt`）
 - [x] API：preview/export/exports/injections（含 409 VERSION_IMMUTABLE、STALE_SELECTION）——实落 **11 端点**（§3.8 标题「6 端点」为早期估算，见 DEV-0016 C-35）
 - [x] bundle 下载 + 目录导出双通道（幂等/409 规则）
 - [x] Web `/packs/new` 5 步向导 + 预览（文件树+内容+**覆盖平台提示**，读兼容矩阵）+ 导出历史

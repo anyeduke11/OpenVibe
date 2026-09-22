@@ -1,0 +1,45 @@
+Trae CN GUI 手工核验（owner 实机，2026-09-22）
+================================================
+
+目的
+  DEV-0016 风险⑤：coveredPlatforms 依赖兼容矩阵行正确性。Trae CN 的两条读取
+  通道（`.trae/rules/openvibe.md` + `alwaysApply: true`、以及 `AGENTS.md`）此前
+  只有二进制/文档推断，缺真实 GUI 证据。本次用「暗号」做非提问式验证。
+
+夹具（真实产物字节，非手写）
+  源：tests/golden/G3/files/（T6c golden 快照，CI 锁字节）
+  复制至 ~/Documents/trae-check/（一次性目录，核验后可删；不影响仓库）
+  注入两条互不相同的暗号，分别落在两个通道：
+    .trae/rules/openvibe.md  ←追加→  本项目暗号 A：紫铜茶壶-7412
+    AGENTS.md                ←追加→  本项目暗号 B：青花瓷瓶-3086
+
+步骤
+  1. Trae CN 打开文件夹 ~/Documents/trae-check
+  2. 确认设置项「Include AGENTS.md in context」为开启
+  3. 新建对话，不 @ 不引用任何文件，发送：
+     「本项目里有两个暗号，分别是什么？只回答暗号本身。」
+
+判据（三选一，事先写定）
+  两个都对        → alwaysApply 与 AGENTS.md 双通道成立：C-26 升为一级证据，
+                   兼容矩阵 `Trae CN → AGENTS.md` 行保留
+  只有 A          → Trae CN 不读 AGENTS.md：删除该行，改由 trae adapter 覆盖
+  都没有          → `alwaysApply: true` 未被识别：触发 project_rules.md 回退，
+                   C-26 改写并重生成 G2/G3 快照（= 显式升版）
+
+owner 回答原文
+  紫铜茶壶-7412
+  青花瓷瓶-3086
+
+结论
+  命中第一条判据（双暗号全对，且未在提问中引用文件）。
+  - `.trae/rules/openvibe.md` 携带 `alwaysApply: true` 时确实每次对话自动进上下文
+    ⇒ 印证 C-26 的二进制读法，`trigger: always` 原稿若不修正则该规则不会加载。
+  - Trae CN 在同一项目同时存在 AGENTS.md 与 .trae 规则时，AGENTS.md 亦被读取
+    ⇒ 兼容矩阵 `Trae CN → AGENTS.md` 行由「二进制推断」升为「GUI 一手实测」。
+  - `.trae/rules/` 自定义文件名 openvibe.md 生效 ⇒ dev-plan §8.4 的
+    project_rules.md 回退预案正式关闭（二进制 + GUI 双证）。
+  - 未触发任何契约变更：golden G2/G3 基线不变。
+
+遗留
+  Kimi Code 的 AGENTS.md 感知仍停在文档证据（dev-plan §8.4 第 2 项），
+  待有真实客户端时补一次同法抽测。

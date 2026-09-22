@@ -286,6 +286,7 @@ interface Adapter {
 | 平台 | 读哪个产物 | 证据强度 |
 |------|-----------|----------|
 | Codex / OpenCode / Cline / Qwen Code | `AGENTS.md` | 强（社区惯例） |
+| Trae CN | `AGENTS.md` | **一手证据**（二进制含「Include AGENTS.md in context」且默认开启 + T6 GUI 暗号实测：与 `.trae/rules/openvibe.md` 并存时 AGENTS.md 仍被自动读入，见 DEV-0016 C-39） |
 | zcode | `AGENTS.md` | **一手证据**（zcode 自身按 AGENTS.md 约定加载用户/项目指令） |
 | Kimi Code（Kimi for Coding） | `AGENTS.md`（感知链 AGENTS.md → .cursor/rules）；借鉴 CLAUDE.md 机制 | **较强**（官方 CLI 文档 + 借鉴机制报道；子 Agent 感知缺陷为 bug 非设计——T6 真机抽测一次） |
 | Claude Code 之外的 CLAUDE.md 兼容代理 | `CLAUDE.md` | — |

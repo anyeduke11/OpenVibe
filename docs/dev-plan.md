@@ -957,11 +957,11 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 
 ### 8.3 兼容矩阵常量（compat.ts）
 
-`zcode → AGENTS.md`（一手证据）；`Kimi Code → AGENTS.md`（较强，子 Agent 感知缺陷为上游 bug，文档如实标注）；`Codex / OpenCode / Cline / Qwen Code → AGENTS.md`；P1 可选：`gemini → GEMINI.md`、`copilot → .github/copilot-instructions.md`。
+`zcode → AGENTS.md`（一手证据）；`Trae CN → AGENTS.md`（一手证据：二进制默认开启 + T6 GUI 暗号实测，DEV-0016 C-39）；`Kimi Code → AGENTS.md`（较强，子 Agent 感知缺陷为上游 bug，文档如实标注）；`Codex / OpenCode / Cline / Qwen Code → AGENTS.md`；P1 可选：`gemini → GEMINI.md`、`copilot → .github/copilot-instructions.md`。
 
 ### 8.4 T6 真机复核 checklist（半天）
 
-1. ✅ Trae 真机复核（2026-09-22）：`.trae/rules/openvibe.md` 保留自定义文件名，但 frontmatter 从 `trigger: always` 改为 `{ description, alwaysApply: true }`——Trae CN 二进制一手证据显示只解析 `globs`/`alwaysApply`/`description`/`scene`，未知键静默丢弃，`trigger` 不会触发自动加载；`project_rules.md` 回退预案未触发（同二进制证实 `.trae/rules/` 支持多规则文件共存）。见 `docs/devlog-evidence/DEV-0016/trae-frontmatter-probe.txt` + DEV-0016 C-26。owner 的 GUI 手工清单（3 分钟）结果回填于 DEV-0016。
+1. ✅ Trae 真机复核（2026-09-22）：`.trae/rules/openvibe.md` 保留自定义文件名，但 frontmatter 从 `trigger: always` 改为 `{ description, alwaysApply: true }`——Trae CN 二进制一手证据显示只解析 `globs`/`alwaysApply`/`description`/`scene`，未知键静默丢弃，`trigger` 不会触发自动加载；`project_rules.md` 回退预案未触发（同二进制证实 `.trae/rules/` 支持多规则文件共存）。见 `docs/devlog-evidence/DEV-0016/trae-frontmatter-probe.txt` + DEV-0016 C-26。✅ owner GUI 手工清单已完成（2026-09-22）：`.trae/rules/openvibe.md` 与 `AGENTS.md` 各埋一枚暗号，不引用文件发问后两枚全对 ⇒ `alwaysApply: true` 自动加载与 AGENTS.md 通道均经真实 GUI 证实，`project_rules.md` 回退预案正式关闭（C-39，`trae-gui-manual-check.txt`）。
 2. Kimi Code 抽测 AGENTS.md 感知（主会话生效即算过）。
 3. （顺带）三平台产物在真机打开确认无编码/换行问题（CRLF 纪律：一律 `\n`）。
 
