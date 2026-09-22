@@ -12,6 +12,7 @@ import { registerPromptRoutes, type PromptRouteDeps } from './routes/prompts'
 import { registerSkillRoutes } from './routes/skills'
 import { registerTaskRoutes } from './routes/tasks'
 import { registerTermRoutes } from './routes/terms'
+import { NO_WEB, setupStatic, type WebStatus } from './plugins/static'
 
 export interface BuildAppOptions {
   /** 注入 SQLite 连接（测试用临时库；缺省 :memory:，C-7） */
@@ -19,12 +20,16 @@ export interface BuildAppOptions {
   /** CLI Bearer token（缺省随机生成；T7 起由 config.json 持久化） */
   token?: string
   appVersion?: string
+  /** design §4 步骤 7 的 Web 产物目录；缺省不托管静态资源（仅 API，测试与 CLI 离线用例用） */
+  webRoot?: string
 }
 
 export interface BuiltApp {
   app: FastifyInstance
   db: SqliteDatabase
   token: string
+  /** 静态托管结论（产物缺失时 served=false 并带构建提示） */
+  web: WebStatus
 }
 
 /**
@@ -37,7 +42,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   const appVersion = options.appVersion ?? '0.0.0'
   const app = Fastify({ logger: false })
 
-  registerErrors(app)
+  const web = options.webRoot ? await setupStatic(app, options.webRoot) : NO_WEB
+  registerErrors(app, web.served && web.root ? { spaFallbackRoot: web.root } : {})
   registerAuth(app, { token })
 
   const deps: PromptRouteDeps = { db }
@@ -58,5 +64,5 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
     db: { status: 'ready' },
   }))
 
-  return { app, db, token }
+  return { app, db, token, web }
 }

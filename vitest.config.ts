@@ -26,6 +26,9 @@ export default defineConfig({
           name: 'cli',
           environment: 'node',
           include: ['apps/cli/test/**/*.test.ts'],
+          // CLI 用例要真起子进程（node --import tsx 冷启动）并真监听端口，
+          // 与 unit/integration 并行抢占 CPU 时会越过 5s 默认值（默认值会掩盖成超时失败）
+          testTimeout: 30_000,
         },
       },
     ],

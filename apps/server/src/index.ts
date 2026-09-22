@@ -1,26 +1,39 @@
-// apps/server dev 入口（DEV-0013 C-7/C-8）：最小可跑启动序列——
-// openDatabase(~/.openvibe/data/openvibe.db，OPENVIBE_HOME 可覆盖) → 幂等播种 → buildApp → listen 127.0.0.1:8787。
-// 完整八步 bootstrap（config.json token 持久化/静态托管/日志）随 T7 serve 命令落地（design §4/§11）。
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { defaultDbPath, openDatabase, runSeed } from '@openvibe/core'
-import { buildApp } from './app'
+// apps/server dev 入口（DEV-0013 C-7/C-8）：复用 bootstrap 的建库/播种/监听/静态托管，
+// 令牌保持每次随机（m6b D-3：只有 serve 把 token 持久化进 config.json）。
+import { defaultDbPath } from '@openvibe/core'
+import { DEFAULT_PORT } from '@openvibe/shared'
+import { bootstrap, defaultSeedDir, type BootError, type SeedSummary } from './bootstrap'
 
-const db = openDatabase(defaultDbPath())
-// DEV-0014 C-12：种子在 dev 入口按 design §15 幂等加载（T7 起并入八步 bootstrap 第 4 步）
-const seedDir =
-  process.env.OPENVIBE_SEED_DIR ??
-  join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'content', 'seed')
-for (const r of runSeed(db, seedDir)) {
-  if (r.status !== 'skipped' || r.warnings.length > 0) {
-    console.log(`[openvibe] seed ${r.bundle}: ${r.status} +${r.created} ~${r.updated} 跳过${r.skipped}`)
-    for (const w of r.warnings) console.log(`[openvibe]   warning: ${w}`)
-  }
+function seedLines(seed: SeedSummary): string[] {
+  return Object.entries(seed.bundles).map(
+    ([bundle, status]) =>
+      `seed ${bundle}: ${status} +${seed.created[bundle] ?? 0} ~${seed.updated[bundle] ?? 0} 跳过${seed.skipped[bundle] ?? 0}`,
+  )
 }
 
-const { app, token } = await buildApp({ db })
+let boot: Awaited<ReturnType<typeof bootstrap>>
+try {
+  boot = await bootstrap({
+    dbPath: defaultDbPath(),
+    seedDir: defaultSeedDir(),
+    port: Number(process.env.PORT ?? DEFAULT_PORT),
+  })
+} catch (e) {
+  const err = e as BootError
+  console.error(`[openvibe] 启动失败 [${err.code ?? 'UNKNOWN'}] ${err.message}`)
+  process.exit(1)
+}
 
-const port = Number(process.env.PORT ?? 8787)
-await app.listen({ host: '127.0.0.1', port })
-console.log(`[openvibe] server listening on http://127.0.0.1:${port} (db: ${defaultDbPath()})`)
-console.log(`[openvibe] dev CLI token: ${token}（T7 起写入 ~/.openvibe/config.json）`)
+for (const line of [...seedLines(boot.seed), ...boot.seed.warnings, ...boot.warnings]) {
+  console.log(`[openvibe] ${line}`)
+}
+console.log(`[openvibe] server listening on ${boot.url} (db: ${boot.dbPath})`)
+console.log(
+  `[openvibe] dev CLI token: ${boot.token}（openvibe serve 才会写入 ~/.openvibe/config.json）`,
+)
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => {
+    void boot.close().finally(() => process.exit(0))
+  })
+}

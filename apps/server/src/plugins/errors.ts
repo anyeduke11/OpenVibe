@@ -1,9 +1,18 @@
 import type { FastifyInstance } from 'fastify'
 import { AppError, type ErrorBody } from '@openvibe/shared'
 import { zodIssuesToFieldErrors, type ZodIssueLike } from '../lib/validate'
+import { hasWebBuild, SPA_INDEX } from './static'
+
+/** 统一 JSON 404 体：SPA 回退（plugins/static）在非前端路由分支复用，避免两处文案漂移 */
+export function notFoundBody(method: string, url: string): ErrorBody {
+  return { code: 'NOT_FOUND', message: `路由不存在：${method} ${url}` }
+}
 
 /** dev-plan §4.4：AppError→HTTP 总表映射；zod→422；其余 4xx 透传码、未知 500 零堆栈 */
-export function registerErrors(app: FastifyInstance): void {
+export function registerErrors(
+  app: FastifyInstance,
+  options: { spaFallbackRoot?: string } = {},
+): void {
   app.setErrorHandler((error, _req, reply) => {
     if (error instanceof AppError) {
       const body: ErrorBody = { code: error.code, message: error.message }
@@ -34,9 +43,18 @@ export function registerErrors(app: FastifyInstance): void {
   })
 
   app.setNotFoundHandler((req, reply) => {
-    reply.code(404).send({
-      code: 'NOT_FOUND',
-      message: `路由不存在：${req.method} ${req.url}`,
-    } satisfies ErrorBody)
+    const path = req.url.split('?')[0] ?? ''
+    const root = options.spaFallbackRoot
+    // SPA 回退只管页面路由：/api 与非 GET 必须是 JSON 404，否则前端外壳会吞掉接口错误语义。
+    // 逐请求查存在性：产物可能在启动后被清理，此时回 JSON 404 而不是让 sendFile 递归 callNotFound。
+    if (
+      root &&
+      !path.startsWith('/api') &&
+      (req.method === 'GET' || req.method === 'HEAD') &&
+      hasWebBuild(root)
+    ) {
+      return reply.sendFile(SPA_INDEX, root)
+    }
+    return reply.code(404).send(notFoundBody(req.method, req.url))
   })
 }

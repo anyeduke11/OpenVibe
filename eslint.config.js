@@ -41,7 +41,12 @@ const r4NoCrossApp = (others) => [
   {
     patterns: [
       {
-        group: others.flatMap((name) => [`@openvibe/${name}`, `../../${name}/*`]),
+        // 含子路径（@openvibe/x/*），否则 exports 子路径导出会绕过 R4
+        group: others.flatMap((name) => [
+          `@openvibe/${name}`,
+          `@openvibe/${name}/*`,
+          `../../${name}/*`,
+        ]),
         message: 'R4: apps 之间只经 HTTP API 交互，禁止直接 import',
       },
     ],
@@ -82,6 +87,13 @@ export default tseslint.config(
   {
     files: ['apps/cli/**/*.ts'],
     rules: { 'no-restricted-imports': r4NoCrossApp(['web', 'server']) },
+  },
+  {
+    // serve 是 dev-plan §1.2 启动序列的组合根：步骤 3/4/6/7 归属 apps/server/src/bootstrap.ts
+    // （design §3 把 bootstrap 画在 server），而发现链按 m6b §3 归属 CLI，故此处只能直接调
+    // bootstrap 而非起子进程。全仓仅此文件被放行 import server；对 web 的禁令依旧（见 DEV-0018 C-40）。
+    files: ['apps/cli/src/commands/serve.ts'],
+    rules: { 'no-restricted-imports': r4NoCrossApp(['web']) },
   },
   prettier,
 )

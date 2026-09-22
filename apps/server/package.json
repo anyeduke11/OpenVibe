@@ -3,10 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./bootstrap": {
+      "types": "./src/bootstrap.ts",
+      "default": "./src/bootstrap.ts"
+    }
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts"
   },
   "dependencies": {
+    "@fastify/static": "^8.0.0",
     "@openvibe/adapters": "workspace:*",
     "@openvibe/core": "workspace:*",
     "@openvibe/shared": "workspace:*",
