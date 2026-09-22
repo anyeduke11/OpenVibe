@@ -62,6 +62,9 @@ importers:
       '@openvibe/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
 
   apps/server:
     dependencies:

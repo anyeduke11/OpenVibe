@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@openvibe/core": "workspace:*",
-    "@openvibe/shared": "workspace:*"
+    "@openvibe/shared": "workspace:*",
+    "picocolors": "^1.1.1"
   }
 }
