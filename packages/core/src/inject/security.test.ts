@@ -73,7 +73,9 @@ describe('UT-INJECT-SEC-01 · 路径语法违规整包拒绝（design §7.7 / m6
       OK,
       { path: '.cursor/rules/openvibe.mdc', content: 'x' },
     ])
-    expect(res.absPaths['CLAUDE.md']).toBe(join('/tmp/proj', 'CLAUDE.md'))
+    // 断言两侧都写 resolve：checkWritePath 返回的是平台归一后的绝对路径，
+    // win32 上 join('/tmp/proj', …) 会漏掉盘符（'\tmp\proj'）而对不上。
+    expect(res.absPaths['CLAUDE.md']).toBe(resolve('/tmp/proj', 'CLAUDE.md'))
     expect(res.totalBytes).toBe(Buffer.byteLength(OK.content) + 1)
     expect(Object.keys(res.absPaths).length).toBe(2)
   })
@@ -88,7 +90,8 @@ describe('UT-INJECT-SEC-02 · 符号链接逃逸拒绝（design §7.7 规则 3 /
     ]
     const err = thrown(() =>
       checkPackInjectable('/tmp/proj', files, {
-        realpath: (p) => (p === join('/tmp/proj', 'escape') ? w.dir : p),
+        // 桩被调用时拿到的是 resolve 归一后的路径，键必须同形，否则 win32 上永不命中、逃逸漏检
+        realpath: (p) => (p === resolve('/tmp/proj', 'escape') ? w.dir : p),
       }),
     )
     expect(err.details['escapingPaths']).toEqual(['escape/x.md'])
@@ -132,7 +135,7 @@ describe('UT-INJECT-SEC-02 · 符号链接逃逸拒绝（design §7.7 规则 3 /
     })
     expect(checkWritePath('/tmp/proj', 'ok.md')).toEqual({
       ok: true,
-      absPath: join('/tmp/proj', 'ok.md'),
+      absPath: resolve('/tmp/proj', 'ok.md'),
     })
   })
 })
@@ -174,7 +177,7 @@ describe('UT-INJECT-SEC-03 · 规模与数量越限拒绝（m6b §6.3 / §6.7 / 
 
 describe('UT-INJECT-SEC-04 · 写入时二次校验（双保险，落盘前逐文件调用）', () => {
   it('合法相对路径 → 项目内绝对路径；违规 → null', () => {
-    expect(resolveWriteTarget('/tmp/proj', 'docs/a.md')).toBe(join('/tmp/proj', 'docs/a.md'))
+    expect(resolveWriteTarget('/tmp/proj', 'docs/a.md')).toBe(resolve('/tmp/proj', 'docs/a.md'))
     expect(resolveWriteTarget('/tmp/proj', '../a.md')).toBeNull()
     expect(resolveWriteTarget('/tmp/proj', 'a/../b.md')).toBeNull()
     expect(resolveWriteTarget('/tmp/proj', '')).toBeNull()
