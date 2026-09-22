@@ -12,7 +12,7 @@ export function ftsPhrase(q: string): string {
 export function searchPromptRowids(db: SqliteDatabase, q: string): number[] {
   if (q.length >= 3) {
     const rows = db
-      .prepare('SELECT rowid FROM fts_prompts WHERE fts_prompts MATCH ? ORDER BY rank')
+      .prepare('SELECT rowid FROM fts_prompts WHERE fts_prompts MATCH ? ORDER BY rank, rowid ASC')
       .all(ftsPhrase(q)) as { rowid: number }[]
     return rows.map((r) => r.rowid)
   }
@@ -21,7 +21,7 @@ export function searchPromptRowids(db: SqliteDatabase, q: string): number[] {
     .prepare(
       `SELECT rowid FROM prompts
         WHERE title LIKE ? OR content LIKE ? OR tags LIKE ?
-        ORDER BY updated_at DESC`,
+        ORDER BY updated_at DESC, id ASC`,
     )
     .all(like, like, like) as { rowid: number }[]
   return rows.map((r) => r.rowid)
@@ -48,7 +48,7 @@ export function searchTermRowids(db: SqliteDatabase, q: string): TermSearchHit[]
       .prepare(
         `SELECT t.rowid AS rowid, t.zh AS zh, t.en AS en, t.aliases AS aliases, t.definition AS definition
            FROM fts_terms f JOIN terms t ON t.rowid = f.rowid
-          WHERE fts_terms MATCH ? ORDER BY rank`,
+          WHERE fts_terms MATCH ? ORDER BY rank, t.rowid ASC`,
       )
       .all(ftsPhrase(q)) as {
       rowid: number
@@ -65,7 +65,7 @@ export function searchTermRowids(db: SqliteDatabase, q: string): TermSearchHit[]
     .prepare(
       `SELECT rowid, zh, en, aliases, definition FROM terms
         WHERE zh LIKE ? OR en LIKE ? OR aliases LIKE ? OR definition LIKE ?
-        ORDER BY updated_at DESC`,
+        ORDER BY updated_at DESC, id ASC`,
     )
     .all(like, like, like, like) as {
     rowid: number

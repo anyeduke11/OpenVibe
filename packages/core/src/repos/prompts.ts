@@ -52,6 +52,13 @@ function rowToPrompt(row: PromptRow): PromptOut {
 
 const RULE_VARIABLE_WARNING = '规则类提示词含 {{变量}}，注入后不会自动填充（m1 FR-2.4）'
 
+/** 导出排序：内容自然键，逐字可复现（同 title 再比 contentHash） */
+function compareForExport(a: PromptOut, b: PromptOut): number {
+  if (a.title !== b.title) return a.title < b.title ? -1 : 1
+  if (a.contentHash !== b.contentHash) return a.contentHash < b.contentHash ? -1 : 1
+  return 0
+}
+
 function warningsFor(content: string, useAs: string | undefined): string[] {
   return useAs === 'rule' && /\{\{/.test(content) ? [RULE_VARIABLE_WARNING] : []
 }
@@ -221,7 +228,7 @@ export class PromptsRepo {
       }
     ).c
     const rows = this.db
-      .prepare(`SELECT * FROM prompts ${whereSql} ORDER BY updated_at DESC LIMIT ? OFFSET ?`)
+      .prepare(`SELECT * FROM prompts ${whereSql} ORDER BY updated_at DESC, id ASC LIMIT ? OFFSET ?`)
       .all(...params, query.size, (query.page - 1) * query.size) as PromptRow[]
     return { items: rows.map(rowToPrompt), total, page: query.page }
   }
@@ -313,13 +320,16 @@ export class PromptsRepo {
     return { created, skipped }
   }
 
+  /**
+   * 导出是「可复现产物」而非列表：按内容自然键（title → contentHash）排序，
+   * 清库回导后序不变；updated_at 同毫秒与随机 id 都不参与，否则两次导出会因平局漂移而不逐字相等。
+   */
   exportAll(query?: Partial<PromptQuery>): PromptOut[] {
-    if (!query || Object.keys(query).length === 0) {
-      const rows = this.db.prepare('SELECT * FROM prompts ORDER BY title ASC').all() as PromptRow[]
-      return rows.map(rowToPrompt)
-    }
-    const { items } = this.list({ ...query, page: 1, size: query.size ?? 10000 } as PromptQuery)
-    return items
+    const items =
+      !query || Object.keys(query).length === 0
+        ? (this.db.prepare('SELECT * FROM prompts').all() as PromptRow[]).map(rowToPrompt)
+        : this.list({ ...query, page: 1, size: query.size ?? 10000 } as PromptQuery).items
+    return items.sort(compareForExport)
   }
 
   /** seed 通道：写入 seed_hash（种子升级「用户改过则跳过」的判定依据） */

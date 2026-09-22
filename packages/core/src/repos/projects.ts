@@ -135,9 +135,9 @@ export class ProjectsRepo {
   list(options: { includeArchived?: boolean } = {}): ProjectOut[] {
     const rows = (
       options.includeArchived
-        ? this.db.prepare('SELECT * FROM projects ORDER BY updated_at DESC').all()
+        ? this.db.prepare('SELECT * FROM projects ORDER BY updated_at DESC, id ASC').all()
         : this.db
-            .prepare("SELECT * FROM projects WHERE status != 'archived' ORDER BY updated_at DESC")
+            .prepare("SELECT * FROM projects WHERE status != 'archived' ORDER BY updated_at DESC, id ASC")
             .all()
     ) as ProjectRow[]
     return rows.map(rowToProject)

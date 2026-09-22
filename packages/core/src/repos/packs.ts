@@ -119,7 +119,7 @@ export class PacksRepo {
 
   list(): PackOut[] {
     const rows = this.db
-      .prepare('SELECT * FROM standard_packs ORDER BY updated_at DESC')
+      .prepare('SELECT * FROM standard_packs ORDER BY updated_at DESC, id ASC')
       .all() as PackRow[]
     return rows.map(rowToPack)
   }
@@ -150,9 +150,9 @@ export class PacksRepo {
     const rows = (
       packId
         ? this.db
-            .prepare('SELECT * FROM injections WHERE pack_id = ? ORDER BY injected_at DESC')
+            .prepare('SELECT * FROM injections WHERE pack_id = ? ORDER BY injected_at DESC, id ASC')
             .all(packId)
-        : this.db.prepare('SELECT * FROM injections ORDER BY injected_at DESC').all()
+        : this.db.prepare('SELECT * FROM injections ORDER BY injected_at DESC, id ASC').all()
     ) as {
       id: string
       pack_id: string | null
@@ -173,7 +173,7 @@ export class PacksRepo {
   exportsOf(packId: string): PackExportOut[] {
     const rows = this.db
       .prepare(
-        'SELECT id, pack_id, version, fingerprint, channel, exported_at FROM pack_exports WHERE pack_id = ? ORDER BY exported_at DESC',
+        'SELECT id, pack_id, version, fingerprint, channel, exported_at FROM pack_exports WHERE pack_id = ? ORDER BY exported_at DESC, id ASC',
       )
       .all(packId) as {
       id: string
@@ -244,7 +244,7 @@ export class PacksRepo {
                 e.channel, e.exported_at, p.name AS pack_name
          FROM pack_exports e JOIN standard_packs p ON p.id = e.pack_id
          WHERE ${where}
-         ORDER BY e.exported_at DESC
+         ORDER BY e.exported_at DESC, e.id ASC
          LIMIT 1`,
       )
       .get(...params) as
@@ -278,7 +278,7 @@ export class PacksRepo {
   latestExport(packId: string): { version: string; fingerprint: string } | null {
     const row = this.db
       .prepare(
-        'SELECT version, fingerprint FROM pack_exports WHERE pack_id = ? ORDER BY exported_at DESC, version DESC LIMIT 1',
+        'SELECT version, fingerprint FROM pack_exports WHERE pack_id = ? ORDER BY exported_at DESC, version DESC, id ASC LIMIT 1',
       )
       .get(packId) as { version: string; fingerprint: string } | undefined
     return row ?? null

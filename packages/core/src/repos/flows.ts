@@ -109,7 +109,7 @@ export class FlowTemplatesRepo {
 
   list(): FlowTemplateOut[] {
     const rows = this.db
-      .prepare('SELECT * FROM flow_templates ORDER BY builtin DESC, updated_at DESC')
+      .prepare('SELECT * FROM flow_templates ORDER BY builtin DESC, updated_at DESC, id ASC')
       .all() as FlowRow[]
     return rows.map(rowToFlow)
   }

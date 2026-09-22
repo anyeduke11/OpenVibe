@@ -255,7 +255,7 @@ export class SkillsRepo {
   }
 
   list(): SkillOut[] {
-    const rows = this.db.prepare('SELECT * FROM skills ORDER BY name ASC').all() as SkillRow[]
+    const rows = this.db.prepare('SELECT * FROM skills ORDER BY name ASC, id ASC').all() as SkillRow[]
     return rows.map(rowToSkill)
   }
 

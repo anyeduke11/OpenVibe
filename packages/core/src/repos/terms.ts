@@ -208,7 +208,7 @@ export class TermsRepo {
 
   list(): TermOut[] {
     const rows = this.db
-      .prepare('SELECT * FROM terms ORDER BY updated_at DESC')
+      .prepare('SELECT * FROM terms ORDER BY updated_at DESC, id ASC')
       .all() as TermRow[]
     return rows.map(rowToTerm)
   }
