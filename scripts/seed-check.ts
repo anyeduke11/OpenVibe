@@ -3,7 +3,7 @@
  * 校验：包络结构 + 条目 schema（复用 shared zod）+ 数量阈值 + 受控词表 + 附录 B 基线
  *      + 质量门槛（definition 长度、example 覆盖率、别名重复）+ TERMS.md 渲染后的表格完整性。
  * 阈值常量在下方 THRESHOLDS：T4 期 terms ≥60 / templates =3 / prompts =0；
- * T8 词条补至 100、prompts 20 条后切换正式阈值并记 DEV_LOG（dev-plan §11.4）。
+ * T8 起为正式口径 terms ≥100 / templates =3 / prompts =20（dev-plan §11.4、DEV-0019）。
  */
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -16,13 +16,27 @@ import {
   TERMS_MD_DIVIDER,
   TERMS_MD_HEADER,
   renderTermsMdTable,
+  utf8ByteLength,
 } from '@openvibe/shared'
 
 const THRESHOLDS = {
-  termsMin: 60,
+  termsMin: 100,
   templatesExact: 3,
-  promptsExact: 0,
+  promptsExact: 20,
+  /** seed-content §3.4 构成配额 */
+  ruleMin: 6,
+  platformMarkMin: 4,
+  withVariablesMin: 8,
+  /** §3.4 单条 content ≤2KB，严于 LIMITS.promptContentMaxBytes（512KB） */
+  promptContentMaxBytes: 2048,
 } as const
+/** §3.4 有数量门槛的平台标记（codebuddy/trae/minicode 按内容酌情，不设门槛） */
+const COUNTED_PLATFORM_MARKS = ['claude-code', 'cursor', 'generic'] as const
+/** §6.3 种子提示词统一归属 */
+const SEED_PROMPT_FOLDER = '/精选'
+const SEED_PROMPT_TAG = '精选'
+/** m1 FR-2.1 的变量提取正则（构成断言与运行期保持同一口径） */
+const VARIABLE_PATTERN = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_-]*)\s*\}\}/g
 
 /** PRD 附录 B 的 10 条基线词条，首批必须含（dev-plan §11.1） */
 const BASELINE_TERMS = [
@@ -259,19 +273,73 @@ function checkPrompts(): void {
   const file = 'prompts.json'
   const items = itemsOf(file)
   if (items.length !== THRESHOLDS.promptsExact) {
-    fail(
-      file,
-      '数量',
-      `${items.length} 条 ≠ 当前阶段门槛 ${THRESHOLDS.promptsExact} 条（精选 20 条随 T8 交付并同步切阈值）`,
-    )
+    fail(file, '数量', `${items.length} 条 ≠ seed-content §2 的 ${THRESHOLDS.promptsExact} 条精选`)
   }
+
+  const titles = new Set<string>()
+  let ruleCount = 0
+  let withVariables = 0
+  const markCounts = new Map<string, number>(COUNTED_PLATFORM_MARKS.map((m) => [m, 0]))
+
   items.forEach((raw, index) => {
     const item = asRecord(raw)
+    const where = `#${index + 1}`
     const parsed = PromptCreateInput.safeParse({ ...(item ?? {}), status: 'active' })
     if (!parsed.success) {
-      fail(file, `#${index + 1}`, parsed.error.issues[0]?.message ?? 'schema 不通过')
+      fail(file, where, parsed.error.issues[0]?.message ?? 'schema 不通过')
+      return
+    }
+    const p = parsed.data
+    const label = p.title
+
+    if (titles.has(p.title)) fail(file, where, `title「${p.title}」重复（种子按 title 匹配升级）`)
+    titles.add(p.title)
+
+    const bytes = utf8ByteLength(p.content)
+    if (bytes > THRESHOLDS.promptContentMaxBytes) {
+      fail(file, `${where} ${label}`, `content ${bytes}B > §3.4 单条 ${THRESHOLDS.promptContentMaxBytes}B`)
+    }
+
+    const vars = new Set<string>()
+    for (const match of p.content.matchAll(VARIABLE_PATTERN)) {
+      if (match[1]) vars.add(match[1])
+    }
+    if (vars.size > 0) withVariables += 1
+    if (p.useAs === 'rule') {
+      ruleCount += 1
+      if (vars.size > 0) {
+        fail(file, `${where} ${label}`, `rule 类含未填充变量 {{${[...vars][0]}}}（m1 FR-2.4 注入后不会填充）`)
+      }
+    }
+
+    if (p.folderPath !== SEED_PROMPT_FOLDER) {
+      fail(file, `${where} ${label}`, `folderPath 需为 ${SEED_PROMPT_FOLDER}（§6.3），收到 ${p.folderPath}`)
+    }
+    if (!p.tags.includes(SEED_PROMPT_TAG)) {
+      fail(file, `${where} ${label}`, `tags 需含「${SEED_PROMPT_TAG}」（§6.3）`)
+    }
+    for (const mark of p.platformMarks) {
+      const hit = markCounts.get(mark)
+      if (hit !== undefined) markCounts.set(mark, hit + 1)
     }
   })
+
+  if (ruleCount < THRESHOLDS.ruleMin) {
+    fail(file, '构成', `useAs=rule ${ruleCount} 条 < §3.4 门槛 ${THRESHOLDS.ruleMin} 条`)
+  }
+  for (const mark of COUNTED_PLATFORM_MARKS) {
+    const got = markCounts.get(mark) ?? 0
+    if (got < THRESHOLDS.platformMarkMin) {
+      fail(file, '构成', `平台标记 ${mark} ${got} 条 < §3.4 门槛 ${THRESHOLDS.platformMarkMin} 条`)
+    }
+  }
+  if (withVariables < THRESHOLDS.withVariablesMin) {
+    fail(file, '构成', `含 {{变量}} 的条目 ${withVariables} 条 < §3.4 门槛 ${THRESHOLDS.withVariablesMin} 条`)
+  }
+  notes.push(
+    `prompts ${titles.size} 条唯一 title / rule=${ruleCount} / 含变量=${withVariables} / ` +
+      COUNTED_PLATFORM_MARKS.map((m) => `${m}=${String(markCounts.get(m) ?? 0)}`).join(' '),
+  )
 }
 
 function main(): void {
