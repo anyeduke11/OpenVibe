@@ -1,0 +1,30 @@
+# §7.6 确定性（同一选集 → 同一指纹）跨库复现证据
+方法：同一 commit（9664241，apps/ 与 packages/ 工作树干净）连跑两遍 accept-walk.sh，
+      每遍 `rm -rf /tmp/ov-t7f/home` 重建 OPENVIBE_HOME（新 DB、新随机 id、新端口、新令牌），
+      夹具只按「名字」精确选取（术语按 zh、流程按 name、提示词按 title，见脚本 step 3 / step 7 注释）。
+时间：run A 2026-09-22 21:35:35~21:35:46，run B 21:35:46~21:35:56 (+08:00)，node v26.4.0 / darwin arm64
+
+结果（两遍逐字一致）：
+  accept-pack@1.0.0 包指纹        b611cec36934…  =  b611cec36934…
+  accept-pack@1.0.1 包指纹        151bc9602509…  =  151bc9602509…
+  1.0.0 bundle 落盘体积 / 文件集  11936B · .trae/rules/openvibe.md AGENTS.md CHECKLIST.md CLAUDE.md TERMS.md  = 同
+  1.0.1 dry-run 五状态计划        状态集合 CONFLICT DRIFT IN_SYNC NEW UPDATE · 计划 8 行 · 待写 2  = 同
+  独立重算（不 import 仓库代码，按 design §7.6 `path\tsha256\n` 码点序拼接再 sha256）
+                                  逐文件哈希一致 = true，整包指纹一致 = true（见 accept-walk-log.txt step 3）
+两遍唯一应有的差异：exportId / 随机主键 / 监听端口 / 令牌 / 备份目录时间戳 / 含 mtime 的全树统计指纹。
+
+# 走查过程中暴露并处理的两处「排序不确定性」（同一类缺陷，均为夹具侧改，产品侧不动）
+① step 3 选夹具按「列表前 N 条」（terms?size=3 / flow-templates items[0]）时，两遍包指纹不同
+   （c589c05a6bea vs 8f469b8774ef，bundle 9175B vs 11907B）。
+   根因：packages/core/src/repos/terms.ts:211 `ORDER BY updated_at DESC`、
+         packages/core/src/repos/flows.ts:112 `ORDER BY builtin DESC, updated_at DESC`——
+         63 条术语 / 3 条流程同毫秒批量播种，updated_at 全等，平局无兜底，返回序随 DB 物理序漂移。
+         同一次走查里两次独立起服务即实测到 flow-templates 首条从「Spec 驱动流」变「个人轻量流」。
+   处理：改按 zh / name 精确取，指纹立即稳定。
+② step 7 造 1.0.1 时对 `prompts?size=50` 过滤结果的 `[0]` 做 PATCH，两遍 1.0.1 指纹不同
+   （151bc9602509 vs efd400441eee）。
+   根因与 ① 同源：`.cursorrules` 与 `CLAUDE.md` 两条由 step 2 同一毫秒导入，列表返回序不定，
+   `[0]` 在两个 DB 上指向不同提示词 → 被改写的正文不同。1.0.0 之所以稳定，只是因为它不经过这条选取。
+   处理：改 `find(p=>p.title==="CLAUDE.md")`，②随即消失（本文件两遍即修复后所测）。
+定性：与 DEV-0017 同型（毫秒时间戳 + 无确定兜底）。T8 应给 repos 列表查询统一加 `, id` 尾部兜底，
+      并加一条 CI 守卫：ORDER BY 以时间戳列结尾即 fail（见 DEV-0018 风险②）。

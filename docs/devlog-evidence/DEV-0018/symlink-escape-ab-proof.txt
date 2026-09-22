@@ -1,0 +1,15 @@
+# §6.1 悬空符号链接写穿项目根：修复前 / 修复后 A/B 一手证据
+# 生成方式：把 HEAD 版 packages/core/src/inject/security.ts 复制为 .tmp-old-security.ts 与工作树新版并排 import，
+# 对同一沙箱（proj/TERMS.md -> ../outside/fresh.md，目标不存在）各调一次 resolveWriteTarget，
+# 并按调用方 sync.ts 的写法（拿到非 null 即 writeFile）真落盘。临时脚本走查后即删，未入库。
+# 时间：2026-09-22 21:21（+08:00），node v26.4.0 / darwin arm64
+
+HEAD (c0cd681 之后、本次修复之前)
+  resolveWriteTarget => "/tmp/ov-t7f/ab-link/proj/TERMS.md"
+  按 ok 分支执行 writeFile 后，项目外 outside/fresh.md = 包内容顺着符号链接写出
+
+本次修复后
+  resolveWriteTarget => null
+  按 ok 分支执行 writeFile 后，项目外 outside/fresh.md = (不存在)
+
+结论：修复前 = 项目外凭空建出文件并写入包内容（ESCAPE 漏判）；修复后 = 返回 null，整包按 VALIDATION_ERROR 拒绝（见 accept-walk-log.txt step 11）。

@@ -1125,14 +1125,14 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 **SPEC 依据**：m6b FR-1–FR-5；design §7.5/7.6/7.7、§9、§11。
 
 **工作项**
-- [ ] `cli/src/config.ts` 发现链 + token（0600）+ `--json` 契约
-- [ ] `commands/serve.ts`（§1.2 八步首启初始化+播种+托管+--open）
-- [ ] `commands/scan.ts`（--skills/--project → 调 T4/T5 端点 + 报告渲染）
-- [ ] `commands/sync.ts` 五状态机（§6.2）+ @clack 交互 + 旗标 + 备份 + lock + 上报
-- [ ] `commands/diff.ts`（lock 比对 + 在线新版本探测 + 退出码 0/1/2）
-- [ ] `cli/src/telemetry.ts`：reportEvent 单出口 + D13 一次性询问（§6.5）
-- [ ] 安全用例集：路径攻击样本、512KB/2MB 防线、非 TTY 防挂起、fingerprint 篡改
-- [ ] CLI 集成测试：临时目录全树哈希断言 dry-run 零写入
+- [x] `cli/src/config.ts` 发现链 + token（0600）+ `--json` 契约 —— DEV-0018/T7a
+- [x] `commands/serve.ts`（§1.2 八步首启初始化+播种+托管+--open）—— DEV-0018/T7b
+- [x] `commands/scan.ts`（--skills/--project → 调 T4/T5 端点 + 报告渲染）—— DEV-0018/T7e
+- [x] `commands/sync.ts` 五状态机（§6.2）+ @clack 交互 + 旗标 + 备份 + lock + 上报 —— DEV-0018/T7c+T7d
+- [x] `commands/diff.ts`（lock 比对 + 在线新版本探测 + 退出码 0/1/2）—— DEV-0018/T7e
+- [x] `cli/src/telemetry.ts`：reportEvent 单出口 + D13 一次性询问（§6.5）—— DEV-0018/T7d
+- [x] 安全用例集：路径攻击样本、512KB/2MB 防线、非 TTY 防挂起、fingerprint 篡改 —— DEV-0018/T7f（含新堵的悬空符号链接逃逸）
+- [x] CLI 集成测试：临时目录全树哈希断言 dry-run 零写入 —— DEV-0018（10 文件 / 106 it / 57 CLI-* 用例 ID）
 
 **验收-测试映射（m6b §7 ×8）**
 

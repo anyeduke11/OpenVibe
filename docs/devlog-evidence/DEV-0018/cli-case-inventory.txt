@@ -1,0 +1,17 @@
+# CLI 集成用例清点（dev-plan §9-T7 验收项「≥25 条 CLI 集成用例」）
+# 口径：正则 CLI-[A-Z]+-\d+[a-z]? 命中即计一个用例 ID；一个 ID 可被多个 it 覆盖，故同时给 it 数
+# 时间：2026-09-22 21:22 (+08:00)，仓库 main
+
+config.test.ts         it×  7  ID×  8  CLI-CFG-01 CLI-CFG-02 CLI-CFG-03 CLI-CFG-04 CLI-CFG-05 CLI-CFG-06 CLI-CFG-07 CLI-CFG-08
+diff.test.ts           it× 13  ID×  3  CLI-DIFF-01 CLI-DIFF-01b CLI-SYNC-05
+output.test.ts         it×  7  ID×  7  CLI-JSON-01 CLI-JSON-02 CLI-JSON-03 CLI-JSON-04 CLI-JSON-05 CLI-JSON-06 CLI-JSON-07
+pack-source.test.ts    it× 14  ID×  0  
+scan.test.ts           it× 14  ID×  1  CLI-SCAN-01
+security.test.ts       it×  6  ID×  7  CLI-SEC-01b CLI-SEC-02 CLI-SEC-02b CLI-SEC-03 CLI-SEC-04 CLI-SEC-05 CLI-SEC-05b
+serve.test.ts          it×  4  ID×  4  CLI-SERVE-01 CLI-SERVE-02 CLI-SERVE-03 CLI-SERVE-04
+sync.test.ts           it× 30  ID× 29  CLI-JSON-01 CLI-JSON-01b CLI-JSON-01c CLI-JSON-01d CLI-JSON-01e CLI-SEC-01 CLI-SEC-01b CLI-SYNC-02 CLI-SYNC-02b CLI-SYNC-03 CLI-SYNC-03b CLI-SYNC-03c CLI-SYNC-04 CLI-SYNC-04b CLI-SYNC-04c CLI-SYNC-04d CLI-SYNC-05 CLI-SYNC-05b CLI-SYNC-05c CLI-SYNC-06 CLI-SYNC-06b CLI-SYNC-06c CLI-SYNC-06d CLI-SYNC-06e CLI-SYNC-07 CLI-SYNC-07b CLI-SYNC-07d CLI-SYNC-07e CLI-SYNC-07f
+telemetry.test.ts      it× 10  ID×  0  
+tmp-project.test.ts    it×  1  ID×  1  CLI-EXAMPLE-01
+
+唯一 CLI-* 用例 ID 合计：57　it 块合计：106
+按前缀：CLI-CFG / CLI-DIFF / CLI-SYNC / CLI-JSON / CLI-SCAN / CLI-SEC / CLI-SERVE / CLI-EXAMPLE

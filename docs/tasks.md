@@ -111,16 +111,16 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 ### T7 · CLI：serve/scan/sync/diff（W3末–W4，预估 4.5 人日）★ 关键路径
 
-- [ ] config 发现链 + token 生成（0600）+ `--json` 输出契约
-- [ ] `serve`（首启初始化+播种+托管 Web+`--open`）
-- [ ] `scan --skills/--project`（调 T4/T5 端点，报告渲染）
-- [ ] `sync` 五状态机 + 交互确认（@clack）+ `--dry-run/--yes/--strategy/--target` + 备份 + lock 写入 + 上报
-- [ ] `diff`（lock 比对 + 在线新版本探测 + 退出码 0/1/2）
-- [ ] 遥测埋点接入：sync 成功/模板选用事件走单出口 `reportEvent()`（默认关、关闭态零外联断言，design §11.5）；首次注入成功后触发一次性 opt-in 询问（D13：CLI 一行提示 + 本地标记，拒绝永不再问）
-- [ ] 安全用例集：路径攻击样本、512KB/2MB 防线、非 TTY 防挂起、fingerprint 篡改
-- [ ] CLI 集成测试：临时目录全树哈希断言 dry-run 零写入（m6b §7.1a 的机械化验证）
+- [x] config 发现链 + token 生成（0600）+ `--json` 输出契约 —— `config.ts` 五级发现链（`OPENVIBE_TOKEN/SERVER` → 项目 `.openvibe/config.json` → `~/.openvibe/config.json` → 默认），令牌文件 **0600** 落盘且已有令牌优先复用（不轮换）；`--json` 单出口 `{command, plan?, report?, summary}` + 退出码 0/1/2 由 `output.ts` 一处渲染（CLI-CFG-01…08、CLI-JSON-01…07）
+- [x] `serve`（首启初始化+播种+托管 Web+`--open`）—— bootstrap 八步（DB→迁移→播种→路由→静态托管 SPA 回退→监听→config 落盘→回调），监听成功才落 config（失败不留指向不存在端点的配置），`--port 0` 随机端口 + `--open` 平台分流（CLI-SERVE-01…04）
+- [x] `scan --skills/--project`（调 T4/T5 端点，报告渲染）—— `--skills` 调 `POST /api/skills/scan`（解析与指纹全在服务端，CLI 零业务规则）；`--project` 本地探测顶层 `.cursorrules`/`claude.md`/`agents.md`（大小写不敏感匹配、按磁盘原名回报）+ 一层 `.cursor/rules/*.mdc`，走 `POST /api/prompts/import`，逐文件新增/跳过判定由探测集反推（CLI-SCAN-01 + 13 例）
+- [x] `sync` 五状态机 + 交互确认（@clack）+ `--dry-run/--yes/--strategy/--target` + 备份 + lock 写入 + 上报 —— 四通道取包（`--pack` 在线 / `--file` / `--dir` / 位置参数）→ 指纹与逐文件哈希双校验 → core 规划器出 NEW/UPDATE/IN_SYNC/DRIFT/CONFLICT → 交互或 `--strategy` 批量 → 备份到 `.openvibe/backup/<UTC戳>/`（同戳撞车追加 `-1/-2`）→ 写 `pack.lock.json` → 上报注入历史（离线仅警告）；写失败即中止并报「已完成 N/M 项 + 备份路径」（CLI-SYNC-02…07 全家族 ×29）
+- [x] `diff`（lock 比对 + 在线新版本探测 + 退出码 0/1/2）—— 只读 `pack.lock.json`（**故意不做 realpath 归一**：lock 记的就是用户给的路径）逐文件比对磁盘哈希，报 drifted/missing；在线时另探「有新版」（`pack-outdated(1.0.0 → 1.0.1)`），探测失败降级为警告不改判定；退出码 clean=0 / 有漂移或落后=2（CLI-DIFF-01/01b + 11 例）
+- [x] 遥测埋点接入：sync 成功/模板选用事件走单出口 `reportEvent()`（默认关、关闭态零外联断言，design §11.5）；首次注入成功后触发一次性 opt-in 询问（D13：CLI 一行提示 + 本地标记，拒绝永不再问）—— `telemetry.ts` 单一出口，读服务端开关后**关闭态恰好一次 GET、零事件 POST**（UT-TELEMETRY-01）；`askTelemetryOnce` 仅在 `askState=unset` + TTY + 非 `--json` 三条件下开口，答「不开启」落 `declined` 永不再问；任何遥测失败都收敛成 `error` 不打断注入
+- [x] 安全用例集：路径攻击样本、512KB/2MB 防线、非 TTY 防挂起、fingerprint 篡改 —— 三层防线（bundle 解析 `packPathSchema` → 整包 `checkPackInjectable` → 每次写前 `resolveWriteTarget`）逐层给例；本轮走查新堵一个洞：**悬空符号链接**目标此前返回合法路径、`writeFile` 会在项目外凭空建文件，现一律判 ESCAPE（修复 + A/B 一手证据 `docs/devlog-evidence/DEV-0018/symlink-escape-ab-proof.txt`）
+- [x] CLI 集成测试：临时目录全树哈希断言 dry-run 零写入（m6b §7.1a 的机械化验证）—— `tests/helpers/tree.ts` 的 `treeSnapshot()` 对全树逐文件记 sha256+mtime+size+mode 后取总结哈希，「零写入」一律断前后相等（比 `existsSync` 硬）；apps/cli **10 文件 / 106 个 it / 57 个唯一 CLI-* 用例 ID**（清单 `docs/devlog-evidence/DEV-0018/cli-case-inventory.txt`）
 
-**验收**：m6b §7 全部 8 条通过（联调 m6a 验收 6 一并闭环）。
+**验收**：m6b §7 全部 8 条通过（联调 m6a 验收 6 一并闭环）。—— ✅ **T7 完成（2026-09-22，DEV-0018）**：m6b §7 八条在真 CLI 子进程 + 真服务端上**逐条走查通过**（14 步日志 `docs/devlog-evidence/DEV-0018/accept-walk-log.txt`，驱动器同目录入库），另补 §6.1/§6.3/§6.5/§6.6 安全样本；两套独立 DB 跑同一选集包指纹一致（`determinism-two-runs.txt`）；m6a 验收 6「bundle 被 `sync --file` 消费」由 CLI-SYNC-06 + 走查 step 4/5 闭环；全仓 307/307 用例绿。
 
 ### T8 · 种子内容全量 + 开箱体验（W5，预估 4 人日；内容由 AI 起草 + owner 审校 ≈ 2-3 人日，D14）
 

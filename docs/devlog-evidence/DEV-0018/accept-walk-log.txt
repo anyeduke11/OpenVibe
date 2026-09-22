@@ -1,0 +1,207 @@
+# T7f 走查环境自述（本文件由 accept-walk.sh 的产物整理而来，正文为该脚本一次完整运行的原样输出）
+仓库: /Users/duke/Documents/OpenVibe @ main，走查时 HEAD=9664241；apps/ 与 packages/ 工作树干净（未提交改动仅 docs/），即被测产品代码 = 已提交的 9664241
+驱动: bash docs/devlog-evidence/DEV-0018/accept-walk.sh（脚本本身随本证据入库，可重跑）
+CLI : node --import tsx apps/cli/src/index.ts（真子进程，stdin 非 TTY）
+服务端: openvibe serve --port 0（真 fastify + 真 better-sqlite3），OPENVIBE_HOME=/tmp/ov-t7f/home（每遍清空重建：新 DB / 新随机 id / 新端口 / 新令牌）
+沙箱: /tmp/ov-t7f/{home,p-*,bundles}；项目侧断言一律用 find+stat+shasum 的全树指纹（内容 + mtime + 大小 + 权限 + 清单），不采信 CLI 自报
+时间: 2026-09-22 21:35:35~21:35:46 (+08:00)，node v26.4.0 / npm 11.16.2 / darwin arm64 / macOS 27.0.0
+口径: 退出码取 CLI 子进程真实 rc；写盘结果取磁盘读回；同一遍的 14 个 step 全部通过（无跳过、无红项）
+
+
+=========== 0 起服务（随机端口 + 隔离 OPENVIBE_HOME）+ §7.8 config 权限与播种基线 ===========
+url=http://127.0.0.1:53662 token长度=64
+§7.8 config.json 权限=-rw-------（应为 -rw-------） 令牌落盘=yes
+§7.8 首启播种 terms=63 prompts=0
+
+=========== 1 §7.8 二次启动不重复播种（重启服务，terms 计数须不变） ===========
+二次启动 terms=63（应等于 63） config 权限=-rw-------
+
+=========== 2 §7.6 scan --project：首次新增 2 条，重跑全部 skipped ===========
+
+--- scan 首跑 ---
+$ OV scan --project /tmp/ov-t7f/p-scan
+新增 .cursorrules
+新增 CLAUDE.md
+提示 规则文件导入：新增 2 跳过 0
+exit=0
+
+--- scan 重跑 ---
+$ OV scan --project /tmp/ov-t7f/p-scan
+跳过 .cursorrules（重复（title + contentHash 一致））
+跳过 CLAUDE.md（重复（title + contentHash 一致））
+提示 规则文件导入：新增 0 跳过 2
+exit=0
+服务端入库: .cursorrules(rule) CLAUDE.md(rule)
+
+=========== 3 用真服务端建包并导出 1.0.0（后续注入 / 篡改 / 规模用例的素材源） ===========
+导出 1.0.0 fingerprint=b611cec36934 exportId=pex_eCnVOxAdmh33VV38deYkL
+bundle 落盘大小=11936B 内含文件=.trae/rules/openvibe.md AGENTS.md CHECKLIST.md CLAUDE.md TERMS.md
+§7.6 独立重算：逐文件哈希一致=true，整包指纹一致=true（b611cec36934）
+
+=========== 4 §7.1a dry-run 三重保护之一：全树 mtime+sha256+清单+权限 不变，.openvibe 未创建 ===========
+
+--- sync --dry-run ---
+$ OV --json sync /tmp/ov-t7f/p-dry --file /tmp/ov-t7f/bundles/accept-1.0.0.json --dry-run --yes
+exit=0
+dry-run 前后全树指纹：f8e0ca253a84 → f8e0ca253a84（内容） / a6f72f6f2517 → a6f72f6f2517（内容+mtime+权限+清单）
+§7.1a .openvibe 是否被创建：未创建 ✅
+{
+ "计划": [
+  "NEW .trae/rules/openvibe.md write",
+  "NEW AGENTS.md write",
+  "NEW CHECKLIST.md write",
+  "CONFLICT CLAUDE.md backup-write",
+  "NEW TERMS.md write"
+ ],
+ "待写": 1,
+ "exitCode": 0
+}
+
+=========== 5 §7.1b 预置非受管 CLAUDE.md → 默认路径执行 → 备份内容逐字节一致 ===========
+
+--- sync 首次注入 ---
+$ OV --json sync /tmp/ov-t7f/p-backup --file /tmp/ov-t7f/bundles/accept-1.0.0.json --yes
+exit=0
+backupRoot=p-backup/.openvibe/backup/2026-09-22T13-35-39Z
+§7.1b 备份文件与原件逐字节比对：内容一致 ✅
+覆盖后磁盘 CLAUDE.md 已换成包内容：1 处注入标记；本地原文只在备份里
+{
+ "written": 5,
+ "lock": "yes",
+ "injectionReported": true,
+ "exitCode": 0
+}
+
+=========== 6 §7.1c 非 TTY 且无 --yes → 退出码 1 且零写入（须有 pending 决策才走这条防线；子进程天然无 pty，真挂起会撞 timeout） ===========
+
+--- sync 非TTY无--yes ---
+$ OV --json sync /tmp/ov-t7f/p-tty --file /tmp/ov-t7f/bundles/accept-1.0.0.json
+exit=1
+NEED_TTY | 1 个文件需要确认，但当前不是交互终端：加 --yes（默认以包为准）或 --yes --strategy skip|overwrite|keep-local
+§7.1c 拒绝前后全树指纹：537bfe143d00 → 537bfe143d00（应相同）；.openvibe 是否被创建：未创建 ✅
+磁盘 CLAUDE.md 本地原文存活：1 行命中
+
+=========== 7 §7.7 --json 单出口可被解析器读取 + 五状态计划一次跑齐 ===========
+prompts PATCH ok prm_fp3NU5 新版本=yes
+pack targets=claude-code,generic-agents,trae,cursor,codebuddy,minicode
+导出 1.0.1 fingerprint=151bc9602509
+1.0.1 bundle 内含文件=.cursor/rules/openvibe.mdc .trae/rules/openvibe.md AGENTS.md CHECKLIST.md CLAUDE.md CODEBUDDY.md MINI.md TERMS.md
+
+--- 1.0.0 注入 p-five ---
+$ OV --json sync /tmp/ov-t7f/p-five --file /tmp/ov-t7f/bundles/accept-1.0.0.json --yes
+exit=0
+
+--- 1.0.1 dry-run 五状态 ---
+$ OV --json sync /tmp/ov-t7f/p-five --file /tmp/ov-t7f/bundles/accept-1.0.1.json --dry-run --yes
+exit=0
+解析器 jq 读 plan[0] 键：["action","inScope","path","sizeBytes","state"]
+CONFLICT.cursor/rules/openvibe.mdc
+UPDATE  .trae/rules/openvibe.md
+DRIFT   AGENTS.md
+UPDATE  CHECKLIST.md
+UPDATE  CLAUDE.md
+NEW     CODEBUDDY.md
+IN_SYNC MINI.md
+UPDATE  TERMS.md
+状态集合: CONFLICT DRIFT IN_SYNC NEW UPDATE　计划行数: 8　待写: 2
+
+=========== 8 §7.2 手改 TERMS.md → diff=2 → sync 走 DRIFT → 以包为准 → diff 回 clean ===========
+
+--- diff 漂移 ---
+$ OV --json diff /tmp/ov-t7f/p-backup
+exit=2
+{
+ "clean": false,
+ "drifted": [
+  "TERMS.md lock:96b67ae7 磁盘:78aa93ee"
+ ],
+ "exitCode": 2
+}
+
+--- sync DRIFT 修复 ---
+$ OV --json sync /tmp/ov-t7f/p-backup --file /tmp/ov-t7f/bundles/accept-1.0.0.json --yes --strategy overwrite
+exit=0
+TERMS.md DRIFT
+
+--- diff 修复后 ---
+$ OV --json diff /tmp/ov-t7f/p-backup
+exit=2
+注：修复后 clean=true；退出码 2 是 step 7 新导出的 1.0.1 触发的「有新版」提示，不是漂移
+{
+ "clean": true,
+ "drifted": 0,
+ "missing": 0,
+ "exitCode": 2,
+ "hints": [
+  "pack-outdated(1.0.0 → 1.0.1)"
+ ]
+}
+
+=========== 9 §7.4 篡改 bundle 内文件内容（fingerprint 失配）→ 退出码 1 零写入 ===========
+
+--- sync 篡改包 ---
+$ OV --json sync /tmp/ov-t7f/p-backup --file /tmp/ov-t7f/bundles/tampered.json --yes
+exit=1
+CONTENT_MODIFIED | 1 个文件内容与 manifest 声明的哈希不符（传输损坏或被篡改），整包拒绝：.trae/rules/openvibe.md
+§7.4 篡改注入前后全树指纹：612131087afd → 612131087afd（应相同）
+
+=========== 10 §7.5 恶意 manifest（../evil.txt）→ 整包拒绝，越界文件不存在 ===========
+
+--- sync 恶意路径 ---
+$ OV --json sync /tmp/ov-t7f/p-evil --file /tmp/ov-t7f/bundles/hostile.json --yes
+exit=1
+BUNDLE_INVALID | /tmp/ov-t7f/bundles/hostile.json 不是合法 bundle（design §7.1）：manifest.files.0.path 非法相对路径（design §7.7：无 ..、无 \、不以 / 开头、单段≤128、总长≤255） | 违规项警告=
+§7.5 ../evil.txt 是否落到项目外：不存在 ✅；项目目录内容=[]
+
+=========== 11 §6.1 新堵上的洞：目标是悬空符号链接（项目外目录在、文件名不在）→ 不得顺着链接往项目外建文件 ===========
+
+--- sync 悬空链接 ---
+$ OV --json sync /tmp/ov-t7f/p-link --file /tmp/ov-t7f/bundles/accept-1.0.0.json --yes
+exit=1
+VALIDATION_ERROR | 注入前校验未通过（1 个路径解析后越出项目目录（符号链接逃逸）），整包拒绝 | 违规项警告=解析后逃逸项目根：TERMS.md
+§6.1 项目外是否凭空多出文件：不存在 ✅；项目内合法文件也未写=[0 个普通文件]
+
+=========== 12 §6.3 规模防线：单文件 > 512KB 的标准包（真 bundle）→ 注入侧硬拒绝、零写入 ===========
+
+--- 构造 >512KB 真 bundle ---
+$ node --import tsx /Users/duke/Documents/OpenVibe/scripts/.tmp-t7f-big-bundle.ts /tmp/ov-t7f/bundles/big.json
+单文件最大=524491B（上限 524288B） bundle=1051242B 文件数=4（上限 200）
+exit=0
+bundle 体积=1051778B
+
+--- sync 超限包 ---
+$ OV --json sync /tmp/ov-t7f/p-big --file /tmp/ov-t7f/bundles/big.json --yes
+exit=1
+VALIDATION_ERROR | 注入前校验未通过（1 个单文件超过上限 524288B（m6b §6.3）），整包拒绝 | 违规项警告=单文件超 512KB：TERMS.md（524491B）
+§6.3 项目目录内容=[]（应为空）
+
+=========== 13 §7.3 离线注入：停服务 + 无令牌，--file 完成注入（lock 写入，上报缺失仅警告） ===========
+
+--- sync 离线 ---
+$ env OPENVIBE_TOKEN= OPENVIBE_SERVER=http://127.0.0.1:1 node --import tsx /Users/duke/Documents/OpenVibe/apps/cli/src/index.ts --json sync /tmp/ov-t7f/p-offline --file /tmp/ov-t7f/bundles/accept-1.0.0.json --yes
+exit=0
+{
+ "written": 5,
+ "lockPath": "p-offline/.openvibe/pack.lock.json",
+ "injectionReported": false,
+ "warnings": [
+  "注入历史上报失败（服务端不可达），文件与 lock 已就位"
+ ],
+ "exitCode": 0
+}
+§7.3 lock 文件是否写入：写入 ✅
+离线 lock 内容：accept-pack@1.0.0 fp=b611cec36934 files=5
+
+=========== 14 收尾数据面自查（重新起服务，只读） ===========
+注入历史（在线那几次才该有记录）：{"items":[{"id":"inj_QY-SHwMMDT9RXCdnim8sm","packId":"pk_SIt6NuC0MSQO4HnVBQhLN","packVersion":"1.0.0","projectPath":"/tmp/ov-t7f/p-backup","injectedAt":"2026-09-22T13:35:41.956Z"},{"id":"inj_SzjQo6IJqciHUHdR4UVRF","packId":"pk_SIt6NuC0MSQO4HnVBQhLN","packVersion":"1.0.0","projectPath":"/tmp/ov-t7f/p
+telemetry：{
+ "enabled": false,
+ "askState": "unset",
+ "whitelist": [
+  "pack_injected",
+  "flow_template_used",
+  "project_active"
+ ]
+}
+scan 入库提示词：CLAUDE.md .cursorrules
+走查结束（临时夹具脚本已删除，仓库工作树无残留）
