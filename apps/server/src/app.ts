@@ -9,6 +9,7 @@ import { registerFlowTemplateRoutes } from './routes/flowTemplates'
 import { registerPackRoutes } from './routes/packs'
 import { registerProjectRoutes } from './routes/projects'
 import { registerPromptRoutes, type PromptRouteDeps } from './routes/prompts'
+import { registerSettingsRoutes } from './routes/settings'
 import { registerSkillRoutes } from './routes/skills'
 import { registerTaskRoutes } from './routes/tasks'
 import { registerTermRoutes } from './routes/terms'
@@ -22,6 +23,10 @@ export interface BuildAppOptions {
   appVersion?: string
   /** design §4 步骤 7 的 Web 产物目录；缺省不托管静态资源（仅 API，测试与 CLI 离线用例用） */
   webRoot?: string
+  /** 遥测 os 标签的来源（测试注入平台别名；缺省 process.platform） */
+  platform?: string
+  /** 遥测 day/queued_at 的时钟注入点（缺省 new Date()） */
+  now?: () => Date
 }
 
 export interface BuiltApp {
@@ -55,6 +60,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerTaskRoutes(app, deps)
   registerDevLogRoutes(app, deps)
   registerSkillRoutes(app, deps)
+  registerSettingsRoutes(app, { db, appVersion, platform: options.platform, now: options.now })
 
   app.get('/api/health', async () => ({
     status: 'ok',

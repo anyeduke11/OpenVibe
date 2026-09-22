@@ -19,6 +19,8 @@ export interface PlanItem {
   action: string
   sizeBytes?: number
   backupPath?: string
+  /** --target 过滤后本次是否在写入范围内（范围外一律 skip） */
+  inScope?: boolean
 }
 
 export type ReportRow = Record<string, unknown>

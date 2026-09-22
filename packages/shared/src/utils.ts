@@ -24,6 +24,18 @@ export function compareSemver(a: string, b: string): number {
 
 export const PACK_NAME_RE = /^[a-z0-9][a-z0-9-]{0,63}$/
 
+/** 遥测上报体的 os 标签（design §11.5 固定三值，process.platform 归一） */
+export function telemetryOs(platform: string): 'mac' | 'linux' | 'win' {
+  if (platform === 'darwin') return 'mac'
+  if (platform === 'win32') return 'win'
+  return 'linux'
+}
+
+/** 遥测的 day 维度：UTC 日历日（去标识聚合的最小粒度，§11.5） */
+export function telemetryDay(at: Date): string {
+  return at.toISOString().slice(0, 10)
+}
+
 /**
  * 标准包相对路径安全规则（design §7.7）：
  * 相对路径；按 / 切分后无空段、无 .. 段、不含 \、不以 / 开头；单段 ≤128 字符；总长 ≤255。

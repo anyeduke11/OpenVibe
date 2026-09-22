@@ -7,6 +7,8 @@
     "openvibe": "./src/index.ts"
   },
   "dependencies": {
+    "@clack/prompts": "^0.11.0",
+    "@openvibe/adapters": "workspace:*",
     "@openvibe/core": "workspace:*",
     "@openvibe/server": "workspace:*",
     "@openvibe/shared": "workspace:*",

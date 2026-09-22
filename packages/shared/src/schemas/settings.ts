@@ -37,3 +37,21 @@ export const TelemetryToggleInput = z.object({
   enabled: z.boolean(),
 })
 export type TelemetryToggleInput = z.infer<typeof TelemetryToggleInput>
+
+/**
+ * CLI 侧唯一遥测出口的入参（C-41）：只有事件名与有界值两段——
+ * 路径、文件内容、机器标识一律不进请求体，因此即使 CLI 有 bug 也带不出去。
+ * day/os/appVersion 由服务端按本机事实补齐（dev-plan §6.5）。
+ */
+export const TelemetryEventInput = z.object({
+  event: z.enum(TELEMETRY_EVENTS),
+  value: z.string().max(200).default(''),
+})
+export type TelemetryEventInput = z.infer<typeof TelemetryEventInput>
+
+/** queued=false 只可能是开关关闭（服务端二次闸门），不是失败 */
+export const TelemetryEnqueueOut = z.object({
+  queued: z.boolean(),
+  reason: z.enum(['enabled', 'disabled']),
+})
+export type TelemetryEnqueueOut = z.infer<typeof TelemetryEnqueueOut>

@@ -56,15 +56,37 @@ export function checkWritePath(
   const absPath = resolve(projectPath, relPath)
   if (!isInside(projectPath, absPath)) return { ok: false, reason: 'ESCAPE' }
 
-  // 项目根自身也可能经符号链接到达（macOS 的 /var → /private/var），两侧都要归一
+  // 项目根自身也可能经符号链接到达（macOS 的 /var → /private/var、Linux 的 /tmp），两侧都要归一。
+  // 父目录尚未创建时（NEW 文件要 mkdir -p）realpath 必然失败：在项目根内逐级上溯到最近的存在
+  // 祖先再比对，否则「新项目 + 链接来的项目根」会被误判成逃逸，拒掉一次本该成功的注入。
   const root = realpath(projectPath) ?? projectPath
   const parent = dirname(absPath)
-  const realParent = realpath(parent) ?? parent
+  const realParent = realpathNearestWithin(parent, projectPath, realpath) ?? parent
   if (!isInside(root, realParent)) return { ok: false, reason: 'ESCAPE' }
   // 目标自身是符号链接时，writeFile 会顺着它写到项目外
   const realSelf = realpath(absPath)
   if (realSelf && !isInside(root, realSelf)) return { ok: false, reason: 'ESCAPE' }
   return { ok: true, absPath }
+}
+
+/**
+ * 上溯到项目根内最近的存在目录并归一符号链接；一路到项目根都不存在则 null。
+ * 到边界即停：项目根之下不存在的路径段不可能是符号链接，越过根去比对反而会把
+ * 「/tmp 自身是 /private/tmp 的链接」这类环境事实误判成逃逸。
+ */
+function realpathNearestWithin(
+  dir: string,
+  boundary: string,
+  realpath: (p: string) => string | null,
+): string | null {
+  let cur = dir
+  for (;;) {
+    const real = realpath(cur)
+    if (real !== null) return real
+    const up = dirname(cur)
+    if (up === cur || !isInside(boundary, up)) return null
+    cur = up
+  }
 }
 
 /** 落盘前的最后一道：合法则返回绝对路径，越界返回 null（CLI 据此中止且已有备份不受损） */

@@ -17,6 +17,13 @@ export {
   type LocalPathCheck,
 } from './local/lock'
 export { PacksRepo } from './repos/packs'
+export { AppMetaRepo, APP_META_KEYS } from './repos/appMeta'
+export {
+  TelemetryRepo,
+  type TelemetryEnqueueInput,
+  type TelemetryOs,
+  type TelemetryQueuedEvent,
+} from './repos/telemetry'
 export {
   parseImportFiles,
   parsePromptJsonExport,

@@ -96,6 +96,16 @@ describe('UT-INJECT-SEC-02 · 符号链接逃逸拒绝（design §7.7 规则 3 /
     w.close()
   })
 
+  it('项目根经符号链接到达 + 父目录待创建 → 不误判逃逸（macOS /var→/private/var 的真实形态）', () => {
+    const linkRoot = '/var/tmp/proj'
+    const realRoot = '/private/var/tmp/proj'
+    // 假的 realpath 只认「已存在的路径」：新项目里 .cursor/rules 还没建出来
+    const check = checkWritePath(linkRoot, '.cursor/rules/openvibe.mdc', {
+      realpath: (p) => (p === linkRoot ? realRoot : p.startsWith(`${realRoot}/`) ? p : null),
+    })
+    expect(check).toEqual({ ok: true, absPath: join(linkRoot, '.cursor/rules/openvibe.mdc') })
+  })
+
   it('真实符号链接（非 win32）→ ESCAPE', () => {
     const w = workspace('ov-inject-sym-')
     if (process.platform === 'win32') {
