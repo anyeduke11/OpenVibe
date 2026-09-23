@@ -35,7 +35,7 @@ jobs:
       - name: Test
         run: pnpm test
 
-      # T4 起生效，阈值 terms≥60 / templates=3 / prompts=0（T8 切 100/3/20）
+      # T4 起生效（阈值 60/3/0 先行），T8a-1 切正式 100/3/20 并加 §3.4 构成配额（C-57）
       - name: Seed check
         run: pnpm seed:check
 

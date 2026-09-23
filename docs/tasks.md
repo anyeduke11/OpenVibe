@@ -124,16 +124,19 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 ### T8 · 种子内容全量 + 开箱体验（W5，预估 4 人日；内容由 AI 起草 + owner 审校 ≈ 2-3 人日，D14）
 
-- [ ] terms.json 补齐至 **≥100**（60 → 100+，含 aliases 密度复核）
-- [ ] prompts.json **20 条**按 seed-content §3.4 主题清单逐条产出
-- [ ] 模板从代码常量迁入 `flow-templates.json`（幂等升级路径验证：老库不重复建）
-- [ ] `seed:check` 阈值切至正式门槛（100/3/20）并进 CI
-- [ ] **预置演示包**：首启自动组装 `default` 包（specs/onboarding.md FR-1，复用 m6a 通道）
-- [ ] **首启向导**：≤3 步、可跳过、每步真实副作用（FR-2，红线见验收 3）；步骤③含 **lock 文件自动确认**（D11：检测测试目录 `.openvibe/pack.lock.json` 自动点亮，手动按钮降级保留）
-- [ ] **飞轮统计面板** + 遥测设置开关（FR-3/FR-4，遥测默认关 + 单出口断言）；Web 侧首次注入后一次性 opt-in 卡片（FR-4.2，D13，与 CLI 共享本地标记）
-- [ ] 设置页：种子重播按钮 + 数据目录展示 + 备份说明 + 向导重置
+- [x] terms.json 补齐至 **≥100**——实际 **104 条**（批次 C/D 新增 41 / 移除 0；附录 B 十条基线齐备、aliases 全条非空、example 覆盖 100%、受控词表零越界）
+- [x] prompts.json **20 条**按 seed-content §3.4 主题清单逐条产出（`rule=7 / 含变量=13 / claude-code=11 cursor=12 generic=15`，全部 `/精选` + 「精选」标签，20 条 title 唯一）
+- [x] 模板从代码常量迁入 `flow-templates.json`——**提前于 T4 已完成**（C-15：阶段定义照抄 §3.3 直接以 seed 文件落盘，无代码常量环节）；老库幂等升级由 UT-SEED-02 在真实 seed 上验证
+- [x] `seed:check` 阈值切至正式门槛（100/3/20）并进 CI，且 prompts 侧补 §3.4 **构成配额**（数量达标不再蕴含构成达标，C-57）；负向探针落成命名用例 `tests/seed-check.test.ts`：删 5 条词条 → `99 条 < 门槛 100 条` 退出码 1（SCRIPT-SEED-01）、阶段名改一字与删一个阶段各自报错（SCRIPT-SEED-02）
+- [x] **预置演示包**：首启自动组装 `default` 包（specs/onboarding.md FR-1，复用 m6a 正常导出通道 + 一次目录导出登记；D-3「在位但选集/目标不同 = 用户已修改」跳过并报 reason）
+- [x] **首启向导**：≤3 步、可跳过、每步真实副作用（FR-2，红线见验收 3）；步骤③含 **lock 文件自动确认**（D11：`GET /api/injection-status?dir=` 轮询，2s×60，自动点亮，手动按钮降级保留）
+- [x] **飞轮统计面板** + 遥测设置开关（FR-3/FR-4，遥测默认关 + 单出口断言）；Web 侧首次注入后一次性 opt-in 卡片（FR-4.2，D13，与 CLI 共享本地标记）
+- [x] 设置页：种子重播按钮 + 数据目录展示 + 备份说明 + 向导重置（六区，含 `GET /api/settings` 与 `POST /api/settings/reseed`，结清 C-56）
+- [x] （owner 追加 D-6）遥测外发闭环：`lib/telemetry-flush.ts` serve 进程内 60s 批量出队（无端点则连 `setInterval` 都不建）+ `deploy/telemetry/worker.js` 接收端 fail-closed + `config.json` 的 `telemetryEndpoint?`，结清 C-50
+- [x] （owner 追加 D-7）并发 sync 文件锁：`O_EXCL` 抢占 `.openvibe/sync.lock`，非阻塞、只在真写盘前抢，崩溃残留按 pid/5 min 判死接管
+- [x] （owner 追加 D-7）Web 主包拆包：九页 `React.lazy` + `pnpm bundle:check` 成 CI 第五闸，入口 **1,155.62 kB → 291.01 kB**（gzip 95.27），`manualChunks` 方案实测否决
 
-**验收**：seed-content §7 全部 4 条 + **onboarding §7 全部 5 条**通过（含 ≤3 条命令/≤5 分钟口径）。
+**验收**：seed-content §7 全部 4 条 + **onboarding §7 全部 7 条**通过（含 ≤3 条命令/≤5 分钟口径）。—— ✅ **T8 完成（2026-09-23，DEV-0019）**：seed §7 四条中 seed-1/2/3 由命名用例（SCRIPT-SEED-01/02 + UT-SEED-02）覆盖，**seed-4 人工审校未收**（`docs/devlog-evidence/DEV-0019/seed-review.md` 摊开 41 词条 + 20 提示词全文，裁决表待 owner 填）；onboarding §5 七条由入库驱动器 `onboarding-walk.mjs` **29 项断言全 PASS** 逐条给日志证据（含九项产物逐条 `statSync`、第三条命令 `diff` 判 clean、用户侧 4.0 s）；另两段真机走查 `telemetry-egress.mjs` 17/17（关闭态第二个 60s 窗口计数 `3→3`）与 `lazy-chunk-walk.mjs` 29 项（首屏 JS 361.16 kB / 总分包 29.1%）；三次独立建库 `default@1.0.0` 指纹逐字节一致 `ce8182c903e2…`；全仓 **369/369 用例绿（41 文件）**，五道本地门禁全绿，**三平台 CI 待推送后验证**。
 
 ### T9 · 飞轮 E2E + 发布（W4末，预估 3 人日）
 
@@ -164,7 +167,7 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 ## 4. 完成定义（MVP DoD）
 
 1. specs **八份**（m1/m2/m3/m5/m6a/m6b/seed/onboarding）的「验收标准」**逐条**通过（人工项录屏/截图归档）。
-2. CI 五闸全绿：lint / unit / integration / cli / e2e / seed:check / golden 快照。
+2. CI 五闸全绿：lint / unit / integration / cli / e2e / seed:check / bundle:check / golden 快照。
 3. 干净环境 ≤3 条命令冷启动演练通过。
 4. 标准包契约与 adapter 清单与 design.md §7/§8 零偏差（golden 快照背书）。
 5. `v0.1.0` 发布 + dogfooding 复盘回流至少 3 条资产入库。

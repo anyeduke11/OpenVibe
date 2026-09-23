@@ -66,7 +66,12 @@ const EXPECTED_STAGE_COUNTS: Record<string, number> = {
   'Spec 驱动流': 7,
   复盘流: 4,
 }
-const SEED_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'content', 'seed')
+/**
+ * 只读覆盖口（T8g）：SCRIPT-SEED-01/02 要在临时副本上制造「删 5 条词条」「改一个阶段名」的负向样本，
+ * 不能改仓库里的真种子。此处只读取，脚本全程不写 SEED_DIR。
+ */
+const SEED_DIR =
+  process.env['OPENVIBE_SEED_DIR'] ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'content', 'seed')
 
 const errors: string[] = []
 const notes: string[] = []

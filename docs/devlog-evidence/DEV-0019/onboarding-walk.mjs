@@ -2,8 +2,8 @@
 // 用法：node docs/devlog-evidence/DEV-0019/onboarding-walk.mjs
 // 自己构建 apps/web、起 serve（随机端口 + 隔离 OPENVIBE_HOME）与 headless Chrome（裸 CDP），
 // 因此可在任意干净环境重跑；证据（日志 + PNG + 网络清单）写进本目录。
-import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { spawn, spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -32,6 +32,7 @@ const check = (label, ok, detail = '') => {
   say(`${ok ? 'PASS' : 'FAIL'} ${label}${detail === '' ? '' : ` — ${detail}`}`)
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+const WALK_BOOT = Date.now()
 
 // ---------- 先构建 Web：serve 打的是 apps/web/dist，不 build 就是拿旧包验新代码 ----------
 say('构建 apps/web …')
@@ -51,14 +52,27 @@ build.stderr.on('data', (d) => {
 const buildCode = await new Promise((r) => {
   build.on('close', r)
 })
-const buildLine = buildOut.split('\n').filter((l) => l.includes('kB') && l.includes('gzip')).pop() ?? ''
 if (buildCode !== 0) {
   console.log(buildOut)
   throw new Error(`apps/web 构建失败（退出码 ${String(buildCode)}）`)
 }
+// T8f 拆包后 vite 一次打十几行 chunk，最后一行未必是入口——按 index.html 引用的文件名取，
+// 否则日志里会出现「构建完成 347.45 kB」这种其实是 CodeMirror 懒加载分包的误导性数字。
+const entryChunk = /src="\/?(assets\/[^"]+\.js)"/.exec(
+  readFileSync(join(REPO, 'apps/web/dist/index.html'), 'utf8'),
+)?.[1]
+const buildLine =
+  buildOut
+    .split('\n')
+    .find((l) => entryChunk !== undefined && l.includes(entryChunk) && l.includes('kB')) ??
+  (buildOut.split('\n').filter((l) => l.includes('kB') && l.includes('gzip')).pop() ?? '')
 say(`  构建完成 ${buildLine.trim()}`)
 
 // ---------- serve ----------
+// onb-1 计时（dev-plan 映射表「演练录屏计时」）：从 serve 起表到 diff 收表算「用户侧 5 分钟」，
+// 构建 apps/web 单独计入——它对应干净环境的首次 npx 下载，本地重跑时是热缓存，不代表用户耗时。
+const WALK_START = Date.now()
+const BUILD_MS = WALK_START - WALK_BOOT
 const serveProc = spawn(
   process.execPath,
   ['--import', 'tsx', join(REPO, 'apps/cli/src/index.ts'), '--json', 'serve', '--port', '0'],
@@ -342,6 +356,48 @@ const autoLit = await waitForText('已注入 default@', 12_000)
 check('lock 探测自动点亮（无人工点击）', autoLit, `耗时 ${String(Date.now() - t0)}ms`)
 check('点亮后给出 diff 引导', await hasText('openvibe-cli diff'))
 await shot('step3-injected')
+
+// ---------- onb-1：≤3 条命令 / ≤5 分钟 + 六平台产物清单逐条在位 ----------
+say('\n== 验收 1（onb-1）：产物清单与演练计时')
+const PRODUCTS = [
+  'CLAUDE.md',
+  'AGENTS.md',
+  'CODEBUDDY.md',
+  'MINI.md',
+  '.cursor/rules/openvibe.mdc',
+  '.trae/rules/openvibe.md',
+  'TERMS.md',
+  'CHECKLIST.md',
+  '.openvibe/pack.lock.json',
+]
+const absent = PRODUCTS.filter((p) => !existsSync(join(demoDir, p)))
+check(`九项产物齐备（六平台 + TERMS/CHECKLIST + lock）`, absent.length === 0, absent.join(', '))
+for (const p of PRODUCTS) {
+  const size = existsSync(join(demoDir, p)) ? statSync(join(demoDir, p)).size : -1
+  say(`  · ${p} ${size >= 0 ? `${String(size)}B` : '缺失'}`)
+}
+const diffRun = spawnSync(
+  process.execPath,
+  ['--import', 'tsx', join(REPO, 'apps/cli/src/index.ts'), '--json', 'diff', demoDir],
+  { cwd: REPO, encoding: 'utf8', env: { ...process.env, OPENVIBE_HOME: HOME } },
+)
+let diffSummary = null
+try {
+  diffSummary = JSON.parse(diffRun.stdout).summary
+} catch {
+  say(`  diff 输出不可解析：${String(diffRun.stdout).slice(0, 200)}${String(diffRun.stderr).slice(0, 200)}`)
+}
+check(
+  '第 3 条命令 diff 判 clean（exit 0）',
+  diffRun.status === 0 && diffSummary?.clean === true,
+  `exit=${String(diffRun.status)} ${JSON.stringify(diffSummary)}`,
+)
+const loopMs = Date.now() - WALK_START
+say(
+  `  命令数 3：openvibe-cli serve --open → sync <dir> --pack default → diff <dir>；` +
+    `用户侧耗时 ${((loopMs - BUILD_MS) / 1000).toFixed(1)}s（构建 ${((BUILD_MS / 1000).toFixed(1))}s 另计，对应干净环境首次 npx 下载）`,
+)
+check('serve→diff ≤5 分钟', loopMs <= 5 * 60_000, `${(loopMs / 1000).toFixed(1)}s 含构建`)
 
 say('\n== 验收 5b：一次性询问卡（declined 后刷新不再出现）')
 await clickText('完成向导')

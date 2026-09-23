@@ -193,9 +193,11 @@ openvibe/
 │   └── shared/src/{schemas/*.ts,errors.ts,constants.ts,ids.ts,utils.ts}
 ├── content/seed/{terms.json,flow-templates.json,prompts.json}
 ├── docs/（PRD/specs/design/tasks/dev-plan/proposal/竞品×2）
-├── scripts/seed-check.ts（pnpm seed:check 入口）
+├── scripts/seed-check.ts（pnpm seed:check 入口；SEED_DIR 可用 OPENVIBE_SEED_DIR 只读覆盖，供 SCRIPT-SEED-01/02 在临时副本上跑负向探针）
+├── scripts/seed-review.ts（pnpm seed:review 入口：按 git 基线摊开新增词条/提示词全文，供 owner 逐条审校，D14）
 ├── scripts/bundle-check.ts（pnpm bundle:check 入口：读 dist 产物断言入口/chunk 预算）
 ├── scripts/golden-update.ts（pnpm golden:update 入口：重新生成 tests/golden/** 契约快照）
+├── deploy/telemetry/{worker.js,adapter-node.mjs}（匿名统计接收端：一份 CF Worker 源码 + 一层 node:http 外壳，fail-closed 白名单）
 └── .github/workflows/ci.yml
 ```
 
@@ -738,6 +740,7 @@ AppShell 侧栏固定七项（库/术语/Skill/流程/项目/标准包/设置）
 | pack 保存/导出 | `['packs']`、`['pack-exports', id]`、`['pack-preview', id]` |
 | injection 上报（CLI 侧） | Web 下次聚焦自动 refetch（无推送） |
 | telemetry 开关 / reseed / 向导重置 | `['settings']`、`['stats']` |
+| 向导③ 轮询 `injection-status` 探到 lock（T8c 补，非 mutation） | `['stats']`——注入次数不能等 15 s `staleTime`，探到即刷 |
 
 ### 5.4 交互实现要点
 
@@ -1157,29 +1160,36 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 **SPEC 依据**：seed-content FR-1–4、onboarding FR-1–4；design §15。
 
 **工作项**
-- [ ] terms.json 补至 ≥100（批次 C/D，§11）；prompts.json 20 条（两批）
-- [ ] 模板从代码常量迁 `flow-templates.json`（老库幂等升级验证）
-- [ ] `seed:check` 阈值切正式（100/3/20）进 CI
-- [ ] 预置演示包：首启组装 `default`（20 提示词+全术语+轻量流+六 targets+1.0.0+一次目录导出，onboarding FR-1）
-- [ ] 首启向导：OnboardingBar 三步（真实副作用红线）+ 步骤③ lock 轮询自动确认（D11）
-- [ ] FlywheelCard 五项统计 + TelemetryAskCard（FR-4.2，D13）+ 设置页遥测开关
-- [ ] SettingsSections：种子重播/数据目录/备份说明/向导重置
+- [x] terms.json 补至 ≥100（批次 C/D，§11）；prompts.json 20 条（两批）——**104 / 20**
+- [x] 模板从代码常量迁 `flow-templates.json`（老库幂等升级验证）——T4 即已按 C-15 以 seed 文件落盘，本轮只补 UT-SEED-02 的真实 seed 全量验证
+- [x] `seed:check` 阈值切正式（100/3/20）进 CI + §3.4 构成配额（C-57）+ 负向探针命名用例
+- [x] 预置演示包：首启组装 `default`（20 提示词+全术语+轻量流+六 targets+1.0.0+一次目录导出，onboarding FR-1，D-3 跳过口径）
+- [x] 首启向导：OnboardingBar 三步（真实副作用红线）+ 步骤③ lock 轮询自动确认（D11）
+- [x] FlywheelCard 五项统计 + TelemetryAskCard（FR-4.2，D13）+ 设置页遥测开关
+- [x] SettingsSections：种子重播/数据目录/备份说明/向导重置（含结清 C-56 的 `GET /api/settings` 与 `POST /api/settings/reseed`）
+- [x] 四端点读出口：`GET /api/settings` / `POST /api/settings/onboarding` / `POST /api/settings/reseed` / `GET /api/stats` / `GET /api/injection-status?dir=`（D-4/D-5）
+- [x] （owner 追加 D-6）遥测外发闭环：serve 进程内 60s 批量出队 + `deploy/telemetry/worker.js` fail-closed 接收端 + `config.json` 的 `telemetryEndpoint?`，结清 C-50
+- [x] （owner 追加 D-7）并发 sync 文件锁（`O_EXCL` 非阻塞抢占 + pid/5 min 判死接管）
+- [x] （owner 追加 D-7）Web 主包拆包 + `pnpm bundle:check` 成 CI 第五闸（入口 1,155.62 kB → 291.01 kB）
+- [x] 排序确定性收口（DEV-0017 风险②/DEV-0018 风险①）：17 处 `ORDER BY` 补唯一键 + UT-ORDER-01 静态守卫 + UT-ORDER-02 双库反序对照 + 导出口径与展示序分离（C-58/C-59）
 
 **验收-测试映射（seed §7 ×4 + onboarding §7 ×8）**
 
 | # | spec 验收 | 用例 |
 |---|-----------|------|
-| seed-1 | seed:check 门槛（删 5 条 → 非零） | SCRIPT-SEED-01 |
-| seed-2 | 首启计数 100/3/20 + 升级导入 | UT-SEED-02 |
-| seed-3 | 模板 3/7/4 阶段逐字一致 | SCRIPT-SEED-02 |
-| seed-4 | 词条质量抽查 | 人工抽检记录（DEV_LOG 归档） |
-| onb-1 | ≤3 命令/≤5 分钟产物清单 | E2E-ONBOARD-01 + 演练录屏计时 |
-| onb-2 | 跳过不再现/重置再现 | E2E-ONBOARD-02 |
-| onb-2b | 未注入不点亮 + lock 自动确认 | E2E-ONBOARD-03 |
-| onb-3 | 步骤②与 preview API 同源 | E2E-ONBOARD-04 |
-| onb-4 | 飞轮圈数=1/删除回落 | E2E-FLYWHEEL-01 |
-| onb-5 | 默认关 + 零外联断言 | UT-TELEMETRY-01 |
-| onb-5b | 一次性询问 declined 永不再问 | E2E-TELEMETRY-01 |
+| seed-1 | seed:check 门槛（删 5 条 → 非零） | SCRIPT-SEED-01（`tests/seed-check.test.ts`，临时副本上删末 5 条 → `99 条 < 门槛 100 条` 退出码 1；篡改前同一副本先跑 exit 0 作对照） |
+| seed-2 | 首启计数 100/3/20 + 升级导入 | UT-SEED-02（真实 `content/seed` 全量入 SQLite，104/3/20 逐条无 warning） |
+| seed-3 | 模板 3/7/4 阶段逐字一致 | SCRIPT-SEED-02 两支（阶段名改一字 → 点名「阶段名需逐字一致，收到 启动 / 开发 / 回顾」；删一个阶段 → 「阶段数期望 7，收到 6」） |
+| seed-4 | 词条质量抽查 | 机器侧由 `seed:check` 把关（definition ≥20 字 / aliases 非空 / example 覆盖 100% / 受控词表 / 附录 B 基线）；人工侧 `docs/devlog-evidence/DEV-0019/seed-review.md` 摊开 41 词条 + 20 提示词全文，**裁决表待 owner 填**（DEV-0019 风险①） |
+| onb-1 | ≤3 命令/≤5 分钟产物清单 | `onboarding-walk.mjs`「验收 1（onb-1）」段（九项产物逐条 `statSync` + 第三条命令 `diff` 判 clean + 用户侧 4.0 s / 构建 1.5 s 单列，计时口径 C-74）+ IT-ONB-05 |
+| onb-2 | 跳过不再现/重置再现 | 走查「验收 2：跳过/重置」段 + IT-ONB-03/04 |
+| onb-2b | 未注入不点亮 + lock 自动确认 | 走查「验收 2b」段（提示如实点名 `pack.lock.json` → sync 后自动点亮）+ IT-ONB-15..18 |
+| onb-3 | 步骤②与 preview API 同源 | 走查「验收 3」段（向导指纹 == `POST /api/packs/:id/preview` 指纹）+ IT-PACK-01/UT-COMPOSE-02 |
+| onb-4 | 飞轮圈数=1/删除回落 | 走查「验收 4」段（`{assets:124,…,loops:1}` → 删夹具项目后 `loops:0`，顶栏双向）+ IT-ONB-12/13/14 |
+| onb-5 | 默认关 + 零外联断言 | UT-TELEMETRY-01 + TF-09（无端点连 `setInterval` 都不建）+ `telemetry-egress.mjs` 17/17（关闭态第二个 60 s 窗口计数 `3→3`）+ 走查 host 清单全为 `127.0.0.1` |
+| onb-5b | 一次性询问 declined 永不再问 | 走查「验收 5b」段（询问卡出现 → 选「暂不」→ 刷新不再问 → `askState=declined / enabled=false`） |
+
+> Playwright 版 `E2E-ONBOARD-01..04` / `E2E-FLYWHEEL-01` / `E2E-TELEMETRY-01` 仍按 dev-plan §9-T9 排期：本仓无 jsdom，本轮以**入库的真机走查驱动器**（headless Chrome + 裸 CDP，可对 HEAD 复跑）承担同一口径的证据，T9 决定是否提升为 CI 内 E2E。
 
 ### T9 · 飞轮 E2E + 发布（W6D4–D5 + W7D1，3 人日）
 
@@ -1193,7 +1203,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 - [ ] `pnpm publish --dry-run` + tag `v0.1.0` + 发布说明（含已知局限：单项目单包、无 update 清理）
 - [ ] retro 复盘会 → 首批回流 ≥3 条资产入库（飞轮 dogfooding 第⑤步实证）
 
-**验收-测试映射**：CI 五闸全绿（lint/unit/integration+cli/e2e/golden+seed:check）+ 演练录屏归档 + DoD §13。
+**验收-测试映射**：CI 五闸全绿（lint/unit/integration+cli/e2e/golden+seed:check+bundle:check）+ 演练录屏归档 + DoD §13。`ci.yml` 的**步骤**清单自 T8f 起为 Lint / Typecheck / Test / Seed check / Bundle check 五步（三平台各一遍）。
 
 ### 映射总账与数量对齐（design §13）
 
@@ -1292,7 +1302,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 
 ### 11.4 seed:check 门禁与阈值切换
 
-- T4 期：`terms ≥ 60 / templates = 3 / prompts = 0`；T8 后切正式 `100 / 3 / 20`（阈值常量在 scripts/seed-check.ts，切换记 DEV_LOG）。
+- T4 期：`terms ≥ 60 / templates = 3 / prompts = 0`；**T8a-1（a6f5cb1，2026-09-23）已切正式 `100 / 3 / 20`**（阈值常量在 scripts/seed-check.ts，见 DEV-0019），并给 prompts 侧补 §3.4 构成配额（C-57）。
 - 校验内容：schema（zod 复用 §3.11）+ 数量 + 受控词表 + 模板阶段名与 seed-content §3.3 逐字断言 + `|` 转义检查。
 
 ### 11.5 60→100 热补演练（发布后动作，同时是种子升级机制的公开演示）
@@ -1326,7 +1336,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 ## §13 DoD（MVP 完成定义）
 
 1. specs 八份（m1/m2/m3/m5/m6a/m6b/seed/onboarding）验收标准**逐条**通过——核对法 = 本文 §9 各映射表全行 pass（人工项录屏/截图归档 DEV_LOG）。
-2. CI 五闸全绿：lint / unit / integration+cli / e2e / golden + seed:check。
+2. CI 五闸全绿：lint / unit / integration+cli / e2e / golden + seed:check + bundle:check。
 3. 干净环境 ≤3 条命令 / ≤5 分钟冷启动演练通过（W7D1 计时录屏）。
 4. 标准包契约与 adapter 清单与 design §7/§8 **零偏差**（golden 三夹具背书）。
 5. `v0.1.0` 发布 + dogfooding 复盘回流 ≥3 条资产入库。
