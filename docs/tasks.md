@@ -136,7 +136,7 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 - [x] （owner 追加 D-7）并发 sync 文件锁：`O_EXCL` 抢占 `.openvibe/sync.lock`，非阻塞、只在真写盘前抢，崩溃残留按 pid/5 min 判死接管
 - [x] （owner 追加 D-7）Web 主包拆包：九页 `React.lazy` + `pnpm bundle:check` 成 CI 第五闸，入口 **1,155.62 kB → 291.01 kB**（gzip 95.27），`manualChunks` 方案实测否决
 
-**验收**：seed-content §7 全部 4 条 + **onboarding §7 全部 7 条**通过（含 ≤3 条命令/≤5 分钟口径）。—— ✅ **T8 完成（2026-09-23，DEV-0019）**：seed §7 四条中 seed-1/2/3 由命名用例（SCRIPT-SEED-01/02 + UT-SEED-02）覆盖，**seed-4 人工审校未收**（`docs/devlog-evidence/DEV-0019/seed-review.md` 摊开 41 词条 + 20 提示词全文，裁决表待 owner 填）；onboarding §5 七条由入库驱动器 `onboarding-walk.mjs` **29 项断言全 PASS** 逐条给日志证据（含九项产物逐条 `statSync`、第三条命令 `diff` 判 clean、用户侧 4.0 s）；另两段真机走查 `telemetry-egress.mjs` 17/17（关闭态第二个 60s 窗口计数 `3→3`）与 `lazy-chunk-walk.mjs` 29 项（首屏 JS 361.16 kB / 总分包 29.1%）；三次独立建库 `default@1.0.0` 指纹逐字节一致 `ce8182c903e2…`；全仓 **369/369 用例绿（41 文件）**，五道本地门禁全绿，**三平台 CI 待推送后验证**。
+**验收**：seed-content §7 全部 4 条 + **onboarding §7 全部 7 条**通过（含 ≤3 条命令/≤5 分钟口径）。—— ✅ **T8 完成（2026-09-23，DEV-0019）**：seed §7 四条中 seed-1/2/3 由命名用例（SCRIPT-SEED-01/02 + UT-SEED-02）覆盖，**seed-4 人工审校未收**（`docs/devlog-evidence/DEV-0019/seed-review.md` 摊开 41 词条 + 20 提示词全文，裁决表待 owner 填）；onboarding §5 七条由入库驱动器 `onboarding-walk.mjs` **29 项断言全 PASS** 逐条给日志证据（含九项产物逐条 `statSync`、第三条命令 `diff` 判 clean、用户侧 4.0 s）；另两段真机走查 `telemetry-egress.mjs` 17/17（关闭态第二个 60s 窗口计数 `3→3`）与 `lazy-chunk-walk.mjs` 29 项（首屏 JS 361.16 kB / 总分包 29.1%）；三次独立建库 `default@1.0.0` 指纹逐字节一致 `ce8182c903e2…`；全仓 **369/369 用例绿（41 文件）**，五道本地门禁全绿，**三平台 CI 全绿**（run 35827189050 @ `9f09d8d`：windows-latest / ubuntu-latest / macos-latest 三个 verify job 全 success，`seed:check` 的 100/3/20 + §3.4 构成配额与 `bundle:check` 的入口 ≤300kB 两道新闸首次上 CI，本轮预期差集为零）。
 
 ### T9 · 飞轮 E2E + 发布（W4末，预估 3 人日）
 
