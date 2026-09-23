@@ -9,7 +9,7 @@ import { registerFlowTemplateRoutes } from './routes/flowTemplates'
 import { registerPackRoutes } from './routes/packs'
 import { registerProjectRoutes } from './routes/projects'
 import { registerPromptRoutes, type PromptRouteDeps } from './routes/prompts'
-import { registerSettingsRoutes } from './routes/settings'
+import { registerSettingsRoutes, type SettingsRouteInput } from './routes/settings'
 import { registerSkillRoutes } from './routes/skills'
 import { registerTaskRoutes } from './routes/tasks'
 import { registerTermRoutes } from './routes/terms'
@@ -27,6 +27,8 @@ export interface BuildAppOptions {
   platform?: string
   /** 遥测 day/queued_at 的时钟注入点（缺省 new Date()） */
   now?: () => Date
+  /** settings 路由的展示字段（dataDir/port/seedDir/dbPath）；缺省由 bootstrap 传入，测试可省 */
+  settings?: Partial<SettingsRouteInput>
 }
 
 export interface BuiltApp {
@@ -60,7 +62,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerTaskRoutes(app, deps)
   registerDevLogRoutes(app, deps)
   registerSkillRoutes(app, deps)
-  registerSettingsRoutes(app, { db, appVersion, platform: options.platform, now: options.now })
+  registerSettingsRoutes(app, {
+    db,
+    appVersion,
+    platform: options.platform,
+    now: options.now,
+    ...options.settings,
+  })
 
   app.get('/api/health', async () => ({
     status: 'ok',

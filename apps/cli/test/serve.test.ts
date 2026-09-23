@@ -17,8 +17,12 @@ function tempHome(): string {
   return dir
 }
 
+/** serveAction 会把 home 桥接进 OPENVIBE_HOME（预置包导出与 home 同源），跑完还原免得串到别的用例 */
+const REAL_HOME = process.env.OPENVIBE_HOME
 afterAll(async () => {
   while (open.length) await open.pop()?.close()
+  if (REAL_HOME === undefined) delete process.env.OPENVIBE_HOME
+  else process.env.OPENVIBE_HOME = REAL_HOME
   while (homes.length) rmSync(homes.pop() ?? '', { recursive: true, force: true })
 })
 

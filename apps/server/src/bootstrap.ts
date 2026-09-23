@@ -4,23 +4,24 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { AddressInfo } from 'node:net'
 import type { FastifyInstance } from 'fastify'
-import {
-  migrate,
-  openDatabase,
-  runSeed,
-  type SeedBundleResult,
-  type SqliteDatabase,
-} from '@openvibe/core'
-import { DEFAULT_PORT } from '@openvibe/shared'
+import { migrate, openDatabase, runSeed, type SqliteDatabase } from '@openvibe/core'
+import { DEFAULT_PORT, type SeedSummary } from '@openvibe/shared'
 import { buildApp } from './app'
+import { ensureDefaultPack, type DefaultPackOutcome } from './lib/default-pack'
+import { defaultSeedDir } from './lib/seed-dir'
 import type { WebStatus } from './plugins/static'
+import { seedSummaryOf } from './routes/settings'
 
 /**
- * dev-plan §1.2 启动序列的服务端半边：步骤 3（建库+migration）/4（幂等播种）/6（listen）/7（静态托管）。
+ * dev-plan §1.2 启动序列的服务端半边：步骤 3（建库+migration）/4（幂等播种）/5（组装预置 default 包）
+ * /6（listen）/7（静态托管）。
  * 步骤 1（配置发现链）与 2（~/.openvibe 初始化 + token 落盘）在 apps/cli/src/commands/serve.ts——
  * 发现链的归属由 m6b §3 定在 CLI，R4 亦禁止 server 反向 import cli。
- * 步骤 5（首启自动组装预置 default 包）依赖 T8 的 20 条精选提示词，本切片尚未实现。
  */
+
+/** 种子目录与 SeedSummary 自 T8b 起分别住在 lib/seed-dir 与 @openvibe/shared，此处保留出口兼容 serve/index */
+export { defaultSeedDir }
+export type { SeedSummary }
 
 /** dev-plan §4.3：启动失败的可判别原因，CLI 据此给退出码与人读文案 */
 export const BOOT_ERROR_CODES = [
@@ -44,17 +45,14 @@ export class BootError extends Error {
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
 const HERE = dirname(fileURLToPath(import.meta.url))
 
-/** content/seed 相对仓库布局；OPENVIBE_SEED_DIR 供打包/沙箱覆盖 */
-export function defaultSeedDir(): string {
-  return process.env.OPENVIBE_SEED_DIR ?? join(HERE, '..', '..', '..', 'content', 'seed')
-}
-
 export function defaultWebRoot(): string {
   return join(HERE, '..', '..', 'web', 'dist')
 }
 
 export interface BootstrapOptions {
   dbPath: string
+  /** ~/.openvibe 根，GET /api/settings 展示用；缺省取 dbPath 的父目录 */
+  dataDir?: string
   seedDir?: string
   webRoot?: string
   /** 0 = 随机端口（测试用）；缺省 8787 */
@@ -66,15 +64,6 @@ export interface BootstrapOptions {
   appVersion?: string
 }
 
-export interface SeedSummary {
-  created: Record<string, number>
-  updated: Record<string, number>
-  skipped: Record<string, number>
-  /** core 的 bundle 粒度结论：content_hash 未变即 skipped，与逐条 skipped 计数含义不同 */
-  bundles: Record<string, SeedBundleResult['status']>
-  warnings: string[]
-}
-
 export interface BootstrapResult {
   app: FastifyInstance
   db: SqliteDatabase
@@ -83,6 +72,8 @@ export interface BootstrapResult {
   url: string
   token: string
   seed: SeedSummary
+  /** dev-plan §4.3 步骤 5 的结论；skipped/failed 的 reason 已折叠进 warnings */
+  defaultPack: DefaultPackOutcome
   web: WebStatus
   /** 非致命问题（播种跳过、产物缺失等）：人读即时打印，--json 折叠进 summary.warnings */
   warnings: string[]
@@ -115,31 +106,35 @@ export async function bootstrap(options: BootstrapOptions): Promise<BootstrapRes
   }
 
   const token = options.token ?? randomBytes(32).toString('hex')
+  const port = options.port ?? DEFAULT_PORT
+  const seedDir = options.seedDir ?? defaultSeedDir()
   const { app, web } = await buildApp({
     db,
     token,
     webRoot: options.webRoot ?? defaultWebRoot(),
     ...(options.appVersion ? { appVersion: options.appVersion } : {}),
+    settings: {
+      dataDir: options.dataDir ?? dirname(dbPath),
+      port,
+      seedDir,
+      dbPath,
+    },
   })
   warnings.push(...web.warnings)
 
-  const seed: SeedSummary = { created: {}, updated: {}, skipped: {}, bundles: {}, warnings: [] }
-  const seedDir = options.seedDir ?? defaultSeedDir()
+  // dev-plan §4.3：seed 失败不阻塞启动，单条问题只记 warning
+  let seed: SeedSummary = { created: {}, updated: {}, skipped: {}, bundles: {}, warnings: [] }
   if (!existsSync(seedDir)) {
-    const w = `种子目录不存在：${seedDir}，已跳过播种`
-    warnings.push(w)
+    warnings.push(`种子目录不存在：${seedDir}，已跳过播种`)
   } else {
-    // dev-plan §4.3：seed 失败不阻塞启动，单条问题只记 warning
-    for (const r of runSeed(db, seedDir)) {
-      seed.created[r.bundle] = r.created
-      seed.updated[r.bundle] = r.updated
-      seed.skipped[r.bundle] = r.skipped
-      seed.bundles[r.bundle] = r.status
-      for (const w of r.warnings) seed.warnings.push(`${r.bundle}: ${w}`)
-    }
+    seed = seedSummaryOf(runSeed(db, seedDir))
   }
 
-  const port = options.port ?? DEFAULT_PORT
+  // 步骤 5：预置 default 包（onboarding FR-1）。同样不阻塞启动——失败只降级为 warning，
+  // 设置页的「重建预置包」用同一个 ensureDefaultPack 兜底。
+  const defaultPack = ensureDefaultPack(db)
+  if (defaultPack.reason) warnings.push(`预置包：${defaultPack.reason}`)
+
   try {
     await app.listen({ host: bindHost, port })
   } catch (e) {
@@ -157,6 +152,7 @@ export async function bootstrap(options: BootstrapOptions): Promise<BootstrapRes
     url,
     token,
     seed,
+    defaultPack,
     web,
     warnings,
     async close() {

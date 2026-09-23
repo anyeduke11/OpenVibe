@@ -135,12 +135,13 @@ telemetry_events(id PK, event, value, day, os, app_version, queued_at, sent_at);
 | Skill | `GET/POST /skills`、`PATCH/DELETE /skills/:id`、`GET /skills/:id/versions`、`POST /skills/scan` | |
 | 术语 | `GET/POST /terms`、`PATCH/DELETE /terms/:id`、`GET /terms/search`、`POST /terms/render-terms-md` | |
 | 流程模板 | `GET/POST /flow-templates`、`PATCH/DELETE /flow-templates/:id`、`POST /flow-templates/:id/duplicate` | builtin PATCH/DELETE → 403 |
-| 项目 | `GET/POST /projects`、`GET/PATCH/DELETE /projects/:id`、`POST /projects/:id/stages/current`、`GET /projects/:id/injection-status` | injection-status 读 lock 文件（只读） |
+| 项目 | `GET/POST /projects`、`GET/PATCH/DELETE /projects/:id`、`POST /projects/:id/stages/current`、`GET /projects/:id/injection-status`、`GET /injection-status?dir=` | injection-status 读 lock 文件（只读）；`?dir=` 变体供开箱步③轮询未入库目录，`dir` 须绝对路径且已存在（404/422），响应同 `InjectionStatusOut`，不做目录列举 |
 | 任务 | `GET/POST /projects/:id/tasks`、`PATCH/DELETE /tasks/:id` | 拖拽 = PATCH status/order |
 | 日志 | `GET/POST /projects/:id/devlog`、`GET /projects/:id/devlog/export` | |
 | 标准包 | `GET/POST /packs`、`GET/PATCH/DELETE /packs/:id`、`POST /packs/:id/preview`、`POST /packs/:id/export`、`GET /packs/:id/exports`、`POST /injections` | export body `{version, channel}`；409 见 m6a FR-4 |
 | 全局搜索 | `GET /search?type=prompt\|term&q=` | |
-| 设置 | `GET /settings`、`POST /settings/reseed`、`GET/POST /settings/telemetry`（C-3，2026-09-20：D13 遥测开关/询问状态读写，实现级见 dev-plan §3.10/§4.6） | |
+| 设置 | `GET /settings`、`POST /settings/onboarding`、`POST /settings/reseed`、`GET/POST /settings/telemetry`（C-3，2026-09-20：D13 遥测开关/询问状态读写，实现级见 dev-plan §3.10/§4.6。T8，2026-09-22 补 C-56 两行：`GET /settings` 响应含 `onboardingDone`；`onboarding` 写 `app_meta` 完成标记，`done=false` 即「重新显示向导」；`reseed` 重播种子并按 onboarding FR-1 口径重建 default 包，返回 `{seed, defaultPack, settings}`） | |
+| 飞轮统计 | `GET /stats`、`POST /telemetry/events` | T8（onboarding FR-3 + C-50 出队出口）：`/stats` 五数全本地 SQL 聚合（`assets/packs/injections/reflows/loops`），`loops` 按项目去重且要求同一项目「登记的包有导出 ∧ 该路径有注入记录 ∧ 有带资产引用的日志」三者同链；`/telemetry/events` 单事件入队，开关关闭时返回 `{queued:false, reason:'disabled'}` 且连队列都不写 |
 
 分页默认 size=50；列表响应统一 `{items, total, page}`。鉴权规则见 §11。
 

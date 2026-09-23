@@ -22,8 +22,70 @@ export const SettingsOut = z.object({
     prompts: z.number().int(),
   }),
   db: z.object({ status: z.enum(['ok', 'pending', 'error']), detail: z.string().optional() }),
+  /** 向导完成标记（onboarding FR-2.3）：跳过或走完后不再出现，设置页可重置 */
+  onboardingDone: z.boolean(),
 })
 export type SettingsOut = z.infer<typeof SettingsOut>
+
+/** POST /api/settings/onboarding（onboarding FR-2.3 的写入通道，与 telemetry 开关同构） */
+export const OnboardingToggleInput = z.object({
+  done: z.boolean(),
+})
+export type OnboardingToggleInput = z.infer<typeof OnboardingToggleInput>
+
+/** 飞轮统计五项（onboarding FR-3，T8b 新增 GET /api/stats；全本地 SQL 聚合，不参与遥测） */
+export const FlywheelStatsOut = z.object({
+  /** 资产数：提示词(M1) + 术语(M3) + Skill(M2) 条目之和 */
+  assets: z.number().int(),
+  /** 标准包数（不含导出次数，导出历史另有 /api/packs/:id/exports） */
+  packs: z.number().int(),
+  /** 注入次数：injections 记录数 */
+  injections: z.number().int(),
+  /** 回流条数：linked_asset_ids 非空的开发日志数 */
+  reflows: z.number().int(),
+  /** 飞轮圈数：同项目「有导出包 → 有注入 → 有 ≥1 条回流」记 1 圈，按项目去重（FR-3.2） */
+  loops: z.number().int(),
+})
+export type FlywheelStatsOut = z.infer<typeof FlywheelStatsOut>
+
+/** default 预置包的组装结论（onboarding FR-1；D-3：只有缺失才重建） */
+export const DefaultPackOutcomeOut = z.object({
+  status: z.enum(['created', 'exists', 'skipped', 'failed']),
+  packId: z.string().nullable(),
+  rebuilt: z.boolean(),
+  version: z.string().nullable(),
+  directoryPath: z.string().nullable(),
+  /** 人读原因：skipped=用户已修改，failed=种子未就绪或导出失败 */
+  reason: z.string().nullable(),
+})
+export type DefaultPackOutcomeOut = z.infer<typeof DefaultPackOutcomeOut>
+
+/**
+ * 逐 bundle 的幂等播种计数（core 的 SeedBundleResult 折叠形态）。
+ * `bundles` 是 bundle 粒度结论（content_hash 未变即 skipped），与逐条 `skipped` 计数含义不同。
+ */
+export const SeedSummary = z.object({
+  created: z.record(z.string(), z.number().int()),
+  updated: z.record(z.string(), z.number().int()),
+  skipped: z.record(z.string(), z.number().int()),
+  bundles: z.record(z.string(), z.enum(['skipped', 'imported', 'error'])),
+  warnings: z.array(z.string()),
+})
+export type SeedSummary = z.infer<typeof SeedSummary>
+
+/** POST /api/settings/reseed：逐 bundle 幂等结果 + 预置包重建结论（dev-plan §607 / FR-1.2） */
+export const ReseedOut = z.object({
+  seed: SeedSummary,
+  defaultPack: DefaultPackOutcomeOut,
+  settings: SettingsOut,
+})
+export type ReseedOut = z.infer<typeof ReseedOut>
+
+/** GET /api/injection-status?dir= 的入参守卫（onboarding FR-2.4 步骤③自动确认，D-5） */
+export const InjectionStatusQuery = z.object({
+  dir: z.string().min(1, 'dir 必填：待检测的项目根目录绝对路径'),
+})
+export type InjectionStatusQuery = z.infer<typeof InjectionStatusQuery>
 
 /** C-3（dev-plan §3.10）：遥测开关/询问状态读写 */
 export const TelemetrySettingsOut = z.object({

@@ -1,8 +1,16 @@
-import { isAbsolute } from 'node:path'
+import { existsSync, statSync } from 'node:fs'
+import { isAbsolute, join } from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { AppError, ProjectCreateInput, ProjectUpdateInput } from '@openvibe/shared'
 import {
+  AppError,
+  InjectionStatusQuery,
+  ProjectCreateInput,
+  ProjectUpdateInput,
+  type InjectionStatusOut,
+} from '@openvibe/shared'
+import {
+  PACK_LOCK_REL,
   ProjectsRepo,
   checkLocalPath,
   readInjectionStatus,
@@ -126,5 +134,30 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
       localPath: project.localPath,
       registered: { packId: project.standardPackId, version: project.standardPackVersion },
     })
+  })
+
+  /**
+   * 目录版注入状态（onboarding FR-2.4 步骤③自动确认，T8b 的 D-5）：
+   * 向导注入那一刻项目记录还不存在，Web 只能按绝对路径轮询 lock 文件。
+   * 与 :id 版同一份 core 只读实现；只回 InjectionStatusOut，绝不列目录内容。
+   */
+  app.get('/api/injection-status', async (req): Promise<InjectionStatusOut> => {
+    const { dir } = parseOrThrow(InjectionStatusQuery, req.query)
+    if (!isAbsolute(dir)) {
+      throw new AppError('VALIDATION_ERROR', 'dir 必须是绝对路径', {
+        fieldErrors: { dir: ['需要绝对路径'] },
+      })
+    }
+    if (!existsSync(dir)) throw new AppError('NOT_FOUND', `目录不存在: ${dir}`)
+    if (!statSync(dir).isDirectory()) {
+      throw new AppError('VALIDATION_ERROR', 'dir 不是目录', {
+        fieldErrors: { dir: ['需要一个已存在的目录'] },
+      })
+    }
+    // 尚未注入与 lock 损坏要分开报：readInjectionStatus 只认「读不到/解不开」这一种情形
+    if (!existsSync(join(dir, PACK_LOCK_REL))) {
+      return { lockPresent: false, error: `尚未注入（缺 ${PACK_LOCK_REL}）` }
+    }
+    return readInjectionStatus({ localPath: dir, registered: null })
   })
 }

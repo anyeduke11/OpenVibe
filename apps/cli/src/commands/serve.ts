@@ -62,6 +62,9 @@ function defaultOpener(url: string, warn: (message: string) => void): void {
 
 export async function serveAction(options: ServeOptions = {}): Promise<ServeResult> {
   const home = options.home ?? openvibeHome()
+  // core 的导出目录（packExportDir）认 OPENVIBE_HOME，不桥接的话 --home 只挪走了 db 与
+  // config.json，预置包导出仍会落到真实的 ~/.openvibe
+  process.env.OPENVIBE_HOME = home
   const configPath = configFilePath(home)
   const firstRun = !existsSync(configPath)
   const warnings: string[] = []
@@ -79,6 +82,7 @@ export async function serveAction(options: ServeOptions = {}): Promise<ServeResu
 
   const boot = await bootstrap({
     dbPath: join(home, 'data', 'openvibe.db'),
+    dataDir: home,
     seedDir: options.seedDir ?? defaultSeedDir(),
     port: options.port ?? DEFAULT_PORT,
     token,
