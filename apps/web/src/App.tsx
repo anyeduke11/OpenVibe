@@ -4,12 +4,11 @@ import { FlowsPage } from './pages/FlowsPage'
 import { LibraryPage } from './pages/LibraryPage'
 import { PackNewPage } from './pages/PackNewPage'
 import { PacksPage } from './pages/PacksPage'
-import { PlaceholderPage } from './pages/PlaceholderPage'
 import { ProjectDetailPage } from './pages/ProjectDetailPage'
 import { ProjectsPage } from './pages/ProjectsPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { SkillsPage } from './pages/SkillsPage'
 import { TermsPage } from './pages/TermsPage'
-import { zh } from './i18n/zh'
 
 export function App() {
   return (
@@ -25,7 +24,7 @@ export function App() {
         <Route path="/packs" element={<PacksPage />} />
         <Route path="/packs/new" element={<PackNewPage />} />
         <Route path="/packs/:id/edit" element={<PackNewPage />} />
-        <Route path="/settings" element={<PlaceholderPage title={zh.nav.settings} task="T8" />} />
+        <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/library" replace />} />
       </Route>
     </Routes>

@@ -64,6 +64,22 @@ export default tseslint.config(
     languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
   },
   {
+    // 验收走查驱动器（docs/devlog-evidence/**.mjs）：Node 侧脚本，起子进程 + 裸 CDP，
+    // 不是产品代码也不进任何 app 运行时，故只补它用到的那几个全局。
+    files: ['docs/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        Buffer: 'readonly',
+        URL: 'readonly',
+        WebSocket: 'readonly',
+        console: 'readonly',
+        fetch: 'readonly',
+        process: 'readonly',
+        setTimeout: 'readonly',
+      },
+    },
+  },
+  {
     plugins: { 'import-x': importX },
     settings: {
       'import-x/resolver': { typescript: { alwaysTryTypes: true } },

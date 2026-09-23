@@ -1,0 +1,16 @@
+http://127.0.0.1:64798/api/injection-status?dir=%2Fvar%2Ffolders%2Fm5%2Fvtf5zzms4d74m83g6_8shx9h0000gn%2FT%2Fov-onb-walk-81685%2Fopenvibe-demo
+http://127.0.0.1:64798/api/packs
+http://127.0.0.1:64798/api/packs/pk_0v2BLyZam2dpwQ4jJmGKe/exports
+http://127.0.0.1:64798/api/packs/pk_0v2BLyZam2dpwQ4jJmGKe/preview
+http://127.0.0.1:64798/api/projects
+http://127.0.0.1:64798/api/prompts?page=1&size=20
+http://127.0.0.1:64798/api/prompts?page=1&size=200
+http://127.0.0.1:64798/api/settings
+http://127.0.0.1:64798/api/settings/onboarding
+http://127.0.0.1:64798/api/settings/telemetry
+http://127.0.0.1:64798/api/stats
+http://127.0.0.1:64798/assets/index-BKyNCsSg.js
+http://127.0.0.1:64798/assets/index-CXfoD74h.css
+http://127.0.0.1:64798/favicon.svg
+http://127.0.0.1:64798/library
+http://127.0.0.1:64798/settings
