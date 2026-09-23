@@ -27,12 +27,34 @@ treestat() { (cd "$1" && find . -mindepth 1 -print0 | sort -z | xargs -0 -I{} sh
 JSN=$(command -v jq >/dev/null && echo jq || echo python3)
 OV() { node --import tsx "$CLI" "$@"; }
 
+# ---- 常驻进程回收（DEV-0019 修）--------------------------------------------
+# `OV … &` 时 $! 是 bash 为「后台函数调用」fork 的子 shell，不是 node 本身；
+# kill $! 只杀掉子 shell，真 serve 被 reparent 到 1 —— 首轮复跑因此泄了 27 个进程
+# （9 遍 × 3 个 serve，句柄仍握着 /tmp/ov-t7f 的 sqlite）。故：起服务走简单命令直spawn，
+# pid 记账，收尾统一回收并把「是否真的没了」写进日志（残留即 FAIL，不留给下一次发现）。
+SERVE_PIDS=""
+track_serve() { SERVE_PIDS="$SERVE_PIDS $1"; }
+stop_serve() { # stop_serve <pid> <标签>
+  local pid=$1 label=$2 alive=0
+  kill "$pid" 2>/dev/null
+  for _ in $(seq 1 40); do kill -0 "$pid" 2>/dev/null || break; sleep 0.25; done
+  kill -0 "$pid" 2>/dev/null && alive=1
+  say "§7.0 $label 回收：pid=$pid $([ "$alive" = 0 ] && echo '已退出 ✅' || echo '仍存活（FAIL）')"
+}
+leftover_serve() { pgrep -f "apps/cli/src/index.ts --json serve" 2>/dev/null | wc -l | tr -d ' '; }
+reap_all() {
+  [ -z "${SERVE_PIDS// /}" ] || for p in $SERVE_PIDS; do kill "$p" 2>/dev/null; done
+  local n; n=$(leftover_serve)
+  [ "$n" = "0" ] || say "§7.0 退出兜底：仍有 $n 个 serve 存活（FAIL，须查 kill 目标是否 $! 本身）"
+}
+trap reap_all EXIT INT TERM
+
 rm -rf "$ROOT"/home "$ROOT"/p-* "$ROOT"/*.json "$ROOT"/bundles "$ROOT"/evil
 mkdir -p "$ROOT"/home "$ROOT"/bundles
 
 step "0 起服务（随机端口 + 隔离 OPENVIBE_HOME）+ §7.8 config 权限与播种基线"
-OV --json serve --port 0 >"$ROOT/serve.json" 2>&1 &
-SERVE_PID=$!
+node --import tsx "$CLI" --json serve --port 0 >"$ROOT/serve.json" 2>&1 &
+SERVE_PID=$!; track_serve $SERVE_PID
 for _ in $(seq 1 60); do [ -s "$ROOT/serve.json" ] && break; sleep 0.5; done
 URL=$(pick 'd=>d.summary.url' <"$ROOT/serve.json")
 TOKEN=$(pick 'd=>d.summary.token' <"$ROOT/serve.json")
@@ -42,9 +64,9 @@ TERMS1=$(api "$URL/api/terms?size=1" | pick 'd=>d.total')
 say "§7.8 首启播种 terms=$TERMS1 prompts=$(api "$URL/api/prompts?size=1" | pick 'd=>d.total')"
 
 step "1 §7.8 二次启动不重复播种（重启服务，terms 计数须不变）"
-kill $SERVE_PID 2>/dev/null; for _ in $(seq 1 40); do kill -0 $SERVE_PID 2>/dev/null || break; sleep 0.25; done
-OV --json serve --port 0 >"$ROOT/serve2.json" 2>&1 &
-SERVE_PID=$!
+stop_serve $SERVE_PID "步骤 0 的 serve"
+node --import tsx "$CLI" --json serve --port 0 >"$ROOT/serve2.json" 2>&1 &
+SERVE_PID=$!; track_serve $SERVE_PID
 for _ in $(seq 1 60); do [ -s "$ROOT/serve2.json" ] && break; sleep 0.5; done
 URL=$(pick 'd=>d.summary.url' <"$ROOT/serve2.json"); TOKEN=$(pick 'd=>d.summary.token' <"$ROOT/serve2.json")
 TERMS2=$(api "$URL/api/terms?size=1" | pick 'd=>d.total')
@@ -220,7 +242,7 @@ pick 'd=>d.summary.error.code+" | "+d.summary.error.message+" | 违规项警告=
 say "§6.3 项目目录内容=[$(find "$ROOT/p-big" -mindepth 1 | tr '\n' ' ')]（应为空）"
 
 step "13 §7.3 离线注入：停服务 + 无令牌，--file 完成注入（lock 写入，上报缺失仅警告）"
-kill $SERVE_PID 2>/dev/null; for _ in $(seq 1 40); do kill -0 $SERVE_PID 2>/dev/null || break; sleep 0.25; done
+stop_serve $SERVE_PID "步骤 1 重启的 serve"
 mkdir -p "$ROOT/p-offline"
 run "sync 离线" "$ROOT/offline.json" env OPENVIBE_TOKEN= OPENVIBE_SERVER=http://127.0.0.1:1 node --import tsx "$CLI" --json sync "$ROOT/p-offline" --file "$ROOT/bundles/accept-1.0.0.json" --yes
 pick 'd=>({written:d.summary.written, lockPath:d.summary.lockPath&&d.summary.lockPath.replace(/.*p-offline/,"p-offline"), injectionReported:d.summary.injectionReported, warnings:d.summary.warnings, exitCode:d.summary.exitCode})' <"$ROOT/offline.json" | tee -a "$LOG"
@@ -228,13 +250,14 @@ say "§7.3 lock 文件是否写入：$(test -e "$ROOT/p-offline/.openvibe/pack.l
 say "离线 lock 内容：$(node -pe 'const l=require(process.argv[1]);l.pack.name+"@"+l.pack.version+" fp="+l.pack.fingerprint.slice(0,12)+" files="+l.files.length' "$ROOT/p-offline/.openvibe/pack.lock.json")"
 
 step "14 收尾数据面自查（重新起服务，只读）"
-OV --json serve --port 0 >"$ROOT/serve3.json" 2>&1 &
-SERVE3=$!
+node --import tsx "$CLI" --json serve --port 0 >"$ROOT/serve3.json" 2>&1 &
+SERVE3=$!; track_serve $SERVE3
 for _ in $(seq 1 60); do [ -s "$ROOT/serve3.json" ] && break; sleep 0.5; done
 URL=$(pick 'd=>d.summary.url' <"$ROOT/serve3.json"); TOKEN=$(pick 'd=>d.summary.token' <"$ROOT/serve3.json")
 say "注入历史（在线那几次才该有记录）：$(api "$URL/api/packs/$PACK_ID/injections" | pick 'd=>JSON.stringify(d).slice(0,300)')"
 say "telemetry：$(api "$URL/api/settings/telemetry" | pick 'd=>d')"
 say "scan 入库提示词：$(api "$URL/api/prompts?size=200" | pick 'd=>d.items.filter(p=>[".cursorrules","CLAUDE.md"].includes(p.title)).map(p=>p.title).join(" ")')"
-kill $SERVE3 2>/dev/null
+stop_serve $SERVE3 "步骤 14 的只读 serve"
 rm -f "$REPO/scripts/.tmp-t7f-big-bundle.ts"
+say "§7.0 走查结束时 serve 残留进程数=$(leftover_serve)（应为 0；esbuild 子进程随之退出）"
 say "走查结束（临时夹具脚本已删除，仓库工作树无残留）"
