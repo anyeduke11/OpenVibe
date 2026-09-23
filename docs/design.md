@@ -69,7 +69,7 @@ openvibe/
 ```
 用户机器
 ├── ~/.openvibe/
-│   ├── config.json          # { serverUrl, token, port } 权限 0600（serve 首启生成）
+│   ├── config.json          # { serverUrl, token, port, telemetryEndpoint? } 权限 0600（serve 首启生成；缺省/空 = 永不外发，§11.5）
 │   ├── data/openvibe.db    # SQLite（WAL），含 FTS 虚表（§5）
 │   ├── packs/               # 目录导出的标准包（git 共享用）
 │   └── logs/                # serve 运行日志（滚动）

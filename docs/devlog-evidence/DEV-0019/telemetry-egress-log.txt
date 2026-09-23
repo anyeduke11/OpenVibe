@@ -1,0 +1,22 @@
+[  0s] 接收端 http://127.0.0.1:63460（上报路径带随机段，端点地址即凭据）
+[  1s] serve http://127.0.0.1:63461 firstRun=false
+[  1s] PASS serve 读入手配的端点并回显 — {"endpoint":"http://127.0.0.1:63460/collect/demo-token","intervalMs":60000}
+[  1s] PASS 重写 config.json 未抹掉端点
+[  1s] PASS --json 启动信息公开上报通道 — ["匿名统计：每 60s 批量上报至 http://127.0.0.1:63460/collect/demo-token"]
+[  1s] PASS 默认关闭时连队列都不写 — {"queued":false,"reason":"disabled"}
+[  1s] PASS 打开后三条待发送 — pending=3
+[ 61s] PASS 60s 内三条真到达接收端 — total=3
+[ 61s] PASS 送达的行才盖 sent_at — 共 3 行
+[ 61s] PASS 关闭后入队被服务端挡住 — {"queued":false,"reason":"disabled"}
+[ 61s] PASS 关闭态带外事件根本没进队列
+[ 71s] PASS 关掉后队列仍是那三行（已发不回收） — rows=3
+[146s] PASS 第二个 60s 窗口内计数未增（零外联） — total 3→3
+[148s] PASS 未配端点时 telemetry.endpoint 为空串
+[148s] PASS --json 未配端点时如实说「不外发」 — ["匿名统计：未配上报端点，事件只留在本地队列（不外发）"]
+[148s] PASS 人读模式启动信息如实说「不外发」 — 匿名统计：未配上报端点，事件只留在本地队列（不外发）；开关以设置页为准，关闭时连入队都不会发生
+[148s] PASS 人读模式仍打出 Web 产物行（未被本次改动误删）
+[148s] PASS 人读模式 stdout 干净（无 warn 前缀、无 JSON 对象）
+[148s] PASS 人读模式未把提示漏到 stderr
+[149s] 全部 17 条通过
+
+合计 17/17 PASS

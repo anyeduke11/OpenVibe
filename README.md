@@ -68,7 +68,16 @@ openvibe/
 - [x] **P1/T7 M6b CLI 注入垂直切片完成（2026-09-22，DEV-0018）**：`openvibe serve/scan/sync/diff` 四命令 + config 五级发现链（令牌 **0600** 显式 chmod、损坏降级 warning）+ `--json` 单出口契约 `{command,plan?,report?,summary}` 与退出码 0/1/2 + 五状态注入内核（NEW/IN_SYNC/UPDATE/DRIFT/CONFLICT，`pack.lock.json` 的 `managed` 语义）+ 三层路径与规模防线（`packPathSchema` → 整包 `checkPackInjectable` → 每次写盘前 `resolveWriteTarget`）；**修复一处真漏洞**：目标是悬空符号链接时 realpath 必然失败，旧实现放行后 `writeFile` 顺链接在项目外凭空建文件（9664241，附 A/B 一手证据）；薄客户端守约（R4 仅 `serve` 单点放行 `@openvibe/server/bootstrap`，restriction 扩到子路径）；m6b §7 八条 + §6 安全样本由 **14 步真机走查**逐条实测（**驱动器脚本首次随证据入库**，可复跑；两遍独立建库指纹一致 `b611cec36934`，附不 import 仓库代码的 §7.6 独立重算），一次 dry-run 跑齐五状态；**307/307 用例全绿**（apps/cli 10 文件 / 57 个 `CLI-*` 用例 ID，≥25 门槛约 2.3 倍余量），证据落 `docs/devlog-evidence/DEV-0018/`
 - [ ] P1：MVP 开发（按 tasks.md T1–T9，6.5 周 = 任务 31.5 人日 + 显式缓冲 1 人日；下一步 **T8 种子全量 + 开箱体验（含 `GET /api/settings` 与 `POST /api/settings/reseed` 两个未建端点，C-56）**；T4 的 63 条词条待 owner 审校，T8 补齐至 ≥100 条并将 `seed:check` 阈值切到 100/3/20）
 
-## 差异化定位（相对竞品）
+## 隐私与网络行为（design §11.5）
+
+- 除你配置的 `serverUrl`（注入/导出走本地 serve）外，**唯一可能的出网是可选匿名统计**，默认关闭。
+- 白名单只有三类事件：`pack_injected` / `flow_template_used` / `project_active`；上报体固定五段
+  `{event, value, day, os, appVersion}`，**不含路径、文件名、资产内容与任何机器标识**。
+- **关闭即零外联**：开关关闭时连入队都不会发生；`config.json` 里没有 `telemetryEndpoint` 时 serve
+  连上报定时器都不创建。`openvibe serve` 的启动信息会如实打出当前是否armed、间隔多久、发到哪个端点。
+- 询问只在首次注入成功那一刻出现一次，拒绝即终点；随时可在设置页打开或关闭。
+- 接收端是 owner 自部署的单文件计数端点（`deploy/telemetry/`），零第三方分析依赖。
+
 
 - vs **PromptHub**（1.7k★，AGPL-3.0）：它是本地优先的个人资产管家；OpenVibe 做**流程 + 知识标准化 + 团队闭环**（术语库/技巧库/标准包治理均为空白地带）
 - vs **BMAD / spec-kit**：它们是不可视化管理的方法论模板；OpenVibe 把流程做成**可裁剪组合的工作台**并与资产联动

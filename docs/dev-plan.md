@@ -153,7 +153,7 @@ OpenVibe 自身开发按内置「Spec 驱动流」（seed-content §3.3 ②）�
 ```
 用户机器
 ├── ~/.openvibe/
-│   ├── config.json          # { serverUrl, token, port } 权限 0600
+│   ├── config.json          # { serverUrl, token, port, telemetryEndpoint? } 权限 0600
 │   ├── data/openvibe.db    # SQLite（WAL）+ FTS5 虚表
 │   ├── packs/<name>@<ver>/  # 目录导出的标准包（git 共享）
 │   └── logs/serve.log       # 滚动日志
@@ -663,7 +663,7 @@ token 来源：`~/.openvibe/config.json`（首启生成，0600）。
 
 ### 4.6 遥测端点（C-3）
 
-`GET/POST /api/settings/telemetry` 读写 `app_meta`（§3.10）；**开关关闭时**：`telemetry_events` 中 pending 记录保留不发送（开闸后补发可选，MVP 不实现补发，仅新事件即时上报——上报循环在 CLI/serve 进程内每 60s 批量取 pending ≤100 条）。
+`GET/POST /api/settings/telemetry` 读写 `app_meta`（§3.10）；**开关关闭时**：`telemetry_events` 中 pending 记录保留不发送，且 `POST /api/telemetry/events` 直接回 `{queued:false, reason:'disabled'}` 连入队都不写。**上报循环只在 serve 进程内**（T8d 定案：每 60s 批量取 pending ≤100 条 POST 到 `config.json` 的 `telemetryEndpoint`，端点回 2xx 才写 `sent_at`，失败留队等下一轮）——关闭前已入队、尚未送出的那几行在开闸后随下一批发出，即「补发」是留队的自然结果而非单独机制（TF-02 断言）；CLI 侧只入队、不外发，队列由在跑的 serve 排空；`telemetryEndpoint` 缺省或空串时连上报定时器都不建，故「关闭即零外联」是结构性的。接收端见 `deploy/telemetry/`（D12 自部署单文件 Worker + 计数）。
 
 ---
 

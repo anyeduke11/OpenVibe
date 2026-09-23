@@ -5,10 +5,11 @@ import { fileURLToPath } from 'node:url'
 import type { AddressInfo } from 'node:net'
 import type { FastifyInstance } from 'fastify'
 import { migrate, openDatabase, runSeed, type SqliteDatabase } from '@openvibe/core'
-import { DEFAULT_PORT, type SeedSummary } from '@openvibe/shared'
-import { buildApp } from './app'
+import { DEFAULT_PORT, TELEMETRY_FLUSH_INTERVAL_MS, type SeedSummary } from '@openvibe/shared'
+import { buildApp, FALLBACK_APP_VERSION } from './app'
 import { ensureDefaultPack, type DefaultPackOutcome } from './lib/default-pack'
 import { defaultSeedDir } from './lib/seed-dir'
+import { startTelemetryFlush } from './lib/telemetry-flush'
 import type { WebStatus } from './plugins/static'
 import { seedSummaryOf } from './routes/settings'
 
@@ -62,6 +63,8 @@ export interface BootstrapOptions {
   /** 缺省随机 32 字节 hex（m6b §7.8 的 0600 持久化由 serve 负责） */
   token?: string
   appVersion?: string
+  /** 匿名遥测计数端点（design §11.5 / dev-plan §4.6）；缺省空串 = 不外发也不建定时器 */
+  telemetryEndpoint?: string
 }
 
 export interface BootstrapResult {
@@ -77,6 +80,11 @@ export interface BootstrapResult {
   web: WebStatus
   /** 非致命问题（播种跳过、产物缺失等）：人读即时打印，--json 折叠进 summary.warnings */
   warnings: string[]
+  /**
+   * 遥测外发腿的生效配置（design §11.5）：endpoint 为空串即「结构性零外联」——
+   * 连上报定时器都不建。intervalMs 供 CLI 与人读文案复用，不再各处抄常量。
+   */
+  telemetry: { endpoint: string; intervalMs: number }
   close(): Promise<void>
 }
 
@@ -108,11 +116,13 @@ export async function bootstrap(options: BootstrapOptions): Promise<BootstrapRes
   const token = options.token ?? randomBytes(32).toString('hex')
   const port = options.port ?? DEFAULT_PORT
   const seedDir = options.seedDir ?? defaultSeedDir()
+  const appVersion = options.appVersion ?? FALLBACK_APP_VERSION
+  const telemetryEndpoint = options.telemetryEndpoint ?? ''
   const { app, web } = await buildApp({
     db,
     token,
     webRoot: options.webRoot ?? defaultWebRoot(),
-    ...(options.appVersion ? { appVersion: options.appVersion } : {}),
+    appVersion,
     settings: {
       dataDir: options.dataDir ?? dirname(dbPath),
       port,
@@ -145,6 +155,14 @@ export async function bootstrap(options: BootstrapOptions): Promise<BootstrapRes
   const address = app.server.address() as AddressInfo
   const url = `http://${address.address.includes(':') ? `[${address.address}]` : address.address}:${address.port}`
 
+  // 步骤 9（T8d）：遥测出队腿。endpoint 空串时 startTelemetryFlush 直接给 no-op，
+  // 于是「未配置端点 = 零外联」不依赖任何运行时判断。
+  const stopTelemetry = startTelemetryFlush({
+    db,
+    endpoint: telemetryEndpoint,
+    onError: (line) => warnings.push(line),
+  })
+
   return {
     app,
     db,
@@ -155,7 +173,9 @@ export async function bootstrap(options: BootstrapOptions): Promise<BootstrapRes
     defaultPack,
     web,
     warnings,
+    telemetry: { endpoint: telemetryEndpoint, intervalMs: TELEMETRY_FLUSH_INTERVAL_MS },
     async close() {
+      stopTelemetry()
       await app.close()
       db.close()
     },

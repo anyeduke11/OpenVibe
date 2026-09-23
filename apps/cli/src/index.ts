@@ -63,6 +63,7 @@ async function runServe(
   global: GlobalOptions,
 ): Promise<void> {
   const printer = printerFor('serve', global)
+  const json = global.json === true
   try {
     const r = await serveAction({
       port: cmd.port,
@@ -79,6 +80,14 @@ async function runServe(
     }
     // 提示已由 serveAction 的 warn 回调即时带出，此处不再重播 r.warnings
     printer.info(r.web.served ? `Web 产物 ${r.web.root}` : '未托管 Web 产物，仅提供 API')
+    // §11.5 的透明度要求：上报通道是否 armed 要在启动信息里看得见，不必去翻 config.json。
+    // --json 下走 summary.warnings，stdout 仍只有那一个对象（m6b §5 契约）。
+    const egress =
+      r.telemetry.endpoint === ''
+        ? '未配上报端点，事件只留在本地队列（不外发）'
+        : `每 ${String(r.telemetry.intervalMs / 1000)}s 批量上报至 ${r.telemetry.endpoint}`
+    if (json) printer.warn(`匿名统计：${egress}`)
+    else printer.info(`匿名统计：${egress}；开关以设置页为准，关闭时连入队都不会发生`)
     printer.info('按 Ctrl-C 停止')
     // --json：serve 的收尾在关闭时，故监听成功后立即出唯一对象，供脚本取 url/token
     printer.result({
@@ -89,6 +98,7 @@ async function runServe(
         configPath: r.configPath,
         firstRun: r.firstRun,
         webServed: r.web.served,
+        telemetry: r.telemetry,
       },
     })
     await waitForShutdown()

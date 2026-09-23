@@ -49,8 +49,8 @@ function rowToEvent(row: TelemetryRow): TelemetryQueuedEvent {
 
 /**
  * telemetry_events（design §11.5 / C-2）：匿名遥测的本地队列。
- * 批量外发的 sender 尚未落地（D12 的 owner 端点未部署、config.json 也没有端点字段），
- * 因此 MVP 的终点就是入队——开关关闭时连入队都不发生，「零外联」是结构性的。
+ * 出队外发在 serve 进程内（apps/server/lib/telemetry-flush，T8d）：每 60s 取 pending ≤100 条，
+ * 端点收下才写 sent_at。开关关闭时连入队都不发生，「零外联」因此是结构性的。
  */
 export class TelemetryRepo {
   constructor(private readonly db: SqliteDatabase) {}
@@ -70,5 +70,26 @@ export class TelemetryRepo {
       .prepare('SELECT * FROM telemetry_events WHERE sent_at IS NULL ORDER BY id ASC LIMIT ?')
       .all(limit) as TelemetryRow[]
     return rows.map(rowToEvent)
+  }
+
+  /** 端点确认收下后盖章；返回实际写入行数（并发下可能少于 ids.length） */
+  markSent(ids: readonly number[], at: string): number {
+    if (ids.length === 0) return 0
+    const placeholders = ids.map(() => '?').join(', ')
+    const r = this.db
+      .prepare(
+        `UPDATE telemetry_events SET sent_at = ?
+          WHERE sent_at IS NULL AND id IN (${placeholders})`,
+      )
+      .run(at, ...ids)
+    return Number(r.changes)
+  }
+
+  pendingCount(): number {
+    return (
+      this.db
+        .prepare('SELECT COUNT(*) AS n FROM telemetry_events WHERE sent_at IS NULL')
+        .get() as { n: number }
+    ).n
   }
 }

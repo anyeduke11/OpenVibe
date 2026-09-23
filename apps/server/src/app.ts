@@ -39,6 +39,9 @@ export interface BuiltApp {
   web: WebStatus
 }
 
+/** 未注入版本时的兜底（bootstrap 与遥测上报共用同一个值，免得两处各写一份字面量） */
+export const FALLBACK_APP_VERSION = '0.0.0'
+
 /**
  * 构建 Fastify 实例（不 listen，测试用 app.inject）。
  * auth/errors 插件与资源路由直接挂根作用域（无封装，见 DEV-0013 C-7）。
@@ -46,7 +49,7 @@ export interface BuiltApp {
 export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp> {
   const db = options.db ?? openDatabase(':memory:')
   const token = options.token ?? randomBytes(24).toString('hex')
-  const appVersion = options.appVersion ?? '0.0.0'
+  const appVersion = options.appVersion ?? FALLBACK_APP_VERSION
   const app = Fastify({ logger: false })
 
   const web = options.webRoot ? await setupStatic(app, options.webRoot) : NO_WEB

@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it, vi } from 'vitest'
+import { TELEMETRY_FLUSH_INTERVAL_MS } from '@openvibe/shared'
 import { openerArgs, serveAction, type ServeResult } from '../src/commands/serve'
 
 const SEED_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'content', 'seed')
@@ -114,5 +115,38 @@ describe('serve 首启初始化（m6b FR-1，dev-plan §1.2 步骤 1/2/8）', ()
     expect(help.status).toBe(0)
     expect(help.stdout).toContain('--port')
     expect(help.stdout).toContain('--open')
+  })
+
+  it('CLI-SERVE-05: telemetryEndpoint 读入即回显，serve 重写 config.json 时不抹掉用户手配的端点（T8d D-6）', async () => {
+    const endpoint = 'http://127.0.0.1:8799/collect/test-token'
+    const home = tempHome()
+    writeFileSync(
+      join(home, 'config.json'),
+      JSON.stringify({
+        serverUrl: 'http://127.0.0.1:8787',
+        token: 'b'.repeat(64),
+        port: 8787,
+        telemetryEndpoint: endpoint,
+      }),
+      { mode: 0o600 },
+    )
+
+    const r = await serveAction({ home, port: 0, seedDir: SEED_DIR })
+    open.push(r)
+    expect(r.telemetry).toEqual({ endpoint, intervalMs: TELEMETRY_FLUSH_INTERVAL_MS })
+    const saved = JSON.parse(readFileSync(r.configPath, 'utf8')) as Record<string, unknown>
+    expect(saved.telemetryEndpoint).toBe(endpoint)
+    // 端口换了、令牌沿用：重写只挪 serverUrl/port，端点原样带回去
+    expect(saved.token).toBe('b'.repeat(64))
+    expect(saved.serverUrl).toBe(r.url)
+
+    // 未配置端点的家：回显空串，且不往 config.json 里凭空写一个键——「零外联」由此是结构性的
+    const fresh = await serveAction({ home: tempHome(), port: 0, seedDir: SEED_DIR })
+    open.push(fresh)
+    expect(fresh.telemetry.endpoint).toBe('')
+    expect(
+      'telemetryEndpoint' in
+        (JSON.parse(readFileSync(fresh.configPath, 'utf8')) as Record<string, unknown>),
+    ).toBe(false)
   })
 })

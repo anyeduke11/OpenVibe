@@ -73,6 +73,14 @@ export type TelemetryEvent = (typeof TELEMETRY_EVENTS)[number]
 export const TELEMETRY_ASK_STATES = ['unset', 'accepted', 'declined'] as const
 export type TelemetryAskState = (typeof TELEMETRY_ASK_STATES)[number]
 
+/** 上报体 os 段只可能是这三值（design §11.5），与 worker 计数维度同源 */
+export const TELEMETRY_OS = ['mac', 'linux', 'win'] as const
+export type TelemetryOs = (typeof TELEMETRY_OS)[number]
+
+/** 外发批量口径（dev-plan §4.6：每 60s 一批，每批 ≤100 条） */
+export const TELEMETRY_FLUSH_INTERVAL_MS = 60_000
+export const TELEMETRY_FLUSH_BATCH = 100
+
 /** 字段与规模限制（各 spec 边界节 + design §7.7 的单一出处） */
 export const LIMITS = {
   promptTitleMax: 200,

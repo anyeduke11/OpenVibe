@@ -76,6 +76,22 @@ export default tseslint.config(
         fetch: 'readonly',
         process: 'readonly',
         setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+      },
+    },
+  },
+  {
+    // 匿名遥测接收端（deploy/telemetry/*）：一份 Worker 源码 + 一层 node:http 外壳，
+    // 既跑在 Cloudflare Workers 也跑在本地 node，只补它两边用到的那几个全局。
+    files: ['deploy/**'],
+    languageOptions: {
+      globals: {
+        Buffer: 'readonly',
+        Request: 'readonly',
+        Response: 'readonly',
+        URL: 'readonly',
+        console: 'readonly',
+        process: 'readonly',
       },
     },
   },

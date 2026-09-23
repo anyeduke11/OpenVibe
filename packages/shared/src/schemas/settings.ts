@@ -1,5 +1,26 @@
 import { z } from 'zod'
-import { TELEMETRY_ASK_STATES, TELEMETRY_EVENTS } from '../constants'
+import {
+  TELEMETRY_ASK_STATES,
+  TELEMETRY_EVENTS,
+  TELEMETRY_FLUSH_BATCH,
+  TELEMETRY_OS,
+} from '../constants'
+
+/**
+ * 遥测端点 URL（T8d）：公网只收 https；回环 http 放行，好让本地端到端用例
+ * 能起一个真 HTTP 接收端而不必为此配证书。
+ */
+export const TelemetryEndpointUrl = z
+  .string()
+  .refine((v) => {
+    try {
+      const u = new URL(v)
+      if (u.protocol === 'https:') return true
+      return u.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]', '::1'].includes(u.hostname)
+    } catch {
+      return false
+    }
+  }, 'telemetryEndpoint 需是 https URL（回环 http 仅限本机自测）')
 
 /**
  * `~/.openvibe/config.json`（design §4，serve 首启生成，权限 0600）。
@@ -9,6 +30,11 @@ export const OpenvibeConfigSchema = z.object({
   serverUrl: z.string().min(1),
   token: z.string().regex(/^[!-~]+$/, 'token 必须是非空可见字符'),
   port: z.number().int().min(1).max(65535),
+  /**
+   * 匿名遥测计数端点（design §11.5 的 D12 自部署端点，T8d）。
+   * 缺省或空串 = 永不外发：serve 连上报定时器都不建，「关闭即零外联」是结构性的。
+   */
+  telemetryEndpoint: TelemetryEndpointUrl.optional(),
 })
 export type OpenvibeConfig = z.infer<typeof OpenvibeConfigSchema>
 
@@ -117,3 +143,21 @@ export const TelemetryEnqueueOut = z.object({
   reason: z.enum(['enabled', 'disabled']),
 })
 export type TelemetryEnqueueOut = z.infer<typeof TelemetryEnqueueOut>
+
+/**
+ * 出队批次（design §11.5 的固定上报体，T8d）：serve 每 60s 取 pending ≤100 条 POST 到
+ * config.telemetryEndpoint。五段之外一律不进请求体——路径、文件内容、机器标识不带出去。
+ */
+export const TelemetryBatchEvent = z.object({
+  event: z.enum(TELEMETRY_EVENTS),
+  value: z.string(),
+  day: z.string(),
+  os: z.enum(TELEMETRY_OS),
+  appVersion: z.string(),
+})
+export type TelemetryBatchEvent = z.infer<typeof TelemetryBatchEvent>
+
+export const TelemetryBatch = z.object({
+  events: z.array(TelemetryBatchEvent).min(1).max(TELEMETRY_FLUSH_BATCH),
+})
+export type TelemetryBatch = z.infer<typeof TelemetryBatch>

@@ -32,7 +32,7 @@ export interface ServeOptions {
 
 export interface ServeResult extends Pick<
   BootstrapResult,
-  'url' | 'token' | 'seed' | 'web' | 'close'
+  'url' | 'token' | 'seed' | 'web' | 'close' | 'telemetry'
 > {
   configPath: string
   /** 首启 = 此前没有 config.json（m6b FR-1.2） */
@@ -77,6 +77,8 @@ export async function serveAction(options: ServeOptions = {}): Promise<ServeResu
   const { config, error } = readConfigFile(home)
   if (error) emit(`${configPath} 不可用（${error}），令牌已重新生成并覆盖`)
   const token = config?.token ?? randomBytes(32).toString('hex')
+  // 遥测端点是用户手写在 config.json 里的（design §11.5）；缺省即结构性零外联
+  const telemetryEndpoint = config?.telemetryEndpoint ?? ''
 
   for (const dir of HOME_DIRS) mkdirSync(join(home, dir), { recursive: true })
 
@@ -86,14 +88,21 @@ export async function serveAction(options: ServeOptions = {}): Promise<ServeResu
     seedDir: options.seedDir ?? defaultSeedDir(),
     port: options.port ?? DEFAULT_PORT,
     token,
+    telemetryEndpoint,
     ...(options.webRoot ? { webRoot: options.webRoot } : {}),
     ...(options.appVersion ? { appVersion: options.appVersion } : {}),
   })
   for (const w of boot.warnings) emit(w)
 
-  // 监听成功后才落盘：失败时不留一个指向不存在端点的 config.json
+  // 监听成功后才落盘：失败时不留一个指向不存在端点的 config.json。
+  // 重写必须带上 telemetryEndpoint，否则 serve 一次就把用户手配的端点抹掉了。
   const saved = writeConfigFile(
-    { serverUrl: boot.url, token: boot.token, port: Number(new URL(boot.url).port) },
+    {
+      serverUrl: boot.url,
+      token: boot.token,
+      port: Number(new URL(boot.url).port),
+      ...(telemetryEndpoint === '' ? {} : { telemetryEndpoint }),
+    },
     home,
   )
 
@@ -105,6 +114,7 @@ export async function serveAction(options: ServeOptions = {}): Promise<ServeResu
     token: boot.token,
     seed: boot.seed,
     web: boot.web,
+    telemetry: boot.telemetry,
     close: boot.close,
     configPath: saved,
     firstRun,
