@@ -39,7 +39,12 @@ const MIGRATIONS_DIR = join(REPO, 'packages', 'core', 'src', 'db', 'migrations')
 
 /** D17 定案：npm 包名与冷启动命令 `openvibe-cli`（`openvibe` 已被占），装后 bin 为 `openvibe` */
 export const PUBLISH_NAME = 'openvibe-cli'
-export const PUBLISH_BIN_PATH = './dist/cli.js'
+/**
+ * 不带 `./` 前缀：`npm publish` 的 normalize 会把 `./dist/cli.js` 改写成 `dist/cli.js`
+ * 并打一条误导性的「was invalid and removed」警告（实测 npm 11）。写成品即可让
+ * **我们沙箱里装过的那份清单 == npm 上别人装到的那份**。
+ */
+export const PUBLISH_BIN_PATH = 'dist/cli.js'
 
 export interface PublishManifestOptions {
   version: string

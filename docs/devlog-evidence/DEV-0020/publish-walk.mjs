@@ -5,8 +5,10 @@
 // 本段证的是**用户拿到的形态**——真 `npm pack` 出 tarball、装进空目录、只跑装出来的 bin。
 // 这条链在 T9 之前从未被执行过（`apps/cli` 是 private 且无构建产物，见 DEV-0019 之后的 T9 开工盘点）。
 //
-// 唯一的沙箱替身：better-sqlite3 的原生 .node 不从网络取预编译包，而是复用本机 pnpm store 里
-// 已构建好的同一版本（装包时 pnpm 11 默认 Ignored build scripts）。日志里如实打出这一点。
+// 沙箱替身与它的边界（本机实测于 T9c）：§2 用 pnpm 装包时，better-sqlite3 的原生 .node 不从网络取
+// 预编译包，而是复用本机 pnpm store 里已构建好的同一版本（pnpm 11 默认 Ignored build scripts）。
+// 因此 §2b 另跑一次**真 npm 装包**：--ignore-scripts 那次证的是 npm 也认这份清单与 bin 软链，
+// 带 install 脚本那次证的才是普通用户「取预编译包」那一跳——取不到时如实打 SKIP 与原因，不伪装成 PASS。
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, cpSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -40,7 +42,13 @@ const check = (label, ok, detail = '') => {
   say(`${ok ? 'PASS' : 'FAIL'} ${label}${detail === '' ? '' : ` — ${detail}`}`)
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const run = (cwd, file, args, env) => spawnSync(file, args, { cwd, env: { ...process.env, ...env }, encoding: 'utf8' })
+const run = (cwd, file, args, env, timeout) =>
+  spawnSync(file, args, {
+    cwd,
+    env: { ...process.env, ...env },
+    encoding: 'utf8',
+    ...(timeout === undefined ? {} : { timeout }),
+  })
 const killTree = (pid) => {
   try {
     process.kill(pid)
@@ -96,7 +104,7 @@ const stagedManifest = JSON.parse(readFileSync(join(STAGE, 'package.json'), 'utf
 const srcVersion = /export const CLI_VERSION = '([^']+)'/.exec(
   readFileSync(join(REPO, 'apps', 'cli', 'src', 'version.ts'), 'utf8'),
 )?.[1]
-check('发布名与 bin 按 D17', stagedManifest.name === 'openvibe-cli' && stagedManifest.bin.openvibe === './dist/cli.js')
+check('发布名与 bin 按 D17', stagedManifest.name === 'openvibe-cli' && stagedManifest.bin.openvibe === 'dist/cli.js')
 check('版本号三处同源', stagedManifest.version === srcVersion, `pkg=${String(stagedManifest.version)} src=${String(srcVersion)}`)
 check(
   '清单无 workspace 残留依赖',
@@ -159,6 +167,102 @@ if (installed !== null && local !== null && installed.version === local.version)
 }
 const INSTALL_MS = Date.now() - W_INSTALL
 say(`§2 安装耗时 ${INSTALL_MS} ms（tarball → node_modules/.bin/openvibe）`)
+
+// ---------- 2b. npm 用户口径：bin 软链 + 真取预编译包 ----------
+// §2 走的是 pnpm（跳过 install 脚本 + 复用本机 binding），npm/npx 用户走的是另一条路：
+// npm 自己 normalize 清单、并让 better-sqlite3 跑 prebuild-install。两条路都得试。
+const NPM_DIR = join(ROOT, 'consumer-npm')
+mkdirSync(NPM_DIR, { recursive: true })
+const npmNoScript = run(NPM_DIR, 'npm', ['i', '--prefix', NPM_DIR, '--ignore-scripts', '--no-audit', '--no-fund', tarball])
+const npmBin = join(NPM_DIR, 'node_modules/.bin/openvibe')
+check(
+  'npm 装包认这份清单并生成 bin 软链',
+  npmNoScript.status === 0 && existsSync(npmBin),
+  `exit=${String(npmNoScript.status)}`,
+)
+// 独立目录：不与上面那次共享 node_modules，免得 npm 认为「已装」而跳过 install 脚本
+const FULL_DIR = join(ROOT, 'consumer-npm-full')
+mkdirSync(FULL_DIR, { recursive: true })
+const npmFull = run(
+  FULL_DIR,
+  'npm',
+  ['i', '--prefix', FULL_DIR, '--no-audit', '--no-fund', tarball],
+  undefined,
+  300_000,
+)
+const npmFullOut = `${npmFull.stdout ?? ''}${npmFull.stderr ?? ''}`
+const npmFullOk = npmFull.status === 0
+if (npmFullOk) {
+  check(
+    'npm 装包跑通 prebuild-install（普通用户取预编译包那一跳）',
+    existsSync(join(FULL_DIR, 'node_modules/better-sqlite3/build/Release/better_sqlite3.node')),
+  )
+} else {
+  const timedOut = npmFull.error !== undefined || npmFull.signal !== null
+  const cause = timedOut
+    ? 'npm 装包 300 s 未跑完（预编译包下载挂在网络直连超时上）'
+    : /ETIMEDOUT|EAI_AGAIN|ENOTFOUND/.test(npmFullOut)
+      ? '取不到预编译包：GitHub releases 直连超时（本机网络口径）'
+      : /file not found|node-gyp|gyp ERR/.test(npmFullOut)
+        ? '预编译包没取到、回退本地编译又失败：本机 clang 连 <climits> 都找不到（CLT C++ 头不全）'
+        : '未知原因'
+  say(`SKIP npm 真取预编译包那一跳 —— ${cause}；本机未证过 ≠ 已验证，发布说明与 DEV_LOG 须按未验证处理`)
+}
+
+// ---------- 2c. 真跑一次 npm 装出来的 bin（§3 跑的是 pnpm 那份，binding 是 store 里拷来的） ----------
+// 这一步证的才是「普通用户 npm/npx 装完能不能起来」：建库、跑迁移、托管 Web、健康检查全走一遍。
+if (npmFullOk) {
+  const NPM_HOME = join(ROOT, 'home-npm')
+  const FULL_BIN = join(FULL_DIR, 'node_modules/.bin/openvibe')
+  mkdirSync(NPM_HOME, { recursive: true })
+  const npmServe = spawn(FULL_BIN, ['--json', 'serve', '--port', '0'], {
+    cwd: FULL_DIR,
+    env: { ...process.env, OPENVIBE_HOME: NPM_HOME },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  let npmOut = ''
+  npmServe.stdout.on('data', (d) => {
+    npmOut += String(d)
+  })
+  npmServe.stderr.on('data', (d) => {
+    npmOut += String(d)
+  })
+  process.on('exit', () => {
+    if (npmServe.exitCode === null) killTree(npmServe.pid)
+  })
+  let npmInfo = null
+  for (let i = 0; i < 160 && npmInfo === null; i += 1) {
+    await sleep(250)
+    try {
+      npmInfo = JSON.parse(npmOut)
+    } catch {
+      npmInfo = null
+    }
+  }
+  const npmSummary = npmInfo?.summary
+  const label = 'npm 装出来的 bin 起得来 serve（建库+迁移+托管 Web）'
+  if (npmSummary?.ok !== true) {
+    say(npmOut.trim())
+    check(label, false, `summary=${JSON.stringify(npmSummary ?? '无摘要输出')}`)
+  } else {
+    check(
+      label,
+      npmSummary.webServed === true && existsSync(join(NPM_HOME, 'data/openvibe.db')),
+      `${String(npmSummary.url)} · firstRun=${String(npmSummary.firstRun)}`,
+    )
+    const h = await fetch(`${npmSummary.url}/api/health`)
+    const hj = /** @type {{version?: string, db?: {status?: string}} } */ (await h.json())
+    check(
+      'npm 那侧的 /api/health 也是 ready',
+      h.status === 200 && hj.db?.status === 'ready' && hj.version === String(stagedManifest.version),
+      JSON.stringify(hj),
+    )
+  }
+  if (npmServe.exitCode === null) npmServe.kill()
+  for (let i = 0; i < 40 && npmServe.exitCode === null; i += 1) await sleep(100)
+} else {
+  say('SKIP npm 装出来的 bin 起 serve —— 上一步装包就没过，跳过以免把安装器问题误记成产品问题')
+}
 
 const ver = run(CONSUMER, BIN, ['--version'])
 check('--version 报当前版本', (ver.stdout ?? '').trim() === String(stagedManifest.version), (ver.stdout ?? '').trim())
@@ -300,9 +404,15 @@ if (probe.error !== undefined || probe.status === null) {
 }
 
 say(`\n合计 ${String(checks)} 项断言，FAIL ${String(failures)} 项`)
+// HEAD 单独一行不够用：脏树时代码测的是未提交内容，日志却说「HEAD fcf04e1 全绿」——
+// 把工作树状态一起写下，读证据的人才知道这句话锚在哪。
+const head = run(REPO, 'git', ['rev-parse', '--short', 'HEAD']).stdout.trim()
+const dirty = run(REPO, 'git', ['status', '--porcelain']).stdout
+  .split('\n')
+  .filter((l) => l !== '').length
 writeFileSync(
   logPath,
-  `${lines.join('\n')}\n\n# HEAD ${run(REPO, 'git', ['rev-parse', '--short', 'HEAD']).stdout.trim()} · 结束于 ${new Date().toISOString()}\n`,
+  `${lines.join('\n')}\n\n# HEAD ${head}（工作树脏 ${String(dirty)} 文件）· 结束于 ${new Date().toISOString()}\n`,
 )
 say(`日志 → ${logPath.replace(`${REPO}/`, '')}`)
 rmSync(ROOT, { recursive: true, force: true })

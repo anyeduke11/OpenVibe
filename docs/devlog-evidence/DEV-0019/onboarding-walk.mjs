@@ -266,9 +266,15 @@ check('顶栏出现向导条', await waitForText('开箱三步'))
 check('飞轮 0 值显示占位而非 0（§4.3）', await hasText('待产生'))
 const step1 = await text()
 say(`  步①文案：${step1.split('\n').filter((l) => l.includes('提示词') || l.includes('术语') || l.includes('模板')).join(' / ')}`)
+// 三个数字写死会把「向导显示的是真实库存」退化成「种子改版没有」，故从 content/seed 现算
+const seedCount = (file) =>
+  String(JSON.parse(readFileSync(join(REPO, 'content/seed', file), 'utf8')).items.length)
 check(
   '步①为真实库存计数',
-  step1.includes('提示词 20 条') && step1.includes('术语 104 条') && step1.includes('流程模板 3 条'),
+  step1.includes(`提示词 ${seedCount('prompts.json')} 条`) &&
+    step1.includes(`术语 ${seedCount('terms.json')} 条`) &&
+    step1.includes(`流程模板 ${seedCount('flow-templates.json')} 条`),
+  `种子现算 terms=${seedCount('terms.json')} / prompts=${seedCount('prompts.json')} / templates=${seedCount('flow-templates.json')}`,
 )
 await shot('step1-assets')
 

@@ -4,82 +4,222 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522-339933)](./package.json)
 
-> **Vibe coding 的标准化工作台** —— 把提示词、Skill、术语、技巧和项目流程变成可管理、可复用、可分发的工程标准。
+> **Vibe coding 的标准化工作台** —— 把提示词、术语、流程和项目经验变成可管理、可复用、可分发的工程标准，
+> 一条命令注入 Claude Code / Cursor / CodeBuddy / Trae / MiniCode 的项目目录。
 
-## 名称由来
+你大概遇到过这种情况：同一个坑，你给 AI 讲过三遍，每个项目讲一遍，同事还得再讲一遍。
+OpenVibe 把这些「讲过一遍又一遍的话」收进一个本地库，攒成**标准包**，再写进各个项目的规则文件里 ——
+并且知道哪些是你手改过的。
 
-- **OpenVibe** = Open（开源 · 开放）+ Vibe（气韵/灵感）——直接承载「开源的 vibe coding 标准化工作台」定位
-- 中文名**灵典**：「灵感之典」—— vibe（气韵/灵感）+ 典（典章/词典）
-- 更名记录：原名 VibeCanon（2026-09-20 定名）→ **OpenVibe**（2026-09-21，D17）
-- 2026-09-21 核验（D17）：GitHub 存在同名小仓库与近似名知名项目 OpenViBE（Inria，BCI 领域，大小写不同），搜索层面有撞车，中文社区传播以「灵典」关键词区隔；npm `openvibe` 已被占用，**包名与冷启动命令为 `openvibe-cli`**（registry 404 实测），安装后 bin 命令为 `openvibe`
+## 30 秒上手
 
-## 解决什么问题
-
-| 现状痛点 | OpenVibe 的答案 |
-|----------|------------------|
-| 提示词躺在聊天记录里，规则散落各项目 | 五类资产统一入库（M1-M4） |
-| 每人喂给 AI 的规则质量天差地别 | 标准包一键注入所有项目（M6） |
-| 踩过的坑、发明的词没有沉淀载体 | 术语库 + 技巧库（M3/M4） |
-| AI 编码项目流程随意、质量靠运气 | 流程模板 + 检查清单 + 开发日志（M5） |
-
-**核心闭环（标准化飞轮）**：沉淀资产 → 组装标准包 → 注入项目 → 复盘回流新资产。
-
-## 仓库结构
-
-```
-openvibe/
-├── docs/
-│   ├── PRD.md                    # 产品需求文档（v0.1.4，三轮沟通 + 评审修订 + 更名定稿）
-│   ├── competitive-research.md   # GitHub 竞品调研（2026-09-20 立项快照）
-│   ├── competitive-analysis.md   # 深度对比分析报告（2026-09-20，14 项目能力矩阵/平台覆盖/SWOT/策略）
-│   ├── proposal.md               # 立项提案：为什么做、做什么、做到哪（P0 文档）
-│   ├── design.md                 # 设计方案：选型/数据/API/★标准包契约/★adapter 清单（P0 文档）
-│   ├── tasks.md                  # 任务清单：T1–T9、依赖图、周计划、DoD（P0 文档）
-│   ├── dev-plan.md               # P1 开发实施方案：架构/DDL/API/组件/T1–T9 分解/验收映射/日级排期/内容 SOP
-│   └── specs/                    # 逐模块规格：输入输出、边界、验收标准
-│       ├── m1-prompt-library.md        # 提示词库（完整）
-│       ├── m2-skill-registry.md       # Skill 台账（瘦身）
-│       ├── m3-glossary.md             # 术语库（瘦身）
-│       ├── m5-project-flow.md         # 项目与流程（完整）
-│       ├── m6-standard-pack.md        # 标准包·Web 侧（组装/导出）
-│       ├── m6-cli-injection.md        # 标准包·CLI 侧（serve/scan/sync/diff）
-│       ├── seed-content.md            # 种子内容（术语/模板/提示词）
-│       └── onboarding.md              # 开箱体验（预置包+首启向导+飞轮面板）
-├── DEV_LOG.md                    # 开发记录（按全局规范追加）
-└── README.md
+```bash
+npx openvibe-cli serve --open                                  # ① 起本地服务，自动开浏览器
+npx openvibe-cli sync ~/your-project --pack default             # ② 把预置标准包注入你的项目
+npx openvibe-cli diff ~/your-project                            # ③ 看有没有漂移（0=一致，2=有改动）
 ```
 
-## 当前状态
+> 全局装过一次（`npm i -g openvibe-cli`）之后就不必每行都带 `npx`。
+> `openvibe-cli` 尚未在 npm 上线（v0.1.0 发布的最后一步）。上线前改用源码构建产物：
+> `pnpm install && pnpm pkg:cli` → `cd apps/cli/pkg && npm pack` → `npm i -g apps/cli/pkg/openvibe-cli-0.1.0.tgz`，之后命令同上。
 
-- [x] 项目命名与查重
-- [x] GitHub 同类项目调研
-- [x] PRD v0.1.3 定稿（owner 三轮沟通 + 评审修订：社区优先 / 双钩子 / 可选遥测 / 开箱体验 / Apache-2.0 / 6.5 周 / **六 adapter 含国内平台 codebuddy·trae·minicode + 兼容矩阵 zcode/Kimi**；npm 包名 `vibecanon`〔旧名〕已核验可用，D17 更名后包名 `openvibe-cli`）
-- [x] P0 设计文档集：proposal / specs×8 / design（标准包契约 v1 + adapter 清单 v1.2）/ tasks
-- [x] P0 全部收口（2026-09-20）：门禁 G1–G6 关闭、平台契约核验完成、工期与端点定案
-- [x] 深度竞品对比（2026-09-20）：发现「规则同步」新品类（rulesync/Rulix/rulebook-ai）→ 差异化锚定「标准包治理+流程+回流」，见 [docs/competitive-analysis.md](./docs/competitive-analysis.md)
-- [x] 评审修订（2026-09-20 晚，PRD v0.1.3）：D13 遥测首次注入一次性 opt-in 询问 / D14 内容产能 AI 起草+owner 审校（6.5 周维持）/ D15 M5 两周证伪线 / D16 新仓库策略（发布时新开仓库，不带本仓库历史）
-- [x] **项目更名 OpenVibe（2026-09-21，PRD v0.1.4 / D17）**：npm 包名与冷启动命令 `openvibe-cli`（`openvibe` 被占），bin 命令 `openvibe`；中文名沿用「灵典」
-- [x] **P1/T1 工程脚手架完成（2026-09-21，DEV-0011）**：GitHub [anyeduke11/OpenVibe](https://github.com/anyeduke11/OpenVibe) 落地（Apache-2.0）；pnpm monorepo + packages/shared 全量 zod schemas + ESLint R1-R4 依赖边界 + vitest 三层；CI 三平台（macOS/Linux/Windows）首跑全绿
-- [x] **P1/T2 存储核心完成（2026-09-21，DEV-0012）**：better-sqlite3 + migrations 0001/0002 + FTS5 trigram 六触发器 + 七 repos（版本快照/entryNo 事务/快照物化等）+ seed 幂等骨架；37 用例全绿
-- [x] **P1/T3 M1 提示词库垂直切片完成（2026-09-21，DEV-0013）**：server 骨架（buildApp DI + 双通道鉴权 + 统一错误）+ 提示词九端点 + 四形态导入解析器 + Web `/library` 十组件（CodeMirror 双栏编辑、变量复制弹窗、版本 diff/回滚、导入导出）；m1 §7 八条验收逐条通过，53 用例全绿，浏览器实测截图与真实导出落 `docs/devlog-evidence/DEV-0013/`
-- [x] **P1/T4 M3 术语库垂直切片完成（2026-09-21，DEV-0014）**：首批 **63 条**种子词条入库（附录 B 10 条必含项齐备）+ `pnpm seed:check` 成为 CI 独立闸门 + 术语五端点与确定性 `TERMS.md` 渲染（拼音/英 alphabetic 双序，跨平台字节一致）+ Web `/terms`（搜索降级提示、多选、关联双向展示、TERMS.md 预览/复制/下载）；m3 §7 五条 + seed-content §7 四条逐条通过，67 用例全绿，15 步浏览器走查证据落 `docs/devlog-evidence/DEV-0014/`
-- [x] **P1/T5 M5 项目流程 + M2 Skill 台账垂直切片完成（2026-09-21，DEV-0015）**：29 个新端点（项目/模板/看板/日志/回流/injection-status/skills 扫描）+ 内置模板 403 只读 + Web 四页（`/projects` 三步向导、`/projects/:id` 阶段条+勾选+看板+日志+回流、`/flows` 模板裁剪、`/skills` 台账）；看板与模板编辑为 @dnd-kit 指针+键盘双模且同一 PATCH 有 ↑↓←→ 按钮兜底；m5 §7 八条 + m2 §7 五条逐条通过，103 用例全绿，四段浏览器走查 75 项断言全 PASS + 34 张截图落 `docs/devlog-evidence/DEV-0015/`
-- [x] **P1/T6 M6a 组包导出 + 契约快照垂直切片完成（2026-09-22，DEV-0016）**：`packages/shared/pack-contract.ts` 契约类型 + 六 adapter（Trae 壳经二进制复核从 `trigger: always` 修正为 `{ description, alwaysApply: true }`）+ `core/pack`（composer/fingerprint/validate/bundle/resolve）+ server **11 端点**（preview/export/exports/injections + bundle 下载，409 VERSION_IMMUTABLE / 422 版本回退 / STALE_SELECTION）+ 目录导出与 bundle 双通道 + Web `/packs` 列表详情 + `/packs/new` 五步向导（三栏资产挑选 / 预览即产物字节一致 / 覆盖平台提示）+ C-25 项目↔包关联收口；golden 三夹具字节级快照进 CI；m6a §7 七条验收（#6 留 T7 联测）+ 两段浏览器走查 **82 项断言全 PASS**，152 用例全绿，证据落 `docs/devlog-evidence/DEV-0016/`
-- [x] **P1/T7 M6b CLI 注入垂直切片完成（2026-09-22，DEV-0018）**：`openvibe serve/scan/sync/diff` 四命令 + config 五级发现链（令牌 **0600** 显式 chmod、损坏降级 warning）+ `--json` 单出口契约 `{command,plan?,report?,summary}` 与退出码 0/1/2 + 五状态注入内核（NEW/IN_SYNC/UPDATE/DRIFT/CONFLICT，`pack.lock.json` 的 `managed` 语义）+ 三层路径与规模防线（`packPathSchema` → 整包 `checkPackInjectable` → 每次写盘前 `resolveWriteTarget`）；**修复一处真漏洞**：目标是悬空符号链接时 realpath 必然失败，旧实现放行后 `writeFile` 顺链接在项目外凭空建文件（9664241，附 A/B 一手证据）；薄客户端守约（R4 仅 `serve` 单点放行 `@openvibe/server/bootstrap`，restriction 扩到子路径）；m6b §7 八条 + §6 安全样本由 **14 步真机走查**逐条实测（**驱动器脚本首次随证据入库**，可复跑；两遍独立建库指纹一致 `b611cec36934`，附不 import 仓库代码的 §7.6 独立重算），一次 dry-run 跑齐五状态；**307/307 用例全绿**（apps/cli 10 文件 / 57 个 `CLI-*` 用例 ID，≥25 门槛约 2.3 倍余量），证据落 `docs/devlog-evidence/DEV-0018/`
-- [x] **P1/T8 种子全量 + 开箱体验完成（2026-09-23，DEV-0019）**：种子全量入库 **104 条词条 / 3 套模板 / 20 条提示词**，`seed:check` 阈值切正式 **100 / 3 / 20** 并补 §3.4 主题构成配额（C-57），模板从代码常量迁入 `flow-templates.json`（老库升级不重复建）；**开箱四端点**（`GET/POST /api/settings`、`POST /api/settings/reseed`、`GET /api/stats`、`GET /api/injection-status?dir=<path>`）+ **预置 `default` 包** + **首启三步向导**（可跳过、每步真实副作用、步骤③靠 lock 文件自动确认、首次注入后一次性遥测 opt-in 卡片）+ **飞轮统计面板**与设置页（重播种子 / 数据目录 / 备份说明 / 重置向导）；遥测全链路收口（D-6：单出口 `reportEvent`、**仅 serve** 60s 批量、无端点则连定时器都不创建、`deploy/telemetry/worker.js` 接收端 fail-closed）；D-7 两项遗留收口（Web 入口 chunk **291.01 kB ≤ 300 kB** 纯懒加载分包 + `sync` 同项目并发文件锁）；`ORDER BY` 确定性三处补唯一键兜底并加 CI 守卫；seed-content §7 四条 + onboarding §7 五条由**三套入库驱动器**逐条实测（浏览器走查 **29/29**、遥测出网 **17/17**、懒加载分包走查）+ 门禁脚本自身 5 条负向用例，**369/369 用例全绿**，证据落 `docs/devlog-evidence/DEV-0019/`
-- [ ] P1：MVP 开发（按 tasks.md T1–T9，6.5 周 = 任务 31.5 人日 + 显式缓冲 1 人日；下一步 **T9 飞轮 E2E + 发布**（Playwright 主链 + 干净环境演练 + README 用户视角重写 + `v0.1.0` 发布说明）；T8 新增词条批次仍待 owner 审校（seed-content §7 验收 4 的人工审校表未签收）
+第 ① 步首启就会把 **109 条术语 / 3 套流程模板 / 20 条精选提示词** 播进本地库，并自动组装出一个 `default` 标准包
+—— 不用先建库再对着空界面发呆。第 ② 步默认先给预览表、要你确认，覆盖任何已有文件前会先备份。
+跑完你会得到（实测于干净沙箱）：
 
-## 隐私与网络行为（design §11.5）
+| 写入的文件 | 谁读它 |
+|---|---|
+| `CLAUDE.md` | Claude Code |
+| `.cursor/rules/openvibe.mdc` | Cursor（新版规则目录，带 YAML frontmatter） |
+| `AGENTS.md` | 通用约定（Codex / Zcode / Kimi 等按此加载） |
+| `CODEBUDDY.md` | CodeBuddy |
+| `.trae/rules/openvibe.md` | Trae |
+| `MINI.md` | MiniCode |
+| `TERMS.md` | 术语表全文，人和 AI 都能读 |
+| `CHECKLIST.md` | 流程模板对应的检查清单 |
+| `.openvibe/pack.lock.json` | OpenVibe 自己的台账（哪个包哪个版本、内容指纹） |
 
-- 除你配置的 `serverUrl`（注入/导出走本地 serve）外，**唯一可能的出网是可选匿名统计**，默认关闭。
-- 白名单只有三类事件：`pack_injected` / `flow_template_used` / `project_active`；上报体固定五段
-  `{event, value, day, os, appVersion}`，**不含路径、文件名、资产内容与任何机器标识**。
-- **关闭即零外联**：开关关闭时连入队都不会发生；`config.json` 里没有 `telemetryEndpoint` 时 serve
-  连上报定时器都不创建。`openvibe serve` 的启动信息会如实打出当前是否armed、间隔多久、发到哪个端点。
+浏览器里 `http://127.0.0.1:8787` 就是全部 UI；关掉进程就什么都不再动。
+
+## 它解决什么
+
+| 现状 | OpenVibe 的答案 |
+|---|---|
+| 提示词躺在聊天记录里，规则散落各个项目 | 五类资产统一入库：提示词 / 术语 / Skill 台账 / 流程模板 / 标准包 |
+| 每人喂给 AI 的规则质量天差地别 | 标准包一键注入，同一套标准跨助手、跨项目 |
+| 踩过的坑、发明的词没有沉淀载体 | 术语库 + 技巧库，带来源反链 |
+| AI 编码项目流程随意、质量靠运气 | 可裁剪的流程模板 + 检查清单 + 开发/检查日志 |
+| 手改的规则会被工具无声覆盖 | `diff` 报漂移，冲突三选一（以包为准 / 保留本地 / 跳过），覆盖前必定备份 |
+
+**核心闭环（标准化飞轮）**：沉淀资产 → 组装标准包 → 注入项目 → 项目里长出的新经验回流成资产。
+回流不是口号：在项目工作台写一条开发日志，可以直接从日志生成术语/提示词草稿并挂上来源反链，
+下次组包就能用。
+
+## 功能一览
+
+**Web（`openvibe serve` 后打开）**
+
+| 路由 | 干什么 |
+|---|---|
+| `/library` | 提示词库：文件夹树 + 过滤器 + 双栏编辑器，版本历史/diff/回滚，四形态导入导出 |
+| `/terms` | 术语库：拼音与英文双序搜索、多选、`TERMS.md` 实时预览 |
+| `/skills` | Skill 台账：扫描本机 skill 目录与项目规则文件并登记 |
+| `/flows` | 流程模板：三套内置模板只读，复制成自己的再裁剪阶段 |
+| `/projects` | 项目工作台：阶段条 + 看板拖拽（键盘/按钮同效）+ 开发日志 + 回流入口 + 注入状态 |
+| `/packs` | 标准包：五步向导组包、预览即产物（与导出字节一致）、导出历史与 bundle 下载 |
+| `/settings` | 设置：数据目录、种子重播、备份说明、遥测开关、向导重播 |
+
+**CLI**
+
+```
+openvibe serve [--port 8787] [--open]     本地 API + Web UI，首启生成配置与令牌
+openvibe sync <dir> [--pack <n[@v]>]      注入：--dry-run 零写入 / --file|--dir 离线注入 / --target 只写指定平台
+openvibe scan  [--skills | --project <d>] 扫描 skill 目录或项目规则文件并登记
+openvibe diff  <dir>                      产物 vs lock 比对 + 是否有更新版本；退出码 0 一致 / 2 漂移
+```
+
+三条全局旗标 `--server` / `--token` / `--json`；`--json` 下 stdout 只有一个 JSON 对象且禁用一切交互，
+适合挂在 CI 或别的工具里。
+
+## 架构一图
+
+```
+        你的浏览器 ── http://127.0.0.1:8787（只听本地）
+                     │
+  ┌──────────────────┴───────────────────┐
+  │  openvibe serve = 一个进程            │
+  │  apps/web  React SPA  ──HTTP──┐      │
+  │  apps/server Fastify API ─────┴──┐   │        packages/adapters  平台契约（写哪儿、套什么壳）
+  │                                  └─►│─── packages/core  组包/指纹/注入规划/FTS 搜索/播种
+  └──────────────────┬─────────────────┘   │        packages/shared  zod 契约（Web/CLI/包格式共用）
+                     │                     ▼
+                 ~/.openvibe/          你的项目目录
+                 ├── data/openvibe.db   .openvibe/pack.lock.json + 八个规则/清单文件
+                 ├── config.json (0600) .openvibe/backup/<UTC 时间戳>/（覆盖前的原件）
+                 └── packs/<name>@<v>/  （目录导出通道）
+                     ▲
+        apps/cli  薄客户端：只做传输 + 交互 + 文件 IO，业务逻辑不在它身上
+```
+
+- 只有一个运行时依赖：`better-sqlite3`（原生模块不能打包），其余全部内联进单文件 `cli.js`。
+- 数据是**一个 SQLite 文件**，没有服务、没有账号、没有后台常驻。
+- CLI 断网可用：`sync --file bundle.json` / `--dir` 走离线注入，不需要起 serve。
+
+## 支持的 AI 助手
+
+| adapter | 写入位置 | 说明 |
+|---|---|---|
+| `claude-code` | `CLAUDE.md` | 项目根 |
+| `cursor` | `.cursor/rules/openvibe.mdc` | 新版规则目录，`alwaysApply: true` |
+| `generic-agents` | `AGENTS.md` | 通用约定，多数新工具直接读 |
+| `codebuddy` | `CODEBUDDY.md` | 无此文件时回退读 `AGENTS.md` |
+| `trae` | `.trae/rules/openvibe.md` | frontmatter 壳（经二进制复核确认） |
+| `minicode` | `MINI.md` | 项目根 |
+
+兼容矩阵另列了只读 `AGENTS.md` 的工具（Zcode、Kimi 等），见 `packages/adapters/src/compat.ts`。
+组包时选了某平台就会产出该平台的产物，`sync --target cursor` 可以只写其中一部分。
+
+## 数据落在哪里
+
+```
+~/.openvibe/
+├── config.json          serverUrl / token（0600）/ 可选 telemetryEndpoint
+├── data/openvibe.db     全部资产、项目、日志、导出记录（SQLite，WAL）
+├── logs/                预留
+└── packs/<name>@<v>/    目录导出的产物
+```
+
+**备份 = 停服务后整目录复制。** 迁移机器同理。项目侧只有 `.openvibe/`（lock + 覆盖前备份），可以随项目提交 git。
+
+## 隐私与网络行为
+
+对一个会写你文件的工具，这一节是信任底线（设计依据 design §11.5）。
+
+- **只听本地**：服务绑 `127.0.0.1`，`Host` 校验只放行 `localhost` / `127.0.0.1`（防 DNS rebinding）。
+  除你自己配置的 `serverUrl` 外，**唯一可能的出网是可选匿名统计，默认关闭**。
+- 白名单只有三类事件：`pack_injected` / `flow_template_used` / `project_active`；
+  上报体固定五段 `{event, value, day, os, appVersion}`，**不含路径、文件名、资产内容与任何机器标识**。
+- **关闭即零外联**：开关关着连入队都不发生；`config.json` 里没有 `telemetryEndpoint` 时，
+  serve 连上报定时器都不创建。`openvibe serve` 的启动信息会如实打出当前是否 armed、间隔多久、发到哪个端点。
 - 询问只在首次注入成功那一刻出现一次，拒绝即终点；随时可在设置页打开或关闭。
-- 接收端是 owner 自部署的单文件计数端点（`deploy/telemetry/`），零第三方分析依赖。
+- 接收端是 owner 自部署的单文件计数端点（`deploy/telemetry/`），零第三方分析依赖 —— 你也可以完全不部署。
 
+写文件侧的防线（`sync` 的每一跳）：路径双层校验 → 整包注入前检查 → 每次写盘前 `resolve` 复核（悬空符号链接
+一律拒绝，不会顺着链接在项目外凭空建文件）→ 覆盖前强制备份 → `--dry-run` 零写入 → 同一项目并发 `sync`
+用文件锁互斥（抢不到就 `SYNC_BUSY`，零写入）。
+
+## 常见问题
+
+**要联网吗？** 装包和 `npx` 首次下载要网，运行完全本地。断网可以 `sync --file bundle.json` 离线注入。
+
+**我手改过 `CLAUDE.md`，会被无声覆盖吗？** 不会。`diff` 会报 `DRIFT`；再 `sync` 时对冲突文件三选一
+（以包为准 / 保留本地 / 跳过），选前两者也会先备份原件。默认策略是「以包为准」，所以脚本化请显式 `--strategy`。
+
+**想让团队/多个项目用同一套标准？** 导出 bundle JSON（或目录导出），提交进你们的仓库或发群里，
+别人 `sync --file` 即可 —— 注入产物的指纹一致，`diff` 判得出来。v0.1 没有云同步和账号体系。
+
+**怎么卸载？** `Ctrl-C` 停 serve，删 `~/.openvibe/`，项目里的 `.openvibe/` 与规则文件是普通文本，留着不影响任何工具。
+
+**为什么包名叫 `openvibe-cli` 而不是 `openvibe`？** npm 上 `openvibe` 已被占用（registry 实测），
+装好后命令仍是 `openvibe`。
+
+**pnpm 装包报 `ERR_PNPM_IGNORED_BUILDS`？** pnpm 10 默认不跑依赖的安装脚本，
+`pnpm approve-builds` 里勾上 `better-sqlite3` 即可 —— 这是 pnpm 的安装器语义，不是打包缺陷。
+npm / npx 用户走 `prebuild-install` 按平台与 Node ABI 取预编译包，不会遇到这条
+（实测：装 tarball 时命中 `node-v147-darwin-arm64` 预编译产物，装出来的 `openvibe` 直接起得来 serve）。
+
+**Node 版本？** ≥ 22。macOS / Linux / Windows 三平台 CI 常跑。
+
+## 已知局限（v0.1.0）
+
+- **一项目一包**：`pack.lock.json` 是单包结构，一个目录同时只由一个标准包托管，换包即整包替换，不做多包叠加。
+- **整文件管理，无块级合并**：受管单位是整个产物文件。资产从包里移除后不会自动从旧产物里清理那段内容；
+  也没有 `update` / `remove` 子命令，回滚请用 `.openvibe/backup/`（标记已预埋，块级合并是下一档要做的事）。
+- **自动化证据不含真实点击/复制/拖拽**：本仓的走查驱动器是「navigate 之后读 DOM + 读磁盘」那一类，
+  复制按钮、中文输入搜索、看板拖拽这三处由人工录屏/截图承担（原因：合成点击拿不到 transient user activation）。
+- 中文 UI 优先，暂无英文版；种子内容以中文技术术语为主，欢迎补其他语言与领域。
+- 团队权限、审批流、LLM 密钥托管均在 P2/P3 计划内，本期没有。
+
+## 与同类项目的差异
 
 - vs **PromptHub**（1.7k★，AGPL-3.0）：它是本地优先的个人资产管家；OpenVibe 做**流程 + 知识标准化 + 团队闭环**（术语库/技巧库/标准包治理均为空白地带）
 - vs **BMAD / spec-kit**：它们是不可视化管理的方法论模板；OpenVibe 把流程做成**可裁剪组合的工作台**并与资产联动
-- vs **skills.sh**：它是安装渠道；OpenVibe 管理分发后的版本、冲突与项目级编排
+- vs **skills.sh / rulesync / rulebook-ai**：它们是安装渠道或规则同步器；OpenVibe 管分发后的版本、冲突、指纹与项目级编排
+
+## 从源码开始
+
+```bash
+git clone https://github.com/anyeduke11/OpenVibe && cd OpenVibe
+pnpm install                # pnpm ≥ 10，corepack enable 即可
+pnpm lint && pnpm typecheck && pnpm test        # 381 用例（unit / integration / cli 三层）
+pnpm seed:check && pnpm bundle:check            # 另两道门禁：种子数量与构成配额、Web 体积闸门
+pnpm pkg:cli                                    # 产出发布暂存目录 apps/cli/pkg/
+cd apps/cli/pkg && npm pack                     # → openvibe-cli-<版本>.tgz，可 npm i -g 它
+```
+
+开发环境请读 [CONTRIBUTING.md](./CONTRIBUTING.md)（含跨平台纪律清单与依赖边界规则）。
+每完成一个任务组在 [DEV_LOG.md](./DEV_LOG.md) 追加一条 `DEV-NNNN`（问题/思路/变更/验证/风险）。
+
+## 文档地图
+
+```
+docs/
+├── PRD.md / proposal.md            为什么做、做什么、验收线
+├── design.md                       选型 / 数据模型 / API / ★标准包契约 / ★adapter 清单
+├── tasks.md / dev-plan.md          T1–T9 任务分解与日级排期、验收-测试映射
+├── release-notes/                  发布说明（v0.1.0 起；含「本版未验证」清单）
+├── competitive-*.md                竞品调研与深度对比
+├── DEV-00NN 证据                   docs/devlog-evidence/：真机走查驱动器 + 日志，可对 HEAD 复跑
+└── specs/                          逐模块规格（输入输出、边界、验收标准）
+    ├── m1-prompt-library.md   m2-skill-registry.md   m3-glossary.md
+    ├── m5-project-flow.md     m6-standard-pack.md    m6-cli-injection.md
+    └── seed-content.md        onboarding.md
+```
+
+里程碑：P0 文档定稿 → T1 脚手架 → T2 存储核心 → T3 提示词库 → T4 术语库 → T5 项目流程 →
+T6 组包导出 → T7 CLI 注入 → T8 种子全量 + 开箱体验 → **T9 飞轮 E2E + 发布（当前）**。
+细节见 [DEV_LOG.md](./DEV_LOG.md)。
+
+## 许可
+
+Apache-2.0。代码与种子内容同协议。

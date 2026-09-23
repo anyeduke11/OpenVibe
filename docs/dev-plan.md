@@ -1177,8 +1177,8 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 
 | # | spec 验收 | 用例 |
 |---|-----------|------|
-| seed-1 | seed:check 门槛（删 5 条 → 非零） | SCRIPT-SEED-01（`tests/seed-check.test.ts`，临时副本上删末 5 条 → `99 条 < 门槛 100 条` 退出码 1；篡改前同一副本先跑 exit 0 作对照） |
-| seed-2 | 首启计数 100/3/20 + 升级导入 | UT-SEED-02（真实 `content/seed` 全量入 SQLite，104/3/20 逐条无 warning） |
+| seed-1 | seed:check 门槛（词条数压到门槛之下 → 非零） | SCRIPT-SEED-01（`tests/seed-check.test.ts`，临时副本上截到 95 条 → `95 条 < 门槛 100 条` 退出码 1；按**绝对量**截而非「删 N 条」，种子只增不减才不会让负向样本重新达标（DEV-0022 C-85）；篡改前同一副本先跑 exit 0 作对照） |
+| seed-2 | 首启计数 100/3/20 + 升级导入 | UT-SEED-02（真实 `content/seed` 全量入 SQLite，≥100/3/20 逐条无 warning；当前实量 109/3/20） |
 | seed-3 | 模板 3/7/4 阶段逐字一致 | SCRIPT-SEED-02 两支（阶段名改一字 → 点名「阶段名需逐字一致，收到 启动 / 开发 / 回顾」；删一个阶段 → 「阶段数期望 7，收到 6」） |
 | seed-4 | 词条质量抽查 | 机器侧由 `seed:check` 把关（definition ≥20 字 / aliases 非空 / example 覆盖 100% / 受控词表 / 附录 B 基线）；人工侧 `docs/devlog-evidence/DEV-0019/seed-review.md` 摊开 41 词条 + 20 提示词全文，**裁决表待 owner 填**（DEV-0019 风险①） |
 | onb-1 | ≤3 命令/≤5 分钟产物清单 | `onboarding-walk.mjs`「验收 1（onb-1）」段（九项产物逐条 `statSync` + 第三条命令 `diff` 判 clean + 用户侧 4.0 s / 构建 1.5 s 单列，计时口径 C-74）+ IT-ONB-05 |
@@ -1198,10 +1198,10 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 **工作项**
 - [x] Playwright 主链 E2E-FLOW-01：首启播种 → 建提示词 → 建项目 → 组包导出 → CLI sync 临时目录 → 手改文件 → diff 报漂移 → 日志回流建术语草稿 —— **八腿主链 2026-09-23 收（DEV-0020），实现层改判**：按 §14-6 的 owner 裁定留在 vitest `cli` 项目（`apps/cli/test/e2e-flow.test.ts`，真 serve 子进程 + 真 HTTP + 真 CLI 退出码；`apps/cli/**` 受 R4 边界约束，测试也不 import server），Playwright 因此不承担主链
 - [ ] 冒烟 ×3：E2E-SMOKE-01 导入→复制 / 02 术语搜索→TERMS.md / 03 向导三步 —— 转**人工录屏/截图**（P1.1 若引入 Playwright 再收，见 §14-6：合成点击拿不到 transient user activation，复制类动作在自动化下必然被拒）
-- [x] 干净环境演练（清空 HOME 沙箱全流程计时录屏，onb-1 口径）—— **自动化半边 2026-09-23 收（DEV-0020）**：`docs/devlog-evidence/DEV-0020/publish-walk.mjs` 走 `npm pack` → 空目录安装 → 只跑装出来的 bin，41 断言全 PASS（用户侧 0.5 s / 构建+pack+装包 3.9 s 双数字，C-74 口径）；录屏仍属人工半边
-- [ ] README 重写用户视角（快速上手/架构一图/FAQ/遥测披露段）
-- [ ] `pnpm publish --dry-run` + tag `v0.1.0` + 发布说明（含已知局限：单项目单包、无 update 清理）
-- [ ] retro 复盘会 → 首批回流 ≥3 条资产入库（飞轮 dogfooding 第⑤步实证）
+- [x] 干净环境演练（清空 HOME 沙箱全流程计时录屏，onb-1 口径）—— **自动化半边 2026-09-23 收（DEV-0020）**：`docs/devlog-evidence/DEV-0020/publish-walk.mjs` 走 `npm pack` → 空目录安装 → 只跑装出来的 bin，**45 断言全 PASS**（T9c 补两支 npm 装包探针后 41 → 45；用户侧 4.3 s / 构建+pack+装包 27.6 s 双数字，C-74 口径；秒数是瞬时量，同路径两轮实测 1.0–4.3 s 与 27.6–52.0 s）；录屏仍属人工半边
+- [x] README 重写用户视角（快速上手/架构一图/FAQ/遥测披露段）—— **2026-09-23 收（DEV-0022）**：九节按「装包的人怎么读」重排，`npx` 三步 + 九文件产物表 + 架构一图 + adapter 表 + 数据落点 + 隐私与网络行为（默认关 / 三类白名单 / 关闭即零外联）+ FAQ + 已知局限；计数与产物尺寸取干净沙箱实测（109 词条、TERMS.md 25,464 B、cli.js 3.57 MB）
+- [x] `pnpm publish --dry-run` + tag `v0.1.0` + 发布说明（含已知局限：单项目单包、无 update 清理）—— **2026-09-23 收（DEV-0022）**：三路 dry-run 全 rc=0（npm 默认 / npm 显式 npmjs / pnpm `--no-git-checks`），36 文件 1.1 MB、解包 4.9 MB；**默认注册表是 npmmirror 镜像**（C-88），发布须显式 `--registry=https://registry.npmjs.org`；发布说明 `docs/release-notes/v0.1.0.md` 带「测量口径」表与「本版未验证」段；tag `v0.1.0` 本地未 push，真实 `npm publish` 待 owner
+- [x] retro 复盘会 → 首批回流 ≥3 条资产入库（飞轮 dogfooding 第⑤步实证）—— **2026-09-23 收（DEV-0022）**：`docs/devlog-evidence/DEV-0022/retro.md` 按自家 `复盘流` 四阶段（`retro-1-1…retro-4-1`）复盘 T1–T9，决议表 8 条按修/缓/记录 + P0/P1/P2 定级；**回流 5 条词条入种子（104 → 109）**，`seed:check` 与 `UT-SEED-02` 双绿
 
 **验收-测试映射**：CI 五闸全绿（lint/unit/integration+cli/e2e/golden+seed:check+bundle:check）+ 演练录屏归档 + DoD §13。`ci.yml` 的**步骤**清单自 T8f 起为 Lint / Typecheck / Test / Seed check / Bundle check 五步（三平台各一遍）。
 

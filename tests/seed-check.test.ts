@@ -80,16 +80,20 @@ describe('SCRIPT-SEED-00 · 正向基线 + 覆盖口只读', () => {
 })
 
 describe('SCRIPT-SEED-01 · seed-content §7.1 词条数量门槛', () => {
-  it('删掉 5 条词条 → 非零，并点名「95 条 < 门槛 100 条」', () => {
+  it('词条数压到门槛之下（截到 95 条）→ 非零，并点名「95 条 < 门槛 100 条」', () => {
     const dir = sandbox()
     sandboxes.push(dir)
     const total = itemsIn(dir, 'terms.json').length
     expect(runSeedCheck(dir).status, '篡改前必须先通过').toBe(0)
 
-    writeItems(dir, 'terms.json', itemsIn(dir, 'terms.json').slice(0, -5))
+    // 门槛是绝对值 100，「删 5 条」只在种子恰好 104 条时等价于「掉到门槛之下」；
+    // 种子只增不减（DEV-0022 回流即 104→109），故按目标绝对量截，断言字面量随之固定。
+    const dropTo = 95
+    expect(total, '夹具前提：真种子须高于截断目标').toBeGreaterThan(dropTo)
+    writeItems(dir, 'terms.json', itemsIn(dir, 'terms.json').slice(0, dropTo))
     const run = runSeedCheck(dir)
     expect(run.status).not.toBe(0)
-    expect(run.out).toContain(`terms.json · 数量 — ${String(total - 5)} 条 < 门槛 100 条`)
+    expect(run.out).toContain(`terms.json · 数量 — ${String(dropTo)} 条 < 门槛 100 条`)
   })
 })
 

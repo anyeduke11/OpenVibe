@@ -104,6 +104,11 @@
 {"zh":"测试分层","en":"test pyramid","aliases":["分层测试","金字塔"],"definition":"按运行速度与定位成本把用例分为单元、集成与端到端三层并控制配比：单元多而快、端到端少而真，倒置会让反馈慢到没人跑。","example":"同一规则既由单元测试覆盖分支组合，也由真起服务的集成用例验证一次端到端注入。","tags":["质量工程","方法论"]},
 {"zh":"夹具","en":"test fixture","aliases":["测试夹具","fixture"],"definition":"为测试预先准备的输入数据与期望产物；由脚本自造并可重放的夹具才算数，手工在 /tmp 攒出来的目录只能证明当时成功。","example":"超过单文件上限的巨型包由脚本现造，跑完即清理，不留下无人知道的临时目录。","tags":["质量工程"]},
 {"zh":"语义化版本","en":"semantic versioning","aliases":["semver","MAJOR.MINOR.PATCH"],"definition":"用主版本号、次版本号与修订号表达兼容性变化的命名约定；对内容包而言，规则语义变化升次号、错别字级修正升修订号。","example":"把一条规则从「建议」改成「必须」是次版本变化，而修正术语错字只是修订号变化。","tags":["协作流程","质量工程"]},
-{"zh":"规则文件契约","en":"pack file contract","aliases":["文件契约","v1 契约"],"definition":"标准包对外落盘文件的命名、目录与标记头约定，是跨版本可比对的基础；契约变更必须升版本，否则用户侧 diff 会集体误报。","example":"把标记头改名属于契约变更，需同时升版本并重算指纹，避免漂移检测把全项目判成已改动。","tags":["数据与存储","风险陷阱"]}
+{"zh":"规则文件契约","en":"pack file contract","aliases":["文件契约","v1 契约"],"definition":"标准包对外落盘文件的命名、目录与标记头约定，是跨版本可比对的基础；契约变更必须升版本，否则用户侧 diff 会集体误报。","example":"把标记头改名属于契约变更，需同时升版本并重算指纹，避免漂移检测把全项目判成已改动。","tags":["数据与存储","风险陷阱"]},
+{"zh":"发布形态走查","en":"published-shape walk","aliases":["装包后验收","黑盒装包走查","publish-shape walk"],"definition":"用打包产物本身做验收而不是跑仓库源码：真出包、真装进干净沙箱、只调用装出来的可执行入口，避免「源码里通得过、装完跑不起来」。","example":"v0.1.0 的 45 项发布断言全跑在 npm pack 出的 tarball 上：装进空 HOME 沙箱后只调用装出来的 bin，起服务、建库、托管页面逐项验。","tags":["质量工程","协作流程"]},
+{"zh":"预编译包回退","en":"prebuilt binary fallback","aliases":["prebuild-install","native 模块安装","编译回退"],"definition":"含原生依赖的安装先按平台与运行时 ABI 取预编译产物，取不到才回落本地编译。两条路的用户群与故障域不同，须各自验证。","example":"本机命中 node-v147-darwin-arm64 预编译包即通过；编译回退因工具链缺 C++ 头文件无法本地证明，按未验证记录而不是按通过。","tags":["工具平台","风险陷阱"]},
+{"zh":"清单归一化","en":"manifest normalization","aliases":["npm normalize","package.json 归一化","发布清单改写"],"definition":"包管理器读写清单时的静默改写：去前缀、补默认字段、删非法项，还可能配上误导性警告。断言应针对改写后的值，否则测的不是别人装到的那份。","example":"npm 把 bin 的 ./dist/cli.js 改写成 dist/cli.js 并警告「was invalid and removed」；改存改写后的值，警告与差异同时消失。","tags":["工具平台","数据与存储"]},
+{"zh":"镜像注册表","en":"registry mirror","aliases":["npmmirror","registry 覆盖","内网镜像"],"definition":"指向加速镜像的注册表配置：装得进来未必发得出去。发布类命令要显式覆盖注册表地址，否则本地演练全绿而真实发布路径根本没走通。","example":"npm 与 pnpm 的 dry-run 都打出「Publishing to registry.npmmirror.com」，发布须另写 --registry=https://registry.npmjs.org。","tags":["风险陷阱","工具平台"]},
+{"zh":"瞬时用户激活","en":"transient user activation","aliases":["user activation","合成点击限制","clipboard 权限窗口"],"definition":"浏览器判定「真实用户刚操作过」的内部标记，剪贴板写入等受限能力只在激活窗口内放行。合成事件通常拿不到它，这类动作在自动化里必然失败。","example":"headless 下复制按钮恒被拒，于是复制、中文输入搜索、看板拖拽三处证据改由人工录屏承担，而不是在自动化里补一个假绿。","tags":["风险陷阱","质量工程"]}
   ]
 }

@@ -124,10 +124,10 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 ### T8 · 种子内容全量 + 开箱体验（W5，预估 4 人日；内容由 AI 起草 + owner 审校 ≈ 2-3 人日，D14）
 
-- [x] terms.json 补齐至 **≥100**——实际 **104 条**（批次 C/D 新增 41 / 移除 0；附录 B 十条基线齐备、aliases 全条非空、example 覆盖 100%、受控词表零越界）
+- [x] terms.json 补齐至 **≥100**——实际 **104 条**（T9c 复盘回流后 **109 条**，见 DEV-0022；批次 C/D 新增 41 / 移除 0；附录 B 十条基线齐备、aliases 全条非空、example 覆盖 100%、受控词表零越界）
 - [x] prompts.json **20 条**按 seed-content §3.4 主题清单逐条产出（`rule=7 / 含变量=13 / claude-code=11 cursor=12 generic=15`，全部 `/精选` + 「精选」标签，20 条 title 唯一）
 - [x] 模板从代码常量迁入 `flow-templates.json`——**提前于 T4 已完成**（C-15：阶段定义照抄 §3.3 直接以 seed 文件落盘，无代码常量环节）；老库幂等升级由 UT-SEED-02 在真实 seed 上验证
-- [x] `seed:check` 阈值切至正式门槛（100/3/20）并进 CI，且 prompts 侧补 §3.4 **构成配额**（数量达标不再蕴含构成达标，C-57）；负向探针落成命名用例 `tests/seed-check.test.ts`：删 5 条词条 → `99 条 < 门槛 100 条` 退出码 1（SCRIPT-SEED-01）、阶段名改一字与删一个阶段各自报错（SCRIPT-SEED-02）
+- [x] `seed:check` 阈值切至正式门槛（100/3/20）并进 CI，且 prompts 侧补 §3.4 **构成配额**（数量达标不再蕴含构成达标，C-57）；负向探针落成命名用例 `tests/seed-check.test.ts`：词条数压到门槛之下（截到 95 条）→ `95 条 < 门槛 100 条` 退出码 1（SCRIPT-SEED-01；按绝对量截，种子增长不会让负向样本重新达标，DEV-0022 C-85）、阶段名改一字与删一个阶段各自报错（SCRIPT-SEED-02）
 - [x] **预置演示包**：首启自动组装 `default` 包（specs/onboarding.md FR-1，复用 m6a 正常导出通道 + 一次目录导出登记；D-3「在位但选集/目标不同 = 用户已修改」跳过并报 reason）
 - [x] **首启向导**：≤3 步、可跳过、每步真实副作用（FR-2，红线见验收 3）；步骤③含 **lock 文件自动确认**（D11：`GET /api/injection-status?dir=` 轮询，2s×60，自动点亮，手动按钮降级保留）
 - [x] **飞轮统计面板** + 遥测设置开关（FR-3/FR-4，遥测默认关 + 单出口断言）；Web 侧首次注入后一次性 opt-in 卡片（FR-4.2，D13，与 CLI 共享本地标记）
@@ -141,10 +141,10 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 ### T9 · 飞轮 E2E + 发布（W4末，预估 3 人日）
 
 - [ ] Playwright 飞轮主链（design §13 E2E 行定义）+ 3 条冒烟（导入→复制；术语搜索→TERMS.md；开箱向导三步）—— **主链已收，形态改了**（2026-09-23，DEV-0020）：`E2E-FLOW-01` 八腿在 vitest `cli` 项目跑通（真 serve 子进程 + 真 HTTP + 真 CLI 退出码，1.57 s，连跑三遍稳定）；**Playwright 经 owner 裁定 T9 不引入、延至 P1.1**（dev-plan §14-6），三条冒烟因此改由**人工录屏/截图**承担——自动化证据不含真实点击/复制/拖拽（合成 `b.click()` 无 transient user activation），这是**明写的事实**不是遗漏
-- [x] 干净环境演练（含向导场景）：清空 `HOME` 沙箱 → `npx openvibe-cli serve --open` → 向导三步 → sync/diff/回流全流程手测（onboarding §7 验收 1 的「≤3 条命令 / ≤5 分钟」计时口径）—— **发布形态半边已收**（2026-09-23，DEV-0020）：`apps/cli` 从「private + TS bin + 无构建 + 仓库相对资源根」变成可安装产物，驱动器 `docs/devlog-evidence/DEV-0020/publish-walk.mjs` 真 `npm pack` → 装进空目录 → 只跑装出来的 bin，**41 项断言全 PASS / 0 FAIL**（`publish-walk.txt` 入库）：tarball 1.14 MB、装包 767–829 ms、`webServed=true`、入口 chunk 291,012 B 由 `<pkg>/dist/web` 托管、`dist/seed` 真播种出 104 词条、九项产物逐条 `statSync`、`diff` 判 clean、`telemetry.endpoint=""` 零外联在发布形态下同样成立；计时按 C-74 双数字口径——**用户侧 0.5 s**（serve→sync→diff 三连），构建+pack+装包 **3.9 s** 另列。向导场景的浏览器手测属上面那条的录屏半边
-- [ ] README 重写为用户视角（快速上手/架构一图/FAQ），`docs/` 保留规划文档
-- [ ] `pnpm publish --dry-run` 校验 bundle 完整性；打 tag `v0.1.0`；发布说明（含已知局限）
-- [ ] 复盘会（retro 模板走一遍）→ 产出第一批回流词条/提示词草稿入库（飞轮 dogfooding 第⑤步实证）
+- [x] 干净环境演练（含向导场景）：清空 `HOME` 沙箱 → `npx openvibe-cli serve --open` → 向导三步 → sync/diff/回流全流程手测（onboarding §7 验收 1 的「≤3 条命令 / ≤5 分钟」计时口径）—— **发布形态半边已收**（2026-09-23，DEV-0020）：`apps/cli` 从「private + TS bin + 无构建 + 仓库相对资源根」变成可安装产物，驱动器 `docs/devlog-evidence/DEV-0020/publish-walk.mjs` 真 `npm pack` → 装进空目录 → 只跑装出来的 bin，**41 项断言全 PASS / 0 FAIL**（T9c 补两支 npm 装包探针后 → **45 项**）（`publish-walk.txt` 入库）：tarball 1.14 MB、装包 767–829 ms、`webServed=true`、入口 chunk 291,012 B 由 `<pkg>/dist/web` 托管、`dist/seed` 真播种出 104 词条、九项产物逐条 `statSync`、`diff` 判 clean、`telemetry.endpoint=""` 零外联在发布形态下同样成立；计时按 C-74 双数字口径——**用户侧 0.5 s**（serve→sync→diff 三连），构建+pack+装包 **3.9 s** 另列；T9c 复跑为 4.3 s / 27.6 s（新增装包探针全在第二段），`dist/seed` 播种实测 `terms=109`。向导场景的浏览器手测属上面那条的录屏半边
+- [x] README 重写为用户视角（快速上手/架构一图/FAQ），`docs/` 保留规划文档 —— **2026-09-23 收（DEV-0022）**：按「30 秒上手 → 拿到什么（九文件表）→ 它解决什么 → 功能一览 → 架构一图 → 数据落在哪里 → 隐私与网络行为 → FAQ → 已知局限」重写；`npx` 三步与产物清单均取干净沙箱实测值，未经证实的事不写（本机 C++ 编译回退、非 147 ABI 装包路径均按未验证处理）
+- [x] `pnpm publish --dry-run` 校验 bundle 完整性；打 tag `v0.1.0`；发布说明（含已知局限）—— **2026-09-23 三路 dry-run 收（DEV-0022）**：`npm publish --dry-run` / `npm publish --dry-run --registry=https://registry.npmjs.org` / `pnpm publish --dry-run --no-git-checks` 均 rc=0，36 文件、1.1 MB、解包 4.9 MB、`dist/{cli.js,web,seed,migrations}` 齐；**两路默认打到 `registry.npmmirror.com`**（镜像不接发布却能让演练全绿），故 `--registry` 必须显式覆盖（C-88）。发布说明 `docs/release-notes/v0.1.0.md`（含已知局限 + 「本版未验证」段）；tag `v0.1.0` 本地打在 T9c commit 上，**未 push**；真实 `npm publish` 是外部不可逆动作，等 owner 放行
+- [x] 复盘会（retro 模板走一遍）→ 产出第一批回流词条/提示词草稿入库（飞轮 dogfooding 第⑤步实证）—— **2026-09-23 收（DEV-0022）**：用自家 `复盘流` 模板（`retro-1-1…retro-4-1` 逐条对账）复盘 T1–T9，产物 `docs/devlog-evidence/DEV-0022/retro.md`；**第一批回流 5 条词条入 `content/seed/terms.json`（104 → 109）**：发布形态走查 / 预编译包回退 / 清单归一化 / 镜像注册表 / 瞬时用户激活，每条的 example 即复盘里的一条实测决议。提示词侧不动（`seed:check` 锁恰好 20 条，第 21 条起走 DB 草稿端点）
 
 **验收**：CI 全绿（含 golden/seed:check/E2E）；干净环境演练录屏归档 DEV_LOG。
 

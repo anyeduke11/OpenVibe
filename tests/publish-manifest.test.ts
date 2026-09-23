@@ -34,7 +34,9 @@ describe('发布暂存清单（T9a-2 · SCRIPT-PKG）', () => {
   it('SCRIPT-PKG-01: bin 指向编译产物，包名与 bin 命令按 D17 定案', () => {
     const m = built()
     expect(m.name).toBe('openvibe-cli')
-    expect(m.bin).toEqual({ openvibe: './dist/cli.js' })
+    // 与 npm publish 的 normalize 结果一致（它会把 './dist/cli.js' 改写成 'dist/cli.js'），
+    // 这样沙箱里装过的清单与 npm 上用户装到的清单是同一份
+    expect(m.bin).toEqual({ openvibe: 'dist/cli.js' })
     expect(m.type).toBe('module')
     expect(m.files).toEqual(['dist'])
     // 仓库形态的 bin 一旦漏进发布包，npx 起来就是 ERR_UNKNOWN_FILE_EXTENSION

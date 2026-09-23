@@ -1,30 +1,30 @@
 构建 apps/web …
-  构建完成 dist/assets/index-CuLP1EFg.js               291.01 kB │ gzip:  95.27 kB
-serve http://127.0.0.1:51930 firstRun=true home=/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-71243/home
+  构建完成 dist/assets/index-BmLeX9LH.js               291.02 kB │ gzip:  95.27 kB
+serve http://127.0.0.1:63608 firstRun=true home=/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-20869/home
 
 == 验收 1/3：首启顶栏（向导条 + 飞轮 0 值占位）
 PASS 顶栏出现向导条
 PASS 飞轮 0 值显示占位而非 0（§4.3）
-  步①文案：提示词库 / 术语库 / 流程模板 / 精选提示词 20 条 / 术语 104 条 / 流程模板 3 条 / 去提示词库 / 去术语库 / 去流程模板 / 把提示词行拖到文件夹可移动 / 提示词库 / 新建提示词
-PASS 步①为真实库存计数
+  步①文案：提示词库 / 术语库 / 流程模板 / 精选提示词 20 条 / 术语 109 条 / 流程模板 3 条 / 去提示词库 / 去术语库 / 去流程模板 / 把提示词行拖到文件夹可移动 / 提示词库 / 新建提示词
+PASS 步①为真实库存计数 — 种子现算 terms=109 / prompts=20 / templates=3
   截图 docs/devlog-evidence/DEV-0019/01-step1-assets.png
 
 == 验收 3：步②与 preview API 同源
 PASS 进入步②
-PASS 向导渲染的指纹 == POST /api/packs/:id/preview 指纹 — ce8182c903e2 vs ce8182c903e2
+PASS 向导渲染的指纹 == POST /api/packs/:id/preview 指纹 — 13c6584f0bef vs 13c6584f0bef
 PASS 步②渲染出文件树
   截图 docs/devlog-evidence/DEV-0019/02-step2-preview.png
 
 == 验收 2b：未注入不点亮 → sync 后自动点亮（D11）
 PASS 进入步③
-  建议命令：npx openvibe-cli sync "/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-71243/openvibe-demo" --pack default
-  夹具目录：/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-71243/openvibe-demo
+  建议命令：npx openvibe-cli sync "/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-20869/openvibe-demo" --pack default
+  夹具目录：/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-20869/openvibe-demo
 PASS 未注入时「注入完成」不点亮
   未注入提示：尚未注入（缺 .openvibe/pack.lock.json）
 PASS 未注入给出诚实提示且点明缺哪个文件
   截图 docs/devlog-evidence/DEV-0019/03-step3-waiting.png
-  sync 退出码 0；产物 CLAUDE.md 在位；summary {"ok":true,"projectPath":"/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-71243/openvibe-demo","pack":{"id":"pk_yHg7CzYN_kyJDYgXYRVwO","name":"default","version":"1.0.0","fingerprint":"ce8182c903e2b52b11a2332a36934cc7aa876d8e961e956c8e520c5bea044240","origin":"服务端 default@1.0.0"},"dryRun":false,"counts":{"NEW":8,"IN_SYNC":0,"UPDATE":0,"CONFLICT":0,"DRIFT":0},"pending":0,"written":8,"skipped":0,"lockPath":"/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-71243/openvibe-demo/.openvibe/pack.lock.json","backupRoot":null,"injectionReported":true,"telemetry":{"reported":"disabled","ask":"json"},"hints":["建议把 .openvibe/backup/ 加入 .gitignore（本命令不会改动 .gitignore）"],"exitCode":0}
-PASS lock 探测自动点亮（无人工点击） — 耗时 1639ms
+  sync 退出码 0；产物 CLAUDE.md 在位；summary {"ok":true,"projectPath":"/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-20869/openvibe-demo","pack":{"id":"pk_IclVeV_2XQjunx4W3K7D6","name":"default","version":"1.0.0","fingerprint":"13c6584f0bef79854924cb7d5e502b14a35260ad4c9f68918202db22030f0166","origin":"服务端 default@1.0.0"},"dryRun":false,"counts":{"NEW":8,"IN_SYNC":0,"UPDATE":0,"CONFLICT":0,"DRIFT":0},"pending":0,"written":8,"skipped":0,"lockPath":"/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-20869/openvibe-demo/.openvibe/pack.lock.json","backupRoot":null,"injectionReported":true,"telemetry":{"reported":"disabled","ask":"json"},"hints":["建议把 .openvibe/backup/ 加入 .gitignore（本命令不会改动 .gitignore）"],"exitCode":0}
+PASS lock 探测自动点亮（无人工点击） — 耗时 3636ms
 PASS 点亮后给出 diff 引导
   截图 docs/devlog-evidence/DEV-0019/04-step3-injected.png
 
@@ -36,12 +36,12 @@ PASS 九项产物齐备（六平台 + TERMS/CHECKLIST + lock）
   · MINI.md 14525B
   · .cursor/rules/openvibe.mdc 14609B
   · .trae/rules/openvibe.md 14597B
-  · TERMS.md 24000B
+  · TERMS.md 25464B
   · CHECKLIST.md 482B
   · .openvibe/pack.lock.json 1476B
-PASS 第 3 条命令 diff 判 clean（exit 0） — exit=0 {"ok":true,"projectPath":"/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-71243/openvibe-demo","lockPath":"/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-71243/openvibe-demo/.openvibe/pack.lock.json","pack":{"id":"pk_yHg7CzYN_kyJDYgXYRVwO","name":"default","version":"1.0.0","fingerprint":"ce8182c903e2b52b11a2332a36934cc7aa876d8e961e956c8e520c5bea044240"},"injectedAt":"2026-09-23T05:05:33.781Z","tracked":8,"clean":true,"drifted":[],"missing":[],"outdated":null,"probedOnline":true,"hints":["clean：磁盘与 lock 一致，且没有更新的导出版本"],"exitCode":0}
-  命令数 3：openvibe-cli serve --open → sync <dir> --pack default → diff <dir>；用户侧耗时 4.0s（构建 1.5s 另计，对应干净环境首次 npx 下载）
-PASS serve→diff ≤5 分钟 — 5.5s 含构建
+PASS 第 3 条命令 diff 判 clean（exit 0） — exit=0 {"ok":true,"projectPath":"/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-20869/openvibe-demo","lockPath":"/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-onb-walk-20869/openvibe-demo/.openvibe/pack.lock.json","pack":{"id":"pk_IclVeV_2XQjunx4W3K7D6","name":"default","version":"1.0.0","fingerprint":"13c6584f0bef79854924cb7d5e502b14a35260ad4c9f68918202db22030f0166"},"injectedAt":"2026-09-23T09:25:23.527Z","tracked":8,"clean":true,"drifted":[],"missing":[],"outdated":null,"probedOnline":true,"hints":["clean：磁盘与 lock 一致，且没有更新的导出版本"],"exitCode":0}
+  命令数 3：openvibe-cli serve --open → sync <dir> --pack default → diff <dir>；用户侧耗时 5.9s（构建 15.3s 另计，对应干净环境首次 npx 下载）
+PASS serve→diff ≤5 分钟 — 21.2s 含构建
 
 == 验收 5b：一次性询问卡（declined 后刷新不再出现）
 PASS 首次注入后出现询问卡
@@ -61,19 +61,19 @@ PASS 跳过写入完成标记
   截图 docs/devlog-evidence/DEV-0019/07-after-skip.png
 
 == 验收 4：完整一圈的口径与顶栏真实数字（onb-4 + §4.3 非 0 侧）
-  /api/stats：{"assets":124,"packs":1,"injections":1,"reflows":1,"loops":1}
-PASS 注入记录已上报 — {"assets":124,"packs":1,"injections":1,"reflows":1,"loops":1}
+  /api/stats：{"assets":129,"packs":1,"injections":1,"reflows":1,"loops":1}
+PASS 注入记录已上报 — {"assets":129,"packs":1,"injections":1,"reflows":1,"loops":1}
 PASS 有导出+有注入+有回流 → loops=1（按项目去重）
-  顶栏飞轮：飞轮面板 / 资产 / 124 / 标准包 / 1 / 注入 / 1 / 回流 / 1 / 飞轮圈数 / 1 / 沉淀资产 → 组标准包 → 注入项目 → 复盘回流
+  顶栏飞轮：飞轮面板 / 资产 / 129 / 标准包 / 1 / 注入 / 1 / 回流 / 1 / 飞轮圈数 / 1 / 沉淀资产 → 组标准包 → 注入项目 → 复盘回流
 PASS 顶栏渲染真实数字（非占位）
   截图 docs/devlog-evidence/DEV-0019/08-flywheel-loop.png
-  删掉夹具项目后：{"assets":124,"packs":1,"injections":1,"reflows":0,"loops":0}
+  删掉夹具项目后：{"assets":129,"packs":1,"injections":1,"reflows":0,"loops":0}
 PASS 回流链断则圈数与回流回落为 0
 PASS 顶栏回落到占位（§4.3 双向）
   截图 docs/devlog-evidence/DEV-0019/09-flywheel-dropped.png
 
 == 验收 5：零外联（关闭态）
-  浏览器请求过的 host：127.0.0.1:51930
+  浏览器请求过的 host：127.0.0.1:63608
 PASS 全部请求只指向本机 — 24 个请求
 
 结果：全部通过

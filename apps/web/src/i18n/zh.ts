@@ -641,7 +641,7 @@ export const zh = {
     },
     backup: {
       title: '备份说明',
-      body: '全部状态就在数据目录：ov.db（SQLite）+ config.json + packs/ 导出目录。备份 = 停服务后整目录复制。注入目标项目里的 .openvibe/ 只放 lock 与覆盖前备份，可随项目提交 git。',
+      body: '全部状态就在数据目录：data/openvibe.db（SQLite）+ config.json + packs/ 导出目录。备份 = 停服务后整目录复制。注入目标项目里的 .openvibe/ 只放 lock 与覆盖前备份，可随项目提交 git。',
     },
   },
   common: {
