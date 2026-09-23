@@ -194,6 +194,7 @@ openvibe/
 ├── content/seed/{terms.json,flow-templates.json,prompts.json}
 ├── docs/（PRD/specs/design/tasks/dev-plan/proposal/竞品×2）
 ├── scripts/seed-check.ts（pnpm seed:check 入口）
+├── scripts/bundle-check.ts（pnpm bundle:check 入口：读 dist 产物断言入口/chunk 预算）
 ├── scripts/golden-update.ts（pnpm golden:update 入口：重新生成 tests/golden/** 契约快照）
 └── .github/workflows/ci.yml
 ```
@@ -683,6 +684,8 @@ token 来源：`~/.openvibe/config.json`（首启生成，0600）。
 | `/settings` | SettingsPage | SettingsSections（含遥测开关、向导重置、种子重播） |
 
 AppShell 侧栏固定七项（库/术语/Skill/流程/项目/标准包/设置）；OnboardingBar + FlywheelCard 常驻顶栏。
+
+**分包与预算（T8f，2026-09-23）**：上表九个页面组件全部走 `React.lazy`，`<Suspense>` 只包 AppShell 里的 `<Outlet/>`（顶栏与侧栏不随路由闪）；分包边界**只**由动态 import 决定，`vite.config.ts` 刻意不写 `manualChunks`（按包名强分组会让 vite 往 index.html 塞 modulepreload，首屏反而从 291kB 涨到约 962kB）。预算为**入口 ≤300kB、任一 chunk ≤500kB**，由 `pnpm bundle:check`（`scripts/bundle-check.ts`，自带一次 vite build）在 CI 守；实测入口 291.01kB / 23 个分包，最大 347.45kB，`/library` 首屏 JS 只传 361.16kB（总分包 1240.50kB 的 29.1%），CodeMirror 与 react-markdown 分别在编辑抽屉挂载、预览挂载时才落地（走查驱动器 `docs/devlog-evidence/DEV-0019/lazy-chunk-walk.mjs`）。
 
 ### 5.2 共享组件清单（24 个，props 摘要）
 

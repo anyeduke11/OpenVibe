@@ -38,3 +38,7 @@ jobs:
       # T4 起生效，阈值 terms≥60 / templates=3 / prompts=0（T8 切 100/3/20）
       - name: Seed check
         run: pnpm seed:check
+
+      # T8f 起生效：入口 ≤300kB / 任一 chunk ≤500kB（自带 vite build，测的就是当前提交）
+      - name: Bundle check
+        run: pnpm bundle:check

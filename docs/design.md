@@ -34,7 +34,7 @@
 | CLI | commander + @clack/prompts + picocolors | 参数解析 + 漂亮的交互确认，依赖极轻 | 低 |
 | ID | nanoid + 类型前缀（`prm_`/`pk_`…） | 日志与外键肉眼可辨 | — |
 | 测试 | vitest（单测/集成，含 CLI 临时目录）+ Playwright（E2E 一条龙） | 见 §13 | 中 |
-| 质量 | ESLint + Prettier + GitHub Actions（lint/test/seed:check，**三平台矩阵 macOS/Linux/Windows——澄清 D5 硬要求**） | CI 见 tasks T1 | 低 |
+| 质量 | ESLint + Prettier + GitHub Actions（lint/test/seed:check，**三平台矩阵 macOS/Linux/Windows——澄清 D5 硬要求**；T8f 起再加 bundle:check：入口 ≤300kB、任一 chunk ≤500kB，见 dev-plan §5.1） | CI 见 tasks T1 | 低 |
 
 ## 3. Monorepo 结构（对齐 PRD 4.3，细化到目录）
 

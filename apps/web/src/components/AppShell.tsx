@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useProjectList } from '../hooks/useProjects'
@@ -59,21 +59,14 @@ function TopBand() {
     toggleTelemetry.mutate(enabled, {
       onSuccess: () =>
         toast(
-          zh.telemetryAsk.chose(
-            enabled ? zh.settings.telemetry.on : zh.settings.telemetry.off,
-          ),
+          zh.telemetryAsk.chose(enabled ? zh.settings.telemetry.on : zh.settings.telemetry.off),
         ),
     })
 
   return (
     <>
       {firstRun && (
-        <OnboardingBar
-          step={step}
-          onStepChange={setStep}
-          onSkip={finish}
-          onDone={finish}
-        />
+        <OnboardingBar step={step} onStepChange={setStep} onSkip={finish} onDone={finish} />
       )}
       {stats.data !== undefined && <FlywheelCard {...stats.data} />}
       {/* 首次注入之后才询问（FR-4.2）；injections 变化要等 stats 重取，故挂载条件在此而非卡内 */}
@@ -81,6 +74,19 @@ function TopBand() {
         <TelemetryAskCard askState={telemetry.data.askState} onChoose={choose} />
       )}
     </>
+  )
+}
+
+/** 分包后页面 chunk 在路上时的占位（Suspense 只包住 Outlet，侧栏与顶栏不跟着闪） */
+function PageLoading() {
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      className="flex h-full items-center justify-center py-16 text-sm text-zinc-400"
+    >
+      {zh.common.loading}
+    </div>
   )
 }
 
@@ -118,7 +124,9 @@ export function AppShell() {
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopBand />
         <div className="min-h-0 flex-1 overflow-hidden">
-          <Outlet />
+          <Suspense fallback={<PageLoading />}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

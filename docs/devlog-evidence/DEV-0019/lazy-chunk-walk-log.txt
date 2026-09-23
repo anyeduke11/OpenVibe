@@ -1,0 +1,69 @@
+构建 apps/web …
+  构建完成
+
+== 验收 0：产物盘点
+  23 个 JS 分包，合计 1240.50kB（拆分前单包 1155.62kB）
+  · index-jTAyyB1y.js 347.44kB
+  · index-CuLP1EFg.js 291.01kB
+  · index-BAfFhiiq.js 211.51kB
+  · index-D3Wy1Rio.js 115.65kB
+  · index-DJ96LWA7.js 67.86kB
+  · sortable.esm-CC443kb_.js 45.89kB
+  CodeMirror 编辑器 → index-DJ96LWA7.js 67.86kB + index-jTAyyB1y.js 347.44kB
+  react-markdown 预览 → index-D3Wy1Rio.js 115.65kB
+PASS 两个重库都能在产物里定位到（否则下面的懒加载断言会假绿）
+PASS index.html 只有一个入口 <script> — /assets/index-CuLP1EFg.js
+PASS 入口引用面 291.01kB ≤ 320.00kB — modulepreload 0 条
+PASS 入口引用面不含重库
+serve http://127.0.0.1:49690 home=/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-lazy-walk-63982/home
+
+== 验收 1：首屏只下入口 + 当页分包，不下重库
+  首屏 JS 8 个请求 / 361.16kB，占总分包 29.1%
+      291.32kB /assets/index-CuLP1EFg.js
+       22.98kB /assets/Dialog-u4V1UdPd.js
+       22.73kB /assets/PromptEditorDrawer-CANAI2rf.js
+       14.08kB /assets/LibraryPage-CcNNZM2y.js
+        6.95kB /assets/index-DzuJmsvn.js
+        1.59kB /assets/useTerms-qplkRQsz.js
+PASS 首屏 JS 361.16kB ≤ 总分包的 40% — 拆分前该比例是 100%（1155.62kB 全在首屏）
+PASS 首屏未下载 CodeMirror / react-markdown — （干净）
+PASS 首屏 DOM 里没有 .cm-editor
+  截图 docs/devlog-evidence/DEV-0019/01-library-first-load.png
+
+== 验收 2：九条路由真·直达（走 serve 的 SPA fallback，懒加载页照渲染）
+PASS 直达 /library 渲染「提示词库」 — document 200，新下载 JS 0 个
+PASS 直达 /terms 渲染「术语库」 — document 200，新下载 JS 1 个
+PASS 直达 /skills 渲染「Skill 台账」 — document 200，新下载 JS 2 个
+PASS 直达 /flows 渲染「流程模板」 — document 200，新下载 JS 3 个
+PASS 直达 /projects 渲染「项目工作台」 — document 200，新下载 JS 1 个
+PASS 直达 /projects/prj_0YEnr7rniEJh05y0MPokI 渲染「分包走查夹具」 — document 200，新下载 JS 1 个
+PASS 直达 /packs 渲染「标准包」 — document 200，新下载 JS 1 个
+PASS 直达 /packs/new 渲染「组装向导」 — document 200，新下载 JS 1 个
+PASS 直达 /packs/pk_ky2K_aFpNGl_AXeCeUNr-/edit 渲染「编辑标准包」 — document 200，新下载 JS 0 个
+PASS 直达 /settings 渲染「设置」 — document 200，新下载 JS 1 个
+  截图 docs/devlog-evidence/DEV-0019/02-settings.png
+PASS 页面本身不拉重库（重库只在编辑器/预览挂载时落地） — （干净）
+  十条路由累计请求 JS 19 个 / 498.04kB
+
+== 验收 3：重库随挂载点落地（先立「不带编辑器的抽屉」对照）
+PASS 对照：词条抽屉（纯 textarea）不拉任何重库 — 按钮 OK，抽屉 true，本次落地 JS 0 个
+  截图 docs/devlog-evidence/DEV-0019/03-term-drawer-no-editor.png
+PASS 打开提示词抽屉前仍无 .cm-editor
+PASS 抽屉打开 — OK
+  打开抽屉触发的 JS：/assets/index-DJ96LWA7.js 68.17kB，/assets/index-D3Wy1Rio.js 115.96kB，/assets/index-BAfFhiiq.js 211.82kB，/assets/index-jTAyyB1y.js 347.76kB
+PASS .cm-editor 出现在 DOM
+PASS 抽屉挂载后才下载 CodeMirror — /assets/index-DJ96LWA7.js
+PASS react-markdown 也只随预览挂载落地（预览默认开启，故与抽屉同批） — /assets/index-D3Wy1Rio.js
+  截图 docs/devlog-evidence/DEV-0019/04-editor-lazy.png
+PASS 取消勾选「预览」后预览区消失（渲染确实受控） — OK
+
+== 验收 4：全程无异常、无失败请求、零外联
+PASS 无未捕获异常 — （0 条）
+PASS 无 console 报错 — （0 条）
+PASS 无失败请求 — （0 条）
+PASS 全部请求只指向本机 — 127.0.0.1:49690
+
+  整轮传输合计 1877.47kB（> 分包总量 1240.50kB：每换一条路由都重新加载文档，
+  命中缓存的分包也会被重新计一次；判懒加载看的是上面的「按阶段新下载」，不是这一行）
+
+结果：全部通过
