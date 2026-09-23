@@ -485,5 +485,7 @@
   - **主链 E2E 首次上 win32（DEV-0020 埋的险）**：`E2E-FLOW-01` 起真 serve 子进程 + 真 HTTP + 真 CLI 退出码，实测 **macOS 4.40 s / ubuntu 6.11 s / windows 9.34 s**，全 ✓。windows 最慢且是 30 s 单测时限里余量最小的一腿（≈1/3 用时），后续给它加腿时优先看 win32。
   - **① 更新**：tag **`v0.1.0`（annotated）本地打在 `3e852c2`**，`git ls-remote --tags origin` 为空 ⇒ **标签未推**；真实 `npm publish`（须带 `--registry=https://registry.npmjs.org`，C-88）仍未做，两者继续等 owner 放行。
   - **流程披露**：推送前按 owner 裁定**跳过 L3 深度安全审查**，所以本 commit **没有安全审查证据**；这与「三平台 CI 绿」是两件事，别相互抵销。
+  - **收工体检（DEV-0021⑤(a) 的方法级待办就此闭环，并再否证一条隐含假设）**：进程改按「下界 / 上界」双轨量测——命令行两轨（源码特征串 + `openvibe` 关键字）**均 0 命中**，端口轨抓到 `*:5188` 一个监听者，但**反查 cwd 后归因给同机另一个项目**（`/Users/duke/Documents/AgentFeed/server` 的 `node dist/index.js`，17:10:25 起常驻）⇒ OpenVibe 孤儿 serve 仍为 **0**，而「5188 上 listening = 本仓 serve」这个隐含假设被证伪：**端口轨是未定归属的超集**，光加第三轨会造出跨项目假阳。审计 Skill 的步 5 因此补上**归属反查**（`lsof -a -p PID -d cwd` + 命令行回读），步 2 同时补两条：CI 逐 job 结论只有 `--json jobs`（**没有** `jobConclusions` 字段）、**「三平台绿」≠「三平台验了同一批用例」**（win32 `skipIf` 门控 POSIX 用例 → 378+3skipped vs 381）。用户级文件 `~/.qoder/skills/openvibe-progress-audit/SKILL.md` 171 → 181 行，**不入库**。
+  - **残渣清理（owner 放行后执行）**：`/tmp/ov-*` **29 项 / 40 MB** 清空，含 DEV-0021⑥ 那对无人认领的 `ov-pkg-*`（各 18 MB，mtime 15:37/15:38）。删前两道保险：`lsof +D` 逐项确认 **0 持有句柄**；`grep` 确认无入库文档把当前这些路径当**活证据**引用——`DEV_LOG.md:417` 提到 `/tmp/ov-t7f` 是对既往 27 个孤儿进程的**归因叙述**，不是对目录存续的要求，删它不使那条记录失真。可复跑性不依赖它们：产物由 `publish-walk.mjs` 现造现清。
 
 ---
