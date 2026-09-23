@@ -1204,6 +1204,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 - [x] retro 复盘会 → 首批回流 ≥3 条资产入库（飞轮 dogfooding 第⑤步实证）—— **2026-09-23 收（DEV-0022）**：`docs/devlog-evidence/DEV-0022/retro.md` 按自家 `复盘流` 四阶段（`retro-1-1…retro-4-1`）复盘 T1–T9，决议表 8 条按修/缓/记录 + P0/P1/P2 定级；**回流 5 条词条入种子（104 → 109）**，`seed:check` 与 `UT-SEED-02` 双绿
 
 **验收-测试映射**：CI 五闸全绿（lint/unit/integration+cli/e2e/golden+seed:check+bundle:check）+ 演练录屏归档 + DoD §13。`ci.yml` 的**步骤**清单自 T8f 起为 Lint / Typecheck / Test / Seed check / Bundle check 五步（三平台各一遍）。
+—— **实测收口 2026-09-23 17:50**：run `35844980582` @ `3e852c2` 三个 `verify` job 全 success、五步各一遍；用例数按平台不等（macOS / ubuntu **381 passed**，windows **378 passed + 3 skipped**，跳过的三条是 win32 语义不适用的 `CLI-SEC-01b`/`CLI-SEC-04` 符号链接逃逸与 `CLI-CFG-03` 0600 权限位）。`E2E-FLOW-01` 三平台 4.40 / 6.11 / 9.34 s。演练**录屏**仍属人工半边（§14-6 / 任务 #59）。
 
 ### 映射总账与数量对齐（design §13）
 
