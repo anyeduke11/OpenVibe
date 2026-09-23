@@ -149,4 +149,30 @@ describe('serve 首启初始化（m6b FR-1，dev-plan §1.2 步骤 1/2/8）', ()
         (JSON.parse(readFileSync(fresh.configPath, 'utf8')) as Record<string, unknown>),
     ).toBe(false)
   })
+
+  it('CLI-SERVE-06: 只有 telemetryEndpoint 手打错时不连带换令牌，重写把坏端点摘掉（T9a-4）', async () => {
+    const home = tempHome()
+    const token = 'c'.repeat(64)
+    writeFileSync(
+      join(home, 'config.json'),
+      JSON.stringify({
+        serverUrl: 'http://127.0.0.1:8787',
+        token,
+        port: 8787,
+        telemetryEndpoint: 'http://telemetry.example.com/collect',
+      }),
+      { mode: 0o600 },
+    )
+
+    const r = await serveAction({ home, port: 0, seedDir: SEED_DIR })
+    open.push(r)
+    expect(r.token).toBe(token)
+    expect(r.telemetry.endpoint).toBe('')
+    expect(r.warnings.join(' ')).toContain('telemetryEndpoint')
+    expect(r.warnings.join(' ')).not.toContain('令牌已重新生成')
+    const saved = JSON.parse(readFileSync(r.configPath, 'utf8')) as Record<string, unknown>
+    expect(saved.token).toBe(token)
+    expect(saved.serverUrl).toBe(r.url)
+    expect('telemetryEndpoint' in saved).toBe(false)
+  })
 })

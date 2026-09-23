@@ -1,0 +1,55 @@
+# T9a 发布形态演练 · 沙箱 /var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-pub-walk-58380
+# node v26.4.0 · 2026-09-23T08:01:36.916Z
+§1 产物构建：openvibe-cli@0.1.0 → apps/cli/pkg/（cli.js 3566.92 kB，562 个模块内联，0 条 esbuild 警告）
+PASS 构建无 esbuild 警告 — 警告 0 条
+PASS npm pack 出 tarball — openvibe-cli-0.1.0.tgz
+  tarball openvibe-cli-0.1.0.tgz = 1.14 MB（含 Web 产物与 seed 拷贝）
+PASS tarball 含 dist/cli.js
+PASS tarball 含 dist/web/index.html
+PASS tarball 含 dist/seed/terms.json
+PASS tarball 含 dist/migrations/*.sql — 3 个
+PASS tarball 含 README 与 LICENSE
+PASS 发布名与 bin 按 D17
+PASS 版本号三处同源 — pkg=0.1.0 src=0.1.0
+PASS 清单无 workspace 残留依赖 — {"better-sqlite3":"^12.2.0"}
+PASS 发布包内自带 Web 与 seed
+PASS 发布包内自带迁移脚本目录
+PASS tarball 装进空目录 — exit=1
+PASS bin 已生成且可执行
+  安装器口径：pnpm 拒跑 better-sqlite3 的 install 脚本并以退出码 1 结束（ERR_PNPM_IGNORED_BUILDS）；npm/npx 用户走 prebuild-install 取预编译包，不受影响。
+PASS 原生 binding 就位（本机 store 同版本复用，非网络下载） — better-sqlite3@12.11.1
+§2 安装耗时 829 ms（tarball → node_modules/.bin/openvibe）
+PASS --version 报当前版本 — 0.1.0
+PASS 四命令齐（serve/sync/scan/diff）
+PASS --open 旗标在发布包里可见
+§3 serve http://127.0.0.1:58437 firstRun=true home=沙箱/home
+PASS 发布包托管了 Web 产物（webServed=true）
+PASS 零外联结构闸门（未配端点即不外发） — {"endpoint":"","intervalMs":60000}
+PASS GET / 回 index.html 200 — HTTP 200
+PASS 入口 chunk 可下载且非空 — assets/index-CuLP1EFg.js 291012 B
+PASS SPA 深链路回 index.html（serve 的 fallback）
+PASS /api/health ok — {"status":"ok","app":"openvibe","version":"0.1.0","schemaVersion":1,"db":{"status":"ready"}}
+  /api/stats：{"assets":124,"packs":1,"injections":0,"reflows":0,"loops":0}
+PASS 发布包 seed 播种 ≥100 词条 — terms=104
+PASS 首启自动组装 default 包 — packs=1
+PASS sync 退出码 0 — exit=0
+PASS 产物在位 CLAUDE.md — 14525 B
+PASS 产物在位 AGENTS.md — 14525 B
+PASS 产物在位 CODEBUDDY.md — 14525 B
+PASS 产物在位 MINI.md — 14525 B
+PASS 产物在位 .cursor/rules/openvibe.mdc — 14609 B
+PASS 产物在位 .trae/rules/openvibe.md — 14597 B
+PASS 产物在位 TERMS.md — 24000 B
+PASS 产物在位 CHECKLIST.md — 482 B
+PASS 产物在位 .openvibe/pack.lock.json — 1476 B
+  sync 摘要 written=8 lock=沙箱/demo-project/.openvibe/pack.lock.json
+PASS diff 判 clean（注入产物与包一致） — exit=0
+§4 用户侧耗时 0.5 s（serve 起表 → diff 收表），命令数 3：serve --open / sync / diff
+PASS onb-1 计时 ≤5 分钟 — 0.5 s
+PASS 构建+pack+装包段另计（对应 npx 首次下载） — 3.9 s，其中装包 0.8 s
+PASS 发布形态 serve 已退出 — exit=0
+PASS 走查结束时无残留 openvibe-cli 进程 — 残留 pid=[]
+
+合计 41 项断言，FAIL 0 项
+
+# HEAD bbf5fc2 · 结束于 2026-09-23T08:01:41.608Z

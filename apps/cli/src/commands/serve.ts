@@ -73,9 +73,15 @@ export async function serveAction(options: ServeOptions = {}): Promise<ServeResu
     options.warn?.(message)
   }
 
-  // 坏配置不阻断启动（m6b §3）：令牌不合法就重新生成并覆盖，绝不带着空令牌起服务
+  // 坏配置不阻断启动（m6b §3）：令牌不合法就重新生成并覆盖，绝不带着空令牌起服务。
+  // 但只有整份配置都不可用时才走这条——可选字段手打错时令牌照用，别把用户的登录态换掉（T9a-4）
   const { config, error } = readConfigFile(home)
-  if (error) emit(`${configPath} 不可用（${error}），令牌已重新生成并覆盖`)
+  if (error)
+    emit(
+      config
+        ? `${configPath}：${error}`
+        : `${configPath} 不可用（${error}），令牌已重新生成并覆盖`,
+    )
   const token = config?.token ?? randomBytes(32).toString('hex')
   // 遥测端点是用户手写在 config.json 里的（design §11.5）；缺省即结构性零外联
   const telemetryEndpoint = config?.telemetryEndpoint ?? ''

@@ -1,7 +1,30 @@
 {
   "name": "@openvibe/cli",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
+  "description": "OpenVibe（灵典）—— vibe coding 的标准化工作台：术语库/技巧库/流程模板组包，一键注入任意 AI 编程助手的项目目录",
+  "keywords": [
+    "ai-coding",
+    "prompt",
+    "terminology",
+    "workflow",
+    "claude-code",
+    "cursor",
+    "codebuddy",
+    "local-first"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anyeduke11/OpenVibe.git"
+  },
+  "homepage": "https://github.com/anyeduke11/OpenVibe#readme",
+  "bugs": {
+    "url": "https://github.com/anyeduke11/OpenVibe/issues"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "type": "module",
   "bin": {
     "openvibe": "./src/index.ts"

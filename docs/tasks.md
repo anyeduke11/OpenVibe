@@ -140,8 +140,8 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 ### T9 · 飞轮 E2E + 发布（W4末，预估 3 人日）
 
-- [ ] Playwright 飞轮主链（design §13 E2E 行定义）+ 3 条冒烟（导入→复制；术语搜索→TERMS.md；开箱向导三步）
-- [ ] 干净环境演练（含向导场景）：清空 `HOME` 沙箱 → `npx openvibe-cli serve --open` → 向导三步 → sync/diff/回流全流程手测（onboarding §7 验收 1 的「≤3 条命令 / ≤5 分钟」计时口径）
+- [ ] Playwright 飞轮主链（design §13 E2E 行定义）+ 3 条冒烟（导入→复制；术语搜索→TERMS.md；开箱向导三步）—— **主链已收，形态改了**（2026-09-23，DEV-0020）：`E2E-FLOW-01` 八腿在 vitest `cli` 项目跑通（真 serve 子进程 + 真 HTTP + 真 CLI 退出码，1.57 s，连跑三遍稳定）；**Playwright 经 owner 裁定 T9 不引入、延至 P1.1**（dev-plan §14-6），三条冒烟因此改由**人工录屏/截图**承担——自动化证据不含真实点击/复制/拖拽（合成 `b.click()` 无 transient user activation），这是**明写的事实**不是遗漏
+- [x] 干净环境演练（含向导场景）：清空 `HOME` 沙箱 → `npx openvibe-cli serve --open` → 向导三步 → sync/diff/回流全流程手测（onboarding §7 验收 1 的「≤3 条命令 / ≤5 分钟」计时口径）—— **发布形态半边已收**（2026-09-23，DEV-0020）：`apps/cli` 从「private + TS bin + 无构建 + 仓库相对资源根」变成可安装产物，驱动器 `docs/devlog-evidence/DEV-0020/publish-walk.mjs` 真 `npm pack` → 装进空目录 → 只跑装出来的 bin，**41 项断言全 PASS / 0 FAIL**（`publish-walk.txt` 入库）：tarball 1.14 MB、装包 767–829 ms、`webServed=true`、入口 chunk 291,012 B 由 `<pkg>/dist/web` 托管、`dist/seed` 真播种出 104 词条、九项产物逐条 `statSync`、`diff` 判 clean、`telemetry.endpoint=""` 零外联在发布形态下同样成立；计时按 C-74 双数字口径——**用户侧 0.5 s**（serve→sync→diff 三连），构建+pack+装包 **3.9 s** 另列。向导场景的浏览器手测属上面那条的录屏半边
 - [ ] README 重写为用户视角（快速上手/架构一图/FAQ），`docs/` 保留规划文档
 - [ ] `pnpm publish --dry-run` 校验 bundle 完整性；打 tag `v0.1.0`；发布说明（含已知局限）
 - [ ] 复盘会（retro 模板走一遍）→ 产出第一批回流词条/提示词草稿入库（飞轮 dogfooding 第⑤步实证）

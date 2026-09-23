@@ -1196,9 +1196,9 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 **SPEC 依据**：全部 specs 验收汇总；design §13。
 
 **工作项**
-- [ ] Playwright 主链 E2E-FLOW-01：首启播种 → 建提示词 → 建项目 → 组包导出 → CLI sync 临时目录 → 手改文件 → diff 报漂移 → 日志回流建术语草稿
-- [ ] 冒烟 ×3：E2E-SMOKE-01 导入→复制 / 02 术语搜索→TERMS.md / 03 向导三步
-- [ ] 干净环境演练（清空 HOME 沙箱全流程计时录屏，onb-1 口径）
+- [x] Playwright 主链 E2E-FLOW-01：首启播种 → 建提示词 → 建项目 → 组包导出 → CLI sync 临时目录 → 手改文件 → diff 报漂移 → 日志回流建术语草稿 —— **八腿主链 2026-09-23 收（DEV-0020），实现层改判**：按 §14-6 的 owner 裁定留在 vitest `cli` 项目（`apps/cli/test/e2e-flow.test.ts`，真 serve 子进程 + 真 HTTP + 真 CLI 退出码；`apps/cli/**` 受 R4 边界约束，测试也不 import server），Playwright 因此不承担主链
+- [ ] 冒烟 ×3：E2E-SMOKE-01 导入→复制 / 02 术语搜索→TERMS.md / 03 向导三步 —— 转**人工录屏/截图**（P1.1 若引入 Playwright 再收，见 §14-6：合成点击拿不到 transient user activation，复制类动作在自动化下必然被拒）
+- [x] 干净环境演练（清空 HOME 沙箱全流程计时录屏，onb-1 口径）—— **自动化半边 2026-09-23 收（DEV-0020）**：`docs/devlog-evidence/DEV-0020/publish-walk.mjs` 走 `npm pack` → 空目录安装 → 只跑装出来的 bin，41 断言全 PASS（用户侧 0.5 s / 构建+pack+装包 3.9 s 双数字，C-74 口径）；录屏仍属人工半边
 - [ ] README 重写用户视角（快速上手/架构一图/FAQ/遥测披露段）
 - [ ] `pnpm publish --dry-run` + tag `v0.1.0` + 发布说明（含已知局限：单项目单包、无 update 清理）
 - [ ] retro 复盘会 → 首批回流 ≥3 条资产入库（飞轮 dogfooding 第⑤步实证）
@@ -1351,3 +1351,4 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 3. **CLAUDE.md `@import` 受管子文件 spike**：若 Claude Code 支持 `@file` 导入，主规则可移至 `.openvibe/pack.md` 受管、CLAUDE.md 只留一行导入——把整文件 DRIFT 摩擦降一个量级（30 分钟真机验证）。
 4. **m6b 单包边界声明**：lock 单包结构下「一项目一包」假设显式写进 spec 边界节（B 级变更一行）。
 5. **发布执行清单**：渠道帖（V2EX/掘金/知乎）、demo GIF/asciinema、社群入口、awesome 清单 PR——当前 tasks T9 只有 README 重写，无传播执行项。
+6. **Playwright E2E（design §13 原口径）**——**owner 已裁定：T9 不引入，延至 P1.1 评估（2026-09-23）**。裁定依据是实测证据面：本仓无 jsdom，T8 三段入库驱动器（`onboarding-walk.mjs` 29 断言 / `lazy-chunk-walk.mjs` 29 / `telemetry-egress.mjs` 17）零 `Input.dispatchMouseEvent`、零 `Input.dispatchKeyEvent`、零 clipboard，仅 2 处 `Runtime.evaluate` 内的合成 `b.click()`（`onboarding-walk.mjs:201`、`lazy-chunk-walk.mjs:265`），即其证据类型是「navigate 之后读 DOM」而非真实用户动作。因此合成 `b.click()` 拿不到 transient user activation，`navigator.clipboard.writeText` 在自动化下必然被拒 → `E2E-SMOKE-01 导入→复制`、`02 术语搜索`（受控 input 中文输入 + debounce）、`m5-5 @dnd-kit 看板拖拽` 三处**在 v0.1 由人工录屏/截图承担**，CDP 驱动器只作渲染与数据面回归；发布说明与 DEV_LOG 须如实标注「自动化证据不含真实点击/复制/拖拽」。P1.1 若引入，只承担冒烟 ×3、仅 chromium、仅单 OS，主链 `E2E-FLOW-01` 留在 vitest `integration`+`cli`。

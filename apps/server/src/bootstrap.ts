@@ -1,12 +1,13 @@
 import { randomBytes } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { AddressInfo } from 'node:net'
 import type { FastifyInstance } from 'fastify'
 import { migrate, openDatabase, runSeed, type SqliteDatabase } from '@openvibe/core'
 import { DEFAULT_PORT, TELEMETRY_FLUSH_INTERVAL_MS, type SeedSummary } from '@openvibe/shared'
 import { buildApp, FALLBACK_APP_VERSION } from './app'
+import { resolveWebRoot } from './lib/asset-roots'
 import { ensureDefaultPack, type DefaultPackOutcome } from './lib/default-pack'
 import { defaultSeedDir } from './lib/seed-dir'
 import { startTelemetryFlush } from './lib/telemetry-flush'
@@ -47,7 +48,7 @@ const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
 const HERE = dirname(fileURLToPath(import.meta.url))
 
 export function defaultWebRoot(): string {
-  return join(HERE, '..', '..', 'web', 'dist')
+  return resolveWebRoot(HERE)
 }
 
 export interface BootstrapOptions {

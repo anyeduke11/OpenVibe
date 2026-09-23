@@ -9,13 +9,12 @@ import { resolveConfig } from './config'
 import { askTelemetryOnce, reportEvent, type AskReason, type ReportReason } from './telemetry'
 import { INJECT_DECISIONS, type InjectDecision } from '@openvibe/core'
 import { ADAPTER_IDS, DEFAULT_PORT, compareCodeUnit, type AdapterId } from '@openvibe/shared'
+import { CLI_VERSION } from './version'
 
 /**
  * openvibe CLI 入口（m6b §3）：全局旗标 --server/--token/--json 经 config.ts 的发现链解析，
  * 命令只做编排与渲染，业务逻辑留在 packages/core 或 server API。
  */
-
-export const CLI_VERSION = '0.0.0'
 
 interface GlobalOptions {
   server?: string

@@ -152,4 +152,48 @@ describe('CLI 配置发现链（m6b §3）', () => {
     writeConfigFile({ serverUrl: 'http://127.0.0.1:9400', token: 't', port: 9400 }, home)
     expect(resolveConfig({}, { env: {}, home }).port).toBe(9400)
   })
+
+  it('CLI-CFG-09: 只有可选的 telemetryEndpoint 手打错时逐字段降级，token/serverUrl 照用', async () => {
+    const home = await tempHome()
+    await putFile(
+      home,
+      JSON.stringify({
+        serverUrl: 'http://127.0.0.1:9500',
+        token: 'tok-keep',
+        port: 9500,
+        telemetryEndpoint: 'http://telemetry.example.com/collect',
+      }),
+    )
+    const { config, error } = readConfigFile(home)
+    expect(config?.token).toBe('tok-keep')
+    expect(config?.serverUrl).toBe('http://127.0.0.1:9500')
+    expect(config?.telemetryEndpoint).toBeUndefined()
+    expect(error).toContain('telemetryEndpoint')
+
+    const r = resolveConfig({}, { env: {}, home })
+    expect(r.token).toBe('tok-keep')
+    expect(r.serverUrl).toBe('http://127.0.0.1:9500')
+    expect(r.sources).toEqual({
+      serverUrl: 'config.json',
+      token: 'config.json',
+      port: 'config.json',
+    })
+    expect(r.warnings.join(' ')).toContain('telemetryEndpoint')
+    // 整份回退默认是另一种降级，两者文案不能混
+    expect(r.warnings.join(' ')).not.toContain('回退默认')
+  })
+
+  it('CLI-CFG-10: 降级粒度只放宽到可选字段，必填字段坏了仍整份回退', async () => {
+    const home = await tempHome()
+    await putFile(
+      home,
+      JSON.stringify({ serverUrl: 'http://127.0.0.1:9600', token: 'bad token', port: 9600 }),
+    )
+    const { config, error } = readConfigFile(home)
+    expect(config).toBeNull()
+    expect(error).toContain('token')
+    const r = resolveConfig({}, { env: {}, home })
+    expect(r.token).toBeNull()
+    expect(r.warnings.join(' ')).toContain('config.json')
+  })
 })

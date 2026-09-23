@@ -73,6 +73,22 @@ function checkToken(raw: string, label: string): string {
   return raw
 }
 
+/** 除可选端点外的必填三字段：判定「坏的只是可选字段」的依据 */
+const CoreConfigSchema = OpenvibeConfigSchema.omit({ telemetryEndpoint: true })
+const CoreKeys = CoreConfigSchema.keyof()
+
+function withNormalizedServerUrl(
+  config: OpenvibeConfig,
+  path: string,
+): { config: OpenvibeConfig | null; error?: string } {
+  try {
+    const { serverUrl } = normalizeServerUrl(config.serverUrl, path)
+    return { config: { ...config, serverUrl } }
+  } catch (e) {
+    return { config: null, error: `serverUrl 不合法：${(e as Error).message}` }
+  }
+}
+
 /** 读 config.json；不存在 → {config:null}；损坏或字段不合法 → 附 error 且永不抛（配置降级不阻断命令） */
 export function readConfigFile(home?: string): { config: OpenvibeConfig | null; error?: string } {
   const path = configFilePath(home)
@@ -89,16 +105,18 @@ export function readConfigFile(home?: string): { config: OpenvibeConfig | null; 
     return { config: null, error: `JSON 解析失败：${(e as Error).message}` }
   }
   const result = OpenvibeConfigSchema.safeParse(parsed)
-  if (!result.success) {
-    const issue = result.error.issues[0]
-    return { config: null, error: `字段不合法：${issue ? issue.path.join('.') : '(未知)'}` }
+  if (result.success) return withNormalizedServerUrl(result.data, path)
+
+  const field = result.error.issues[0]?.path.join('.') ?? '(未知)'
+  // 坏在可选字段上时逐字段降级（T9a-4）：整份作废会让 serve 重新生成令牌并覆盖 config.json，
+  // 手打错一个遥测端点于是能把其它终端里正在用的令牌换掉——只摘掉坏的那个字段，其余照常读出
+  const core = CoreConfigSchema.safeParse(parsed)
+  if (core.success && !CoreKeys.safeParse(field).success) {
+    const r = withNormalizedServerUrl(core.data, path)
+    if (r.config) return { ...r, error: `${field} 不合法，该字段已忽略（其余照常使用）` }
+    return r
   }
-  try {
-    const { serverUrl } = normalizeServerUrl(result.data.serverUrl, path)
-    return { config: { ...result.data, serverUrl } }
-  } catch (e) {
-    return { config: null, error: `serverUrl 不合法：${(e as Error).message}` }
-  }
+  return { config: null, error: `字段不合法：${field}` }
 }
 
 /** 落盘 0600（m6b §7.8）。写入前校验，坏配置不落盘。 */
@@ -121,7 +139,12 @@ export function resolveConfig(
   const path = configFilePath(home)
   const warnings: string[] = []
   const { config, error } = readConfigFile(home)
-  if (error) warnings.push(`无法使用 ${path}：${error}，已回退默认配置`)
+  if (error)
+    warnings.push(
+      config
+        ? `${path}：${error}`
+        : `无法使用 ${path}：${error}，已回退默认配置`,
+    )
 
   let serverUrl: string
   let port: number

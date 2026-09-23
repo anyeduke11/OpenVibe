@@ -5,6 +5,8 @@ node_modules/
 dist/
 build/
 *.tsbuildinfo
+# 发布暂存目录（scripts/build-cli.ts 产出，内含 bundle 与 Web/seed 拷贝，不入库）
+/apps/cli/pkg/
 
 # Test & coverage
 coverage/
