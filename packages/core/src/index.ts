@@ -84,5 +84,16 @@ export {
   type DiffResult,
   type BuildLockInput,
 } from './inject'
+export {
+  // 并发注入互斥（T8e）：CLI 抢锁，抢不到让路
+  SYNC_LOCK_REL,
+  SYNC_LOCK_STALE_MS,
+  tryAcquireSyncLock,
+  type SyncLockAcquire,
+  type SyncLockBusyReason,
+  type SyncLockDeps,
+  type SyncLockHandle,
+  type SyncLockHolder,
+} from './inject'
 
 export const CORE_VERSION = '0.0.0'

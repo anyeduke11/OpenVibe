@@ -36,3 +36,13 @@ export {
   parsePackLock,
   type BuildLockInput,
 } from './lock'
+export {
+  SYNC_LOCK_REL,
+  SYNC_LOCK_STALE_MS,
+  tryAcquireSyncLock,
+  type SyncLockAcquire,
+  type SyncLockBusyReason,
+  type SyncLockDeps,
+  type SyncLockHandle,
+  type SyncLockHolder,
+} from './sync-lock'

@@ -323,7 +323,7 @@ interface Adapter {
    - 带 `Origin` 的浏览器请求：Origin 必须 `http://localhost:*` 或 `http://127.0.0.1:*`，否则 403（防恶意网页打本地 API）；
    - 不带 `Origin` 的程序请求（CLI）：必须带 `Authorization: Bearer <token>`，token 首启生成、存 `config.json`（0600）；
    - `GET /api/health` 豁免。
-3. **文件写入防线**：路径校验双层（manifest 校验 §7.7 + 写入时 resolve 校验）；永不删除 pack 外文件；覆盖前强制备份；dry-run 零写入。
+3. **文件写入防线**：路径校验双层（manifest 校验 §7.7 + 写入时 resolve 校验）；永不删除 pack 外文件；覆盖前强制备份；dry-run 零写入；**并发 sync 互斥**（T8e，2026-09-23 补）——真写盘前用 `O_EXCL` 原子新建 `<projectPath>/.openvibe/sync.lock`（`{pid,startedAt,command}`，0600），抢不到即退出码 1 + `SYNC_BUSY` 且零写入，不排队；持有者 pid 判死或超 5 分钟视为崩溃残留可接管，`finally` 与 SIGINT/SIGTERM 释放且只删自己那一把（m6b §6.9 / §7.9）。
 4. MVP 无其他外部网络调用、无遥测默认开启、无凭据收集（LLM Key 加密存储随 P3 引入，A6）。
 
 ### 11.5 可选匿名遥测（澄清 D3，2026-09-20；PRD v0.1.2 第 0 章第 6 行）

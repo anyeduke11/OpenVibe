@@ -95,6 +95,7 @@
 6. token 无效/服务端 401 → 提示 `openvibe serve` 重新生成或检查 config；不重试超过 2 次。
 7. bundle schemaVersion 不兼容（> 当前支持）→ 拒绝并提示升级 CLI。
 8. `<projectPath>` 不是目录 / 是文件 → 退出码 1。
+9. **并发互斥（T8e，2026-09-23 补）**：真写盘前以 `O_EXCL`（`flag: 'wx'`）原子新建 `<projectPath>/.openvibe/sync.lock`，内容 `{pid, startedAt, command}`，权限 0600。抢不到即让路：退出码 1、错误码 `SYNC_BUSY`（CLI 本地标签，不进冻结的 `ERROR_CODES`）、零写入零备份、也不在拒绝前留下 `.openvibe/`。绝不排队等待——前一个 sync 可能正卡在交互确认上。陈旧判定：持有者 pid 已判死（`kill(pid,0)`，`EPERM` 算活）或 `startedAt` 距今 > 5 分钟（内容读不懂时按文件 mtime 判），命中则接管（内容读得出主人时，在 `summary.hints` 里报出其 pid / 命令 / 起时）。`--dry-run` 不抢锁也不被挡。释放走 `finally` + SIGINT/SIGTERM 处理器，且只删自己那一把（内容与 `{pid,startedAt}` 逐字段相符），因此接管发生后前任伤不到新锁。
 
 ## 7. 验收标准（pass/fail）
 
@@ -109,6 +110,11 @@
 6. `scan --project` 对含 `.cursorrules` 与 `CLAUDE.md` 的目录：首次新增 2 条提示词，重跑全部 skipped。
 7. `--json` 输出可被 `jq` 解析且 plan 数组含全部五类状态字段（测试夹具覆盖）。
 8. `serve` 首启 → `~/.openvibe/config.json` 权限为 0600，二次启动不重复播种（terms 计数不变）。
+9. **并发互斥逐项验证（T8e，2026-09-23 补）**：真子进程跑，不靠注入假 pid（`apps/cli/test/sync-lock.test.ts` + `helpers/sync-lock-holder.ts`，三平台 CI）。
+   a. 另一进程持锁时 `sync --yes` → 退出码 1、`summary.error.code = SYNC_BUSY`、错误文案点得出持有者 pid 与命令，整棵项目树快照（含 mtime/sha256/权限位）与执行前逐字节一致，锁文件内容未被改写；持锁者正常收工后重跑即成功。
+   b. 持锁者被 SIGKILL（锁作为残留留在盘上，`startedAt` 远未过 5 分钟）→ 下一次 `sync` 按 pid 判死接管、`summary.hints` 报出接管了谁的锁、写完包并留下 `pack.lock.json`，结束时 `sync.lock` 已消失。
+   c. 六个进程同时抢同一项目 → 恰好 1 个抢到，5 个让路且报出赢家 pid，磁盘上只有一把锁。
+   d. 持锁期间 `sync --dry-run` → 退出码 0、计划照算、零写入且不碰他人的锁。
 
 ## 8. 依赖
 

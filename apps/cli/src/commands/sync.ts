@@ -21,10 +21,14 @@ import {
   planInjection,
   resolveWriteTarget,
   strategyToDecisions,
+  SYNC_LOCK_STALE_MS,
+  tryAcquireSyncLock,
   type InjectDecision,
   type InjectPlan,
   type InjectPlanFile,
   type InjectStatus,
+  type SyncLockAcquire,
+  type SyncLockHandle,
 } from '@openvibe/core'
 import {
   PACK_FILE_CHECKLIST,
@@ -45,7 +49,7 @@ import {
   targetPathsFor,
   type LoadedPack,
 } from '../pack-source'
-import type { PlanItem } from '../output'
+import { ExitCode, type PlanItem } from '../output'
 
 /**
  * `openvibe sync <projectPath>` —— 注入状态机（m6b FR-2）。
@@ -251,6 +255,43 @@ export function planRows(plan: InjectPlan, pack: LoadedPack): PlanItem[] {
   }))
 }
 
+type LockBusy = Extract<SyncLockAcquire, { acquired: false }>
+
+/** 让路文案要能直接照着做：谁在写、写了多久、下一步等什么或删什么 */
+function busyMessage(path: string, lock: LockBusy): string {
+  const seconds = Math.round(lock.ageMs / 1000)
+  if (lock.reason === 'unavailable') {
+    return `无法建立注入锁 ${path}（${lock.detail ?? '未知错误'}）：.openvibe 不可写或不是目录，先修目录再注入`
+  }
+  const who = lock.holder
+    ? `pid ${String(lock.holder.pid)}（${lock.holder.command}，起于 ${lock.holder.startedAt}）`
+    : '一把内容读不懂的残留锁'
+  return (
+    `另一个 sync 正在写这个项目：${who}，已 ${String(seconds)}s。等它结束后重跑即可` +
+    (lock.reason === 'unreadable'
+      ? `；确认没有 sync 在跑时手工删除 ${path}（该文件超过 5 分钟未更新会被自动接管）`
+      : `；若该进程已不存在，锁会在下次运行时被自动接管`)
+  )
+}
+
+/**
+ * SIGINT/SIGTERM 到达时先放锁再退出：Ctrl-C 之后重跑不必等 5 分钟陈旧窗口。
+ * 装了监听就没有默认的按信号终止，退出码由我们给（m6b §5.2 只认 0/1/2，中断算 1）。
+ */
+function releaseLockOnSignal(lock: SyncLockHandle): () => void {
+  const bound = (['SIGINT', 'SIGTERM'] as const).map((signal) => {
+    const handler = (): void => {
+      lock.release()
+      process.exit(ExitCode.error)
+    }
+    process.on(signal, handler)
+    return { signal, handler }
+  })
+  return () => {
+    for (const { signal, handler } of bound) process.off(signal, handler)
+  }
+}
+
 export async function syncAction(
   options: SyncOptions,
   deps: SyncDeps = {},
@@ -323,72 +364,90 @@ export async function syncAction(
     return outcome
   }
 
-  const now = (deps.now ?? (() => new Date()))()
-  const written: string[] = []
-  let backupRoot: string | null = null
-  for (const write of applied.writes) {
-    const abs = safety.absPaths[write.path]
-    if (abs === undefined) {
-      throw new SyncError('PATH_REJECTED', `${write.path} 未通过写入路径校验，整包中止`)
-    }
-    let backupPath: string | null = null
-    if (write.backup && existsSync(abs)) {
-      if (backupRoot === null) {
-        backupRoot = uniqueBackupRoot(projectPath, utcStamp(now))
-        mkdirSync(backupRoot, { recursive: true })
+  // 真会写盘了才抢锁（m6b §6.9）：抢不到就一个字节都不动，也不在拒绝执行前留下 .openvibe/。
+  // 位置在 decide 之后是有意的——交互确认可以慢慢想，不该占着锁；5 分钟陈旧窗口只为崩溃残留兜底。
+  const lock = tryAcquireSyncLock(projectPath, 'sync')
+  if (!lock.acquired) throw new SyncError('SYNC_BUSY', busyMessage(lock.path, lock))
+  if (lock.tookOver !== null) {
+    // 接管不是静默行为：上一把锁的主人要么是崩了的进程，要么卡过了 5 分钟，用户该知道
+    const prev = lock.tookOver
+    outcome.hints.push(
+      `接管了残留注入锁（pid ${String(prev.pid)}，${prev.command}，起于 ${prev.startedAt}）` +
+        `：该进程已不存在或超过 ${String(Math.round(SYNC_LOCK_STALE_MS / 1000))}s 未更新`,
+    )
+  }
+  const stopSignalHandlers = releaseLockOnSignal(lock)
+  try {
+    const now = (deps.now ?? (() => new Date()))()
+    const written: string[] = []
+    let backupRoot: string | null = null
+    for (const write of applied.writes) {
+      const abs = safety.absPaths[write.path]
+      if (abs === undefined) {
+        throw new SyncError('PATH_REJECTED', `${write.path} 未通过写入路径校验，整包中止`)
       }
-      backupPath = join(backupRoot, write.path)
-      mkdirSync(dirname(backupPath), { recursive: true })
-      copyFileSync(abs, backupPath)
+      let backupPath: string | null = null
+      if (write.backup && existsSync(abs)) {
+        if (backupRoot === null) {
+          backupRoot = uniqueBackupRoot(projectPath, utcStamp(now))
+          mkdirSync(backupRoot, { recursive: true })
+        }
+        backupPath = join(backupRoot, write.path)
+        mkdirSync(dirname(backupPath), { recursive: true })
+        copyFileSync(abs, backupPath)
+      }
+      try {
+        mkdirSync(dirname(abs), { recursive: true })
+        writeFileSync(abs, write.content, { mode: 0o644 })
+        chmodSync(abs, 0o644)
+      } catch (e) {
+        // §6.5：中止后续写入，已写文件保留（幂等重跑可收敛），并给手工回滚指引
+        throw new SyncError(
+          'WRITE_FAILED',
+          `写入 ${abs} 失败：${(e as Error).message}。已完成 ${written.length}/${applied.writes.length} 项` +
+            (backupRoot ? `；被覆盖的旧文件在 ${backupRoot}，可逐个复制回去` : ''),
+          { done: written },
+        )
+      }
+      written.push(write.path)
+      outcome.writes.push({ path: write.path, status: statusOf(plan, write.path), backupPath })
     }
-    try {
-      mkdirSync(dirname(abs), { recursive: true })
-      writeFileSync(abs, write.content, { mode: 0o644 })
-      chmodSync(abs, 0o644)
-    } catch (e) {
-      // §6.5：中止后续写入，已写文件保留（幂等重跑可收敛），并给手工回滚指引
-      throw new SyncError(
-        'WRITE_FAILED',
-        `写入 ${abs} 失败：${(e as Error).message}。已完成 ${written.length}/${applied.writes.length} 项` +
-          (backupRoot ? `；被覆盖的旧文件在 ${backupRoot}，可逐个复制回去` : ''),
-        { done: written },
-      )
+
+    const nextLock = buildPackLock({
+      pack: {
+        id: pack.manifest.pack.id,
+        name: pack.manifest.pack.name,
+        version: pack.manifest.pack.version,
+        fingerprint: pack.fingerprint,
+      },
+      plan,
+      written,
+      oldLock,
+      injectedAt: now.toISOString(),
+    })
+    mkdirSync(dirname(lockPath), { recursive: true })
+    writeFileSync(lockPath, packLockJson(nextLock), { mode: 0o644 })
+    chmodSync(lockPath, 0o644)
+    outcome.lockPath = lockPath
+    outcome.backupRoot = backupRoot
+
+    outcome.hints.push('建议把 .openvibe/backup/ 加入 .gitignore（本命令不会改动 .gitignore）')
+
+    await reportInjection(outcome, deps, pack, warningsOut)
+    if (written.length > 0) {
+      await deps.onInjected?.({ name: outcome.pack.name, version: outcome.pack.version })
     }
-    written.push(write.path)
-    outcome.writes.push({ path: write.path, status: statusOf(plan, write.path), backupPath })
+
+    // §5.2：--yes --strategy skip 把 CONFLICT/DRIFT 全部留在磁盘外，这是「检测到冲突」而非成功，
+    // 返回 2 让 CI 能区分「无事可做」与「有冲突被批量跳过」。
+    if (options.yes === true && options.strategy === 'skip' && plan.pending.length > 0) {
+      outcome.exitCode = 2
+    }
+    return outcome
+  } finally {
+    stopSignalHandlers()
+    lock.release()
   }
-
-  const nextLock = buildPackLock({
-    pack: {
-      id: pack.manifest.pack.id,
-      name: pack.manifest.pack.name,
-      version: pack.manifest.pack.version,
-      fingerprint: pack.fingerprint,
-    },
-    plan,
-    written,
-    oldLock,
-    injectedAt: now.toISOString(),
-  })
-  mkdirSync(dirname(lockPath), { recursive: true })
-  writeFileSync(lockPath, packLockJson(nextLock), { mode: 0o644 })
-  chmodSync(lockPath, 0o644)
-  outcome.lockPath = lockPath
-  outcome.backupRoot = backupRoot
-
-  outcome.hints.push('建议把 .openvibe/backup/ 加入 .gitignore（本命令不会改动 .gitignore）')
-
-  await reportInjection(outcome, deps, pack, warningsOut)
-  if (written.length > 0) {
-    await deps.onInjected?.({ name: outcome.pack.name, version: outcome.pack.version })
-  }
-
-  // §5.2：--yes --strategy skip 把 CONFLICT/DRIFT 全部留在磁盘外，这是「检测到冲突」而非成功，
-  // 返回 2 让 CI 能区分「无事可做」与「有冲突被批量跳过」。
-  if (options.yes === true && options.strategy === 'skip' && plan.pending.length > 0) {
-    outcome.exitCode = 2
-  }
-  return outcome
 }
 
 function statusOf(plan: InjectPlan, path: string): InjectStatus {
