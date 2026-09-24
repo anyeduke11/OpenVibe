@@ -516,6 +516,7 @@ export const zh = {
       sizeRow: (kB: string, tok: number) => `${String(kB)}kB · ≈${String(tok)} tok`,
       perTargetTitle: '各平台读进上下文的量（主规则文件 + 术语表 + 检查清单 + SKILLS.md）',
       footprintTitle: '整包落盘足迹',
+      fileCount: (n: number) => `${String(n)} 文件`,
       overBudget: (adapter: string, tok: number) =>
         `${adapter} ≈${String(tok)} 近似上下文量，已超过提示线——只提示，不影响导出与注入`,
     },

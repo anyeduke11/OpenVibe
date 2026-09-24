@@ -1,6 +1,5 @@
 import { useState } from 'react'
-import type { PreviewOut } from '@openvibe/shared'
-import { utf8ByteLength } from '@openvibe/shared'
+import { utf8ByteLength, type PreviewOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 
 /**
@@ -57,7 +56,9 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
             ))}
           </ul>
           <p className="text-xs text-zinc-500">
-            {`${zh.packs.preview.footprintTitle} ≈${String(preview.sizeEstimate.footprint.approxTokens)} · ${preview.sizeEstimate.footprint.files.length} 文件`}
+            {`${zh.packs.preview.footprintTitle} ≈${String(
+              preview.sizeEstimate.footprint.approxTokens,
+            )} · ${zh.packs.preview.fileCount(preview.sizeEstimate.footprint.files.length)}`}
           </p>
           {preview.sizeEstimate.perTarget
             .filter((p) => p.warn)
@@ -80,7 +81,9 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
       )}
 
       <p className="text-xs font-medium text-zinc-500">
-        {`${zh.packs.preview.files} · ${zh.packs.preview.sizeBasis}`}
+        {`${zh.packs.preview.files}${
+          preview.sizeEstimate !== undefined ? ` · ${zh.packs.preview.sizeBasis}` : ''
+        }`}
       </p>
       <div className="flex h-[46vh] gap-3">
         <ul className="w-56 shrink-0 overflow-auto rounded-md border border-zinc-200 bg-white py-1">
@@ -97,9 +100,12 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
                 <span className="mono block truncate" title={f.path}>
                   {f.path}
                 </span>
-                <span className="block truncate text-[10px] text-zinc-400">
-                  {sizeFor(f.path, f.content)}
-                </span>
+                {/* 无 sizeEstimate 时整段不渲染：宁可无量，也不印「≈0」这种假零断言 */}
+                {preview.sizeEstimate !== undefined && (
+                  <span className="block truncate text-[10px] text-zinc-400">
+                    {sizeFor(f.path, f.content)}
+                  </span>
+                )}
               </button>
             </li>
           ))}
