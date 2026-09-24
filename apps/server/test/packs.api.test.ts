@@ -489,10 +489,11 @@ describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', (
       '小包的 perTarget 不该有 warn',
     ).toBe(true)
 
-    // 正向支按 m6a §7 验收 10 的**原句**构造：把术语**全选**。空库里没有术语，
-    // 所以先跑真种子（`content/seed/terms.json`，现量 109 条），再取全量 id。
-    // 这使断言与种子同源——种子审校若显著改变术语体量，这支**应当**变红并逼人重看阈值结论，
-    // 而不是靠合成夹具永远绿着。（owner 2026-09-24 裁定：保持「全选」，测试跟着 seed 走。）
+    // 正向支按 m6a §7 验收 10 构造。**原句只说「把术语全选」，实测被否证**：109 条种子术语全选时
+    // perTarget[0] 只有 9,617 < 12000，故 owner 2026-09-24 裁定把规格改写为「资产全选」（v1.3），
+    // 本支随之把种子术语**与种子提示词一并**全选。空库里没有资产，id 全从 API 取、不写死。
+    // 这使断言与种子同源——种子审校若显著改变体量，这支**应当**变红并逼人重看阈值结论，
+    // 而不是靠合成夹具永远绿着。（owner 另裁定：保持「全选」语义，测试跟着 seed 走。）
     const seeded = runSeed(h.handle.db, SEED_DIR)
     // `SeedBundleResult` 实况（packages/core/src/db/seed.ts:17-24）：`created` 是 **number**、
     // 没有 `.terms` 子对象；状态词是 `status: 'skipped'|'imported'|'error'`。
@@ -522,7 +523,7 @@ describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', (
       '种子提示词未入库 ⇒ 正向支体量来源变了，须重看 §7 验收 10 的阈值结论',
     ).toBeGreaterThanOrEqual(20)
     // 分页防线（I-2）：GET /api/prompts 走 `prompts.list(query)`，页大小默认
-    // `LIMITS.listPageSizeDefault = 50`（packages/shared/src/schemas/prompt.ts:41-47）。
+    // `LIMITS.listPageSizeDefault = 50`（packages/shared/src/schemas/prompt.ts:42-49）。
     // 今天 21 条提示词全进得来，所以 `items` 就是「全选」；种子长到 51 条起它会**静默退化成
     // 前 50 条**，届时 `approxTokens > SIZE_WARN_THRESHOLD` 仍可能绿，而断言钉的语料已不是
     // 报告 §5 那个数。故钉「取到的就是全量」这条命题，而不是给 URL 加 `?size=<listPageSizeMax>`
@@ -546,7 +547,8 @@ describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', (
     // 阈值判断只跟响应自身的数比，不写死任何字面量（反漂移：数字单源在响应里）
     expect(row?.approxTokens ?? 0).toBeGreaterThan(SIZE_WARN_THRESHOLD)
     expect(row?.warn).toBe(true)
-    // 这个实量数即 m6a FR-6.4 要的「真 preview 实测」权威值——收口时回填规格，替掉三条字节折算值
+    // 本支的实量数是**阈值正向支**的凭据，不是 FR-6.4 回填规格的那个权威数——后者是**首启预置包**
+    // 的量，由 SRV-EST-04 复现（见该支注释）。两数不同源（选择集与包名都不同），不可互相顶替。
 
     // FR-6.4 的负向断言：超线不改任何放行结果
     const exported = await api(h, 'POST', `/api/packs/${big.id}/export`, {
@@ -560,17 +562,6 @@ describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', (
     // sync 侧不可观察：`sizeEstimate` 不进 `bundleJson()` / `directoryFiles()`
     // （apps/server/src/routes/packs.ts:91,98），CLI 无从观察它，
     // 故 §7 验收 10 的 sync 腿由**结构**保证，非由本支证明——别把本支标题当成那条凭据。
-  })
-
-  it('SRV-EST-03: 确定性——同一包连续两次 preview，sizeEstimate 序列化后逐字节相等', async () => {
-    const h = await makeHarness()
-    const pack = await mkPack(h)
-    const a = await preview(h, pack.id, '1.0.0')
-    const b = await preview(h, pack.id, '1.0.0')
-    // M-1：存在性先钉，否则字段整体消失时这里空过
-    // （JSON.stringify(undefined) === JSON.stringify(undefined)；RED 日志「3 failed | 1 passed」即证据）
-    expect(a.sizeEstimate, '响应缺 sizeEstimate').toBeTruthy()
-    expect(JSON.stringify(a.sizeEstimate)).toBe(JSON.stringify(b.sizeEstimate))
   })
 
   // 纯用例（M-2）：直接打导出的 `buildSizeEstimate`（apps/server/src/lib/pack-assemble.ts:90），
@@ -596,6 +587,17 @@ describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', (
     )
     expect(oneOver.perTarget[0]?.approxTokens).toBe(SIZE_WARN_THRESHOLD + 1)
     expect(oneOver.perTarget[0]?.warn, '超线一个 tok 就该亮黄条').toBe(true)
+  })
+
+  it('SRV-EST-03: 确定性——同一包连续两次 preview，sizeEstimate 序列化后逐字节相等', async () => {
+    const h = await makeHarness()
+    const pack = await mkPack(h)
+    const a = await preview(h, pack.id, '1.0.0')
+    const b = await preview(h, pack.id, '1.0.0')
+    // M-1：存在性先钉，否则字段整体消失时这里空过
+    // （JSON.stringify(undefined) === JSON.stringify(undefined)；RED 日志「3 failed | 1 passed」即证据）
+    expect(a.sizeEstimate, '响应缺 sizeEstimate').toBeTruthy()
+    expect(JSON.stringify(a.sizeEstimate)).toBe(JSON.stringify(b.sizeEstimate))
   })
 
   // I-1：FR-6.4 末句「**首启预置包自己就会亮黄条**」的仓库内可复现凭据。
