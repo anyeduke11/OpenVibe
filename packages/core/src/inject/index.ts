@@ -46,3 +46,12 @@ export {
   type SyncLockHandle,
   type SyncLockHolder,
 } from './sync-lock'
+export {
+  RETIREMENT_STATES,
+  planRetirement,
+  type RetirementAction,
+  type RetirementFile,
+  type RetirementInput,
+  type RetirementPlan,
+  type RetirementState,
+} from './retirement'
