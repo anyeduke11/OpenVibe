@@ -512,6 +512,12 @@ export const zh = {
       done: (v: string) => `已导出 v${String(v)}`,
       idempotent: (v: string) => `v${String(v)} 指纹一致，回既有导出记录（幂等）`,
       written: (p: string) => `目录已写入 ${p}`,
+      sizeBasis: '近似上下文量（≈tok，非计费口径）',
+      sizeRow: (kB: string, tok: number) => `${String(kB)}kB · ≈${String(tok)} tok`,
+      perTargetTitle: '各平台读进上下文的量（主规则文件 + 术语表 + 检查清单 + SKILLS.md）',
+      footprintTitle: '整包落盘足迹',
+      overBudget: (adapter: string, tok: number) =>
+        `${adapter} ≈${String(tok)} 近似上下文量，已超过提示线——只提示，不影响导出与注入`,
     },
     exports: {
       version: '版本',

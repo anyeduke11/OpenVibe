@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { PreviewOut } from '@openvibe/shared'
+import { utf8ByteLength } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 
 /**
@@ -13,6 +14,13 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
 
   const files = preview.files
   const current = files[Math.min(active, files.length - 1)]
+
+  const tokFor = (path: string): number =>
+    preview.sizeEstimate?.footprint.files.find((s) => s.path === path)?.approxTokens ?? 0
+  const sizeFor = (path: string, content: string): string => {
+    const kB = (utf8ByteLength(content) / 1024).toFixed(1)
+    return zh.packs.preview.sizeRow(kB, tokFor(path))
+  }
 
   return (
     <div className="flex min-h-0 flex-col gap-2 text-sm">
@@ -29,6 +37,38 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
         </p>
       )}
 
+      {preview.sizeEstimate !== undefined && preview.sizeEstimate.perTarget.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-xs text-zinc-500">
+            {`${zh.packs.preview.perTargetTitle} · ${zh.packs.preview.sizeBasis}`}
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {preview.sizeEstimate.perTarget.map((p) => (
+              <li
+                key={p.adapter}
+                className={`rounded-md border px-2 py-1 text-xs ${
+                  p.warn
+                    ? 'border-amber-300 bg-amber-50 text-amber-800'
+                    : 'border-zinc-200 bg-white text-zinc-700'
+                }`}
+              >
+                {`${p.adapter} ≈${String(p.approxTokens)}`}
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-zinc-500">
+            {`${zh.packs.preview.footprintTitle} ≈${String(preview.sizeEstimate.footprint.approxTokens)} · ${preview.sizeEstimate.footprint.files.length} 文件`}
+          </p>
+          {preview.sizeEstimate.perTarget
+            .filter((p) => p.warn)
+            .map((p) => (
+              <p key={`warn-${p.adapter}`} className="text-xs text-amber-700">
+                {zh.packs.preview.overBudget(p.adapter, p.approxTokens)}
+              </p>
+            ))}
+        </div>
+      )}
+
       {preview.warnings.length > 0 ? (
         <ul className="space-y-0.5 text-xs text-amber-700">
           {preview.warnings.map((w) => (
@@ -39,7 +79,9 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
         <p className="text-xs text-zinc-400">{zh.packs.preview.noWarnings}</p>
       )}
 
-      <p className="text-xs font-medium text-zinc-500">{zh.packs.preview.files}</p>
+      <p className="text-xs font-medium text-zinc-500">
+        {`${zh.packs.preview.files} · ${zh.packs.preview.sizeBasis}`}
+      </p>
       <div className="flex h-[46vh] gap-3">
         <ul className="w-56 shrink-0 overflow-auto rounded-md border border-zinc-200 bg-white py-1">
           {files.map((f, i) => (
@@ -54,6 +96,9 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
               >
                 <span className="mono block truncate" title={f.path}>
                   {f.path}
+                </span>
+                <span className="block truncate text-[10px] text-zinc-400">
+                  {sizeFor(f.path, f.content)}
                 </span>
               </button>
             </li>
