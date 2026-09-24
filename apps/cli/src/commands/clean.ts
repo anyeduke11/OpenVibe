@@ -301,7 +301,7 @@ export async function cleanAction(
             ? `--force 已带上，加 --yes 即连已改动的 ${String(plan.counts.DRIFT)} 个一起删`
             : `要连已改动的 ${String(plan.counts.DRIFT)} 个一起删还得加 --force`
           : options.force === true
-            ? '--force 已带上（本次没有已改动的受管文件，默认动作即全删）'
+            ? '--force 已带上（本次没有已改动的受管文件，本轮受管文件可一次删净）'
             : '本次没有已改动的受管文件，--force 不会多删任何东西'
       throw new CleanError(
         'NEED_TTY',

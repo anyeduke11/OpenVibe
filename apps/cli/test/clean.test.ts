@@ -381,6 +381,13 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
       // 主句仍在（零 DRIFT 不代表没有可删项），且仍然指向唯一有效的下一步
       expect(msg).toContain('个文件需要删除确认')
       expect(msg).toContain('加 --yes')
+      // 零 DRIFT 那一档的两句**正面**文案也各钉一条（T9 修复轮 M-5）：只钉反面时，「删掉整个
+      // 零 DRIFT 分支、一律回落到带计数那句」的变异体照样全绿，而这两句才是零 DRIFT 时用户读到的解释。
+      // 措辞边界：说「本轮受管文件可一次删净」而不是「默认动作即全删」——同一次执行会把 FOREIGN
+      // 留在盘上，那正是 `CLI-CLEAN-10` 的全部内容。
+      expect(msg, `--force=${String(force)}：零 DRIFT 那一档的正面文案必须在场`).toContain(
+        force ? '本轮受管文件可一次删净' : '--force 不会多删任何东西',
+      )
     }
   })
 
@@ -779,8 +786,11 @@ describe('命令注册与 --json 契约（FR-6.10）', () => {
     expect(out.stdout).toContain(
       `删除 ${String(n)}（受管未改动 ${String(n - 1)} / --force 1），保留 0，已自行退场 0，非我方文件 0（永不删除）`,
     )
-    // FOREIGN 为 0 时那句不许谎报有非我方文件
-    expect(out.stdout).toContain('非我方文件 0（永不删除）')
+    // 上面那句整串断言钉的是「人读轨措辞 + 列对齐」，这一条钉的是**属性本身**：FOREIGN 为 0 时
+    // 统计里不得出现非零的「非我方文件」。把数字抽出来比，措辞怎么改它都有效；原写法是上面那句的
+    // 子串（`toContain('非我方文件 0（永不删除）')`），因而恒真——T9 修复轮 CTRL-A 收的就是这条。
+    const foreignClaim = /非我方文件 (\d+)/.exec(out.stdout)
+    expect(foreignClaim?.[1], 'FOREIGN 为 0 时不得报出非零').toBe('0')
     // 状态列按 padEnd(8) 对齐：IN_SYNC 七字符补一格、DRIFT 五字符补三格
     expect(hasLine('IN_SYNC  CLAUDE.md'), out.stdout).toBe(true)
     expect(hasLine('DRIFT    TERMS.md'), out.stdout).toBe(true)
@@ -808,6 +818,9 @@ describe('命令注册与 --json 契约（FR-6.10）', () => {
   // clean.ts:285），而 CLI-CLEAN-11 走的是全清那一轮——那一轮 hints 不承载任何理由，只证到键存在。
   // 人读轨 `printer.info` 在 JSON 轨是 no-op，所以「不带 hints 这句就地消失」必须被一支
   // 真子进程 + `--dry-run` + `--json` 三者同场的用例钉住。
+  // 修复轮 M-8 删掉了这里原有的两条 `inSyncRemoved === 0` / `driftForced === 0`：dry-run 走
+  // `clean.ts:290` 的 `tally(0, 0, driftKept, null, false)`，那两个数在那一行被**写死**为 0，
+  // 断言在任何变异下都不可能红。承重的仍是 hints 那句 + 全树快照逐字节不变 + `backup/` 不建。
   it('CLI-CLEAN-12b: --dry-run --json ⇒ summary.hints 带「零写入零删除」，且盘上一字节未动', async () => {
     const fx = fixture()
     const { project } = await injected(fx)
@@ -832,8 +845,6 @@ describe('命令注册与 --json 契约（FR-6.10）', () => {
     expect(Array.isArray(env.summary.hints)).toBe(true)
     expect(env.summary.hints.join('\n')).toContain('零写入零删除')
     // 那句话承诺的东西由盘上实况兜底（承 CLI-CLEAN-04 的 §7.1a 全树口径，这里走真子进程）
-    expect(env.summary.inSyncRemoved).toBe(0)
-    expect(env.summary.driftForced).toBe(0)
     expect(treeSnapshot(project)).toEqual(before)
     expect(existsSync(join(project, PACK_BACKUP_REL))).toBe(false)
   })
