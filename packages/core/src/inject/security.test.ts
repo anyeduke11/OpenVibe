@@ -22,6 +22,7 @@ function thrown(fn: () => unknown): Thrown {
 }
 
 const OK = { path: 'CLAUDE.md', content: '# 规则\n' }
+const IS_WINDOWS = process.platform === 'win32'
 
 function workspace(prefix: string): { dir: string; close(): void } {
   const dir = mkdtempSync(join(tmpdir(), prefix))
@@ -111,12 +112,8 @@ describe('UT-INJECT-SEC-02 · 符号链接逃逸拒绝（design §7.7 规则 3 /
     expect(check).toEqual({ ok: true, absPath: join(linkRoot, '.cursor/rules/openvibe.mdc') })
   })
 
-  it('真实符号链接（非 win32）→ ESCAPE', () => {
+  it.skipIf(IS_WINDOWS)('真实符号链接（非 win32）→ ESCAPE', () => {
     const w = workspace('ov-inject-sym-')
-    if (process.platform === 'win32') {
-      w.close()
-      return
-    }
     const outside = join(w.dir, 'outside')
     mkdirSync(outside)
     writeFileSync(join(outside, 'x.md'), 'x', 'utf8')

@@ -192,10 +192,6 @@ describe('备份、lock 与权限（m6b §7.1b / FR-2.5 / §6.4）', () => {
       expect(entry.managed).toBe(true)
     }
 
-    if (!IS_WINDOWS) {
-      expect(statSync(pathOf(project, 'CLAUDE.md')).mode & 0o777).toBe(0o644)
-      expect(statSync(outcome.lockPath ?? '').mode & 0o777).toBe(0o644)
-    }
     expect(outcome.hints.join('\n')).toContain('.gitignore')
 
     // 幂等重跑：全 IN_SYNC，不产生第二个备份目录
@@ -204,6 +200,23 @@ describe('备份、lock 与权限（m6b §7.1b / FR-2.5 / §6.4）', () => {
     expect(second.backupRoot).toBeNull()
     expect(Object.values(stateOf(second)).every((s) => s === 'IN_SYNC')).toBe(true)
   })
+
+  it.skipIf(IS_WINDOWS)(
+    'CLI-SYNC-03d: 受管文件与 lock 落盘 0644（win32 无 POSIX 权限位）',
+    async () => {
+      const v1 = demoPack()
+      const { root, project } = sandbox()
+      const bundlePath = writeBundleFile(root, v1)
+      putFile(project, 'CLAUDE.md', '本地手写规则，与包冲突\n')
+
+      const outcome = await syncAction(
+        { projectPath: project, file: bundlePath, yes: true },
+        { now: () => NOW },
+      )
+      expect(statSync(pathOf(project, 'CLAUDE.md')).mode & 0o777).toBe(0o644)
+      expect(statSync(outcome.lockPath ?? '').mode & 0o777).toBe(0o644)
+    },
+  )
 
   it('CLI-SYNC-03b: 同一时间戳再次备份 → 目录追加 -1，旧备份不被覆盖（§6.4）', async () => {
     const v1 = demoPack()

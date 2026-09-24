@@ -43,6 +43,7 @@ afterAll(() => {
 })
 
 const T0 = new Date()
+const IS_WINDOWS = process.platform === 'win32'
 const at = (offsetMs: number): { now: () => Date } => ({ now: () => new Date(T0.getTime() + offsetMs) })
 const pid = (p: number) => ({ pid: () => p })
 const alive = (predicate: (p: number) => boolean) => ({ isAlive: predicate })
@@ -218,8 +219,7 @@ describe('sync.lock（并发注入互斥）', () => {
     lock.release()
   })
 
-  it('SL-09: 锁文件权限 0600（win32 无 POSIX 权限位，跳过）', () => {
-    if (process.platform === 'win32') return
+  it.skipIf(IS_WINDOWS)('SL-09: 锁文件权限 0600（win32 无 POSIX 权限位）', () => {
     const dir = project()
     const lock = held(tryAcquireSyncLock(dir, 'sync', at(0)))
     expect(statSync(lock.path).mode & 0o777).toBe(0o600)

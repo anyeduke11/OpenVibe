@@ -729,3 +729,31 @@
 - **测试验证**: 本轮只动 `.md`，按上条 M-2 的规矩**不裸用「`.md` 不是闸输入」这句**——正向证据沿用 `[DEV-0028]` 正文那条（`tests/lint-boundary.test.ts` 全文零 `docs/`/`.md` 引用，单跑 **2 passed**）。另复算三项：文件头表 3–10 行竖线数**全部 = 3**（2 列表未破）；`git diff -U0 | grep -c '^[+-][^+-]'` = **2**；`grep -c '^- \[ \]'` 三处（dev-plan 34 / tasks 5 / tasks 勾 65）与本条登记一致。五闸未复跑（无代码改动，HEAD 与 `f8dfbdb` 同源）。
 - **潜在风险**: ① 「不追踪执行」这句只写在文件头一处，T1–T9 段内 34 个框**就地无标记**——后来者若跳过表头直接读段落，仍可能误读；② 净行数 0 是靠「并入既有行」换来的，代价已付：「执行纪律」行现在是**一行 466 字符**的长句，后续再加口径会继续撑它，直到不得不拆表（那时必须重做本轮的行号复算）；③ `dev-plan` 的版本行仍写 v1.0，本轮口径属 C 级，未升版本——若 owner 的 B 级复核认为「勾选语义」是行为规格，需要补一行版本记录。
 - **owner 手上未收的（队列 ⑩ → 已裁；⑪⑫ 仍在）**: ⑩ 关闭（本轮裁「声明不追踪 + 台账单源」并已落盘）；⑨ 项原样；⑪ `apps/web` 测试基建二选一、⑫ `playbookIds` 契约处理 = **待裁**。
+
+## [DEV-0029] 待决策项 ③ 落地 · **4 处行内 POSIX 守卫全部改成仓库既有的诚实形态**：win32 上「被报成 passed 的 7 支断言」归零，代价是 skip 数 4 → 8（**本地不可证，须 CI 验**）——顺带推翻 `[DEV-0028]` 自己那两条登记，并登记我本轮**误跑 `prettier --write`** 的处置
+
+- **时间**: 2026-09-25 04:20–04:58 +0800。采样凭据：起点 HEAD `b997f1b`、`git status --porcelain` 在改造中恒为**本轮 4 个测试文件**（无并行会话掺入）；`main` == 远端实况 == `787eb4c` 未变（本轮未推）。
+- **类型**: §0.3 **C 级**——**零产品代码、零行为改动**，改的是「win32 腿上少跑的断言怎么被记账」。owner 从上轮「新撞出」清单选定第 ③ 项：四选一里选**「全 4 处改诚实形态」**（其余选项：只改 core 两处 / 不动代码只登记清单）。
+- **关联文件**（本轮各改了什么）:
+  - `apps/cli/test/serve.test.ts` —— 删 `:53` 的行内守卫；新增 `CLI-SERVE-01b`（`it.skipIf(IS_WINDOWS)`）单独证「首启落盘的 config.json 权限 0600」；本文件加 `const IS_WINDOWS`。
+  - `apps/cli/test/sync.test.ts` —— 删 `CLI-SYNC-03` 里 `if (!IS_WINDOWS) { … }` 的两支 0644 断言；新增 `CLI-SYNC-03d`（`it.skipIf(IS_WINDOWS)`）证「受管文件与 lock 落盘 0644」；id 后缀按现测可用位取 `03d`（`03b/03c` 已占）。
+  - `packages/core/src/inject/security.test.ts` —— 「真实符号链接 → ESCAPE」整支早退（`if (win32) { w.close(); return }`）改 `it.skipIf(IS_WINDOWS)`；加 `const IS_WINDOWS`。早退形太白：win32 上连夹具都不建，却与真跑过的支同样记 passed。
+  - `packages/core/src/inject/sync-lock.test.ts` —— `SL-09`（锁文件 0600，含接管路径第二支断言）的 `if (process.platform === 'win32') return` 改 `it.skipIf(IS_WINDOWS)`，标题里的「跳过」二字随之删掉（现在是记账事实，不是叙述）。
+- **问题描述**: owner 指令「依次沟通待决策项」。第 ③ 项的前提交是我上一轮在 `[DEV-0028]` 写下的两条登记——「win32 未测面 5 处」与「内联守卫在 `serve.test.ts:54`」。本轮动手前先把它们复跑一遍，**两条都不实**（见「被推翻」⑴⑵），据实况重造证据表后才裁。
+- **实现思路**: 不发明新约定。现仓已有两种诚实形态，且**它们的总数恰好闭合**：`it.skipIf(IS_WINDOWS)` 三支（`clean.test.ts:526` / `apps/cli/test/security.test.ts:143` / `sync.test.ts:752`）+ `config.test.ts:15` 的 `const itPosix = win32 ? it.skip : it`（用于 `:69`）= **4**，与 run `36007700628` win32 报的 `4 skipped` 逐一对上 ⇒ 这套形态是有效的、且此前 4 skip 就是 win32 未测面的**全部可数部分**。剩下的 4 处行内守卫是**不可数部分**，改造就是把不可数变可数。宿主支不能被整支 skip 的（serve/sync 那两处混在跨平台断言中间），采取**拆支**而非弱化——拆出的新支只装 POSIX 断言，宿主支在 win32 上照旧全跑。
+- **核心变更（改造前后，全部现测）**:
+  - **改造前**：win32 腿未测面 = **8 处**，分两类——4 处诚实（3 支 skipIf + 1 支 itPosix，共 **20** 支 POSIX 断言，CI 数得到）+ **4 处行内守卫（共 7 支断言，CI 一律报 passed）**：`serve.test.ts:53` 1 支、`sync.test.ts:195` 2 支、`inject/security.test.ts:114` 2 支、`inject/sync-lock.test.ts:221` 2 支。
+  - **改造后**：行内守卫 **0 处**；诚实 skip 面 4 → **8 处**。darwin 侧**断言总量不减**：`serve.test.ts` 6 → 7 支、`sync.test.ts` 30 → 31 支（各 +1 拆出的支），core 两支只是换了记账形态（16 / 12 支不变）。
+  - **0600 这条属性没有变成双源**：`serve.ts:105` 走的是 `config.ts:124` 的 `writeConfigFile`，单元侧早由 `CLI-CFG-03`（`itPosix`）证过「写入 + 已存在时显式 chmod 收回 0600」；`CLI-SERVE-01b` 证的是**首启链路真的经过它**。两支断言不同层，不互吃。
+- **测试验证**:
+  - **五闸在工作树 rc 全 0**：`lint` 0 错 / `typecheck` 两份 tsconfig 各一遍 0 错 / **`test` 47 文件 435 passed / 0 skipped（darwin 全跑）**，汇总 Duration 9.89 s / `seed:check` terms ≥100・templates=3・prompts=20・`TERMS.md` 109 行 / `bundle:check` 入口 **293.07 kB ≤ 300**、23 chunk 最大 347.45 kB ≤ 500（**与改造前逐字相同** ⇒ 本轮确实没碰到产物侧）。
+  - **支数变化的预测先写后验**：改前据「+2 支拆出的测试」预测 433 → **435**，跑完全场实测**恰为 435**。四文件单跑另测 **66 passed / 0 skipped**、`sync-lock.test.ts` 手工还原后复跑 **12 passed**。
+  - **「win32 会 skip 8 支」这句本轮是推断，不是实测**：本机无 win32，`it.skipIf` 的判真分支在本地永远不执行。它的证据强度来自**机制同源**——既有 4 处在 win32 上确实产出了 4 skip（CI run `36007700628`），本轮只是往同一机制里多挂 4 处。**要在 win32 上实证必须 push**（属待决策项 ⑤ 的授权范围，本轮未推）。
+  - **格式核查的边界**：本轮只对被改的 4 个文件做 `prettier --check`（**不跑 `pnpm format`**，存量漂移约 98 文件是已知事实）。`serve/sync/inject-security` 三份 clean；`sync-lock.test.ts` 仍 warn，且 warn 的是**与本任务无关的一行既有长句**（`const at = …`，`git show HEAD:…` 送进 prettier 同样 rc=1）⇒ 非本轮新增漂移。
+- **本轮被推翻的结论（含我自己上一条登记）**:
+  - ⑴ `[DEV-0028]` 写「内联守卫在 `serve.test.ts:54` 非 `:53`」——**方向反了**：`grep -n` 实测守卫在 **`:53`**，`:54` 是空行。上一轮我以「纠正子 agent 行号错」的名义把对的改成了错的，本轮按实况登记。
+  - ⑵ `[DEV-0028]` 写「win32 未测面实为 **5 处**」——**仍少算 3 处**：除 serve 那一支，还有 `sync.test.ts:195`、`inject/security.test.ts:114`、`inject/sync-lock.test.ts:221` 三处行内守卫，全仓同类共 **4 处行内 + 4 处诚实 = 8 处**。根因：上一轮我只在 `apps/cli/test/` 里找 `process.platform`，**没有把 `packages/*/src/**/*.test.ts` 纳入同一 pattern 的扫描**（那次 shell 的 `packages/*/test` glob 还撞了 zsh 的 `no matches found`，等于漏扫整棵 packages）。
+  - ⑶ **我自己本轮的操作失误一条（不属证据推翻，属动作失控）**：核格式时把 `prettier --write` 与 `--check` 串进了同一条命令，`sync-lock.test.ts` 里一行与本任务无关的 `const at` 被重排。发现于 `git diff`，**未用 `git restore`（共享工作树禁用）**，按 Edit 手工还原那一行，还原后复算 diff 只剩我的两处目标改动。**规矩化**：核查用 `--check`，写盘用 `--write`，**永不同时出现在一条命令里**；格式化类命令一律先看 `git diff --stat` 再决定。
+  - ⑷ 顺带复核到 dev-plan `:1485` 里 `433 支 / 47 文件` 的历史登记：本轮 HEAD 起为 435。不逐处重砸数字（该句自带「支数一律以现测为准，不抄历史数字」），只在该句后加指针指回本条。
+- **潜在风险**: ① 「8 skip」在 win32 实证之前，任何按 skip 计数读进展的人仍会被 4 这个旧数误导——本条是唯一防线；② 拆出的 `CLI-SERVE-01b` 会多起一次 serve 首启（真端口 0 + 独立 `OPENVIBE_HOME` 沙箱），`CLI-SYNC-03d` 会多跑一次真 sync 写盘，二者都走各文件既有的 `afterAll` 清理链，但 cli 组耗时略增；③ 若 owner 之后认为「POSIX 权限位应该由产品代码兜底而不是由测试跳过」，那属 B 级行为规格讨论，本条的改造不阻碍回退（四处改动位点全在上方「关联文件」列明）。
+- **owner 手上未收的（队列 ③ → 已裁并落地；⑪⑫ 仍在）**: ①–⑨ 原样；⑩ 已裁（`[DEV-0028]` 后记）；**③ 已裁已落**（本条）；⑪ `apps/web` 测试基建二选一、⑫ `playbookIds` 契约处理 = **待裁**；**新增 ⑬ 一次 push**——本轮 4 skip→8 skip 的唯一实证途径，且它同时是队列里「是否提交并推送 `414a001`/`f8dfbdb`/`b997f1b`」这条的合并决策点。

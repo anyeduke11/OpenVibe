@@ -9,6 +9,7 @@ import { openerArgs, serveAction, type ServeResult } from '../src/commands/serve
 
 const SEED_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'content', 'seed')
 const CLI_ENTRY = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'index.ts')
+const IS_WINDOWS = process.platform === 'win32'
 const homes: string[] = []
 const open: ServeResult[] = []
 
@@ -50,7 +51,6 @@ describe('serve 首启初始化（m6b FR-1，dev-plan §1.2 步骤 1/2/8）', ()
     expect(saved.serverUrl).toBe(first.url)
     expect(saved.token).toMatch(/^[0-9a-f]{64}$/)
     expect(saved.port).toBe(Number(new URL(first.url).port))
-    if (process.platform !== 'win32') expect(statSync(first.configPath).mode & 0o777).toBe(0o600)
 
     const termsBefore = await termsTotal(first)
     await first.close()
@@ -64,6 +64,18 @@ describe('serve 首启初始化（m6b FR-1，dev-plan §1.2 步骤 1/2/8）', ()
     expect(second.seed.created.terms).toBe(0)
     expect(await termsTotal(second)).toBe(termsBefore)
   })
+
+  it.skipIf(IS_WINDOWS)(
+    'CLI-SERVE-01b: 首启落盘的 config.json 权限 0600（win32 无 POSIX 权限位）',
+    async () => {
+      const home = tempHome()
+      const first = await serveAction({ home, port: 0, seedDir: SEED_DIR })
+      open.push(first)
+      expect(statSync(first.configPath).mode & 0o777).toBe(0o600)
+      await first.close()
+      open.pop()
+    },
+  )
 
   it('CLI-SERVE-02: 已存在但令牌不合法的 config.json → 重新生成并覆盖，不静默带着坏令牌启动', async () => {
     const home = tempHome()
