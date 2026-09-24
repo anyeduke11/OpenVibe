@@ -7,7 +7,7 @@
 | 姊妹文档 | [tasks.md](./tasks.md)（里程碑概览：门禁 / 依赖图 / 人日口径——本文不改变其任何数字，只做执行展开） |
 | 下游 | T1–T9 每日执行；DEV_LOG 记录依据；CI 用例命名 |
 | 版本 | v1.0（2026-09-20） |
-| 执行纪律 | **任何 T 任务开工前先读 §0**；本文与 specs/design 冲突时，冻结契约 > spec > 本文（按 §0.3 分级处理冲突本身） |
+| 执行纪律 | **任何 T 任务开工前先读 §0**；本文与 specs/design 冲突时，冻结契约 > spec > 本文（按 §0.3 分级处理冲突本身）。**勾选语义（2026-09-25 定口径）**：本文 §T1–T9 的 `- [ ]` / `- [x]` 是**写作当时的计划展开**，**不追踪执行**——34 个未勾框（含「仓库落地（D16/D17）」「落 `LICENSE`」两项，**均已实装**）**不代表欠账**，读它当 todo 会凭空造出 34 项工作量；**执行台账单源在 [tasks.md](./tasks.md)**（65 勾 / 5 未勾，那 5 项逐条可归因：1 条自称 T9 历史、1 条阻塞真发布、1 条归 P2、2 条 P0 期已划掉），判进展一律走 tasks.md + 门禁实测，**不得回头补勾本文的框**（补勾等于把计划文档改成第二份台账，正面撞 §13-8 单源规矩与本行纪律）。口径登记于 `DEV_LOG [DEV-0028]` 2026-09-25 后记。 |
 
 ---
 
@@ -1055,7 +1055,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 **SPEC 依据**：m3 FR-1–FR-4；seed-content §3.2；design §7.4（TERMS.md 契约）。
 
 **工作项**
-- [ ] `server/routes/terms.ts`（§3.3 五端点，render-terms-md 确定性排序 + `|` 转义）
+- [ ] `server/routes/terms.ts`（§3.3 五端点，render-terms-md 确定性排序 + `|` 转义）——**⚠️ 2026-09-25 校正：「五端点」是写作当时的计划数，实落六个；端点清单以 `apps/server/src/routes/terms.ts` 的路由注册为准（本文与 `tasks.md` 都不再各自枚举，见 `tasks.md:82` 的 2026-09-24 自纠）**。本框按文件头「勾选语义」行读作计划展开，不表示未做。
 - [ ] `web/pages/TermsPage` + TermsTable / TermEditorDrawer / TermsMdPreview
 - [ ] `content/seed/terms.json` 首批 60 条（批次 A/B，§11 SOP）
 - [ ] `scripts/seed-check.ts`（schema+数量+受控词表），CI 阈值 60 先行
