@@ -76,6 +76,7 @@ openvibe serve [--port 8787] [--open]     本地 API + Web UI，首启生成配�
 openvibe sync <dir> [--pack <n[@v]>]      注入：--dry-run 零写入 / --file|--dir 离线注入 / --target 只写指定平台
 openvibe scan  [--skills | --project <d>] 扫描 skill 目录或项目规则文件并登记
 openvibe diff  <dir>                      产物 vs lock 比对 + 是否有更新版本；退出码 0 一致 / 2 漂移
+openvibe clean <dir> [--yes]              退场：删当前 lock 登记且未改动的受管文件（删前一律备份）；--dry-run 只出计划零写入 / --force 连改过的一起删；退出码 0 全清 / 2 有保留 / 1 出错
 ```
 
 三条全局旗标 `--server` / `--token` / `--json`；`--json` 下 stdout 只有一个 JSON 对象且禁用一切交互，

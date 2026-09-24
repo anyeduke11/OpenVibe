@@ -292,13 +292,22 @@ export async function cleanAction(
 
   if (plan.removals.length > 0 && options.yes !== true) {
     if (deps.isTTY !== true) {
+      // 尾巴句按 `counts.DRIFT > 0` 守卫（T5 审查 Minor-7）：DRIFT 为 0 时「连已改动的 0 个一起删」
+      // 是句假话——它承诺了一件不必做的事，还叫用户去加一个什么都不改的旗标。
+      // 两条孪生句共用同一个守卫：只守新句、留下一种口径没改，就是这条 Minor 的复发。
+      const driftClause =
+        plan.counts.DRIFT > 0
+          ? options.force === true
+            ? `--force 已带上，加 --yes 即连已改动的 ${String(plan.counts.DRIFT)} 个一起删`
+            : `要连已改动的 ${String(plan.counts.DRIFT)} 个一起删还得加 --force`
+          : options.force === true
+            ? '--force 已带上（本次没有已改动的受管文件，默认动作即全删）'
+            : '本次没有已改动的受管文件，--force 不会多删任何东西'
       throw new CleanError(
         'NEED_TTY',
-        `${String(plan.removals.length)} 个文件需要删除确认，但当前不是交互终端：加 --yes（仅确认默认动作）` +
+        `${String(plan.removals.length)} 个文件需要删除确认，但当前不是交互终端：` +
           // --force 已在场时不能再叫用户「还得加 --force」（T3 审查留下的无断言分支，测试 CLI-CLEAN-05e）
-          (options.force === true
-            ? `；--force 已带上，加 --yes 即连已改动的 ${String(plan.counts.DRIFT)} 个一起删`
-            : `；要连已改动的 ${String(plan.counts.DRIFT)} 个一起删还得加 --force`),
+          `加 --yes（仅确认默认动作）；${driftClause}`,
         { removals: [...plan.removals].sort(compareCodeUnit) },
       )
     }

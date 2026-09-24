@@ -34,8 +34,8 @@ import { putFile, treeSnapshot } from './helpers/tree'
  * T10 · `openvibe clean`（m6b FR-6 + 验收 §7.10 a–j）。
  * 分支映射：01↔a 02↔b 03↔c 04↔d 05/05e↔e（05e 另钉 c 的 --force 措辞） 05b/05c/05d↔e2
  * 06↔f 06b/06d↔e3 06c/06g↔f2 06e/06f↔FR-6.6 的两半（I-3） 07↔g 08/08b↔h 09↔i 10↔j。
- * §7.10 之外的契约四支：11（命令注册 + `--json` 形状）11b（`summary.ok` 与退出码同式）
- * 11c（人读轨渲染）12（错误信封）。
+ * §7.10 之外的契约五支：11（命令注册 + `--json` 形状）11b（`summary.ok` 与退出码同式）
+ * 11c（人读轨渲染）12（错误信封）12b（`hints` 的 dry-run 承重腿）。
  * 判据一律落在磁盘实况与 lock 读回上——被保护的对象就是那些文件。
  */
 
@@ -360,6 +360,28 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
     const plainTty = await needTtyMessage(false)
     expect(plainTty).toContain('还得加 --force')
     expect(plainTty).not.toContain('--force 已带上')
+
+    // 上面四条腿都带着一个 DRIFT 在场，于是「连已改动的 0 个一起删」这一档谁也抓不到（T5 审查 Minor-7）。
+    // 两句孪生文案必须由同一个 counts.DRIFT > 0 守卫，只守卫一句就留两种口径。
+    const zeroDriftTty = async (force: boolean): Promise<string> => {
+      const { project } = await injected(fixture())
+      const err = await cleanAction(
+        { projectPath: project, force },
+        { isTTY: false, now: () => NOW },
+      ).catch((e: CleanError) => e)
+      expect((err as CleanError).code).toBe('NEED_TTY')
+      return (err as Error).message
+    }
+    for (const force of [true, false]) {
+      const msg = await zeroDriftTty(force)
+      expect(
+        msg,
+        `--force=${String(force)}：零 DRIFT 时不得承诺「连已改动的 0 个一起删」`,
+      ).not.toMatch(/已改动的 0 个/)
+      // 主句仍在（零 DRIFT 不代表没有可删项），且仍然指向唯一有效的下一步
+      expect(msg).toContain('个文件需要删除确认')
+      expect(msg).toContain('加 --yes')
+    }
   })
 
   it('CLI-CLEAN-06: 无 lock → NO_LOCK + 退出码语义 1 + 零删除', async () => {
@@ -780,5 +802,39 @@ describe('命令注册与 --json 契约（FR-6.10）', () => {
     expect(env.command).toBe('clean')
     expect(env.summary.ok).toBe(false)
     expect(env.summary.error.code).toBe('NO_LOCK')
+  })
+
+  // FR-6.10 v1.5 的**承重腿**：「零写入零删除」这句理由只住在 `hints` 里（全仓唯一产出点是
+  // clean.ts:285），而 CLI-CLEAN-11 走的是全清那一轮——那一轮 hints 不承载任何理由，只证到键存在。
+  // 人读轨 `printer.info` 在 JSON 轨是 no-op，所以「不带 hints 这句就地消失」必须被一支
+  // 真子进程 + `--dry-run` + `--json` 三者同场的用例钉住。
+  it('CLI-CLEAN-12b: --dry-run --json ⇒ summary.hints 带「零写入零删除」，且盘上一字节未动', async () => {
+    const fx = fixture()
+    const { project } = await injected(fx)
+    const before = treeSnapshot(project)
+    const home = newHome()
+
+    const out = runClean([project, '--dry-run'], home)
+    expect(out.status, out.stderr).toBe(0)
+    const env = JSON.parse(out.stdout) as {
+      summary: {
+        ok: boolean
+        hints: string[]
+        inSyncRemoved: number
+        driftForced: number
+        cleaned: boolean
+      }
+    }
+    // 全净树上的 dry-run 与「真全清」只差 cleaned 一处：退出码同为 0、ok 同为 true，
+    // 机器读者那句「这一轮根本没写盘」除了 hints 无处可拿。
+    expect(env.summary.ok).toBe(true)
+    expect(env.summary.cleaned).toBe(false)
+    expect(Array.isArray(env.summary.hints)).toBe(true)
+    expect(env.summary.hints.join('\n')).toContain('零写入零删除')
+    // 那句话承诺的东西由盘上实况兜底（承 CLI-CLEAN-04 的 §7.1a 全树口径，这里走真子进程）
+    expect(env.summary.inSyncRemoved).toBe(0)
+    expect(env.summary.driftForced).toBe(0)
+    expect(treeSnapshot(project)).toEqual(before)
+    expect(existsSync(join(project, PACK_BACKUP_REL))).toBe(false)
   })
 })
