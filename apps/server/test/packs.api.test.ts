@@ -5,10 +5,19 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { ADAPTER_MAIN_PATH } from '@openvibe/adapters'
-import { PACK_FILE_TERMS, PackBundleSchema, type PackOut, type PreviewOut } from '@openvibe/shared'
+import {
+  ADAPTER_IDS,
+  PACK_FILE_TERMS,
+  PackBundleSchema,
+  utf8ByteLength,
+  type PackOut,
+  type PreviewOut,
+} from '@openvibe/shared'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
 import { PacksRepo, SIZE_WARN_THRESHOLD, runSeed } from '@openvibe/core'
 import { buildApp } from '../src/app'
+import { ensureDefaultPack } from '../src/lib/default-pack'
+import { buildSizeEstimate } from '../src/lib/pack-assemble'
 
 const SEED_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'content', 'seed')
 
@@ -428,6 +437,10 @@ describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', (
     expect([...est.footprint.files.map((f) => f.path)].sort()).toEqual(
       [...out.files.map((f) => f.path)].sort(),
     )
+    // FR-6.3 的 footprint.bytes 独立校验（M-3）：整包落盘字节 = 每个文件 utf8 字节之和。
+    // 右操作数逐行取自 `PreviewOut.files`（不是 sizeEstimate 自己），所以这一行同时把
+    // 「合成的 manifest 在 footprint 集里」从**第二个视图**钉住：漏一份 manifest 就少一截字节。
+    expect(est.footprint.bytes).toBe(out.files.reduce((n, f) => n + utf8ByteLength(f.content), 0))
   })
 
   it('SRV-EST-01b: 行总量是**拼接后一次 ceil**，不是逐文件 ceil 相加（FR-6.3 的语义差别）', async () => {
@@ -467,9 +480,9 @@ describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', (
     expect(est.footprint.approxTokens).toBeGreaterThan(est.perTarget[0]?.approxTokens ?? 0)
   })
 
-  it('SRV-EST-02: 阈值正负各一支，且 warn 不参与放行（同包导出成功、sync --file 结果不变）', async () => {
+  it('SRV-EST-02: 阈值正负各一支，且 warn 不参与放行（同包导出成功）', async () => {
     const h = await makeHarness()
-    const small = await mkPack(h) // 空库 + 1 条术语 → 远低于阈值
+    const small = await mkPack(h) // 一条提示词 + 一条术语 → 远低于阈值
     const smallOut = await preview(h, small.id, '1.0.0')
     expect(
       smallOut.sizeEstimate?.perTarget.every((p) => p.warn === false),
@@ -492,6 +505,8 @@ describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', (
       total: number
     }
     expect(all.total).toBeGreaterThanOrEqual(100)
+    // 术语侧**不分页**：GET /api/terms 直接返 `terms.list()` 且 `total = items.length`
+    // （apps/server/src/routes/terms.ts:22-24），所以这里的「全选」不可能被页大小截断。
     // 「全选」需要覆盖整个种子库：只把 109 条术语全选时 perTarget[0] 实量 9,617 < 12000——
     // TERMS.md 只渲染 zh/en/别名/定义四列，比 FR-6.4 三条字节折算值（≈15.1k/15.7k/16.0k）假设的
     // 口径小一截。验收 10 的正向支要的是「某 target 估算 >12000」，与首启预置包同一形态
@@ -506,6 +521,16 @@ describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', (
       allPrompts.total,
       '种子提示词未入库 ⇒ 正向支体量来源变了，须重看 §7 验收 10 的阈值结论',
     ).toBeGreaterThanOrEqual(20)
+    // 分页防线（I-2）：GET /api/prompts 走 `prompts.list(query)`，页大小默认
+    // `LIMITS.listPageSizeDefault = 50`（packages/shared/src/schemas/prompt.ts:41-47）。
+    // 今天 21 条提示词全进得来，所以 `items` 就是「全选」；种子长到 51 条起它会**静默退化成
+    // 前 50 条**，届时 `approxTokens > SIZE_WARN_THRESHOLD` 仍可能绿，而断言钉的语料已不是
+    // 报告 §5 那个数。故钉「取到的就是全量」这条命题，而不是给 URL 加 `?size=<listPageSizeMax>`
+    // ——后者页大小再收紧又会骗人；本支红得才有意义。
+    expect(
+      allPrompts.items.length,
+      '提示词列表被分页截断 ⇒ 「全选」名不副实，须显式带 size 或收紧分页口径',
+    ).toBe(allPrompts.total)
     const big = await mkPack(h, {
       name: 'all-seed',
       selection: {
@@ -532,6 +557,9 @@ describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', (
     // 本文件既有 IT-PACK-01/02 亦一律 200——计划正文的 201 是笔误，改回与实现同源
     expect(exported.statusCode, exported.body).toBe(200)
     expect(exported.json().warnings).toEqual([])
+    // sync 侧不可观察：`sizeEstimate` 不进 `bundleJson()` / `directoryFiles()`
+    // （apps/server/src/routes/packs.ts:91,98），CLI 无从观察它，
+    // 故 §7 验收 10 的 sync 腿由**结构**保证，非由本支证明——别把本支标题当成那条凭据。
   })
 
   it('SRV-EST-03: 确定性——同一包连续两次 preview，sizeEstimate 序列化后逐字节相等', async () => {
@@ -539,6 +567,64 @@ describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', (
     const pack = await mkPack(h)
     const a = await preview(h, pack.id, '1.0.0')
     const b = await preview(h, pack.id, '1.0.0')
+    // M-1：存在性先钉，否则字段整体消失时这里空过
+    // （JSON.stringify(undefined) === JSON.stringify(undefined)；RED 日志「3 failed | 1 passed」即证据）
+    expect(a.sizeEstimate, '响应缺 sizeEstimate').toBeTruthy()
     expect(JSON.stringify(a.sizeEstimate)).toBe(JSON.stringify(b.sizeEstimate))
+  })
+
+  // 纯用例（M-2）：直接打导出的 `buildSizeEstimate`（apps/server/src/lib/pack-assemble.ts:90），
+  // 不建 harness、不塞进 SRV-EST-02（那支已是最重的一支）。
+  // 钉的是 FR-6.4 那句 `perTarget.approxTokens > 12000 → warn=true` 里的**严格不等号**：
+  // 恰好压在阈值上不亮黄条，多一个 tok 才亮。此前全仓只有 SRV-EST-02 的两端（小包全 false /
+  // 大包含 true），core 侧 `size.test.ts` 只钉常数本身 ⇒ `>` 被静默翻成 `>=` 时无人变红。
+  // 夹具取 48_000 个 ASCII：FR-6.2 的 `ceil(other/4)` 让它**正好**等于 SIZE_WARN_THRESHOLD，
+  // 48_004 则正好 +1；两支都压在边界上，不依赖任何语料体量。断言只跟常数比，不写 12000。
+  it('SRV-EST-02b: warn 的阈值边界——恰好压线不亮，多一个 tok 才亮（FR-6.4 的严格 `>`）', () => {
+    const atThreshold = buildSizeEstimate(
+      [{ path: ADAPTER_MAIN_PATH['claude-code'], content: 'a'.repeat(48_000) }],
+      '',
+      ['claude-code'],
+    )
+    expect(atThreshold.perTarget[0]?.approxTokens).toBe(SIZE_WARN_THRESHOLD)
+    expect(atThreshold.perTarget[0]?.warn, '恰好压线不该亮黄条（`>` 而非 `>=`）').toBe(false)
+
+    const oneOver = buildSizeEstimate(
+      [{ path: ADAPTER_MAIN_PATH['claude-code'], content: 'a'.repeat(48_004) }],
+      '',
+      ['claude-code'],
+    )
+    expect(oneOver.perTarget[0]?.approxTokens).toBe(SIZE_WARN_THRESHOLD + 1)
+    expect(oneOver.perTarget[0]?.warn, '超线一个 tok 就该亮黄条').toBe(true)
+  })
+
+  // I-1：FR-6.4 末句「**首启预置包自己就会亮黄条**」的仓库内可复现凭据。
+  // 规格 docs/specs/m6-standard-pack.md:96 要求「口径必须与数字同处登记……不写口径的数字
+  // 一律不可复核」，DEV_LOG.md:378 / :386 ④ 要求「走查驱动器必须入库，只留结果日志藏假绿」——
+  // 这句结论此前唯一的来源是一次性临时脚本的读数（报告 §5 第三行 15,213），脚本已删、落地即失效。
+  // 本支把那条流程钉成测试：真种子 → ensureDefaultPack（与 bootstrap.ts:146 同一条通道）
+  // → preview → 六个 target 全 warn。断言只钉**命题**（每行 warn === true、footprint > perTarget[0]），
+  // 不写 15,213 / 14,890 这类 token 字面量：它们随种子与包名漂移（D3 已证改名会挪 1 个 tok），
+  // 六个 target 的实测数由报告 §5 具名分支给出。
+  // 与 SRV-EST-02 一样 **seed-coupled by design**：预置包吃真种子（`seedSelection` 取
+  // `seed_hash IS NOT NULL` 的全量），语料瘦身到撑不起阈值时这支**应当**红并逼人重看 FR-6.4，
+  // 故**不加容差**。
+  it('SRV-EST-04（FR-6.4 末句）: 真种子 + ensureDefaultPack → 六个 target 全 warn=true', async () => {
+    const h = await makeHarness()
+    runSeed(h.handle.db, SEED_DIR)
+    const outcome = ensureDefaultPack(h.handle.db)
+    expect(outcome.status, outcome.reason ?? outcome.status).toBe('created')
+
+    const out = await preview(h, outcome.packId as string, outcome.version ?? '1.0.0')
+    const est = out.sizeEstimate as NonNullable<typeof out.sizeEstimate>
+    // 空数组的 every() 恒真 ⇒ 先把六个 target 的行集钉住，下面那条 warn 才有意义
+    expect(est.perTarget.map((p) => p.adapter).sort()).toEqual([...ADAPTER_IDS].sort())
+    for (const row of est.perTarget) {
+      expect(
+        row.warn,
+        `预置包 perTarget[${row.adapter}] 应当亮黄条（FR-6.4「首启预置包自己就会亮黄条」）`,
+      ).toBe(true)
+    }
+    expect(est.footprint.approxTokens).toBeGreaterThan(est.perTarget[0]?.approxTokens ?? 0)
   })
 })
