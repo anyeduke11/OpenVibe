@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import {
   existsSync,
   lstatSync,
@@ -31,7 +31,8 @@ import { putFile, treeSnapshot } from './helpers/tree'
 
 /**
  * T10 · `openvibe clean`（m6b FR-6 + 验收 §7.10 a–j）。
- * 分支映射：01↔a 02↔b 03↔c 04↔d 05↔e 05b/05c/05d↔e2 06↔f 06b↔e3 06c↔f2 07↔g 08↔h 09↔i 10↔j。
+ * 分支映射：01↔a 02↔b 03↔c 04↔d 05↔e 05b/05c/05d↔e2 06↔f 06b↔e3 06c/06g↔f2 07↔g 08/08b↔h
+ * 09↔i 10↔j。
  * 判据一律落在磁盘实况与 lock 读回上——被保护的对象就是那些文件。
  */
 
@@ -52,7 +53,7 @@ const IS_WINDOWS = process.platform === 'win32'
  * 故先归一化成 `/` 形式（承 apps/cli/test/sync.test.ts:152 的「期望值写 `/` 路径」口径）。
  */
 const PACK_LOCK_KEY = PACK_LOCK_REL.split(/[\\/]/).join('/')
-/** 08 的持锁夹具走真进程（承 apps/cli/test/sync-lock.test.ts 的 CLI-LOCK-01 口径） */
+/** 08/08b 的持锁夹具走真进程（承 apps/cli/test/sync-lock.test.ts 的 CLI-LOCK-01 口径） */
 const HERE = dirname(fileURLToPath(import.meta.url))
 const HOLDER = join(HERE, 'helpers', 'sync-lock-holder.ts')
 const roots: string[] = []
@@ -81,6 +82,49 @@ async function injected(fixture: PackFixture) {
 
 const stateMap = (rows: { path: string; state: RetirementState }[]): Record<string, string> =>
   Object.fromEntries(rows.map((r) => [r.path, r.state]))
+
+interface Holder {
+  readonly child: ChildProcessWithoutNullStreams
+  /** 收工：关 stdin 让夹具自己 release，并等它真退出（承 sync-lock.test.ts:112 的 `stop()` = await close） */
+  stop(): Promise<void>
+}
+
+/**
+ * 08/08b 的持锁夹具。spawn 与「等它抢到锁」拆开：握手断言全在调用方的 try 里，
+ * 任何一步抛了都还会走 finally 收工——漏下的持锁孤儿进程会把同项目的用例拖到夹具自己的 60s 兜底。
+ */
+function startHolder(project: string): Holder {
+  const child = spawn(process.execPath, ['--import', 'tsx', HOLDER, project], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+  })
+  child.stdin.on('error', () => {}) // 已退出的子进程再 end() 会炸流（承 sync-lock.test.ts:79）
+  // close 只能同步挂在 spawn 之后：夹具抢锁失败会以退出码 3 立刻退出，事件过了再挂就永远等不到
+  const closed = new Promise<void>((resolve) => {
+    child.once('close', () => resolve())
+  })
+  return {
+    child,
+    async stop() {
+      child.stdin.end()
+      await closed
+    },
+  }
+}
+
+/** 等锁落到盘上并核对归属，返回锁的绝对路径与逐字节原文（供事后比对「他人的锁原样在」） */
+async function waitLocked(project: string, holderPid: number | undefined) {
+  const lockAbs = join(project, SYNC_LOCK_REL)
+  // 夹具靠 stdin 生命周期持锁，拿不到异步握手 → 轮询锁文件出现（5s 兜底）
+  for (let i = 0; i < 100 && !existsSync(lockAbs); i += 1)
+    await new Promise((r) => setTimeout(r, 50))
+  expect(existsSync(lockAbs), '夹具未在 5s 内抢到锁').toBe(true)
+  const content = readFileSync(lockAbs, 'utf8')
+  // 「场上有一把锁文件」不等于「spawn 出来的那个进程持有它」：归属以盘上 pid 为准（承 sync-lock.test.ts:159）
+  const held = JSON.parse(content) as { pid: number; command: string }
+  expect(held.pid).toBe(holderPid)
+  expect(held.command).toBe('sync-holder')
+  return { lockAbs, content }
+}
 
 describe('clean 默认退场（§7.10 a）', () => {
   it('CLI-CLEAN-01: 未改动的受管文件全删 + 逐字节进备份 + lock 删除 + .openvibe 仍在 + 退出码 0', async () => {
@@ -283,6 +327,35 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
     expect(existsSync(join(project, PACK_BACKUP_REL))).toBe(false)
   })
 
+  // f2 点的是两种输入：`packPathSchema` 之前那一档（JSON 根本读不出，走 clean.ts 的 parse catch）
+  // 与 06c 那一档（路径全合法、其它字段不符，走 parsePackLock 返回 null）。少一支就等于只测了一半出口。
+  it('CLI-CLEAN-06g: lock 是非 JSON 文本 → LOCK_INVALID + 零删除，且与 06c 同一条出口（§7.10 f2 的另一半）', async () => {
+    const { project } = await injected(fixture())
+    const lockPath = join(project, PACK_LOCK_REL)
+    const messages = new Set<string>()
+
+    for (const [label, text] of [
+      ['非 JSON', '这不是 JSON{'],
+      ['合法 JSON 但字段不符', '{"schemaVersion":1,"pack":"不是对象"}'],
+    ] as const) {
+      putFile(project, PACK_LOCK_REL, text)
+      const before = treeSnapshot(project)
+
+      const err = await cleanAction({ projectPath: project, yes: true }, { now: () => NOW }).catch(
+        (e: CleanError) => e,
+      )
+
+      expect((err as CleanError).code, label).toBe('LOCK_INVALID')
+      expect(existsSync(lockPath), `${label}：lock 必须仍在盘上`).toBe(true)
+      expect(readFileSync(lockPath, 'utf8'), `${label}：lock 原文未被改写`).toBe(text)
+      expect(treeSnapshot(project), `${label}：零删除`).toEqual(before)
+      expect(existsSync(join(project, PACK_BACKUP_REL)), label).toBe(false)
+      messages.add((err as Error).message)
+    }
+    // 同一条出口的断言版：两档共用一段措辞，措辞分叉就说明它们其实走了两条路
+    expect(messages.size).toBe(1)
+  })
+
   it('CLI-CLEAN-06b: 无可删项（全部 ABSENT：用户自己删过注入文件）→ 照样收尾并删 lock，cleaned=true（FR-6.5 v1.4 / §7.10 e3）', async () => {
     const fx = fixture()
     const { project } = await injected(fx)
@@ -423,14 +496,14 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
 describe('lock 净化与并发（§7.10 g、h）', () => {
   it('CLI-CLEAN-07: 篡改 lock 使某条 path 为 ../evil.txt → 整包拒绝，合法条目也不删', async () => {
     const fx = fixture()
-    const { project } = await injected(fx)
+    const { root, project } = await injected(fx)
     const lockPath = join(project, PACK_LOCK_REL)
     const lock = JSON.parse(readFileSync(lockPath, 'utf8')) as PackLock
     // 只篡改第一条：其余条目保持合法，「整包拒绝、合法条目也不删」才是被证明的那件事
     lock.files = lock.files.map((f, i) => (i === 0 ? { ...f, path: '../evil.txt' } : f))
     writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, 'utf8')
-    const before = treeSnapshot(project)
-    const outside = join(dirname(project), 'evil.txt')
+    // 快照取整棵 root（承同文件 06e）：项目外长出任何东西都在范围内，不只 evil.txt
+    const before = treeSnapshot(root)
 
     const err = await cleanAction(
       { projectPath: project, yes: true, force: true },
@@ -439,27 +512,18 @@ describe('lock 净化与并发（§7.10 g、h）', () => {
 
     expect((err as CleanError).code).toBe('VALIDATION_ERROR')
     expect((err as Error).message).toContain('整包拒绝')
-    expect((err as CleanError).details).toMatchObject({ escapingPaths: ['../evil.txt'] })
-    expect(existsSync(outside)).toBe(false)
-    expect(treeSnapshot(project)).toEqual(before)
+    // 整包拒绝的证据是「清单里恰好只有这一条」：toMatchObject 只查子集，多删/多点名都照样绿
+    expect((err as CleanError).details).toEqual({ escapingPaths: ['../evil.txt'] })
+    expect(treeSnapshot(root)).toEqual(before)
   })
 
   it('CLI-CLEAN-08: 另一进程持 sync.lock 时 clean --yes → SYNC_BUSY、零删除、他人的锁原样在', async () => {
-    const fx = fixture()
-    const { project } = await injected(fx)
-    // 夹具用 stdin 生命周期持锁 ⇒ 后台起 + 轮询锁文件出现（spawnSync 读满 stdout 后会一直等，测试随之挂住）
-    const child = spawn(process.execPath, ['--import', 'tsx', HOLDER, project], {
-      stdio: ['pipe', 'pipe', 'pipe'],
-    })
-    child.stdin.on('error', () => {}) // 已退出的子进程再 end() 会炸流（承 sync-lock.test.ts:79）
-    const lockAbs = join(project, SYNC_LOCK_REL)
-    for (let i = 0; i < 100 && !existsSync(lockAbs); i += 1)
-      await new Promise((r) => setTimeout(r, 50))
-    expect(existsSync(lockAbs), '夹具未在 5s 内抢到锁').toBe(true)
-    const lockBefore = readFileSync(lockAbs, 'utf8')
-    const before = treeSnapshot(project)
-
+    const { project } = await injected(fixture())
+    const holder = startHolder(project)
     try {
+      const { lockAbs, content: lockBefore } = await waitLocked(project, holder.child.pid)
+      const before = treeSnapshot(project)
+
       const outcome = await cleanAction(
         { projectPath: project, yes: true },
         { now: () => NOW },
@@ -469,9 +533,36 @@ describe('lock 净化与并发（§7.10 g、h）', () => {
       expect(treeSnapshot(project)).toEqual(before)
       expect(readFileSync(lockAbs, 'utf8')).toBe(lockBefore)
     } finally {
-      // 断言失败也不把持锁进程漏在场上（夹具自带 60s 兜底，但那会把本文件的收尾拖满）
-      child.stdin.end()
-      await new Promise((r) => setTimeout(r, 300))
+      await holder.stop()
+    }
+  })
+
+  // 08 的 removals 非空，抢锁只看 removals 也轮不到它出错；这一支的构造是「零 removal 但仍要 unlink」：
+  // 全部登记项 ABSENT（同 06b）⇒ plan.removals 为空，而 FR-6.5 v1.4 的收尾判据 driftKept===0 成立，
+  // 尾部照样删 pack.lock.json。抢锁条件若不覆盖它，那次删盘就在锁外（sync 正在写、clean 正在删互吃产物）。
+  it('CLI-CLEAN-08b: 零 removal 但收尾要删 lock（全 ABSENT）且他人持锁 → SYNC_BUSY、pack.lock.json 仍在盘上（FR-6.8）', async () => {
+    const { project } = await injected(fixture())
+    const lock = parsePackLock(readFileSync(join(project, PACK_LOCK_REL), 'utf8'))
+    expect(lock, 'sync 后应能读回 lock').not.toBeNull()
+    // 用户手工把注入产物删光：lock 还在、盘上一个都不在 ⇒ removals 为空，唯一会发生的是删 lock
+    for (const entry of lock?.files ?? []) rmSync(join(project, entry.path), { force: true })
+    const holder = startHolder(project)
+    try {
+      const { lockAbs, content: lockBefore } = await waitLocked(project, holder.child.pid)
+      const before = treeSnapshot(project)
+
+      const outcome = await cleanAction(
+        { projectPath: project, yes: true },
+        { now: () => NOW },
+      ).catch((e: CleanError) => e)
+
+      expect((outcome as CleanError).code).toBe('SYNC_BUSY')
+      // 这一行是 R-1 的落点：删盘发生在锁外时 lock 已经没了，SYNC_BUSY 也根本抛不出来
+      expect(existsSync(join(project, PACK_LOCK_REL)), '被挡下时 lock 必须还归用户').toBe(true)
+      expect(treeSnapshot(project)).toEqual(before)
+      expect(readFileSync(lockAbs, 'utf8')).toBe(lockBefore)
+    } finally {
+      await holder.stop()
     }
   })
 })

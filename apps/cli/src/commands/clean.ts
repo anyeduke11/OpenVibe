@@ -24,10 +24,9 @@ import { releaseLockOnSignal, uniqueBackupRoot, utcStamp } from './sync'
  * 三道闸缺一不可——managed===true 才是删除凭据（FR-6.3）、删除前一律备份（FR-6.4）、
  * 路径净化失败即整包拒绝且合法条目也不删（FR-6.6，防「半退场」这种最难查的状态）。
  *
- * 本文件不重写 core 的路径规则（m6 v1.4 ②③，薄客户端）：CLI 侧只留 `resolveWriteTarget` 的
- * 逐条逃逸检查（schema 看不见符号链接）。「宽松读 `files[].path` → 报违规项 → 再 `parsePackLock`」
- * 这道**先于** schema 的闸是 core 的 `auditLockPaths`，`cleanAction` 按那个顺序调它，
- * 别在这里再造第二份。
+ * 本文件不重写 core 的路径规则（m6 v1.4 ②③，薄客户端）：净化闸是 core 的 `auditLockPaths`，
+ * 「为什么必须早于 `PackLockSchema`」的理由权威版写在它的 docblock 里，这里不复制。
+ * CLI 侧只留符号链接那半边（`rejectEscapingLockEntries`），因为磁盘状态不在 lock 文本里。
  */
 
 export class CleanError extends Error {
@@ -127,11 +126,9 @@ function diskReader(projectPath: string): (relPath: string) => string | null {
 
 /**
  * FR-6.6 里 CLI 侧剩下的那半条闸：逐条 `resolveWriteTarget` 抓**符号链接逃逸**——
- * `PackLockSchema` 的 `packPathSchema` 与 core 的前置净化闸都只看文本，看不见磁盘上的链接，
- * 所以这条是活代码。曾经的 `isPlainRelative` / `invalidPaths` 分支已删（T3 审查 I-2）：它重写了一遍
- * `isValidPackRelativePath`，而 schema 会先把那种 lock 判成 `LOCK_INVALID` ⇒ 分支永不可达，
- * 还误导后来人以为它是闸。「净化先于 schema」那道真闸是 core 的 `auditLockPaths`，
- * 已由 `cleanAction` 在 `parsePackLock` 之前调用；这里不预留第二道防线式的死码。
+ * 净化闸与 `PackLockSchema` 都只读 lock 文本，看不见磁盘上被换成链接的文件，所以这条是活代码。
+ * 曾经的 `isPlainRelative` / `invalidPaths` 分支已删（T3 审查 I-2）：它复制了一遍文本规则，
+ * 而那种 lock 在本函数之前就被前置净化闸整包拒掉 ⇒ 分支永不可达，还误导后来人以为它是闸。
  */
 function rejectEscapingLockEntries(projectPath: string, lock: PackLock): void {
   const escapingPaths: string[] = []
@@ -180,8 +177,8 @@ export const confirmWithClack = async (plan: RetirementPlan): Promise<boolean> =
 }
 
 /**
- * §7.10 f2 的错误码工厂：JSON 根本读不出、或路径全合法而其它字段不符，才轮得到它——
- * 「有违规路径」那一档由前置净化闸报，因为那种 lock 恰恰也是 schema 不符的 lock（FR-6.6 v1.4 ②）。
+ * §7.10 f2 的错误码工厂：两个抛点共用一段措辞，不产生第二份口径。
+ * 「有违规路径」那一档轮不到它——那种 lock 恰是前置净化闸点名拒掉的，理由见 `auditLockPaths`。
  */
 function invalidLock(lockPath: string): CleanError {
   return new CleanError(
@@ -203,9 +200,9 @@ export async function cleanAction(
   } catch {
     throw new CleanError('NO_LOCK', `${lockPath} 不存在：该项目未注入过标准包，无需退场。`)
   }
-  // 净化早于整机 schema（FR-6.6 v1.4 ②）：`packPathSchema` 会把含 `..` 的 lock 整份判成 schema 不符，
-  // 顺序一反，§7.10 g 要的「报告含违规路径」就永远出不来。JSON 本身读不出时没有任何可点名项，
-  // 那一档才落 LOCK_INVALID——两道闸互吃是本项唯一的根因，别把顺序改回去。
+  // 顺序即口径：净化早于整机 schema（FR-6.6 v1.4 ②，为什么写在 `auditLockPaths` 的 docblock 里），
+  // 反了 §7.10 g 的「报告含违规路径」就出不来，别改回去。JSON 本身读不出时没有可点名项，
+  // 那一档才落 LOCK_INVALID。
   let raw: unknown
   try {
     raw = JSON.parse(text)
@@ -240,6 +237,8 @@ export async function cleanAction(
   // 注意用 action 而非 state 判 DRIFT——--force 下 DRIFT 是要删的，不该留在「没退干净」里。
   const driftKept = plan.files.filter((f) => f.state === 'DRIFT' && f.action === 'keep').length
   const driftForced = plan.files.filter((f) => f.state === 'DRIFT' && f.action === 'delete').length
+  // FR-6.5 v1.4 的 lock 收尾判据命名一次：抢锁条件与尾部 unlink 共用同一个式子，两边才不会各说各话
+  const lockCleared = driftKept === 0
 
   const base = (
     rows: CleanReportRow[],
@@ -309,8 +308,10 @@ export async function cleanAction(
     }
   }
 
+  // FR-6.8 的判据是「本轮会不会 unlink 任何东西」，不是「有没有要删的受管文件」：
+  // 全 ABSENT / 全 FOREIGN 时 removals 为空，但尾部照样 unlink pack.lock.json（真删盘）。
   let handle: SyncLockHandle | null = null
-  if (plan.removals.length > 0) {
+  if (plan.removals.length > 0 || lockCleared) {
     const acquired = tryAcquireSyncLock(projectPath, 'clean')
     if (!acquired.acquired) throw new CleanError('SYNC_BUSY', busyMessage(acquired.path, acquired))
     handle = acquired
@@ -374,7 +375,7 @@ export async function cleanAction(
     // 判据若写成「删过东西」，用户手工删光注入文件后 clean 会永久停在「保留 lock」，
     // diff 长报全量缺失且没有任何命令能收尾，还与 §6.3 ABSENT 行「计入已自行退场」自相矛盾。
     // 反过来 lock 只在 driftKept > 0（它仍描述活着的受管文件）与 §6.9 各早退路径下保留。
-    let cleaned = driftKept === 0
+    let cleaned = lockCleared
     if (cleaned) {
       try {
         unlinkSync(lockPath)
