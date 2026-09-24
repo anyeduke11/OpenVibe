@@ -309,7 +309,7 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
   // T3 审查留下的两处「无断言的措辞分支」（§7.10 c、e 的文案半边）：--force 的确认文案与 NEED_TTY 的提示文案。
   // 前者若被抄回「保留 N 个已改动的文件」，就是当着用户的面承诺一件马上不做的事（--force 会删掉它们）；
   // 后者在 --force 已在场时仍叫用户「还得加 --force」。两种都是全套绿灯照漏。
-  it('CLI-CLEAN-05e: --force 在场时两处措辞不自相矛盾（确认文案不提「保留」，NEED_TTY 不再叫用户加 --force）', async () => {
+  it('CLI-CLEAN-05e: --force 在场时措辞不自相矛盾，且零 DRIFT 那一档不报「连已改动的 0 个一起删」', async () => {
     vi.mocked(confirm).mockClear()
     // 注入后手改 TERMS.md ⇒ 场上恰好一个 DRIFT，--force 与默认动作的全部差别就在这条文案上
     const driftProject = async (): Promise<string> => {
