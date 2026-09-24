@@ -686,3 +686,34 @@
   - **口径提醒**：run `36007700628` 只验 **tip `787eb4c`** 一个 sha（一次 push 多 commit 只在 tip 触发），分支上其余 37 笔是**随 tip 一起**被验的，不等于各自有独立 run。
 
 ---
+
+---
+
+## [DEV-0028] 仓库级扫描（入口对账 + 假绿追猎）· **四条文档口径自纠 + 一处痕迹闸作废 + 新撞出 34 个未勾框**
+
+- **时间**: 2026-09-24 21:58–22:26 +0800。采样凭据：HEAD `414a001`、`git status --porcelain` **0 行**、单一 worktree；`main` == 远端实况 == `787eb4c`（三 job success，run `36007700628`）；**未验证 commit = 1**（本条所在的 `.md` 改动与上一笔 `414a001` 同性质，均未推）。
+- **类型**: 只读体检 + 文档自纠（§0.3 **C 级**：四条改动**无一改变任何行为**；规格侧只动 `m6-standard-pack.md` FR-6.5 括号内**复述的实测数字**，约束本体一字未动，按「不复制数字」的反漂移规矩改成指针形态）。
+- **关联文件**（本轮各改了什么）:
+  - `docs/dev-plan.md` §15.6 第 5 条 —— 痕迹闸凭据**作废换模式**（见「核心变更」①）；§15.5 表第 1 行加追注防复跑；§15.5-10 行加写盘辖域限定（见④）。
+  - `docs/tasks.md:82` —— 已勾项里的事实错改成按 handler 逐条列（见②）。
+  - `docs/specs/m6-standard-pack.md:106` —— 「291 kB / 余量仅 3%」改成指针形态（见③）。
+- **问题描述**: owner 指令「对整个项目仓库进行扫描，确认开发进展」。上一轮体检是**增量**（只看 T10 那条支），本轮要建立**全仓入口级**证据：每个声明的功能有没有代码入口、有入口的有没有被测、测的有没有判别力、文档写的数与实况差多少。做法 = 四路并行只读取证（功能实落 / 测试资产 / 未完成标记 / 文档口径），**每一条我自己用 `grep`/`Read` 复跑后才登记**，不采信子 agent 自述。
+- **实现思路**: 先把「进展」从里程碑口径换成 `file:line` 口径（205 个 ts/tsx、31,042 行、九 router、五 CLI 命令、六 adapter 逐项定点）；再专找**全绿之下仍能自证为真的断言与凭据**——本轮最大的一条不是别人写的代码，是**我自己上一轮登记的痕迹闸**。
+- **核心变更（四条，全部现测复算）**:
+  - **① 痕迹闸作废并换模式（最重要，且是对本条日志自己上轮登记的公开改口）**：`dev-plan §15.6 ⑤` 与 `[DEV-0027]` 写的凭据是 `grep -rn '修订\|规格版本\|变更记录\|版本 v' docs/specs/*.md` → 「6 行命中（非空）」。现测：命中的 5 行版本行**纯靠行末「未修订」三字**才落进 pattern，第 6 行 `m6-cli-injection.md:152` 是正文 `j.` 段**假阳性**，而**改得最多的三份 spec 一条都没命中**（`m6-cli-injection.md:11`、`m6-standard-pack.md:11`、`seed-content.md:11` 的版本行写「→ v1.1」，不含四个关键词）⇒ 这条闸**对修订最频繁的 spec 永久盲**，属本仓已知的第三种假绿形状：**凭据与它想证明的命题不同源**。换成逐份数行本身：`grep -c '^| 版本 |' docs/specs/*.md` → 现测 **8 份各 1 行 / 含版本行的文件 8/8**。新增规则（§13-8 同族）：**痕迹闸必须逐份数行、要求每份 ≥1，「全库命中非空」不算凭据**。
+  - **② `tasks.md:82`（已勾项）三处事实错**：原句「实落五端点（list/create/patch/delete + `GET /terms/:id`）+ `POST /terms/render-md`」。实况 `apps/server/src/routes/terms.ts` **六个 handler**（`:22 GET /api/terms`、`:27 POST`、`:33 GET /api/terms/search`、`:42 POST /api/terms/render-terms-md`、`:48 PATCH /:id`、`:54 DELETE /:id`）——**单资源 `GET /api/terms/:id` 不存在**，`render-md` 实名是 `render-terms-md`，且 `/search` 被漏。改成逐条列 + 「端点以路由文件为准，不以本行枚举为准」。
+  - **③ spec 里抄了会过期的体积数**：`m6-standard-pack.md:106` 原写「入口 291 kB / 预算 300 kB / 余量仅 3%」，同日 `bundle:check` 实跑 **293.07 kB** ⇒ 改成指针形态并点名「具体 kB 不在此复制」。
+  - **④ 「CLI 只有两个命令动磁盘」要限定辖域**：`dev-plan §15.5-10` 的「命令从 1 个变 2 个」原意指**注入通道**，但现测写盘 API 分布是 **sync 10 / clean 6 / serve 2 / config.ts 3**（`commands/serve.ts:89` 建 data home、`config.ts:126-127` 写 `config.json`+chmod）⇒ 加限定语，避免被读成「5 个命令里只有 2 个碰盘」。
+- **测试验证**:
+  - **五闸在 `414a001` 现测 rc 全 0**（本轮四条改动**全在 `.md`**）：`lint` 0 错 / `typecheck` 两份 tsconfig 各一遍 0 错 / `test` **47 文件 433 支 18.80 s**（darwin **0 skip**）/ `seed:check` terms ≥100・templates=3・prompts=20・`TERMS.md` 109 行 / `bundle:check` 入口 **293.07 kB ≤ 300**、23 chunk 最大 **347.45 kB ≤ 500**。
+  - **「`.md` 不是任何闸的输入」这句这次我补了一支正向证据**（上轮 M-2 的教训是不许裸用这句）：`tests/lint-boundary.test.ts` 全文**零** `docs/` 或 `.md` 引用（`grep` 无命中），并单跑它 → **2 passed**。除此之外没有任何测试读这四个文件。
+  - **本轮被推翻的结论（含我自己上一条消息）**：⑴ 上条消息说 tag 落后 **40**，实测 **41 笔**（到 `787eb4c`）/ 42（到 HEAD）；⑵ 上条消息说 win32 未测面 = **4 条 skip**，实为 **5 处**——`apps/cli/test/serve.test.ts:54` 用内联 `if (process.platform !== 'win32')` 包住 0600 断言，它在 CI 里算 **passed 不是 skipped**，任何 skip 计数都数不到它；⑶ 子 agent 报「`clean.test.ts:748-751` 的 `.every()` 在 report 为空时恒真」**不成立**——同一支 `CLI-CLEAN-11` 内有 `expect(env.report.length).toBe(fx.files.length)`，report 不可能为空，该条否证；⑷ 子 agent 另有两处行号错（kB 在 `m6-standard-pack.md:106` 非 `:11`；内联守卫在 `serve.test.ts:54` 非 `:53`），按实况登记；⑸ 子 agent 词法数出 430 支 vs vitest 433 支属**口径差**（不数动态生成），非丢测。
+- **新撞出（本轮未动，逐条待 owner 裁）**:
+  - **`dev-plan` T1–T9 段内未勾框 34 个，且全部对应已实装的东西**（现测：T1 10 / T2 7 / T3 6 / T4 4 / T5 5 / T6 1 / T9 1 = **34**，正好等于全文件未勾总数）。极端例：`:985` 「仓库落地 + `gh repo create` + 推送」、`:986` 「落 `LICENSE`」——两者**都已实装**（本仓就是独立仓库、`LICENSE` 在库）。全文**没有任何一处声明过这套勾选的语义**（搜「勾选 / checkbox / 不追踪」零命中）。⇒ 与 `tasks.md`（65 勾 / 5 未勾）**构成两套互相矛盾的进展口径**，谁从 `dev-plan` 读进展都会低估。属口径治理，不是代码缺陷。
+  - **`dev-plan:1058` 仍写「§3.3 五端点」**（同一处端点数误记的第二份，且它指向 `design.md`）——本轮只改了 `tasks.md:82`，这条留给端点口径那次一起收，**避免又造一个双源**。
+  - **`apps/web` 全仓零测试**：`find apps/web -name '*.test.ts*'` = **0**，且不在 `vitest.config.ts` 任何 include glob（三 project 全 `environment: 'node'`，全仓无 jsdom/happy-dom/coverage 阈值）。64 个 ts/tsx 无断言 ⇒ T8 那四处新渲染只是这个**结构性洞**的局部。唯一 UI 证据是 `docs/devlog-evidence/DEV-0019~0025/` 下 6 个手跑 `.mjs` CDP 驱动器，**不进 `pnpm test`**。
+  - **M4 唯一有产品后果的形态是「静默吞输入」**：`packages/shared/src/schemas/pack.ts:15` `playbookIds: z.array(z.string()).default([])` 被接受并落库（`repos/packs.ts:59`），但 `packages/core/src/pack/resolve.ts` **零命中** ⇒ 传任何 playbook id **不报错、也不进产物**。M4 全部代码含量 = 一个恒为 `[]` 的字段；`docs/specs/` 无 m4、`tasks.md` 零提及、`PRD.md:168` 仍标 P1。同类「P1 零代码且行内未标 Phase」还有 `PRD.md:143-145`（M2 生态源/分发/冲突检测）、`:189`（M5 会话挂接）、`:205`（M6 双向同步）——D22 修过的那类歧义在这几行仍在。
+  - **源码里 `TODO/FIXME/XXX/HACK` 零命中**（子 agent 与我各跑一遍，pattern 已复核），`apps/**/src` 的 `throw new Error(` 亦零命中（只在 `test/` 夹具里）⇒ 「代码承认自己没写完」的地方**只有** `packages/shared/src/constants.ts:19-20` 的 `ADAPTER_IDS_P1 = ['windsurf','gemini','copilot']`（注释「MVP 不实现」，未进 registry）。这是好事，也是**为什么本轮的缺陷全在文档与测试口径、不在代码注释里**的原因。
+  - **残留与位置**：命令行源码轨 **0**、发布形态 `openvibe` 轨 **0**、`/tmp/ov-*` 沙箱 **0 处**；端口轨上界 1 命中（`*:5188`）反查 cwd = `/Users/duke/Documents/AgentFeed/server`、cmd = `node dist/index.js` ⇒ **非本仓**（与上一轮判定一致）。**测量陷阱一条**：`ps -ax | grep -cF '<特征串>'` 给出 3，全是 grep 自身与包它的 bash 的命令行自指，排除后真命中 **0** ⇒ 数残留必须 `grep -v` 掉自身，本 Skill 的命令行轨要按「下界」读。
+- **潜在风险**: ① 本轮四条**都是我自己上一轮写的凭据**，说明「登记数字的人就是复核数字的人」这层没有独立性——真正独立的一层只能是 owner 的 B 级复核或第二个会话；② `serve.test.ts:54` 那条内联守卫**没被任何 skip 计数覆盖**，只要它还在，三平台报告的「win32 少测几条」就是错的，改法是 `it.skipIf(IS_WINDOWS)` 或拆支（**属测试改动，本轮未做**）；③ 34 个未勾框若被下轮某个会话当成「34 项待办」会造出虚假工作量，若被当成「早已作废」又会让 `dev-plan` 失去计划身份——**必须选一种语义并写在文件头**；④ 本轮把 `m6-standard-pack.md` 的数字换成指针，等于承认该 spec 的版本行 v1.1 里仍可能藏着别的复述数（`12,000` 在同一文件里有 `> 12000` / `≤12000` / `12,000` 三种字面形态），这类「同文件多形态」还没扫完。
+- **owner 手上未收的（在原 9 项之上净增 3 项，本轮 0 收）**: ①–⑨ 原样在（种子审校裁决 / 真 `npm publish` / 推 tag `v0.1.0`（现落后 41 笔）/ D15 观察窗 / `design.md` 版本头 / P1.1 两份规格复核 / 是否提交并推送 / DEV-0025 驱动器接 CI 的有头口径 / toast 与弹窗同名 a11y）；**新增 ⑩ `dev-plan` T1–T9 那 34 个未勾框的语义裁定**（补勾 / 声明为一次性计划清单并在文件头写明 / 删除）；**⑪ `apps/web` 测试基建**（建 jsdom project 或把 CDP 驱动器接进 CI，二选一，都要先定有头/xvfb 口径）；**⑫ `playbookIds` 的契约处理**（非空即拒 400 / 保留但文档明写不产文件 / 归 P2）。

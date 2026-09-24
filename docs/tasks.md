@@ -79,7 +79,7 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 ### T4 · M3 术语库 + 首批词条（W2，预估 2.5 人日；词条初稿 AI 起草、owner 审校，D14）
 
-- [x] API 四端点 + render-terms-md（确定性排序与 `|` 转义）——实落 **五端点**（list/create/patch/delete + `GET /terms/:id`）+ `POST /terms/render-md`；`X-Referenced-Packs` 走 C-6；排序键禁用 `localeCompare`、拼音序取 `pinyin-pro` 词典键（C-14，三平台字节一致）；契约下沉 `packages/shared/src/terms-md.ts`（C-11）
+- [x] API 四端点 + render-terms-md（确定性排序与 `|` 转义）——实落 **六端点**（`GET /api/terms` / `POST /api/terms` / `GET /api/terms/search` / `POST /api/terms/render-terms-md` / `PATCH /api/terms/:id` / `DELETE /api/terms/:id`，见 `apps/server/src/routes/terms.ts:22,27,33,42,48,54`）；`X-Referenced-Packs` 走 C-6；排序键禁用 `localeCompare`、拼音序取 `pinyin-pro` 词典键（C-14，三平台字节一致）；契约下沉 `packages/shared/src/terms-md.ts`（C-11）。**⚠️ 2026-09-24 22:05 仓库级扫描自纠（本行原本是已勾项里的事实错）**：原句写「五端点（list/create/patch/delete + `GET /terms/:id`）+ `POST /terms/render-md`」——**`GET /api/terms/:id` 不存在**（`:id` 只有 PATCH 与 DELETE 两条），`render-md` 实名是 **`render-terms-md`**，且漏掉了真实存在的 `GET /api/terms/search`。数法从「四/五」改为按 handler 逐条列，**端点以路由文件为准，不以本行枚举为准**。
 - [x] Web `/terms`：搜索+多选+TERMS.md 预览——搜索 <3 字走 LIKE + 降级提示（m3 FR-3.3），多选生成/复制/下载三通道，关联词条双向并集展示，删除确认框显示引用包
 - [x] 种子机制激活：`content/seed/terms.json` 首批 **60 条**（附录 B 10 条必须含；质量门槛按 seed-content §3.2）——实落 **63 条**（附录 B 10/10 在库），`source=seed` + `seed_hash` 全量落库；复启幂等与「用户已改词条跳过升级并告警」已实测
 - [x] `pnpm seed:check` 脚本（schema+数量+受控词表）——TS 化 + 进 CI 作为独立闸（C-16），阈值 60/3/0（T8 切 100/3/20）；负向用例实测：削至 58 条 → `✗ 数量 — 58 条 < 门槛 60 条` 退出码 1
