@@ -2,9 +2,9 @@
 
 | 项 | 值 |
 |------|------|
-| 文档定位 | 按什么顺序做：P0 门禁 → T1–T9 任务组 → 周计划 → 完成定义 |
+| 文档定位 | 按什么顺序做：P0 门禁 → T1–T9 任务组（P1/MVP，已冻结）→ **§2b P1.1 任务组 T10–T11** → 周计划 → 完成定义 |
 | 上游 | [proposal.md](./proposal.md)、[specs/](./specs/)（验收出处）、[design.md](./design.md)（实现蓝图） |
-| 版本 | v0.1（2026-09-20） |
+| 版本 | v0.1（2026-09-20）→ **v0.2（2026-09-23，P1.1 开档 D19：新增 §2b 任务组 T10/T11、§3 变体①④判作废 + ②改判 P2 并做「飞轮面板」同名异物消歧、§4·T9 组加冻结注（D21）、§5 风险表两处口径更新；`clean` 验收按自审补闸扩到 a–j / `CLI-CLEAN-01..10`。范围裁定正文在 [dev-plan.md §15](./dev-plan.md)；同日 DEV-0024 另做**一次状态回填**（S-2 探针结论 → §2b·T11 两条 + §4·T9 冻结注与 Playwright 历史行 + T9 验收①，C 级，任务编号与人日不变）；**2026-09-24 DEV-0025 再做一次状态回填**（§2b·T11 三条冒烟收口 + 其验收行 + §4·T9 验收① 指向该收口，同为 C 级，任务编号与人日不变）；**同日 DEV-0026 第三次状态回填**（§2b·T10 新增一行「计划落库 + 三处规格/代码冲突定稿」，规格侧因此推进为 **m6b v1.3 / m6a v1.2**，仍属 C 级登记，T10 人日 1.8 不变）** |
 | 姊妹文档 | [dev-plan.md](./dev-plan.md)（P1 执行版：架构/DDL/API/组件清单/T1–T9 文件级分解/验收-测试映射/日级排期/内容生产 SOP/SPEC 流程规范）——本文保留里程碑概览，两者人日与任务编号零偏差 |
 
 **执行规约**（继承全局 AGENTS 规范，随本仓库生效）：
@@ -140,13 +140,40 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 
 ### T9 · 飞轮 E2E + 发布（W4末，预估 3 人日）
 
-- [ ] Playwright 飞轮主链（design §13 E2E 行定义）+ 3 条冒烟（导入→复制；术语搜索→TERMS.md；开箱向导三步）—— **主链已收，形态改了**（2026-09-23，DEV-0020）：`E2E-FLOW-01` 八腿在 vitest `cli` 项目跑通（真 serve 子进程 + 真 HTTP + 真 CLI 退出码，1.57 s，连跑三遍稳定）；**Playwright 经 owner 裁定 T9 不引入、延至 P1.1**（dev-plan §14-6），三条冒烟因此改由**人工录屏/截图**承担——自动化证据不含真实点击/复制/拖拽（合成 `b.click()` 无 transient user activation），这是**明写的事实**不是遗漏
+> **P1.1 起本组冻结。** 本组唯一未收的「冒烟 ×3」已改由 §2b·T11 承接（D21 裁定：不引入 Playwright，改裸 CDP 真输入，前置 S-2 探针——**该探针已于 2026-09-23 跑完，结论在 `dev-plan §15.4-S2`，本组不再自判可行性**）；下方那条 Playwright 待办读作历史记录，不再作为待办入口。
+
+- [ ] Playwright 飞轮主链（design §13 E2E 行定义）+ 3 条冒烟（导入→复制；术语搜索→TERMS.md；开箱向导三步）—— **主链已收，形态改了**（2026-09-23，DEV-0020）：`E2E-FLOW-01` 八腿在 vitest `cli` 项目跑通（真 serve 子进程 + 真 HTTP + 真 CLI 退出码，1.57 s，连跑三遍稳定）；**Playwright 经 owner 裁定 T9 不引入、延至 P1.1**（dev-plan §14-6），三条冒烟因此改由**人工录屏/截图**承担——自动化证据不含真实点击/复制/拖拽（合成 `b.click()` 无 transient user activation），这是**明写的事实**不是遗漏（后续：S-2 探针已证真输入可达，承担方式改由 §2b·T11 的驱动器承接，见 `dev-plan §15.4-S2`；本条按裁定仍读作 T9 历史）
 - [x] 干净环境演练（含向导场景）：清空 `HOME` 沙箱 → `npx openvibe-cli serve --open` → 向导三步 → sync/diff/回流全流程手测（onboarding §7 验收 1 的「≤3 条命令 / ≤5 分钟」计时口径）—— **发布形态半边已收**（2026-09-23，DEV-0020）：`apps/cli` 从「private + TS bin + 无构建 + 仓库相对资源根」变成可安装产物，驱动器 `docs/devlog-evidence/DEV-0020/publish-walk.mjs` 真 `npm pack` → 装进空目录 → 只跑装出来的 bin，**41 项断言全 PASS / 0 FAIL**（T9c 补两支 npm 装包探针后 → **45 项**）（`publish-walk.txt` 入库）：tarball 1.14 MB、装包 767–829 ms、`webServed=true`、入口 chunk 291,012 B 由 `<pkg>/dist/web` 托管、`dist/seed` 真播种出 104 词条、九项产物逐条 `statSync`、`diff` 判 clean、`telemetry.endpoint=""` 零外联在发布形态下同样成立；计时按 C-74 双数字口径——**用户侧 0.5 s**（serve→sync→diff 三连），构建+pack+装包 **3.9 s** 另列；T9c 复跑为 4.3 s / 27.6 s（新增装包探针全在第二段），`dist/seed` 播种实测 `terms=109`。向导场景的浏览器手测属上面那条的录屏半边
 - [x] README 重写为用户视角（快速上手/架构一图/FAQ），`docs/` 保留规划文档 —— **2026-09-23 收（DEV-0022）**：按「30 秒上手 → 拿到什么（九文件表）→ 它解决什么 → 功能一览 → 架构一图 → 数据落在哪里 → 隐私与网络行为 → FAQ → 已知局限」重写；`npx` 三步与产物清单均取干净沙箱实测值，未经证实的事不写（本机 C++ 编译回退、非 147 ABI 装包路径均按未验证处理）
 - [x] `pnpm publish --dry-run` 校验 bundle 完整性；打 tag `v0.1.0`；发布说明（含已知局限）—— **2026-09-23 三路 dry-run 收（DEV-0022）**：`npm publish --dry-run` / `npm publish --dry-run --registry=https://registry.npmjs.org` / `pnpm publish --dry-run --no-git-checks` 均 rc=0，36 文件、1.1 MB、解包 4.9 MB、`dist/{cli.js,web,seed,migrations}` 齐；**两路默认打到 `registry.npmmirror.com`**（镜像不接发布却能让演练全绿），故 `--registry` 必须显式覆盖（C-88）。发布说明 `docs/release-notes/v0.1.0.md`（含已知局限 + 「本版未验证」段）；tag `v0.1.0` 本地打在 T9c commit 上，**未 push**；真实 `npm publish` 是外部不可逆动作，等 owner 放行
 - [x] 复盘会（retro 模板走一遍）→ 产出第一批回流词条/提示词草稿入库（飞轮 dogfooding 第⑤步实证）—— **2026-09-23 收（DEV-0022）**：用自家 `复盘流` 模板（`retro-1-1…retro-4-1` 逐条对账）复盘 T1–T9，产物 `docs/devlog-evidence/DEV-0022/retro.md`；**第一批回流 5 条词条入 `content/seed/terms.json`（104 → 109）**：发布形态走查 / 预编译包回退 / 清单归一化 / 镜像注册表 / 瞬时用户激活，每条的 example 即复盘里的一条实测决议。提示词侧不动（`seed:check` 锁恰好 20 条，第 21 条起走 DB 草稿端点）
 
-**验收**：CI 全绿（含 golden/seed:check/E2E）；干净环境演练录屏归档 DEV_LOG。—— 🟡 **T9 工程侧完成（2026-09-23，DEV-0020 + DEV-0022）**：三平台 run `35844980582` @ `3e852c2` 三个 `verify` job 全 success，但用例数按平台分开读——macOS/ubuntu **381 passed**，windows **378 passed + 3 skipped**（`CLI-SEC-01b` 符号链接逃逸、`CLI-SEC-04` 悬空符号链接、`CLI-CFG-03` 0600 权限位在 win32 语义不适用而主动门控，属**未验证面**不是通过）；`seed:check`（109/3/20）与 `bundle:check`（入口 291.02 kB / 最大 347.45 kB）两道新闸在 win32 上同值通过，`E2E-FLOW-01` 八腿主链三平台 4.40 / 6.11 / 9.34 s 跑通；干净环境演练改以**入库驱动器 + 45 项断言日志**留证（`docs/devlog-evidence/DEV-0020/publish-walk.{mjs,txt}`），不是录屏。**未收的两半**：① 人工录屏/截图 ×3 冒烟（Playwright 经 owner 裁定 T9 不引入、延至 P1.1，dev-plan §14-6 / 任务 #59）；② owner 侧两步——种子审校（`DEV-0019/seed-review.md` 裁决列仍 `（待填）`，本轮新增批次 E 的 5 条）与真发 `npm publish --registry=https://registry.npmjs.org`（C-88：默认注册表是镜像，必须显式覆盖；tag `v0.1.0` 已本地打在 `3e852c2`，未推）。
+**验收**：CI 全绿（含 golden/seed:check/E2E）；干净环境演练录屏归档 DEV_LOG。—— 🟡 **T9 工程侧完成（2026-09-23，DEV-0020 + DEV-0022）**：三平台 run `35844980582` @ `3e852c2` 三个 `verify` job 全 success，但用例数按平台分开读——macOS/ubuntu **381 passed**，windows **378 passed + 3 skipped**（`CLI-SEC-01b` 符号链接逃逸、`CLI-SEC-04` 悬空符号链接、`CLI-CFG-03` 0600 权限位在 win32 语义不适用而主动门控，属**未验证面**不是通过）；`seed:check`（109/3/20）与 `bundle:check`（入口 291.02 kB / 最大 347.45 kB）两道新闸在 win32 上同值通过，`E2E-FLOW-01` 八腿主链三平台 4.40 / 6.11 / 9.34 s 跑通；干净环境演练改以**入库驱动器 + 45 项断言日志**留证（`docs/devlog-evidence/DEV-0020/publish-walk.{mjs,txt}`），不是录屏。**未收的两半**：① 冒烟 ×3（Playwright 经 owner 裁定 T9 不引入、延至 P1.1，dev-plan §14-6 / 任务 #59；**承担方式已从「人工录屏/截图」改判为裸 CDP 真输入驱动器**，S-2 前置已解除，见 §2b·T11——本组冻结，此处只留状态不复述结论；**2026-09-24 该半已在 §2b·T11 收口（DEV-0025 驱动器有头 FAIL=0 SKIP=0），本组随之一并结清**）；② owner 侧两步——种子审校（`DEV-0019/seed-review.md` 裁决列仍 `（待填）`，本轮新增批次 E 的 5 条）与真发 `npm publish --registry=https://registry.npmjs.org`（C-88：默认注册表是镜像，必须显式覆盖；tag `v0.1.0` 已本地打在 `3e852c2`，未推）。
+
+## 2b. P1.1 任务组（2026-09-23 开档 · 范围裁定正文在 [dev-plan.md §15](./dev-plan.md)，此处只排顺序）
+
+**开工门槛**：本节各项以 `docs/specs/` 内已写好的规格为准，**未写规格不得开工**（dev-plan §0.4 第 4 条）。下列「规格」列 ✅ = 本轮（P1.1 开档轮）已写入 spec。
+
+### T10 · 退场与信任（预估 1.8 人日）
+
+- [x] 八份 spec 补写 `| 版本 |` 痕迹基线 + 实量数字单源化 + `m6a §6.4` 交叉引用修正 —— 2026-09-23 本轮完成（起因：dev-plan DoD⑥ 假绿，见 §15.5）
+- [ ] `openvibe clean` 实现 —— 规格 `specs/m6-cli-injection.md` FR-6 + §6.10 + 验收 10a–10j ✅已写；测试段 `CLI-CLEAN-01..10`（`apps/cli/test/clean.test.ts`）；≈1 人日
+- [ ] 预览体量与 token 估算 —— 规格 `specs/m6-standard-pack.md` FR-6 + §5 + 验收 8–12 ✅已写；测试段 `CORE-SIZE-01..05` + `SRV-EST-01..03`；≈0.5 人日
+- [ ] 一项目一包边界声明 —— `specs/m6-cli-injection.md` §6.10 ✅已写（正文即规格，无实现项）
+- [x] **T10 开工前置：实现计划落库 + 三处「规格 vs 代码」冲突定稿**（2026-09-24）—— 计划 `docs/superpowers/plans/2026-09-24-p1.1-t10-clean-and-size-estimate.md`（9 任务）；冲突裁定与实测证据在计划「先读」节 + `DEV_LOG [DEV-0026]`，规格侧落为 **m6b v1.3 / m6a v1.2**（`clean` 验收 j 构造改法、`coveredPlatforms`→`manifest.targets`、§6.10 合并语义、另补验收 **f2** `LOCK_INVALID` 与三处同源涟漪）。**待 owner 复核后开 Task 2**
+
+**验收**：`CLI-CLEAN-01..10`、`CORE-SIZE-*`、`SRV-EST-*` 全绿；**`git diff --name-only tests/golden/` 为空**（这是「未触 A 级冻结契约」的机器凭据，不是叙述句）。
+
+### T11 · 发布运营与证据（预估 1.5–2 人日）
+
+- [x] **S-2 探针**（2026-09-23 跑完）：CDP 真输入三判据——**有头 Chrome 三条全过**（① pbpaste 逐字节 == 正文 195 字符；② 中文 `insertText` → 第 300 ms 发出带中文 q 的请求 → 列表收窄到 1 行；③ Tab 4 跳落到确认按钮、Enter 关窗且剪贴板 == 替换后预览 280 字符），**无头下判据①不成立**（writeText resolve、页内 readText 读得到、toast 出现，而系统 pasteboard 一字未动）。驱动器已入库 `docs/devlog-evidence/DEV-0024/s2-cdp-real-input.mjs`（含负向对照与自清理断言）。判据、四条方法级副产品与限制的单源都在 `dev-plan §15.4-S2`
+- [x] 三条冒烟（导入→复制 / 术语搜索→TERMS.md / 向导三步）—— **2026-09-24 收口：三条场景已全部接到 DEV-0024 的真输入骨架上并各自跑通**。新驱动器 `docs/devlog-evidence/DEV-0025/three-smokes.mjs`（自包含，不抽公共模块），**有头 FAIL=0 SKIP=0 / 无头 FAIL=0 SKIP=2**（两支日志各 26 条断言；两条 SKIP 都是系统剪贴板腿，按设计不可判即记 SKIP，绝不记 PASS）。三条各自独立判定：SM-1 真点击「选择文件…」真触发 `Page.fileChooserOpened` 后从磁盘注入 `.md`，`pbpaste` 与该文件**逐字节相等**；SM-2 预览 `<pre>` 与服务端 `render-terms-md` **同一字节**且 `pbpaste` == 它；SM-3 三步全真点击、`sync` 后 lock 探测**自动点亮**、「暂不」后刷新不再询问。**探针 ≠ 冒烟**这条区分仍然成立，只是冒烟一侧已收；人工录屏退路未启用。数字、三条方法级副产品（toast 的「关闭」按钮与弹窗同名并抢占 DOM 序 / 「按钮出现」不等于「内容就绪」 / 负向对照的可见证据）与构建归属判定单源在 `dev-plan §15.4b`
+- [ ] 发布传播执行清单：渠道帖（V2EX / 掘金 / 知乎）、demo GIF / asciinema、社群入口、awesome 清单 PR —— 非产品功能，不占八段式闸；**执行前置条件是 v0.1.0 真发布**（在 owner 手上）
+- [ ] `@import` 受管子文件：S-1 探针**已跑完**，结论=可行但属 A 级契约变更，落地归 P2；本组无实现项，只保证结论入档
+
+**验收**：三条冒烟各有一份可复查证据 —— **2026-09-24 已满足**（`docs/devlog-evidence/DEV-0025/three-smokes{,-headed}.txt` + 3 张有头 PNG，均为自动化日志而非录屏）；传播清单逐项打勾并留外链 —— **未做，且执行前置是 v0.1.0 真发布**（在 owner 手上）。
+
+---
 
 ## 3. 周计划与工期口径（2026-09-20 澄清后更新）
 
@@ -162,7 +189,7 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 **工期口径（2026-09-20 裁定 D8 定案：6.5 周）**：单人全栈任务 ≈ **31.5 人日 + 显式缓冲 1 人日 = 32.5 人日（6.5 周窗口）**（T1 1.5 + T2 2.5 + T3 4 + T4 2.5 + T5 4 + T6 5.5（六 adapter+真机复核）+ T7 4.5 + T8 4（含向导 lock 自动确认 D11）+ T9 3；核验工作已在 P0 期完成不再占用）。W6 之后多出的半周即显式缓冲。内容产能（D14，2026-09-20 修订）：原「0.5 内容编辑 ≈ 6.5 人日全程并行」并行轨取消，改为 **AI 起草全部词条/提示词初稿 + owner 审校 ≈ 2-3 人日**，含于 6.5 周窗口；审校不达标即启用变体③（60 条首发 + seed 幂等热补——热补本身即种子升级机制的公开演示）。
 
 **保 4 周变体（备案，默认不启用；启用需 owner 明示并记 DEV_LOG）**：
-① 首启向导后移至发布后首个小版本 P1.1（预置包保留）；② 遥测仅埋点（含开关）不做飞轮面板（面板随 P1.1）；③ v0.1 原三级砍单序仍可叠加（T3 Markdown 导入降级 → T5 拖拽降级 → 词条 60 条首发追补，D14 后为首选内容兜底）；④ 国内三 adapter（codebuddy/trae/minicode）可后移 P1.1（兼容矩阵覆盖的 zcode/Kimi/Codex 不受影响）。
+① 首启向导后移至发布后首个小版本 P1.1（预置包保留）——**判作废（2026-09-23 D19 核查）**：向导已随 T8 交付（`docs/specs/onboarding.md` + `onboarding-walk.mjs` 29 断言），无后移可言；② 遥测仅埋点（含开关）不做飞轮面板（面板随 P1.1）——**改判 P2（D19）**，P1.1 不做面板；**此处的「飞轮面板」= 基于埋点计数的对外看板，不是 MVP 已交付的本地飞轮五项卡片**（后者在 `apps/web/src/components/onboarding/FlywheelCard.tsx`，`specs/onboarding.md` FR-3，明确不参与遥测），见 `dev-plan §15.5-6`；③ v0.1 原三级砍单序仍可叠加（T3 Markdown 导入降级 → T5 拖拽降级 → 词条 60 条首发追补，D14 后为首选内容兜底）；④ 国内三 adapter（codebuddy/trae/minicode）可后移 P1.1（兼容矩阵覆盖的 zcode/Kimi/Codex 不受影响）——**判作废（2026-09-23 D19 核查）**：三个 adapter 已在 MVP 实装（`packages/core` adapter 表含三者；DEV-0020 走查实测 `CODEBUDDY.md`/`MINI.md`/`.trae/rules/openvibe.md` 各约 14.5 kB 落盘）。
 
 ## 4. 完成定义（MVP DoD）
 

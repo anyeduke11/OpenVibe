@@ -3,10 +3,10 @@
 | 项 | 值 |
 |------|------|
 | 文档定位 | 立项提案：为什么做、做什么、做到什么程度算成 |
-| 上游依据 | [PRD.md](./PRD.md) v0.1.4（含三维审查与四轮沟通裁定、D17 更名）、[competitive-research.md](./competitive-research.md) |
+| 上游依据 | [PRD.md](./PRD.md) v0.1.7（含三维审查与四轮沟通裁定、D17 更名、D19–D22 P1.1 开档、S-2 探针结论回填、三条冒烟收口）、[competitive-research.md](./competitive-research.md) |
 | 下游文档 | [specs/](./specs/)（详细规格）、[design.md](./design.md)（设计方案）、[tasks.md](./tasks.md)（任务清单） |
-| 状态 | v0.2 —— 已随 2026-09-20 owner 澄清与评审对话更新（与 PRD v0.1.3 对齐） |
-| 版本 | v0.2（2026-09-20） |
+| 状态 | v0.2.3 —— 提案主体（v0.2，2026-09-20 与 PRD v0.1.3 对齐）不变；2026-09-23 按 D21 改写第 5 章「验收证据」一条并回填 S-2 探针结论；2026-09-24 同条改为「三条冒烟已跑通并留档」 |
+| 版本 | v0.2（2026-09-20）→ v0.2.1（2026-09-23，D21：验收证据去掉 Playwright 承诺；上游 PRD 改指 v0.1.5）→ v0.2.2（2026-09-23，S-2 探针已跑：证据形态定了但三条冒烟仍未跑，故「未验证缺口」结论不变）→ **v0.2.3（2026-09-24，三条冒烟已跑通并留档 ⇒ 该条从「未验证缺口」改为「已收」；上游 PRD 改指 v0.1.7）** |
 
 ---
 
@@ -88,7 +88,7 @@ MVP 验收 = 这一圈在真实项目上端到端走通（见 §6 与 tasks.md D
 1. **软件**：pnpm monorepo——`apps/web`（SPA）、`apps/server`（API + 静态托管）、`apps/cli`（`npx openvibe-cli`）、`packages/core`（领域模型 + 存储标准包生成器，Web/CLI 共用）、`packages/adapters`（平台目录契约适配）、`content/seed`（种子内容）。
 2. **内容**：≥100 术语、3 流程模板、20 精选提示词（质量标准见 [specs/seed-content.md](./specs/seed-content.md)）；词条允许 60 条首发、seed 幂等热补至 100（D14）。
 3. **文档**：本套规划文档（proposal / specs / design / tasks）+ 用户 README + 标准包文件契约（design.md §7，独立评审对象）。
-4. **验收证据**：E2E 飞轮一条龙的自动化测试（Playwright + CLI 集成测试）。
+4. **验收证据**：E2E 飞轮一条龙的自动化测试（**2026-09-23 D21 裁定不引入 Playwright**，原写法作废）——实际形态：vitest 集成 + CLI 临时目录 + 真 serve 子进程的主链 `E2E-FLOW-01`（八腿，DEV-0020 已收），加裸 CDP 浏览器走查驱动器；三条冒烟（导入→复制 / 术语搜索→TERMS.md / 开箱向导三步）的**真实用户动作**证据**已收（2026-09-24）**：驱动器 `docs/devlog-evidence/DEV-0025/three-smokes.mjs` 用真鼠标点击 + 真中文输入 + 进程外剪贴板反查跑通三条场景（**有头 FAIL=0 SKIP=0**；无头下两条系统剪贴板腿按设计记 SKIP，不记 PASS）。数字与限制单源在 dev-plan §15.4b。
 
 ## 6. 成功度量
 

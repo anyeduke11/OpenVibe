@@ -1,0 +1,55 @@
+构建 apps/web …
+  构建完成
+serve http://127.0.0.1:50323 home=/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-smoke-93410/home
+浏览器形态：headless=new（无头）
+INFO clipboard 权限授予 — clipboardReadWrite + clipboardSanitizedWrite
+夹具：SM-1 用磁盘文件 <ROOT>/fixtures/冒烟导入夹具bm533.md（62 字符）
+
+== N1 负向对照：合成 el.click() 拿不到系统剪贴板
+PASS N1 合成点击未写入系统剪贴板（⇒ 现有走查驱动器的 click 不算真输入） — click()=OK 剪贴板未变=true
+
+== SM-1 导入→复制（真点击 + file chooser 注入 + 真中文检索 + 真点击复制 → pbpaste）
+PASS SM-1a 真点击「导入」打开导入弹窗
+PASS SM-1b 真点击「选择文件…」触发浏览器 file chooser（按钮真接线） — mode=selectMultiple
+PASS SM-1c 导入报告：新建 1 条、跳过 0 条
+INFO 页内「关闭」按钮候选 — [{"host":"root（toast/页面流）","aria":"关闭提示","rect":[1325,891,24,16]},{"host":"root（toast/页面流）","aria":"关闭提示","rect":[1299,945,24,16]},{"host":"dialog","aria":null,"rect":[925,659,54,34]}]
+PASS SM-1d 真点击「关闭」收起弹窗
+PASS SM-1e 中文检索真发出了带该 q 的请求 — http://127.0.0.1:50323/api/prompts?page=1&size=20&q=%E5%86%92%E7%83%9F%E5%AF%BC%E5%85%A5%E5%A4%B9%E5%85%B7
+PASS SM-1f 列表收窄到刚导入那条「冒烟导入夹具bm533」
+PASS SM-1g 服务端存回的 content 与磁盘字节逐字节相等 — 服务端 62 字符 / 磁盘 62 字符
+SKIP SM-1h 真点击「复制」后系统剪贴板 == 磁盘 .md 字节 — 系统剪贴板腿在无头不可判，不得记为通过
+
+== SM-2 术语搜索→TERMS.md（真中文检索 + 真点击勾选 + 生成 + 复制 → pbpaste）
+PASS SM-2a 术语库渲染
+  夹具：术语「清单归一化」/ 检索串「清单归一」
+PASS SM-2b 中文检索真发出了 /api/terms/search 请求 — http://127.0.0.1:50323/api/terms/search?q=%E6%B8%85%E5%8D%95%E5%BD%92%E4%B8%80
+PASS SM-2c 结果表里出现该术语的勾选框（aria-label 即中文名） — 术语「清单归一化」
+PASS SM-2d 真点击勾选后底部报「已选 1 条」
+PASS SM-2e 真点击「生成 TERMS.md」开预览
+PASS SM-2f 预览 <pre> 文本 == 服务端 render-terms-md 字节 — DOM 244 字符 / API 244 字符 · orderBy=en-alpha
+SKIP SM-2g 真点击「复制全文」后系统剪贴板 == 服务端 TERMS.md 字节 — 系统剪贴板腿在无头不可判，不得记为通过
+
+== SM-3 开箱向导三步：全程真点击
+PASS SM-3a 顶栏向导条在位
+PASS SM-3b 真点击推进到步②
+PASS SM-3c 步②渲染出文件树与指纹（与 preview API 同源） — 指纹 13c6584f0bef…
+PASS SM-3d 真点击推进到步③
+INFO 步③建议命令 — npx openvibe-cli sync "/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-smoke-93410/openvibe-demo" --pack default
+PASS SM-3e sync 后 lock 探测自动点亮（无人工点击，D11） — sync 退出码 0 · 点亮=true · summary {"ok":true,"projectPath":"/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-smoke-93410/openvibe-demo","pack":{"id":"pk_yC2W08On67ueRXHtuttlx","name":"default
+PASS SM-3f 真点击「完成向导」出现一次性询问卡
+PASS SM-3g 真点击「暂不」后向导条消失
+PASS SM-3h 刷新后不再询问（declined 落本地标记）
+PASS SM-3i 询问结果与后端一致 — {"enabled":false,"askState":"declined","whitelist":["pack_injected","flow_template_used","project_active"]}
+
+== 判据归属（三条各自独立）
+  SM-1：导入报告新建 1 条 + 服务端 content == 磁盘字节 + 真点击复制后 pbpaste == 磁盘字节
+  SM-2：真发出中文检索请求 + 结果含该术语 + 预览 == 服务端字节 + 真点击复制后 pbpaste == 同一字节
+  SM-3：三步全真点击推进 + sync 后自动点亮 + 真点击完成/暂不且刷新不再询问
+  SM-1=过 SM-2=过 SM-3=过
+结果：FAIL=0 SKIP=2 · 形态=headless=new ⇒ 无头侧剪贴板腿按设计为 SKIP（不可判不等于通过），其余腿须 FAIL=0
+剪贴板已还原为起跑前内容（11665 字符，纯文本表示）
+PASS 驱动器结束时无残留本进程子进程（serve + Chrome 双 pid 已判死） — serve=93461:false chrome=93464:false
+INFO 本机 ov-smoke-* 临时目录（rmSync 前） — 1 个 /var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-smoke-93410
+INFO 本进程临时目录已删 — 已不存在；其余为并行会话遗留（未定归属，不算本驱动器孤儿）
+
+# HEAD 2862829（工作树脏 18 文件）· node v26.4.0 · darwin · Chrome headless=new · 结束于 2026-09-23T16:32:18.894Z

@@ -13,7 +13,7 @@
 ## 1. 设计总览与硬约束
 
 1. **本地优先**：MVP 单用户，全部数据在 `~/.openvibe/`，无外部服务、无外传（PRD 假设 A6）。
-2. **CLI 是注入唯一通道**：浏览器写不了本地项目文件——Web 只读展示项目状态，写路径收敛到 `openvibe sync`（PRD 审查二 P0 修正）。
+2. **CLI 是注入唯一通道**：浏览器写不了本地项目文件——Web 只读展示项目状态，写路径收敛到 `openvibe sync`（PRD 审查二 P0 修正）。P1.1 的退场删除同样走 CLI（`openvibe clean`，D19/T10），**通道唯一性不变**，只是命令从 1 个变 2 个。
 3. **标准包是纯文件契约**：Markdown + JSON，零私有二进制格式，git 友好、工具无关（PRD 4.2 决策 1）。
 4. **确定性输出**：同一输入 → 字节级相同的产物（文件内不含时间戳；时间只在 manifest）。这是 diff/漂移检测/幂等导出的数学基础。
 5. **平台变化隔离在 adapter 层**：目标平台目录/格式契约的任何变化只改 `packages/adapters`（PRD 4.2 决策 3）。
@@ -33,7 +33,7 @@
 | 校验 | zod（packages/shared 统一 schema，三端复用） | API 边界与 CLI 参数共用一套类型 | 低 |
 | CLI | commander + @clack/prompts + picocolors | 参数解析 + 漂亮的交互确认，依赖极轻 | 低 |
 | ID | nanoid + 类型前缀（`prm_`/`pk_`…） | 日志与外键肉眼可辨 | — |
-| 测试 | vitest（单测/集成，含 CLI 临时目录）+ Playwright（E2E 一条龙） | 见 §13 | 中 |
+| 测试 | vitest（单测/集成，含 CLI 临时目录与真 serve 子进程）+ 裸 CDP 走查驱动器；**不引入 Playwright**（owner 裁定 D21，2026-09-23；原计划「Playwright E2E 一条龙」作废，见 §13） | 见 §13 | 中 |
 | 质量 | ESLint + Prettier + GitHub Actions（lint/test/seed:check，**三平台矩阵 macOS/Linux/Windows——澄清 D5 硬要求**；T8f 起再加 bundle:check：入口 ≤300kB、任一 chunk ≤500kB，见 dev-plan §5.1） | CI 见 tasks T1 | 低 |
 
 ## 3. Monorepo 结构（对齐 PRD 4.3，细化到目录）
@@ -348,7 +348,8 @@ interface Adapter {
 | 单元（vitest） | pack composer 确定性（golden 文件快照）、fingerprint、validate（§7.7 全规则）、变量提取正则、FTS 路由（≥3 / <3）、entryNo 分配、seed 幂等 | ≥ 120 用例 |
 | 集成（vitest + app.inject + 临时 DB） | 全部 API 路由含 403/409/422 分支；skills 扫描（临时目录夹具）；导入导出往返 | ≥ 60 |
 | CLI 集成（vitest + 临时项目目录 + `--json`） | sync 五状态机分支、dry-run 零写入（全树哈希对比）、备份恢复、diff 退出码、路径攻击样本 | ≥ 25 |
-| E2E（Playwright） | **飞轮一条龙**：首启播种 → 建提示词 → 建项目 → 组包导出 → CLI sync 到临时目录 → 手改文件 → diff 报漂移 → 日志回流建术语草稿 | 1 条主链 + 3 条冒烟（导入→复制；术语搜索→TERMS.md；开箱向导三步） |
+| E2E 主链（vitest，**不是 Playwright**） | **飞轮一条龙**：首启播种 → 建提示词 → 建项目 → 组包导出 → CLI sync 到临时目录 → 手改文件 → diff 报漂移 → 日志回流建术语草稿。实装 = `E2E-FLOW-01` 八腿（`apps/cli/test/e2e-flow.test.ts`：起**真 serve 子进程** + 真 HTTP + 真 CLI 退出码，1.57 s 连跑三遍稳定；不走 `import @openvibe/server` 以守 apps/cli 的 R4 边界）。**2026-09-23 owner 裁定 D21：不引入 Playwright**，原「Playwright 一条龙」口径作废 | 主链 1 条 ✅已收（DEV-0020）；3 条冒烟（导入→复制；术语搜索→TERMS.md；开箱向导三步）**✅已收（2026-09-24，DEV-0025）：驱动器 `docs/devlog-evidence/DEV-0025/three-smokes.mjs` 用真鼠标点击 + 真中文 `insertText` + 进程外 `pbpaste` 反查跑通三条场景链，有头 FAIL=0 SKIP=0；无头 FAIL=0 且两条系统剪贴板腿按设计记 SKIP（不可判 ≠ 通过）。数字单源见 dev-plan §15.4b** |
+| 浏览器走查（裸 CDP，驱动器入库） | 发布形态与首启体验的真实浏览器证据（**注意**：现有三支驱动器用合成事件，测不到剪贴板/中文输入/Radix 焦点，不等价于「真实用户动作」证据；S-2 探针已于 2026-09-23 跑完并证明 `Input.dispatch*` 真输入可以补上这一层，但**判据①系统剪贴板只在有头 Chrome 成立**，无头 CI 拿不到——细节与限制单源见 dev-plan §15.4-S2） | 3 支在库：`docs/devlog-evidence/DEV-0019/{onboarding,lazy-chunk}-walk.mjs`、`DEV-0020/publish-walk.mjs`（45 断言，装包产物口径）；真输入底座 1 支：`DEV-0024/s2-cdp-real-input.mjs`；**真输入场景链 1 支：`DEV-0025/three-smokes.mjs`（三条冒烟，2026-09-24 收口）** |
 | 契约快照 | 对固定夹具 pack 的全部产物文件做字节级快照测试（防无意改动契约） | 3 夹具 |
 
 ## 14. 性能与容量（MVP 目标，非承诺 SLA）
@@ -373,7 +374,8 @@ interface Adapter {
 
 ## 16. 决策记录（DEC 摘要，评审时可逐条挑战）
 
-> 编号说明：本表 D1–D17 为**设计决策**（技术取舍）；PRD 附录 D 的 D1–D12 为 **owner 裁定**（产品决策）。两套独立编号，正文引用「D7/D9/D11/D12」等未加限定时，以所在文档语境判断。
+> 编号说明（2026-09-23 改写，原文已过期）：本表是**设计决策**（技术取舍），当前到 **D18**；PRD 附录 D 是 **owner 裁定**（产品决策），当前到 **D22**。两表历史上各自从 D1 起编号，故 **D1–D17 区间存在重号**（例：PRD D13 = 遥测「惊喜时刻」询问，本表 D13 = 遥测三类白名单），正文引用裸「D7/D13」时以所在文档判断归属。
+> **本轮起的约定**：新决策取**全局下一空号**（P1.1 的 D19–D22 即按此取号——若按 PRD 本表续号会得 D18，与本表既有 D18 撞车）。owner 裁定不在本表复述正文，只留一行指针（反漂移，见 dev-plan §0.3）。
 
 | # | 决策 | 备选与否决理由 |
 |---|------|----------------|
@@ -395,3 +397,4 @@ interface Adapter {
 | D16 | 向导「我已注入」用 lock 文件自动检测替代诚实按钮 | specs/onboarding.md FR-2.4（D11）；本地服务有权限读测试目录，自动点亮消灭误报完成 |
 | D17 | 遥测端点自写极简（单文件 Worker）而非自托管 Umami | §11.5（D12）；三类事件不需要分析面板，零运维零月费 |
 | D18 | 遥测询问放在首次注入成功的「惊喜时刻」，一次性、双入口共享本地标记 | §11.5（裁定 D13）；设置页深处的开关几乎无人发现，转化率不可比；拒绝即终点，不追讨 |
+| — | **owner 裁定 D19–D22（2026-09-23 P1.1 开档）**——本表按上面的约定不复述其正文，只留此指针。对设计侧承重两条：**D21** 改写本文 §2 测试行与 §13 E2E 行口径（不引入 Playwright）；**D19 的 T10 两项新增**（CLI `clean`、预览响应 `sizeEstimate`）**不触 design §7/§8 冻结契约**，凭据是 golden 三夹具零 diff（`specs/m6-standard-pack.md` 验收 12），非本文自述 | PRD 附录 D、dev-plan §15、`specs/m6-cli-injection.md` FR-6、`specs/m6-standard-pack.md` FR-6 |

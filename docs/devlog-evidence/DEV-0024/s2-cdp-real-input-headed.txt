@@ -1,0 +1,52 @@
+构建 apps/web …
+  构建完成
+serve http://127.0.0.1:59852 home=/var/folders/m5/vtf5zzms4d74m83g6_8shx9h0000gn/T/ov-s2-53494/home
+浏览器形态：headed（可见窗口）
+INFO clipboard 权限授予 — clipboardReadWrite + clipboardSanitizedWrite（Browser.grantPermissions）
+夹具：①用「日志与可观测性」（195 字符，无变量）
+      ③用「复盘报告生成」（变量 period, project, metrics）
+
+== 判据①：真鼠标点击 → 系统剪贴板（进程外 pbpaste 逐字节反查）
+PASS 提示词库渲染且带变量条目挂出 {{var}}
+INFO clipboard API 前置 — isSecureContext=true origin=http://127.0.0.1:59852 形态=headed
+INFO N1 合成 el.click()（此前无任何真输入） — click()=OK，pbpaste 仍为哨兵=true，错误 toast=true
+PASS N1 负向对照：无任何真输入时，合成点击未写入系统剪贴板（⇒ 现有走查驱动器的 click 不算真输入） — 剪贴板未变
+PASS 判据①：pbpaste 内容 == 提示词正文（不是哨兵旧值，也不只看 promise） — pbpaste 195 字符，逐字节相等=true；toast=true
+PASS 判据①辅助：toast「已复制到剪贴板」出现
+INFO 第二读法 clipboard.readText()（页内视图，非系统剪贴板） — OK:# 日志约定
+
+- 每条日志含：时间、级
+
+== 判据②：中文经 Input.insertText 进受控 input → 300ms debounce → 检索请求与命中
+INFO input/composition 计数 — input=0→1（其中 isComposing=true 的 0 次），compositionstart=0 compositionend=0
+PASS 判据②a：受控 input 的 value == 中文串（真输入进了 DOM） — DOM value="复盘报告"
+INFO 检索窗口内捕到的 /api/prompts 请求 — 2 条，样例：http://127.0.0.1:59852/api/prompts?q=%E5%A4%8D%E7%9B%98%E6%8A%A5%E5%91%8A&page=1&size=200
+PASS 判据②b：debounce 后真的发出了带该中文 q 的检索请求 — 等到第 300ms，请求=http://127.0.0.1:59852/api/prompts?page=1&size=20&q=%E5%A4%8D%E7%9B%98%E6%8A%A5%E5%91%8A
+PASS 判据②c：检索命中标题「复盘报告生成」且列表收窄（共 1 条） — 渲染 1 行 / 全量 20 条
+INFO CJK 第二通路（信息项，不入判据） — 逐字符 dispatchKeyEvent(text)="重构" → value="重构"，检索请求=true，共 2 条，渲染 2 行
+
+== 判据③：Radix Dialog 键盘流（Tab 转移焦点 + Enter 确认并写剪贴板）
+PASS 判据③a：真点击打开 VariableFillModal（Radix Dialog）
+PASS 判据③b：打开后初始焦点在 [role=dialog] 内（FocusScope 生效） — {"inDialog":true,"tag":"button"}
+PASS 判据③c：Dialog 内变量输入数 == 变量数（3） — 实际 3
+PASS 判据③d：每个变量框各自回写了它的中文（逐框落点正确） — ["甲乙0丙","甲乙1丙","甲乙2丙"]
+PASS 判据③e：Tab 键把焦点在 Dialog 内逐跳移到「复制到剪贴板」 — 走了 4 跳，落点 {"tag":"button","text":"复制到剪贴板","inDialog":true}
+PASS 判据③f：变量填齐后确认按钮从 disabled 变可激活
+PASS 判据③g：Enter 键触发确认动作 → Dialog 关闭（键盘完成一次提交） — closed=true
+PASS 判据③h（判据①的键盘入口复采）：Enter 后系统剪贴板 == 变量替换后的预览文本 — pbpaste 280 字符 vs 期望 280 字符，相等=true
+  截图 docs/devlog-evidence/DEV-0023/01-headed-dialog-keyboard.png
+
+== 判据归属（各条独立，任一不过即整体不过）
+  ① 剪贴板：以进程外 pbpaste（显式 UTF-8 locale）逐字节比对为准；promise / 页内 readText / toast 只作辅助信号
+  ② 中文输入：以「受控 value 回写 + 真发出带中文 q 的请求 + 列表收窄」三件齐为过
+  ③ 键盘流：以「Tab 改变焦点落点 + Enter 完成一次提交（Dialog 关闭）」为过；其剪贴板落点单列为 ③h
+  浏览器形态 = headed
+  ① 真点击 → 系统剪贴板：过
+  ② 中文 insertText → debounce 检索：过
+  ③ Dialog 键盘 Tab/Enter：过（③h 剪贴板落点：过）
+结果：FAIL=0 SKIP=0 ⇒ 有头侧三条判据全过 → S-2 成立，可扩裸 CDP 驱动器入库
+剪贴板已还原为探针开始前内容（10 字符，纯文本表示）
+PASS 探针结束时无残留本探针子进程（serve + Chrome 双 pid 已判死） — serve=53633:false chrome=53661:false
+PASS 探针临时目录已清空 — rmSync 后无 ov-s2-* 残留
+
+# HEAD 2862829（工作树脏 15 文件）· node v26.4.0 · darwin · Chrome headed · 结束于 2026-09-23T14:27:06.394Z

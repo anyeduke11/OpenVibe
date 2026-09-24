@@ -1160,7 +1160,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 **SPEC 依据**：seed-content FR-1–4、onboarding FR-1–4；design §15。
 
 **工作项**
-- [x] terms.json 补至 ≥100（批次 C/D，§11）；prompts.json 20 条（两批）——**104 / 20**
+- [x] terms.json 补至 ≥100（批次 C/D，§11）；prompts.json 20 条（两批）——**实量单源在 §9 映射表 seed-2 一行**（本行原写死「104 / 20」，2026-09-23 按 §0.3 反漂移原则移除；两个时点的历史真值 104 与 109 见 DEV-0019 / DEV-0022，不在此重复）
 - [x] 模板从代码常量迁 `flow-templates.json`（老库幂等升级验证）——T4 即已按 C-15 以 seed 文件落盘，本轮只补 UT-SEED-02 的真实 seed 全量验证
 - [x] `seed:check` 阈值切正式（100/3/20）进 CI + §3.4 构成配额（C-57）+ 负向探针命名用例
 - [x] 预置演示包：首启组装 `default`（20 提示词+全术语+轻量流+六 targets+1.0.0+一次目录导出，onboarding FR-1，D-3 跳过口径）
@@ -1345,7 +1345,9 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 
 ---
 
-## §14 遗留评审建议（未裁定，不进 MVP——owner 裁定后入 P1.1）
+## §14 遗留评审建议（原文保留，**2026-09-23 已全部裁定 → 结论见 §15**）
+
+> 本节六项是 MVP 收口时挂起的未裁定项。owner 指令「开始 P1.1」后逐项裁定，本节文字不再作为待办入口，只作追溯；**判读以 §15 裁定表为准**（含对 §14-1 原口径的实测否证）。
 
 1. **组包预览 token 估算**：preview 返回各文件 chars/4 估算与总量告警（借 Rulix，约 0.5 人日）。
 2. **`openvibe clean`**：按 lock 清除注入文件 + 备份，补全「零锁定」的退场半边（约 0.5 人日，竞品全部没有）。
@@ -1353,3 +1355,133 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 4. **m6b 单包边界声明**：lock 单包结构下「一项目一包」假设显式写进 spec 边界节（B 级变更一行）。
 5. **发布执行清单**：渠道帖（V2EX/掘金/知乎）、demo GIF/asciinema、社群入口、awesome 清单 PR——当前 tasks T9 只有 README 重写，无传播执行项。
 6. **Playwright E2E（design §13 原口径）**——**owner 已裁定：T9 不引入，延至 P1.1 评估（2026-09-23）**。裁定依据是实测证据面：本仓无 jsdom，T8 三段入库驱动器（`onboarding-walk.mjs` 29 断言 / `lazy-chunk-walk.mjs` 29 / `telemetry-egress.mjs` 17）零 `Input.dispatchMouseEvent`、零 `Input.dispatchKeyEvent`、零 clipboard，仅 2 处 `Runtime.evaluate` 内的合成 `b.click()`（`onboarding-walk.mjs:201`、`lazy-chunk-walk.mjs:265`），即其证据类型是「navigate 之后读 DOM」而非真实用户动作。因此合成 `b.click()` 拿不到 transient user activation，`navigator.clipboard.writeText` 在自动化下必然被拒 → `E2E-SMOKE-01 导入→复制`、`02 术语搜索`（受控 input 中文输入 + debounce）、`m5-5 @dnd-kit 看板拖拽` 三处**在 v0.1 由人工录屏/截图承担**，CDP 驱动器只作渲染与数据面回归；发布说明与 DEV_LOG 须如实标注「自动化证据不含真实点击/复制/拖拽」。P1.1 若引入，只承担冒烟 ×3、仅 chromium、仅单 OS，主链 `E2E-FLOW-01` 留在 vitest `integration`+`cli`。
+
+---
+
+## §15 P1.1 迭代版（2026-09-23 owner 开档 · **本轮产出为规格，不含实现**）
+
+**开档口径**：owner 指令「开始 P1.1」，本轮产出形态 = 先裁范围 + 补 spec。按 §0.4 第 4 条 No-spec-no-task，本节是 P1.1 各项进入实施的唯一入口闸；只有裁定表里**落点已写出且标 ✅ 已写规格**的行才允许开工。
+
+### 15.1 范围裁定表（候选 13 项 → 四类判决）
+
+| 判决 | # | 项 | 出处 | 落点与规格状态 | 人日 |
+|---|---|---|---|---|---|
+| **进 P1.1 · T10 退场与信任** | 0 | 八份 spec 版本行痕迹基线 | 15.5-1 撞出的 DoD⑥ 假绿 | `docs/specs/*.md` 头部 · ✅**本轮已写** | 0.3 |
+| | 1 | `openvibe clean` | §14-2 | `m6-cli-injection.md` FR-6 + §6.10 + 验收 10a–10j · ✅已写 | 1 |
+| | 2 | 预览体量与 token 估算 | §14-1（**原 `chars/4` 口径已被实测否证**，见 S0） | `m6-standard-pack.md` FR-6 + §5 + 验收 8–12 · ✅已写 | 0.5 |
+| | 3 | 一项目一包边界声明 | §14-4 | `m6-cli-injection.md` §6.10 · ✅已写 | 0.1 |
+| **进 P1.1 · T11 发布运营** | 4 | 三条冒烟的真实输入证据 | §14-6 | ✅**探针已跑（2026-09-23）：三条判据在有头 Chrome 全过；无头侧判据①不成立且属环境限制** ⇒ 前置解除，证据形态定为「有头裸 CDP 真输入跑判据①，无头只跑②③」，驱动器已入库（`docs/devlog-evidence/DEV-0024/s2-cdp-real-input.mjs`）。本轮按 D21 改的 Playwright 口径（不引入 + 三条冒烟标未验证缺口）是裁定本身，不随探针结果回退。结论单源见 §15.4-S2；**2026-09-24 三条场景已各自接上该骨架并跑通（有头 FAIL=0 SKIP=0，两支日志各 26 断言），数字单源见 §15.4b** | 0.5–1 |
+| | 5 | CLAUDE.md `@import` 受管子文件 | §14-3 | S-1 spike 卡 · ✅**探针已跑完**（结论见下） | 0.5 |
+| | 6 | 发布传播执行清单 | §14-5 | `tasks.md` 新 T11 组勾选项（非产品功能，不占 §0.4 八段式闸）· ✅已立 | 0.5 |
+| **归 P2** | 7 | 暗色主题 | `:754`「P1.1 评估暗色」 | 前置是**设计 token 化重构**：实测 `apps/web/src/index.css` 的 `@theme` 只有 `--color-brand`/`--color-brand-soft` 两个 token，`.html-md` 内 30+ 处字面 hex，全仓 `dark` / `prefers-color-scheme` / `[data-theme]` **零命中**——不是加 class，是重构，量级不估 | — |
+| | 8 | **遥测增长看板**（基于埋点计数的对外公开页） | `tasks.md §3 变体备案` ② | 需新 spec（横切 M1/M5 + design §11.5 Worker 计数端点），未开。**本项原名「飞轮遥测面板」是同名异物，已改称**：MVP 已交付的是**本地**飞轮五项卡片（`apps/web/src/components/onboarding/FlywheelCard.tsx` + `GET /api/stats`，规格 `specs/onboarding.md` FR-3，`apps/server/src/routes/settings.ts:146` 注释明写「全本地 SQL 聚合，不参与遥测」），归 P2 的是**用遥测计数的对外看板**——两者不同物，勿再混称（见 15.5-6） | — |
+| | 9 | **M4 技巧库** | `PRD.md:168` 标 P1 优先级 | **PRD 与计划间口径断裂**：`tasks.md` / `dev-plan.md` 全文零次提及 M4，`docs/specs/` 无 m4 spec——既未实现也未被显式裁掉；且 PRD **自身**三处冲突（3.2-M4 标 P1 vs 3.3「M4 进 Phase 2」vs 第 8 章 P2 行）。**已裁并勘误：D22**（2026-09-23，PRD v0.1.5 就地改标题为「（P1，Phase 2）」+ 勘误留痕，第 8 章 P2 行加注）；进入实施前仍须补 m4 spec | — |
+| | 10 | `@import` 受管子文件**落地** | S-1 结论 | 可行，但属 **A 级契约变更**（文件集合改变 → golden 三夹具全量失效），须走 `schemaVersion +1` 独立流程，不并进 P1.1 | — |
+| | 11 | 一项目多包叠加 | 本轮写 §6.10 时显式化 | 需 lock 结构升版，A 级 | — |
+| **判作废（文档陈旧，不再排期）** | 12a | 「首启向导后移 P1.1」 | `tasks.md §3 变体备案` ① | **MVP 已交付**：`docs/specs/onboarding.md` + `onboarding-walk.mjs` 29 断言 | — |
+| | 12b | 「国内三 adapter 后移 P1.1」 | `tasks.md §3 变体备案` ④ | **MVP 已交付**：`packages/core` adapter 表含 `codebuddy`/`trae`/`minicode`；DEV-0020 走查实测 `CODEBUDDY.md`/`MINI.md`/`.trae/rules/openvibe.md` 各约 14.5 kB 落盘 | — |
+| **条件挂起（不占名额）** | 13 | M5-lite（工作台 UI 后移） | `PRD.md:509` D15 | 观察窗从**真发布**起算两周，而 v0.1.0 尚未发布（实测 `npm view openvibe-cli --registry=https://registry.npmjs.org` → 404、`gh release list` 空、tag `v0.1.0` 仅本地）。现在无法判定；触发即插队 P1.1 并挤掉 T11 非必须项 | — |
+
+**T10 + T11 ≈ 3.4 人日**（含缓冲 ≈ 4 人日 = 单人一周）；第 4 项的工期不再随探针结论浮动——探针已跑完，结论与「无头拿不到判据①」这条限制见 §15.4-S2。
+
+### 15.2 版本与兼容口径
+
+- **阶段名 ≠ 版本号**：P1.1 是本文的阶段编号；发布物按 semver 走 **v0.2.0** 而非 v0.1.1——新增 CLI 命令与新增响应字段都是向后兼容的新增，minor 级。
+- **不触 `DEFAULT_PACK_VERSION`**：T10/T11 全部改动都不写进 `openvibe.pack.json`、不进导出目录（`m6-standard-pack.md` FR-6.6 已就此设机器断言），故 default 包指纹不变、已注入项目不会集体报 DRIFT。**P1.1 期间一旦要动 `content/seed`，必须同步升 `apps/server/src/lib/default-pack.ts` 的 `DEFAULT_PACK_VERSION` 并写进发布说明**——P1 期间「无人持有旧 lock」的豁免已不成立。
+- **前置关系**：P1.1 的实施**不以 v0.1.0 已发布为条件**（规格与 T10 代码可先行）；但 T11 的冒烟归档与传播清单**以真发布为执行条件**。owner 手上未收的发布四步（真 `npm publish --registry=https://registry.npmjs.org` / `gh release create` / 推 tag / 种子人工审校）不在本节范围。
+
+### 15.3 验收-测试映射（接 §9 表式）
+
+| 组 | 验收出处 | 测试 ID 与形态 | 人日 |
+|---|---|---|---|
+| clean-a…j | `specs/m6-cli-injection.md` §7.10 a–j | `CLI-CLEAN-01..10`（`apps/cli/test/clean.test.ts`，临时项目目录 + `--json`，三平台 CI） | 1 |
+| 估算·纯函数 | `specs/m6-standard-pack.md` §7.8 | `CORE-SIZE-01..05`（`packages/core/src/pack/size.test.ts`，不依赖 DB/HTTP） | 0.2 |
+| 估算·API | 同上 §7.9–7.11 | `SRV-EST-01..03`（server 集成：真 SQLite + 真 preview） | 0.2 |
+| 估算·UI | 同上 FR-1.5 + FR-6.4 | 人工截图归档 → `docs/devlog-evidence/DEV-00NN/`（黄条出现 + 导出不被阻断两帧） | 0.1 |
+| 契约未受影响 | 同上 §7.12 | 既有 golden 三夹具 + `bundle:check` 复跑 + `git diff --name-only tests/golden/` 为空——**这条是 A/B 分级结论的凭据，不是叙述** | 0 |
+| 冒烟 ×3 | `tasks.md §2b·T11` + `specs/onboarding.md` §7 | S-2 **已过**：要扩的那个驱动器本体已入库（`docs/devlog-evidence/DEV-0024/s2-cdp-real-input.mjs`——真 `Input.dispatch*`、剪贴板显式 UTF-8 进程外读回、负向对照排在任何真输入之前、自带子进程与临时目录清理断言），T11 只需把三条冒烟的场景接上去（**2026-09-24 已接上并跑通，见 §15.4b**）；**限制：判据①（系统剪贴板）在有头才成立，无头 CI 不得声称已证** | 0.5–1 |
+
+### 15.4 spike 卡
+
+**S0 · 估算口径（已跑，结论已入 FR-6）**
+
+- 假设：§14-1 的「各文件 `chars/4`」够用。
+- 探针：对 `content/seed/terms.json` 109 条与 `prompts.json` 20 条实测码点构成（一次性脚本，不入库）。**统计口径 = 条目的全部字符串字段**（terms: `zh`/`en`/`aliases`/`definition`/`example`/`tags`），按 `Array.from` 逐码点。
+- 结果：terms **14,622 码点 / 78.4% CJK / ≈14,544 tok**（`chars/4` → 3,656，**低估 4.0 倍**）；prompts 6,859 码点 / 69.3% CJK / ≈6,232 tok（`chars/4` → 1,715）。
+- **本轮自查追加的一条纪律**：本卡初版写作 12,642 / 78.1% / ≈12,539 与 prompts 的 5,585 / 71.8% / ≈5,204——**六个数当场一个也复算不出来**，因为探针未记字段口径（按「仅 `zh`+`definition`+`example`」重算得 10,662 / 92.6% / ≈12,044，同样对不上，即初版数字来自一个已记不清的字段子集）。**方向结论不受影响**（低估 4 倍在两口径下都成立），但「实测」二字要求数字可复算，故初版六数作废、以本行带口径的数为准；同一教训写进 `specs/m6-standard-pack.md` FR-6.1 引注与 15.5-12。
+- 结论：口径改为分字区双系数 `ceil(非CJK/4 + CJK*1.2)`，写进 FR-6.2；`chars/4` 作为实现方案作废，§14-1 的问题陈述保留。
+
+**S1 · CLAUDE.md `@import`（已跑完，§14-3 的 30 分钟项兑现）**
+
+- 假设：Claude Code 会把 CLAUDE.md 中 `@path` 指向的文件读进上下文。
+- 判据：被导入文件里放一个**只存在于该文件**的 sentinel，非交互问答能否逐字复述并说出来源文件名。
+- 探针：两个临时项目目录，分别写 `@./.openvibe/pack.md` 与 `@.openvibe/pack.md`；`claude -p` 各一支（用 owner 真登录态，2 次模型调用；日志 `/tmp/ov-import-probe.out`，一次性产物不入库）。
+- 结果：**两支均成立**——模型逐字复述 `OVIMPORT-SENTINEL-7Q4X-KAZZ` 并正确报出 `.openvibe/pack.md`，rc=0；两种写法等效。
+- **但结论不是「那就做」**：把主规则移进 `.openvibe/pack.md`、CLAUDE.md 只留一行导入，意味着**生成文件集合改变**（`CLAUDE.md` 从 14.5 kB 主模板变成一行壳），golden 三夹具 `tests/golden/G1..G3`（含 `fingerprint.txt`/`covered.txt`/`files/*`）全量失效。按 §0.3 这是 **A 级**：需 `schemaVersion +1` + 先改 golden 基线 + owner 出 D 编号。**故落地归 P2（裁定表第 10 项），P1.1 只收这份探针结论。**
+- 探针未覆盖：只证「读得到」，未证各会话形态（IDE 内嵌 / 子 Agent / 长会话压缩后）稳定注入；落地前须补测。
+
+**S2 · CDP 真输入可行性（已跑，2026-09-23 —— T11 第 4 项的前置已解除）**
+
+- 假设：`Input.dispatchMouseEvent` / `Input.dispatchKeyEvent` / `Input.insertText` 能让现有三段裸 CDP 驱动器拿到 §14-6 判为缺失的「真实用户动作」证据。
+- 判据（三条各自独立成立才算过，任一不过即整体不过）：
+  ① `navigator.clipboard.writeText` 在自动化下 resolve **且系统剪贴板真拿到内容**（需 `--clipboard-sanitized-write` 与 clipboard 权限授予；只测 promise 不算过）；
+  ② 中文串经 `Input.insertText` 进受控 input 后，debounce 检索命中该词条；
+  ③ Radix Dialog 打开后，键盘 Tab/Enter 能驱动焦点转移与确认。
+- 结论：**成立，但按浏览器形态分叉——两条日志各自说话**（驱动器 `docs/devlog-evidence/DEV-0024/s2-cdp-real-input.mjs`，重跑：`node …/s2-cdp-real-input.mjs` 与 `HEADLESS=0 CDP_PORT=9349 node …`；证据 `s2-cdp-real-input{,-headed}.txt` + 2 张 PNG）。
+  | 判据 | 有头 Chrome（`s2-cdp-real-input-headed.txt`） | 无头 `--headless=new`（`s2-cdp-real-input.txt`） |
+  |---|---|---|
+  | ① 真点击 → 系统剪贴板 | **过**：pbpaste 195 字符与提示词正文**逐字节相等**，toast 同步出现 | **不过，且属环境限制不是产品缺陷**：writeText resolve、页内 `clipboard.readText()` 读得到、toast「已复制到剪贴板」出现，而 pbpaste 一字未变（仍是 32 字符哨兵）⇒ **无头 Chrome 的剪贴板不接系统 pasteboard** |
+  | ② 中文 `insertText` → debounce 检索 | **过** | **过**（两支同值：DOM value=「复盘报告」；第 **300 ms** 发出 `?q=%E5%A4%8D%E7%9B%98%E6%8A%A5%E5%91%8A`；`共 1 条` / 渲染 1 行 / 全量 20） |
+  | ③ Radix Dialog 键盘流 | **过**：初始焦点在 `[role=dialog]` 内 → 三个变量框各收中文 `["甲乙0丙","甲乙1丙","甲乙2丙"]` → **Tab 4 跳**落在「复制到剪贴板」→ 按钮由 disabled 变可激活 → **Enter 关闭 Dialog** 且剪贴板 == 变量替换后预览（280 字符逐字节相等） | **过**（键盘部分逐项同值；其剪贴板落点 ③h 与①同因不过） |
+  | N1 负向对照（合成 `el.click()`） | 剪贴板未变 + 错误 toast「剪贴板不可用」出现 | 同 |
+- **四条方法级副产品（比结论本身更贵，都是撞出来的）**：
+  1. **无头拿不到系统剪贴板**——「promise resolve + toast + 页内 readText 三件齐」在①上全部为真而 pbpaste 不动，正是判据①写明「只看 promise 不算过」要防的那种假绿；无头 CI 里这条**结构上不可证**，只能有头跑或降级为人工录屏。
+  2. **`pbcopy`/`pbpaste` 依赖 UTF-8 locale**：本机 shell 不导出 `LANG`/`LC_CTYPE`，裸 pbpaste 把 CJK 走系统旧码页（实测 `# 日志约定` → `# ־Լ`），与「产品没写进剪贴板」长得一模一样；驱动器必须显式 `LANG/LC_ALL/LC_CTYPE=en_US.UTF-8`。
+  3. **transient activation 有约 5 秒窗口**：一次真点击之后再 `el.click()` 会**继承**那份激活（第一版有头跑就是这样，负向对照当场失效）。 ⇒ 负向对照必须排在**任何真输入之前**；本驱动器已按此重排，两形态均拿到 `NotAllowedError` 版正确对照。
+  4. **headless 默认视口 800×600**：20 行的深列表里按钮在视口外，`Input.dispatchMouseEvent` 会点到空处（第一轮 ①③ 的 FAIL 全属此因）。真点击前必须 `setDeviceMetricsOverride` + `scrollIntoView` + **`elementFromPoint` 命中校验**，不校验就是把驱动缺陷记成产品缺陷。
+- **另记一笔自审**：第一轮 ②b/②c 的 FAIL 是我自己的**时序 bug**——debounce 300 ms 却在 187 ms 上断言「没发请求」；③ 的一支 FAIL 是驱动器里一个藏在字符串引号里的笔误（`button")]`），`pnpm lint`/`typecheck` 都看不见、只有运行时才炸。**登记：驱动器页面的选择器表达式改动后，须让 `pnpm eslint` 之外真跑一次，因为语法错藏在字符串里时静态闸全绿。**
+- 退路（不再需要，但保留口径与边界）：**判据①在无头侧不成立** ⇒ 三条冒烟里凡以「用户真的复制到了」为验收点的，CI 不得声称已证；**有头本机可自动化**（本驱动器就是可复用底座）。**但探针不等于冒烟完成**：探针实测的三个动作与三条冒烟**同类型不同场景**——`E2E-SMOKE-01 导入→复制` 走 `ImportExportDialog`、`02 术语搜索→TERMS.md` 走术语库与 `TermsMdPreview` 的复制按钮、`03 向导三步` 是 onboarding 向导（现有 `onboarding-walk.mjs` 29 断言全用合成点击，需按本探针的形态重做一遍输入层）。T11 第 4 项的活是**把这三条场景接到本骨架上**，不是「已顺手覆盖」。人工录屏仍是发布说明「本版未验证」段的合法证据形态。**（2026-09-24：三条场景已各自接上并跑通 ⇒ 本段「探针 ≠ 冒烟」的区分仍然成立，但冒烟一侧已收口，见下条 S-2b；人工录屏退路不再启用。）**
+
+### 15.4b S-2b 三条冒烟接上骨架（2026-09-24 收口；**本块是三条冒烟数字的单源**，其余文档只写状态）
+
+驱动器 `docs/devlog-evidence/DEV-0025/three-smokes.mjs`（重跑：`node docs/devlog-evidence/DEV-0025/three-smokes.mjs` 为无头，`HEADLESS=0 CDP_PORT=9351 node …` 为有头；证据 `three-smokes.txt` / `three-smokes-headed.txt` + 3 张有头 PNG）。**两支日志各 26 条断言**，三条冒烟各自独立判定（任一不过即整体不过，口径同 §15.4-S2）。
+
+| 冒烟 | 有头 Chrome（`three-smokes-headed.txt`） | 无头 `--headless=new`（`three-smokes.txt`） |
+|---|---|---|
+| **SM-1 导入→复制** | **过**：真点击「导入」开弹窗 → 真点击「选择文件…」**真触发** `Page.fileChooserOpened`（`mode=selectMultiple`）→ `DOM.setFileInputFiles` 从浏览器输入管线注入一个磁盘 `.md` → 导入报告「新建 1 条，跳过 0 条」→ 真中文检索发出 `?q=冒烟导入夹具…` → 服务端 `content` 与磁盘文件 **62 字符逐字节相等** → 真点击该行「复制」→ **`pbpaste` == 那个 `.md` 的字节** | 8 条 PASS + 剪贴板腿 **SKIP**（不可判 ≠ 通过） |
+| **SM-2 术语搜索→TERMS.md** | **过**：真中文 `insertText` 检索真发出 `/api/terms/search?q=瞬时用户` → 结果行勾选框（`aria-label` 即中文名）真点击 → 底部「已选 1 条」→ 真点击「生成 TERMS.md」→ 预览 `<pre>` **248 字符 == 服务端 `render-terms-md` 248 字符**（`orderBy=en-alpha` 取自页内 select，非写死）→ 真点击「复制全文」→ `pbpaste` == 同一字节 | 6 条 PASS + 剪贴板腿 **SKIP** |
+| **SM-3 开箱向导三步** | **过**：三步全程真点击；步②渲染文件树与指纹 `13c6584f0bef…`（与 preview API 同源）；步③从页面文本解析建议命令 → 真跑 `openvibe-cli sync` 到临时项目 → **lock 探测自动点亮、无人工点击（D11）** → 真点击「完成向导」→ 一次性询问卡真点击「暂不」→ 向导条消失、**刷新后不再询问** → 后端 `askState=declined` 与之一致 | 9 条全 PASS（本条不依赖剪贴板，两形态同值） |
+| **汇总** | **FAIL=0 SKIP=0** ⇒ §2b·T11 的冒烟证据已自动化留档 | **FAIL=0 SKIP=2** ⇒ 无头侧只认非剪贴板腿 |
+
+- **被测构建的归属**：日志尾注 `HEAD 2862829`，而 tag `v0.1.0` 在 `3e852c2`；`git diff --name-only 3e852c2..HEAD -- ':!docs' ':!DEV_LOG.md'` **行数 0**，且工作树脏项里无任何产品文件 ⇒ **本轮跑的产品代码与 v0.1.0 逐字节同源**，这条证据可以记到 v0.1.0 名下（`release-notes/v0.1.0.md` 据此勾销三条未验证项）。
+- **S-2b 撞出的三条方法级副产品**（也都是撞出来的，不是设计时想到的）：
+  1. **按文本全局查按钮会撞上 toast 的同名按钮**：SM-1 首跑在「关闭」上 FAIL，`elementFromPoint` 落在一个无文本的 `div` 上。现场 INFO 数出页内 **3 个 `textContent` 恰为「关闭」的按钮**——两个 `aria-label="关闭提示"` 的 toast 键（rect 右下 1325,891 / 1299,945）与一个弹窗页脚键（925,659）。成因：Radix `Toast.Root` 会 `createPortal` 进 `Toast.Viewport`（`@radix-ui/react-toast/dist/index.mjs:371`、容器取 `context.viewport` 见 `:474`），而 Viewport 渲染在 `#root` 内（`apps/web/src/index.tsx:34`），Dialog 的 Portal 挂在 `document.body` 末尾 ⇒ **DOM 序上 toast 在前**，`querySelectorAll('button')` 的 `find` 先命中它，而弹窗的 `z-40` overlay 盖住其中心点，真点击必然命不中。**沉淀：弹窗内按钮一律按 `[role="dialog"]` 作用域查。**
+  2. **「按钮出现」不等于「内容就绪」**：SM-2f 首跑 FAIL 读到 0 字符——预览 `<pre>` 只在字节到位后才渲染（`apps/web/src/components/terms/TermsMdPreview.tsx:48` 的 `content !== ''` 条件），而「复制全文」从首帧就在、只是 `disabled`。⇒ 断言要**轮询等目标节点**，且点击选择器须排除 `disabled`（点了个禁用按钮再去问「剪贴板为何不变」是自坑）。
+  3. **负向对照留下了可见证据**：有头截图 `01-headed-sm1-import-copy.png` 里同时挂着「剪贴板不可用，请手动复制预览文本」（N1 合成点击被拒）与「已复制到剪贴板」（SM-1h 真点击）两条 toast —— 一张图就是正反对照的现场，不必只靠日志。
+- **本驱动器与 DEV-0024 的分工**：键盘流（Tab 焦点转移 / Enter 提交）**不在这里重复取证**，那是 §15.4-S2 判据③已单独证过的**能力**；S-2b 跑的是**场景链**，输入只用真鼠标点击 + `Input.insertText`。文件注入走 `Page.setInterceptFileChooserDialog` + `DOM.setFileInputFiles`（OS 原生选择框 CDP 驱动不了，也不该在用户屏幕上弹），**`Page.fileChooserOpened` 事件发生本身**就是「按钮真接线」的断言，不是绕过 React。
+
+### 15.5 本轮（P1.1 开档）暴露并处置的文档缺陷
+
+| # | 缺陷 | 证据 | 处置 |
+|---|---|---|---|
+| 1 | **DoD 第 6 条是假绿**：`:1344` 声明「P1 期间所有 A/B 级变更均有 spec 版本行」 | `grep -rn '修订\|规格版本\|变更记录\|版本 v' docs/specs/*.md` → 零命中；P1 期间唯一改 spec 的是 `eef8925`（T8e，+6 行 §6.9），未登记版本行 | 已补：八份 spec 全加 `\| 版本 \|` 行，v1.1 行显式标注「补记，当时未按 §0.3 登记」；承诺改写进 15.6 第 5 条 |
+| 2 | 实量数字双源：`:1163` 写死 104/20 与 `:1181` 写「当前实量 109」并存 | 同文件两行冲突 | 已改：`:1163` 去数字，指向 seed-2 单源（历史真值留在 DEV-0019/DEV-0022，不在正文重复） |
+| 3 | `m6-standard-pack.md` §6.4 交叉引用指错节：写「注入侧同类防线 m6b §6.7」，而 §6.7 是 schemaVersion 不兼容，字节防线实为 §6.3 | 两文件对读 | 已按 §0.3 **C 级**就地修正并留痕 |
+| 4 | `tasks.md §3 变体备案` 两条「后移 P1.1」实为已交付 | 见裁定表 12a/12b 证据 | 已在 `tasks.md` 标作废，避免下轮重新排工 |
+| 5 | M4 技巧库 PRD 与计划口径断裂 | `PRD.md:168` 标 P1 vs tasks/dev-plan 零提及、无 spec；且 PRD **内部**也不自洽（`:215` 与 `:423` 早已把 M4 划进 Phase 2） | 已裁：D22 勘误把 3.2-M4 的 P1 标注改判 P2，与 `:215/:423` 对齐（原「仅登记、不代裁」的说法随 owner 确认裁定表而解除） |
+| 6 | **同名异物**：「飞轮面板」在 `tasks.md §3 变体备案` ② 指未做的**遥测看板**，在 `PRD.md` 第 8 章 P1 行与代码里指**已交付的本地统计卡片** | `apps/web/src/components/onboarding/FlywheelCard.tsx` 存在且常驻顶栏（`AppShell.tsx:71`）；`settings.ts:146` 注释「全本地 SQL 聚合，不参与遥测」 | 已消歧：裁定表第 8 项改称「遥测增长看板」并写出两者差异；`tasks.md` ② 就地加注——否则下轮会按「P1 该有面板」重复排工，或按「面板归 P2」误判已交付功能是缺陷 |
+| 7 | **跨文件行号引用会随编辑腐烂**：§15 用 `tasks.md:165` / `:143` 指位置 | 本轮给 `tasks.md` 加 §2b 后行号整体下移：原 ①②④ 所在行从 165 移到 **191**（`:165` 现为 §2b·T10 验收段后的空行），原 Playwright 待办从 143 移到 **145**（`:143` 现指向我本轮新写的 T9 冻结注——**恰好同一段才没被发现**，属于运气不是正确） | 已改：跨文件引用一律换成**节锚**（`tasks.md §3 变体备案` / `§2b·T11`）；本文件内的 `:754`/`:1163`/`:1181`/`:1344` 逐条复读核对后**仍准**（本轮未在其之前插行），故保留 |
+| 8 | **D 编号双命名空间差点撞号**：PRD 附录 D 与 design §16 各自独立从 D1 编号 | 本轮写 PRD 决策行时按 PRD 本表续号得 **D18**，而 `design.md:397` 已有 D18（遥测惊喜时刻）；且 `design.md` 的编号说明原写「本表 D1–D17 / PRD D1–D12」，两张表的实际尾号（18 / 17→22）都已越出其自述范围 | 已定约定并落文档：**新决策取全局下一空号**（本轮按 D19–D22 登记，与已写的四份 spec/tasks 引用一致）；design §16 编号说明整段改写，并加一行指针指向 PRD 附录 D（不复述正文） |
+| 9 | `design.md` 文档头与实际进度脱节：`状态 = 草案`、`版本 = v0.1（2026-09-20）` | §7/§8 契约实际已 **v1.3** 并随 P0 门禁 G2/G3 冻结；v0.1.0 tag 已本地打在 `3e852c2` | **本轮不动**——文档级版本口径（谁有权把「草案」改「已冻结」、契约版与文档版如何并存）是 owner 的决定，登记待裁；本文其余改动均按 C 级就地留痕 |
+| 10 | `design.md §1` 硬约束 2 字面失效：「写路径收敛到 `openvibe sync`」 | D19/T10 新增 `openvibe clean` 是第二个会动磁盘的 CLI 命令 | 已就地改写：唯一性指**通道**唯一（浏览器永不写本地），命令从 1 个变 2 个；**C 级**留痕 |
+| 11 | `proposal.md` 第 5 章交付物 4 仍承诺「E2E 自动化测试 = Playwright + CLI 集成测试」——对外文档里的假承诺 | `grep -n Playwright docs/proposal.md` 命中该条；D21 已裁定不引入 | 已按 D21 改写并升 `proposal` v0.2.1（同时把上游依据从 PRD v0.1.4 刷到 v0.1.5）；三条冒烟在 proposal 里也明写为「未验证缺口」**（该「缺口」写法只活到 2026-09-23：三条冒烟已于 2026-09-24 收口，`proposal` 现升 v0.2.3 并把该条改为「已收」，见 §15.4b——读这行时别把它当成当前状态）** |
+| 12 | **本轮自己的两处「实测」不成立**：① S0 的 terms/prompts 六个数字复算不出来（探针脚本未记字段口径，且脚本已随 `/tmp` 清理丢失）；② `m6a FR-6.4` 把「字节→码点折算」写成了「实测 default 包单平台 ≈17.7k」 | 重跑一次性统计脚本：全字段口径 14,622 码点 / 78.4%，三字段口径 10,662 / 92.6%，**两者都不等于初版的 12,642 / 78.1%**；17.7k 亦无法由它自己列出的三个字节数推出（按公式折算实为 15.1k–16.0k） | 两处均已改写：S0 换成带口径的可复算数字并明写初版作废；FR-6.4 标注「折算非实测」，权威数交 `SRV-EST-01` 的真 preview。**方向结论不变**（`chars/4` 低估 4 倍、首启必亮黄条在两口径下都成立）。**沉淀的规矩：登记数字必须同处登记口径；写「实测」就必须能被别人复算** |
+| 13 | **自审撞出的删除安全漏洞（规格级）**：`clean` 的分类条件原写「lock 登记 且 磁盘 == 期望」，**漏了 `managed` 位** | `design.md:237` 明写 `--target` 过滤注入会把**未写入**的文件也登记期望哈希并标 `managed: false`；照原条件，`sync --target cursor` 重刷后 `clean` 会把用户自己的、或上一轮全量注入留下的 `CLAUDE.md` 当成我方产物删掉 | 已补闸：FR-6.1 定位与 FR-6.3 两态条件都加 **`managed === true`**，「`managed !== true` ⇒ `FOREIGN`」写成显式规则；验收加一支 **j**（两段 sync 后 `CLAUDE.md` 必须逐字节留在盘上、且备份目录内不得出现它），测试段 `CLI-CLEAN-01..09` → **`01..10`**（tasks/PRD/dev-plan 六处引用同步改） |
+
+### 15.6 P1.1 退出定义（DoD）
+
+1. **代码**：T10/T11 入选项实现完毕，`CLI-CLEAN-01..10`、`CORE-SIZE-01..05`、`SRV-EST-01..03` 全绿；五闸（lint / typecheck / test / seed:check / bundle:check）三平台 CI 全绿且**跑到 tip sha**。
+2. **契约**：`git diff --name-only tests/golden/` 为空。若非空 ⇒ 期间发生了 A 级变更，必须回到 §0.3 A 级流程重裁（`schemaVersion +1` + owner D 编号），**不得顺手更新基线**。
+3. **退场可证**：验收 10a–10j 在 CI 里跑，不只在本机。
+4. **证据**：S-2 结论已落 §15.4-S2（**前置已解除**，驱动器 `docs/devlog-evidence/DEV-0024/s2-cdp-real-input.mjs` 入库并自带清理断言与负向对照）；**三条冒烟已于 2026-09-24 各自接到该骨架上并跑通**（§15.4b：有头 **FAIL=0 SKIP=0**、无头 **FAIL=0 SKIP=2**，两条 SKIP 都是系统剪贴板腿）——凡「用户真复制到」类断言，**有头才算证据、无头 CI 不得声称已证**；人工录屏退路未启用，发布说明的「本版未验证」清单改为**按构建归属逐条勾销**（v0.1.0 的三条冒烟项据 §15.4b 的构建同源判定勾销，其余项不动）。
+5. **痕迹**：每个任务组一条 `DEV-NNNN`；且收口时**复跑 15.5-1 的那条 grep 并要求非空**——把「spec 有版本行」从口头承诺变成可查项，这是本轮欠账的真正闭环动作。
