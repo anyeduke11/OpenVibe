@@ -53,6 +53,7 @@ export {
 } from './pack'
 export {
   // 注入侧内核（m6b）：安全校验 → 五状态规划 → lock 装配
+  auditLockPaths,
   checkPackInjectable,
   checkWritePath,
   resolveWriteTarget,

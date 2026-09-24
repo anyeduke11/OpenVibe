@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { LIMITS } from '@openvibe/shared'
-import { checkPackInjectable, checkWritePath, resolveWriteTarget } from './security'
+import { auditLockPaths, checkPackInjectable, checkWritePath, resolveWriteTarget } from './security'
 
 interface Thrown {
   code: string
@@ -205,5 +205,50 @@ describe('UT-INJECT-SEC-04 · 写入时二次校验（双保险，落盘前逐�
       absPath: resolve('proj', 'docs/a.md'),
     })
     expect(resolveWriteTarget('.', 'CLAUDE.md')).toBe(resolve('CLAUDE.md'))
+  })
+})
+
+describe('UT-INJECT-SEC-05 · clean 的前置净化闸（m6b FR-6.6 v1.4，先于 PackLockSchema）', () => {
+  it('宽松读出的 files[].path 违规 → 单桶 escapingPaths、一次报全部、码点序', () => {
+    const raw = {
+      files: [
+        { path: 'CLAUDE.md', managed: true }, // 合法条目不进清单，也不被误删
+        { path: 'docs/../evil.md' },
+        { path: '/etc/passwd' },
+        { path: 'a\\b.md' },
+        { path: 't'.repeat(256) },
+        { path: 'docs/../evil.md' }, // 同一违规登记两次就点两次名（与 clean 的「按条目计」同口径）
+      ],
+    }
+    expect(auditLockPaths('/tmp/proj', raw)).toEqual({
+      escapingPaths: [
+        '/etc/passwd',
+        'a\\b.md',
+        'docs/../evil.md',
+        'docs/../evil.md',
+        't'.repeat(256),
+      ],
+    })
+  })
+
+  it('路径全合法 → 空清单（⇒ schema 不符那一档仍归 LOCK_INVALID，两道闸不互吃）', () => {
+    expect(
+      auditLockPaths('/tmp/proj', {
+        schemaVersion: 1,
+        files: [{ path: 'CLAUDE.md' }, { path: '.cursor/rules/openvibe.mdc' }],
+      }),
+    ).toEqual({ escapingPaths: [] })
+  })
+
+  it('入参宽松到读不出路径字符串（非 JSON 对象 / files 缺失或非数组 / path 非字符串）→ 不抛，返回空清单', () => {
+    for (const raw of [null, undefined, '不是对象', [], { files: null }, { files: 'x' }, 42]) {
+      expect(auditLockPaths('/tmp/proj', raw), `${JSON.stringify(raw ?? null)} 不该抛`).toEqual({
+        escapingPaths: [],
+      })
+    }
+    // files 是数组但条目读不出字符串路径：没有可点名项就如实报空，交给调用方落 LOCK_INVALID
+    expect(auditLockPaths('/tmp/proj', { files: [{ path: 1 }, null, {}, 'x'] })).toEqual({
+      escapingPaths: [],
+    })
   })
 })

@@ -197,3 +197,34 @@ function sortViolations(v: InjectionViolations): void {
   v.escapingPaths.sort(compareCodeUnit)
   v.oversizedFiles.sort((a, b) => compareCodeUnit(a.path, b.path))
 }
+
+/**
+ * clean 的 lock 路径净化（m6b FR-6.6 v1.4）——**必须早于 `PackLockSchema` 整机校验**。
+ * 理由已写进规格：`packPathSchema`（shared/schemas/pack.ts:130 = isValidPackRelativePath）会先把
+ * 含 `..` 的 lock 整份判成 schema 不符，顺序反了就只剩 §7.10 f2 的 LOCK_INVALID，
+ * §7.10 g 要的「报告含违规路径」永远出不来（g 与 f2 互吃）。
+ *
+ * 入参是**宽松读出的 JSON**（`unknown`）而不是 `PackLock`：能读出 `files[].path` 字符串就报得出违规项；
+ * 结构读不出（没有 `files`、路径不是字符串）时返回空清单，那一档才是 LOCK_INVALID 的活。
+ * 违规一律记进 `escapingPaths` 单桶——对 clean 而言「malformed」与「escaping」是同一种危险
+ * （resolve 后落在项目外），`invalidPaths` 那桶留给 sync 的 bundle 侧，这里不造第二套词。
+ * 符号链接不在本函数查：那是磁盘状态而非 lock 文本的属性，归调用方的逐条 `resolveWriteTarget`
+ * （两道闸各查一半，谁也不复制谁）。
+ */
+export function auditLockPaths(projectPath: string, raw: unknown): { escapingPaths: string[] } {
+  const escapingPaths: string[] = []
+  const files = (raw as { files?: unknown } | null | undefined)?.files
+  if (!Array.isArray(files)) return { escapingPaths }
+  const rootPath = resolve(projectPath)
+  for (const entry of files) {
+    const relPath = (entry as { path?: unknown } | null | undefined)?.path
+    if (typeof relPath !== 'string') continue // 点不出名的违规项交给 schema 判 LOCK_INVALID
+    // 文本规则与「相对项目根 resolve 后是否还在根内」查的是同一种危险的两侧，但两侧并不完全重合：
+    // win32 上 `C:/evil.txt` 不含反斜杠、不以 `/` 开头，isValidPackRelativePath 放行，
+    // resolve 却会把它归成根外的绝对路径——净化闸拿着 projectPath 就是为了这一步。
+    if (!isValidPackRelativePath(relPath) || !isInside(rootPath, resolve(rootPath, relPath))) {
+      escapingPaths.push(relPath)
+    }
+  }
+  return { escapingPaths: escapingPaths.sort(compareCodeUnit) }
+}

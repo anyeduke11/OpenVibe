@@ -4,6 +4,7 @@ import { confirm, isCancel } from '@clack/prompts'
 import {
   PACK_LOCK_REL,
   SYNC_LOCK_STALE_MS,
+  auditLockPaths,
   parsePackLock,
   planRetirement,
   resolveWriteTarget,
@@ -25,7 +26,8 @@ import { releaseLockOnSignal, uniqueBackupRoot, utcStamp } from './sync'
  *
  * 本文件不重写 core 的路径规则（m6 v1.4 ②③，薄客户端）：CLI 侧只留 `resolveWriteTarget` 的
  * 逐条逃逸检查（schema 看不见符号链接）。「宽松读 `files[].path` → 报违规项 → 再 `parsePackLock`」
- * 这道**先于** schema 的闸归 core，是 Task 4 的交付，别在这里再造第二份。
+ * 这道**先于** schema 的闸是 core 的 `auditLockPaths`，`cleanAction` 按那个顺序调它，
+ * 别在这里再造第二份。
  */
 
 export class CleanError extends Error {
@@ -125,11 +127,11 @@ function diskReader(projectPath: string): (relPath: string) => string | null {
 
 /**
  * FR-6.6 里 CLI 侧剩下的那半条闸：逐条 `resolveWriteTarget` 抓**符号链接逃逸**——
- * `PackLockSchema` 的 `packPathSchema` 只看语法，看不见磁盘上的链接，所以这条是活代码。
- * 曾经的 `isPlainRelative` / `invalidPaths` 分支已删（T3 审查 I-2）：它重写了一遍
+ * `PackLockSchema` 的 `packPathSchema` 与 core 的前置净化闸都只看文本，看不见磁盘上的链接，
+ * 所以这条是活代码。曾经的 `isPlainRelative` / `invalidPaths` 分支已删（T3 审查 I-2）：它重写了一遍
  * `isValidPackRelativePath`，而 schema 会先把那种 lock 判成 `LOCK_INVALID` ⇒ 分支永不可达，
- * 还误导后来人以为它是闸。「净化先于 schema」那道真闸（宽松读 → 报违规项 → 再 parse）
- * 归 core、由 Task 4 交付；这里不预留第二道防线式的死码。
+ * 还误导后来人以为它是闸。「净化先于 schema」那道真闸是 core 的 `auditLockPaths`，
+ * 已由 `cleanAction` 在 `parsePackLock` 之前调用；这里不预留第二道防线式的死码。
  */
 function rejectEscapingLockEntries(projectPath: string, lock: PackLock): void {
   const escapingPaths: string[] = []
@@ -177,6 +179,18 @@ export const confirmWithClack = async (plan: RetirementPlan): Promise<boolean> =
   return !isCancel(answer) && answer === true
 }
 
+/**
+ * §7.10 f2 的错误码工厂：JSON 根本读不出、或路径全合法而其它字段不符，才轮得到它——
+ * 「有违规路径」那一档由前置净化闸报，因为那种 lock 恰恰也是 schema 不符的 lock（FR-6.6 v1.4 ②）。
+ */
+function invalidLock(lockPath: string): CleanError {
+  return new CleanError(
+    'LOCK_INVALID',
+    `${lockPath} 无法解析或含非法文件路径：被改过的 lock 不能当删除依据。` +
+      '删掉它即承认这些文件归你所有（本命令不会替你删）',
+  )
+}
+
 export async function cleanAction(
   options: CleanOptions,
   deps: CleanDeps = {},
@@ -189,13 +203,27 @@ export async function cleanAction(
   } catch {
     throw new CleanError('NO_LOCK', `${lockPath} 不存在：该项目未注入过标准包，无需退场。`)
   }
+  // 净化早于整机 schema（FR-6.6 v1.4 ②）：`packPathSchema` 会把含 `..` 的 lock 整份判成 schema 不符，
+  // 顺序一反，§7.10 g 要的「报告含违规路径」就永远出不来。JSON 本身读不出时没有任何可点名项，
+  // 那一档才落 LOCK_INVALID——两道闸互吃是本项唯一的根因，别把顺序改回去。
+  let raw: unknown
+  try {
+    raw = JSON.parse(text)
+  } catch {
+    throw invalidLock(lockPath)
+  }
+  const { escapingPaths } = auditLockPaths(projectPath, raw)
+  if (escapingPaths.length > 0) {
+    throw new CleanError(
+      'VALIDATION_ERROR',
+      `pack.lock.json 有 ${String(escapingPaths.length)} 条路径非法或解析后越出项目目录，` +
+        '整包拒绝退场：同 lock 内的合法条目一律不删（半退场比不删更难查），违规项已逐条列在报告里',
+      { escapingPaths },
+    )
+  }
   const lock = parsePackLock(text)
   if (!lock) {
-    throw new CleanError(
-      'LOCK_INVALID',
-      `${lockPath} 无法解析或含非法文件路径：被改过的 lock 不能当删除依据。` +
-        '删掉它即承认这些文件归你所有（本命令不会替你删）',
-    )
+    throw invalidLock(lockPath)
   }
   rejectEscapingLockEntries(projectPath, lock)
 

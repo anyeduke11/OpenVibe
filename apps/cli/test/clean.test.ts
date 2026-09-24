@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process'
 import {
   existsSync,
   lstatSync,
@@ -9,17 +10,20 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import {
   PACK_BACKUP_REL,
   PACK_LOCK_REL,
+  SYNC_LOCK_REL,
   packLockJson,
   parsePackLock,
   type RetirementState,
 } from '@openvibe/core'
 // 05c/05d 要直接驱动 clack 的 module mock（覆盖 clean.ts 里的 confirmWithClack），故必须把这个命名导入引进来
 import { confirm } from '@clack/prompts'
+import type { PackLock } from '@openvibe/shared'
 import { cleanAction, CleanError } from '../src/commands/clean'
 import { syncAction } from '../src/commands/sync'
 import { demoPack, writeBundleFile, type PackFixture } from './helpers/pack-fixture'
@@ -48,6 +52,9 @@ const IS_WINDOWS = process.platform === 'win32'
  * 故先归一化成 `/` 形式（承 apps/cli/test/sync.test.ts:152 的「期望值写 `/` 路径」口径）。
  */
 const PACK_LOCK_KEY = PACK_LOCK_REL.split(/[\\/]/).join('/')
+/** 08 的持锁夹具走真进程（承 apps/cli/test/sync-lock.test.ts 的 CLI-LOCK-01 口径） */
+const HERE = dirname(fileURLToPath(import.meta.url))
+const HOLDER = join(HERE, 'helpers', 'sync-lock-holder.ts')
 const roots: string[] = []
 
 function sandbox(): { root: string; project: string } {
@@ -410,5 +417,61 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
       (e) => e.kind === 'file',
     ).length
     expect(backedUp).toBe(fx.files.length)
+  })
+})
+
+describe('lock 净化与并发（§7.10 g、h）', () => {
+  it('CLI-CLEAN-07: 篡改 lock 使某条 path 为 ../evil.txt → 整包拒绝，合法条目也不删', async () => {
+    const fx = fixture()
+    const { project } = await injected(fx)
+    const lockPath = join(project, PACK_LOCK_REL)
+    const lock = JSON.parse(readFileSync(lockPath, 'utf8')) as PackLock
+    // 只篡改第一条：其余条目保持合法，「整包拒绝、合法条目也不删」才是被证明的那件事
+    lock.files = lock.files.map((f, i) => (i === 0 ? { ...f, path: '../evil.txt' } : f))
+    writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, 'utf8')
+    const before = treeSnapshot(project)
+    const outside = join(dirname(project), 'evil.txt')
+
+    const err = await cleanAction(
+      { projectPath: project, yes: true, force: true },
+      { now: () => NOW },
+    ).catch((e: CleanError) => e)
+
+    expect((err as CleanError).code).toBe('VALIDATION_ERROR')
+    expect((err as Error).message).toContain('整包拒绝')
+    expect((err as CleanError).details).toMatchObject({ escapingPaths: ['../evil.txt'] })
+    expect(existsSync(outside)).toBe(false)
+    expect(treeSnapshot(project)).toEqual(before)
+  })
+
+  it('CLI-CLEAN-08: 另一进程持 sync.lock 时 clean --yes → SYNC_BUSY、零删除、他人的锁原样在', async () => {
+    const fx = fixture()
+    const { project } = await injected(fx)
+    // 夹具用 stdin 生命周期持锁 ⇒ 后台起 + 轮询锁文件出现（spawnSync 读满 stdout 后会一直等，测试随之挂住）
+    const child = spawn(process.execPath, ['--import', 'tsx', HOLDER, project], {
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
+    child.stdin.on('error', () => {}) // 已退出的子进程再 end() 会炸流（承 sync-lock.test.ts:79）
+    const lockAbs = join(project, SYNC_LOCK_REL)
+    for (let i = 0; i < 100 && !existsSync(lockAbs); i += 1)
+      await new Promise((r) => setTimeout(r, 50))
+    expect(existsSync(lockAbs), '夹具未在 5s 内抢到锁').toBe(true)
+    const lockBefore = readFileSync(lockAbs, 'utf8')
+    const before = treeSnapshot(project)
+
+    try {
+      const outcome = await cleanAction(
+        { projectPath: project, yes: true },
+        { now: () => NOW },
+      ).catch((e: CleanError) => e)
+
+      expect((outcome as CleanError).code).toBe('SYNC_BUSY')
+      expect(treeSnapshot(project)).toEqual(before)
+      expect(readFileSync(lockAbs, 'utf8')).toBe(lockBefore)
+    } finally {
+      // 断言失败也不把持锁进程漏在场上（夹具自带 60s 兜底，但那会把本文件的收尾拖满）
+      child.stdin.end()
+      await new Promise((r) => setTimeout(r, 300))
+    }
   })
 })

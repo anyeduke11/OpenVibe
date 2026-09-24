@@ -1,6 +1,7 @@
 // packages/core/src/inject —— 注入侧领域逻辑（m6b CLI 的三块内核：安全校验 / 五状态规划 / lock 装配）。
 // CLI 只负责传输、交互与文件 IO；状态机与防线在这里，dry-run 的零写入因此可被结构性证明（design §9）。
 export {
+  auditLockPaths,
   checkPackInjectable,
   checkWritePath,
   resolveWriteTarget,
