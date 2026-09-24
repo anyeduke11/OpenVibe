@@ -117,11 +117,43 @@ export const PlannedFileOut = z.object({
 })
 export type PlannedFileOut = z.infer<typeof PlannedFileOut>
 
+/** 单文件估算（perTarget 与 footprint 共用形状；path 恒为包内相对路径） */
+export const SizeEstimateFile = z.object({
+  path: z.string(),
+  approxTokens: z.number().int().nonnegative(),
+})
+export type SizeEstimateFile = z.infer<typeof SizeEstimateFile>
+
+/** 某平台「实际读进上下文」的量：它的主文件 + TERMS.md + CHECKLIST.md + SKILLS.md */
+export const SizeEstimatePerTarget = z.object({
+  adapter: z.string(),
+  files: z.array(SizeEstimateFile),
+  approxTokens: z.number().int().nonnegative(),
+  warn: z.boolean(),
+})
+export type SizeEstimatePerTarget = z.infer<typeof SizeEstimatePerTarget>
+
+/** 整包落盘足迹（含被各 adapter 复制的主文件与 manifest）——与 perTarget 是两个视图，不许混成一个数 */
+export const SizeEstimateFootprint = z.object({
+  files: z.array(SizeEstimateFile),
+  approxTokens: z.number().int().nonnegative(),
+  bytes: z.number().int().nonnegative(),
+})
+export type SizeEstimateFootprint = z.infer<typeof SizeEstimateFootprint>
+
+export const SizeEstimate = z.object({
+  perTarget: z.array(SizeEstimatePerTarget),
+  footprint: SizeEstimateFootprint,
+})
+export type SizeEstimate = z.infer<typeof SizeEstimate>
+
 export const PreviewOut = z.object({
   files: z.array(PlannedFileOut),
   fingerprint: z.string(),
   warnings: z.array(z.string()),
   coveredPlatforms: z.array(z.string()),
+  /** P1.1 / m6a FR-6：可选。**只活在 API 响应里**，不进 manifest 也不进 directoryFiles() */
+  sizeEstimate: SizeEstimate.optional(),
 })
 export type PreviewOut = z.infer<typeof PreviewOut>
 

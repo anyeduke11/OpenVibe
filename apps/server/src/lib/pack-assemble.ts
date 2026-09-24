@@ -1,10 +1,13 @@
-import { coveredPlatforms, planMainFiles } from '@openvibe/adapters'
+import { ADAPTER_MAIN_PATH, coveredPlatforms, planMainFiles } from '@openvibe/adapters'
 import {
   FlowTemplatesRepo,
   PromptsRepo,
+  SIZE_WARN_THRESHOLD,
   SkillsRepo,
   TermsRepo,
   composePack,
+  estimateBundle,
+  estimateTokens,
   fileSha256,
   resolvePack,
   type AdapterBundle,
@@ -12,12 +15,20 @@ import {
   type SqliteDatabase,
 } from '@openvibe/core'
 import {
+  PACK_FILE_CHECKLIST,
   PACK_FILE_MANIFEST,
+  PACK_FILE_SKILLS,
+  PACK_FILE_TERMS,
   compareCodeUnit,
+  utf8ByteLength,
+  type AdapterId,
   type PackOut,
   type PlannedFileOut,
   type PreviewOut,
   type ResolvedPack,
+  type SizeEstimate,
+  type SizeEstimateFile,
+  type SizeEstimatePerTarget,
 } from '@openvibe/shared'
 
 /**
@@ -65,5 +76,40 @@ export function toPreviewOut(rendered: RenderedPack): PreviewOut {
     fingerprint: rendered.fingerprint,
     warnings: rendered.warnings,
     coveredPlatforms: rendered.coveredPlatforms,
+    sizeEstimate: buildSizeEstimate(
+      rendered.files,
+      rendered.manifestJson,
+      rendered.manifest.targets,
+    ),
   }
+}
+
+/** 某平台真正读进上下文的那批文件：自己的主文件 + 三个辅助产物（存在才算） */
+const CONTEXT_AUX = [PACK_FILE_TERMS, PACK_FILE_CHECKLIST, PACK_FILE_SKILLS] as const
+
+export function buildSizeEstimate(
+  files: { path: string; content: string }[],
+  manifestJson: string,
+  targets: readonly AdapterId[],
+): SizeEstimate {
+  const byPath = new Map(files.map((f) => [f.path, f.content]))
+  const perTarget: SizeEstimatePerTarget[] = [...targets].sort(compareCodeUnit).map((adapter) => {
+    const paths = [ADAPTER_MAIN_PATH[adapter], ...CONTEXT_AUX].filter((p) => byPath.has(p))
+    const rows: SizeEstimateFile[] = paths.map((path) => ({
+      path,
+      approxTokens: estimateTokens(byPath.get(path) ?? '').approxTokens,
+    }))
+    const approxTokens = estimateBundle(paths.map((p) => byPath.get(p) ?? ''))
+    return { adapter, files: rows, approxTokens, warn: approxTokens > SIZE_WARN_THRESHOLD }
+  })
+
+  const all = [...files, { path: PACK_FILE_MANIFEST, content: manifestJson }]
+  const footprint: SizeEstimate['footprint'] = {
+    files: all
+      .map((f) => ({ path: f.path, approxTokens: estimateTokens(f.content).approxTokens }))
+      .sort((a, b) => compareCodeUnit(a.path, b.path)),
+    approxTokens: estimateBundle(all.map((f) => f.content)),
+    bytes: all.reduce((sum, f) => sum + utf8ByteLength(f.content), 0),
+  }
+  return { perTarget, footprint }
 }

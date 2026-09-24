@@ -1,12 +1,16 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { PackBundleSchema, type PackOut, type PreviewOut } from '@openvibe/shared'
+import { ADAPTER_MAIN_PATH } from '@openvibe/adapters'
+import { PACK_FILE_TERMS, PackBundleSchema, type PackOut, type PreviewOut } from '@openvibe/shared'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
-import { PacksRepo } from '@openvibe/core'
+import { PacksRepo, SIZE_WARN_THRESHOLD, runSeed } from '@openvibe/core'
 import { buildApp } from '../src/app'
+
+const SEED_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'content', 'seed')
 
 const TOKEN = 'test-token'
 
@@ -395,5 +399,146 @@ describe('T6d · m6a 标准包 API（dev-plan §3.8 + bundle 通道）', () => {
     expect(repo.exportsOf(pack.id)).toHaveLength(1)
     expect(repo.latestExport(pack.id)?.version).toBe('3.0.0')
     expect(repo.getExport(pack.id, 'other')).toBeNull()
+  })
+})
+
+describe('SRV-EST · preview 的 sizeEstimate（m6a FR-6 + 验收 9/10/11）', () => {
+  it('SRV-EST-01: perTarget 键集合 == manifest.targets；footprint.files 集合 == files[] 集合（含 manifest）', async () => {
+    const h = await makeHarness()
+    const pack = await mkPack(h)
+    const out = await preview(h, pack.id, '1.0.0')
+
+    expect(out.sizeEstimate, '响应缺 sizeEstimate').toBeTruthy()
+    const est = out.sizeEstimate as NonNullable<typeof out.sizeEstimate>
+    expect([...est.perTarget].map((p) => p.adapter).sort()).toEqual([
+      'claude-code',
+      'generic-agents',
+    ])
+    // vitest 的 toEqual 不收第二个参数（tsc：TS2554），故说明文字挂在 expect(value, message) 一侧，
+    // 语义与计划正文一致
+    expect(
+      [...new Set(est.perTarget.map((p) => p.adapter))].sort(),
+      'perTarget 与 coveredPlatforms 是两套语义（Task 1 ②）：这里断言它们**不相等**，防止有人把断言改回 coveredPlatforms',
+    ).not.toEqual([...out.coveredPlatforms].sort())
+    for (const row of est.perTarget) {
+      const paths = row.files.map((f) => f.path)
+      expect(paths).toContain(ADAPTER_MAIN_PATH[row.adapter as keyof typeof ADAPTER_MAIN_PATH])
+      expect(paths).toContain(PACK_FILE_TERMS)
+    }
+    expect([...est.footprint.files.map((f) => f.path)].sort()).toEqual(
+      [...out.files.map((f) => f.path)].sort(),
+    )
+  })
+
+  it('SRV-EST-01b: 行总量是**拼接后一次 ceil**，不是逐文件 ceil 相加（FR-6.3 的语义差别）', async () => {
+    const h = await makeHarness()
+    const pack = await mkPack(h)
+    // 夹具需要**两条术语**才有判别力（实量数见 task-7-report）：单条术语时该行两个文件的
+    // 小数值是 133.20 与 83.85，余数之和 1.05 > 1 ⇒ 两种口径同为 218，严格小于关系不成立——
+    // 那是计划预告的原因②（余数恰好对齐），不是实现错。补第二条术语后
+    // CLAUDE.md 134 + TERMS.md 115 = 249，而拼接单次 ceil = 248 ⇒ 248 < 249 判别力才落地。
+    // 改动 mkPack/mkTerm 的文案长度前先重跑本支（余数会重排）。
+    const extraTerm = await mkTerm(h, 'context rot', '上下文腐化')
+    const patched = await api(h, 'PATCH', `/api/packs/${pack.id}`, {
+      selection: { ...pack.selection, termIds: [...pack.selection.termIds, extraTerm] },
+    })
+    expect(patched.statusCode, patched.body).toBe(200)
+    const out = await preview(h, pack.id, '1.0.0')
+    const est = out.sizeEstimate as NonNullable<typeof out.sizeEstimate>
+
+    // 判别力全在**严格小于**：单 ceil ≤ 逐项 ceil 之和恒成立，所以写成 `<=` 或 `!==` 里挑一个不够——
+    // 若实现退回「逐文件相加」，`sum === row.approxTokens`，弱断言照样绿。
+    // 反过来，这支红了只有两种原因：① 实现真的是逐文件相加；② 夹具余数恰好对齐（两个文件都无余数）。
+    // 二者必须人工分辨并在报告里给出实量数，**不许改成 `<=` 蒙过去**。
+    for (const row of est.perTarget) {
+      const sum = row.files.reduce((n, f) => n + f.approxTokens, 0)
+      expect(
+        row.approxTokens,
+        `perTarget[${row.adapter}] 的单 ceil 总量应严格小于逐文件之和`,
+      ).toBeLessThan(sum)
+    }
+
+    // footprint 同理，且它的文件集含 manifest，发散更明显
+    const fpSum = est.footprint.files.reduce((n, f) => n + f.approxTokens, 0)
+    expect(est.footprint.approxTokens).toBeLessThan(fpSum)
+
+    // 两条口径不许混成一个数（FR-6.3 原文禁令）：footprint 的文件集是 perTarget 行的**真超集**
+    // （多带其它 adapter 的主文件 + manifest），所以只能严格更大，相等即为混用。
+    expect(est.footprint.approxTokens).toBeGreaterThan(est.perTarget[0]?.approxTokens ?? 0)
+  })
+
+  it('SRV-EST-02: 阈值正负各一支，且 warn 不参与放行（同包导出成功、sync --file 结果不变）', async () => {
+    const h = await makeHarness()
+    const small = await mkPack(h) // 空库 + 1 条术语 → 远低于阈值
+    const smallOut = await preview(h, small.id, '1.0.0')
+    expect(
+      smallOut.sizeEstimate?.perTarget.every((p) => p.warn === false),
+      '小包的 perTarget 不该有 warn',
+    ).toBe(true)
+
+    // 正向支按 m6a §7 验收 10 的**原句**构造：把术语**全选**。空库里没有术语，
+    // 所以先跑真种子（`content/seed/terms.json`，现量 109 条），再取全量 id。
+    // 这使断言与种子同源——种子审校若显著改变术语体量，这支**应当**变红并逼人重看阈值结论，
+    // 而不是靠合成夹具永远绿着。（owner 2026-09-24 裁定：保持「全选」，测试跟着 seed 走。）
+    const seeded = runSeed(h.handle.db, SEED_DIR)
+    // `SeedBundleResult` 实况（packages/core/src/db/seed.ts:17-24）：`created` 是 **number**、
+    // 没有 `.terms` 子对象；状态词是 `status: 'skipped'|'imported'|'error'`。
+    expect(
+      seeded.some((b) => b.bundle === 'terms' && b.status === 'imported' && b.created > 0),
+      '种子术语应真入库',
+    ).toBe(true)
+    const all = (await api(h, 'GET', '/api/terms')).json() as {
+      items: { id: string }[]
+      total: number
+    }
+    expect(all.total).toBeGreaterThanOrEqual(100)
+    // 「全选」需要覆盖整个种子库：只把 109 条术语全选时 perTarget[0] 实量 9,617 < 12000——
+    // TERMS.md 只渲染 zh/en/别名/定义四列，比 FR-6.4 三条字节折算值（≈15.1k/15.7k/16.0k）假设的
+    // 口径小一截。验收 10 的正向支要的是「某 target 估算 >12000」，与首启预置包同一形态
+    // （种子提示词 + 种子术语），故提示词一并全选 ⇒ 实量 14,890 > 12000（首启预置包本体实量
+    // 15,213，见报告）；阈值判据仍只跟响应自身的数比，不写死数字。
+    // 注：主文件里有 `<name>@<version>`，故包名长度会挪动 1 个 tok 量级的数——改名须重测。
+    const allPrompts = (await api(h, 'GET', '/api/prompts')).json() as {
+      items: { id: string }[]
+      total: number
+    }
+    expect(
+      allPrompts.total,
+      '种子提示词未入库 ⇒ 正向支体量来源变了，须重看 §7 验收 10 的阈值结论',
+    ).toBeGreaterThanOrEqual(20)
+    const big = await mkPack(h, {
+      name: 'all-seed',
+      selection: {
+        promptIds: allPrompts.items.map((p) => p.id),
+        termIds: all.items.map((t) => t.id),
+        skillIds: [],
+        playbookIds: [],
+        flowTemplateId: null,
+      },
+    })
+    const bigOut = await preview(h, big.id, '2.0.0')
+    const row = bigOut.sizeEstimate?.perTarget[0]
+    // 阈值判断只跟响应自身的数比，不写死任何字面量（反漂移：数字单源在响应里）
+    expect(row?.approxTokens ?? 0).toBeGreaterThan(SIZE_WARN_THRESHOLD)
+    expect(row?.warn).toBe(true)
+    // 这个实量数即 m6a FR-6.4 要的「真 preview 实测」权威值——收口时回填规格，替掉三条字节折算值
+
+    // FR-6.4 的负向断言：超线不改任何放行结果
+    const exported = await api(h, 'POST', `/api/packs/${big.id}/export`, {
+      version: '2.0.0',
+      channel: 'download',
+    })
+    // 200 而非 201：export 路由不设 reply.code（apps/server/src/routes/packs.ts:76-119），
+    // 本文件既有 IT-PACK-01/02 亦一律 200——计划正文的 201 是笔误，改回与实现同源
+    expect(exported.statusCode, exported.body).toBe(200)
+    expect(exported.json().warnings).toEqual([])
+  })
+
+  it('SRV-EST-03: 确定性——同一包连续两次 preview，sizeEstimate 序列化后逐字节相等', async () => {
+    const h = await makeHarness()
+    const pack = await mkPack(h)
+    const a = await preview(h, pack.id, '1.0.0')
+    const b = await preview(h, pack.id, '1.0.0')
+    expect(JSON.stringify(a.sizeEstimate)).toBe(JSON.stringify(b.sizeEstimate))
   })
 })
