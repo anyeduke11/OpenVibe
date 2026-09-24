@@ -4,7 +4,7 @@
 |------|------|
 | 文档定位 | 按什么顺序做：P0 门禁 → T1–T9 任务组（P1/MVP，已冻结）→ **§2b P1.1 任务组 T10–T11** → 周计划 → 完成定义 |
 | 上游 | [proposal.md](./proposal.md)、[specs/](./specs/)（验收出处）、[design.md](./design.md)（实现蓝图） |
-| 版本 | v0.1（2026-09-20）→ **v0.2（2026-09-23，P1.1 开档 D19：新增 §2b 任务组 T10/T11、§3 变体①④判作废 + ②改判 P2 并做「飞轮面板」同名异物消歧、§4·T9 组加冻结注（D21）、§5 风险表两处口径更新；`clean` 验收按自审补闸扩到 a–j / `CLI-CLEAN-01..10`。范围裁定正文在 [dev-plan.md §15](./dev-plan.md)；同日 DEV-0024 另做**一次状态回填**（S-2 探针结论 → §2b·T11 两条 + §4·T9 冻结注与 Playwright 历史行 + T9 验收①，C 级，任务编号与人日不变）；**2026-09-24 DEV-0025 再做一次状态回填**（§2b·T11 三条冒烟收口 + 其验收行 + §4·T9 验收① 指向该收口，同为 C 级，任务编号与人日不变）；**同日 DEV-0026 第三次状态回填**（§2b·T10 新增一行「计划落库 + 三处规格/代码冲突定稿」，规格侧因此推进为 **m6b v1.3 / m6a v1.2**，仍属 C 级登记，T10 人日 1.8 不变）** |
+| 版本 | v0.1（2026-09-20）→ **v0.2（2026-09-23，P1.1 开档 D19：新增 §2b 任务组 T10/T11、§3 变体①④判作废 + ②改判 P2 并做「飞轮面板」同名异物消歧、§4·T9 组加冻结注（D21）、§5 风险表两处口径更新；`clean` 验收按自审补闸扩到 a–j / `CLI-CLEAN-01..10`。范围裁定正文在 [dev-plan.md §15](./dev-plan.md)；同日 DEV-0024 另做**一次状态回填**（S-2 探针结论 → §2b·T11 两条 + §4·T9 冻结注与 Playwright 历史行 + T9 验收①，C 级，任务编号与人日不变）；**2026-09-24 DEV-0025 再做一次状态回填**（§2b·T11 三条冒烟收口 + 其验收行 + §4·T9 验收① 指向该收口，同为 C 级，任务编号与人日不变）；**同日 DEV-0026 第三次状态回填**（§2b·T10 新增一行「计划落库 + 三处规格/代码冲突定稿」，规格侧因此推进为 **m6b v1.3 / m6a v1.2**，仍属 C 级登记，T10 人日 1.8 不变）；**同日 DEV-0027 第四次状态回填**（§2b·T10 **收口**：三条 `- [ ]` 转 `- [x]`——`clean` 现测 29 支、预览体量现测 CORE-SIZE 6 + SRV-EST 6、一项目一包按 §6.10 修正收口；验收行补上五闸本机实测与 `tests/golden/` **空输出**凭据，并明写三平台 CI 未跑 ⇒ dev-plan §15.6 DoD ①③ 仍开放。规格侧本轮**一字未动**（m6b 停在 v1.5 / m6a 停在 v1.3），任务编号与人日不变，仍属 C 级登记）** |
 | 姊妹文档 | [dev-plan.md](./dev-plan.md)（P1 执行版：架构/DDL/API/组件清单/T1–T9 文件级分解/验收-测试映射/日级排期/内容生产 SOP/SPEC 流程规范）——本文保留里程碑概览，两者人日与任务编号零偏差 |
 
 **执行规约**（继承全局 AGENTS 规范，随本仓库生效）：
@@ -157,12 +157,12 @@ T1 脚手架 ──► T2 存储核心 ──┬──► T3 提示词库(M1) �
 ### T10 · 退场与信任（预估 1.8 人日）
 
 - [x] 八份 spec 补写 `| 版本 |` 痕迹基线 + 实量数字单源化 + `m6a §6.4` 交叉引用修正 —— 2026-09-23 本轮完成（起因：dev-plan DoD⑥ 假绿，见 §15.5）
-- [ ] `openvibe clean` 实现 —— 规格 `specs/m6-cli-injection.md` FR-6 + §6.10 + 验收 10a–10j ✅已写；测试段 `CLI-CLEAN-01..10`（`apps/cli/test/clean.test.ts`）；≈1 人日
-- [ ] 预览体量与 token 估算 —— 规格 `specs/m6-standard-pack.md` FR-6 + §5 + 验收 8–12 ✅已写；测试段 `CORE-SIZE-01..05` + `SRV-EST-01..03`；≈0.5 人日
-- [ ] 一项目一包边界声明 —— `specs/m6-cli-injection.md` §6.10 ✅已写（正文即规格，无实现项）
+- [x] **`openvibe clean` 实现**（2026-09-24 收口，T2–T5）—— 规格 `specs/m6-cli-injection.md` **v1.5** FR-6 + §6.10 + 验收 10a–10j（含 f2 / e2 / e3）✅已写并已随实况改道；落地面：core 分类器 `planRetirement`（T2）→ `cleanAction` 备份 / 锁 / 前置净化 / 交互 / 并发 / 退出码（T3–T4）→ 命令注册与 `--json` 信封（T5）。**测试段支数以现测为准**：`grep -c "^\s*it[\.(]" apps/cli/test/clean.test.ts` = **29**（§7.10 的 a–j + f2 + e2 + e3 之外，其余全是实施/审查补的 sub-branch，**不得写成「规格十支全绿」**），另有 core 侧 `retirement.test.ts` 8 支托判定。**三平台口径**：darwin / linux **29 支实跑**，win32 **28 支实跑 + 1 支跳过**（`06e` 符号链接逃逸是 `it.skipIf(IS_WINDOWS)`，**跳过 ≠ 通过**）；本机只验到 darwin。提交 `c11430f`(T2) / `acfb24f`(T3 两轮修复) / `44705c7`(T4 修复) / `c84f5d5`(T5 修复) + 收口码笔 `fb277b1`；≈1 人日
+- [x] **预览体量与 token 估算**（2026-09-24 收口，T6–T8）—— 规格 `specs/m6-standard-pack.md` **v1.3** FR-6 + §5 + 验收 8–12 ✅已写；落地面：`estimateTokens` / `estimateBundle` / `SIZE_WARN_THRESHOLD=12_000` 进 core（T6）→ `sizeEstimate` 进 preview 的 perTarget + footprint 两视图、`.optional()`、**只提示不阻断**（T7）→ Web 步骤 5 展示：成本条 / warn 黄条 / 文件树体量列，**缺 `sizeEstimate` 时整段不渲染**而不是印假零（T8）。测试段现测 **`CORE-SIZE-*` 6 支 + `SRV-EST-*` 6 支**（`SRV-EST-04` 是 FR-6.4「首启预置包自己就亮黄条」的仓库内驱动器，权威数从此处而非 `SRV-EST-02`）；**Web 侧无 DOM 断言**（owner 裁定不引入组件测试基建，四处新渲染只有静态闸 + 读代码推演，已登记为未验证面）。提交 `d057051`(T6) / `91bb1dc`+`93477a7`(T7) / `f2ce4ab`+`274bebd`(T8)；≈0.5 人日
+- [x] 一项目一包边界声明 —— `specs/m6-cli-injection.md` §6.10 ✅已写（正文即规格，无实现项）；**2026-09-24 以 Task 1 的 §6.10 修正收口（实现未动，规格随实况）**：换包是**合并保留**而非整体重写，旧包独有文件仍在 lock 里备查、由 `clean` 一并退场
 - [x] **T10 开工前置：实现计划落库 + 三处「规格 vs 代码」冲突定稿**（2026-09-24）—— 计划 `docs/superpowers/plans/2026-09-24-p1.1-t10-clean-and-size-estimate.md`（9 任务）；冲突裁定与实测证据在计划「先读」节 + `DEV_LOG [DEV-0026]`，规格侧落为 **m6b v1.3 / m6a v1.2**（`clean` 验收 j 构造改法、`coveredPlatforms`→`manifest.targets`、§6.10 合并语义、另补验收 **f2** `LOCK_INVALID` 与三处同源涟漪）。**待 owner 复核后开 Task 2**
 
-**验收**：`CLI-CLEAN-01..10`、`CORE-SIZE-*`、`SRV-EST-*` 全绿；**`git diff --name-only tests/golden/` 为空**（这是「未触 A 级冻结契约」的机器凭据，不是叙述句）。
+**验收**：`CLI-CLEAN-*`（现测 **29 支**）、`CORE-SIZE-*`（**6**）、`SRV-EST-*`（**6**）全绿；**`git diff --name-only tests/golden/` 为空**（这是「未触 A 级冻结契约」的机器凭据，不是叙述句）。—— ✅ **T10 收口（2026-09-24，DEV-0027）**：五闸本机（darwin / node v26.4.0）全过——`pnpm lint` rc=0、`pnpm typecheck` rc=0、`pnpm test` **433 支 / 47 文件全绿**（cli 145 / unit 191 / integration 97）、`pnpm seed:check` rc=0、`pnpm bundle:check` 入口 **293.07 kB ≤ 300 kB** / 23 chunk 最大 347.45 kB；`git diff --name-only tests/golden/` 与 `content/seed/` **均 0 行**（空输出＝凭据成立）。**仍未收**：三平台 CI 没跑过（分支 `feat/p1.1-t10-clean-size` 未推），故 dev-plan §15.6 DoD ①「五闸三平台 CI 全绿且跑到 tip sha」与 ③「验收 10a–10j 在 CI 里跑」是**开放项**——本机绿不冒充 CI 绿；逐条未验证面清单见 `DEV_LOG [DEV-0027]`。
 
 ### T11 · 发布运营与证据（预估 1.5–2 人日）
 
