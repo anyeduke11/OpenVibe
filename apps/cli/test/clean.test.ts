@@ -1,4 +1,4 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import {
   existsSync,
   lstatSync,
@@ -13,6 +13,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it, vi } from 'vitest'
+import { ADAPTER_MAIN_PATH } from '@openvibe/adapters'
 import {
   PACK_BACKUP_REL,
   PACK_LOCK_REL,
@@ -31,8 +32,9 @@ import { putFile, treeSnapshot } from './helpers/tree'
 
 /**
  * T10 · `openvibe clean`（m6b FR-6 + 验收 §7.10 a–j）。
- * 分支映射：01↔a 02↔b 03↔c 04↔d 05↔e 05b/05c/05d↔e2 06↔f 06b↔e3 06c/06g↔f2 07↔g 08/08b↔h
- * 09↔i 10↔j。
+ * 分支映射：01↔a 02↔b 03↔c 04↔d 05/05e↔e（05e 另钉 c 的 --force 措辞） 05b/05c/05d↔e2
+ * 06↔f 06b/06d↔e3 06c/06g↔f2 06e/06f↔FR-6.6 的两半（I-3） 07↔g 08/08b↔h 09↔i 10↔j。
+ * §7.10 之外的契约三支：11（命令注册 + `--json` 形状）11b（`summary.ok` 与退出码同式）12（错误信封）。
  * 判据一律落在磁盘实况与 lock 读回上——被保护的对象就是那些文件。
  */
 
@@ -56,6 +58,8 @@ const PACK_LOCK_KEY = PACK_LOCK_REL.split(/[\\/]/).join('/')
 /** 08/08b 的持锁夹具走真进程（承 apps/cli/test/sync-lock.test.ts 的 CLI-LOCK-01 口径） */
 const HERE = dirname(fileURLToPath(import.meta.url))
 const HOLDER = join(HERE, 'helpers', 'sync-lock-holder.ts')
+/** 11/11b/12 走真子进程：`--json` 契约只有在自己的进程里跑才算被证明（承 diff.test.ts:29 的同一条常量） */
+const CLI_ENTRY = join(HERE, '..', 'src', 'index.ts')
 const roots: string[] = []
 
 function sandbox(): { root: string; project: string } {
@@ -297,6 +301,44 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
     expect(outcome.exitCode).toBe(2)
     expect(outcome.summary.cleaned).toBe(false)
     expect(treeSnapshot(project)).toEqual(before)
+  })
+
+  // T3 审查留下的两处「无断言的措辞分支」（§7.10 c、e 的文案半边）：--force 的确认文案与 NEED_TTY 的提示文案。
+  // 前者若被抄回「保留 N 个已改动的文件」，就是当着用户的面承诺一件马上不做的事（--force 会删掉它们）；
+  // 后者在 --force 已在场时仍叫用户「还得加 --force」。两种都是全套绿灯照漏。
+  it('CLI-CLEAN-05e: --force 在场时两处措辞不自相矛盾（确认文案不提「保留」，NEED_TTY 不再叫用户加 --force）', async () => {
+    // 注入后手改 TERMS.md ⇒ 场上恰好一个 DRIFT，--force 与默认动作的全部差别就在这条文案上
+    const driftProject = async (): Promise<string> => {
+      const { project } = await injected(fixture())
+      putFile(project, 'TERMS.md', '用户注入后手改的内容\n')
+      return project
+    }
+    // 刻意不给 deps.confirm：这一支要的就是真走 confirmWithClack 与 clack 的 module mock 对话
+    const promptFor = async (force: boolean): Promise<string> => {
+      const project = await driftProject()
+      vi.mocked(confirm).mockResolvedValueOnce(true)
+      await cleanAction({ projectPath: project, force }, { isTTY: true, now: () => NOW })
+      const last = vi.mocked(confirm).mock.calls.at(-1)?.[0]
+      expect(last, 'confirmWithClack 应调过 clack 的 confirm').toBeTruthy()
+      return String(last?.message)
+    }
+
+    const forced = await promptFor(true)
+    expect(forced).toContain('其中 1 个是已改动的文件（--force）')
+    expect(forced).not.toContain('保留')
+    const kept = await promptFor(false)
+    expect(kept).toContain('保留 1 个已改动的文件')
+    expect(kept).not.toContain('--force')
+
+    const project = await driftProject()
+    const err = await cleanAction(
+      { projectPath: project, force: true },
+      { isTTY: false, now: () => NOW },
+    ).catch((e: CleanError) => e)
+    expect((err as CleanError).code).toBe('NEED_TTY')
+    expect((err as Error).message).toContain('加 --yes')
+    expect((err as Error).message).not.toContain('还得加 --force')
+    expect(existsSync(join(project, PACK_LOCK_REL)), 'NEED_TTY 那条文案不改零删除的口径').toBe(true)
   })
 
   it('CLI-CLEAN-06: 无 lock → NO_LOCK + 退出码语义 1 + 零删除', async () => {
@@ -564,5 +606,124 @@ describe('lock 净化与并发（§7.10 g、h）', () => {
     } finally {
       await holder.stop()
     }
+  })
+})
+
+describe('可重放律与 managed 闸（§7.10 i、j）', () => {
+  it('CLI-CLEAN-09: sync → clean --yes → 再 sync → diff 退出码 0（退场不残留污染态）', async () => {
+    const fx = fixture()
+    const { project, bundlePath } = await injected(fx)
+    const first = await cleanAction({ projectPath: project, yes: true }, { now: () => NOW })
+    expect(first.summary.cleaned).toBe(true)
+
+    await syncAction({ projectPath: project, file: bundlePath, yes: true }, { now: () => NOW })
+    const { diffAction } = await import('../src/commands/diff')
+    const again = await diffAction({ projectPath: project })
+    expect(again.exitCode).toBe(0)
+    expect(again.clean).toBe(true)
+  })
+
+  it('CLI-CLEAN-10: managed:false 不构成删除凭据——用户自有的同名同字节文件留在原样且不进备份', async () => {
+    const fx = fixture()
+    const { root, project } = sandbox()
+    const bundlePath = writeBundleFile(root, fx)
+    const claude = fx.files.find((f) => f.path === 'CLAUDE.md')
+    expect(claude, '夹具缺 CLAUDE.md 产物').toBeTruthy()
+    // 用户自己写了个同名文件，内容与包逐字节相同（Task 1 §7.10j 的构造）
+    putFile(project, 'CLAUDE.md', claude?.content ?? '')
+    await syncAction(
+      { projectPath: project, file: bundlePath, yes: true, targets: ['cursor'] },
+      { now: () => NOW },
+    )
+    const lock = parsePackLock(readFileSync(join(project, PACK_LOCK_REL), 'utf8'))
+    expect(lock?.files.find((f) => f.path === 'CLAUDE.md')?.managed).toBe(false)
+
+    const outcome = await cleanAction({ projectPath: project, yes: true }, { now: () => NOW })
+
+    expect(readFileSync(join(project, 'CLAUDE.md'), 'utf8')).toBe(claude?.content)
+    expect(stateMap(outcome.report)['CLAUDE.md']).toBe('FOREIGN')
+    expect(existsSync(join(project, ADAPTER_MAIN_PATH.cursor))).toBe(false)
+    expect(existsSync(join(project, PACK_BACKUP_REL, STAMP, ADAPTER_MAIN_PATH.cursor))).toBe(true)
+    expect(existsSync(join(project, PACK_BACKUP_REL, STAMP, 'CLAUDE.md'))).toBe(false)
+    expect(outcome.exitCode).toBe(0)
+  })
+})
+
+describe('命令注册与 --json 契约（FR-6.10）', () => {
+  const runCli = (args: string[], home: string) =>
+    spawnSync(process.execPath, ['--import', 'tsx', CLI_ENTRY, ...args], {
+      encoding: 'utf8',
+      timeout: 25_000,
+      env: { ...process.env, OPENVIBE_HOME: home, OPENVIBE_TOKEN: '', OPENVIBE_SERVER: '' },
+    })
+  const runClean = (args: string[], home: string) => runCli(['--json', 'clean', ...args], home)
+  const newHome = (): string => {
+    const home = mkdtempSync(join(tmpdir(), 'ov-clean-home-'))
+    roots.push(home)
+    return home
+  }
+
+  it('CLI-CLEAN-11: `clean` 在命令总览里；--json 输出形状 = {command,report,summary{6+键}}；退出码 0', async () => {
+    const fx = fixture()
+    const { project } = await injected(fx)
+    const home = newHome()
+
+    const help = runCli(['--help'], home)
+    expect(help.stdout).toContain('clean [options] <projectPath>')
+
+    const out = runClean([project, '--yes'], home)
+    expect(out.status, out.stderr).toBe(0)
+    const env = JSON.parse(out.stdout) as {
+      command: string
+      report: { path: string; state: string; action: string }[]
+      summary: Record<string, unknown>
+    }
+    expect(env.command).toBe('clean')
+    expect(env.report.length).toBe(fx.files.length)
+    expect(env.summary).toMatchObject({ backedUpTo: expect.any(String), cleaned: true })
+    for (const key of [
+      'inSyncRemoved',
+      'driftKept',
+      'driftForced',
+      'absent',
+      'backedUpTo',
+      'cleaned',
+    ])
+      expect(Object.hasOwn(env.summary, key), `summary 缺键 ${key}`).toBe(true)
+    expect(
+      env.report.every((r) => ['IN_SYNC', 'DRIFT', 'ABSENT', 'FOREIGN'].includes(r.state)),
+    ).toBe(true)
+  })
+
+  it('CLI-CLEAN-11b: 有 DRIFT 残留时 --json ⇒ 退出码 2 且 summary.ok === false（`ok` 与退出码不得各说各话）', async () => {
+    const fx = fixture()
+    const { project } = await injected(fx)
+    // 造一条真 DRIFT：注入后手改受管的 TERMS.md（构造与进程内的 CLI-CLEAN-02 同一条，区别只在走真子进程）
+    putFile(project, 'TERMS.md', '用户注入后手改的内容\n')
+    const home = newHome()
+
+    const out = runClean([project, '--yes'], home)
+
+    expect(out.status).toBe(2)
+    const env = JSON.parse(out.stdout) as {
+      summary: { ok: boolean; exitCode: number; driftKept: number }
+    }
+    expect(env.summary.ok).toBe(false)
+    expect(env.summary.exitCode).toBe(2)
+    expect(env.summary.driftKept).toBe(1)
+  })
+
+  it('CLI-CLEAN-12: 无 lock 时 --json 仍是一个对象且 summary.ok=false + code=NO_LOCK，退出码 1', () => {
+    const { project } = sandbox()
+    const home = newHome()
+    const out = runClean([project, '--yes'], home)
+    expect(out.status).toBe(1)
+    const env = JSON.parse(out.stdout) as {
+      command: string
+      summary: { ok: boolean; error: { code: string } }
+    }
+    expect(env.command).toBe('clean')
+    expect(env.summary.ok).toBe(false)
+    expect(env.summary.error.code).toBe('NO_LOCK')
   })
 })

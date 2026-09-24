@@ -3,6 +3,7 @@ import { serveAction } from './commands/serve'
 import { askWithClack, syncAction, type SyncOutcome } from './commands/sync'
 import { scanAction, type ScanOutcome } from './commands/scan'
 import { diffAction, type DiffOutcome } from './commands/diff'
+import { cleanAction, type CleanOutcome } from './commands/clean'
 import { createPrinter, ExitCode, type Printer, type ReportRow } from './output'
 import { clientFromConfig } from './client'
 import { resolveConfig } from './config'
@@ -356,6 +357,68 @@ async function runDiff(projectPath: string, global: GlobalOptions): Promise<void
   }
 }
 
+/** 行即 FR-6.10 的那四个键；未备份的项 `backupPath` 为 undefined，JSON.stringify 会省掉这个键 */
+function cleanRows(outcome: CleanOutcome): ReportRow[] {
+  return outcome.report
+    .map(({ path, state, action, backupPath }) => ({ path, state, action, backupPath }))
+    .sort((a, b) => compareCodeUnit(String(a.path), String(b.path)))
+}
+
+interface CleanCmdOptions {
+  dryRun?: boolean
+  yes?: boolean
+  force?: boolean
+}
+
+async function runClean(
+  projectPath: string,
+  cmd: CleanCmdOptions,
+  global: GlobalOptions,
+): Promise<void> {
+  const printer = printerFor('clean', global)
+  const isTTY = process.stdout.isTTY === true
+  try {
+    const outcome = await cleanAction(
+      {
+        projectPath,
+        dryRun: cmd.dryRun === true,
+        yes: cmd.yes === true,
+        force: cmd.force === true,
+      },
+      { isTTY },
+    )
+    for (const w of outcome.warnings) printer.warn(w)
+    for (const row of outcome.report)
+      printer.info(
+        `${row.state.padEnd(8)} ${row.path}${row.backupPath ? `  备份 ${row.backupPath}` : ''}`,
+      )
+    const s = outcome.summary
+    printer.info(
+      `删除 ${String(s.inSyncRemoved + s.driftForced)}（受管未改动 ${String(s.inSyncRemoved)} / --force ${String(s.driftForced)}），` +
+        `保留 ${String(s.driftKept)}，已自行退场 ${String(s.absent)}，非我方文件 ${String(s.foreign)}（永不删除）`,
+    )
+    if (s.backedUpTo) printer.info(`备份 ${s.backedUpTo}`)
+    printer.info(
+      s.cleaned ? '已删除 pack.lock.json；.openvibe/ 与备份目录保留' : 'pack.lock.json 未动',
+    )
+    for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
+    // 键名不叫 counts：printer 一见 counts 就渲染注入侧的 SYNC_STATES 五态表，clean 是四态
+    // `ok` 必须**从退出码推导**，与 `runDiff`（`:337` `ok: outcome.exitCode === ExitCode.ok`）同式。
+    // 写死 `ok: true` 的话，「有 DRIFT 残留 ⇒ 退出码 2」那一轮会在 JSON 里同时报 `ok: true` 与 `exitCode: 2`，
+    // 机器读者只能挑一个信——而 `--json` 的全部意义就是不必挑。契约支 CLI-CLEAN-11b 钉这条。
+    printer.result({
+      report: cleanRows(outcome),
+      summary: { ok: outcome.exitCode === ExitCode.ok, ...s, exitCode: outcome.exitCode },
+    })
+    process.exit(outcome.exitCode)
+  } catch (e) {
+    const err = e as { code?: string; details?: unknown; message?: string }
+    for (const line of violationLines(err.details)) printer.warn(line)
+    printer.fail(err.code ?? 'CLEAN_FAILED', err.message ?? String(e))
+    process.exit(ExitCode.error)
+  }
+}
+
 /** roots 允许逗号分隔与重复旗标，交给 scanAction 去重保序 */
 function collectRoots(raw: string, prev: unknown): string[] {
   const list = Array.isArray(prev) ? (prev as string[]) : []
@@ -430,6 +493,17 @@ export function buildProgram(): Command {
     .argument('<projectPath>', '目标项目目录')
     .action(async (projectPath: string) => {
       await runDiff(projectPath, program.opts<GlobalOptions>())
+    })
+
+  program
+    .command('clean')
+    .description('退场：删除当前 lock 登记且未被改动的受管文件（删除前一律备份）')
+    .argument('<projectPath>', '目标项目目录')
+    .option('--dry-run', '只打印三态计划表，零写入零删除')
+    .option('--yes', '确认默认动作（不升级为全删：要连改过的文件一起删得给 --force）')
+    .option('--force', '连 DRIFT（用户注入后改过）的文件一并删除，改后内容先进备份目录')
+    .action(async (projectPath: string, opts: CleanCmdOptions) => {
+      await runClean(projectPath, opts, program.opts<GlobalOptions>())
     })
 
   return program

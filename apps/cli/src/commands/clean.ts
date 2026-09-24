@@ -295,7 +295,10 @@ export async function cleanAction(
       throw new CleanError(
         'NEED_TTY',
         `${String(plan.removals.length)} 个文件需要删除确认，但当前不是交互终端：加 --yes（仅确认默认动作）` +
-          `；要连已改动的 ${String(plan.counts.DRIFT)} 个一起删还得加 --force`,
+          // --force 已在场时不能再叫用户「还得加 --force」（T3 审查留下的无断言分支，测试 CLI-CLEAN-05e）
+          (options.force === true
+            ? `；--force 已带上，加 --yes 即连已改动的 ${String(plan.counts.DRIFT)} 个一起删`
+            : `；要连已改动的 ${String(plan.counts.DRIFT)} 个一起删还得加 --force`),
         { removals: [...plan.removals].sort(compareCodeUnit) },
       )
     }
