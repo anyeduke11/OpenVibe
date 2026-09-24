@@ -34,7 +34,8 @@ import { putFile, treeSnapshot } from './helpers/tree'
  * T10 · `openvibe clean`（m6b FR-6 + 验收 §7.10 a–j）。
  * 分支映射：01↔a 02↔b 03↔c 04↔d 05/05e↔e（05e 另钉 c 的 --force 措辞） 05b/05c/05d↔e2
  * 06↔f 06b/06d↔e3 06c/06g↔f2 06e/06f↔FR-6.6 的两半（I-3） 07↔g 08/08b↔h 09↔i 10↔j。
- * §7.10 之外的契约三支：11（命令注册 + `--json` 形状）11b（`summary.ok` 与退出码同式）12（错误信封）。
+ * §7.10 之外的契约四支：11（命令注册 + `--json` 形状）11b（`summary.ok` 与退出码同式）
+ * 11c（人读轨渲染）12（错误信封）。
  * 判据一律落在磁盘实况与 lock 读回上——被保护的对象就是那些文件。
  */
 
@@ -58,7 +59,7 @@ const PACK_LOCK_KEY = PACK_LOCK_REL.split(/[\\/]/).join('/')
 /** 08/08b 的持锁夹具走真进程（承 apps/cli/test/sync-lock.test.ts 的 CLI-LOCK-01 口径） */
 const HERE = dirname(fileURLToPath(import.meta.url))
 const HOLDER = join(HERE, 'helpers', 'sync-lock-holder.ts')
-/** 11/11b/12 走真子进程：`--json` 契约只有在自己的进程里跑才算被证明（承 diff.test.ts:29 的同一条常量） */
+/** 11/11b/11c/12 走真子进程：`--json` 契约只有在自己的进程里跑才算被证明（承 diff.test.ts:29 的同一条常量） */
 const CLI_ENTRY = join(HERE, '..', 'src', 'index.ts')
 const roots: string[] = []
 
@@ -274,6 +275,8 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
   })
 
   it('CLI-CLEAN-05c: 真走 confirmWithClack（不注入 deps.confirm）——accept 即删、cancel 即退 2', async () => {
+    // clack 的 module mock 是文件级的、调用日志跨整支文件累加：先清基线，Times(1) 才只数本支自己
+    vi.mocked(confirm).mockClear()
     const { project } = await injected(fixture())
     // 这一支刻意**不给 deps.confirm**，让 clean.ts 里的 confirmWithClack 与 clack 的 module mock 直接对话
     vi.mocked(confirm).mockResolvedValueOnce(false)
@@ -307,20 +310,25 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
   // 前者若被抄回「保留 N 个已改动的文件」，就是当着用户的面承诺一件马上不做的事（--force 会删掉它们）；
   // 后者在 --force 已在场时仍叫用户「还得加 --force」。两种都是全套绿灯照漏。
   it('CLI-CLEAN-05e: --force 在场时两处措辞不自相矛盾（确认文案不提「保留」，NEED_TTY 不再叫用户加 --force）', async () => {
+    vi.mocked(confirm).mockClear()
     // 注入后手改 TERMS.md ⇒ 场上恰好一个 DRIFT，--force 与默认动作的全部差别就在这条文案上
     const driftProject = async (): Promise<string> => {
       const { project } = await injected(fixture())
       putFile(project, 'TERMS.md', '用户注入后手改的内容\n')
       return project
     }
-    // 刻意不给 deps.confirm：这一支要的就是真走 confirmWithClack 与 clack 的 module mock 对话
+    // 刻意不给 deps.confirm：这一支要的就是真走 confirmWithClack 与 clack 的 module mock 对话。
+    // 取「本次新增的那一次调用」而非 .at(-1)：调用日志是文件级累加的，读尾巴会拿到上一支的 message。
     const promptFor = async (force: boolean): Promise<string> => {
       const project = await driftProject()
+      const callsBefore = vi.mocked(confirm).mock.calls.length
       vi.mocked(confirm).mockResolvedValueOnce(true)
       await cleanAction({ projectPath: project, force }, { isTTY: true, now: () => NOW })
-      const last = vi.mocked(confirm).mock.calls.at(-1)?.[0]
-      expect(last, 'confirmWithClack 应调过 clack 的 confirm').toBeTruthy()
-      return String(last?.message)
+      const asked = vi.mocked(confirm).mock.calls.slice(callsBefore)
+      expect(asked, '一次 clean 只问一次').toHaveLength(1)
+      const arg = asked[0]?.[0]
+      expect(arg, 'confirmWithClack 应调过 clack 的 confirm').toBeTruthy()
+      return String(arg?.message)
     }
 
     const forced = await promptFor(true)
@@ -330,15 +338,28 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
     expect(kept).toContain('保留 1 个已改动的文件')
     expect(kept).not.toContain('--force')
 
-    const project = await driftProject()
-    const err = await cleanAction(
-      { projectPath: project, force: true },
-      { isTTY: false, now: () => NOW },
-    ).catch((e: CleanError) => e)
-    expect((err as CleanError).code).toBe('NEED_TTY')
-    expect((err as Error).message).toContain('加 --yes')
-    expect((err as Error).message).not.toContain('还得加 --force')
-    expect(existsSync(join(project, PACK_LOCK_REL)), 'NEED_TTY 那条文案不改零删除的口径').toBe(true)
+    // NEED_TTY 的两条腿都正面钉：只钉反向那句（不许出现「还得加 --force」）的话，
+    // 「删掉分叉、一律用新文案」的变异体照样全绿，而没给 --force 的用户会被谎称「--force 已带上」。
+    const needTtyMessage = async (force: boolean): Promise<string> => {
+      const project = await driftProject()
+      const err = await cleanAction(
+        { projectPath: project, force },
+        { isTTY: false, now: () => NOW },
+      ).catch((e: CleanError) => e)
+      expect((err as CleanError).code).toBe('NEED_TTY')
+      expect(existsSync(join(project, PACK_LOCK_REL)), 'NEED_TTY 那条文案不改零删除的口径').toBe(
+        true,
+      )
+      return (err as Error).message
+    }
+
+    const forcedTty = await needTtyMessage(true)
+    expect(forcedTty).toContain('加 --yes')
+    expect(forcedTty).toContain('--force 已带上')
+    expect(forcedTty).not.toContain('还得加 --force')
+    const plainTty = await needTtyMessage(false)
+    expect(plainTty).toContain('还得加 --force')
+    expect(plainTty).not.toContain('--force 已带上')
   })
 
   it('CLI-CLEAN-06: 无 lock → NO_LOCK + 退出码语义 1 + 零删除', async () => {
@@ -680,7 +701,7 @@ describe('命令注册与 --json 契约（FR-6.10）', () => {
     }
     expect(env.command).toBe('clean')
     expect(env.report.length).toBe(fx.files.length)
-    expect(env.summary).toMatchObject({ backedUpTo: expect.any(String), cleaned: true })
+    expect(env.summary).toMatchObject({ ok: true, backedUpTo: expect.any(String), cleaned: true })
     for (const key of [
       'inSyncRemoved',
       'driftKept',
@@ -690,9 +711,15 @@ describe('命令注册与 --json 契约（FR-6.10）', () => {
       'cleaned',
     ])
       expect(Object.hasOwn(env.summary, key), `summary 缺键 ${key}`).toBe(true)
+    // FR-6.10 v1.5：六键是下限，hints 必带——否则机器读者只拿到一个没有理由的退出码 2
+    expect(Object.hasOwn(env.summary, 'hints'), 'summary 缺键 hints').toBe(true)
+    expect(env.summary.hints).toEqual(
+      expect.arrayContaining([expect.stringContaining('可手工删除 .openvibe/')]),
+    )
     expect(
       env.report.every((r) => ['IN_SYNC', 'DRIFT', 'ABSENT', 'FOREIGN'].includes(r.state)),
     ).toBe(true)
+    expect(env.report.every((r) => ['delete', 'keep', 'none'].includes(r.action))).toBe(true)
   })
 
   it('CLI-CLEAN-11b: 有 DRIFT 残留时 --json ⇒ 退出码 2 且 summary.ok === false（`ok` 与退出码不得各说各话）', async () => {
@@ -711,6 +738,34 @@ describe('命令注册与 --json 契约（FR-6.10）', () => {
     expect(env.summary.ok).toBe(false)
     expect(env.summary.exitCode).toBe(2)
     expect(env.summary.driftKept).toBe(1)
+  })
+
+  // 先例：sync.test.ts 的 CLI-JSON-01b（一次不带 --json 的 runCli + 逐条 toContain）。
+  // 11/11b/12 全走 --json ⇒ runClean 的 info 段此前零自动覆盖，而它带着全仓唯一一处
+  // `inSyncRemoved + driftForced` 加法、四态列宽与 hints 的人读出口。
+  it('CLI-CLEAN-11c: 不带 --json 时人读轨渲染四态行与删除统计（--force 的加法看得见）', async () => {
+    const fx = fixture()
+    const { project } = await injected(fx)
+    putFile(project, 'TERMS.md', '用户注入后手改的内容\n')
+    const home = newHome()
+
+    const out = runCli(['clean', project, '--yes', '--force'], home)
+    expect(out.status, out.stderr).toBe(0)
+    const lines = out.stdout.split('\n')
+    const hasLine = (prefix: string): boolean => lines.some((l) => l.startsWith(prefix))
+    const n = fx.files.length
+    expect(out.stdout).toContain(
+      `删除 ${String(n)}（受管未改动 ${String(n - 1)} / --force 1），保留 0，已自行退场 0，非我方文件 0（永不删除）`,
+    )
+    // FOREIGN 为 0 时那句不许谎报有非我方文件
+    expect(out.stdout).toContain('非我方文件 0（永不删除）')
+    // 状态列按 padEnd(8) 对齐：IN_SYNC 七字符补一格、DRIFT 五字符补三格
+    expect(hasLine('IN_SYNC  CLAUDE.md'), out.stdout).toBe(true)
+    expect(hasLine('DRIFT    TERMS.md'), out.stdout).toBe(true)
+    // 备份行是独立一行（行内那句「备份 <路径>」挂在每条被删文件末尾，不是它）
+    expect(hasLine(`备份 ${join(project, PACK_BACKUP_REL)}`), out.stdout).toBe(true)
+    expect(hasLine('已删除 pack.lock.json'), out.stdout).toBe(true)
+    expect(hasLine('提示 确认无误后可手工删除 .openvibe/'), out.stdout).toBe(true)
   })
 
   it('CLI-CLEAN-12: 无 lock 时 --json 仍是一个对象且 summary.ok=false + code=NO_LOCK，退出码 1', () => {

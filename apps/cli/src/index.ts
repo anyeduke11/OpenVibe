@@ -406,9 +406,15 @@ async function runClean(
     // `ok` 必须**从退出码推导**，与 `runDiff`（`:337` `ok: outcome.exitCode === ExitCode.ok`）同式。
     // 写死 `ok: true` 的话，「有 DRIFT 残留 ⇒ 退出码 2」那一轮会在 JSON 里同时报 `ok: true` 与 `exitCode: 2`，
     // 机器读者只能挑一个信——而 `--json` 的全部意义就是不必挑。契约支 CLI-CLEAN-11b 钉这条。
+    // FR-6.10 的六个键是下限不是闭集（m6b v1.5）：hints 与 foreign 都是必要附加键，不得为「对齐枚举」而删。
     printer.result({
       report: cleanRows(outcome),
-      summary: { ok: outcome.exitCode === ExitCode.ok, ...s, exitCode: outcome.exitCode },
+      summary: {
+        ok: outcome.exitCode === ExitCode.ok,
+        ...s,
+        hints: outcome.hints,
+        exitCode: outcome.exitCode,
+      },
     })
     process.exit(outcome.exitCode)
   } catch (e) {
