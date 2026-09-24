@@ -12,3 +12,4 @@ export {
   directoryFileName,
   directoryFiles,
 } from './bundle'
+export { estimateBundle, estimateTokens, SIZE_WARN_THRESHOLD, type TokenEstimate } from './size'

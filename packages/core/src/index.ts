@@ -45,11 +45,15 @@ export {
   bundleJson,
   directoryFileName,
   directoryFiles,
+  estimateBundle,
+  estimateTokens,
+  SIZE_WARN_THRESHOLD,
   type AdapterBundle,
   type ComposeDeps,
   type RenderedPack,
   type PackDefinition,
   type ResolveDeps,
+  type TokenEstimate,
 } from './pack'
 export {
   // 注入侧内核（m6b）：安全校验 → 五状态规划 → lock 装配
