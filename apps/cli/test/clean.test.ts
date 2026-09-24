@@ -41,6 +41,13 @@ const NOW = new Date('2026-09-24T10:20:30.400Z')
 const STAMP = '2026-09-24T10-20-30Z'
 /** 符号链接用例的建链权限闸（承 apps/cli/test/sync.test.ts 的 CLI-SEC-01b 口径，三平台 CI） */
 const IS_WINDOWS = process.platform === 'win32'
+/**
+ * 快照键比对用的 lock 路径：`treeSnapshot` 的键恒用 `/` 分隔（helpers/tree.ts:19），
+ * 而 `PACK_LOCK_REL` 是 `path.join('.openvibe', 'pack.lock.json')` —— win32 上带反斜杠。
+ * 直接拿它当快照键，windows-latest 那条腿就会在「少了一笔 lock」的断言上假红，
+ * 故先归一化成 `/` 形式（承 apps/cli/test/sync.test.ts:152 的「期望值写 `/` 路径」口径）。
+ */
+const PACK_LOCK_KEY = PACK_LOCK_REL.split(/[\\/]/).join('/')
 const roots: string[] = []
 
 function sandbox(): { root: string; project: string } {
@@ -289,7 +296,7 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
     expect(existsSync(join(project, PACK_BACKUP_REL))).toBe(false)
     // 除 lock 那一笔之外一个字节都没动。目录 mtime 会因 unlink 变化，故只对文件比内容
     const after = treeSnapshot(project)
-    expect(Object.keys(before).filter((k) => !(k in after))).toEqual([PACK_LOCK_REL])
+    expect(Object.keys(before).filter((k) => !(k in after))).toEqual([PACK_LOCK_KEY])
     expect(Object.keys(after).filter((k) => !(k in before))).toEqual([])
     for (const [path, entry] of Object.entries(after)) {
       if (entry.kind !== 'file') continue
@@ -331,7 +338,7 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
     expect(existsSync(join(project, PACK_BACKUP_REL))).toBe(false)
     // 除了 lock 那一笔，包产物一个都没动（它们不再是「我方写的」，删它们是 §7.10 j 的越权）
     const after = treeSnapshot(project)
-    expect(Object.keys(before).filter((k) => !(k in after))).toEqual([PACK_LOCK_REL])
+    expect(Object.keys(before).filter((k) => !(k in after))).toEqual([PACK_LOCK_KEY])
     expect(Object.keys(after).filter((k) => !(k in before))).toEqual([])
     for (const [path, entry] of Object.entries(after)) {
       if (entry.kind !== 'file') continue
@@ -361,9 +368,13 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
       )
 
       expect(err).toBeInstanceOf(CleanError)
-      // 哪一层抓到的都算数（净化闸的归属要在 Task 4 移进 core），但必须是整包中止而非跳过
+      // 哪一层抓到的都算数（净化闸的归属要在 Task 4 移进 core），但必须是整包中止而非跳过。
+      // 「整包」不靠措辞钉：Task 4 重写 core 的文案时 `整包` 二字会让这条测试为无关原因变红，
+      // 中止的证据是下面三件事——全树一个字节没动、链外文件还在、lock 仍在（早退路径不收尾）。
       expect(['PATH_ESCAPE', 'VALIDATION_ERROR']).toContain((err as CleanError).code)
-      expect((err as Error).message).toContain('整包')
+      // 措辞无关的「抓到的是哪条路径」：违规路径要么点在 message 里，要么在 details 里。
+      const { message, details } = err as CleanError
+      expect(`${message} ${JSON.stringify(details ?? '')}`).toContain('CLAUDE.md')
       expect(treeSnapshot(root)).toEqual(before)
       expect(readFileSync(outside, 'utf8')).toBe('项目外的重要文件\n')
       // 早退路径一律保留 lock（FR-6.5 v1.4 末段）

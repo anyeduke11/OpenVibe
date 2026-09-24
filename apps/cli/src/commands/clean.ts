@@ -63,7 +63,10 @@ export interface CleanReportRow {
 /**
  * 计数口径：一律**按 lock 条目数**计，不按去重后的路径数。
  * `planRetirement` 的 removals 不去重（去重不是 core 那层的活），所以同一 path 登记两次就报两次；
- * `removedPaths` 用 Set 只影响「实际 unlink 了几次」，不影响这四个计数。
+ * `removedPaths` 用 Set 只影响「实际 unlink 了几次」，不影响这五个逐条目计数
+ * （`inSyncRemoved` / `driftKept` / `driftForced` / `absent` / `foreign`）。
+ * 不进这个口径的是 `backedUpTo`（备份目录里是去重后的真实文件数，见 CLI-CLEAN-06f）
+ * 与 `cleaned`（收尾判定，不是计数）。
  * 这是口径而非缺陷——Task 5 的 `--json` 测试要钉住它，别在这一轮偷偷改成按去重计。
  */
 export interface CleanSummary {
@@ -156,11 +159,19 @@ function busyMessage(path: string, lock: LockBusy): string {
   return `另一个写盘命令正在占用这个项目：${who}，已 ${String(seconds)}s。等它结束后重跑 clean 即可`
 }
 
+/**
+ * 一次批量确认。措辞按 **action** 给而不是按 `plan.counts.DRIFT`（T3 修复轮 2）：
+ * counts.DRIFT 是「状态」计数，--force 下这批 DRIFT 正是要删的，照字面说「保留 N 个已改动的文件」
+ * 就是当着用户的面承诺一件马上不做的事。没有可保留项时不提保留，删除数直接取 removals。
+ */
 export const confirmWithClack = async (plan: RetirementPlan): Promise<boolean> => {
+  const kept = plan.files.filter((f) => f.state === 'DRIFT' && f.action === 'keep').length
+  const forced = plan.files.filter((f) => f.state === 'DRIFT' && f.action === 'delete').length
   const answer = await confirm({
-    message: `将删除 ${String(plan.counts.IN_SYNC)} 个受管文件（先备份到 .openvibe/backup/），保留 ${String(
-      plan.counts.DRIFT,
-    )} 个已改动的文件`,
+    message:
+      `将删除 ${String(plan.removals.length)} 个受管文件（先备份到 .openvibe/backup/）` +
+      (kept > 0 ? `，保留 ${String(kept)} 个已改动的文件` : '') +
+      (forced > 0 ? `，其中 ${String(forced)} 个是已改动的文件（--force）` : ''),
     initialValue: false,
   })
   return !isCancel(answer) && answer === true
@@ -257,7 +268,7 @@ export async function cleanAction(
       throw new CleanError(
         'NEED_TTY',
         `${String(plan.removals.length)} 个文件需要删除确认，但当前不是交互终端：加 --yes（仅确认默认动作）` +
-          `；要连已改动的 ${String(driftKept)} 个一起删还得加 --force`,
+          `；要连已改动的 ${String(plan.counts.DRIFT)} 个一起删还得加 --force`,
         { removals: [...plan.removals].sort(compareCodeUnit) },
       )
     }
