@@ -277,6 +277,7 @@ function busyMessage(path: string, lock: LockBusy): string {
 /**
  * SIGINT/SIGTERM 到达时先放锁再退出：Ctrl-C 之后重跑不必等 5 分钟陈旧窗口。
  * 装了监听就没有默认的按信号终止，退出码由我们给（m6b §5.2 只认 0/1/2，中断算 1）。
+ * sync 与 clean 共用（T3 起两个调用方）：放锁 + 摘监听这一对动作有时序约束，复制一份等于造第二份会漂移的实现。
  */
 export function releaseLockOnSignal(lock: SyncLockHandle): () => void {
   const bound = (['SIGINT', 'SIGTERM'] as const).map((signal) => {
