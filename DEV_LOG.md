@@ -806,3 +806,21 @@
 - **被推翻（本轮 1 条，且是 `[DEV-0030]` 自己写的）**: 上条把泄漏读成「`afterEach`/`afterAll` 在 timeout 打断时不执行」。**实况是 `fail()` 根本不收孩子**——`stop` 句柄只在 resolve 里交出去，超时腿上一切收尾钩子都救不到。登记形状随之改：不是「钩子时机不对」，是「有一条出路没人负责」。
 - **潜在风险**: ① **这条修复自身在仓库里没有常驻断言**——探针是一次性的（已随 scratch 清掉，它靠 `pgrep` 数进程，放进 CI 会在 win32 上直接失效）。所以下一轮有人把 `proc.kill()` 删掉，`pnpm test` 仍 438 全绿，孤儿静默回来。要钉住它得给 `startAdapter` 加一个可注入的超时/失败 seam 或让测试自己断言子进程退出，属测试基建改动，本轮**未做**，按未验证面挂账；② 「worker 被硬拆除 ⇒ 孩子留」这条路径仍**未证也未否**（本轮只处理了观察到的那一条）；③ 探针要求被 spawn 的 stub 永不写 stdout，若将来 `adapter-node.mjs` 启动时改了输出方式（例如往 stderr 打端口），超时腿会被更容易命中，而这条腿今天才第一次有人负责。
 - **owner 手上未收的（⑭ 已裁已落；本轮净增 0）**: ①–⑨ 原样；⑩ 已裁；⑪ `apps/web` 测试基建、⑫ `playbookIds` 契约、⑬ **推 main 触发 CI**（本轮已授权，执行结果与三平台分平台数在下一笔登记）、⑮ **⑭ 修复的常驻断言要不要补**（即上面风险 ① 的 seam）。
+
+## [DEV-0032] 队列 ⑬ 收口 · **run `36159308661` @ `5a963ff` 三平台全 `success`**：win32 实测 **430 passed + 8 skipped**，与推前用 `grep` 立的预测**逐文件闭合**——③ 那四处守卫从「win32 上被报成 passed」变成「skip 表里点得出名字」
+
+- **时间**: 2026-09-26 00:06–00:19 +0800。采样凭据：`gh run view --json conclusion,jobs` 是唯一结论来源；远端实况 `git ls-remote` = `5a963ff4` == 本地 `main`；`git status --porcelain` **0 行**；单一 worktree。
+- **类型**: §0.3 **C 级**——本条**只登记凭据，零文件改动**（除本条自身）。它是 `[DEV-0029]`（待决策项 ③）与 `[DEV-0031]`（队列 ⑭）两笔的**证据尾**。
+- **推送那半件**: owner 裁「推 main 触发 CI」。执行链：`git fetch . refs/heads/feat/p1.1-t10-clean-size:refs/heads/main`（**不动工作树**，非快进会被 fetch 自己拒；本轮 `main` 是 HEAD 的祖先，ahead 5 / behind 0）→ `nc -z github.com 443` **本轮 rc=0**（上一轮推 `787eb4c` 时该路 rc=1、只能走 `ssh.github.com:443`，**传输可用性会变，每次推前重探**）→ `GIT_TERMINAL_PROMPT=0 git ls-remote https://…` rc=0 先验鉴权 → `git push https://github.com/anyeduke11/OpenVibe.git main:main` rc=0（`787eb4c..5a963ff`，非 force、未改 git config）。一次 push 带 6 笔 ⇒ **只有 tip sha 有 run**，其余 5 笔是**随 tip 一起**被验。
+- **三平台实测（分写，skip 不并入「全绿」）**:
+  | job | 结论 | Test Files | Tests |
+  |---|---|---|---|
+  | `verify (ubuntu-latest)` | success | 47 passed | **438 passed / 0 skipped** |
+  | `verify (macos-latest)` | success | 47 passed | **438 passed / 0 skipped** |
+  | `verify (windows-latest)` | success | 47 passed | **430 passed / 8 skipped** |
+- **8 skip 的逐文件归属（这一列才是 ③ 的证）**: `apps/cli/test/clean.test.ts` 1、`apps/cli/test/config.test.ts` 1（`itPosix`）、`apps/cli/test/security.test.ts` 1、`apps/cli/test/serve.test.ts` 1（**③ 新拆的 `CLI-SERVE-01b`**）、`apps/cli/test/sync.test.ts` **2**（含 **③ 新拆的 `CLI-SYNC-03d`**）、`packages/core/src/inject/security.test.ts` 1、`packages/core/src/inject/sync-lock.test.ts` 1 = **7 个文件 / 8 支**。与推前的本地预测（`grep` 现测 **7 处 `it.skipIf(IS_WINDOWS)` + 1 处 `itPosix(`**，且行内 `platform !== 'win32'` 残留 **0**）**两侧闭合**。
+- **方法：预测立在拿数之前**。本轮没有「CI 出数后再解释」——先在 `de5dd6e`/`5a963ff` 工作树上 `grep` 出「哪些形态会被 win32 门控、共几支」，写成 `8 skipped / 430 passed` 的**可否证**断言（连同「若报 4 skip ⇒ ③ 没生效，必须查」的否证条件），再推、再取数。**命中**才算 ③ 落地；这一条形状以后按 §13-8 与痕迹闸同族读：**预测与观测异源，才叫证据**。
+- **被推翻**: 无（本轮三条预测全部命中：`Test Files 47` 三侧不变、`8 skipped`、`430 passed`）。登记**一条测量陷阱**：`gh run view --job … --log` 给的彩色码是**字面 `^[[32m` 文本，不是 ESC 字节**，`perl -pe 's/\e\[…//g'` 一个字符都剥不掉——我按 ESC 式子连试三版（`grep '↓'`、`\(\d+ tests…\)`、perl 双管线）全部空输出，差点把「skip 归属取不到」当成结论登记。正确式子 `perl -pe 's/\^\[\[[0-9;?]*[a-zA-Z]//g'`。⇒ 与 `[DEV-0031]` 的 `prettier --check` 行数比法同族：**工具输出的转义形态没验过，就不能拿它的「空结果」当证据**（空输出有两种成因：真没有 / 我的式子不对）。
+- **未验证面净变化**: 本地领先 CI 已验 tip 由 **6 笔 → 0 笔**（远端 `main` == 本地 `main` == `5a963ff`）；③ 的 win32 面由「推断」升为「实测」；④-1 的 B 级读侧拒绝**三平台无红**（`CLI-CLEAN-06f` 与 `UT-INJECT-LOCK-04` 同名腿都在 430/438 里）。**tag `v0.1.0` 现落后 47 笔**（`git rev-list --count v0.1.0..main`）。
+- **潜在风险**: ① 「一次 push 只在 tip 出 run」意味着这 6 笔里任何一笔单独 checkout 都**没有**独立 CI 证据，bisect 到中间 commit 时不能假定它被验过；② win32 的 8 支是**记账可见**，不等于**已验**——POSIX 权限位与符号链接逃逸那两条规则在 win32 上仍是零覆盖，只是现在数得出来；③ 传输探测（`github.com:443` 直连）本轮通、上轮不通 ⇒ 下次推送不能拿本条的 rc 当前提，仍需现探。
+- **owner 手上未收的（⑬ 收、⑭ 收；本轮净增 0）**: ①–⑨ 原样（种子审校裁决 / 真 `npm publish` / **推 tag `v0.1.0`（现落后 47 笔，且现在打 tag 的 CI 前置已满足）** / D15 观察窗 / `design.md` 版本头 / P1.1 两份规格 B 级一次性复核 / DEV-0025 驱动器接 CI 的有头口径 / toast 与弹窗同名 a11y）；⑩ 已裁；⑪ `apps/web` 测试基建、⑫ `playbookIds` 契约处理、⑮ ⑭ 那条修复的**常驻断言**要不要补（现靠一次性探针，删掉 `proc.kill()` 仍全绿）。
