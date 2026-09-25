@@ -39,6 +39,17 @@ describe('estimateTokens（CORE-SIZE-01..05）', () => {
     expect(SIZE_WARN_THRESHOLD).toBe(12_000)
   })
 
+  // size.ts 的四个区里第三区（兼容表意）此前零断言：删掉它 01..05 全绿，warn 线却会静默左移
+  it('CORE-SIZE-06: 兼容表意区 U+F900–U+FAFF 计入 CJK，U+FB00 起不计（区间不扩也不缩）', () => {
+    expect(estimateTokens('\uF900\uFAFE')).toMatchObject({
+      codePoints: 2,
+      cjk: 2,
+      other: 0,
+      approxTokens: 3,
+    })
+    expect(estimateTokens('\uFB00')).toMatchObject({ cjk: 0, other: 1, approxTokens: 1 })
+  })
+
   it('负向：口径不是 chars/4 —— 同一串中文的估算不低于码点数', () => {
     const s = '提示词'
     expect(estimateTokens(s).approxTokens).toBeGreaterThanOrEqual(s.length)

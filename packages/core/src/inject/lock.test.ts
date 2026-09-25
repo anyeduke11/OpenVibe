@@ -193,4 +193,45 @@ describe('UT-INJECT-LOCK-04 · parsePackLock（损坏即无 lock，绝不抛进�
     badPath.files[0] = { path: '../escape.md' }
     expect(parsePackLock(JSON.stringify(badPath))).toBeNull()
   })
+
+  // 同一 path 挂两套凭据时，删除循环按条目顺序判定 ⇒ 同一份盘内容既可能落 DRIFT（保留）又可能落 IN_SYNC（删）
+  it('同一路径登记两次且凭据不一致 → 整份读不回，且报错点名冲突的那个路径', () => {
+    const dup = {
+      schemaVersion: 1,
+      pack: PACK,
+      injectedAt: '2026-09-22T00:00:00Z',
+      files: [
+        { path: 'AGENTS.md', sha256: HASH_OLD, managed: true },
+        { path: 'AGENTS.md', sha256: NEW_FP, managed: false },
+      ],
+    }
+    const result = PackLockSchema.safeParse(dup)
+    expect(result.success).toBe(false)
+    expect(result.success ? '' : result.error.issues.map((i) => i.message).join('\n')).toContain(
+      'AGENTS.md',
+    )
+    expect(parsePackLock(JSON.stringify(dup))).toBeNull()
+  })
+
+  // 承 T3 修复轮登记在 clean.ts 与 CLI-CLEAN-06f 的「按条目计」口径：重复本身不是损坏
+  it('同一路径逐字节重复登记 → 仍读得回，且不被悄悄去重（条目数即计数口径的输入）', () => {
+    const repeated = {
+      schemaVersion: 1,
+      pack: PACK,
+      injectedAt: '2026-09-22T00:00:00Z',
+      files: [
+        { path: 'AGENTS.md', sha256: HASH_OLD, managed: true },
+        { path: 'TERMS.md', sha256: NEW_FP, managed: true },
+        { path: 'AGENTS.md', sha256: HASH_OLD, managed: true },
+      ],
+    }
+    const parsed = PackLockSchema.safeParse(repeated)
+    expect(parsed.success).toBe(true)
+    expect(parsed.success ? parsed.data.files : []).toHaveLength(3)
+    expect(parsePackLock(JSON.stringify(repeated))?.files.map((x) => x.path)).toEqual([
+      'AGENTS.md',
+      'TERMS.md',
+      'AGENTS.md',
+    ])
+  })
 })

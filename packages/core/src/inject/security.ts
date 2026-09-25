@@ -200,7 +200,7 @@ function sortViolations(v: InjectionViolations): void {
 
 /**
  * clean 的 lock 路径净化（m6b FR-6.6 v1.4）——**必须早于 `PackLockSchema` 整机校验**。
- * 理由已写进规格：`packPathSchema`（shared/schemas/pack.ts:130 = isValidPackRelativePath）会先把
+ * 理由已写进规格：`packPathSchema`（shared/schemas/pack.ts，refine 到 `isValidPackRelativePath`）会先把
  * 含 `..` 的 lock 整份判成 schema 不符，顺序反了就只剩 §7.10 f2 的 LOCK_INVALID，
  * §7.10 g 要的「报告含违规路径」永远出不来（g 与 f2 互吃）。
  *

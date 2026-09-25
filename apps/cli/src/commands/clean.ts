@@ -349,7 +349,9 @@ export async function cleanAction(
       //   abs === null ⇒ 路径被判违规（符号链接逃逸，规划后才发现的 TOCTOU 面）。FR-6.6 要求整包中止：
       //     带着半删的盘继续 = 制造「半退场」，且违规路径会静默参与收尾判定。
       //   !existsSync ⇒ 文件真的不在了（被别的进程删了，或 lock 把同一路径登记了两次而 unlink 只有一次）
-      //     ⇒ 按 ABSENT 跳过，不中止——这是 lock 冗余而非安全违规。
+      //     ⇒ 按 ABSENT 跳过，不中止——这是 lock 冗余而非安全违规。能走到这里的重复只有
+      //       逐字节同名那一种：同一 path 挂两套凭据（sha256 或 managed 不一致）在 `parsePackLock`
+      //       就整机读不回，落 `LOCK_INVALID`（判据见 shared 的 `PackLockSchema`）。
       if (abs === null) {
         throw new CleanError(
           'PATH_ESCAPE',

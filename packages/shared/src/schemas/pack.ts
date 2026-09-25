@@ -246,12 +246,32 @@ export const PackLockSchema = z.object({
     fingerprint: z.string().regex(SHA256_HEX_RE),
   }),
   injectedAt: z.string(),
-  files: z.array(
-    z.object({
-      path: packPathSchema,
-      sha256: z.string().regex(SHA256_HEX_RE),
-      managed: z.boolean().default(true),
+  files: z
+    .array(
+      z.object({
+        path: packPathSchema,
+        sha256: z.string().regex(SHA256_HEX_RE),
+        managed: z.boolean().default(true),
+      }),
+    )
+    .superRefine((files, ctx) => {
+      // 逐字节同名的重复条目是「按条目计」口径的输入（承 clean 侧 CLI-CLEAN-06f），拒不得；
+      // 要拒的是同一 path 挂着两套凭据——那样删除循环按条目顺序判定，同盘内容会既 DRIFT 又 IN_SYNC。
+      const seen = new Map<string, { sha256: string; managed: boolean }>()
+      const conflicted = new Set<string>()
+      for (const entry of files) {
+        const prev = seen.get(entry.path)
+        if (prev && (prev.sha256 !== entry.sha256 || prev.managed !== entry.managed)) {
+          conflicted.add(entry.path)
+        }
+        seen.set(entry.path, { sha256: entry.sha256, managed: entry.managed })
+      }
+      for (const path of [...conflicted].sort()) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `files[].path 重复登记且期望哈希或 managed 不一致：${path}`,
+        })
+      }
     }),
-  ),
 })
 export type PackLock = z.infer<typeof PackLockSchema>
