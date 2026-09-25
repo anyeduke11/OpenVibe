@@ -243,6 +243,10 @@ describe('bootstrap 接线 + 真接收端端到端', () => {
       const fail = (why: string): void => {
         if (settled) return
         settled = true
+        // 拒签路径必须自己收孩子：10 s 超时那一支，接收端**已经 listen 上了**，只是回显没被读到。
+        // 只 reject 不 kill = 留一支 PPID 1 的孤儿挂在随机端口上（实测：pid 57707 / 6.0 MB / :59265，
+        // 起于一次 1-min load 176 的降级跑；`stop()` 挂在 resolve 之后，救不到这条腿）。
+        proc.kill()
         reject(new Error(why))
       }
       const timer = setTimeout(() => fail('接收端 10s 内未报出端口'), 10_000)
