@@ -1189,7 +1189,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 | onb-5 | 默认关 + 零外联断言 | UT-TELEMETRY-01 + TF-09（无端点连 `setInterval` 都不建）+ `telemetry-egress.mjs` 17/17（关闭态第二个 60 s 窗口计数 `3→3`）+ 走查 host 清单全为 `127.0.0.1` |
 | onb-5b | 一次性询问 declined 永不再问 | 走查「验收 5b」段（询问卡出现 → 选「暂不」→ 刷新不再问 → `askState=declined / enabled=false`） |
 
-> Playwright 版 `E2E-ONBOARD-01..04` / `E2E-FLYWHEEL-01` / `E2E-TELEMETRY-01` 仍按 dev-plan §9-T9 排期：本仓无 jsdom，本轮以**入库的真机走查驱动器**（headless Chrome + 裸 CDP，可对 HEAD 复跑）承担同一口径的证据，T9 决定是否提升为 CI 内 E2E。
+> Playwright 版 `E2E-ONBOARD-01..04` / `E2E-FLYWHEEL-01` / `E2E-TELEMETRY-01` 仍按 dev-plan §9-T9 排期：本仓**当时**无 jsdom（该前提已于 2026-09-26 由 owner 裁定 ⑪ 换掉，见 `DEV_LOG [DEV-0033]`），本轮以**入库的真机走查驱动器**（headless Chrome + 裸 CDP，可对 HEAD 复跑）承担同一口径的证据，T9 决定是否提升为 CI 内 E2E。
 
 ### T9 · 飞轮 E2E + 发布（W6D4–D5 + W7D1，3 人日）
 
@@ -1356,7 +1356,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 3. **CLAUDE.md `@import` 受管子文件 spike**：若 Claude Code 支持 `@file` 导入，主规则可移至 `.openvibe/pack.md` 受管、CLAUDE.md 只留一行导入——把整文件 DRIFT 摩擦降一个量级（30 分钟真机验证）。
 4. **m6b 单包边界声明**：lock 单包结构下「一项目一包」假设显式写进 spec 边界节（B 级变更一行）。
 5. **发布执行清单**：渠道帖（V2EX/掘金/知乎）、demo GIF/asciinema、社群入口、awesome 清单 PR——当前 tasks T9 只有 README 重写，无传播执行项。
-6. **Playwright E2E（design §13 原口径）**——**owner 已裁定：T9 不引入，延至 P1.1 评估（2026-09-23）**。裁定依据是实测证据面：本仓无 jsdom，T8 三段入库驱动器（`onboarding-walk.mjs` 29 断言 / `lazy-chunk-walk.mjs` 29 / `telemetry-egress.mjs` 17）零 `Input.dispatchMouseEvent`、零 `Input.dispatchKeyEvent`、零 clipboard，仅 2 处 `Runtime.evaluate` 内的合成 `b.click()`（`onboarding-walk.mjs:201`、`lazy-chunk-walk.mjs:265`），即其证据类型是「navigate 之后读 DOM」而非真实用户动作。因此合成 `b.click()` 拿不到 transient user activation，`navigator.clipboard.writeText` 在自动化下必然被拒 → `E2E-SMOKE-01 导入→复制`、`02 术语搜索`（受控 input 中文输入 + debounce）、`m5-5 @dnd-kit 看板拖拽` 三处**在 v0.1 由人工录屏/截图承担**，CDP 驱动器只作渲染与数据面回归；发布说明与 DEV_LOG 须如实标注「自动化证据不含真实点击/复制/拖拽」。P1.1 若引入，只承担冒烟 ×3、仅 chromium、仅单 OS，主链 `E2E-FLOW-01` 留在 vitest `integration`+`cli`。
+6. **Playwright E2E（design §13 原口径）**——**owner 已裁定：T9 不引入，延至 P1.1 评估（2026-09-23）**。裁定依据是**当时**的实测证据面：本仓无 jsdom（该前提 2026-09-26 起失效：owner 裁 ⑪ 建了 vitest `web` project，见 `DEV_LOG [DEV-0033]`；**本条裁定与理由不改写**，日志不回改），T8 三段入库驱动器（`onboarding-walk.mjs` 29 断言 / `lazy-chunk-walk.mjs` 29 / `telemetry-egress.mjs` 17）零 `Input.dispatchMouseEvent`、零 `Input.dispatchKeyEvent`、零 clipboard，仅 2 处 `Runtime.evaluate` 内的合成 `b.click()`（`onboarding-walk.mjs:201`、`lazy-chunk-walk.mjs:265`），即其证据类型是「navigate 之后读 DOM」而非真实用户动作。因此合成 `b.click()` 拿不到 transient user activation，`navigator.clipboard.writeText` 在自动化下必然被拒 → `E2E-SMOKE-01 导入→复制`、`02 术语搜索`（受控 input 中文输入 + debounce）、`m5-5 @dnd-kit 看板拖拽` 三处**在 v0.1 由人工录屏/截图承担**，CDP 驱动器只作渲染与数据面回归；发布说明与 DEV_LOG 须如实标注「自动化证据不含真实点击/复制/拖拽」。P1.1 若引入，只承担冒烟 ×3、仅 chromium、仅单 OS，主链 `E2E-FLOW-01` 留在 vitest `integration`+`cli`。
 
 ---
 

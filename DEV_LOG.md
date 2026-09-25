@@ -824,3 +824,29 @@
 - **未验证面净变化**: 本地领先 CI 已验 tip 由 **6 笔 → 0 笔**（远端 `main` == 本地 `main` == `5a963ff`）；③ 的 win32 面由「推断」升为「实测」；④-1 的 B 级读侧拒绝**三平台无红**（`CLI-CLEAN-06f` 与 `UT-INJECT-LOCK-04` 同名腿都在 430/438 里）。**tag `v0.1.0` 现落后 47 笔**（`git rev-list --count v0.1.0..main`）。
 - **潜在风险**: ① 「一次 push 只在 tip 出 run」意味着这 6 笔里任何一笔单独 checkout 都**没有**独立 CI 证据，bisect 到中间 commit 时不能假定它被验过；② win32 的 8 支是**记账可见**，不等于**已验**——POSIX 权限位与符号链接逃逸那两条规则在 win32 上仍是零覆盖，只是现在数得出来；③ 传输探测（`github.com:443` 直连）本轮通、上轮不通 ⇒ 下次推送不能拿本条的 rc 当前提，仍需现探。
 - **owner 手上未收的（⑬ 收、⑭ 收；本轮净增 0）**: ①–⑨ 原样（种子审校裁决 / 真 `npm publish` / **推 tag `v0.1.0`（现落后 47 笔，且现在打 tag 的 CI 前置已满足）** / D15 观察窗 / `design.md` 版本头 / P1.1 两份规格 B 级一次性复核 / DEV-0025 驱动器接 CI 的有头口径 / toast 与弹窗同名 a11y）；⑩ 已裁；⑪ `apps/web` 测试基建、⑫ `playbookIds` 契约处理、⑮ ⑭ 那条修复的**常驻断言**要不要补（现靠一次性探针，删掉 `proc.kill()` 仍全绿）。
+
+## [DEV-0033] 待决策项 ⑪ 落地 · **`apps/web` 有了第一个 DOM 断言层**：vitest 第 4 个 project（jsdom）+ 6 支打在 T8 那四处「只靠读代码推断」的渲染上，**六次变异反证全部命中预测**
+
+- **时间**: 2026-09-26 07:20–07:35 +0800。采样凭据：起点 HEAD `d1720dd`、`git status --porcelain` **0 行**、本机 `node -v` = **v26.4.0**（CI 是 22、`engines` 是 `>=22` ⇒ 三处版本不同，本地绿不构成 CI 绿的证据）。终态门禁采样 07:33:09 +0800。
+- **类型**: §0.3 **C 级**——测试基建 + 4 个 devDep + 一个 vitest project + 一支新测试文件；**零产品代码、零契约改动**（`tests/golden/` 与 `content/seed/` 的 `git status` 均 **0 行**）。另含两处文档准确性修订。owner 裁 ⑪ 在三个选项里选「**建 jsdom project**」，否掉了「把 4 支 `.mjs` 驱动器接进 CI」与「两条都推 P2」。
+- **关联文件**:
+  - `package.json` + `pnpm-lock.yaml` —— 根 devDeps 加 `jsdom` / `@testing-library/react` / `@testing-library/user-event` / `@testing-library/dom`（lock `+466/−3`，新解析 **45** 个包条目）。
+  - `vitest.config.ts` —— 第 4 个 project `web`（`environment: 'jsdom'`，`include: ['apps/web/src/**/*.test.{ts,tsx}']`），首行注释「三层」改「四层」。
+  - `apps/web/src/components/packs/PackPreviewPane.test.tsx` —— 新建，6 支。
+  - `docs/dev-plan.md:1192`、`:1359` —— 两句「本仓无 jsdom」就地改成「**当时**无 jsdom（+指向本条）」。`git diff --numstat` = **2/2**，行数 1489→1489 不动。
+- **问题描述**: `apps/web` 是 63 个 ts/tsx、**零断言**（`DEV_LOG.md:714` 的登记），且三个 project 全 `environment: 'node'`。P1.1 T8 的四处新渲染——perTarget 成本条、warn 黄条、文件树体量列、**以及修复轮刚改成条件渲染的表头口径后缀（正反两腿）**——当时按 owner 裁定「不引入组件测试基建」记成了**未验证面**（计划 `:1993` 第 8 条逐点名）。⑪ 问的是这块要不要补。
+- **实现思路（四个决定，每个都有实测理由）**:
+  1. **依赖装根不装 app**：环境包由根配置解析，装进 `apps/web` 下 vitest 找不到。踩在上面的第 2 个坑是 `@testing-library/react` v16 把 `@testing-library/dom` 声明成 **peer**，pnpm 严格隔离不自动装 ⇒ 装完立刻 `require.resolve('@testing-library/dom', {paths:['./apps/web/src']})` = **MISSING**，显式补第 4 个包才解析得到。**这一步不是可选的**：少了它 `render` 在 import 期就炸。
+  2. **不引 `@vitejs/plugin-react`**：`apps/web/tsconfig.json` 的 `jsx: "react-jsx"` 让 esbuild 走自动运行时，实测 6 支绿，依赖数停在 4。
+  3. **夹具字节取 1024 / 512**：`sizeFor` 是 `utf8ByteLength(content)/1024` 再 `toFixed(1)`，整数 kB 才钉得住「前端不再加工字节」；取 1500 字符会把舍入规则一起测进来，测的就不是同一件事。
+  4. **一次全绿不算证据**：6 支首跑全绿 ⇒ 补变异反证（下条）。
+- **测试验证**:
+  - 五道闸 @ `07:33` **rc 全 0**：`lint`（`eslint .` 零错误）｜`typecheck` 双遍（node + DOM）｜**`pnpm test` 48 files / 444 tests / 0 skipped**（6.53 s）｜`seed:check` 通过（terms ≥100 / templates=3 / prompts=20）｜`bundle:check` 通过（入口 **293.07 kB** ≤ 300 / 最大 chunk 347.45 ≤ 500）。
+  - 用例 lineage：**438 → 444**（+6，全在 `web` project；47 files → 48）。
+  - **变异反证六次，预测先写死再跑**（每次「改 → 跑 → 立刻还原 → 校验组件 0 diff」）：M1 删体量行守卫→红 **05**｜M2 成本条守卫 `>0`→`>99`→红 **02+03**｜M3 `toFixed(1)`→`toFixed(9)`→红 **01**｜M4 黄条 `filter(p=>p.warn)`→恒真→红 **03**｜M5 表头后缀条件翻转→红 **04+05**｜M6 `onClick` 掏空→红 **06**。六次红名单与预测逐条一致，6 支每支至少被一次变异打死。**没有一支是摆设**。
+  - 顺带一条实证：入口 **293.07 kB** 与计划 `:1917` 写回的数**逐位相同** ⇒ 新测试文件确实零运行时代码（`grep PackPreviewPane.test` 在 `apps/web` 的 ts/tsx/html 里 **0 命中**，不被任何入口 import）。
+  - `prettier`：`DEV_LOG.md` / `docs/dev-plan.md` 在 **HEAD 上本就是 dirty**（`--stdin-filepath` 对 HEAD 版本与现版本各比一次：dirty/dirty），故**未跑 `--write`**；只对我本轮新建的那一支测试文件跑了 `--write`（自己的文件，无并行会话风险）。
+- **被推翻（本轮 2 条，都是我自己的）**：① 我在动手前锁的预测是「48 files / **439** tests」——files 命中、tests 差 **5**。根因：锁数的时候还没定测试条数，拿「+1」当了默认值。⇒ 规则补一条：**锁数之前必须把条数定完，否则锁的是气氛不是数字**。② 第一版变异脚本的 `restore()` 里带着 `rm -f "$BAK"` ⇒ 第一次还原就把备份删了，后续 M2/M3 的改动**叠加**在组件上，脚本终检才暴露（`cp: no such file`）。**当时 `PackPreviewPane.tsx` 是脏的**。我用 `git show HEAD:<path> > <path>` 还原（**没有** `checkout` / `restore` / `stash` / `reset`，共享工作树红线），并先 `git diff -U0` 逐行确认脏的就是我那两处变异。v2 脚本改成「每次 cp 回来、备份不删、还原后校验 0 diff 否则中止」。
+- **未验证面净变化**：T8 那四处渲染从「只有读代码推断」升级为「DOM 断言 + 变异反证」；`apps/web` 断言覆盖 **0/63 → 1/63** 个文件。净增 0 条。**CI 侧未验**：本轮 2 笔（`d1720dd` 文档 + 本笔）在远端 `main` 之外，`git rev-list --count 5a963ff..HEAD` = 1（本笔提交后为 2）。**tag `v0.1.0` 落后 48 笔**。
+- **潜在风险**：① 6 支只打了 1 个组件，其余 62 个文件仍零断言——本轮交付的是**基建 + 首例**，不是「web 有测试了」；② jsdom 证不了 `transient user activation` 那一层，`E2E-SMOKE-01 导入→复制` / `02 术语搜索` 中文 IME / `m5-5 看板拖拽` 三处**仍由 DEV-0019~0025 的人工驱动器承担，口径一字未动**；③ 新 project 的三平台同数**未证**（本机 444 全绿，win32 上 jsdom 相关行为与 React 18 的 `act` 兼容要等一次真实 push 才知道，且**没有**任何 POSIX 门控 ⇒ 预测三侧应同为 444/0 skip，可否证）；④ `@types/*` 之外新增 4 个 devDep 进了 install 关键路径，冷装时间增量未测。
+- **owner 手上未收的（⑪ 已收；本轮净增 0）**: ①–⑨ 原样（种子审校裁决 / 真 `npm publish` / 推 tag `v0.1.0`（落后 48 笔）/ D15 观察窗 / `design.md` 版本头 / P1.1 两份 B 级规格一次性复核 / DEV-0025 驱动器有头口径 / toast 与弹窗「关闭」同名 a11y）；⑩⑪⑬⑭ 已裁已落；⑫ `playbookIds` 契约处理、⑮ 遥测泄漏修复的常驻断言（现仍靠一次性探针，删掉 `proc.kill()` 全绿）两项**待裁**；⑪ 的续集（要不要把 jsdom 层扩到 Wizard / Kanban / TermsTable）是新的可选投入，不催。
