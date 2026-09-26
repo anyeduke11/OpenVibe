@@ -231,25 +231,49 @@ describe('bootstrap 接线 + 真接收端端到端', () => {
     counts?: { event: string; value: string; os: string; count: number }[]
   }
 
+  /** startAdapter 只用到这四样；真 `spawn` 的返回值结构上就满足它 */
+  interface AdapterProc {
+    stdout: {
+      setEncoding(encoding: BufferEncoding): unknown
+      on(event: 'data', listener: (chunk: string) => void): unknown
+    } | null
+    stderr: AdapterProc['stdout']
+    on(event: 'exit', listener: (code: number | null) => void): unknown
+    kill(): unknown
+  }
+
+  /**
+   * 注入点。`timeoutMs` 是给 TF-14 用的：真等 10 s 才能证到的一条腿，不该让全量跑付这 10 秒。
+   * `makeProc` 用来喂一支「只 listen、永不回显端口」的假接收端——缺省仍真 `spawn`，生产路径零改动。
+   */
+  interface AdapterDeps {
+    makeProc?: () => AdapterProc
+    timeoutMs?: number
+  }
+
   /** 真起 deploy/telemetry/adapter-node.mjs（port 0 = 内核分配），据其回显解析真实端口 */
-  function startAdapter(): Promise<{
+  function startAdapter(deps: AdapterDeps = {}): Promise<{
     origin: string
     summary(day: string): Promise<Summary>
     stop(): void
   }> {
+    const timeoutMs = deps.timeoutMs ?? 10_000
     return new Promise((resolve, reject) => {
-      const proc = spawn(process.execPath, [ADAPTER, '0'], { stdio: ['ignore', 'pipe', 'pipe'] })
+      const proc: AdapterProc =
+        deps.makeProc?.() ??
+        spawn(process.execPath, [ADAPTER, '0'], { stdio: ['ignore', 'pipe', 'pipe'] })
       let settled = false
       const fail = (why: string): void => {
         if (settled) return
         settled = true
-        // 拒签路径必须自己收孩子：10 s 超时那一支，接收端**已经 listen 上了**，只是回显没被读到。
+        // 拒签路径必须自己收孩子：超时那一支，接收端**已经 listen 上了**，只是回显没被读到。
         // 只 reject 不 kill = 留一支 PPID 1 的孤儿挂在随机端口上（实测：pid 57707 / 6.0 MB / :59265，
         // 起于一次 1-min load 176 的降级跑；`stop()` 挂在 resolve 之后，救不到这条腿）。
+        // 删掉下面这行会红 TF-14——那支就是这一行存在的理由（DEV-0031 修的，当时全仓无人守着）。
         proc.kill()
         reject(new Error(why))
       }
-      const timer = setTimeout(() => fail('接收端 10s 内未报出端口'), 10_000)
+      const timer = setTimeout(() => fail(`接收端 ${timeoutMs}ms 内未报出端口`), timeoutMs)
       // stderr 只攒不作断言：Node 的告警行不该判死一次正常启动
       let err = ''
       proc.stderr?.setEncoding('utf8')
@@ -436,5 +460,24 @@ describe('bootstrap 接线 + 真接收端端到端', () => {
     }
     expect(self.service).toBe('openvibe-telemetry')
     expect(self.events).toEqual(['pack_injected', 'flow_template_used', 'project_active'])
+  })
+
+  it('TF-14: 拒签路径必须自己收孩子，且恰好收一次（DEV-0031 那道孤儿泄漏的常驻断言）', async () => {
+    // 唯一能走到的出路是 timeoutMs 到点：假接收端只「在跑」，永不回显端口，也永不 exit。
+    // 为什么用假 proc 而不是真进程数残留：这条要钉的是「拒签路径负责收孩子」这个契约本身，
+    // 真进程侧 OS 会不会回收已由 DEV-0031 的一次性探针证过一次，把它做成常驻断言要引跨平台进程枚举。
+    // 不声称的事：kill 与 reject 的先后。两者同处一个同步块，微任务里分不出来，操作后果也一样。
+    const kill = vi.fn()
+    const mute: AdapterProc = {
+      stdout: { setEncoding: () => undefined, on: () => undefined },
+      stderr: { setEncoding: () => undefined, on: () => undefined },
+      on: () => undefined,
+      kill,
+    }
+    await expect(startAdapter({ makeProc: () => mute, timeoutMs: 20 })).rejects.toThrow(
+      '内未报出端口',
+    )
+    // 次数而非「至少一次」：这道修复的正确形状是每条拒签出路收一次孩子，收两次说明有别处在抢
+    expect(kill).toHaveBeenCalledTimes(1)
   })
 })
