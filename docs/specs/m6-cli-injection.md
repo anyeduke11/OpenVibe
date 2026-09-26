@@ -139,7 +139,7 @@
    b. 持锁者被 SIGKILL（锁作为残留留在盘上，`startedAt` 远未过 5 分钟）→ 下一次 `sync` 按 pid 判死接管、`summary.hints` 报出接管了谁的锁、写完包并留下 `pack.lock.json`，结束时 `sync.lock` 已消失。
    c. 六个进程同时抢同一项目 → 恰好 1 个抢到，5 个让路且报出赢家 pid，磁盘上只有一把锁。（**v1.7 补口径**：这一支在 2026-09-26 之前实测有约 7% 的波次**做不到**「报出赢家 pid」——让路方落在写家的 0 字节空窗里，报成 `BUSY unreadable -1`。规格口径本身没动，是实现对齐规格；机理与有界重读的处置见 §6.9 的「0 字节空窗」条，否证探针与前后测数入库在 `docs/devlog-evidence/DEV-0035/`，单测 `SL-13`/`SL-14`。）
    d. 持锁期间 `sync --dry-run` → 退出码 0、计划照算、零写入且不碰他人的锁。
-10. **clean 逐项验证（P1.1，测试段 `apps/cli/test/clean.test.ts`；**此处不抄具名上界与支数**——两个数每加一支就腐烂：v1.2 写的「测试段 `CLI-CLEAN-01..10`」与 2026-09-26 上午同一格写的「`CLI-CLEAN-12b`、现测 29 支」都在**当天**被下一支测动作废（承 §13-8 数字单源）。复算：`grep -oE 'CLI-CLEAN-[0-9]+[a-z]?' apps/cli/test/clean.test.ts | sort -u | wc -l` + 临时项目目录，三平台 CI。下面 a–j 逐条按**行为**给出该腿的具名用例，具名不随加测变化）**：
+10. **clean 逐项验证（P1.1，测试段 `apps/cli/test/clean.test.ts`；**此处不抄具名上界与支数**——两个数每加一支就腐烂：v1.2 写的「测试段 `CLI-CLEAN-01..10`」与 2026-09-26 上午同一格写的「`CLI-CLEAN-12b`、现测 29 支」都在**当天**被下一支测动作废（承 §13-8 数字单源）。复算：`grep -oE 'CLI-CLEAN-[0-9]+[a-z]?' apps/cli/test/clean.test.ts | sort -u | wc -l` + 临时项目目录，三平台 CI。下面 a–k 逐条按**行为**给出该腿的具名用例（2026-09-26 23:5x 队列 ⑥ 第三层复核补：本行原写 a–j，而 v1.8 已在下面补入 **k** 腿 ⇒ 单源自己的索引行落后于自己的枚举，属指针修正、无行为变化，故不另立版本段），具名不随加测变化）**：
     a. `sync` 注入后未改动 → `clean --yes`：lock 内全部文件从磁盘消失；`.openvibe/backup/<ts>/` 内可找到逐字节一致副本；`pack.lock.json` 已删；`.openvibe/` 目录本身仍在；`diff` 报「未注入」退出码 1；`clean` 退出码 0。
     b. 手改 `TERMS.md` 后 `clean --yes`：**该文件仍在盘上**且内容等于用户改后版本，退出码 2，`--json` 的 `summary.driftKept = 1` 且 report 点名它；其余受管文件照常删除。
     c. 同 b 加 `--force`：该文件被删，且其**用户改后内容**（不是包内版本）完整存于 `.openvibe/backup/<ts>/TERMS.md`。
