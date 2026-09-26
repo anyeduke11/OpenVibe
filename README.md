@@ -195,7 +195,7 @@ npm / npx 用户走 `prebuild-install` 按平台与 Node ABI 取预编译包，�
 ```bash
 git clone https://github.com/anyeduke11/OpenVibe && cd OpenVibe
 pnpm install                # pnpm ≥ 10，corepack enable 即可
-pnpm lint && pnpm typecheck && pnpm test        # 449 用例（unit / integration / cli / web-jsdom 四层；win32 会门控跳过 8 支 POSIX 语义用例）
+pnpm lint && pnpm typecheck && pnpm test        # 450 用例 / 48 文件（unit / integration / cli / web-jsdom 四层；采样 2026-09-27 07:49 @ 63bd17e 本机 rc=0，支数随提交变动、以 pnpm test 汇总行为准。win32 会门控跳过 8 支 POSIX 语义用例）
 pnpm seed:check && pnpm bundle:check            # 另两道门禁：种子数量与构成配额、Web 体积闸门
 pnpm pkg:cli                                    # 产出发布暂存目录 apps/cli/pkg/
 cd apps/cli/pkg && npm pack                     # → openvibe-cli-<版本>.tgz，可 npm i -g 它
