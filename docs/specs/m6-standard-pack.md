@@ -8,7 +8,7 @@
 | 下游设计 | **design.md §7（标准包文件契约，权威）**、§8（adapter）、§5、§6 |
 | 关联任务 | tasks.md T6 · P1.1 追加 T10（见 dev-plan §15） |
 | 姊妹规格 | [m6-cli-injection.md](./m6-cli-injection.md)（CLI 侧） |
-| 版本 | v1.0（2026-09-20 定稿，随 P0 门禁 G2 冻结 design §7 契约）→ v1.1（2026-09-23，P1.1 裁定 D19：新增 FR-6 预览体量与 token 估算、§5 API 补 `sizeEstimate`、§6.4 明确双防线、§7 验收补 8–12。**不动 design §7 冻结契约**，理由见 FR-6.5）→ v1.2（2026-09-24，T10 开工前规格/代码对撞自审：§7 验收 9 的 `perTarget` 键集合改指 `manifest.targets`（原句指 `coveredPlatforms`，实测 `targets:['claude-code','cursor'] → []` 而该包必须给 2 行，断言不可满足；证据 `packages/adapters/src/registry.ts:65`「额外覆盖平台」与 `compat.ts:12-48` 矩阵行 `reads` 全为 `AGENTS.md`），FR-6.3 表补两条口径——`adapter` 用 adapter id、`approxTokens` 按拼接后单次 `ceil` 而非逐文件相加。**行为面（阈值/公式/两视图/不阻断/零新依赖/冻结凭据）一字未改**，依 §0.3 属 B 级（行为规格措辞），`tests/golden/` 零改动） → v1.3（2026-09-24，T10 **Task 7 落地回填**：① §7 验收 10 的构造由「术语全选」改为「**资产全选**（术语 + 提示词）」并写明否证根因——真种子 109 条术语全选实测 **9,617 tok < 12,000**，因 `TERMS.md` 只渲染 `zh/en/aliases/definition` 四列、`example`/`tags` 从不落盘（`packages/shared/src/terms-md.ts:7-12,39`）；② FR-6.1 的口径注追加同一条教训的**第二维**：全字段语料口径 ≠ 落盘正文口径；③ FR-6.4 的三条字节折算值换成 `SRV-EST-04` 的**真 preview 实测**（预置包 15,213 / cursor 15,235 / trae 15,232，六 target 全 `warn=true`；footprint 67,621 tok / 186,365 B），并纠正折算的**归因错**——借错的只是 CJK 占比那一维（渲染表自身 ≈63%），字节基数本就是渲染后的 `TERMS.md`；④ §7 验收 10 的 sync 腿改述为**结构性保证**并登记未验证面（`sizeEstimate` 不进 `bundleJson()`/`directoryFiles()`，CLI 无从观察）。**阈值 12,000、系数 1.2/4、两视图口径、不阻断语义一律未动**；依 §0.3 属 B 级（行为规格措辞 + 实测数回填，owner 2026-09-24 批准），`tests/golden/` 与 `content/seed/` 零改动，`pnpm bundle:check` 入口 291.02 kB 与 BASE 前逐字节相同） |
+| 版本 | v1.0（2026-09-20 定稿，随 P0 门禁 G2 冻结 design §7 契约）→ v1.1（2026-09-23，P1.1 裁定 D19：新增 FR-6 预览体量与 token 估算、§5 API 补 `sizeEstimate`、§6.4 明确双防线、§7 验收补 8–12。**不动 design §7 冻结契约**，理由见 FR-6.5）→ v1.2（2026-09-24，T10 开工前规格/代码对撞自审：§7 验收 9 的 `perTarget` 键集合改指 `manifest.targets`（原句指 `coveredPlatforms`，实测 `targets:['claude-code','cursor'] → []` 而该包必须给 2 行，断言不可满足；证据 `packages/adapters/src/registry.ts:65`「额外覆盖平台」与 `compat.ts:12-48` 矩阵行 `reads` 全为 `AGENTS.md`），FR-6.3 表补两条口径——`adapter` 用 adapter id、`approxTokens` 按拼接后单次 `ceil` 而非逐文件相加。**行为面（阈值/公式/两视图/不阻断/零新依赖/冻结凭据）一字未改**，依 §0.3 属 B 级（行为规格措辞），`tests/golden/` 零改动） → v1.3（2026-09-24，T10 **Task 7 落地回填**：① §7 验收 10 的构造由「术语全选」改为「**资产全选**（术语 + 提示词）」并写明否证根因——真种子 109 条术语全选实测 **9,617 tok < 12,000**，因 `TERMS.md` 只渲染 `zh/en/aliases/definition` 四列、`example`/`tags` 从不落盘（`packages/shared/src/terms-md.ts:7-12,39`）；② FR-6.1 的口径注追加同一条教训的**第二维**：全字段语料口径 ≠ 落盘正文口径；③ FR-6.4 的三条字节折算值换成 `SRV-EST-04` 的**真 preview 实测**（预置包 15,213 / cursor 15,235 / trae 15,232，六 target 全 `warn=true`；footprint 67,621 tok / 186,365 B），并纠正折算的**归因错**——借错的只是 CJK 占比那一维（渲染表自身 ≈63%），字节基数本就是渲染后的 `TERMS.md`；④ §7 验收 10 的 sync 腿改述为**结构性保证**并登记未验证面（`sizeEstimate` 不进 `bundleJson()`/`directoryFiles()`，CLI 无从观察）。**阈值 12,000、系数 1.2/4、两视图口径、不阻断语义一律未动**；依 §0.3 属 B 级（行为规格措辞 + 实测数回填，owner 2026-09-24 批准），`tests/golden/` 与 `content/seed/` 零改动，`pnpm bundle:check` 入口 291.02 kB 与 BASE 前逐字节相同） → v1.4（2026-09-26，owner 裁定 ⑫：`selection.playbookIds` 从「传了也静默忽略」改为**非空即 422**——① §5 的 `playbookIds` 行补写拒绝口径与 `fieldErrors` 键名；② §6 第 3 条补拒绝理由：`packages/core/src/pack/resolve.ts` 从不读这一字段，放过等于替用户谎报「技巧库已挂上」，而 M4 上线时拆闸属**变宽**、不碎任何客户端；③ §7 验收 7 的「三种 4xx」校正为**四种**。**沟通口径纠正**：待决策项选项文本写的是 400，本仓 zod 失败一律 **422 `VALIDATION_ERROR`**（`apps/server/src/lib/validate.ts:20` 明文），实现按仓内约定落，**未为此新增状态码**。读侧不受影响——`PackOut` 虽复用 `PackSelection`，但服务端对库中取出的行不做 `PackOut.parse`（现测：全仓 `.parse`/`.safeParse` 命中只在新写的单测里），历史行仍读得出；**留下的后果**是持有非空 `playbookIds` 的旧行无法原样 PATCH 回来（PATCH 走 `PackUpdateInput`，同一道闸）。**FR-6 行为面（阈值 12,000 / 系数 1.2 与 4 / 两视图 / 不阻断 / 零新依赖）一字未改**；依 §0.3 属 B 级（`PackSelection` 在 `pack.ts:11`，位于 design §7 冻结块之前），`tests/golden/` 与 `content/seed/` 零改动） |
 
 ---
 
@@ -36,7 +36,7 @@ StandardPack（定义，可迭代）{
     promptIds: id[],                  // 引用当前版本内容；导出时物化快照
     termIds: id[],
     skillIds: id[],
-    playbookIds: id[],                // MVP 恒为 []（M4 未上）
+    playbookIds: id[],                // 恒为 []（M4 未上）；**非空即 422 `VALIDATION_ERROR`**（owner 裁 ⑫，2026-09-26，理由见 §6 第 3 条）
     flowTemplateId: id                // 导出时物化 stages 快照
   },
   targets: ("claude-code"|"cursor"|"generic-agents"|"codebuddy"|"trae"|"minicode")[],  // MVP 六个（D7+D9/D10 扩充，2026-09-20），见 design §8 v1.2
@@ -117,7 +117,7 @@ PackExport（导出实例，不可变）{
 
 1. name 冲突 → 创建时 422；name 含大写/下划线 → 422（slug 规则）。
 2. selection 引用的资产在导出时已被删除 → 导出 422 `STALE_SELECTION`，向导标红失效项让用户重选（**快照语义只保护已导出实例，不保护未导出的定义**）。
-3. targets 为空 → 阻断（至少一个平台）。
+3. targets 为空 → 阻断（至少一个平台）。**`playbookIds` 非空同样阻断**（422 `VALIDATION_ERROR`，`fieldErrors['selection.playbookIds']`）：`packages/core/src/pack/resolve.ts` 从不读这一字段，传了既不进产物也不改指纹，静默接受等于替用户谎报「技巧库已挂上」。M4（PRD「M4 技巧库」行，Phase 2）上线时把这道闸拆掉是**变宽**，不碎任何客户端（owner 裁定 ⑫，2026-09-26；断言 `UT-EXAMPLE-01` 的 `PackSelection` 腿 + `IT-ERR-04`）。
 4. 生成文件总量 > 2MB 或单文件 > 512KB → 警告不阻断（注入侧有同类防线且**会**拒绝执行，m6b §6.3；原此处误写 `m6b §6.7`——§6.7 是 schemaVersion 不兼容，2026-09-23 按 §0.3 C 级修正）。**字节防线与 FR-6 的 token 估算是两条独立通道**：前者量落盘体积、后者量上下文压力，任一超限不触发另一条，估算超线也绝不阻断导出。
 5. 目录导出目标已存在（同版本重导且指纹一致）→ 幂等覆盖前先比对，不一致则 409（与 FR-3.4 同源）。
 6. 生成器对资产内容做**路径安全净化**：文件内容中出现的本地绝对路径（skillDir 等）在 SKILLS.md 中原样保留（信息用途），但不生成任何包含 `..` 或绝对路径的**文件路径**（契约校验，design §7.7）。
@@ -131,7 +131,7 @@ PackExport（导出实例，不可变）{
 4b. targets 仅 codebuddy + trae + minicode 的包 → 生成文件恰为 `CODEBUDDY.md`、`.trae/rules/openvibe.md`、`MINI.md`、`openvibe.pack.json`（三个文件正文与 CLAUDE.md 主模板一致，仅文件名/壳不同；trae 含 `trigger: always` frontmatter）。
 5. 删除已被某导出引用的提示词 → 该导出记录的 manifest 与再下载 bundle 不受影响（物化验证）。
 6. bundle JSON 被 `openvibe sync --file` 成功消费（联测归 m6b 验收 1）。
-7. `STALE_SELECTION` / `VERSION_IMMUTABLE` / 空 targets 三种 4xx 均有结构化错误码。
+7. `STALE_SELECTION` / `VERSION_IMMUTABLE` / 空 targets / 非空 `playbookIds` 四种 4xx 均有结构化错误码。
 8. **`estimateTokens` 纯函数单测**（`CORE-SIZE-01..05`，不依赖 DB 与 HTTP）：空串 → 0；401 个 ASCII 字符 → 101（向上取整生效）；20 个汉字 → 24（系数 1.2 生效）；含一个非 BMP emoji 的串按**码点**计（同一串若按 `String.length` 会多出代理对那一位，断言取码点口径）；中英混合串 = 两系数之和向上取整。
 9. preview 的 `sizeEstimate.perTarget[]` 中 `adapter` 集合与 **`rendered.manifest.targets` 集合**完全一致（**不是** `coveredPlatforms`：后者只来自兼容矩阵、返回平台展示名且矩阵行 `reads` 全是 `AGENTS.md`——`targets:['claude-code','cursor']` 的包实测返回 `[]`，而它必须给 2 条 perTarget 行，原句「与响应既有 `coveredPlatforms` 完全一致」不可满足。2026-09-24 T10 开工前按 §0.3 **B 级**修正，改因与实测见版本行）；`footprint.files[].path` 集合与主字段 `files[]` 集合完全相等（不多不少，含合成的 `openvibe.pack.json`）。
 10. 阈值正负各一支：构造单平台估算 ≤12000 的包 → 全部 `warn=false`；把**资产改为全选（术语 + 提示词）**使某 target 估算 >12000 → 该 target `warn=true`，**且**同一包导出成功、响应 `warnings` 仍为空（估算不参与放行，FR-6.4 的负向断言）。
