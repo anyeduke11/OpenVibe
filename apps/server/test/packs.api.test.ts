@@ -249,6 +249,47 @@ describe('T6d · m6a 标准包 API（dev-plan §3.8 + bundle 通道）', () => {
     expect(missing.json().code).toBe('NOT_FOUND')
   })
 
+  it('IT-ERR-04（owner 裁 ⑫）: selection.playbookIds 非空即拒，且「不传/传空」两形态照旧放过', async () => {
+    const h = await makeHarness()
+    const pack = await mkPack(h)
+
+    const created = await api(h, 'POST', '/api/packs', {
+      name: 'pb-try',
+      selection: { ...pack.selection, playbookIds: ['pbx_not_a_real_id'] },
+      targets: ['claude-code'],
+    })
+    expect(created.statusCode).toBe(422)
+    expect(created.json().code).toBe('VALIDATION_ERROR')
+    const fields = (created.json().details as { fieldErrors: Record<string, string[]> }).fieldErrors
+    // 键是 zod 的 path.join('.') ⇒ 嵌套字段带 `selection.` 前缀。只按 `playbookIds` 查会让键形变化溜过
+    expect(Object.keys(fields)).toEqual(['selection.playbookIds'])
+    expect(fields['selection.playbookIds']?.[0]).toContain('M4')
+
+    const patched = await api(h, 'PATCH', `/api/packs/${pack.id}`, {
+      selection: { ...pack.selection, playbookIds: ['pbx_not_a_real_id'] },
+    })
+    expect(patched.statusCode).toBe(422)
+    expect(patched.json().code).toBe('VALIDATION_ERROR')
+
+    // 加闸不许顺手把 `default([])` 变成必填：显式空与完全不传都得放过
+    const emptied = await api(h, 'PATCH', `/api/packs/${pack.id}`, {
+      selection: { ...pack.selection, playbookIds: [] },
+    })
+    expect(emptied.statusCode).toBe(200)
+    const omitted = await api(h, 'POST', '/api/packs', {
+      name: 'pb-omitted',
+      selection: {
+        promptIds: pack.selection.promptIds,
+        termIds: pack.selection.termIds,
+        skillIds: [],
+        flowTemplateId: null,
+      },
+      targets: ['claude-code'],
+    })
+    expect(omitted.statusCode, omitted.body).toBe(201)
+    expect((omitted.json() as PackOut).selection.playbookIds).toEqual([])
+  })
+
   it('IT-PACK-04（FR-1.2）: name 冲突 422 + 版本单调递增校验', async () => {
     const h = await makeHarness()
     const pack = await mkPack(h)

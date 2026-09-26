@@ -8,6 +8,7 @@ import {
   PACK_MARKER_END,
   PACK_SECTION_ORDER,
   PACK_TITLE,
+  PackSelection,
   PromptCreateInput,
   SCHEMA_VERSION,
   TermCreateInput,
@@ -55,6 +56,21 @@ describe('UT-EXAMPLE-01 · shared 基础能力', () => {
     expect(TermCreateInput.safeParse(base).success).toBe(false)
     expect(TermCreateInput.safeParse({ ...base, zh: '规则漂移' }).success).toBe(true)
     expect(TermCreateInput.safeParse({ ...base, en: 'rule drift' }).success).toBe(true)
+  })
+
+  it('PackSelection：playbookIds 非空即拒（M4 未上，owner 裁 ⑫），其余四字段不受影响', () => {
+    // 缺省与显式空都得过：`default([])` 那半件不能因为加闸而变成「必须显式传」
+    expect(PackSelection.safeParse({}).data?.playbookIds).toEqual([])
+    expect(PackSelection.safeParse({ playbookIds: [] }).success).toBe(true)
+
+    const rejected = PackSelection.safeParse({ playbookIds: ['pbx_1'] })
+    expect(rejected.success).toBe(false)
+    const issues = rejected.success ? [] : rejected.error.issues
+    expect(issues.map((i) => i.path.join('.'))).toEqual(['playbookIds'])
+    // 文案要点名「为什么拒」，只说「校验失败」等于把锅推给调用方
+    expect(issues[0]?.message).toContain('M4')
+
+    expect(PackSelection.safeParse({ promptIds: ['prm_1'], termIds: ['trm_1'] }).success).toBe(true)
   })
 
   it('包相对路径安全规则（design §7.7）', () => {

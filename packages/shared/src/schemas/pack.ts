@@ -12,7 +12,15 @@ export const PackSelection = z.object({
   promptIds: z.array(z.string()).default([]),
   termIds: z.array(z.string()).default([]),
   skillIds: z.array(z.string()).default([]),
-  playbookIds: z.array(z.string()).default([]),
+  // 静默吞输入 = 谎报：`resolve.ts` 从不读这个字段，传了既不进产物也不改指纹，
+  // 调用方以为挂上了技巧库。M4（docs/PRD.md:168，Phase 2）上线时把这道闸拆掉即可，
+  // 拆闸是**变宽**，不碎任何客户端（owner 裁定 ⑫，2026-09-26）。
+  playbookIds: z
+    .array(z.string())
+    .default([])
+    .refine((ids) => ids.length === 0, {
+      message: 'playbookIds 暂不可用：M4 技巧库未上线，选集不会因此产任何文件',
+    }),
   flowTemplateId: z.string().nullable().default(null),
 })
 export type PackSelection = z.infer<typeof PackSelection>
