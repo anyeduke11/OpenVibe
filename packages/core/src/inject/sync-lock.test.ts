@@ -13,6 +13,7 @@ import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PACK_BACKUP_REL } from './lock'
 import {
+  SYNC_LOCK_REREAD_LIMIT,
   SYNC_LOCK_REL,
   SYNC_LOCK_STALE_MS,
   tryAcquireSyncLock,
@@ -256,5 +257,73 @@ describe('sync.lock（并发注入互斥）', () => {
     expect(acq.reason).toBe('unavailable')
     expect(acq.holder).toBeNull()
     expect(String(acq.detail)).toContain('EEXIST')
+  })
+
+  it('SL-13: `wx` 的 0 字节空窗 → 有界重读让路，不谎报 unreadable；真读不懂仍要收得住', () => {
+    const dir = project()
+    const holderJson = JSON.stringify({ pid: 4242, startedAt: T0.toISOString(), command: 'sync' })
+
+    // 正腿：写家已经 open('wx') 建好文件、内容还差一瞬。前 3 次读到 0 字节，第 4 次读到完整 JSON。
+    // 这一腿否证的正是实测到的那条红：让路方报 `BUSY unreadable -1` 而不是赢家 pid。
+    foreignLock(dir, '')
+    let reads = 0
+    const window = busy(
+      tryAcquireSyncLock(dir, 'sync', {
+        ...at(0),
+        ...pid(1),
+        ...ALWAYS_ALIVE,
+        readText: (p: string): string => {
+          reads += 1
+          expect(p).toBe(lockPathOf(dir))
+          return reads <= 3 ? '' : holderJson
+        },
+      }),
+    )
+    expect(reads).toBe(4)
+    expect(window.reason).toBe('held')
+    expect(window.holder?.pid).toBe(4242)
+
+    // 负腿：内容永远是坏的那一类（真损坏，不是空窗）必须**有限**次后收口成 unreadable，
+    // 否则 SL-05 那三形态里混进来的坏文件会把调用方挂在一个自旋里。
+    foreignLock(dir, 'not json at all')
+    let brokenReads = 0
+    const broken = busy(
+      tryAcquireSyncLock(dir, 'sync', {
+        ...at(0),
+        ...pid(1),
+        ...ALWAYS_ALIVE,
+        readText: (): string => {
+          brokenReads += 1
+          return 'not json at all'
+        },
+      }),
+    )
+    expect(broken.reason).toBe('unreadable')
+    expect(broken.holder).toBeNull()
+    expect(brokenReads).toBe(1 + SYNC_LOCK_REREAD_LIMIT)
+  })
+
+  it('SL-14: 空窗中途写家反悔删锁 → 判「此处无锁」并接管，不谎报有人在跑', () => {
+    const dir = project()
+    foreignLock(dir, '')
+    const lockAbs = lockPathOf(dir)
+    let reads = 0
+    const acq = held(
+      tryAcquireSyncLock(dir, 'sync', {
+        ...at(0),
+        ...pid(77),
+        ...ALWAYS_ALIVE,
+        readText: (): string => {
+          reads += 1
+          if (reads === 1) return '' // 落在 0 字节空窗里
+          rmSync(lockAbs, { force: true }) // 写家反悔，把锁撤了
+          throw Object.assign(new Error('ENOENT'), { code: 'ENOENT' })
+        },
+      }),
+    )
+    // 重读上限没跑满就收口：撤锁是「消失」这一种，不是「永远读不懂」
+    expect(reads).toBe(2)
+    expect(readHolder(dir).pid).toBe(77)
+    acq.release()
   })
 })

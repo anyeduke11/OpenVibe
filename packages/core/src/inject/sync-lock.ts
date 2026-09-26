@@ -28,6 +28,11 @@ export interface SyncLockDeps {
   pid?: () => number
   /** 缺省用 `process.kill(pid, 0)` 探活 */
   isAlive?: (pid: number) => boolean
+  /**
+   * 注入以便单测精确落在「`wx` 已建出文件、内容还差一瞬」的那个窗口（见 SYNC_LOCK_REREAD_LIMIT）。
+   * 缺省 `readFileSync(path, 'utf8')`。
+   */
+  readText?: (path: string) => string
 }
 
 export interface SyncLockHandle {
@@ -40,11 +45,19 @@ export interface SyncLockHandle {
 }
 
 /**
- * `held` 磁盘上确有一把锁（或内容读不懂但还在窗口内）；`unreadable` 内容不是合法 holder，
+ * `held` 磁盘上确有一把锁；`unreadable` 内容不是合法 holder（有界重读之后仍读不出，见下），
  * 只能按 mtime 判，保守视为有人在写；`unavailable` 锁根本建不出来（.openvibe 被占成文件、
  * 只读挂载、权限不足）——这时谎报「另一个 sync 在跑」会把用户引向错误的处置，故单列并带 detail。
  */
 export type SyncLockBusyReason = 'held' | 'unreadable' | 'unavailable'
+
+/**
+ * 空窗重读上限。`writeFileSync(path, json, { flag: 'wx' })` 的 O_EXCL open 与写内容之间，
+ * 锁文件以 **0 字节**对并发读者可见（实测：100 波 × 6 个真子进程抢锁 = 600 条首行里 7 条读到空，
+ * 让路方因此报 `unreadable` 而不是赢家 pid）。这里对「读到了东西却解析不出」做有界重读，
+ * 把那一瞬让过去；上限存在的意义是**真损坏的文件不能被永远等下去**。
+ */
+export const SYNC_LOCK_REREAD_LIMIT = 200
 
 export type SyncLockAcquire =
   | ({ acquired: true } & SyncLockHandle)
@@ -95,18 +108,38 @@ function inspect(
   path: string,
   now: () => Date,
   isAlive: (pid: number) => boolean,
+  readText: (p: string) => string,
 ): Verdict {
   let text: string
   let mtimeMs: number
   try {
-    text = readFileSync(path, 'utf8')
+    text = readText(path)
     mtimeMs = statSync(path).mtimeMs
   } catch {
     // ENOENT 与 ENOTDIR（.openvibe 是个文件）都算「此处无锁」，真正的失败留给新建那一步报
     return { state: 'absent', holder: null, ageMs: 0, reason: 'held' }
   }
-  const holder = parseHolder(text)
   const age = (fromMs: number): number => Math.max(0, now().getTime() - fromMs)
+  let holder = parseHolder(text)
+  // 「文件在、内容解析不出」有两种成因：写家正落在 0 字节空窗里（等一下就有答案），
+  // 或内容真坏了（等多久都不会）。前者靠重读翻正，后者靠上限收口。
+  for (let i = 0; holder === null && i < SYNC_LOCK_REREAD_LIMIT; i++) {
+    let again: string
+    try {
+      again = readText(path)
+    } catch {
+      // 写家反悔删了它：此处已无锁，交给调用方去新建
+      return { state: 'absent', holder: null, ageMs: 0, reason: 'held' }
+    }
+    if (again === text) continue
+    text = again
+    holder = parseHolder(text)
+    try {
+      mtimeMs = statSync(path).mtimeMs
+    } catch {
+      // 内容已经拿到，mtime 拿不到就沿用旧的（只影响 unreadable 那支的 ageMs）
+    }
+  }
   if (holder === null) {
     const ageMs = age(mtimeMs)
     return {
@@ -170,6 +203,7 @@ export function tryAcquireSyncLock(
 ): SyncLockAcquire {
   const now = deps.now ?? ((): Date => new Date())
   const isAlive = deps.isAlive ?? defaultIsAlive
+  const readText = deps.readText ?? ((p: string): string => readFileSync(p, 'utf8'))
   const path = join(projectPath, SYNC_LOCK_REL)
   const holder: SyncLockHolder = {
     pid: deps.pid?.() ?? process.pid,
@@ -177,7 +211,7 @@ export function tryAcquireSyncLock(
     command,
   }
 
-  const first = inspect(path, now, isAlive)
+  const first = inspect(path, now, isAlive, readText)
   if (first.state === 'held') {
     return {
       acquired: false,
@@ -208,7 +242,7 @@ export function tryAcquireSyncLock(
   }
 
   // 抢输（并发了另一个 sync）或根本建不出来：重看一次磁盘，按实况定性
-  const again = inspect(path, now, isAlive)
+  const again = inspect(path, now, isAlive, readText)
   if (again.state !== 'absent') {
     return {
       acquired: false,
