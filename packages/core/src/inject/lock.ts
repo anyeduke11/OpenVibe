@@ -35,7 +35,8 @@ export function buildPackLock(input: BuildLockInput): PackLock {
     sha256: file.packSha256,
     managed: written.has(file.path) || (oldByPath.get(file.path)?.managed ?? false),
   }))
-  // 包更新后消失的旧文件：MVP 不清理（P1 update 向导处理），哈希留档备查（m6b §6.2）
+  // 包更新后消失的旧文件：`sync` 一侧不清理，哈希与 managed 位原样留档备查（m6b §6.2 / §6.10 的换包即此路径）。
+  // 退场由 `openvibe clean` 负责——登记项即删除凭据（IN_SYNC 才删 + 逐字节备份），见 CLI-CLEAN-13。
   for (const entry of input.oldLock?.files ?? []) {
     if (!planPaths.has(entry.path)) files.push({ ...entry })
   }

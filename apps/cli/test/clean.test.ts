@@ -35,7 +35,7 @@ import { putFile, treeSnapshot } from './helpers/tree'
  * 分支映射：01↔a 02↔b 03↔c 04↔d 05/05e↔e（05e 另钉 c 的 --force 措辞） 05b/05c/05d↔e2
  * 06↔f 06b/06d↔e3 06c/06g↔f2 06e/06f↔FR-6.6 的两半（I-3） 07↔g 08/08b↔h 09↔i 10↔j。
  * §7.10 之外的契约五支：11（命令注册 + `--json` 形状）11b（`summary.ok` 与退出码同式）
- * 11c（人读轨渲染）12（错误信封）12b（`hints` 的 dry-run 承重腿）。
+ * 11c（人读轨渲染）12（错误信封）12b（`hints` 的 dry-run 承重腿）13（§6.10 换包后旧包独有条目一并退场）。
  * 判据一律落在磁盘实况与 lock 读回上——被保护的对象就是那些文件。
  */
 
@@ -520,6 +520,75 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
       expect(existsSync(join(project, p)), `${p} 是 FOREIGN，不该被删`).toBe(true)
   })
 
+  /**
+   * §6.10 换包语义的**后果侧**闸（2026-09-26 队列 ⑥ R1，owner 裁「留，并补测试」）。
+   * 此前这条 B 级口径只有**留档侧**被钉住：`lock.test.ts` 的 UT-INJECT-LOCK-03 与
+   * `sync.test.ts` 的 CLI-SYNC-05c，两支都只断言「旧条目还在 lock 里」，没有一支断言
+   * 「`clean` 把它们删了并备份」。变异反证（把 `buildPackLock` 的留档循环注释掉，2026-09-26 实测）：
+   * 全量 450 支里红 3 支 = 上述两支 + 本支；删掉本支则只剩留档侧两支 ⇒ 后果侧此前零覆盖。
+   * 判据落在三件事上：旧包独有文件**确实被删**、**删前有逐字节备份**、lock 一并收尾。
+   */
+  it('CLI-CLEAN-13: 换包后 clean 一并退场「只有旧包注入过」的文件（§6.10 合并留档 ⇒ 登记项即删除凭据）', async () => {
+    const packA = demoPack({ name: 'pack-a', targets: ['claude-code', 'cursor'], withSkills: true })
+    const packB = demoPack({ name: 'pack-b', targets: ['claude-code', 'cursor'], withSkills: false })
+    const pathSetB = new Set(packB.files.map((f) => f.path))
+    // 夹具的可用性由这一条守住：两个包必须真的渲染出不同的路径集，否则下面的断言全在空集上恒真
+    const aOnly = packA.files.map((f) => f.path).filter((p) => !pathSetB.has(p))
+    expect(aOnly.length, '夹具失效：pack-a 与 pack-b 渲染出同一组路径').toBeGreaterThan(0)
+
+    const { root, project } = sandbox()
+    await syncAction(
+      { projectPath: project, file: writeBundleFile(root, packA, 'a.json'), yes: true },
+      { now: () => NOW },
+    )
+    await syncAction(
+      { projectPath: project, file: writeBundleFile(root, packB, 'b.json'), yes: true },
+      { now: () => NOW },
+    )
+
+    // 换包后 lock 的形态：新包条目 + 旧包独有条目**都**在，且旧条目 managed 位被继承
+    const lock = parsePackLock(readFileSync(join(project, PACK_LOCK_REL), 'utf8'))
+    expect(lock, '换包后应能读回 lock').not.toBeNull()
+    const locked = new Set(lock?.files.map((f) => f.path))
+    for (const p of aOnly) expect(locked.has(p), `${p} 应仍在 lock 中备查`).toBe(true)
+    expect(lock?.pack.name).toBe('pack-b')
+    for (const p of aOnly)
+      expect(
+        lock?.files.find((f) => f.path === p)?.managed,
+        `${p} 的 managed 位不该在换包时被降掉`,
+      ).toBe(true)
+
+    // 删盘前的现场内容。判据是「删前磁盘实况」而不是「pack-a 的产物」：
+    // 共用路径（如 `.cursor/rules/openvibe.mdc`）在换包时已被 sync 改成 pack-b 那份。
+    const lockPaths = (lock?.files ?? []).map((f) => f.path)
+    const preDelete = new Map(lockPaths.map((p) => [p, readFileSync(join(project, p), 'utf8')]))
+    // 旧包独有文件在盘上仍是 pack-a 那一份（换包的 sync 不会重写它）⇒ 这才是需要 `clean` 退场的残留
+    for (const p of aOnly)
+      expect(preDelete.get(p), `${p} 不该被换包的 sync 改写`).toContain('pack-a@')
+
+    const outcome = await cleanAction({ projectPath: project, yes: true }, { now: () => NOW })
+
+    // 旧包独有文件是 IN_SYNC（内容仍是包内那份）⇒ 它们必须在 removals 里
+    expect(outcome.summary.inSyncRemoved).toBe(lock?.files.length ?? 0)
+    expect(outcome.summary.driftKept).toBe(0)
+    expect(outcome.summary.foreign).toBe(0)
+    expect(outcome.summary.absent).toBe(0)
+    expect(outcome.exitCode).toBe(0)
+    expect(outcome.summary.cleaned).toBe(true)
+    for (const p of [...packA.files.map((f) => f.path), ...packB.files.map((f) => f.path)])
+      expect(existsSync(join(project, p)), `${p} 该已退场`).toBe(false)
+    expect(existsSync(join(project, PACK_LOCK_REL)), 'lock 一并收尾').toBe(false)
+
+    // 备份是这条口径唯一的回退凭据：逐字节比「删前磁盘上的那一份」，不比文件名（备份目录按相对路径镜像）
+    const backupRoot = outcome.summary.backedUpTo
+    expect(backupRoot, '有删除就必须有备份目录').not.toBeNull()
+    for (const p of lockPaths) {
+      const copy = join(backupRoot ?? '', p)
+      expect(existsSync(copy), `${p} 删前没备份`).toBe(true)
+      expect(readFileSync(copy, 'utf8'), `${p} 的备份不是逐字节`).toBe(preDelete.get(p))
+    }
+  })
+
   // I-3 / FR-6.6：删除循环遇到「路径被判违规」必须整包中止，不能和「文件已不存在」共用 continue。
   // Windows CI 无建链权限，同一条规则由 packages/core/src/inject/security.test.ts 的注入式
   // realpath 覆盖；这里只钉 CLI 侧「抓到之后怎么做」。§7.10 g 的「报告含违规路径」是 Task 4 的闸。
@@ -814,12 +883,14 @@ describe('命令注册与 --json 契约（FR-6.10）', () => {
     expect(env.summary.error.code).toBe('NO_LOCK')
   })
 
-  // FR-6.10 v1.5 的**承重腿**：「零写入零删除」这句理由只住在 `hints` 里（全仓唯一产出点是
-  // clean.ts:285），而 CLI-CLEAN-11 走的是全清那一轮——那一轮 hints 不承载任何理由，只证到键存在。
+  // FR-6.10 的**承重腿**：dry-run 那句「零写入零删除」只住在 `hints` 里（产出点在 `clean.ts` 的 dry-run
+  // 早退分支；**行号不入正文**），而 CLI-CLEAN-11 走的是全清那一轮——那一轮 hints 不承载任何理由，只证到键存在。
   // 人读轨 `printer.info` 在 JSON 轨是 no-op，所以「不带 hints 这句就地消失」必须被一支
   // 真子进程 + `--dry-run` + `--json` 三者同场的用例钉住。
+  // v1.8 降契约（owner 裁「只要求给出理由，不锁字句」）：下面钉的短语是**当前文案的 canary**，
+  // 改措辞时跟着改这一行即可，不再构成 B 级改动——降的是契约的强度，不是这支用例的强度。
   // 修复轮 M-8 删掉了这里原有的两条 `inSyncRemoved === 0` / `driftForced === 0`：dry-run 走
-  // `clean.ts:290` 的 `tally(0, 0, driftKept, null, false)`，那两个数在那一行被**写死**为 0，
+  // `clean.ts` 的 `tally(0, 0, driftKept, null, false)`，那两个数在那一行被**写死**为 0，
   // 断言在任何变异下都不可能红。承重的仍是 hints 那句 + 全树快照逐字节不变 + `backup/` 不建。
   it('CLI-CLEAN-12b: --dry-run --json ⇒ summary.hints 带「零写入零删除」，且盘上一字节未动', async () => {
     const fx = fixture()
