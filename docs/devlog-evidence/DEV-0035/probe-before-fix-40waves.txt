@@ -1,0 +1,12 @@
+waves=40 contenders=6 总首行数=240
+  BUSY held          197
+  HELD               40
+  BUSY unreadable    3
+异常条数=3
+  ! wave 1 · BUSY unreadable -1 · 盘上此刻="{\"pid\":56337,\"startedAt\":\"2026-09-26T00:01:02.068Z\",\"command\":\"sync-holder\"}\n"
+  ! wave 1 · BUSY unreadable -1 · 盘上此刻="{\"pid\":56337,\"startedAt\":\"2026-09-26T00:01:02.068Z\",\"command\":\"sync-holder\"}\n"
+  ! wave 6 · BUSY unreadable -1 · 盘上此刻="{\"pid\":56589,\"startedAt\":\"2026-09-26T00:01:23.396Z\",\"command\":\"sync-holder\"}\n"
+
+（复录说明：这一份是修前第一支 40 波样本，当时跑在前台、只留在会话输出里；此处按原样逐字复录。
+ 修前的第二支 60 波样本见 probe-before-fix-60waves.txt，那是从落盘文件直接拷来的原始输出。
+ 两份合并 = 100 波 / 600 条首行 / 7 条 `BUSY unreadable -1`。复录时间 2026-09-26 08:34 +0800。）

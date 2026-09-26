@@ -1,0 +1,4 @@
+waves=100 contenders=6 总首行数=600
+  BUSY held          500
+  HELD               100
+异常条数=0
