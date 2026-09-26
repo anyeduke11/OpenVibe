@@ -513,7 +513,7 @@ M5 开发日志模板内置对「DEV-NNNN 编号递增 / YYYY-MM-DD HH:mm 时间
 | — | A8 关闭：npm 包名 `vibecanon`（**旧名**）核验可用（registry 404，2026-09-20 实测）——**D17 更名后作废**，由 `openvibe-cli` 承接（registry 404，2026-09-21 实测） | 第 0 章第 14 行、tasks G5、附录 D-D17 |
 | D13 | 遥测「惊喜时刻」询问：首次 sync 成功后一次性 opt-in（CLI+Web 双入口；默认关、拒绝后本地标记永不再问；白名单三类不变） | design §11.5 + D18、specs/onboarding.md FR-4.2、4.4、tasks T7/T8 |
 | D14 | 内容产能：owner 本人 + AI 起草 + 审校 ≈ 2-3 人日；60 条词条首发可接受（seed 热补至 100）；6.5 周维持 | 第 8 章、1.4 内容层、tasks T4/T8/§3、seed-content 执行角色 |
-| D15 | M5 dogfooding 证伪线：发布后两周内工作台真实使用 ≥10 次且 DEV 日志 ≥5 条，否则启动 M5-lite（工作台 UI 后移 P1.1，模板/清单仅经 CHECKLIST.md 注入） | tasks §5 风险表 |
+| D15 | M5 dogfooding 证伪线：~~发布后两周内~~ **起点 = 真发布（`npm publish` 成功）当日起两周**（队列 ④，owner 2026-09-27 裁；推 tag 不算起点）内**工作台真实使用 ≥10 次且窗内由工具产出的 DEV 日志 ≥5 条**，否则启动 M5-lite（工作台 UI 后移 P1.1，模板/清单仅经 CHECKLIST.md 注入）。**两条腿今天都不可机器判**：使用次数无埋点（`apps/web/src` 里 localStorage / 计数命中 0 文件 ⇒ 人工数，不为它加埋点，那会是一次新的 B 级）；「DEV 日志 ≥5 条」按字面会被**开发轮次**白送（本仓现测 46 条），故须限定为「窗内**用工具写出**的日志」，判据本体见队列 ⑱ | tasks §5 风险表 |
 | D16 | 仓库策略：新开 GitHub `OpenVibe` 仓库（初始提交 = 本套文档 + LICENSE + .gitignore），不携带现仓库 Hotspot（GPL-3.0）历史；旧仓库仅存档 | tasks T1、README 当前状态 |
 | D17 | 项目更名 VibeCanon → **OpenVibe**（中文名沿用灵典）：npm `openvibe` 被占（registry 200）→ 包名与冷启动命令 `openvibe-cli`（404 实测），bin `openvibe`；GitHub 同名小仓库与 Inria OpenViBE 撞车已披露，传播以「灵典」区隔；契约字符串随 design §7/§8 **v1.3** 更新（文件名 openvibe.pack.json / .openvibe/ / marker openvibe:pack，结构不变） | 第 0 章第 14 行、README 名称由来、design §7/§8、全文档机械替换（DEV-0010 映射表） |
 

@@ -1331,7 +1331,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 | sync 状态机分支漏测 | m6b §4/§7 + 本文 §6.2 | 以 §7 验收行为回归集；新分支先补夹具再改码 |
 | 词条产出慢于排期 | §11 批次 | 60 条发布 + 追补（变体③，热补即演示） |
 | 工期偏差 > 缓冲 1 人日 | tasks §3 变体备案 | 按备案①②③④顺序（国内 adapter 后移为第④） |
-| **dogfooding 两周证伪线触发（D15：工作台使用 <10 次或 DEV 日志 <5 条）** | m5 / PRD 3.2-M5 | 启动 M5-lite：工作台 UI 后移 P1.1，模板/清单仅经 CHECKLIST.md 注入；记 DEV_LOG 并排 P1.1 |
+| **dogfooding 两周证伪线触发（D15：工作台使用 <10 次或 DEV 日志 <5 条；**起点 = `npm publish` 成功当日**，队列 ④ owner 2026-09-27 裁；两条腿的可测性见队列 ⑱）** | m5 / PRD 3.2-M5 | 启动 M5-lite：工作台 UI 后移 P1.1，模板/清单仅经 CHECKLIST.md 注入；记 DEV_LOG 并排 P1.1 |
 | AI 词条质量不达标 | §11.3/11.4 | seed:check 是唯一硬闸；不过则缩小批次人工重写 |
 
 观测升级口径：CI 红 / 验收映射行 fail → 当日修；C 级变更 → 随 DEV_LOG；B/A 级 → 先 owner 后动手。
@@ -1386,7 +1386,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 | | 11 | 一项目多包叠加 | 本轮写 §6.10 时显式化 | 需 lock 结构升版，A 级 | — |
 | **判作废（文档陈旧，不再排期）** | 12a | 「首启向导后移 P1.1」 | `tasks.md §3 变体备案` ① | **MVP 已交付**：`docs/specs/onboarding.md` + `onboarding-walk.mjs` 29 断言 | — |
 | | 12b | 「国内三 adapter 后移 P1.1」 | `tasks.md §3 变体备案` ④ | **MVP 已交付**：`packages/core` adapter 表含 `codebuddy`/`trae`/`minicode`；DEV-0020 走查实测 `CODEBUDDY.md`/`MINI.md`/`.trae/rules/openvibe.md` 各约 14.5 kB 落盘 | — |
-| **条件挂起（不占名额）** | 13 | M5-lite（工作台 UI 后移） | `PRD.md:509` D15 | 观察窗从**真发布**起算两周，而 v0.1.0 尚未发布（实测 `npm view openvibe-cli --registry=https://registry.npmjs.org` → 404、`gh release list` 空、tag `v0.1.0` 仅本地）。现在无法判定；触发即插队 P1.1 并挤掉 T11 非必须项 | — |
+| **条件挂起（不占名额）** | 13 | M5-lite（工作台 UI 后移） | `PRD.md` 决策表 **D15** 行 | 起点已裁（队列 ④，owner 2026-09-27）：**窗从真发布 = `npm publish` 成功当日起算两周**，推 tag 不算。07:43 复测 `npm view openvibe-cli --registry=https://registry.npmjs.org version` 仍 **404** ⇒ 窗未开、现在无法判定；触发即插队 P1.1 并挤掉 T11 非必须项。**本格原写的凭据「tag `v0.1.0` 仅本地」已于 2026-09-26 16:20 作废**（tag 首推远端，`git ls-remote --tags` 现测 deref 到 `5f7fd3c`），指针 `PRD.md:509` 亦按「行号不入正文」换成行名 | — |
 
 **T10 + T11 ≈ 3.4 人日**（含缓冲 ≈ 4 人日 = 单人一周）；第 4 项的工期不再随探针结论浮动——探针已跑完，结论与「无头拿不到判据①」这条限制见 §15.4-S2。
 
