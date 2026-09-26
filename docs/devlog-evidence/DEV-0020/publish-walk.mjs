@@ -10,6 +10,7 @@
 // 因此 §2b 另跑一次**真 npm 装包**：--ignore-scripts 那次证的是 npm 也认这份清单与 bin 软链，
 // 带 install 脚本那次证的才是普通用户「取预编译包」那一跳——取不到时如实打 SKIP 与原因，不伪装成 PASS。
 import { spawn, spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, cpSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -268,8 +269,8 @@ const ver = run(CONSUMER, BIN, ['--version'])
 check('--version 报当前版本', (ver.stdout ?? '').trim() === String(stagedManifest.version), (ver.stdout ?? '').trim())
 const help = run(CONSUMER, BIN, ['--help'])
 check(
-  '四命令齐（serve/sync/scan/diff）',
-  ['serve', 'sync', 'scan', 'diff'].every((c) => (help.stdout ?? '').includes(c)),
+  '五命令齐（serve/sync/scan/diff/clean）',
+  ['serve', 'sync', 'scan', 'diff', 'clean'].every((c) => (help.stdout ?? '').includes(c)),
 )
 check('--open 旗标在发布包里可见', (help.stdout ?? '').includes('--open') || (run(CONSUMER, BIN, ['serve', '--help']).stdout ?? '').includes('--open'))
 
@@ -390,6 +391,84 @@ check(
   SETUP_MS > 0,
   `${(SETUP_MS / 1000).toFixed(1)} s，其中装包 ${(INSTALL_MS / 1000).toFixed(1)} s`,
 )
+
+// ---------- 4b. 退场腿：clean 是 v0.1.0 的新增面，09-23 那支树根本没有这条命令 ----------
+// 发布说明对外承诺「退场有闸：只删未改动的受管文件、删前一律进备份」，这句就得由**装出来的 bin**
+// 兑现一次。仓库形态的 CLI-CLEAN 用例证的是源码，证明不了 bundle 之后少打包了哪个模块。
+const LOCK_REL = '.openvibe/pack.lock.json'
+const managed = products.filter((p) => p !== LOCK_REL)
+const sha = (rel) => {
+  const abs = join(DEMO, rel)
+  return existsSync(abs)
+    ? createHash('sha256').update(readFileSync(abs)).digest('hex').slice(0, 16)
+    : '-'
+}
+const beforeClean = Object.fromEntries(managed.map((p) => [p, sha(p)]))
+
+const cleanDry = run(CONSUMER, BIN, ['--json', 'clean', DEMO, '--dry-run'], { OPENVIBE_HOME: HOME })
+let dryOut = null
+try {
+  dryOut = JSON.parse(String(cleanDry.stdout))
+} catch {
+  const raw = `${String(cleanDry.stdout)}${String(cleanDry.stderr)}`.trim()
+  say(`  clean --dry-run 原始输出：${raw.slice(0, 400)}`)
+}
+const dryS = dryOut?.summary ?? null
+const dryDeleteRows = (dryOut?.report ?? []).filter((r) => r.action === 'delete').length
+check(
+  'clean --dry-run 退出码 0 且 ok',
+  cleanDry.status === 0 && dryS?.ok === true,
+  `exit=${String(cleanDry.status)} ok=${String(dryS?.ok)}`,
+)
+check(
+  'clean --dry-run 计划删 8 项受管文件（一个都没少认、一个都没多认）',
+  dryDeleteRows === 8 && dryS?.inSyncRemoved === 0 && dryS?.foreign === 0 && dryS?.absent === 0,
+  `计划=${String(dryDeleteRows)} 已删=${String(dryS?.inSyncRemoved)} 非我方=${String(dryS?.foreign)} 已自行退场=${String(dryS?.absent)}`,
+)
+check(
+  'clean --dry-run 零写入零备份（八项产物逐字节不变、lock 在位、无备份目录）',
+  managed.every((p) => sha(p) === beforeClean[p]) &&
+    existsSync(join(DEMO, LOCK_REL)) &&
+    !existsSync(join(DEMO, '.openvibe', 'backup')) &&
+    dryS?.backedUpTo === null,
+  `backedUpTo=${String(dryS?.backedUpTo)}`,
+)
+
+const cleanRun = run(CONSUMER, BIN, ['--json', 'clean', DEMO, '--yes'], { OPENVIBE_HOME: HOME })
+let ranOut = null
+try {
+  ranOut = JSON.parse(String(cleanRun.stdout))
+} catch {
+  const raw = `${String(cleanRun.stdout)}${String(cleanRun.stderr)}`.trim()
+  say(`  clean --yes 原始输出：${raw.slice(0, 400)}`)
+}
+const ranS = ranOut?.summary ?? null
+check(
+  'clean --yes 退出码 0（无 DRIFT 残留即全清）',
+  cleanRun.status === 0 && ranS?.ok === true && ranS?.exitCode === 0,
+  `exit=${String(cleanRun.status)} exitCode=${String(ranS?.exitCode)}`,
+)
+check(
+  'clean 真删八项并收尾 lock',
+  ranS?.inSyncRemoved === 8 &&
+    ranS?.cleaned === true &&
+    managed.every((p) => !existsSync(join(DEMO, p))) &&
+    !existsSync(join(DEMO, LOCK_REL)),
+  `删除=${String(ranS?.inSyncRemoved)} cleaned=${String(ranS?.cleaned)}`,
+)
+check(
+  'clean 删前逐字节备份（备份目录内八份与删前哈希一致）',
+  typeof ranS?.backedUpTo === 'string' &&
+    managed.every((p) => {
+      const bak = join(String(ranS.backedUpTo), p)
+      return (
+        existsSync(bak) &&
+        createHash('sha256').update(readFileSync(bak)).digest('hex').slice(0, 16) === beforeClean[p]
+      )
+    }),
+  `备份=${String(ranS?.backedUpTo ?? '').replace(ROOT, '沙箱')}`,
+)
+say(`  退场后 .openvibe/ 剩余：${readdirSync(join(DEMO, '.openvibe')).join(' ') || '（空）'}`)
 
 // ---------- 5. 收尾：进程回收 ----------
 killTree(serveProc.pid)
