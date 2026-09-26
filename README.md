@@ -174,8 +174,9 @@ npm / npx 用户走 `prebuild-install` 按平台与 Node ABI 取预编译包，�
 ## 已知局限（v0.1.0）
 
 - **一项目一包**：`pack.lock.json` 是单包结构，一个目录同时只由一个标准包托管，换包即整包替换，不做多包叠加。
-- **整文件管理，无块级合并**：受管单位是整个产物文件。资产从包里移除后不会自动从旧产物里清理那段内容；
-  也没有 `update` / `remove` 子命令，回滚请用 `.openvibe/backup/`（标记已预埋，块级合并是下一档要做的事）。
+- **整文件管理，无块级合并**：受管单位是整个产物文件；注入后你改过的段落（DRIFT）不会被自动重写。
+  退场用 `clean`（默认只删未改动的受管文件，删除前一律先备份），回滚同理靠 `.openvibe/backup/`；
+  没有 `update` 子命令（标记已预埋，块级合并是下一档要做的事）。
 - **真实点击与中文输入已有自动化证据，拖拽没有**：浏览器走查里「navigate 后读 DOM」那一类驱动器测不到真实用户动作
   （合成点击拿不到 transient user activation）。2026-09-24 起另有一条裸 CDP **真输入**驱动器覆盖复制按钮与
   中文输入搜索两条场景（真鼠标点击 + 真中文注入 + 系统剪贴板逐字节反查，需有头浏览器）；
@@ -194,7 +195,7 @@ npm / npx 用户走 `prebuild-install` 按平台与 Node ABI 取预编译包，�
 ```bash
 git clone https://github.com/anyeduke11/OpenVibe && cd OpenVibe
 pnpm install                # pnpm ≥ 10，corepack enable 即可
-pnpm lint && pnpm typecheck && pnpm test        # 381 用例（unit / integration / cli 三层）
+pnpm lint && pnpm typecheck && pnpm test        # 449 用例（unit / integration / cli / web-jsdom 四层；win32 会门控跳过 8 支 POSIX 语义用例）
 pnpm seed:check && pnpm bundle:check            # 另两道门禁：种子数量与构成配额、Web 体积闸门
 pnpm pkg:cli                                    # 产出发布暂存目录 apps/cli/pkg/
 cd apps/cli/pkg && npm pack                     # → openvibe-cli-<版本>.tgz，可 npm i -g 它
