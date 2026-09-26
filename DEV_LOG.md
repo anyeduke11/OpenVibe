@@ -985,3 +985,22 @@
 - **未验证面净变化**: 净增 **0**、净减 **0**（零产品代码、零用例改动）。**发现面 +1**：队列第一次可被一条 `cat` 读完，「①–⑯ 之外还有没有隐藏项」从需要 grep 六条散文变成看本文件末尾一句。
 - **潜在风险**: ① **`decisions.md` 本身会成为下一处腐烂**——它带采样日期，一旦不再随裁决更新，就又回到散文行时代；缓解是更新规则写在文件顶部且 `dev-plan` 头部显式让它优先。② **队列 ⑥（P1.1 两份 B 级规格一次性复核）的复核面是我列的**，我可能漏列自己这几轮改过的口径；owner 复核时不能只对我这份清单打勾。③ **11 笔未验 commit 里含 ① 的交付物**：签署表在 CI 视野外，签完之后的落改（动 `content/seed`）与推送一旦并发，需要重跑预筛脚本而不是引用本轮行数。
 - **owner 手上未收的**: **队列单源已改为 `docs/decisions.md`**，本行不再复述整份队列。本轮只动了它的**存在性**（新建 + 三处腐烂定点修订），**没有替 owner 裁任何一项**：待裁 5 项 ④⑤⑥⑧⑨ 原样，① 仍 0 已签。**推送仍未获授权**：`5a963ff..HEAD` = 11 笔，「推 main 触发 CI」那次授权只覆盖 `5a963ff` 那一笔，再推需重新放行（推前重探传输：`github.com:443` 直连的 rc 在不同轮次翻过 0 与 1）。
+
+## [DEV-0039] 队列 ⑦ 第 2 次放行落地 · **`main` 快进 `5a963ff..a6d47a8`（12 笔）并推 ⇒ run `36223936268` 三平台 `success`**，四项预测全命中；代价是登记我自己**两处「空输出当成了结论」**
+
+- **时间**: 2026-09-26 13:58–14:22 +0800。采样凭据：起点 HEAD `a6d47a8`（`[DEV-0038]` 那笔，工作树 0 行）；owner 在 `AskUserQuestion` 上选「合进 main 直推（同上次）」。**合并未动工作树**：`git fetch . refs/heads/feat/p1.1-t10-clean-size:refs/heads/main` → `5a963ff..a6d47a8` 快进，当前分支仍是 feat，脏文件 **0 行**。
+- **类型**: §0.3 **C 级文档 + 一次外部动作（推送）**。产品代码零改动：本笔只动 `docs/decisions.md`（3 行）与 `DEV_LOG.md`。A 级面实测：`git diff --name-only 5a963ff..HEAD -- tests/golden/ content/seed/` = **0 文件** ⇒ 推上去的 12 笔里没有任何冻结契约改动。
+- **关联文件**: `docs/decisions.md`（队列 ⑦ 改「部分授权（每次单独放行）」并记第 2 次授权、③ 加「CI 前置现已满足」、净状态时间戳）；`DEV_LOG.md` 本条。
+- **问题描述**: 上一步体检实测出「未验证 commit = 11（本笔后 12）」与「本机 449 支 vs CI 438 支，那 **11 支差额全部落在无 CI 证据的区间里**」——这是当时仓库最大的未验证面。队列 ⑦ 的唯一收口手段是一次推送。
+- **实现思路（三个决定）**:
+  1. **预测立在拿数之前**（承 `[DEV-0032]` 形状）：推前先按 `5a963ff..HEAD` 的测试文件差异算出应然数——改动落在 `packs.api`(+41) / `telemetry-flush`(+47-4) / 新建 `PackPreviewPane.test.tsx`(+104) / `sync-lock`(+69) / `shared`(+16) + `vitest.config` 第 4 project ⇒ **438 → 449 支、47 → 48 文件**；再逐点确认这 11 支**无一支带 POSIX 门控**（`SL-09` 的门控早于 `5a963ff`）⇒ 预测 **macOS 449/0 skip · ubuntu 449/0 skip · win32 441 passed + 8 skipped · `Test Files` 三侧 48**。**四项全部命中**，含「win32 skip 不因本区间改变」这一条。
+  2. **合主干用 `git fetch . <br>:refs/heads/main`，不 `checkout`**：共享工作树有并发会话，`checkout`/`merge` 会动别人的在写文件；`fetch .` 自带非快进闸（非 ff 直接失败），且 refs 更新不触碰工作树。实测推后 `git status --porcelain` 仍 0 行。
+  3. **传输先探后选，不改 `git config`**：`nc -z` 三条路（`github.com:443` / `ssh.github.com:443` / `:22`）本次全 rc=0，但 `nc` 只证 TCP——故真实 `--dry-run push` 走默认 HTTPS 远端验认证与快进（rc=0）才推。上一轮那次走的是 SSH-over-443，本轮不必。
+- **测试验证**:
+  - **CI（结论唯一来源 `gh run view --json conclusion,jobs`）**：run `36223936268` @ `a6d47a8`，overall `completed/success`，三 job 分列 `success`。分平台实测：**macOS `Test Files 48` / `449 passed (449)`**（24.06 s）、**ubuntu `48` / `449 passed (449)`**（32.39 s）、**win32 `48` / `441 passed | 8 skipped (449)`**（44.88 s）。
+  - **8 支 skip 逐文件归因闭合**（这是本轮的硬活）：`cli/security` 1 · `cli/sync` 2 · `cli/serve` 1 · `cli/clean` 1 · `core/inject/security` 1 · `core/inject/sync-lock` 1 = **7 支持有 `it.skipIf(IS_WINDOWS)`**；**`cli/config` 1** 走的是另一形态——`const itPosix = process.platform === 'win32' ? it.skip : it`。7 + 1 = 8，与 CI 报数**逐文件对上**。
+  - 本机五闸：本轮零代码改动，凭据沿用 `[DEV-0038]`（同树 @ 13:52–13:55 rc 全 0，`pnpm test` 48 files / 449 tests / 0 skipped）。**未复跑**，因为工作树自那次后只动了 markdown。
+- **被推翻（本轮 2 条，都是我自己的）**: ① **`gh run view --json jobs` 的 `jobs[].id` 是 `null`，正字段是 `databaseId`**——我按 `id` 取号后把三个垃圾值喂进 `--job`，得到三条**空输出**，差点把「三平台没有用例计数」当成结论登记。这与 `[DEV-0032]`（ANSI 转义式子不对）、`[DEV-0031]`（`prettier --check` 行数比法）同族：**工具输出的空结果有两种成因——真没有 / 我的式子不对**；本轮第三种：**字段名不对，取到 null 再传下去**。② **静态 grep 数出的「7 个 POSIX 门控位点」不等于 CI 的 8 支 skip**——我上一轮据此认为「差额说明日志不可信」，实际是我把门控形态清单列窄了（只搜 `it.skipIf(IS_WINDOWS)`，漏了 helper 三元）。**新规则**：skip 计数**以 CI 的 `<file> (N tests | M skipped)` 行为准、再逐文件回代码找形态**，顺序反过来就一定漏。
+- **未验证面净变化**: **净减 1 大块**——「12 笔 commit 无 CI 证据」归零（本笔 `DEV-0039` 起重新计 1 笔未验）；**本机与 CI 首次同数（449 = 449）**，那条「438 vs 449」的差额登记自此失效。仍是**三平台不等**：win32 少 8 支（POSIX 语义），**skip 计入未验证面、不并入「全绿」**；且本 run 只验 tip 一个 sha，其余 11 笔是**随 tip 一起**被验。
+- **潜在风险**: ① **`a6d47a8` 是带 sha 的快照**：本笔提交即降级为历史证据，下次收口要重跑而不是引用（同 `[DEV-0027]`/`[DEV-0032]` 的限定）。② **队列 ③（推 tag）的前置刚成立**，但 `v0.1.0` 现测落后 **59 笔** ⇒ 若按原 tag 直接推，点的是 09-23 那份产物（不含 ⑪⑫⑯⑮ 与 T10 全量），**tag 与 main tip 不同源**这件事必须在打之前裁，不能打了再解释。③ **helper 形态的门控可发现性差**：`itPosix` 只在 `config.test.ts` 一处，没有仓库级约定；下轮若再加 POSIX-only 用例，两种形态并存会让「数 skip」这件事再次踩坑。
+- **owner 手上未收的**: **队列见 `docs/decisions.md`**（本行不复述）。本笔只改了两格的状态：**⑦ 已含第 2 次授权**（下次推送仍需单独放行）、**③ 的 CI 前置现已成立**（打 tag 与否、打在哪一笔，是 owner 的决定）。待裁 5 项 ④⑤⑥⑧⑨ 原样；**① 仍 0 已签**——签署面 `docs/devlog-evidence/DEV-0037/seed-prescreen.md` 第 4 节那 19 行。
