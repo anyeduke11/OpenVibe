@@ -14,10 +14,10 @@ export function PackNewPage() {
 
   if (id === undefined) return <PackWizard key="new" initial={null} />
   if (pack.isLoading)
-    return <p className="px-5 py-4 text-sm text-zinc-400">{zh.common.loading}</p>
+    return <p className="px-5 py-4 text-sm text-ink-faint">{zh.common.loading}</p>
   if (pack.isError)
     return (
-      <p className="px-5 py-4 text-sm text-red-700">
+      <p className="px-5 py-4 text-sm text-danger-700">
         {zh.common.failed((pack.error as Error).message)}
       </p>
     )

@@ -182,12 +182,12 @@ export function ProjectDetailPage() {
   }
 
   if (project.isLoading) {
-    return <p className="p-6 text-sm text-zinc-500">{zh.common.loading}</p>
+    return <p className="p-6 text-sm text-ink-subtle">{zh.common.loading}</p>
   }
   if (view === undefined) {
     return (
       <div className="space-y-3 p-6">
-        <p className="text-sm text-red-700">
+        <p className="text-sm text-danger-700">
           {zh.common.failed(project.error instanceof Error ? project.error.message : 'unknown')}
         </p>
         <Link className="text-sm text-brand hover:underline" to="/projects">
@@ -201,13 +201,13 @@ export function ProjectDetailPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-wrap items-center gap-2 border-b border-zinc-100 px-5 py-3">
+      <header className="flex flex-wrap items-center gap-2 border-b border-line-hair px-5 py-3">
         <Link className={`${btnGhost} h-[1.85rem] px-2 py-0 text-xs`} to="/projects">
           ← {zh.projects.detail.back}
         </Link>
         <h1 className="text-base font-semibold">{view.name}</h1>
         {templateName !== null && (
-          <span className="text-[11px] text-zinc-400">
+          <span className="text-[11px] text-ink-faint">
             {zh.projects.detail.snapshotFrom(templateName)}
           </span>
         )}
@@ -229,7 +229,7 @@ export function ProjectDetailPage() {
           onStatusChange={setStatus}
         />
 
-        <section className="rounded-lg border border-zinc-200 bg-white p-4">
+        <section className="rounded-lg border border-line bg-panel p-4">
           <StageBar
             stages={stages}
             current={currentStage}
@@ -280,7 +280,7 @@ export function ProjectDetailPage() {
                 className={`rounded-md px-3 py-1.5 text-sm ${
                   logType === type
                     ? 'bg-brand-soft font-medium text-brand'
-                    : 'text-zinc-600 hover:bg-zinc-100'
+                    : 'text-ink-muted hover:bg-fill'
                 }`}
               >
                 {zh.projects.devlog.tabs[type]}

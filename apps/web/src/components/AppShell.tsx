@@ -83,7 +83,7 @@ function PageLoading() {
     <div
       role="status"
       aria-busy="true"
-      className="flex h-full items-center justify-center py-16 text-sm text-zinc-400"
+      className="flex h-full items-center justify-center py-16 text-sm text-ink-faint"
     >
       {zh.common.loading}
     </div>
@@ -93,10 +93,10 @@ function PageLoading() {
 export function AppShell() {
   return (
     <div className="flex h-full">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-zinc-200 bg-white">
-        <div className="border-b border-zinc-100 px-5 py-4">
+      <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-panel">
+        <div className="border-b border-line-hair px-5 py-4">
           <div className="text-sm font-semibold text-brand">{zh.appName}</div>
-          <div className="mt-0.5 text-[11px] text-zinc-400">vibe coding 的标准化工作台</div>
+          <div className="mt-0.5 text-[11px] text-ink-faint">vibe coding 的标准化工作台</div>
         </div>
         <nav className="flex-1 p-2">
           {NAV.map((item) => (
@@ -107,7 +107,7 @@ export function AppShell() {
                 `mb-0.5 block rounded-md px-3 py-2 text-sm ${
                   isActive
                     ? 'bg-brand-soft font-medium text-brand'
-                    : 'text-zinc-600 hover:bg-zinc-50'
+                    : 'text-ink-muted hover:bg-fill-soft'
                 }`
               }
             >
@@ -115,7 +115,7 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-zinc-100 px-5 py-3 text-[11px] leading-relaxed text-zinc-400">
+        <div className="border-t border-line-hair px-5 py-3 text-[11px] leading-relaxed text-ink-faint">
           数据存 <span className="mono">~/.openvibe/</span>
           <br />
           本工具仅监听 127.0.0.1

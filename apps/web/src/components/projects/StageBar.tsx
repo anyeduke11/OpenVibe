@@ -24,7 +24,7 @@ export function StageBar(props: {
               className={`flex h-full flex-col items-start gap-0.5 rounded-md border px-3 py-2 text-left transition-colors ${
                 isCurrent
                   ? 'border-brand bg-brand-soft text-brand'
-                  : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                  : 'border-line bg-panel text-ink-muted hover:border-line-strong'
               }`}
             >
               <span className="text-xs font-medium">

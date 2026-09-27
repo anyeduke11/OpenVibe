@@ -75,7 +75,7 @@ function MoveButton(props: {
       title={props.label}
       aria-label={props.label}
       disabled={props.disabled}
-      className="rounded px-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30"
+      className="rounded px-1 text-ink-faint hover:bg-fill hover:text-ink-body disabled:opacity-30"
       onClick={props.onClick}
     >
       {props.glyph}
@@ -114,19 +114,19 @@ function StageRow(props: {
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-md border bg-white p-3 ${isDragging ? 'border-brand shadow-md' : 'border-zinc-200'}`}
+      className={`rounded-md border bg-panel p-3 ${isDragging ? 'border-brand shadow-md' : 'border-line'}`}
     >
       <div className="flex items-center gap-2">
         <button
           type="button"
           aria-label={zh.flows.editor.moveHint}
-          className="cursor-grab select-none px-1 text-zinc-400 hover:text-zinc-700"
+          className="cursor-grab select-none px-1 text-ink-faint hover:text-ink-body"
           {...attributes}
           {...listeners}
         >
           ⠿
         </button>
-        <span className="w-6 text-center text-xs text-zinc-400">{String(props.index + 1)}</span>
+        <span className="w-6 text-center text-xs text-ink-faint">{String(props.index + 1)}</span>
         <MoveButton
           glyph="↑"
           label={zh.flows.editor.moveUp}
@@ -180,7 +180,7 @@ function StageRow(props: {
               />
               <button
                 type="button"
-                className="text-xs text-zinc-400 hover:text-red-600"
+                className="text-xs text-ink-faint hover:text-danger-600"
                 onClick={() =>
                   set(
                     'checklist',
@@ -303,7 +303,7 @@ export function FlowTemplateEditor(props: {
         title={template === null ? zh.flows.editor.createTitle : zh.flows.editor.editTitle}
         footer={
           <>
-            <span className="mr-auto text-[11px] text-zinc-400">{zh.flows.editor.moveHint}</span>
+            <span className="mr-auto text-[11px] text-ink-faint">{zh.flows.editor.moveHint}</span>
             <button className={btnGhost} onClick={props.onClose}>
               {zh.editor.cancel}
             </button>

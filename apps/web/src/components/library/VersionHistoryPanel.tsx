@@ -27,9 +27,9 @@ export function VersionHistoryPanel(props: {
     setPicked((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev.slice(-1), p]))
   }
 
-  if (isLoading) return <p className="text-sm text-zinc-400">…</p>
+  if (isLoading) return <p className="text-sm text-ink-faint">…</p>
   const list = [...(versions ?? [])].sort((a, b) => b.versionNo - a.versionNo)
-  if (list.length === 0) return <p className="text-sm text-zinc-400">{zh.versions.empty}</p>
+  if (list.length === 0) return <p className="text-sm text-ink-faint">{zh.versions.empty}</p>
 
   const ordered = [...picked].sort((a, b) => {
     const rank = (p: Pick) => (p === 'current' ? Number.MAX_SAFE_INTEGER : p)
@@ -39,7 +39,7 @@ export function VersionHistoryPanel(props: {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-zinc-500">{zh.versions.pickTwo}</p>
+        <p className="text-xs text-ink-subtle">{zh.versions.pickTwo}</p>
         {picked.length === 2 && (
           <button className={btnGhost} onClick={() => setPicked([])}>
             {zh.common.clearFilter}
@@ -48,7 +48,7 @@ export function VersionHistoryPanel(props: {
       </div>
 
       <div className="grid gap-2">
-        <label className="flex cursor-pointer items-center gap-3 rounded-md border border-zinc-200 px-3 py-2 text-sm">
+        <label className="flex cursor-pointer items-center gap-3 rounded-md border border-line px-3 py-2 text-sm">
           <input
             type="checkbox"
             checked={picked.includes('current')}
@@ -60,7 +60,7 @@ export function VersionHistoryPanel(props: {
         {list.map((v) => (
           <div
             key={v.id}
-            className="flex flex-wrap items-center gap-3 rounded-md border border-zinc-200 px-3 py-2 text-sm"
+            className="flex flex-wrap items-center gap-3 rounded-md border border-line px-3 py-2 text-sm"
           >
             <input
               type="checkbox"
@@ -68,16 +68,16 @@ export function VersionHistoryPanel(props: {
               onChange={() => toggle(v.versionNo)}
             />
             <span className="mono font-medium">v{String(v.versionNo)}</span>
-            <span className="text-xs text-zinc-400">{v.createdAt}</span>
+            <span className="text-xs text-ink-faint">{v.createdAt}</span>
             {v.changelog !== '' && (
-              <span className="text-xs text-zinc-500">
+              <span className="text-xs text-ink-subtle">
                 {zh.versions.changelog}：{v.changelog}
               </span>
             )}
             <span className="ml-auto flex items-center gap-2">
               {pendingRollback === v.versionNo ? (
                 <>
-                  <span className="text-xs text-red-700">
+                  <span className="text-xs text-danger-700">
                     {zh.versions.rollbackConfirm(v.versionNo)}
                   </span>
                   <button

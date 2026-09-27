@@ -37,7 +37,7 @@ export function FlowsPage() {
 
   const section = (title: string, cards: FlowTemplateOut[]) => (
     <section>
-      <h2 className="mb-2 text-xs font-medium text-zinc-500">{title}</h2>
+      <h2 className="mb-2 text-xs font-medium text-ink-subtle">{title}</h2>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {cards.map((t) => (
           <FlowTemplateCard
@@ -55,7 +55,7 @@ export function FlowsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-3 border-b border-zinc-100 px-5 py-3">
+      <header className="flex items-center gap-3 border-b border-line-hair px-5 py-3">
         <h1 className="mr-auto text-base font-semibold">{zh.flows.title}</h1>
         <button className={btnPrimary} onClick={() => setEditor({ template: null })}>
           {zh.flows.newFlow}
@@ -63,12 +63,12 @@ export function FlowsPage() {
       </header>
 
       <div className="flex-1 overflow-auto px-5 py-4">
-        {list.isLoading && <p className="text-sm text-zinc-400">{zh.common.loading}</p>}
+        {list.isLoading && <p className="text-sm text-ink-faint">{zh.common.loading}</p>}
         {list.isError && (
-          <p className="text-sm text-red-700">{zh.common.failed((list.error as Error).message)}</p>
+          <p className="text-sm text-danger-700">{zh.common.failed((list.error as Error).message)}</p>
         )}
         {items.length === 0 && !list.isLoading && (
-          <p className="text-sm text-zinc-500">{zh.flows.empty}</p>
+          <p className="text-sm text-ink-subtle">{zh.flows.empty}</p>
         )}
         <div className="space-y-5">
           {builtins.length > 0 && section(zh.flows.builtin, builtins)}
@@ -95,7 +95,7 @@ export function FlowsPage() {
                 {zh.editor.cancel}
               </button>
               <button
-                className={`${btnPrimary} border-red-600 bg-red-600 hover:bg-red-700`}
+                className={`${btnPrimary} border-danger-600 bg-danger-600 hover:bg-danger-700`}
                 disabled={remove.isPending}
                 onClick={() => {
                   if (deleting === null) return
@@ -116,7 +116,7 @@ export function FlowsPage() {
           {deleting !== null && (
             <div className="space-y-2 text-sm">
               <p>{zh.flows.deleteDialog.body(deleting.name)}</p>
-              <p className="text-xs text-zinc-500">{zh.flows.deleteDialog.note}</p>
+              <p className="text-xs text-ink-subtle">{zh.flows.deleteDialog.note}</p>
             </div>
           )}
         </DialogPanel>

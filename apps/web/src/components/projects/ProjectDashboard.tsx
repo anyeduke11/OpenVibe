@@ -9,8 +9,8 @@ import { chipCls, inputCls } from '../ui/styles'
 function Row(props: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-baseline gap-2 text-xs">
-      <span className="w-20 shrink-0 text-zinc-500">{props.label}</span>
-      <span className="min-w-0 break-all text-zinc-800">{props.children}</span>
+      <span className="w-20 shrink-0 text-ink-subtle">{props.label}</span>
+      <span className="min-w-0 break-all text-ink">{props.children}</span>
     </div>
   )
 }
@@ -38,7 +38,7 @@ export function ProjectDashboard(props: {
   }
 
   return (
-    <section className="grid gap-4 rounded-lg border border-zinc-200 bg-white p-4 md:grid-cols-2">
+    <section className="grid gap-4 rounded-lg border border-line bg-panel p-4 md:grid-cols-2">
       <div className="space-y-1.5">
         <Row label={zh.projects.labels.flow}>
           {props.templateName ?? zh.projects.detail.snapshotUnknown}
@@ -49,7 +49,7 @@ export function ProjectDashboard(props: {
         <Row label={zh.projects.labels.path}>
           {project.localPath ?? zh.projects.noPath}
           {project.status === 'archived' && (
-            <span className={`${chipCls} ml-2 border-zinc-200 bg-zinc-50 text-zinc-500`}>
+            <span className={`${chipCls} ml-2 border-line bg-fill-soft text-ink-subtle`}>
               {zh.projects.status.archived}
             </span>
           )}
@@ -59,7 +59,7 @@ export function ProjectDashboard(props: {
         </Row>
         <Row label={zh.projects.labels.lastLog}>
           {health.lastLogAt ?? zh.projects.never}
-          <span className="ml-2 text-[11px] text-zinc-400">
+          <span className="ml-2 text-[11px] text-ink-faint">
             {`${String(health.logCount)} logs · ${String(health.taskCount)} tasks`}
           </span>
         </Row>
@@ -79,13 +79,13 @@ export function ProjectDashboard(props: {
         </div>
       </div>
 
-      <div className="space-y-1.5 border-zinc-100 md:border-l md:pl-4">
-        <h3 className="text-xs font-semibold text-zinc-600">{zh.projects.injection.title}</h3>
-        <p className="text-[11px] text-zinc-400">{zh.projects.injection.hint}</p>
+      <div className="space-y-1.5 border-line-hair md:border-l md:pl-4">
+        <h3 className="text-xs font-semibold text-ink-muted">{zh.projects.injection.title}</h3>
+        <p className="text-[11px] text-ink-faint">{zh.projects.injection.hint}</p>
         {project.localPath === null ? (
-          <p className="text-xs text-zinc-500">{zh.projects.injection.noPath}</p>
+          <p className="text-xs text-ink-subtle">{zh.projects.injection.noPath}</p>
         ) : injection === undefined ? (
-          <p className="text-xs text-zinc-400">{zh.projects.injection.checkFailed}</p>
+          <p className="text-xs text-ink-faint">{zh.projects.injection.checkFailed}</p>
         ) : (
           <>
             <Row label={zh.projects.injection.lockPresent}>
@@ -93,7 +93,7 @@ export function ProjectDashboard(props: {
             </Row>
             {injection.error !== undefined && (
               <Row label={zh.projects.injection.error}>
-                <span className="text-red-700">{injection.error}</span>
+                <span className="text-danger-700">{injection.error}</span>
               </Row>
             )}
             {injection.pack !== undefined && (
@@ -115,9 +115,9 @@ export function ProjectDashboard(props: {
             {injection.upToDate !== undefined && (
               <Row label={zh.projects.labels.injection}>
                 {injection.upToDate ? (
-                  <span className="text-emerald-700">{zh.projects.injection.consistent}</span>
+                  <span className="text-success-700">{zh.projects.injection.consistent}</span>
                 ) : (
-                  <span className="text-amber-700">
+                  <span className="text-warn-700">
                     {zh.projects.injection.inconsistent(
                       injection.pack?.version ?? '?',
                       injection.registered?.version ?? '?',
@@ -130,7 +130,7 @@ export function ProjectDashboard(props: {
               <Row label={zh.projects.injection.suggested}>
                 <button
                   type="button"
-                  className="mono rounded border border-zinc-200 bg-zinc-50 px-1.5 py-0.5 text-[11px] hover:border-brand"
+                  className="mono rounded border border-line bg-fill-soft px-1.5 py-0.5 text-[11px] hover:border-brand"
                   onClick={() => copy(injection.suggestedCommand ?? '')}
                 >
                   {injection.suggestedCommand} {zh.projects.injection.copy}

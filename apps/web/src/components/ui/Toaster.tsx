@@ -45,8 +45,8 @@ export function Toaster() {
           duration={4000}
           className={`mb-2 flex max-w-sm items-center gap-3 rounded-md border px-4 py-3 text-sm shadow-lg ${
             m.tone === 'error'
-              ? 'border-red-200 bg-red-50 text-red-800'
-              : 'border-zinc-200 bg-white text-zinc-800'
+              ? 'border-danger-200 bg-danger-50 text-danger-800'
+              : 'border-line bg-panel text-ink'
           }`}
         >
           <ToastPrimitive.Title className="font-normal">{m.text}</ToastPrimitive.Title>

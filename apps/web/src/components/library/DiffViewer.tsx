@@ -5,16 +5,16 @@ import { zh } from '../../i18n/zh'
 export function DiffViewer(props: { oldText: string; newText: string }) {
   const parts = diffLines(props.oldText, props.newText)
   return (
-    <div className="mono overflow-auto rounded-md border border-zinc-200 bg-zinc-50 text-xs">
-      <div className="border-b border-zinc-200 bg-white px-3 py-1.5 text-[11px] text-zinc-500">
+    <div className="mono overflow-auto rounded-md border border-line bg-fill-soft text-xs">
+      <div className="border-b border-line bg-panel px-3 py-1.5 text-[11px] text-ink-subtle">
         {zh.versions.compare}
       </div>
       {parts.map((part, index) => {
         const tone = part.added
-          ? 'bg-emerald-50 text-emerald-900'
+          ? 'bg-success-50 text-success-900'
           : part.removed
-            ? 'bg-red-50 text-red-900'
-            : 'bg-white text-zinc-700'
+            ? 'bg-danger-50 text-danger-900'
+            : 'bg-panel text-ink-body'
         const sign = part.added ? '+' : part.removed ? '−' : ' '
         const lines = part.value.replace(/\n$/, '').split('\n')
         return (

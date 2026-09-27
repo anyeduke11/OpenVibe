@@ -21,7 +21,7 @@ export function SkillsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-wrap items-center gap-2 border-b border-zinc-100 px-5 py-3">
+      <header className="flex flex-wrap items-center gap-2 border-b border-line-hair px-5 py-3">
         <h1 className="mr-auto text-base font-semibold">{zh.skills.title}</h1>
         <input
           className={`${inputCls} w-72`}
@@ -57,9 +57,9 @@ export function SkillsPage() {
         onCreate={() => setEditor({ skill: null })}
       />
 
-      <footer className="border-t border-zinc-100 px-5 py-2 text-xs text-zinc-500">
+      <footer className="border-t border-line-hair px-5 py-2 text-xs text-ink-subtle">
         {zh.skills.total(list.data?.total ?? 0)}
-        {list.isFetching && <span className="ml-2 text-zinc-400">刷新中…</span>}
+        {list.isFetching && <span className="ml-2 text-ink-faint">刷新中…</span>}
       </footer>
 
       {editor !== null && (
@@ -94,7 +94,7 @@ export function SkillsPage() {
                 {zh.editor.cancel}
               </button>
               <button
-                className={`${btnPrimary} border-red-600 bg-red-600 hover:bg-red-700`}
+                className={`${btnPrimary} border-danger-600 bg-danger-600 hover:bg-danger-700`}
                 disabled={remove.isPending}
                 onClick={() => {
                   if (deleting === null) return
@@ -115,7 +115,7 @@ export function SkillsPage() {
           {deleting !== null && (
             <div className="space-y-2 text-sm">
               <p>{zh.skills.deleteDialog.body(deleting.name)}</p>
-              <p className="text-xs text-zinc-500">{zh.skills.deleteDialog.note}</p>
+              <p className="text-xs text-ink-subtle">{zh.skills.deleteDialog.note}</p>
             </div>
           )}
         </DialogPanel>

@@ -1320,3 +1320,26 @@
 - **未验证面净变化**: **净减 0**。合并本身不产出任何新凭据，⑦ 的第 7 次推送仍未放行，⑧ 的三平台凭据与 ⑰ 的两条 09-23 证据照旧挂着。收益在另一头：`main` 与开发 tip 从此同树，下一轮无论从哪支开工，起点都是同一份代码、同一份五闸证据，不需要再重砸一遍基线。
 - **潜在风险**: ① `main` 与 `feat/p1.1-t10-clean-size` 现指向同一 commit。若并行会话直接在 `main` 上落笔，下次合并的第 2 步就会在 `git branch -vv` 的 behind 上显形——**只要每次合并前读那一行，就不会静默出错；跳过第 2 步才会**。② 本次是纯快进所以没有冲突面，**不代表下次也是**：一旦 `git rev-list --count feat..main` 大于 0，`fetch .` 会直接拒绝，那时**不能加 `+` 硬来**（那等于用 `--force` 覆盖别人的主干），要停下来问。
 - **owner 手上未收的**: 队列 `待裁` 已为 0；剩 **①** 19 行种子逐条签（`docs/devlog-evidence/DEV-0037/seed-prescreen.md` §4）、**②** 真 `npm publish`（D15 起点那半）、**⑦** 第 7 次推送。**本地已整合完，要让远端也整合只有一条路：推送。** 现在 `origin/main..main` = 14 笔、`main..origin/main` = 0，即一次纯快进 push——不改历史、不删东西、不动 tag。等你放行。
+
+## [DEV-0056] 前端优化第一刀：设计 token 层落地（625 处色阶收进 @theme 单一出处）· **换肤与收 token 是两件事，顺序错了新配色会被旧字面量全部覆盖**
+
+- **时间**: 2026-09-27 15:0x–16:0x +0800。开工 HEAD `9281558`；落笔时 HEAD 已被并行会话推进到 `0d81efa`，`git rev-list --count origin/main..HEAD` = 1（第 7 次推送在本轮之内由另一会话完成，run `36304434895`）。开工前实测 `git status --porcelain` 只有 `?? 原型/` ⇒ 与并行会话落笔面不重叠；**提交前复测**：工作树脏 52 支，其中 51 支为本笔（`apps/web/src` 全域 + 新建 `tests/design-tokens.test.ts`），1 支是**他人未提交改动** `docs/devlog-evidence/DEV-0025/three-smokes.txt` ⇒ 本笔 `git add` 路径限定在 `apps/web/src` 与那一支新文件，未碰 docs。
+- **类型**: §0.3 **B 级 · 产品代码全域 + 新增用例四支**。判据：改的是 `apps/web/src` 的类名字符串与 `index.css` 的 `@theme` 块；`design.md` §7/§8 契约一字未动，且全仓 `docs/` 对品牌色零命中 ⇒ 颜色属实现层不属契约层。产出视觉零变化（下方像素凭据），故本笔不需要 owner 裁决；**需要裁决的是换肤选哪一方案**，见「owner 手上未收的」。
+- **关联文件**: `apps/web/src/index.css`（+57 −9）、`apps/web/src/**/*.{ts,tsx}` 49 支、`tests/design-tokens.test.ts`（新建 96 行 / 4 支断言）、`apps/web/src/components/packs/PackPreviewPane.test.tsx`（2 行，选择器与注释跟着色名走）。
+- **问题描述**: dev-plan §15 归 P2 第 7 项（暗色主题）把前置写成「设计 token 化重构」，但那条给的量级是错的——它说 `.html-md` 内「30+ 处字面 hex」，实测 HEAD 版 `index.css` 全文裸 hex 只有 **11 处（9 个不同值）**；真正的债在别处：**625 处** Tailwind 字面色阶（中性族 491 / red 52 / amber 22 / emerald 10 / sky 3 / `bg-white` 45 / `text-white` 1 / `bg-black/30` 1）。而「先收口再换肤」不是洁癖：`@theme` 当时只有 2 支 token，把品牌色从绿换成暖橙只能改到 `text-brand` 那 26 处，其余 625 处仍会把新配色按旧灰阶盖回去。
+- **实现思路**:
+  1. **中性族按角色命名，状态族保留强度下标**。理由各一条：同一个 shade 在不同 utility 下承担不同角色（`zinc-100` 既是 8 处填充又是 68 处描边，压成一个名字就等于宣称它们该同色，而换肤时未必）；状态族反过来，`red` 同时有 soft 容器（`bg-red-50 + border-red-200 + text-red-700`）与 solid 按钮（`bg-red-600 + border-red-600 + text-on-brand`），把 600/700/800/900 四档文字压成一档会直接改对比度。**映射一律一对一，不合并任何 shade**。
+  2. **值全取 Tailwind v4.3.3 自己的 oklch 字面量，不做 `var()` 二级引用**。两个原因：v4 只产出被用到的 theme 变量，二级引用会让「引用侧先消失」变成静默失效；且文本可比对——20 支状态 token + 13 支中性 token 已逐条对 `node_modules/.pnpm/tailwindcss@4.3.3/node_modules/tailwindcss/theme.css` 比对，**0 处不一致**。剩下 5 支是刻意的自有值：`panel #fff`、`scrim #000`、`on-brand #fff`、`brand`、`brand-soft`。
+  3. codemod 用前缀感知的单次正则（`.zwork/probe/token_sweep.py`，一次性工具不入库），**先对 `.zwork` 里的一份 src 副本试跑**（同为 625 sites / 49 files）再动工作树。
+  4. `index.css` 块外的 hex 改指 token 前先量过等价性：headless Chrome 画布取色，对 10 档 zinc 逐个比 v3 hex vs v4 oklch ⇒ **6 档完全同值**（50/100/200/300/800/900），4 档差 1–2 个 8bit 级（400/500/600/700）。全笔唯一落到像素上的数值变化因此只有一处：`.html-md blockquote` 文字 `#52525b` → `#52525c`（蓝 +1/255，肉眼不可判，且它本来就与 `.html-md` 之外的 zinc-600 不一致）。
+- **测试验证（五闸 + 三条独立凭据）**:
+  - **像素**：7 条路由（library / terms / skills / flows / projects / packs / settings）1440×1200 headless Chrome 截图，**改动前 / HMR 后 / 冷重启 vite 后三份 md5 逐张相同**。冷重启不是多余：HMR 那一轮的注入 `<style>` 里同时有 38 支新 token 规则**和全部旧 `.text-zinc-*` 规则**，此时「像素相同」证明力不足；清冷 CSS 图后旧 utility 规则 **0 支**、新 token 规则 **35 支**，冷渲染 DOM 的 3633 个类名里字面色阶 **0 个**、语义色名 974 个。
+  - **五闸 @ `0d81efa` 工作树**：`lint` rc=0 / `typecheck` rc=0 / `test` **457 passed · 50 files**（原 453/49，本笔 +4）/ `seed:check` 四条全过 / `bundle:check` 通过（入口 293.09kB ≤ 300kB、23 chunk、CSS 27.28kB）。
+  - **新闸自身做了变异反证四连**（否则它就是恒真断言）：植入 `text-zinc-500` ⇒ 恰 1 红；植入未声明色名 `bg-panel-hi` ⇒ 恰 1 红；在 `.mono` 规则塞 `#abc123` ⇒ 恰 1 红；在 `@theme` 加一支无人引用的 `--color-info-900` ⇒ 恰 1 红。撤掉后 4/4 绿，且被临时改动的 `index.css` 复原后**与改前字节相同**。
+  - **一次真红**：`PackPreviewPane.test.tsx:68` 原按 `[class*="amber-700"]` 查警示行，色名一换即红。该断言的意图是「恰一行处于警示色态」，选择器已换成带 utility 前缀的 `[class*="text-warn-700"]`——顺带把「裸色名误命中」这条路也堵掉。
+- **净发现**:
+  ① **dev-plan 里那条"前置"给的量级不可复现**（写的是 30+ 处 hex，真债是 625 处 utility）。旧账不改（日志不回改），但引用它的人请注意：那句只能证明「当时没有 token 层」，不能用来估收敛面。
+  ② **`原型/` 未被 gitignore ⇒ 它落在 Tailwind v4 的自动内容扫描范围内**。今天无泄漏：从 4 支原型 HTML 抽出的 24 个候选类名在已构建 CSS 中 **0 命中**；但这意味着"删掉一个未跟踪目录会让生产 CSS 变化"是可发生的。对照组是本仓已有的 `.zwork/`——它靠自带的 `.zwork/.gitignore`（内容就一个 `*`）自屏蔽，所以既不脏 `git status` 也不进扫描。原型目录的处置随换肤裁决一起走。
+- **未验证面净变化**: **净增一格**：暖系三方案（暖纸 a / 暖木 b / 暖阳 c）未选，本笔只保证「选任何一个都只改 `@theme` 一块」，不保证选完好看。**暗色态仍未验**（38 支 token 全是浅色彩度；b 暖木是暗色，采纳即触碰 `dev-plan.md:755`「MVP 仅浅色」⇒ 需 owner 裁）。**对比度无闸**：token 值未变故既有可读性结论仍成立，但换肤那一笔没有 contrast 回归可跑，这是留着的缺口。三平台 CI 未跑本笔（推分支 = 零 run 的老规则仍成立，本笔在本地 `main`）。
+- **潜在风险**: ① codemod 不入库 ⇒ 映射表只活在本笔与 `@theme` 的注释里，日后重跑要反推；② 角色名与 shade 号解耦后「`ink-subtle` 原来是几号」不再自明，读码时要跳一次 CSS；③ **同值不同角色**有两对（`canvas`/`fill-soft` 同为 zinc-50，`line-hair`/`fill` 同为 zinc-100），换肤时漏改一对会出现「页面底与 hover 同色」这种不报错的错——这是角色命名换来可读性的代价，`tests/design-tokens.test.ts` 只保证 token 存在与被引用，不保证语义配对；④ `PackPreviewPane` 那类**按类名查元素**的断言以后还会跟着色名红，属预期成本。
+- **owner 手上未收的**: **换肤方案三选一**（对比画布已出：`~/Documents/暖系对比-2026-09-27/暖系-三方案对比画布.png`；选 b 暖木需连带裁 `dev-plan.md:755`）+ **`原型/` 处置**（入库 or 自屏蔽）。本笔是否随下一笔推送待放行。

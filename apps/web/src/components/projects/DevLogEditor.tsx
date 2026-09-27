@@ -87,7 +87,7 @@ export function DevLogEditor(props: {
         title={zh.projects.devlog.newEntry(type)}
         footer={
           <>
-            <span className="mr-auto text-[11px] text-zinc-400">{zh.projects.devlog.prefillHint}</span>
+            <span className="mr-auto text-[11px] text-ink-faint">{zh.projects.devlog.prefillHint}</span>
             <button className={btnGhost} onClick={props.onClose}>
               {zh.editor.cancel}
             </button>
@@ -109,7 +109,7 @@ export function DevLogEditor(props: {
           </div>
           <div>
             <label className={labelCls}>{zh.projects.devlog.fields.body}</label>
-            <div className="h-72 overflow-hidden rounded-md border border-zinc-200">
+            <div className="h-72 overflow-hidden rounded-md border border-line">
               <CodeEditor value={body} onChange={setBody} />
             </div>
           </div>
@@ -138,7 +138,7 @@ export function DevLogEditor(props: {
                 onChange={(e) => setResult(e.target.value)}
               />
             </div>
-            <p className="mt-1 text-[11px] text-zinc-400">{zh.projects.devlog.evidenceHint}</p>
+            <p className="mt-1 text-[11px] text-ink-faint">{zh.projects.devlog.evidenceHint}</p>
           </div>
         </div>
       </DialogPanel>

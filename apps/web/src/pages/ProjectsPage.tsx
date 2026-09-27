@@ -22,7 +22,7 @@ export function ProjectsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-wrap items-center gap-2 border-b border-zinc-100 px-5 py-3">
+      <header className="flex flex-wrap items-center gap-2 border-b border-line-hair px-5 py-3">
         <h1 className="mr-auto text-base font-semibold">{zh.projects.title}</h1>
         <select
           className={`${inputCls} w-auto appearance-none`}
@@ -52,9 +52,9 @@ export function ProjectsPage() {
         }
       />
 
-      <footer className="flex items-center gap-3 border-t border-zinc-100 px-5 py-2 text-xs text-zinc-500">
+      <footer className="flex items-center gap-3 border-t border-line-hair px-5 py-2 text-xs text-ink-subtle">
         <span>{zh.projects.total(items.length)}</span>
-        {list.isFetching && <span className="text-zinc-400">刷新中…</span>}
+        {list.isFetching && <span className="text-ink-faint">刷新中…</span>}
         <Link className="ml-auto text-brand hover:underline" to="/flows">
           {zh.nav.flows}
         </Link>
@@ -71,7 +71,7 @@ export function ProjectsPage() {
                 {zh.editor.cancel}
               </button>
               <button
-                className={`${btnPrimary} border-red-600 bg-red-600 hover:bg-red-700`}
+                className={`${btnPrimary} border-danger-600 bg-danger-600 hover:bg-danger-700`}
                 disabled={remove.isPending}
                 onClick={() => {
                   if (deleting === null) return
@@ -92,7 +92,7 @@ export function ProjectsPage() {
           {deleting !== null && (
             <div className="space-y-2 text-sm">
               <p>{zh.projects.deleteDialog.body(deleting.name)}</p>
-              <p className="text-xs text-red-700">
+              <p className="text-xs text-danger-700">
                 {zh.projects.deleteDialog.counts(deleting.health.logCount, deleting.health.taskCount)}
               </p>
             </div>

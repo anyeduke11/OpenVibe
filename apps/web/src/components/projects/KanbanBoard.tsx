@@ -47,7 +47,7 @@ function ArrowButton(props: { glyph: string; label: string; disabled: boolean; o
       title={props.label}
       aria-label={props.label}
       disabled={props.disabled}
-      className="rounded px-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-30"
+      className="rounded px-1 text-ink-faint hover:bg-fill hover:text-ink-body disabled:opacity-30"
       onClick={props.onClick}
     >
       {props.glyph}
@@ -78,15 +78,15 @@ function TaskCard(props: CardProps) {
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-md border bg-white p-2 text-sm ${
-        isDragging ? 'border-brand shadow-md' : 'border-zinc-200'
+      className={`rounded-md border bg-panel p-2 text-sm ${
+        isDragging ? 'border-brand shadow-md' : 'border-line'
       }`}
     >
       <div className="flex items-start gap-1.5">
         <button
           type="button"
           aria-label={zh.projects.kanban.dragHint}
-          className="cursor-grab select-none px-0.5 text-zinc-300 hover:text-zinc-600"
+          className="cursor-grab select-none px-0.5 text-ink-ghost hover:text-ink-muted"
           {...attributes}
           {...listeners}
         >
@@ -110,7 +110,7 @@ function TaskCard(props: CardProps) {
         ) : (
           <button
             type="button"
-            className="flex-1 text-left text-zinc-800 hover:underline"
+            className="flex-1 text-left text-ink hover:underline"
             onClick={() => {
               setDraft(task.title)
               setEditing(true)
@@ -122,7 +122,7 @@ function TaskCard(props: CardProps) {
         <button
           type="button"
           aria-label={zh.flows.actions.del}
-          className="px-0.5 text-zinc-300 hover:text-red-600"
+          className="px-0.5 text-ink-ghost hover:text-danger-600"
           onClick={() => props.onDelete(task.id)}
         >
           ✕
@@ -131,7 +131,7 @@ function TaskCard(props: CardProps) {
 
       <div className="mt-1.5 flex items-center gap-1 pl-5">
         <select
-          className="min-w-0 flex-1 truncate rounded border border-zinc-200 bg-zinc-50 px-1 py-0.5 text-[11px] text-zinc-600"
+          className="min-w-0 flex-1 truncate rounded border border-line bg-fill-soft px-1 py-0.5 text-[11px] text-ink-muted"
           value={task.stageName ?? ''}
           aria-label={zh.projects.kanban.stageTag}
           onChange={(e) => props.onSetStage(task.id, e.target.value === '' ? null : e.target.value)}
@@ -146,7 +146,7 @@ function TaskCard(props: CardProps) {
             </option>
           ))}
         </select>
-        <span className={`${chipCls} border-zinc-100 bg-zinc-50 text-zinc-400`}>{String(index + 1)}</span>
+        <span className={`${chipCls} border-line-hair bg-fill-soft text-ink-faint`}>{String(index + 1)}</span>
       </div>
 
       <div className="mt-1 flex items-center gap-0.5 pl-5">
@@ -194,12 +194,12 @@ function Column(props: { status: TaskStatus; count: number; children: ReactNode 
     <div
       ref={setNodeRef}
       className={`flex min-h-40 flex-col rounded-lg border p-2 ${
-        isOver ? 'border-brand bg-brand-soft/40' : 'border-zinc-200 bg-zinc-50'
+        isOver ? 'border-brand bg-brand-soft/40' : 'border-line bg-fill-soft'
       }`}
     >
       <header className="mb-2 flex items-center gap-2 px-1">
-        <h3 className="text-xs font-medium text-zinc-600">{zh.projects.kanban.columns[props.status]}</h3>
-        <span className="text-[11px] text-zinc-400">{String(props.count)}</span>
+        <h3 className="text-xs font-medium text-ink-muted">{zh.projects.kanban.columns[props.status]}</h3>
+        <span className="text-[11px] text-ink-faint">{String(props.count)}</span>
       </header>
       {props.children}
     </div>
@@ -292,10 +292,10 @@ export function KanbanBoard(props: {
   }
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4">
+    <section className="rounded-lg border border-line bg-panel p-4">
       <header className="mb-2 flex items-center gap-2">
         <h2 className="text-sm font-semibold">{zh.projects.kanban.title}</h2>
-        <span className="text-[11px] text-zinc-400">{zh.projects.kanban.dragHint}</span>
+        <span className="text-[11px] text-ink-faint">{zh.projects.kanban.dragHint}</span>
         {activeId !== null && (
           <span className="ml-auto text-[11px] text-brand">{zh.projects.kanban.dragging}</span>
         )}
@@ -332,7 +332,7 @@ export function KanbanBoard(props: {
                       />
                     ))}
                     {list.length === 0 && (
-                      <li className="px-1 py-3 text-center text-[11px] text-zinc-400">
+                      <li className="px-1 py-3 text-center text-[11px] text-ink-faint">
                         {zh.projects.kanban.emptyColumn}
                       </li>
                     )}

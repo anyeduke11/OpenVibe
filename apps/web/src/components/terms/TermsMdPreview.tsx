@@ -20,12 +20,12 @@ export function TermsMdPreview(props: { termIds: string[]; orderBy: TermsOrderBy
     toast(zh.terms.preview.downloaded)
   }
 
-  if (termIds.length === 0) return <p className="text-sm text-zinc-400">{zh.terms.preview.empty}</p>
+  if (termIds.length === 0) return <p className="text-sm text-ink-faint">{zh.terms.preview.empty}</p>
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-zinc-500">{zh.terms.selection.label(termIds.length)}</span>
+        <span className="text-xs text-ink-subtle">{zh.terms.selection.label(termIds.length)}</span>
         <span className="ml-auto" />
         <button
           className={btnGhost}
@@ -43,14 +43,14 @@ export function TermsMdPreview(props: { termIds: string[]; orderBy: TermsOrderBy
           {zh.terms.preview.download}
         </button>
       </div>
-      {query.isError && <p className="text-sm text-red-600">{query.error.message}</p>}
-      {query.isLoading && <p className="text-sm text-zinc-400">加载中…</p>}
+      {query.isError && <p className="text-sm text-danger-600">{query.error.message}</p>}
+      {query.isLoading && <p className="text-sm text-ink-faint">加载中…</p>}
       {content !== '' && (
-        <pre className="mono min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-zinc-200 bg-zinc-50 p-3 text-[12px] leading-relaxed text-zinc-800">
+        <pre className="mono min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-fill-soft p-3 text-[12px] leading-relaxed text-ink">
           {content}
         </pre>
       )}
-      <p className="text-[11px] text-zinc-400">{zh.terms.preview.note}</p>
+      <p className="text-[11px] text-ink-faint">{zh.terms.preview.note}</p>
     </div>
   )
 }

@@ -9,7 +9,7 @@ export function TagFilterBar(props: {
   if (props.tags.length === 0) return null
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-xs text-zinc-500">{zh.common.allTags}</span>
+      <span className="text-xs text-ink-subtle">{zh.common.allTags}</span>
       {props.tags.map((tag) => {
         const on = props.selected === tag
         return (
@@ -19,7 +19,7 @@ export function TagFilterBar(props: {
             className={`rounded-full border px-2.5 py-0.5 text-xs ${
               on
                 ? 'border-brand bg-brand-soft text-brand'
-                : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                : 'border-line bg-panel text-ink-muted hover:border-line-strong'
             }`}
           >
             {tag}
@@ -28,7 +28,7 @@ export function TagFilterBar(props: {
       })}
       {props.selected !== undefined && (
         <button
-          className="text-xs text-zinc-400 underline hover:text-zinc-700"
+          className="text-xs text-ink-faint underline hover:text-ink-body"
           onClick={() => props.onToggle(undefined)}
         >
           {zh.common.clearFilter}

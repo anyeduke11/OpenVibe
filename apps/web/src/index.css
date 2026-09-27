@@ -1,8 +1,56 @@
 @import 'tailwindcss';
 
+/* 全仓颜色的单一出处：换肤只改本块，调用点不再出现字面色阶。
+   中性族按角色命名（一个 shade 在 text/border/bg 下承担不同角色）；
+   状态族保留强度下标——同一状态有 soft 容器与 solid 按钮两形态，合并会改对比度。 */
 @theme {
+  /* 表面 */
+  --color-canvas: oklch(98.5% 0 none);
+  --color-panel: #fff;
+  --color-fill-soft: oklch(98.5% 0 none);
+  --color-fill: oklch(96.7% 0.001 286.375);
+  --color-scrim: #000;
+
+  /* 描边 */
+  --color-line-hair: oklch(96.7% 0.001 286.375);
+  --color-line: oklch(92% 0.004 286.32);
+  --color-line-strong: oklch(87.1% 0.006 286.286);
+
+  /* 文字 */
+  --color-ink-ghost: oklch(87.1% 0.006 286.286);
+  --color-ink-faint: oklch(70.5% 0.015 286.067);
+  --color-ink-subtle: oklch(55.2% 0.016 285.938);
+  --color-ink-muted: oklch(44.2% 0.017 285.786);
+  --color-ink-body: oklch(37% 0.013 285.805);
+  --color-ink: oklch(27.4% 0.006 286.033);
+  --color-ink-strong: oklch(21% 0.006 285.885);
+
+  /* 品牌 */
   --color-brand: #2f6f4f;
   --color-brand-soft: #e8f1ec;
+  --color-on-brand: #fff;
+
+  /* 状态 */
+  --color-danger-50: oklch(97.1% 0.013 17.38);
+  --color-danger-100: oklch(93.6% 0.032 17.717);
+  --color-danger-200: oklch(88.5% 0.062 18.334);
+  --color-danger-600: oklch(57.7% 0.245 27.325);
+  --color-danger-700: oklch(50.5% 0.213 27.518);
+  --color-danger-800: oklch(44.4% 0.177 26.899);
+  --color-danger-900: oklch(39.6% 0.141 25.723);
+  --color-warn-50: oklch(98.7% 0.022 95.277);
+  --color-warn-100: oklch(96.2% 0.059 95.617);
+  --color-warn-200: oklch(92.4% 0.12 95.746);
+  --color-warn-300: oklch(87.9% 0.169 91.605);
+  --color-warn-700: oklch(55.5% 0.163 48.998);
+  --color-warn-800: oklch(47.3% 0.137 46.201);
+  --color-success-50: oklch(97.9% 0.021 166.113);
+  --color-success-200: oklch(90.5% 0.093 164.15);
+  --color-success-700: oklch(50.8% 0.118 165.612);
+  --color-success-900: oklch(37.8% 0.077 168.94);
+  --color-info-50: oklch(97.7% 0.013 236.62);
+  --color-info-200: oklch(90.1% 0.058 230.902);
+  --color-info-700: oklch(50% 0.134 242.749);
 }
 
 html,
@@ -15,8 +63,8 @@ body {
   margin: 0;
   font-family:
     ui-sans-serif, system-ui, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  background: #fafafa;
-  color: #18181b;
+  background: var(--color-canvas);
+  color: var(--color-ink-strong);
 }
 
 textarea,
@@ -32,7 +80,7 @@ input {
 .html-md {
   font-size: 14px;
   line-height: 1.7;
-  color: #27272a;
+  color: var(--color-ink);
   word-break: break-word;
 }
 .html-md h1,
@@ -62,14 +110,14 @@ input {
   list-style: decimal;
 }
 .html-md code {
-  background: #f4f4f5;
+  background: var(--color-fill);
   border-radius: 4px;
   padding: 0.1em 0.35em;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.92em;
 }
 .html-md pre {
-  background: #f4f4f5;
+  background: var(--color-fill);
   border-radius: 6px;
   padding: 0.75em;
   overflow: auto;
@@ -79,8 +127,8 @@ input {
   padding: 0;
 }
 .html-md blockquote {
-  border-left: 3px solid #d4d4d8;
-  color: #52525b;
+  border-left: 3px solid var(--color-line-strong);
+  color: var(--color-ink-muted);
   margin: 0.6em 0;
   padding-left: 0.9em;
 }
@@ -91,12 +139,12 @@ input {
 }
 .html-md th,
 .html-md td {
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--color-line);
   padding: 0.3em 0.6em;
   text-align: left;
 }
 .html-md a {
-  color: #2f6f4f;
+  color: var(--color-brand);
   text-decoration: underline;
 }
 .cm-editor {

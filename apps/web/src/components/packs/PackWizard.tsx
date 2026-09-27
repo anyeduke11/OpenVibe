@@ -199,7 +199,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
     <label
       key={id}
       className={`flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm ${
-        targets.includes(id) ? 'border-brand bg-brand-soft' : 'border-zinc-200 bg-white'
+        targets.includes(id) ? 'border-brand bg-brand-soft' : 'border-line bg-panel'
       }`}
     >
       <input
@@ -214,18 +214,18 @@ export function PackWizard(props: { initial: PackOut | null }) {
       />
       <span className="min-w-0">
         <span className="block font-medium">{zh.packs.targetLabels[id] ?? id}</span>
-        <span className="mono block truncate text-[11px] text-zinc-500">{MAIN_PATH_HINT[id]}</span>
+        <span className="mono block truncate text-[11px] text-ink-subtle">{MAIN_PATH_HINT[id]}</span>
       </span>
     </label>
   )
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-3 border-b border-zinc-100 px-5 py-3">
+      <header className="flex items-center gap-3 border-b border-line-hair px-5 py-3">
         <h1 className="text-base font-semibold">{`${
           initial === null ? zh.packs.wizard.title : zh.packs.wizard.editTitle
         } · ${STEPS[step] ?? ''}`}</h1>
-        <span className="ml-auto text-[11px] text-zinc-400">{`${String(step + 1)} / ${String(STEPS.length)}`}</span>
+        <span className="ml-auto text-[11px] text-ink-faint">{`${String(step + 1)} / ${String(STEPS.length)}`}</span>
       </header>
 
       <div className="flex-1 overflow-auto px-5 py-4">
@@ -239,7 +239,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
                 onChange={(e) => setName(e.target.value)}
                 placeholder={zh.packs.wizard.namePlaceholder}
               />
-              <p className="mt-1 text-[11px] text-zinc-400">{zh.packs.wizard.nameHint}</p>
+              <p className="mt-1 text-[11px] text-ink-faint">{zh.packs.wizard.nameHint}</p>
             </div>
             <div>
               <label className={labelCls}>{zh.packs.wizard.description}</label>
@@ -254,10 +254,10 @@ export function PackWizard(props: { initial: PackOut | null }) {
 
         {step === 1 && (
           <div className="max-w-2xl space-y-2 text-sm">
-            {templates.length === 0 && <p className="text-zinc-500">{zh.packs.wizard.flowNone}</p>}
+            {templates.length === 0 && <p className="text-ink-subtle">{zh.packs.wizard.flowNone}</p>}
             <label
               className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 ${
-                flowTemplateId === '' ? 'border-brand bg-brand-soft' : 'border-zinc-200 bg-white'
+                flowTemplateId === '' ? 'border-brand bg-brand-soft' : 'border-line bg-panel'
               }`}
             >
               <input
@@ -273,7 +273,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
               <label
                 key={t.id}
                 className={`flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm ${
-                  flowTemplateId === t.id ? 'border-brand bg-brand-soft' : 'border-zinc-200 bg-white'
+                  flowTemplateId === t.id ? 'border-brand bg-brand-soft' : 'border-line bg-panel'
                 }`}
               >
                 <input
@@ -285,10 +285,10 @@ export function PackWizard(props: { initial: PackOut | null }) {
                 />
                 <span className="min-w-0">
                   <span className="font-medium">{t.name}</span>
-                  <span className={`${chipCls} ml-2 border-zinc-200 bg-zinc-50 text-zinc-500`}>
+                  <span className={`${chipCls} ml-2 border-line bg-fill-soft text-ink-subtle`}>
                     {t.builtin ? zh.flows.builtin : zh.flows.custom}
                   </span>
-                  <span className="block truncate text-[11px] text-zinc-500">
+                  <span className="block truncate text-[11px] text-ink-subtle">
                     {`${t.stages.map((s) => s.name).join(' → ')} · ${zh.packs.wizard.flowStages(t.stages.length)}`}
                   </span>
                 </span>
@@ -310,9 +310,9 @@ export function PackWizard(props: { initial: PackOut | null }) {
 
         {step === 3 && (
           <div className="max-w-2xl space-y-3 text-sm">
-            <p className="text-xs text-zinc-500">{zh.packs.wizard.targetsHint}</p>
+            <p className="text-xs text-ink-subtle">{zh.packs.wizard.targetsHint}</p>
             <div className="grid gap-2 sm:grid-cols-2">{ADAPTER_IDS.map(checkbox)}</div>
-            <p className="text-[11px] text-zinc-400">{zh.packs.wizard.compatNote}</p>
+            <p className="text-[11px] text-ink-faint">{zh.packs.wizard.compatNote}</p>
           </div>
         )}
 
@@ -341,20 +341,20 @@ export function PackWizard(props: { initial: PackOut | null }) {
               >
                 {zh.packs.preview.directory}
               </button>
-              <span className="text-[11px] text-zinc-400">{zh.packs.preview.dirHint}</span>
+              <span className="text-[11px] text-ink-faint">{zh.packs.preview.dirHint}</span>
             </div>
-            <p className="text-[11px] text-zinc-400">{zh.packs.preview.versionHint}</p>
+            <p className="text-[11px] text-ink-faint">{zh.packs.preview.versionHint}</p>
 
             {lastExport !== undefined &&
               preview.data !== undefined &&
               preview.data.fingerprint !== lastExport.fingerprint && (
-                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                <p className="rounded-md border border-warn-200 bg-warn-50 px-3 py-2 text-xs text-warn-800">
                   {zh.packs.preview.changedSince(lastExport.version)}
                 </p>
               )}
 
             {preview.isError && (
-              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <div className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-xs text-danger-700">
                 {(preview.error as Error).message}
                 {previewStale !== undefined && (
                   <button
@@ -370,13 +370,13 @@ export function PackWizard(props: { initial: PackOut | null }) {
                 )}
               </div>
             )}
-            {preview.isLoading && <p className="text-sm text-zinc-400">{zh.common.loading}</p>}
+            {preview.isLoading && <p className="text-sm text-ink-faint">{zh.common.loading}</p>}
             <div className="min-h-0 flex-1">
               <PackPreviewPane preview={preview.data} />
             </div>
 
             {result !== null && (
-              <p className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+              <p className="rounded-md border border-line bg-fill-soft px-3 py-2 text-xs text-ink-body">
                 {`${zh.packs.preview.done(result.export.version)} · ${result.status === 'created' ? 'created' : 'idempotent'} · ${result.export.channel} · ${zh.packs.exports.fingerprint} ${result.fingerprint.slice(0, 12)}${result.directoryPath === null ? '' : ` · ${result.directoryPath}`}`}
               </p>
             )}
@@ -384,7 +384,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
         )}
       </div>
 
-      <footer className="flex items-center gap-2 border-t border-zinc-100 px-5 py-2">
+      <footer className="flex items-center gap-2 border-t border-line-hair px-5 py-2">
         <button className={btnGhost} onClick={() => navigate('/packs')}>
           {zh.packs.title}
         </button>

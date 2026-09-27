@@ -16,11 +16,11 @@ export function TelemetryAskCard(props: {
   return (
     <section
       aria-label={zh.telemetryAsk.title}
-      className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-zinc-200 bg-white px-6 py-2"
+      className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line bg-panel px-6 py-2"
     >
-      <span className="text-sm font-medium text-zinc-800">{zh.telemetryAsk.title}</span>
-      <span className="text-xs text-zinc-500">{zh.telemetryAsk.body}</span>
-      <span className="text-[11px] text-zinc-400">{zh.telemetryAsk.whitelist(TELEMETRY_EVENTS.join(' / '))}</span>
+      <span className="text-sm font-medium text-ink">{zh.telemetryAsk.title}</span>
+      <span className="text-xs text-ink-subtle">{zh.telemetryAsk.body}</span>
+      <span className="text-[11px] text-ink-faint">{zh.telemetryAsk.whitelist(TELEMETRY_EVENTS.join(' / '))}</span>
       <span className="ml-auto flex items-center gap-2">
         <button type="button" className={btnPrimary} onClick={() => props.onChoose(true)}>
           {zh.telemetryAsk.accept}

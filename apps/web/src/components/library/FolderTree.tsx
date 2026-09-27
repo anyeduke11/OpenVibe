@@ -66,13 +66,13 @@ function FolderBranch(props: BranchProps & { node: FolderNode; depth: number }) 
       <div
         {...dropProps}
         className={`flex items-center gap-1 rounded text-sm ${
-          props.selected === node.path ? 'bg-brand-soft text-brand' : 'hover:bg-zinc-100'
+          props.selected === node.path ? 'bg-brand-soft text-brand' : 'hover:bg-fill'
         } ${props.dragOver === node.path ? 'ring-1 ring-brand' : ''}`}
         style={{ paddingLeft: `${(depth + 1) * 12}px` }}
       >
         {node.children.length > 0 ? (
           <button
-            className="w-4 shrink-0 text-[10px] text-zinc-400"
+            className="w-4 shrink-0 text-[10px] text-ink-faint"
             onClick={() => props.toggleCollapse(node.path)}
             aria-label={open ? '收起' : '展开'}
           >
@@ -125,10 +125,10 @@ export function FolderTree(props: {
   return (
     <div className="select-none text-sm">
       <div className="mb-1 flex items-center justify-between px-2">
-        <span className="text-xs font-medium text-zinc-500">{zh.folderTree.title}</span>
+        <span className="text-xs font-medium text-ink-subtle">{zh.folderTree.title}</span>
         {props.selected !== null && (
           <button
-            className="text-[11px] text-zinc-400 hover:text-zinc-700"
+            className="text-[11px] text-ink-faint hover:text-ink-body"
             onClick={() => props.onSelect(null)}
           >
             {zh.common.clearFilter}
@@ -148,7 +148,7 @@ export function FolderTree(props: {
           if (id !== '') props.onDropPrompt(id, '/')
         }}
         className={`flex items-center rounded px-2 py-1 ${
-          props.selected === '/' ? 'bg-brand-soft font-medium text-brand' : 'hover:bg-zinc-100'
+          props.selected === '/' ? 'bg-brand-soft font-medium text-brand' : 'hover:bg-fill'
         } ${dragOver === '/' ? 'ring-1 ring-brand' : ''}`}
       >
         <button className="flex-1 text-left" onClick={() => props.onSelect('/')}>
@@ -158,7 +158,7 @@ export function FolderTree(props: {
       {buildTree(props.paths).map((n) => (
         <FolderBranch key={n.path} {...branchProps} node={n} depth={0} />
       ))}
-      <p className="mt-2 px-2 text-[11px] leading-relaxed text-zinc-400">
+      <p className="mt-2 px-2 text-[11px] leading-relaxed text-ink-faint">
         {zh.folderTree.dropHint}
       </p>
     </div>

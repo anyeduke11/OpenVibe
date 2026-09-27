@@ -16,9 +16,9 @@ const DEFAULT_PACK_NAME = 'default'
 
 function Section(props: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-zinc-800">{props.title}</h2>
-      <div className="mt-2 space-y-2 text-sm text-zinc-700">{props.children}</div>
+    <section className="rounded-lg border border-line bg-panel p-4">
+      <h2 className="text-sm font-semibold text-ink">{props.title}</h2>
+      <div className="mt-2 space-y-2 text-sm text-ink-body">{props.children}</div>
     </section>
   )
 }
@@ -26,7 +26,7 @@ function Section(props: { title: string; children: ReactNode }) {
 function Row(props: { label: string; children: ReactNode }) {
   return (
     <div className="flex flex-wrap items-baseline gap-2">
-      <span className="w-24 shrink-0 text-xs text-zinc-500">{props.label}</span>
+      <span className="w-24 shrink-0 text-xs text-ink-subtle">{props.label}</span>
       <span className="min-w-0 flex-1">{props.children}</span>
     </div>
   )
@@ -48,7 +48,7 @@ export function ServiceSection(props: { settings: SettingsOut | undefined }) {
       <Row label={zh.settings.service.db}>
         <span className="mono">{s?.db.detail ?? s?.db.status ?? zh.common.loading}</span>
       </Row>
-      <p className="text-xs text-zinc-500">{zh.settings.service.hint}</p>
+      <p className="text-xs text-ink-subtle">{zh.settings.service.hint}</p>
     </Section>
   )
 }
@@ -58,11 +58,11 @@ export function ReseedResult(props: { result: ReseedOut | null }) {
   const r = props.result
   if (r === null) return null
   return (
-    <div className="space-y-1 rounded-md border border-zinc-200 bg-zinc-50 p-3 text-xs">
+    <div className="space-y-1 rounded-md border border-line bg-fill-soft p-3 text-xs">
       <Row label={zh.settings.seed.title}>
         <span className="flex flex-wrap gap-1.5">
           {Object.entries(r.seed.bundles).map(([bundle, status]) => (
-            <span key={bundle} className={`${chipCls} border-zinc-200 bg-white text-zinc-600`}>
+            <span key={bundle} className={`${chipCls} border-line bg-panel text-ink-muted`}>
               {zh.settings.seed.bundles(bundle, status)}
             </span>
           ))}
@@ -73,9 +73,9 @@ export function ReseedResult(props: { result: ReseedOut | null }) {
       </Row>
       <Row label={zh.settings.seed.warnings}>
         {r.seed.warnings.length === 0 ? (
-          <span className="text-zinc-400">{zh.settings.seed.noWarnings}</span>
+          <span className="text-ink-faint">{zh.settings.seed.noWarnings}</span>
         ) : (
-          <ul className="space-y-0.5 text-amber-700">
+          <ul className="space-y-0.5 text-warn-700">
             {r.seed.warnings.map((w) => (
               <li key={w}>· {w}</li>
             ))}
@@ -91,9 +91,9 @@ function PackOutcome(props: { outcome: DefaultPackOutcomeOut }) {
   return (
     <span className="flex flex-wrap items-baseline gap-2">
       <span>{zh.settings.seed.outcome(o.status, o.reason ?? '')}</span>
-      {o.version !== null && <span className="text-zinc-500">{zh.settings.pack.version(o.version)}</span>}
+      {o.version !== null && <span className="text-ink-subtle">{zh.settings.pack.version(o.version)}</span>}
       {o.directoryPath !== null && (
-        <span className="mono w-full break-all text-[11px] text-zinc-500">
+        <span className="mono w-full break-all text-[11px] text-ink-subtle">
           {zh.settings.pack.exportedTo(o.directoryPath)}
         </span>
       )}
@@ -125,7 +125,7 @@ export function SeedSection(props: { settings: SettingsOut | undefined }) {
           zh.common.loading
         )}
       </Row>
-      <p className="text-xs text-zinc-500">{zh.settings.seed.hint}</p>
+      <p className="text-xs text-ink-subtle">{zh.settings.seed.hint}</p>
       <button type="button" className={btnPrimary} disabled={reseed.isPending} onClick={run}>
         {reseed.isPending ? zh.settings.seed.reseeding : zh.settings.seed.reseed}
       </button>
@@ -144,10 +144,10 @@ export function PackSection() {
 
   return (
     <Section title={zh.settings.pack.title}>
-      <p className="text-xs text-zinc-500">{zh.settings.pack.hint}</p>
+      <p className="text-xs text-ink-subtle">{zh.settings.pack.hint}</p>
       <Row label={zh.settings.pack.name}>
         {id === null ? (
-          <span className="text-zinc-400">{zh.onboarding.step2.missing}</span>
+          <span className="text-ink-faint">{zh.onboarding.step2.missing}</span>
         ) : (
           <span className="mono">
             {DEFAULT_PACK_NAME}
@@ -173,7 +173,7 @@ export function PackSection() {
           {zh.nav.packs}
         </Link>
       </div>
-      <p className="text-[11px] text-zinc-400">{zh.settings.pack.rebuildHint}</p>
+      <p className="text-[11px] text-ink-faint">{zh.settings.pack.rebuildHint}</p>
       <ReseedResult result={last} />
     </Section>
   )
@@ -187,7 +187,7 @@ export function TelemetrySection() {
   return (
     <Section title={zh.settings.telemetry.title}>
       {data === undefined ? (
-        <p className="text-xs text-zinc-400">{zh.common.loading}</p>
+        <p className="text-xs text-ink-faint">{zh.common.loading}</p>
       ) : (
         <>
           <label className="flex items-center gap-2">
@@ -204,12 +204,12 @@ export function TelemetrySection() {
               }
             />
             <span>{zh.settings.telemetry.enabled}</span>
-            <span className={`${chipCls} border-zinc-200 bg-zinc-50 text-zinc-500`}>
+            <span className={`${chipCls} border-line bg-fill-soft text-ink-subtle`}>
               {zh.settings.telemetry.state[data.askState]}
             </span>
           </label>
-          <p className="text-xs text-zinc-500">{zh.settings.telemetry.hint}</p>
-          <p className="text-[11px] text-zinc-400">{zh.telemetryAsk.whitelist(data.whitelist.join(' / '))}</p>
+          <p className="text-xs text-ink-subtle">{zh.settings.telemetry.hint}</p>
+          <p className="text-[11px] text-ink-faint">{zh.telemetryAsk.whitelist(data.whitelist.join(' / '))}</p>
         </>
       )}
     </Section>
@@ -220,7 +220,7 @@ export function WizardSection(props: { settings: SettingsOut | undefined }) {
   const toggle = useOnboardingToggle()
   return (
     <Section title={zh.settings.wizard.title}>
-      <p className="text-xs text-zinc-500">{zh.settings.wizard.hint}</p>
+      <p className="text-xs text-ink-subtle">{zh.settings.wizard.hint}</p>
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -230,7 +230,7 @@ export function WizardSection(props: { settings: SettingsOut | undefined }) {
         >
           {zh.settings.wizard.reset}
         </button>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-ink-subtle">
           {props.settings === undefined
             ? zh.common.loading
             : props.settings.onboardingDone
@@ -245,7 +245,7 @@ export function WizardSection(props: { settings: SettingsOut | undefined }) {
 export function BackupSection() {
   return (
     <Section title={zh.settings.backup.title}>
-      <p className="text-xs leading-relaxed text-zinc-500">{zh.settings.backup.body}</p>
+      <p className="text-xs leading-relaxed text-ink-subtle">{zh.settings.backup.body}</p>
     </Section>
   )
 }

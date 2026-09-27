@@ -148,7 +148,7 @@ export function TermEditorDrawer(props: {
         footer={
           <>
             {term !== null && (
-              <span className="mr-auto flex items-center gap-2 text-xs text-zinc-500">
+              <span className="mr-auto flex items-center gap-2 text-xs text-ink-subtle">
                 <ReflowOriginLine assetId={term.id} />
                 {zh.terms.editor.sourceLabel}：
                 {term.source === 'openvibe-seed' ? zh.terms.source.seed : term.source}
@@ -227,7 +227,7 @@ export function TermEditorDrawer(props: {
                     className={`rounded-full border px-2.5 py-0.5 text-xs ${
                       on
                         ? 'border-brand bg-brand-soft text-brand'
-                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                        : 'border-line bg-panel text-ink-muted hover:border-line-strong'
                     }`}
                   >
                     {tag}
@@ -241,9 +241,9 @@ export function TermEditorDrawer(props: {
                 {form.tags
                   .filter((t) => !(CONTROLLED_TAG_VOCAB as readonly string[]).includes(t))
                   .map((t) => (
-                    <span key={t} className={`${chipCls} border-zinc-200 bg-zinc-50 text-zinc-600`}>
+                    <span key={t} className={`${chipCls} border-line bg-fill-soft text-ink-muted`}>
                       #{t}
-                      <button className="ml-1 text-zinc-400 hover:text-zinc-700" onClick={() => toggleTag(t)}>
+                      <button className="ml-1 text-ink-faint hover:text-ink-body" onClick={() => toggleTag(t)}>
                         ✕
                       </button>
                     </span>
@@ -279,14 +279,14 @@ export function TermEditorDrawer(props: {
               onChange={(e) => setRelatedFilter(e.target.value)}
               placeholder={zh.terms.editor.relatedFilter}
             />
-            <div className="max-h-44 overflow-auto rounded-md border border-zinc-200">
+            <div className="max-h-44 overflow-auto rounded-md border border-line">
               {candidates.length === 0 && (
-                <p className="px-3 py-2 text-xs text-zinc-400">{zh.terms.editor.relatedNone}</p>
+                <p className="px-3 py-2 text-xs text-ink-faint">{zh.terms.editor.relatedNone}</p>
               )}
               {candidates.map((t) => (
                 <label
                   key={t.id}
-                  className="flex items-center gap-2 border-b border-zinc-100 px-3 py-1.5 text-xs last:border-0 hover:bg-zinc-50"
+                  className="flex items-center gap-2 border-b border-line-hair px-3 py-1.5 text-xs last:border-0 hover:bg-fill-soft"
                 >
                   <input
                     type="checkbox"
@@ -300,18 +300,18 @@ export function TermEditorDrawer(props: {
                       )
                     }
                   />
-                  <span className="text-zinc-800">{t.zh || t.en}</span>
-                  <span className="text-zinc-400">{t.en || t.zh}</span>
+                  <span className="text-ink">{t.zh || t.en}</span>
+                  <span className="text-ink-faint">{t.en || t.zh}</span>
                 </label>
               ))}
             </div>
             {form.relatedTermIds.length > 0 && (
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {form.relatedTermIds.map((id) => (
-                  <span key={id} className={`${chipCls} border-zinc-200 bg-white text-zinc-600`}>
+                  <span key={id} className={`${chipCls} border-line bg-panel text-ink-muted`}>
                     {labelOf(id)}
                     <button
-                      className="ml-1 text-zinc-400 hover:text-zinc-700"
+                      className="ml-1 text-ink-faint hover:text-ink-body"
                       onClick={() => set('relatedTermIds', form.relatedTermIds.filter((x) => x !== id))}
                     >
                       ✕
@@ -321,7 +321,7 @@ export function TermEditorDrawer(props: {
               </div>
             )}
             {shownRelated.length > 0 && (
-              <p className="mt-1.5 text-[11px] text-zinc-500">
+              <p className="mt-1.5 text-[11px] text-ink-subtle">
                 {zh.terms.editor.bidirectional}：{shownRelated.map(labelOf).join('、')}
               </p>
             )}

@@ -27,7 +27,7 @@ export function PacksPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-3 border-b border-zinc-100 px-5 py-3">
+      <header className="flex items-center gap-3 border-b border-line-hair px-5 py-3">
         <h1 className="mr-auto text-base font-semibold">{zh.packs.title}</h1>
         <button className={btnPrimary} onClick={() => navigate('/packs/new')}>
           {zh.packs.newPack}
@@ -35,16 +35,16 @@ export function PacksPage() {
       </header>
 
       <div className="flex-1 overflow-auto px-5 py-4">
-        {list.isLoading && <p className="text-sm text-zinc-400">{zh.common.loading}</p>}
+        {list.isLoading && <p className="text-sm text-ink-faint">{zh.common.loading}</p>}
         {list.isError && (
-          <p className="text-sm text-red-700">{zh.common.failed((list.error as Error).message)}</p>
+          <p className="text-sm text-danger-700">{zh.common.failed((list.error as Error).message)}</p>
         )}
         {items.length === 0 && !list.isLoading && (
-          <p className="text-sm text-zinc-500">{zh.packs.empty}</p>
+          <p className="text-sm text-ink-subtle">{zh.packs.empty}</p>
         )}
         {items.length > 0 && (
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-white text-left text-xs text-zinc-500">
+            <thead className="sticky top-0 bg-panel text-left text-xs text-ink-subtle">
               <tr>
                 <th className="w-56 px-2 py-2">{zh.packs.columns.name}</th>
                 <th className="px-2 py-2">{zh.packs.columns.targets}</th>
@@ -57,12 +57,12 @@ export function PacksPage() {
               {items.map((pack) => (
                 <tr
                   key={pack.id}
-                  className="cursor-pointer border-b border-zinc-100 align-top hover:bg-zinc-50"
+                  className="cursor-pointer border-b border-line-hair align-top hover:bg-fill-soft"
                   onClick={() => setDetail(pack)}
                 >
                   <td className="px-2 py-2">
-                    <span className="mono text-zinc-800">{pack.name}</span>
-                    <span className="block truncate text-[11px] text-zinc-400">
+                    <span className="mono text-ink">{pack.name}</span>
+                    <span className="block truncate text-[11px] text-ink-faint">
                       {pack.description}
                     </span>
                   </td>
@@ -71,22 +71,22 @@ export function PacksPage() {
                       {pack.targets.map((t) => (
                         <span
                           key={t}
-                          className={`${chipCls} border-zinc-200 bg-zinc-50 text-zinc-600`}
+                          className={`${chipCls} border-line bg-fill-soft text-ink-muted`}
                         >
                           {zh.packs.targetLabels[t] ?? t}
                         </span>
                       ))}
                     </span>
                   </td>
-                  <td className="px-2 py-2 text-xs text-zinc-600">
+                  <td className="px-2 py-2 text-xs text-ink-muted">
                     {zh.packs.assetSummary(
                       pack.selection.promptIds.length,
                       pack.selection.termIds.length,
                       pack.selection.skillIds.length,
                     )}
-                    <span className="block text-[11px] text-zinc-400">{flowName(pack)}</span>
+                    <span className="block text-[11px] text-ink-faint">{flowName(pack)}</span>
                   </td>
-                  <td className="px-2 py-2 text-xs text-zinc-500">{pack.updatedAt}</td>
+                  <td className="px-2 py-2 text-xs text-ink-subtle">{pack.updatedAt}</td>
                   <td className="px-2 py-2">
                     <span className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <button className={btnGhost} onClick={() => navigate(`/packs/${pack.id}/edit`)}>
@@ -104,7 +104,7 @@ export function PacksPage() {
         )}
       </div>
 
-      <footer className="border-t border-zinc-100 px-5 py-2 text-xs text-zinc-500">
+      <footer className="border-t border-line-hair px-5 py-2 text-xs text-ink-subtle">
         {list.data !== undefined ? zh.packs.total(list.data.total) : ''}
       </footer>
 
@@ -119,7 +119,7 @@ export function PacksPage() {
                 {zh.editor.cancel}
               </button>
               <button
-                className={`${btnPrimary} border-red-600 bg-red-600 hover:bg-red-700`}
+                className={`${btnPrimary} border-danger-600 bg-danger-600 hover:bg-danger-700`}
                 disabled={remove.isPending}
                 onClick={() => {
                   if (deleting === null) return
@@ -140,7 +140,7 @@ export function PacksPage() {
           {deleting !== null && (
             <div className="space-y-2 text-sm">
               <p>{zh.packs.deleteDialog.body(deleting.name)}</p>
-              <p className="text-xs text-zinc-500">{zh.packs.deleteDialog.note}</p>
+              <p className="text-xs text-ink-subtle">{zh.packs.deleteDialog.note}</p>
             </div>
           )}
         </DialogPanel>

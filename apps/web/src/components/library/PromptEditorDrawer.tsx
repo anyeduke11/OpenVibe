@@ -123,7 +123,7 @@ export function PromptEditorDrawer(props: {
         variant="sheet"
         footer={
           <>
-            <span className="mr-auto flex items-center gap-2 text-[11px] text-zinc-400">
+            <span className="mr-auto flex items-center gap-2 text-[11px] text-ink-faint">
               {prompt !== null && <ReflowOriginLine assetId={prompt.id} />}
               {prompt === null ? '' : `updated ${prompt.updatedAt}`}
             </span>
@@ -137,7 +137,7 @@ export function PromptEditorDrawer(props: {
         }
       >
         <Tabs.Root defaultValue="edit">
-          <Tabs.List className="mb-3 flex gap-1 border-b border-zinc-100">
+          <Tabs.List className="mb-3 flex gap-1 border-b border-line-hair">
             <Tabs.Trigger
               className="px-3 py-2 text-sm data-[state=active]:border-b-2 data-[state=active]:border-brand data-[state=active]:font-medium"
               value="edit"
@@ -174,7 +174,7 @@ export function PromptEditorDrawer(props: {
             <div>
               <div className="mb-1 flex items-center justify-between">
                 <label className={`${labelCls} mb-0`}>{zh.editor.content}</label>
-                <label className="flex items-center gap-1 text-[11px] text-zinc-500">
+                <label className="flex items-center gap-1 text-[11px] text-ink-subtle">
                   <input
                     type="checkbox"
                     checked={showPreview}
@@ -184,25 +184,25 @@ export function PromptEditorDrawer(props: {
                 </label>
               </div>
               <div
-                className={`grid gap-2 rounded-md border border-zinc-200 p-2 ${showPreview ? 'grid-cols-2' : 'grid-cols-1'}`}
+                className={`grid gap-2 rounded-md border border-line p-2 ${showPreview ? 'grid-cols-2' : 'grid-cols-1'}`}
               >
-                <div className="h-72 overflow-hidden rounded border border-zinc-100">
+                <div className="h-72 overflow-hidden rounded border border-line-hair">
                   <CodeEditor value={form.content} onChange={(v) => set('content', v)} />
                 </div>
                 {showPreview && (
-                  <div className="html-md h-72 overflow-auto rounded border border-zinc-100 p-2">
+                  <div className="html-md h-72 overflow-auto rounded border border-line-hair p-2">
                     <MarkdownPreview source={form.content} />
                   </div>
                 )}
               </div>
               {vars.length > 0 && (
-                <p className="mt-1.5 text-[11px] text-zinc-500">
+                <p className="mt-1.5 text-[11px] text-ink-subtle">
                   {zh.editor.variablesDetected}：
-                  <span className="mono ml-1 rounded bg-amber-50 px-1.5 py-0.5 text-amber-800">
+                  <span className="mono ml-1 rounded bg-warn-50 px-1.5 py-0.5 text-warn-800">
                     {`{{${vars.join(', ')}}}`}
                   </span>
                   {form.useAs === 'rule' && (
-                    <span className="ml-2 text-amber-700">{zh.editor.ruleVariableWarning}</span>
+                    <span className="ml-2 text-warn-700">{zh.editor.ruleVariableWarning}</span>
                   )}
                 </p>
               )}
@@ -258,7 +258,7 @@ export function PromptEditorDrawer(props: {
               <label className={labelCls}>{zh.editor.platformMarks}</label>
               <div className="flex flex-wrap gap-x-4 gap-y-1">
                 {PLATFORM_MARKS.map((m) => (
-                  <label key={m} className="flex items-center gap-1.5 text-xs text-zinc-600">
+                  <label key={m} className="flex items-center gap-1.5 text-xs text-ink-muted">
                     <input
                       type="checkbox"
                       checked={form.platformMarks.includes(m)}

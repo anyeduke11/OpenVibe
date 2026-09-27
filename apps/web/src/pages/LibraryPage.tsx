@@ -74,7 +74,7 @@ export function LibraryPage() {
 
   return (
     <div className="flex h-full min-h-0">
-      <aside className="w-52 shrink-0 overflow-auto border-r border-zinc-200 bg-white py-3">
+      <aside className="w-52 shrink-0 overflow-auto border-r border-line bg-panel py-3">
         <FolderTree
           paths={paths}
           selected={folder ?? null}
@@ -84,7 +84,7 @@ export function LibraryPage() {
       </aside>
 
       <section className="flex min-w-0 flex-1 flex-col">
-        <header className="border-b border-zinc-100 px-5 py-3">
+        <header className="border-b border-line-hair px-5 py-3">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="mr-auto text-base font-semibold">{zh.library.title}</h1>
             <input
@@ -137,10 +137,10 @@ export function LibraryPage() {
             </select>
             <TagFilterBar tags={tags} selected={tag} onToggle={setTag} />
             {q.trim() !== '' && q.trim().length < 3 && (
-              <span className="text-[11px] text-amber-700">{zh.library.shortQueryHint}</span>
+              <span className="text-[11px] text-warn-700">{zh.library.shortQueryHint}</span>
             )}
             {list.isFetching && !list.isLoading && (
-              <span className="text-[11px] text-zinc-400">刷新中…</span>
+              <span className="text-[11px] text-ink-faint">刷新中…</span>
             )}
           </div>
         </header>
@@ -187,7 +187,7 @@ export function LibraryPage() {
                 {zh.editor.cancel}
               </button>
               <button
-                className={`${btnPrimary} border-red-600 bg-red-600 hover:bg-red-700`}
+                className={`${btnPrimary} border-danger-600 bg-danger-600 hover:bg-danger-700`}
                 disabled={remove.isPending}
                 onClick={() => {
                   if (deleting === null) return
@@ -211,7 +211,7 @@ export function LibraryPage() {
           {deleting !== null && (
             <div className="space-y-2 text-sm">
               <p>{zh.deleteDialog.body(deleting.title)}</p>
-              <p className="text-xs text-zinc-500">{zh.deleteDialog.packNote}</p>
+              <p className="text-xs text-ink-subtle">{zh.deleteDialog.packNote}</p>
             </div>
           )}
         </DialogPanel>

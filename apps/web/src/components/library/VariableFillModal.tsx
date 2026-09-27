@@ -48,19 +48,19 @@ export function VariableFillModal(props: {
         }
       >
         {prompt.variables.length === 0 ? (
-          <p className="text-sm text-zinc-600">
+          <p className="text-sm text-ink-muted">
             {prompt.content.slice(0, 400)}
             {prompt.content.length > 400 ? '…' : ''}
           </p>
         ) : (
           <div className="space-y-4">
             <div className="grid gap-3">
-              <p className="text-xs font-medium text-zinc-500">{zh.copyModal.fillVars}</p>
+              <p className="text-xs font-medium text-ink-subtle">{zh.copyModal.fillVars}</p>
               {prompt.variables.map((v) => (
                 <div key={v}>
                   <label className={labelCls}>
                     <span className="mono">{`{{${v}}}`}</span>
-                    <span className="ml-1 text-red-600">{zh.copyModal.required}</span>
+                    <span className="ml-1 text-danger-600">{zh.copyModal.required}</span>
                   </label>
                   <input
                     className={inputCls}

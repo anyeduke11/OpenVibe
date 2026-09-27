@@ -9,8 +9,8 @@ export interface TermRowView {
 }
 
 const STATUS_STYLE: Record<TermOut['status'], string> = {
-  draft: 'border-zinc-200 bg-zinc-100 text-zinc-600',
-  active: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  draft: 'border-line bg-fill text-ink-muted',
+  active: 'border-success-200 bg-success-50 text-success-700',
 }
 
 /** 命中片段高亮（m3 FR-3.2）：按偏移切片包 <mark>，区间已由服务端合并去叠 */
@@ -23,7 +23,7 @@ function Highlight(props: { text: string; ranges: MatchRange[] }) {
   sorted.forEach((r, i) => {
     if (r.start < cursor) return
     if (r.start > cursor) nodes.push(text.slice(cursor, r.start))
-    nodes.push(<mark key={i} className="rounded bg-amber-100 px-0.5">{text.slice(r.start, r.end)}</mark>)
+    nodes.push(<mark key={i} className="rounded bg-warn-100 px-0.5">{text.slice(r.start, r.end)}</mark>)
     cursor = r.end
   })
   if (cursor < text.length) nodes.push(text.slice(cursor))
@@ -49,8 +49,8 @@ export function TermsTable(props: {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b border-zinc-100 px-5 py-2 text-xs">
-        <label className="flex items-center gap-1.5 text-zinc-600">
+      <div className="flex items-center gap-2 border-b border-line-hair px-5 py-2 text-xs">
+        <label className="flex items-center gap-1.5 text-ink-muted">
           <input
             type="checkbox"
             checked={allShown}
@@ -60,25 +60,25 @@ export function TermsTable(props: {
           />
           {zh.terms.selection.allShown}
         </label>
-        <span className="text-zinc-400">{zh.terms.selection.label(selected.length)}</span>
+        <span className="text-ink-faint">{zh.terms.selection.label(selected.length)}</span>
         {selected.length > 0 && (
-          <button className="text-zinc-400 underline hover:text-zinc-700" onClick={() => props.onSelectAll([])}>
+          <button className="text-ink-faint underline hover:text-ink-body" onClick={() => props.onSelectAll([])}>
             {zh.terms.selection.clear}
           </button>
         )}
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        {props.loading && <p className="p-6 text-sm text-zinc-400">加载中…</p>}
+        {props.loading && <p className="p-6 text-sm text-ink-faint">加载中…</p>}
         {!props.loading && rows.length === 0 && (
-          <p className="p-6 text-sm text-zinc-400">
+          <p className="p-6 text-sm text-ink-faint">
             {props.searching ? zh.terms.noResults : zh.terms.empty}
           </p>
         )}
         {rows.length > 0 && (
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-white text-left text-xs text-zinc-500">
-              <tr className="border-b border-zinc-200">
+            <thead className="sticky top-0 bg-panel text-left text-xs text-ink-subtle">
+              <tr className="border-b border-line">
                 <th className="w-8 px-5 py-2" />
                 <th className="w-56 px-2 py-2">{zh.terms.columns.zh}</th>
                 <th className="w-40 px-2 py-2">{zh.terms.columns.en}</th>
@@ -91,7 +91,7 @@ export function TermsTable(props: {
               {rows.map(({ term, matches }) => (
                 <tr
                   key={term.id}
-                  className={`border-b border-zinc-100 align-top hover:bg-zinc-50 ${
+                  className={`border-b border-line-hair align-top hover:bg-fill-soft ${
                     selectedSet.has(term.id) ? 'bg-brand-soft/40' : ''
                   }`}
                 >
@@ -105,31 +105,31 @@ export function TermsTable(props: {
                   </td>
                   <td className="px-2 py-2.5">
                     <button
-                      className="text-left font-medium text-zinc-900 hover:text-brand"
+                      className="text-left font-medium text-ink-strong hover:text-brand"
                       onClick={() => props.onEdit(term)}
                     >
                       <Highlight text={term.zh ?? '—'} ranges={rangesOf(matches, 'zh')} />
                     </button>
                   </td>
-                  <td className="px-2 py-2.5 text-zinc-700">
+                  <td className="px-2 py-2.5 text-ink-body">
                     <Highlight text={term.en ?? '—'} ranges={rangesOf(matches, 'en')} />
                   </td>
-                  <td className="px-2 py-2.5 text-zinc-500">
+                  <td className="px-2 py-2.5 text-ink-subtle">
                     <Highlight text={term.aliases.join('、')} ranges={rangesOf(matches, 'aliases')} />
                   </td>
-                  <td className="px-2 py-2.5 text-zinc-600">
+                  <td className="px-2 py-2.5 text-ink-muted">
                     <span className="line-clamp-2">
                       <Highlight text={term.definition} ranges={rangesOf(matches, 'definition')} />
                     </span>
                     {term.example !== '' && (
-                      <span className="mt-1 line-clamp-1 block text-[11px] text-zinc-400">
+                      <span className="mt-1 line-clamp-1 block text-[11px] text-ink-faint">
                         例：{term.example}
                       </span>
                     )}
                     {term.tags.length > 0 && (
                       <span className="mt-1 flex flex-wrap gap-1">
                         {term.tags.map((t) => (
-                          <span key={t} className={`${chipCls} border-zinc-200 bg-zinc-50 text-zinc-600`}>
+                          <span key={t} className={`${chipCls} border-line bg-fill-soft text-ink-muted`}>
                             #{t}
                           </span>
                         ))}
@@ -141,7 +141,7 @@ export function TermsTable(props: {
                       <span className={`${chipCls} ${STATUS_STYLE[term.status]}`}>
                         {zh.terms.status[term.status]}
                       </span>
-                      <span className={`${chipCls} border-zinc-200 bg-white text-zinc-500`}>
+                      <span className={`${chipCls} border-line bg-panel text-ink-subtle`}>
                         {term.source === 'openvibe-seed' ? zh.terms.source.seed : zh.terms.source.manual}
                       </span>
                       <button className={btnGhost} onClick={() => props.onEdit(term)}>

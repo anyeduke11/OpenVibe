@@ -47,9 +47,9 @@ export function ReflowActions(props: { entry: DevLogOut; projectName: string }) 
       <button className={btnGhost} onClick={() => openWith('prompt')}>
         {zh.projects.reflow.prompt}
       </button>
-      <span className="text-[11px] text-zinc-400">{zh.projects.reflow.pickHint}</span>
+      <span className="text-[11px] text-ink-faint">{zh.projects.reflow.pickHint}</span>
       {entry.linkedAssetIds.length > 0 && (
-        <span className={`${chipCls} ml-auto border-zinc-200 bg-zinc-50 text-zinc-600`}>
+        <span className={`${chipCls} ml-auto border-line bg-fill-soft text-ink-muted`}>
           {zh.projects.devlog.linkedAssets(entry.linkedAssetIds.length)}
         </span>
       )}

@@ -70,17 +70,17 @@ export function OnboardingBar(props: OnboardingBarProps) {
     >
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm font-semibold text-brand">{zh.onboarding.title}</span>
-        <span className="text-xs text-zinc-500">{zh.onboarding.stepOf(step)}</span>
+        <span className="text-xs text-ink-subtle">{zh.onboarding.stepOf(step)}</span>
         <button
           type="button"
           onClick={props.onSkip}
-          className="ml-auto text-xs text-zinc-500 underline-offset-2 hover:underline"
+          className="ml-auto text-xs text-ink-subtle underline-offset-2 hover:underline"
         >
           {zh.onboarding.skip}
         </button>
       </div>
 
-      <div className="mt-1.5 text-sm text-zinc-700">
+      <div className="mt-1.5 text-sm text-ink-body">
         {step === 1 && <StepAssets seed={settings.data?.seed} />}
         {step === 2 && (
           <StepPackPreview
@@ -92,9 +92,9 @@ export function OnboardingBar(props: OnboardingBarProps) {
         {step === 3 && (
           <div>
             <p className="font-medium">{zh.onboarding.step3.title}</p>
-            <p className="text-xs text-zinc-500">{zh.onboarding.step3.body}</p>
+            <p className="text-xs text-ink-subtle">{zh.onboarding.step3.body}</p>
 
-            <label className="mt-1.5 block text-[11px] text-zinc-500">
+            <label className="mt-1.5 block text-[11px] text-ink-subtle">
               {zh.onboarding.step3.dirLabel}
               <input
                 className={`${inputCls} mt-0.5`}
@@ -122,12 +122,12 @@ export function OnboardingBar(props: OnboardingBarProps) {
                   {zh.onboarding.step3.manual}
                 </button>
                 {!probe.exhausted && (
-                  <span className="text-zinc-500">
+                  <span className="text-ink-subtle">
                     {zh.onboarding.step3.checking(probe.ticks, PROBE_MAX_TICKS)}
                   </span>
                 )}
                 {(checkedManually || probe.exhausted) && (
-                  <span className="text-amber-700">
+                  <span className="text-warn-700">
                     {status?.error ??
                       probe.data?.problem ??
                       (probe.exhausted
@@ -140,21 +140,21 @@ export function OnboardingBar(props: OnboardingBarProps) {
 
             {lockPresent && status?.pack !== undefined && (
               <div className="mt-1.5 space-y-1">
-                <p className="text-sm font-medium text-emerald-700">
+                <p className="text-sm font-medium text-success-700">
                   {zh.onboarding.step3.detected(status.pack.name, status.pack.version)}
                 </p>
                 {status.injectedAt !== undefined && (
-                  <p className="text-[11px] text-zinc-400">
+                  <p className="text-[11px] text-ink-faint">
                     {zh.onboarding.step3.detectedAt(status.injectedAt)}
                   </p>
                 )}
-                <p className="text-xs text-zinc-500">{zh.onboarding.step3.diffHint}</p>
+                <p className="text-xs text-ink-subtle">{zh.onboarding.step3.diffHint}</p>
                 <CommandLine command={diffCommand} onCopy={copy} />
                 <div className="flex flex-wrap items-center gap-3 pt-1">
                   <button type="button" className={btnPrimary} onClick={props.onDone}>
                     {zh.onboarding.step3.done}
                   </button>
-                  <span className="text-[11px] text-zinc-400">{zh.onboarding.step3.doneHint}</span>
+                  <span className="text-[11px] text-ink-faint">{zh.onboarding.step3.doneHint}</span>
                 </div>
               </div>
             )}
@@ -183,7 +183,7 @@ function StepAssets(props: { seed: SettingsOut['seed'] | undefined }) {
   return (
     <div>
       <p className="font-medium">{zh.onboarding.step1.title}</p>
-      <p className="text-xs text-zinc-500">{zh.onboarding.step1.body}</p>
+      <p className="text-xs text-ink-subtle">{zh.onboarding.step1.body}</p>
       {seed !== undefined && (
         <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
           <li>{zh.onboarding.step1.prompts(seed.prompts)}</li>
@@ -212,7 +212,7 @@ function StepPackPreview(props: { found: boolean; loading: boolean; preview: Pre
       <div>
         <p className="font-medium">{zh.onboarding.step2.title}</p>
         {/* 边界 1：预置包缺失（被删或首启组装失败）时降级为组包向导链接，不放假数据 */}
-        <p className="text-xs text-zinc-500">{zh.onboarding.step2.missing}</p>
+        <p className="text-xs text-ink-subtle">{zh.onboarding.step2.missing}</p>
         <Link to="/packs/new" className="text-xs text-brand underline-offset-2 hover:underline">
           {zh.onboarding.step2.missingLink}
         </Link>
@@ -222,9 +222,9 @@ function StepPackPreview(props: { found: boolean; loading: boolean; preview: Pre
   return (
     <div>
       <p className="font-medium">{zh.onboarding.step2.title}</p>
-      <p className="text-xs text-zinc-500">{zh.onboarding.step2.body}</p>
-      {props.loading && <p className="mt-1 text-xs text-zinc-400">{zh.onboarding.step2.loading}</p>}
-      <div className="mt-2 max-h-[52vh] overflow-auto rounded-md border border-zinc-200 bg-white p-3">
+      <p className="text-xs text-ink-subtle">{zh.onboarding.step2.body}</p>
+      {props.loading && <p className="mt-1 text-xs text-ink-faint">{zh.onboarding.step2.loading}</p>}
+      <div className="mt-2 max-h-[52vh] overflow-auto rounded-md border border-line bg-panel p-3">
         <PackPreviewPane preview={props.preview} />
       </div>
     </div>
@@ -234,7 +234,7 @@ function StepPackPreview(props: { found: boolean; loading: boolean; preview: Pre
 function CommandLine(props: { command: string; onCopy: (text: string) => void }) {
   return (
     <div className="mt-1.5 flex items-center gap-2">
-      <code className="mono min-w-0 flex-1 truncate rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-700">
+      <code className="mono min-w-0 flex-1 truncate rounded border border-line bg-panel px-2 py-1 text-xs text-ink-body">
         {props.command}
       </code>
       <button type="button" className={btnGhost} onClick={() => props.onCopy(props.command)}>

@@ -8,12 +8,12 @@ export function ExportHistoryPanel(props: { packId: string }) {
   const exports = usePackExports(packId)
   const items = exports.data?.items ?? []
 
-  if (exports.isLoading) return <p className="text-sm text-zinc-400">{zh.common.loading}</p>
-  if (items.length === 0) return <p className="text-sm text-zinc-500">{zh.packs.exports.empty}</p>
+  if (exports.isLoading) return <p className="text-sm text-ink-faint">{zh.common.loading}</p>
+  if (items.length === 0) return <p className="text-sm text-ink-subtle">{zh.packs.exports.empty}</p>
 
   return (
     <table className="w-full border-collapse text-sm">
-      <thead className="sticky top-0 bg-white text-left text-xs text-zinc-500">
+      <thead className="sticky top-0 bg-panel text-left text-xs text-ink-subtle">
         <tr>
           <th className="px-2 py-2">{zh.packs.exports.version}</th>
           <th className="px-2 py-2">{zh.packs.exports.channel}</th>
@@ -24,15 +24,15 @@ export function ExportHistoryPanel(props: { packId: string }) {
       </thead>
       <tbody>
         {items.map((row) => (
-          <tr key={row.id} className="border-b border-zinc-100 align-top">
+          <tr key={row.id} className="border-b border-line-hair align-top">
             <td className="mono px-2 py-2">{`v${row.version}`}</td>
-            <td className="px-2 py-2 text-zinc-600">{zh.packs.exports.channels[row.channel]}</td>
+            <td className="px-2 py-2 text-ink-muted">{zh.packs.exports.channels[row.channel]}</td>
             <td className="px-2 py-2">
-              <span className="mono text-xs text-zinc-700" title={row.fingerprint}>
+              <span className="mono text-xs text-ink-body" title={row.fingerprint}>
                 {row.fingerprint.slice(0, 12)}
               </span>
             </td>
-            <td className="px-2 py-2 text-xs text-zinc-500">{row.exportedAt}</td>
+            <td className="px-2 py-2 text-xs text-ink-subtle">{row.exportedAt}</td>
             <td className="px-2 py-2">
               <a
                 className={`${btnGhost} no-underline`}

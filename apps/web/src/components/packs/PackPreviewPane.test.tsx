@@ -65,7 +65,7 @@ describe('WEB-PREVIEW · 体量显示块（T8 四处未验渲染的正腿）', (
     render(<PackPreviewPane preview={previewOf(WITH_SIZE)} />)
     const warnLine = screen.getByText(/已超过提示线/)
     expect(warnLine.textContent).toContain('claude-code ≈15213')
-    expect(document.querySelectorAll('[class*="amber-700"]')).toHaveLength(1)
+    expect(document.querySelectorAll('[class*="text-warn-700"]')).toHaveLength(1)
     // 阈值 12000 住在 packages/core；抄进文案就是造第二个源，规格改了而文案不改即为说谎
     expect(warnLine.textContent).not.toMatch(/12[, ]?000/)
   })
@@ -96,7 +96,7 @@ describe('WEB-PREVIEW · 文件树点选', () => {
     await user.click(screen.getByRole('button', { name: /CLAUDE\.md/ }))
 
     expect(screen.getByText(/^CLAUDE\.md · sha256 b{12}/)).toBeTruthy()
-    // 高亮态跟着走：选中行的 class 从 zinc-600 换成 brand
+    // 高亮态跟着走：选中行的 class 从 ink-muted 换成 brand
     expect(
       screen.getByRole('button', { name: /CLAUDE\.md/ }).className.includes('bg-brand-soft'),
     ).toBe(true)

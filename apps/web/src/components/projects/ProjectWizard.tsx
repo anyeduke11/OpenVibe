@@ -93,7 +93,7 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
     <label
       key={t.id}
       className={`flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm ${
-        flowTemplateId === t.id ? 'border-brand bg-brand-soft' : 'border-zinc-200 bg-white'
+        flowTemplateId === t.id ? 'border-brand bg-brand-soft' : 'border-line bg-panel'
       }`}
     >
       <input
@@ -105,10 +105,10 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
       />
       <span className="min-w-0">
         <span className="font-medium">{t.name}</span>
-        <span className={`${chipCls} ml-2 border-zinc-200 bg-zinc-50 text-zinc-500`}>
+        <span className={`${chipCls} ml-2 border-line bg-fill-soft text-ink-subtle`}>
           {t.builtin ? zh.flows.builtin : zh.flows.custom}
         </span>
-        <span className="block truncate text-[11px] text-zinc-500">
+        <span className="block truncate text-[11px] text-ink-subtle">
           {t.stages.map((s) => s.name).join(' → ')}
         </span>
       </span>
@@ -122,7 +122,7 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
         width="w-[min(680px,100vw)]"
         footer={
           <>
-            <span className="mr-auto text-[11px] text-zinc-400">
+            <span className="mr-auto text-[11px] text-ink-faint">
               {String(step + 1)} / {String(STEPS.length)}
             </span>
             <button
@@ -163,14 +163,14 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
                 onChange={(e) => setLocalPath(e.target.value)}
                 placeholder="/Users/you/work/my-project"
               />
-              <p className="mt-1 text-[11px] text-zinc-400">{zh.projects.wizard.localPathHint}</p>
+              <p className="mt-1 text-[11px] text-ink-faint">{zh.projects.wizard.localPathHint}</p>
             </div>
           </div>
         )}
 
         {step === 1 && (
           <div className="space-y-2 text-sm">
-            {items.length === 0 && <p className="text-zinc-500">{zh.projects.wizard.flowNone}</p>}
+            {items.length === 0 && <p className="text-ink-subtle">{zh.projects.wizard.flowNone}</p>}
             {items.map(radio)}
           </div>
         )}
@@ -179,7 +179,7 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
           <div className="space-y-2 text-sm">
             <label
               className={`flex cursor-pointer items-center gap-2 rounded-md border p-3 ${
-                packId === '' ? 'border-brand bg-brand-soft' : 'border-zinc-200 bg-white'
+                packId === '' ? 'border-brand bg-brand-soft' : 'border-line bg-panel'
               }`}
             >
               <input
@@ -190,12 +190,12 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
               />
               <span>{zh.projects.wizard.packNone}</span>
             </label>
-            {packItems.length === 0 && <p className="text-zinc-500">{zh.projects.wizard.packEmpty}</p>}
+            {packItems.length === 0 && <p className="text-ink-subtle">{zh.projects.wizard.packEmpty}</p>}
             {packItems.map((p) => (
               <label
                 key={p.id}
                 className={`flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm ${
-                  packId === p.id ? 'border-brand bg-brand-soft' : 'border-zinc-200 bg-white'
+                  packId === p.id ? 'border-brand bg-brand-soft' : 'border-line bg-panel'
                 }`}
               >
                 <input
@@ -207,7 +207,7 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
                 />
                 <span className="min-w-0">
                   <span className="mono font-medium">{p.name}</span>
-                  <span className="block truncate text-[11px] text-zinc-500">
+                  <span className="block truncate text-[11px] text-ink-subtle">
                     {zh.packs.assetSummary(
                       p.selection.promptIds.length,
                       p.selection.termIds.length,
@@ -219,18 +219,18 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
             ))}
 
             {packId !== '' && (
-              <div className="space-y-2 rounded-md border border-zinc-200 bg-zinc-50 p-3">
+              <div className="space-y-2 rounded-md border border-line bg-fill-soft p-3">
                 {packVersion === undefined && (
-                  <p className="text-xs text-amber-700">{zh.projects.wizard.packNotExported}</p>
+                  <p className="text-xs text-warn-700">{zh.projects.wizard.packNotExported}</p>
                 )}
                 <button
                   type="button"
-                  className="mono rounded border border-zinc-200 bg-white px-1.5 py-0.5 text-[11px] hover:border-brand"
+                  className="mono rounded border border-line bg-panel px-1.5 py-0.5 text-[11px] hover:border-brand"
                   onClick={copyCommand}
                 >
                   {`${syncCommand} ${zh.projects.injection.copy}`}
                 </button>
-                <p className="text-[11px] text-zinc-400">{zh.projects.wizard.packWriteNote}</p>
+                <p className="text-[11px] text-ink-faint">{zh.projects.wizard.packWriteNote}</p>
               </div>
             )}
           </div>

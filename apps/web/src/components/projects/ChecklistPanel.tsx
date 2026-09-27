@@ -19,22 +19,22 @@ export function ChecklistPanel(props: {
 }) {
   const { stage } = props
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4">
+    <section className="rounded-lg border border-line bg-panel p-4">
       <header className="mb-2 flex items-baseline gap-2">
         <h2 className="text-sm font-semibold">{zh.projects.checklist.title}</h2>
         {stage !== undefined && (
-          <span className="text-xs text-zinc-500">
+          <span className="text-xs text-ink-subtle">
             {props.stageProgress(
               stage.checklist.filter((c) => props.isChecked(c.id)).length,
               stage.checklist.length,
             )}
           </span>
         )}
-        <span className="ml-auto text-[11px] text-zinc-400">{props.projectProgressLine}</span>
+        <span className="ml-auto text-[11px] text-ink-faint">{props.projectProgressLine}</span>
       </header>
 
       {stage === undefined ? (
-        <p className="text-sm text-zinc-500">{zh.projects.checklist.empty}</p>
+        <p className="text-sm text-ink-subtle">{zh.projects.checklist.empty}</p>
       ) : (
         <ul className="space-y-1.5">
           {stage.checklist.map((item) => {
@@ -49,10 +49,10 @@ export function ChecklistPanel(props: {
                     disabled={props.busyItemId === item.id}
                     onChange={(e) => props.onToggle(item.id, e.target.checked)}
                   />
-                  <span className={on ? 'text-zinc-400 line-through' : 'text-zinc-800'}>
+                  <span className={on ? 'text-ink-faint line-through' : 'text-ink'}>
                     {item.text}
                   </span>
-                  <span className={`${chipCls} ml-auto shrink-0 border-zinc-100 bg-zinc-50 text-zinc-400`}>
+                  <span className={`${chipCls} ml-auto shrink-0 border-line-hair bg-fill-soft text-ink-faint`}>
                     {item.id}
                   </span>
                 </label>
@@ -60,24 +60,24 @@ export function ChecklistPanel(props: {
             )
           })}
           {stage.checklist.length === 0 && (
-            <li className="text-sm text-zinc-400">{zh.projects.checklist.empty}</li>
+            <li className="text-sm text-ink-faint">{zh.projects.checklist.empty}</li>
           )}
         </ul>
       )}
 
       {stage !== undefined && stage.artifacts.length > 0 && (
-        <p className="mt-3 text-[11px] text-zinc-500">
+        <p className="mt-3 text-[11px] text-ink-subtle">
           {zh.flows.editor.artifacts}: {stage.artifacts.join('、')}
         </p>
       )}
 
       {props.orphans.length > 0 && (
-        <details className="mt-3 rounded-md border border-zinc-100 bg-zinc-50 px-3 py-2">
-          <summary className="cursor-pointer text-[11px] text-zinc-500">
+        <details className="mt-3 rounded-md border border-line-hair bg-fill-soft px-3 py-2">
+          <summary className="cursor-pointer text-[11px] text-ink-subtle">
             {zh.projects.checklist.removedStage}（{String(props.orphans.length)}）
           </summary>
-          <p className="mt-1 text-[11px] text-zinc-400">{zh.projects.checklist.removedHint}</p>
-          <ul className="mt-1 space-y-0.5 text-[11px] text-zinc-500">
+          <p className="mt-1 text-[11px] text-ink-faint">{zh.projects.checklist.removedHint}</p>
+          <ul className="mt-1 space-y-0.5 text-[11px] text-ink-subtle">
             {props.orphans.map((o) => (
               <li key={o.stageName}>
                 {o.stageName}: {o.items.map((i) => i.itemId).join(', ')}

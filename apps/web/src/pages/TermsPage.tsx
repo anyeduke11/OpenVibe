@@ -69,7 +69,7 @@ export function TermsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="border-b border-zinc-100 px-5 py-3">
+      <header className="border-b border-line-hair px-5 py-3">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="mr-auto text-base font-semibold">{zh.terms.title}</h1>
           <input
@@ -97,10 +97,10 @@ export function TermsPage() {
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <TagFilterBar tags={tags} selected={tag} onToggle={setTag} />
           {searching && trimmed.length < 3 && (
-            <span className="text-[11px] text-amber-700">{zh.terms.shortQueryHint}</span>
+            <span className="text-[11px] text-warn-700">{zh.terms.shortQueryHint}</span>
           )}
           {(list.isFetching || search_.isFetching) && (
-            <span className="text-[11px] text-zinc-400">刷新中…</span>
+            <span className="text-[11px] text-ink-faint">刷新中…</span>
           )}
         </div>
       </header>
@@ -116,7 +116,7 @@ export function TermsPage() {
         onDelete={setDeleting}
       />
 
-      <footer className="flex items-center gap-3 border-t border-zinc-100 px-5 py-2 text-xs text-zinc-500">
+      <footer className="flex items-center gap-3 border-t border-line-hair px-5 py-2 text-xs text-ink-subtle">
         <span>{zh.terms.total(rows.length)}</span>
         <span>{zh.terms.seedCount(seedCount)}</span>
         <span className="ml-auto" />
@@ -177,7 +177,7 @@ export function TermsPage() {
                 {zh.editor.cancel}
               </button>
               <button
-                className={`${btnPrimary} border-red-600 bg-red-600 hover:bg-red-700`}
+                className={`${btnPrimary} border-danger-600 bg-danger-600 hover:bg-danger-700`}
                 disabled={remove.isPending}
                 onClick={() => {
                   if (deleting === null) return
@@ -202,7 +202,7 @@ export function TermsPage() {
             <div className="space-y-2 text-sm">
               <p>{zh.terms.deleteDialog.body(deleting.zh || deleting.en || deleting.id)}</p>
               {deleting.source === 'openvibe-seed' && (
-                <p className="text-xs text-zinc-500">{zh.terms.deleteDialog.seedNote}</p>
+                <p className="text-xs text-ink-subtle">{zh.terms.deleteDialog.seedNote}</p>
               )}
             </div>
           )}

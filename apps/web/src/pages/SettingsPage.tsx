@@ -14,7 +14,7 @@ export function SettingsPage() {
   const settings = useSettings()
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-3 border-b border-zinc-100 px-5 py-3">
+      <header className="flex items-center gap-3 border-b border-line-hair px-5 py-3">
         <h1 className="text-base font-semibold">{zh.settings.title}</h1>
       </header>
       <div className="flex-1 overflow-auto px-5 py-4">

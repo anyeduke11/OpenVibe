@@ -9,7 +9,7 @@ import { zh } from '../../i18n/zh'
 export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
   const { preview } = props
   const [active, setActive] = useState(0)
-  if (preview === undefined) return <p className="text-sm text-zinc-400">{zh.packs.preview.noFiles}</p>
+  if (preview === undefined) return <p className="text-sm text-ink-faint">{zh.packs.preview.noFiles}</p>
 
   const files = preview.files
   const current = files[Math.min(active, files.length - 1)]
@@ -24,21 +24,21 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
   return (
     <div className="flex min-h-0 flex-col gap-2 text-sm">
       <div className="flex items-center gap-3 text-xs">
-        <span className="text-zinc-500">{zh.packs.preview.fingerprint}</span>
-        <span className="mono text-zinc-700">{preview.fingerprint}</span>
+        <span className="text-ink-subtle">{zh.packs.preview.fingerprint}</span>
+        <span className="mono text-ink-body">{preview.fingerprint}</span>
       </div>
 
       {preview.coveredPlatforms.length > 0 && (
-        <p className="text-xs text-zinc-500">
+        <p className="text-xs text-ink-subtle">
           {zh.packs.preview.covered}
           {': '}
-          <span className="text-zinc-700">{preview.coveredPlatforms.join(' / ')}</span>
+          <span className="text-ink-body">{preview.coveredPlatforms.join(' / ')}</span>
         </p>
       )}
 
       {preview.sizeEstimate !== undefined && preview.sizeEstimate.perTarget.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-ink-subtle">
             {`${zh.packs.preview.perTargetTitle} · ${zh.packs.preview.sizeBasis}`}
           </p>
           <ul className="flex flex-wrap gap-2">
@@ -47,15 +47,15 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
                 key={p.adapter}
                 className={`rounded-md border px-2 py-1 text-xs ${
                   p.warn
-                    ? 'border-amber-300 bg-amber-50 text-amber-800'
-                    : 'border-zinc-200 bg-white text-zinc-700'
+                    ? 'border-warn-300 bg-warn-50 text-warn-800'
+                    : 'border-line bg-panel text-ink-body'
                 }`}
               >
                 {`${p.adapter} ≈${String(p.approxTokens)}`}
               </li>
             ))}
           </ul>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-ink-subtle">
             {`${zh.packs.preview.footprintTitle} ≈${String(
               preview.sizeEstimate.footprint.approxTokens,
             )} · ${zh.packs.preview.fileCount(preview.sizeEstimate.footprint.files.length)}`}
@@ -63,7 +63,7 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
           {preview.sizeEstimate.perTarget
             .filter((p) => p.warn)
             .map((p) => (
-              <p key={`warn-${p.adapter}`} className="text-xs text-amber-700">
+              <p key={`warn-${p.adapter}`} className="text-xs text-warn-700">
                 {zh.packs.preview.overBudget(p.adapter, p.approxTokens)}
               </p>
             ))}
@@ -71,29 +71,29 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
       )}
 
       {preview.warnings.length > 0 ? (
-        <ul className="space-y-0.5 text-xs text-amber-700">
+        <ul className="space-y-0.5 text-xs text-warn-700">
           {preview.warnings.map((w) => (
             <li key={w}>· {w}</li>
           ))}
         </ul>
       ) : (
-        <p className="text-xs text-zinc-400">{zh.packs.preview.noWarnings}</p>
+        <p className="text-xs text-ink-faint">{zh.packs.preview.noWarnings}</p>
       )}
 
-      <p className="text-xs font-medium text-zinc-500">
+      <p className="text-xs font-medium text-ink-subtle">
         {`${zh.packs.preview.files}${
           preview.sizeEstimate !== undefined ? ` · ${zh.packs.preview.sizeBasis}` : ''
         }`}
       </p>
       <div className="flex h-[46vh] gap-3">
-        <ul className="w-56 shrink-0 overflow-auto rounded-md border border-zinc-200 bg-white py-1">
+        <ul className="w-56 shrink-0 overflow-auto rounded-md border border-line bg-panel py-1">
           {files.map((f, i) => (
             <li key={f.path}>
               <button
                 className={`block w-full px-3 py-1.5 text-left text-xs ${
                   i === Math.min(active, files.length - 1)
                     ? 'bg-brand-soft font-medium text-brand'
-                    : 'text-zinc-600 hover:bg-zinc-50'
+                    : 'text-ink-muted hover:bg-fill-soft'
                 }`}
                 onClick={() => setActive(i)}
               >
@@ -102,7 +102,7 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
                 </span>
                 {/* 无 sizeEstimate 时整段不渲染：宁可无量，也不印「≈0」这种假零断言 */}
                 {preview.sizeEstimate !== undefined && (
-                  <span className="block truncate text-[10px] text-zinc-400">
+                  <span className="block truncate text-[10px] text-ink-faint">
                     {sizeFor(f.path, f.content)}
                   </span>
                 )}
@@ -113,11 +113,11 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
 
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           {current !== undefined && (
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-[11px] text-ink-faint">
               {`${current.path} · ${zh.packs.preview.sha256} ${current.sha256.slice(0, 12)}`}
             </p>
           )}
-          <pre className="mono min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-zinc-200 bg-zinc-50 p-3 text-[12px] leading-relaxed text-zinc-800">
+          <pre className="mono min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-fill-soft p-3 text-[12px] leading-relaxed text-ink">
             {current?.content ?? ''}
           </pre>
         </div>

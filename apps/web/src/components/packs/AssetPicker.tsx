@@ -51,10 +51,10 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
   const total = props.rows.length
 
   return (
-    <section className="flex h-[62vh] min-h-0 flex-col rounded-lg border border-zinc-200 bg-white">
-      <header className="flex items-center gap-2 border-b border-zinc-100 px-3 py-2">
-        <h3 className="mr-auto text-xs font-medium text-zinc-600">{`${props.title}（${String(total)}）`}</h3>
-        <span className="text-[11px] text-zinc-400">{zh.packs.wizard.picked(props.ids.length)}</span>
+    <section className="flex h-[62vh] min-h-0 flex-col rounded-lg border border-line bg-panel">
+      <header className="flex items-center gap-2 border-b border-line-hair px-3 py-2">
+        <h3 className="mr-auto text-xs font-medium text-ink-muted">{`${props.title}（${String(total)}）`}</h3>
+        <span className="text-[11px] text-ink-faint">{zh.packs.wizard.picked(props.ids.length)}</span>
       </header>
       <div className="flex items-center gap-2 px-3 py-2">
         <input
@@ -71,24 +71,24 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
           {zh.packs.wizard.selectAll}
         </button>
         <button
-          className="shrink-0 text-[11px] text-zinc-500 hover:underline disabled:opacity-40"
+          className="shrink-0 text-[11px] text-ink-subtle hover:underline disabled:opacity-40"
           disabled={props.ids.length === 0}
           onClick={props.onClear}
         >
           {zh.packs.wizard.clearSel}
         </button>
       </div>
-      <ul className="min-h-0 flex-1 overflow-auto border-t border-zinc-100 px-1 pb-2">
+      <ul className="min-h-0 flex-1 overflow-auto border-t border-line-hair px-1 pb-2">
         {shown.length === 0 && (
-          <li className="px-3 py-2 text-xs text-zinc-400">{zh.packs.wizard.noneAvailable}</li>
+          <li className="px-3 py-2 text-xs text-ink-faint">{zh.packs.wizard.noneAvailable}</li>
         )}
         {shown.map((row) => {
           const isStale = props.staleIds.includes(row.id)
           return (
             <li key={row.id}>
               <label
-                className={`flex cursor-pointer items-start gap-2 rounded px-2 py-1.5 text-sm hover:bg-zinc-50 ${
-                  isStale ? 'bg-red-50 text-red-700' : ''
+                className={`flex cursor-pointer items-start gap-2 rounded px-2 py-1.5 text-sm hover:bg-fill-soft ${
+                  isStale ? 'bg-danger-50 text-danger-700' : ''
                 }`}
               >
                 <input
@@ -100,11 +100,11 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
                 <span className="min-w-0">
                   <span className="block truncate" title={props.label(row)}>
                     {props.label(row)}
-                    <span className={`${chipCls} ml-1.5 border-zinc-200 bg-zinc-50 text-zinc-500`}>
+                    <span className={`${chipCls} ml-1.5 border-line bg-fill-soft text-ink-subtle`}>
                       {props.badge(row)}
                     </span>
                   </span>
-                  <span className="block truncate text-[11px] text-zinc-400">{props.note(row)}</span>
+                  <span className="block truncate text-[11px] text-ink-faint">{props.note(row)}</span>
                 </span>
               </label>
             </li>
@@ -124,9 +124,9 @@ export function AssetPicker(props: AssetPickerProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <p className="text-xs text-zinc-500">{zh.packs.wizard.assetsHint}</p>
+      <p className="text-xs text-ink-subtle">{zh.packs.wizard.assetsHint}</p>
       {stale.promptIds.length + stale.termIds.length + stale.skillIds.length > 0 && (
-        <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <p className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-xs text-danger-700">
           {zh.packs.preview.stale(
             [...stale.promptIds, ...stale.termIds, ...stale.skillIds].join(', '),
           )}
