@@ -37,6 +37,13 @@ describe('关闭语义的可访问名', () => {
     // 套上 aria-hidden="true"，默认的 role 查询直接把 toast 关闭键整个剔掉——那样
     // name:'关闭' 只命中 1 个就是靠 aria-hidden 蒙对的，删掉 toast 的 aria-label 也照样绿。
     // 要钉的是「可访问名互不撞车」，跟模态层不隐藏与否无关，故按全量 DOM 查。
+    // hidden: true 的地基：模态开着时 Radix 的 hideOthers 会给非弹窗子树套 aria-hidden，
+    // 所以默认的 role 查询看不见 toast 那颗。把这件事本身钉成断言——将来 hideOthers 行为变了，
+    // 先红的是这一条，而不是「name:'关闭' 命中 1」那条静默失去牙齿的断言。
+    const toastHidden = [...document.body.querySelectorAll('[aria-hidden="true"]')].some((el) =>
+      [...el.querySelectorAll('button')].some((b) => b.getAttribute('aria-label') === '关闭提示'),
+    )
+    expect(toastHidden).toBe(true)
     expect(screen.getAllByRole('button', { name: '关闭弹窗', hidden: true })).toHaveLength(1)
     expect(screen.getAllByRole('button', { name: '关闭提示', hidden: true })).toHaveLength(1)
     // footer 那颗没有 aria-label，可访问名就是它的文本；toast 那颗有 aria-label，
@@ -64,6 +71,10 @@ describe('关闭语义的可访问名', () => {
     const byText = [...document.body.querySelectorAll('button')].filter(
       (b) => (b.textContent ?? '').trim() === '关闭',
     )
-    expect(byText.length).toBeGreaterThanOrEqual(2)
+    // 内外各一颗且总数恰为 2：多一颗少一颗都要红——弹窗内那颗才是驱动器
+    // three-smokes.mjs 的 dlgBtnExpr 必须带 [role="dialog"] 前缀的真正凭据。
+    const inside = byText.filter((b) => b.closest('[role="dialog"]') !== null)
+    expect(inside).toHaveLength(1)
+    expect(byText).toHaveLength(2)
   })
 })
