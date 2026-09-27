@@ -55,7 +55,18 @@ const r4NoCrossApp = (others) => [
 
 export default tseslint.config(
   {
-    ignores: ['**/node_modules/**', '**/dist/**', 'coverage/**', 'content/**', '**/*.md'],
+    // build/ 与 .zwork/ 已在 .gitignore 里，本机却会长期驻留临时脚本：ESLint 默认不受 gitignore
+    // 约束，这些文件会把 pnpm lint 变成噪声闸（实测一次 228 条报错全来自它们）。dist 已经排除，
+    // 同类的本机产物一并排除；CI 是干净 checkout，少不掉任何真实覆盖。
+    ignores: [
+      '**/node_modules/**',
+      '**/dist/**',
+      'build/**',
+      '.zwork/**',
+      'coverage/**',
+      'content/**',
+      '**/*.md',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
