@@ -1302,3 +1302,21 @@
 - **未验证面净变化**: ⑲ 关闭 ⇒ 待裁 **1 → 0**，已裁已落 **15 → 16**。未验证面**净减 0**：本轮没有拿到任何新的三平台凭据。仍挂着的：⑧ 的三平台凭据（要第 7 次推送）、⑰ 的两条 09-23 证据要在新树重砸、`docs/specs` 里 web 侧 a11y 规格无对应 FR（⑨ 留下的，见下一条）。
 - **潜在风险**: ① **`build/**` 与 `.zwork/**` 永久退出 lint 视野**——如果哪天有人真的把工程源码放进 `build/`（例如自写打包脚本要入库），它会静默不被检查。缓释是这两个前缀同时也在 `.gitignore` 里，`git ls-files` 恒 0 命中，一旦发现命中就说明约定被破坏。② 本轮**没有加防回归断言**（例如「`git ls-files build/` 必须为空」这类常驻检查）——加它属于新建用例，超出 ⑲ 的裁决范围，需要时要 owner 再判一次。
 - **owner 手上未收的**: 队列 `待裁` 已清零；剩 **① 逐条签（19 行，`docs/devlog-evidence/DEV-0037/seed-prescreen.md` §4）**、**② 真发布**、**⑦ 第 7 次推送**（一次 push 现在能同时带回 ⑧ 的三平台凭据 + ⑨ 新增用例的真实绿灯 + ⑲ 之后 `pnpm lint` 在 CI 上的绿灯，比上一轮更值）。**另需报备一处规格缺口**：⑨ 的可访问名约定我按 C 级落进 design §13，**没有**去 `docs/specs/` 新建 web a11y FR —— 那是 B 级规格改动，按 owner 既定口径等收口时一次性复核，若要现在做请点名。
+
+## [DEV-0055] owner 令「所有开发情况整合到 main」—— 本地快进整合完成 · **搬 ref 指针不产生 CI 凭据，但跳过一步会让 main 悄悄丢掉已推的笔**
+
+- **时间**: 2026-09-27 14:0x–14:1x +0800。合并前实测 `main` = `6499139`、`feat/p1.1-t10-clean-size` = `31abf57`（= 当时 HEAD）；合并后 `main` = `31abf57`，当前分支仍是 feat，`git status --porcelain` 去掉未跟踪后 **0 行**。
+- **类型**: §0.3 **C 级 · 零产品代码 · 零用例**（动的是 `refs/heads/main` 一个指针 + 本条登记行）。
+- **关联文件**: `DEV_LOG.md` 本条；refs：`refs/heads/main` 由 `6499139` 到 `31abf57`。
+- **执行链（三步，顺序不能换）**:
+  1. **先验是快进**：`git rev-list --count main..feat/p1.1-t10-clean-size` = **24**、反向 = **0**，再用三点版 `git rev-list --count main...feat/p1.1-t10-clean-size` = 24 确认总分歧就是这 24（两点写法在分叉时给的是**错数**，不报错）。⇒ 纯快进，无 merge commit、无冲突面。
+  2. **再验一件更要紧的**：本地 `main` 当时**落后远端实况 10 笔**（`git branch -vv` 那行 `[origin/main: behind 10]`）。只按「feat 含住 main」就快进，会把 `main` 搬到一支**不含那 10 笔已推内容**的 tip 上——不报错、object 一个不丢，但 `main` 从此反向落后。取数 `git rev-list --count feat/p1.1-t10-clean-size..origin/main` = **0** 才证明 feat 把那 10 笔全含住。**这一步是本次合并唯一真正的风险点**，`git branch -vv` 的 behind 就是它的报警器。
+  3. **不动工作树地搬 ref**：`git fetch . refs/heads/feat/p1.1-t10-clean-size:refs/heads/main`（不带 `+` ⇒ 非快进由 fetch 自己拒；共享工作树里 `checkout`/`merge` 会动别的会话的在写文件，故不用）。实测输出 `6499139..31abf57  feat/p1.1-t10-clean-size -> main`，rc=0。
+- **测试验证（合并后在同一棵树上重砸五闸，工作树 0 脏行）**: `lint` rc=0 / `typecheck` rc=0（两份 tsconfig 各一遍）/ `test` rc=0（取数：`pnpm test` 末行 `Test Files`／`Tests` 两行，本轮现测 49 支 / 453 用例，Duration 8.51s）/ `seed:check` rc=0（terms ≥100、templates 3、prompts 20）/ `bundle:check` rc=0（入口 293.07 kB ≤ 300 kB、最大 chunk 347.45 kB ≤ 500 kB）。另两项 A 级与可逆性复核：`git diff --name-only main feat/p1.1-t10-clean-size -- tests/golden` = **0 行**；`git merge-base --is-ancestor 6499139 main` 为真 ⇒ 旧 tip 仍可达，**没有一笔被丢掉**。
+- **净发现（本轮三条）**:
+  ① **「整合到 main」有两层，本笔只做到了第一层**：ref 层已整合（`main` 与开发 tip 同树，`git diff --name-only main feat/p1.1-t10-clean-size` = 0 行）；**CI 与 npm 层没有**——14:0x `git ls-remote origin refs/heads/main` 直测远端实况仍是 `af185c4`，`gh run list` 最新 = run `36280869393` @ `af185c4` success ⇒ **整合后的 `main` 有 14 笔拿不到三平台凭据**（取数 `git rev-list --count origin/main..main`）。合并搬的是指针，不是证据。
+  ② **第一次 `ls-remote` 报 `SSL_ERROR_SYSCALL`，两轨探针随后都 rc=0**（`nc -z 127.0.0.1 7897` 通、`nc -z github.com 443` 通、重试即成）⇒ 那是**瞬时**错，不能读成「网络不可用」，更不构成改 git config 的理由（本笔未改任何 config，代理配置是既有的）。
+  ③ **落点扫描的产出是「零处需改」，但逐处读完才敢写这句**（承 `[DEV-0050]` 纪律）：全仓 `6499139` 命中 9 处、跨 4 份文件，每一处都带日期锚（含 `docs/devlog-evidence/DEV-0043/` 三份复核基线的「采样 @ `6499139`」），写的是「当时在哪」而非「`main` 现在在哪」⇒ 不改写历史现测。顺带澄清一支容易被误当成待办的事实：远端 `refs/heads/feat/p1.1-t10-clean-size` = `787eb4c`，比本地同名分支落后 49，那是上一轮推分支留下的旧 tip，与 `main` 的整合无关，本笔不动它。
+- **未验证面净变化**: **净减 0**。合并本身不产出任何新凭据，⑦ 的第 7 次推送仍未放行，⑧ 的三平台凭据与 ⑰ 的两条 09-23 证据照旧挂着。收益在另一头：`main` 与开发 tip 从此同树，下一轮无论从哪支开工，起点都是同一份代码、同一份五闸证据，不需要再重砸一遍基线。
+- **潜在风险**: ① `main` 与 `feat/p1.1-t10-clean-size` 现指向同一 commit。若并行会话直接在 `main` 上落笔，下次合并的第 2 步就会在 `git branch -vv` 的 behind 上显形——**只要每次合并前读那一行，就不会静默出错；跳过第 2 步才会**。② 本次是纯快进所以没有冲突面，**不代表下次也是**：一旦 `git rev-list --count feat..main` 大于 0，`fetch .` 会直接拒绝，那时**不能加 `+` 硬来**（那等于用 `--force` 覆盖别人的主干），要停下来问。
+- **owner 手上未收的**: 队列 `待裁` 已为 0；剩 **①** 19 行种子逐条签（`docs/devlog-evidence/DEV-0037/seed-prescreen.md` §4）、**②** 真 `npm publish`（D15 起点那半）、**⑦** 第 7 次推送。**本地已整合完，要让远端也整合只有一条路：推送。** 现在 `origin/main..main` = 14 笔、`main..origin/main` = 0，即一次纯快进 push——不改历史、不删东西、不动 tag。等你放行。
