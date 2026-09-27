@@ -1,11 +1,9 @@
 import {
-  chmodSync,
   copyFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
   statSync,
-  writeFileSync,
 } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { isCancel, select } from '@clack/prompts'
@@ -23,6 +21,7 @@ import {
   strategyToDecisions,
   SYNC_LOCK_STALE_MS,
   tryAcquireSyncLock,
+  writeReplacingLinks,
   type InjectDecision,
   type InjectPlan,
   type InjectPlanFile,
@@ -381,6 +380,8 @@ export async function syncAction(
   try {
     const now = (deps.now ?? (() => new Date()))()
     const written: string[] = []
+    /** 落盘前发现「目标还挂在别处」的条目——写成了新文件，链的另一侧原样保留 */
+    const linkBroken: string[] = []
     let backupRoot: string | null = null
     for (const write of applied.writes) {
       const abs = safety.absPaths[write.path]
@@ -399,8 +400,8 @@ export async function syncAction(
       }
       try {
         mkdirSync(dirname(abs), { recursive: true })
-        writeFileSync(abs, write.content, { mode: 0o644 })
-        chmodSync(abs, 0o644)
+        const { brokeLink } = writeReplacingLinks(abs, write.content, 0o644)
+        if (brokeLink) linkBroken.push(write.path)
       } catch (e) {
         // §6.5：中止后续写入，已写文件保留（幂等重跑可收敛），并给手工回滚指引
         throw new SyncError(
@@ -427,11 +428,19 @@ export async function syncAction(
       injectedAt: now.toISOString(),
     })
     mkdirSync(dirname(lockPath), { recursive: true })
-    writeFileSync(lockPath, packLockJson(nextLock), { mode: 0o644 })
-    chmodSync(lockPath, 0o644)
+    if (writeReplacingLinks(lockPath, packLockJson(nextLock), 0o644).brokeLink) {
+      linkBroken.push(PACK_LOCK_REL)
+    }
     outcome.lockPath = lockPath
     outcome.backupRoot = backupRoot
 
+    // 解链不是静默行为：用户以为覆盖的是项目里那份，实际上磁盘上还挂着另一处同名内容
+    if (linkBroken.length > 0) {
+      outcome.hints.push(
+        `${linkBroken.length} 个目标在磁盘上挂着额外链接，已按「解链后新建」写入：` +
+          `${linkBroken.join('、')}；链接另一侧的文件一字未动`,
+      )
+    }
     outcome.hints.push('建议把 .openvibe/backup/ 加入 .gitignore（本命令不会改动 .gitignore）')
 
     await reportInjection(outcome, deps, pack, warningsOut)

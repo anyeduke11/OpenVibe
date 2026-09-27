@@ -107,5 +107,10 @@ export {
   type SyncLockHandle,
   type SyncLockHolder,
 } from './inject'
+export {
+  // 落盘的「只动这一个目录项」保证：硬链接不换成拒绝，换成解链后新建
+  writeReplacingLinks,
+  type ReplaceLinkWrite,
+} from './inject'
 
 export const CORE_VERSION = '0.0.0'
