@@ -27,7 +27,10 @@ export function DialogPanel(props: {
       >
         <header className="flex items-center justify-between border-b border-zinc-100 px-5 py-3">
           <DialogPrimitive.Title className="text-base font-semibold">{title}</DialogPrimitive.Title>
-          <DialogPrimitive.Close className="rounded px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100">
+          <DialogPrimitive.Close
+            aria-label="关闭弹窗"
+            className="rounded px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100"
+          >
             ✕
           </DialogPrimitive.Close>
         </header>
