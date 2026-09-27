@@ -1,6 +1,8 @@
 // P1.1/T11 三条冒烟：把 §2b·T11 的三个场景接到 DEV-0024 的裸 CDP 真输入骨架上
 // 用法：node docs/devlog-evidence/DEV-0025/three-smokes.mjs            （无头）
 //       HEADLESS=0 CDP_PORT=9351 node docs/devlog-evidence/DEV-0025/three-smokes.mjs   （有头）
+//       CI 形态（.github/workflows/ci.yml 的 three-smokes 步）：SHOTS=0 EXPECT_SKIP=2，
+//       并按平台给 CHROME_BIN；EXPECT_SKIP 一设即成闸（见文件末尾）
 //
 // 三条各自独立判定，任一不过即整体不过（口径同 dev-plan §15.4-S2）：
 //   SM-1 导入→复制：真点击开弹窗 → 真点击「选择文件…」→ 注入一个磁盘 .md → 导入报告 →
@@ -29,8 +31,51 @@ const REPO = resolve(HERE, '..', '..', '..')
 const ROOT = join(tmpdir(), `ov-smoke-${String(process.pid)}`)
 const HOME = join(ROOT, 'home')
 const FIX = join(ROOT, 'fixtures')
-const CHROME =
-  process.env.CHROME_BIN ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+// Chrome 定位：CHROME_BIN 显式优先，否则按平台探常见路径再探 PATH。
+// 不在 ci.yml 里为三个平台各写一遍路径表达式——那会让「CI 找不到浏览器」和
+// 「冒烟真的红了」在报告里长得一样，而后者才是要人看的东西。
+const CHROME_LOOKUP = ['google-chrome-stable', 'google-chrome', 'chromium', 'chrome']
+const CHROME_CANDIDATES = {
+  darwin: ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'],
+  linux: [
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium',
+    '/snap/bin/chromium',
+  ],
+  win32: [
+    // 写死 C:\ 不可靠（Program Files 可被重定向），故三级兜底：镜像导出的 ChromeBinPath
+    // （此变量名本机未验，取不到就走下一级）→ %ProgramFiles% 展开 → PATH 里的 chrome。
+    process.env.ChromeBinPath ?? '',
+    join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Google\\Chrome\\Application\\chrome.exe'),
+    join(
+      process.env['ProgramFiles(x86)'] ?? 'C:\\Program Files (x86)',
+      'Google\\Chrome\\Application\\chrome.exe',
+    ),
+  ].filter((p) => p !== ''),
+}
+function findChrome() {
+  const fromEnv = process.env.CHROME_BIN
+  if (fromEnv !== undefined && fromEnv !== '') return fromEnv
+  for (const p of CHROME_CANDIDATES[process.platform] ?? []) if (existsSync(p)) return p
+  const probe = spawnSync(
+    process.platform === 'win32' ? 'where' : 'which',
+    CHROME_LOOKUP,
+    { encoding: 'utf8' },
+  )
+  const hit = probe.stdout
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .find((l) => l !== '' && existsSync(l))
+  return hit ?? ''
+}
+const CHROME = findChrome()
+if (CHROME === '') {
+  console.error(
+    `找不到 Chrome：CHROME_BIN 未设，且平台 ${process.platform} 的常见路径与 PATH 均未命中 ⇒ 环境不具备，退出码 2（区别于冒烟本身失败的 1）`,
+  )
+  process.exit(2)
+}
 const CDP_PORT = Number(process.env.CDP_PORT ?? '9350')
 const SHOT = process.env.SHOTS === '0' ? false : true
 const HEADLESS = process.env.HEADLESS !== '0'
@@ -719,4 +764,19 @@ info(
   '本进程临时目录已删',
   `${String(existsSync(ROOT) ? 'FAIL 仍在' : '已不存在')}；其余为并行会话遗留（未定归属，不算本驱动器孤儿）`,
 )
+// SKIP 条数本身是闸：设了 EXPECT_SKIP 就要求实得条数相等，多一条 skip 即 FAIL。
+// 立条理由见队列 ⑧（owner 2026-09-27 裁「只接可机判腿 + SKIP 数入断言」）——
+// 「FAIL=0 所以绿」在 skip 悄悄变多时什么都没说，这条就是为了让它说话。
+const EXPECT_SKIP = process.env.EXPECT_SKIP === undefined ? NaN : Number(process.env.EXPECT_SKIP)
+if (Number.isInteger(EXPECT_SKIP)) {
+  check(
+    `SKIP 条数等于预期 ${String(EXPECT_SKIP)}（EXPECT_SKIP 已设）`,
+    skipped === EXPECT_SKIP,
+    `实得 SKIP=${String(skipped)} FAIL=${String(failures)} 形态=${HEADLESS ? 'headless' : 'headed'} platform=${process.platform}`,
+  )
+  flushEvidence()
+} else if (process.env.EXPECT_SKIP !== undefined) {
+  check('EXPECT_SKIP 必须是整数', false, `收到 ${String(process.env.EXPECT_SKIP)}`)
+  flushEvidence()
+}
 process.exit(failures === 0 ? 0 : 1)

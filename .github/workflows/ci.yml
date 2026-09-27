@@ -42,3 +42,17 @@ jobs:
       # T8f 起生效：入口 ≤300kB / 任一 chunk ≤500kB（自带 vite build，测的就是当前提交）
       - name: Bundle check
         run: pnpm bundle:check
+
+      # 队列 ⑧（owner 2026-09-27 裁「只接可机判腿 + SKIP 数入断言」）：三条冒烟进常驻闸。
+      # 只跑无头形态——SM-1/SM-2 的系统剪贴板腿在无头结构上不可判，驱动器把它们记成 SKIP
+      # 而不是 PASS；EXPECT_SKIP=2 让「skip 条数」本身成为断言，多一条 skip 即红，
+      # 于是这份绿说的是「非剪贴板腿全过」，不是「什么都没跑」。
+      # Chrome 由驱动器自己定位（CHROME_BIN 未设 ⇒ 平台常见路径 → PATH），失败退出码 2，
+      # 与冒烟本身失败的 1 分得开。有头腿（真剪贴板逐字节）仍按发布节奏人工跑，留档
+      # docs/devlog-evidence/DEV-0025/three-smokes-headed.txt。
+      - name: Three smokes (headless, clipboard legs expected to SKIP)
+        env:
+          HEADLESS: '1'
+          SHOTS: '0'
+          EXPECT_SKIP: '2'
+        run: node docs/devlog-evidence/DEV-0025/three-smokes.mjs

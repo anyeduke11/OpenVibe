@@ -1451,7 +1451,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 
 ### 15.4b S-2b 三条冒烟接上骨架（2026-09-24 收口；**本块是三条冒烟数字的单源**，其余文档只写状态）
 
-驱动器 `docs/devlog-evidence/DEV-0025/three-smokes.mjs`（重跑：`node docs/devlog-evidence/DEV-0025/three-smokes.mjs` 为无头，`HEADLESS=0 CDP_PORT=9351 node …` 为有头；证据 `three-smokes.txt` / `three-smokes-headed.txt` + 3 张有头 PNG）。**两支日志各 26 条断言**，三条冒烟各自独立判定（任一不过即整体不过，口径同 §15.4-S2）。
+驱动器 `docs/devlog-evidence/DEV-0025/three-smokes.mjs`（重跑：`node docs/devlog-evidence/DEV-0025/three-smokes.mjs` 为无头，`HEADLESS=0 CDP_PORT=9351 node …` 为有头；**CI 形态 `SHOTS=0 EXPECT_SKIP=2 node …`**，见队列 ⑧（owner 2026-09-27 裁 (a)：只把可机判腿接成每次 push 的常驻闸，`EXPECT_SKIP` 一设即断言 SKIP 条数，多一条就红）；剪贴板两腿只在有头可证，故仍按发布节奏人工跑。证据 `three-smokes.txt` / `three-smokes-headed.txt` + 3 张有头 PNG）。两支日志的断言条数不抄正文，取数 `grep -cE '^(PASS|FAIL|SKIP) ' docs/devlog-evidence/DEV-0025/three-smokes*.txt`；三条冒烟各自独立判定（任一不过即整体不过，口径同 §15.4-S2）。
 
 | 冒烟 | 有头 Chrome（`three-smokes-headed.txt`） | 无头 `--headless=new`（`three-smokes.txt`） |
 |---|---|---|
