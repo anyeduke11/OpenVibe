@@ -284,6 +284,16 @@ async function waitGoneText(t, ms = 8_000) {
   }
   return false
 }
+/** 轮询一个 async 探针，拿到非 null 即返回，到点返回 null。给「等后端落下」这类非 DOM 判据用 */
+async function waitForProbe(probe, ms = 5_000) {
+  const deadline = Date.now() + ms
+  for (;;) {
+    const v = await probe()
+    if (v !== null && v !== undefined) return v
+    if (Date.now() >= deadline) return null
+    await sleep(200)
+  }
+}
 const bodyText = () => evalJs('document.body.innerText')
 
 const requests = []
@@ -405,8 +415,11 @@ function flushEvidence() {
     const dirty = spawnSync('git', ['status', '--porcelain'], { cwd: REPO, encoding: 'utf8' })
       .stdout.split('\n').filter(Boolean).length
     const tag = HEADLESS ? '' : '-headed'
+    // EVIDENCE_SUFFIX 决定落盘文件名后缀：不带它，本机每重跑一次就原地覆盖一次已入库的凭据
+    // （DEV-0051 风险③写下这条，7 小时后我自己踩了）。复跑请 `EVIDENCE_SUFFIX=-20260927`。
+    const file = join(HERE, `three-smokes${tag}${process.env.EVIDENCE_SUFFIX ?? ''}.txt`)
     writeFileSync(
-      join(HERE, `three-smokes${tag}.txt`),
+      file,
       `${lines.join('\n')}\n\n# HEAD ${head}（工作树脏 ${String(dirty)} 文件）· node ${process.version} · ${process.platform} · Chrome ${HEADLESS ? 'headless=new' : 'headed'} · 结束于 ${new Date().toISOString()}\n`,
     )
   } catch {
@@ -698,12 +711,22 @@ try {
   await realClick(btnExpr('暂不'))
   check('SM-3g 真点击「暂不」后向导条消失', await waitGoneText('开箱三步', 8_000))
   await go('/library')
-  check('SM-3h 刷新后不再询问（declined 落本地标记）', !(await hasText('开启匿名统计？')))
-  const te = JSON.parse((await api('/api/settings/telemetry')).body)
+  // 刷新与「暂不」之间刻意不 await —— 这两条腿测的正是「用户点完就走」会不会把选择弄丢。
+  // 轮询只是给那个请求落地的时间：若它真被导航掐断，askState 会永远停在 unset，到点仍判
+  // FAIL，不会靠多等把缺陷哄成通过（D13 的落点在服务端，前端不再各自记标记）。
+  const settled = await waitForProbe(async () => {
+    const t = JSON.parse((await api('/api/settings/telemetry')).body)
+    return t.askState === 'unset' ? null : t
+  }, 5_000)
+  check(
+    'SM-3h 刷新后不再询问（declined 已落库）',
+    settled !== null && !(await hasText('开启匿名统计？')),
+    settled === null ? '5 s 内后端 askState 仍为 unset ⇒ 落库请求没送达' : JSON.stringify(settled),
+  )
   check(
     'SM-3i 询问结果与后端一致',
-    te.askState === 'declined' && te.enabled === false,
-    JSON.stringify(te),
+    settled !== null && settled.askState === 'declined' && settled.enabled === false,
+    JSON.stringify(settled),
   )
   rmSync(demoDir, { recursive: true, force: true })
 } catch (e) {
@@ -759,11 +782,26 @@ const leftovers = readdirSync(tmpdir())
   .filter((n) => n.startsWith('ov-smoke-'))
   .map((n) => join(tmpdir(), n))
 info('本机 ov-smoke-* 临时目录（rmSync 前）', `${String(leftovers.length)} 个 ${leftovers.join(' ')}`)
-rmSync(ROOT, { recursive: true, force: true })
-info(
-  '本进程临时目录已删',
-  `${String(existsSync(ROOT) ? 'FAIL 仍在' : '已不存在')}；其余为并行会话遗留（未定归属，不算本驱动器孤儿）`,
+// win32 上 Chrome 的 pid 判死之后，profile 目录里的文件句柄仍可短暂被占（实测 `Account Web Data`
+// EBUSY）。原先这里是裸 rmSync：26 条断言全绿也会以未捕获异常收场，红得没有信息量。重试到净。
+let rmErr = null
+for (let i = 0; i < 25; i += 1) {
+  try {
+    rmSync(ROOT, { recursive: true, force: true })
+    rmErr = null
+    break
+  } catch (e) {
+    rmErr = e
+    await sleep(200)
+  }
+}
+// 原来这是一行 info，把「FAIL 仍在」当文案打印出来而从不判红——是一条假安慰。改成真断言。
+check(
+  '本进程临时目录已删净（win32 需等 Chrome 释放句柄）',
+  !existsSync(ROOT),
+  rmErr === null ? '一次删净' : `重试 5 s 仍失败 — ${String(rmErr).slice(0, 140)}`,
 )
+info('其余 ov-smoke-* 目录', '并行会话遗留，未定归属，不算本驱动器孤儿')
 // SKIP 条数本身是闸：设了 EXPECT_SKIP 就要求实得条数相等，多一条 skip 即 FAIL。
 // 立条理由见队列 ⑧（owner 2026-09-27 裁「只接可机判腿 + SKIP 数入断言」）——
 // 「FAIL=0 所以绿」在 skip 悄悄变多时什么都没说，这条就是为了让它说话。

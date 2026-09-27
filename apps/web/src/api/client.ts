@@ -14,6 +14,8 @@ export class ApiError extends Error {
 interface RequestInitLite {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   body?: unknown
+  /** 页面已经跳走/关掉也要送达的小写入（fetch keepalive，浏览器上限 64 kB） */
+  keepalive?: boolean
 }
 
 async function request(path: string, init?: RequestInitLite): Promise<Response> {
@@ -22,6 +24,7 @@ async function request(path: string, init?: RequestInitLite): Promise<Response> 
     method: init?.method ?? 'GET',
     // 无 body 的请求不能带 content-type: application/json，否则 Fastify 以 400 拒绝（restore / delete）
     ...(body === undefined ? {} : { headers: { 'content-type': 'application/json' } }),
+    ...(init?.keepalive === true ? { keepalive: true } : {}),
     body,
   })
   if (!res.ok) {

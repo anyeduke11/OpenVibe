@@ -61,6 +61,10 @@ export function useTelemetryToggle() {
       apiJson<TelemetrySettingsOut>('/api/settings/telemetry', {
         method: 'POST',
         body: { enabled },
+        // 这个落点只有一次机会：askState 一旦停在 unset，询问卡就永久重复出现（FR-4.2 的
+        // 「一次性」不成立）。用户点完「暂不」立刻关页面时，普通 fetch 会被导航掐断——
+        // macos runner 上的 CI 红就是这个窗口（实测 askState 停在 unset）。keepalive 让请求活过页面。
+        keepalive: true,
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['telemetry'] })
