@@ -1191,7 +1191,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 | onb-3 | 步骤②与 preview API 同源 | 走查「验收 3」段（向导指纹 == `POST /api/packs/:id/preview` 指纹）+ IT-PACK-01/UT-COMPOSE-02 |
 | onb-4 | 飞轮圈数=1/删除回落 | 走查「验收 4」段（`{assets:124,…,loops:1}` → 删夹具项目后 `loops:0`，顶栏双向）+ IT-ONB-12/13/14 |
 | onb-5 | 默认关 + 零外联断言 | UT-TELEMETRY-01 + TF-09（无端点连 `setInterval` 都不建）+ `telemetry-egress.mjs` 17/17（关闭态第二个 60 s 窗口计数 `3→3`）+ 走查 host 清单全为 `127.0.0.1` |
-| onb-5b | 一次性询问 declined 永不再问 | 走查「验收 5b」段（询问卡出现 → 选「暂不」→ 刷新不再问 → `askState=declined / enabled=false`） |
+| onb-5b | 一次性询问 declined 永不再问 | 走查「验收 5b」段（询问卡出现 → 选「暂不」→ 刷新不再问 → `askState=declined / enabled=false`）。**2026-09-27 起这条有了两道凭据**：`SM-3h/3i` 改成「刷新之后轮询到落库为止（≤5 s）」，产品侧那一发 POST 带 `keepalive` 让请求活过页面——起因是 ⑧ 的常驻闸在 macos runner 上量到 `askState=unset`（队列 ⑳ / `[DEV-0056]`） |
 
 > Playwright 版 `E2E-ONBOARD-01..04` / `E2E-FLYWHEEL-01` / `E2E-TELEMETRY-01` 仍按 dev-plan §9-T9 排期：本仓**当时**无 jsdom（该前提已于 2026-09-26 由 owner 裁定 ⑪ 换掉，见 `DEV_LOG [DEV-0033]`），本轮以**入库的真机走查驱动器**（headless Chrome + 裸 CDP，可对 HEAD 复跑）承担同一口径的证据，T9 决定是否提升为 CI 内 E2E。
 
