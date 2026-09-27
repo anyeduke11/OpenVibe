@@ -1,4 +1,4 @@
-// packages/core/src/inject/atomic-write —— 落盘时的「只动这一个目录项」保证（m6b §6.3 写侧）。
+// packages/core/src/inject/atomic-write —— 落盘时的「只动这一个目录项」保证（m6b §6.11）。
 // 为什么需要它：`checkWritePath` 抓符号链接靠 realpath 归一与 `lstat.isSymbolicLink()`，而**硬链接不是
 // 链接文件**——realpath 原样返回、lstat 看着就是普通文件，三道闸一律放行。此时 `writeFileSync` 打开的是
 // 那个 inode 本身，写进去的内容会出现在项目外的另一个文件里（注入声称「只动项目内」，实际动了外面）。

@@ -1,4 +1,4 @@
-// apps/cli/test/inject-hardlink.test.ts —— 免特权链接形状下的 sync / clean 行为（m6b §7.5 / §7.10 / D5）。
+// apps/cli/test/inject-hardlink.test.ts —— 免特权链接形状下的 sync / clean 行为（m6b §7.11 / §7.5 / D5）。
 // 为什么单开一份：apps/cli/test/{sync,clean}.test.ts 的符号链接逃逸腿用 POSIX symlink，win32 无建链
 // 权限只能 `it.skipIf(IS_WINDOWS)` ⇒ 「注入与退场只动项目内」在最现实的 NTFS 攻击形状（`mklink /H`
 // 建硬链接不需要特权）上一直没有可执行证据。本文件的三种链接在三个平台都能免特权造出来，全部真跑。
@@ -25,9 +25,9 @@ import { syncAction } from '../src/commands/sync'
 import { contentOf, demoPack, writeBundleFile, type PackFixture } from './helpers/pack-fixture'
 
 /**
- * 断言映射：01c ↔ §7.5「写侧不漏到项目外」+ owner 裁定「替换式写入，不拒绝」；
- * 01d ↔ §7.5「路径解析后逃逸 → 整包拒绝」（换成 junction 后 win32 也可证）；
- * 06g ↔ §7.10 FR-6.6 的反面（硬链接**不是**违规，退场只解这一个目录项）。
+ * 断言映射：01c ↔ §7.11 a（§7.5 的写侧半边）+ owner 裁定「替换式写入，不拒绝」；
+ * 01c2 ↔ §7.11 b；01d ↔ §7.5 / §7.11 d「路径解析后逃逸 → 整包拒绝」（换成 junction 后 win32 也可证）；
+ * 06g / 06g2 ↔ §7.11 c，即 §6.11 a「删除循环节刻意不改」的正反两面。
  * 判据一律落在磁盘实况与链外那份文件上——被承诺保护的就是它。
  */
 
@@ -67,7 +67,7 @@ const packTextOf = (fx: PackFixture, rel: string): string => {
   return text
 }
 
-describe('sync 写侧：硬链接不漏到项目外（§6.3 / §7.5）', () => {
+describe('sync 写侧：硬链接不漏到项目外（§6.11 / §7.11 a）', () => {
   it('CLI-SEC-01c: 受管路径预置成指向项目外的硬链接 → 注入照做、按「解链后新建」落盘、链外那份一字未动', async () => {
     const { root, project } = sandbox()
     const fx = fixture()
@@ -134,7 +134,7 @@ describe('sync 写侧：硬链接不漏到项目外（§6.3 / §7.5）', () => {
   })
 })
 
-describe('sync 整包闸：目录链接逃逸（§7.5，win32 可证形状）', () => {
+describe('sync 整包闸：目录链接逃逸（§7.5 / §7.11 d，win32 可证形状）', () => {
   it('CLI-SEC-01d: 产物父目录预置成指向项目外的目录链接 → 整包拒绝、escapingPaths 点名、链外目录原样在', async () => {
     const { root, project } = sandbox()
     const bundlePath = writeBundleFile(root, fixture())

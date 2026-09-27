@@ -1,4 +1,4 @@
-// packages/core/src/inject/atomic-write.test.ts —— 落盘「只动这一个目录项」保证的正向断言（m6b §6.3 写侧）。
+// packages/core/src/inject/atomic-write.test.ts —— 落盘「只动这一个目录项」保证的正向断言（m6b §6.11）。
 // 为什么整份文件不带平台门控：硬链接在 APFS / ext4 / NTFS 上都**不需要特权**即可创建（win32 即
 // `mklink /H`），而它恰好是 `checkWritePath` 三道闸唯一看不见的穿透形状。只在 POSIX 上测这条，
 // 等于把「注入只动项目内」这句承诺在最现实的平台上留成未验证面（承 owner 裁定 2026-09-27：
