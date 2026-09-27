@@ -1246,3 +1246,23 @@
 - **未验证面净变化**: ⑧ 关闭 ⇒ 待裁 **3 → 2**（⑤ ⑨）。**新挂一格（记在 ⑧ 行内，不单立项）**：ubuntu / win32 上的 Chrome 定位与非剪贴板腿能否通过，本机不能代验——`where chrome` 分支、`ChromeBinPath` 这个变量名、win32 的 `%ProgramFiles%` 展开，三者都未验，只有推上去才有凭据。有头腿（真剪贴板逐字节比对）**不在**这条闸的保护范围内，CI 里它永远是 SKIP=2；要证它仍得人工跑 `HEADLESS=0`。
 - **潜在风险**: ① `EXPECT_SKIP=2` 与「剪贴板腿共两条」是**手工耦合**：将来加第三条剪贴板腿必须同步改 `ci.yml`，否则 CI 红——这是故意的，红比静默放行好。② 这一步给每次 push 增加一次 vite build + Chrome 启动（本机端到端约 40s，CI 上未测）。③ **无头重跑会覆盖已入库的 `three-smokes.txt`**（凭据文件与输出文件同名同路径）；本笔靠事先 `cp` 备份再还原，下一位要么沿用，要么给驱动器加输出路径变量——别把「覆盖凭据」当成无害副作用。
 - **owner 手上未收的**: 队列见 `docs/decisions.md`（本笔动了 ⑧ 整行 + 净状态三行）。**下一个要问的是 ⑨**（toast 与弹窗「关闭」同名，a11y 名字要不要改），再往后 ⑤。**本笔的三平台凭据必须靠推送才有**，即第 7 次推送——等你放行；未放行前，⑧ 只能记「本机已验 + CI 未验」。
+
+## [DEV-0052] 队列 ⑨（关闭键同名）按 owner 裁「改 a11y 名 + 成文约定」落地 · **一行 `aria-label` 值不值，取决于它把哪种错法变成不可能**
+
+- **时间**: 2026-09-27 09:0x–11:1x +0800。开工 HEAD 与本轮之内新增笔数一律现取：`git rev-parse --short HEAD`、`git rev-list --count origin/main..HEAD`（本节不抄固定 sha，共享工作树内另一会话同时在落笔）。开工前实测 `git status --porcelain` 只有 `?? ` 未跟踪项 ⇒ 与另一会话的落笔面不重叠。
+- **类型**: §0.3 **B 级 · 产品代码一行 + 新增用例一支**。判据：动了 `apps/web/src/components/ui/Dialog.tsx`（用户可访问面：读屏器播报的名字从「✕」变成「关闭弹窗」，视觉零变化），并新增 `apps/web/src/components/ui/Dialog.test.tsx`。授权形状来自 owner 对 ⑨ 的裁定本身（选项文案里写明「动 apps/web 一处 ui 组件、需补 jsdom 用例、视觉不变」）。`tests/golden/` diff 为空。
+- **关联文件**: `apps/web/src/components/ui/Dialog.tsx`（+5 −1）、`apps/web/src/components/ui/Dialog.test.tsx`（新建，两支 commit：代码腿与修复轮各一）、`docs/design.md` §13（自动化定位约定成文）、`docs/dev-plan.md` §15.4-S2 的「沉淀」行（加指针）、`docs/decisions.md`（⑨ 行转已裁已落 + 新立 ⑲ + 净状态三行）、`DEV_LOG.md` 本条。
+- **问题描述**: ⑨ 的原表述是「toast 与弹窗『关闭』同名（a11y），要么改可访问名，要么把查询限定写成约定」。核完源码发现**这句话的对象是错的**：撞车只发生在**可见文本**层——toast 那颗早就有 `aria-label="关闭提示"`（`Toaster.tsx:55`），弹窗页脚那颗的可访问名就是它的文本「关闭」，两者在 a11y 层从来不撞；真缺的是弹窗头部 `✕` 那颗压根没有 `aria-label`（`Dialog.tsx:30`），读屏器念出来是一个「✕」。也就是说「改可访问名」不是二选一里的另一条路，而是**一个独立的、真实的无障碍缺陷**；而「查询限定成文」这条也确实需要，因为按文本查依然多命中。裁决问的是「要不要改」，实况是「两件事都要，但改的地方比想象的小」。
+- **实现思路**:
+  1. **单点修**：共用组件 `ui/Dialog.tsx` 的 `DialogPrimitive.Close` 补 `aria-label="关闭弹窗"`。一处改覆盖全仓所有弹窗与抽屉（它们都走这一支），且不与页脚那颗撞名。刻意**不给页脚那颗加 `aria-label`**：四个调用点（`ImportExportDialog.tsx:45`、`PackDetailSheet.tsx:31`、`TermsPage.tsx:161`、`SkillsPage.tsx:80`）都渲染同一个 `zh.editor.close`，若把它们也命名成「关闭弹窗」，同一支弹窗内就会出现两颗同名按钮，反而把「按 role+name 定位」这条路堵死。
+  2. **把唯一性做成用例而不是文档**：`Dialog.test.tsx` 三支——① 头部那颗有名字「关闭弹窗」（变异靶子：删 `aria-label` 必红，实测红）；② 弹窗与 toast 同时在场时，`关闭弹窗`/`关闭提示`/`关闭` 三个名字各命中 1；③ 按 `textContent` 查「关闭」仍多命中（`inside=1 / total=2`），这条测的是**为什么 `[role="dialog"]` 作用域限定不能被省掉**。
+  3. **约定成文**：`design.md` §13 表格后加一段——三个名字必须互不相同、由该用例钉住、隐含「同一时刻至多一支弹窗」；同时明说按文本定位仍需作用域限定，两条路互不替代。
+  4. **不采纳的第三条路**：`data-testid`。全仓现有零 testid 用法（`git grep -c data-testid -- apps/web/src tests` = 0 命中），引入等于新设一套约定，而且 testid 不进无障碍树——用工程侧钩子绕开一个真实的 a11y 缺陷，方向不对。
+- **测试验证**: `pnpm vitest run --project web` **9 passed / 2 files**（本笔贡献 3 支）、`pnpm typecheck` rc=0。变异反证两轮：删 `Dialog.tsx` 的 `aria-label` ⇒ web project **2 failed | 7 passed**；把用例夹具换成 `modal={false}` ⇒ `toastHidden` 那条**红**（证明它不恒真，`hideOthers` 只在 modal 分支跑）。**仓级 `pnpm lint` 本轮 rc=1，但本笔零贡献**：228 errors 分布在 11 支**未跟踪**产物上（`build/*.js`、`.zwork/artifacts/**/*.mjs`，`git ls-files` 对 11 支全为 0 条），单测目标文件 `eslint apps/web/src/components/ui/Dialog.tsx apps/web/src/components/ui/Dialog.test.tsx` rc=0。根因与三条处置路已新立为队列 ⑲，未擅自改 `eslint.config.js`、未删他人产物。
+- **被推翻（本轮 2 条）**:
+  ① **队列 ⑨ 行把「同名」写成了 a11y 层的撞车**，实测只有可见文本层撞车，可访问名只差一颗缺失。按原表述去落地会做成「给两颗已有的按钮各加一个名字」——三行无谓改动，还漏掉真正没名字的那颗。**登记行里「实测踩到」四字不能代替实测**，它只保证当时有人看过一次现象。
+  ② **我在任务书里写的用例片段有两处跑不过**（`toast()` 不包 `act()` 则 DOM 拿不到；查 `render` 返回的 `container` 恒 0 命中，因为 `DialogPanel` 与 toast 都 portal 到 `body` 末尾）。任务书写的是「props 形状我核过，**断言本身我还没跑过**，跑通与变异反证都是你的活」，实施者照此改了三处机械层并全部给了实测理由——这条自我限制救了一次假绿：如果我在任务书里写成「已验证」，实施者就会被迫把我的错误合理化。
+- **净发现**: 队列 ⑲（`pnpm lint` 在共享工作树不可复现）。这不是本笔造成的，但没有本笔就不会去读 rc=1 的日志。**它的后果比看起来大**：本会话此前多轮把「lint rc=0」当作门禁证据写进登记行，那条证据现在附带一个前提——只有当 `git status --porcelain` 里**没有未跟踪的 JS 产物**时，`pnpm lint` 的 rc 才等价于「仓库干净」。
+- **未验证面净变化**: ⑨ 关闭 ⇒ 待裁从 **2 变回 2**（⑤ + 新立 ⑲），已裁已落 **13 → 14**。**新增未验证面一格**：读屏器实际播报（VoiceOver/NVDA）未做——本笔证明的是 DOM 上的 `aria-label` 与 testing-library 的 accessible-name 计算，不证明任何真实读屏器的听感；`name:'关闭'` 那条用了 `hidden: true`，它把「Radix 用 `aria-hidden` 标记非弹窗子树」这一上游实现细节写进了契约（Radix 若改用 `inert`，那条会红，届时该判的是 `hidden: true` 还需不需要，而不是改绿了事）。
+- **潜在风险**: ① 三个关闭名的唯一性隐含「同一时刻至多一支弹窗」，叠弹窗时 `关闭弹窗` 会 >1——已写进 `design.md` 的约定段。② `hidden: true` 同样匹配 `display:none`：将来若给 toast 加退场动画，Radix `Presence` 的驻留节点会让计数瞬时翻 2。③ `Toaster.tsx` 的 `push` 是模块级单例，双挂载会互抢写入（与本笔无关，登记备考）。
+- **owner 手上未收的**: 队列见 `docs/decisions.md`。**下一个要问的是 ⑤**（`design.md` 文档头版本口径），以及本轮新立的 **⑲**（要不要给 `eslint.config.js` 的 `ignores` 补 `build/` 与 `.zwork/`，还是授权清掉那 11 支产物）。另有 **第 7 次推送**待放行——⑧ 的三平台凭据只能靠推送拿到，未放行前 ⑧ 的有效口径仍是「本机已验 + CI 未验」。
