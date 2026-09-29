@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="zh-CN" data-mode="">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>灵典 OpenVibe · 无限画布</title>
+<style>
+:root{--c-board:#17181c;--c-scr:#232429;--c-line:rgba(255,255,255,.10);--c-tx:#e8e6e3;--c-tx2:rgba(232,230,227,.60);--c-tx3:rgba(232,230,227,.34);--c-lab:#9aa0a6;--acc:var(--zwork-preview-accent,#2563eb);
+--b:#2f6f4f;--bh:#275c41;--bs:#e8f1ec;--bl:#cfe3d8;--bd:#e4e4e7;--bd2:#d4d4d8;--bg:#fafafa;--pn:#fff;--sn:#f4f4f5;--fg:#18181b;--fg2:#3f3f46;--fg3:#71717a;--fg4:#a1a1aa;--am:#b45309;--ams:#fef7e6;--rd:#b91c1c;--rds:#fef2f2;--blu:#1d4ed8;--blus:#eff4ff;
+--mn:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--ft:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',system-ui,sans-serif}
+*,*::before,*::after{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--c-board);color:var(--c-tx);font-family:var(--ft)}
+.vp{position:fixed;inset:0;overflow:hidden;cursor:grab;background-color:var(--c-board);background-image:radial-gradient(var(--c-line) 1px,transparent 1px);background-size:24px 24px}
+.vp.pan{cursor:grabbing}
+.wd{position:absolute;left:0;top:0;transform-origin:0 0}
+.wrap{display:flex;flex-direction:column;gap:96px;padding:52px 64px 120px}
+.hdr h1{margin:0;font-size:30px;font-weight:600;letter-spacing:-.01em}
+.hdr p{margin:8px 0 0;font-size:13.5px;color:var(--c-tx2);line-height:1.7}
+.hdr .hint2{margin-top:10px;font-size:11.5px;color:var(--c-tx3);font-family:var(--mn)}
+.sec .sh{display:flex;align-items:baseline;gap:14px;margin-bottom:18px}
+.sec .sn{font-family:var(--mn);font-size:12px;font-weight:600;color:#7aa2f7;letter-spacing:.08em}
+.sec .sh b{font-size:17px;font-weight:600}
+.sec .sh span.d2{font-size:12px;color:var(--c-tx3)}
+.srow{display:flex;gap:34px;align-items:flex-start}
+.sc-d{flex:none;position:relative}
+.sc-d .lb{display:flex;align-items:baseline;gap:10px;margin-bottom:9px;padding-left:2px}
+.sc-d .lb b{font-size:12.5px;font-weight:600}
+.sc-d .lb span{font-family:var(--mn);font-size:10.5px;color:var(--c-lab)}
+.frm{background:var(--c-scr);border:1px solid var(--c-line);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.30);overflow:hidden;cursor:grab;color:var(--fg);font-size:13.5px;line-height:1.55}
+.fh .frm{height:660px;overflow:auto}
+.sc-d.dr{z-index:99}
+.sc-d.dr .frm{box-shadow:0 0 0 1.5px var(--acc),0 18px 50px rgba(0,0,0,.45)}
+/* 屏内 */
+.doc{padding:18px 20px}
+.doc h3{margin:0 0 4px;font-size:17px;font-weight:600}
+.doc p{margin:8px 0;color:var(--fg2)}
+.doc .ld{margin:0 0 10px;color:var(--fg3);font-size:12.5px}
+.tg{margin:14px 0 7px;font-size:11px;font-weight:600;color:var(--fg4);letter-spacing:.04em}
+.hr2{height:1px;background:var(--bd);margin:14px 0}
+.ul{margin:6px 0;padding-left:1.25em;color:var(--fg2)}.ul li{margin:5px 0}
+.mn2{font-family:var(--mn);font-variant-numeric:tabular-nums}
+.nt{font-size:11.5px;color:var(--fg4);line-height:1.65;margin:10px 0 0}
+.pdx{padding:12px 16px}.pdx2{padding:10px 16px 14px}.mt2{margin-top:10px}.mt3{margin-top:14px}
+.loop .lp{display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--bd)}
+.loop .lp:last-child{border-bottom:none}
+.loop .lp b{width:18px;height:18px;border-radius:50%;background:var(--bs);color:var(--b);display:grid;place-items:center;font-size:10px;flex:none;margin-top:2px}
+.loop .lp span{font-size:12.5px;font-weight:500}
+.loop .lp small{display:block;font-weight:400;font-size:11px;color:var(--fg4);margin-top:1px}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi .k{background:var(--sn);border-radius:6px;padding:9px 10px;text-align:center}
+.kpi .k b{display:block;font-family:var(--mn);font-size:19px;font-weight:600;color:var(--b);line-height:1.25}
+.kpi .k span{font-size:10.5px;color:var(--fg4)}
+.sw{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.swi{display:flex;gap:9px;align-items:center}
+.swi i{width:34px;height:34px;border-radius:6px;border:1px solid var(--bd);flex:none}
+.swi b{display:block;font-size:12px}
+.swi span{display:block;font-size:10.5px;color:var(--fg4)}
+.ts2 .tr2{display:flex;align-items:baseline;gap:12px;padding:5px 0;border-bottom:1px solid var(--bd)}
+.ts2 .tr2:last-child{border-bottom:none}
+.ts2 .spec{width:96px;flex:none;font-size:10.5px;color:var(--fg4)}
+.rw2{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.btn2{display:inline-flex;align-items:center;height:27px;padding:0 10px;border:1px solid var(--bd2);border-radius:6px;background:#fff;color:var(--fg2);font-size:12px;font-weight:500;white-space:nowrap}
+.btn2.p{background:var(--b);border-color:var(--b);color:#fff}
+.btn2.d{border-color:#fecaca;background:var(--rds);color:var(--rd)}
+.btn2.xs{height:23px;padding:0 7px;font-size:11.5px}
+.btn2.dis{opacity:.45}
+.in2{width:100%;height:29px;padding:0 9px;border:1px solid var(--bd2);border-radius:6px;background:#fff;font-size:12.5px;color:var(--fg)}
+.in2.err{border-color:#fca5a5;background:var(--rds)}
+.er2{margin:6px 0 0;font-size:11.5px;color:var(--rd)}
+.em2{padding:22px;text-align:center;color:var(--fg4);font-size:12px;border:1px dashed var(--bd2);border-radius:8px;background:var(--sn)}
+.cpx{display:inline-flex;align-items:center;height:19px;padding:0 6px;border:1px solid var(--bd);border-radius:4px;font-size:11px;color:var(--fg3);background:#fff;white-space:nowrap}
+.cpx.b{border-color:var(--bl);background:var(--bs);color:var(--b)}
+.cpx.a{border-color:#fde68a;background:var(--ams);color:var(--am)}
+.cpx.r{border-color:#fecaca;background:var(--rds);color:var(--rd)}
+.cpx.l{border-color:#c7d7fe;background:var(--blus);color:var(--blu)}
+.cpx.k{background:var(--sn)}
+.st3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.st2{border:1px solid var(--bd);border-radius:8px;padding:10px}
+.st2 b{display:block;font-size:12.5px;margin-bottom:3px}
+.st2 span{display:block;font-size:10.5px;color:var(--fg4)}
+.st2.ok{border-color:var(--bl);background:var(--bs)}.st2.ok b{color:var(--b)}
+.st2.wn{border-color:#fde68a;background:var(--ams)}.st2.wn b{color:var(--am)}
+.st2.er{border-color:#fecaca;background:var(--rds)}.st2.er b{color:var(--rd)}
+.pik .pk{display:flex;gap:8px;align-items:center;padding:6px 0;font-size:12.5px;color:var(--fg2)}
+.pik .pk i{width:13px;height:13px;border:1px solid var(--bd2);border-radius:50%;flex:none}
+.pik .pk:first-child i{box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 8px var(--b)}
+.ap{display:flex;height:100%;background:var(--bg)}
+.sd{width:186px;flex:none;background:var(--pn);border-right:1px solid var(--bd);padding:11px 9px}
+.bdg{display:flex;align-items:center;gap:8px;padding:3px 7px 11px}
+.bdg i{width:20px;height:20px;border-radius:5px;background:var(--b);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:700;font-style:normal}
+.bdg b{font-size:13px;font-weight:600}
+.nl2{font-size:10px;font-weight:600;color:var(--fg4);letter-spacing:.05em;padding:11px 7px 5px}
+.nv{padding:6px 7px;border-radius:6px;font-size:12.5px;color:var(--fg2);font-weight:500}
+.nv.on{background:var(--bs);color:var(--b);font-weight:600}
+.mn2{flex:1;min-width:0;display:flex;flex-direction:column}
+.tp2{display:flex;align-items:center;gap:11px;padding:8px 17px;border-bottom:1px solid var(--bd);background:#fff;flex:none}
+.cb2{font-size:12.5px;font-weight:600;color:var(--fg)}
+.se2{margin-left:auto;width:196px;height:28px;border:1px solid var(--bd2);border-radius:6px;background:#fff;color:var(--fg4);font-size:11.5px;display:flex;align-items:center;padding:0 9px}
+.bp{height:28px;padding:0 10px;border-radius:6px;background:var(--b);color:#fff;font-size:12px;font-weight:500;display:inline-flex;align-items:center;white-space:nowrap}
+.fly{display:flex;align-items:center;gap:16px;padding:6px 17px;border-bottom:1px solid var(--bd);background:#fff;flex:none}
+.fly>span:first-child{font-size:10.5px;font-weight:600;color:var(--fg4)}
+.fi2{display:flex;align-items:baseline;gap:5px}.fi2 i{font-style:normal;font-size:11px;color:var(--fg3)}
+.fi2 b{font-size:13px;font-weight:600;color:var(--b);font-family:var(--mn)}
+.fi2 b.z2{color:var(--fg4);font-weight:500;font-family:var(--ft);font-size:11.5px}
+.f3{margin-left:auto;font-size:10.5px;color:var(--fg4)}
+.ct{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.fl2{display:grid;grid-template-columns:264px 1fr;flex:1;min-height:0}
+.tr3{background:#fff;border-right:1px solid var(--bd);padding:9px 8px}
+.ti2{display:flex;align-items:center;padding:5px 7px;border-radius:6px;font-size:12.5px;color:var(--fg2)}
+.ti2 b{margin-left:auto;font-family:var(--mn);font-size:11px;color:var(--fg4);font-weight:500}
+.ti2.on{background:var(--bs);color:var(--b);font-weight:600}.ti2.on b{color:var(--b)}
+.ti2.i2{padding-left:19px}
+.nt2{font-size:11.5px;color:var(--fg4);line-height:1.6}
+.tr3 .nt2{padding:10px 7px 0;border-top:1px solid var(--bd);margin-top:9px}
+.lw2{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.lw2.bl2{border-left:1px solid var(--bd);background:#fff}
+.fl3{display:flex;align-items:center;gap:7px;padding:9px 15px;border-bottom:1px solid var(--bd);background:#fff}
+.fc2{padding:2px 8px;border:1px solid var(--bd);border-radius:99px;font-size:11px;color:var(--fg3)}
+.fc2.on{border-color:var(--b);background:var(--bs);color:var(--b);font-weight:600}
+.rt2{margin-left:auto;display:flex;align-items:center;gap:6px}
+.pg2{display:flex;align-items:center;gap:8px;padding:9px 15px;border-top:1px solid var(--bd);font-size:11.5px;color:var(--fg3);background:#fff}
+.t2{width:100%;border-collapse:collapse;font-size:12.5px}
+.t2 th{text-align:left;font-size:10.5px;font-weight:600;color:var(--fg3);padding:7px 9px;background:var(--sn);border-bottom:1px solid var(--bd)}
+.t2 td{padding:7px 9px;border-bottom:1px solid #f4f4f5;vertical-align:top;color:var(--fg2)}
+.t2 tbody tr:last-child td{border-bottom:none}
+.fw2{font-weight:500;color:var(--fg)}
+.t2 tr.sel2{background:var(--bs)}
+.ck2{width:13px;height:13px;border:1px solid var(--bd2);border-radius:3px;display:inline-block;flex:none;background:#fff;position:relative}
+.ck2.on{background:var(--b);border-color:var(--b)}
+.ck2.on:after{content:'';position:absolute;left:3.5px;top:1px;width:4px;height:7px;border:solid #fff;border-width:0 1.6px 1.6px 0;transform:rotate(45deg)}
+.ck3{display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:12.5px;color:var(--fg2)}
+.ck3.on{color:var(--fg4);text-decoration:line-through}
+.sf2{display:flex;align-items:center;height:28px;padding:0 9px;border:1px solid var(--bd2);border-radius:6px;background:#fff;color:var(--fg4);font-size:11.5px;margin:0 15px}
+.hd2{display:flex;align-items:center;gap:9px;padding:10px 15px;border-bottom:1px solid var(--bd)}
+.hd2 b{font-size:13.5px;font-weight:600}
+.h2t{font-size:14.5px;font-weight:600}
+.cd2{background:#fff;border:1px solid var(--bd);border-radius:8px;box-shadow:0 1px 2px rgba(24,24,27,.05);overflow:hidden}
+.two2{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.g3b{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.g3c{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.cod2{font-family:var(--mn);font-size:11px;line-height:1.7;background:#fcfcfc;border:1px solid var(--bd);border-radius:6px;padding:10px 12px;white-space:pre-wrap;color:var(--fg2);margin:12px 15px;max-height:250px;overflow:hidden}
+.cod2.sml{margin:8px 0 0;font-size:10.5px;padding:7px 9px;white-space:nowrap;overflow:hidden}
+.tm2{background:#1c1d21;border-radius:8px;padding:12px 14px;font-family:var(--mn);font-size:11px;line-height:1.75;color:#d4d4d8;overflow:hidden}
+.ln2{display:flex;gap:10px;white-space:pre}
+.s1c{width:68px;flex:none;font-weight:600}
+.sU2{color:#fbbf24}
+.g3n{color:#4ade80}.dm2{color:#71717a}.hl2{color:#fff}.w2n{color:#fbbf24}
+.fx4{flex:1}
+.bar2{height:6px;border-radius:99px;background:var(--sn);overflow:hidden}
+.bar2 i{display:block;height:100%;background:var(--b);border-radius:99px}
+.sgs2{display:flex;gap:5px;flex-wrap:wrap}
+.sg2{border:1px solid var(--bd2);background:#fff;border-radius:6px;padding:6px 10px;display:flex;flex-direction:column;gap:1px}
+.sg2 b{font-size:11.5px;font-weight:600;color:var(--fg2)}
+.sg2 span{font-size:10px;color:var(--fg4);font-family:var(--mn)}
+.sg2.on{border-color:var(--b);background:var(--bs)}.sg2.on b,.sg2.on span{color:var(--b)}
+.kb2{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.kl2{background:var(--sn);border:1px solid var(--bd);border-radius:8px;padding:8px;min-height:104px}
+.kl2>b{display:block;font-size:11px;font-weight:600;color:var(--fg3);margin-bottom:7px}
+.kc2{background:#fff;border:1px solid var(--bd);border-radius:6px;padding:7px 8px;margin-bottom:6px;font-size:12px}
+.kc2 span{display:block;margin-bottom:5px}
+.tb2{padding:8px 9px;font-size:12.5px;font-weight:500;color:var(--fg3);border-bottom:2px solid transparent}
+.tb2.on{color:var(--b);border-bottom-color:var(--b);font-weight:600}
+.sp3{justify-content:space-between;padding:3px 0}
+.pn2{border:1px solid var(--bd);border-radius:8px;padding:10px;margin-bottom:9px}
+.stg2{display:flex;gap:9px;align-items:center;padding:6px 0;border-bottom:1px solid var(--bd);font-size:12px}
+.stg2:last-child{border-bottom:none}
+.stg2 .num{color:var(--fg4);font-size:10.5px}
+.sps2{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.spz2{padding:5px 10px;border:1px solid var(--bd);border-radius:99px;font-size:11.5px;color:var(--fg3);background:#fff}
+.spz2.on{border-color:var(--b);background:var(--bs);color:var(--b);font-weight:600}
+.ob2{border:1px solid var(--bl);background:var(--bs);border-radius:8px;padding:11px 14px}
+.oh2{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+.oh2 b{font-size:13.5px;font-weight:600;color:var(--b)}
+.g4{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.bz2{background:#fff;border:1px solid var(--bl);border-radius:6px;padding:9px 11px;font-size:12px;color:var(--fg2)}
+.bz2>b{display:block;font-size:12.5px;font-weight:600;color:var(--fg);margin-bottom:3px}
+.bz2>span{display:block;font-size:11.5px;color:var(--fg3)}
+/* 宿主旋钮：模式 / 字体 / 密度 / 动效（带回退，未注入时走默认暗色画布） */
+[data-mode=light] .vp{--c-board:#f3f4f6;--c-scr:#fff;--c-line:rgba(24,24,27,.09);--c-tx:#18181b;--c-tx2:rgba(24,24,27,.62);--c-tx3:rgba(24,24,27,.42);--c-lab:#71717a}
+[data-mode=light] .frm{box-shadow:0 8px 30px rgba(0,0,0,.12);border-color:rgba(24,24,27,.10)}
+[data-fam=serif] .frm{font-family:Georgia,'Songti SC',serif}
+[data-fam=mono] .frm{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.wrap{gap:calc(96px * var(--zwork-preview-density,1))}
+.sc-d .frm{transition:box-shadow calc(140ms * var(--zwork-preview-motion,1)) ease}
+@media (prefers-reduced-motion:reduce){.sc-d .frm{transition:none}}
+</style>
+</head>
+<body>
+<script>(function(){var r=document.documentElement;function s(){try{var c=getComputedStyle(r);var m=c.getPropertyValue("--zwork-preview-mode").trim();if(m&&m!=="auto")r.setAttribute("data-mode",m);var f=c.getPropertyValue("--zwork-preview-font-family").trim();if(/serif|Songti/i.test(f))r.setAttribute("data-fam","serif");else if(/mono|Menlo|SFMono/i.test(f))r.setAttribute("data-fam","mono");}catch(e){}}s();})();</script>
+<div class="vp" id="vp"><div class="wd" id="wd"><div class="wrap" id="wrap"></div></div></div>
+<script>/* 无限画布渲染：三层结构（01 项目背景 / 02 设计系统 / 03 设计稿）
+   屏内一律用产品真实内容与真实 token；画布 chrome 保持中性灰阶。 */
+const NM={'claude-code':'Claude Code',cursor:'Cursor','generic-agents':'AGENTS.md',codebuddy:'CodeBuddy',trae:'Trae',minicode:'MiniCode'};
+const MONO='ui-monospace,SFMono-Regular,Menlo,monospace';
+const B={m:'#2f6f4f',ms:'#e8f1ec',ml:'#cfe3d8'};
+const E=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* ── 屏卡片外壳 ───────────────────────── */
+function screen(name,spec,w,inner,h){
+  return `<section class="sc-d" data-sc="${E(name)}" style="width:${w}px">
+    <div class="lb"><b>${E(name)}</b><span>${E(spec)}</span></div>
+    <div class="frm${h?' fh':''}">${inner}</div>
+  </section>`;
+}
+/* 应用外壳：侧栏 + 顶栏 + 内容 */
+function app(active,content,opt){
+  opt=opt||{};
+  const nav=[['提示词库','资产层'],['术语库',''],['Skill 台账',''],['流程模板',''],['项目工作台','交付层'],['标准包',''],['CLI 终端',''],['设置','系统']];
+  let out='<div class="ap">';
+  out+='<div class="sd"><div class="bdg"><i>灵</i><b>灵典</b></div>';
+  nav.forEach(([n,l])=>{if(l){out+='<div class="nl2">'+l+'</div>';}out+='<div class="nv'+(n===active||(active==='工作台'&&n==='项目工作台')?' on':'')+'">'+n+'</div>';});
+  out+='</div><div class="mn2"><div class="tp2"><span class="cb2"><b>'+(active==='工作台'?'项目工作台 / 工作台':active)+'</b></span>'+(opt.search!==false?'<span class="se2">搜索标题 / 正文 / 标签</span>':'')+(opt.btn===null?'':'<span class="bp">'+(opt.btn||'新建')+'</span>')+'</div>';
+  out+='<div class="fly"><span>飞轮面板</span><span class="fi2"><i>资产</i><b>135</b></span><span class="fi2"><i>标准包</i><b>1</b></span><span class="fi2"><i>注入</i><b>2</b></span><span class="fi2"><i>回流</i><b class="z2">待产生</b></span><span class="fi2"><i>飞轮圈数</i><b>0</b></span><span class="f3">沉淀资产 → 组标准包 → 注入项目 → 复盘回流</span></div>';
+  out+='<div class="ct">'+content+'</div></div></div>';
+  return out;
+}
+const FLY='<span>飞轮面板</span><span class="fi2"><i>资产</i><b>135</b></span><span class="fi2"><i>标准包</i><b>1</b></span><span class="fi2"><i>注入</i><b>2</b></span><span class="fi2"><i>回流</i><b class="z2">待产生</b></span><span class="fi2"><i>飞轮圈数</i><b>0</b></span><span class="f3">沉淀资产 → 组标准包 → 注入项目 → 复盘回流</span>';
+const CP=(t,c)=>'<span class="cpx'+(c?' '+c:'')+'">'+t+'</span>';
+const BTN=(t,c)=>'<span class="btn2'+(c?' '+c:'')+'">'+t+'</span>';
+const KV=(k,v)=>'<div class="kv2"><i>'+k+'</i><b>'+v+'</b></div>';
+const TBL=(h,rows)=>'<table class="t2"><thead><tr>'+h+'</tr></thead><tbody>'+rows+'</tbody></table>';
+
+/* ── 01 项目背景 ───────────────────────── */
+const BG=[];
+BG.push(screen('定位','一句话',372,`<div class="doc"><h3>OpenVibe · 灵典</h3>
+  <p class="ld">vibe coding 的标准化工作台</p>
+  <p>把提示词、术语、Skill、技巧和项目流程变成可管理、可复用、可分发的工程标准，一条命令注入 Claude Code / Cursor / CodeBuddy / Trae / MiniCode 的项目目录。</p>
+  <div class="hr2"></div><div class="tg">痛点</div>
+  <ul class="ul"><li>资产散落：提示词躺在聊天记录，规则散在各项目</li><li>没有标准：每人喂给 AI 的规则质量天差地别</li><li>知识流失：踩过的坑与发明的词没有沉淀载体</li><li>流程随意：AI 编码项目质量靠运气</li></ul></div>`));
+BG.push(screen('标准化飞轮','北极星：走完的圈数',372,`<div class="doc"><div class="tg">核心闭环</div>
+  <div class="loop"><div class="lp"><b>①</b><span>沉淀资产<small>提示词 / 术语 / Skill / 流程入库</small></span></div>
+  <div class="lp"><b>②</b><span>组装标准包<small>挑资产 + 流程模板 → 版本化</small></span></div>
+  <div class="lp"><b>③</b><span>注入项目<small>CLI 写入六个助手 + 术语表 + 清单</small></span></div>
+  <div class="lp"><b>④</b><span>项目使用<small>按模板推进，记开发日志</small></span></div>
+  <div class="lp"><b>⑤</b><span>复盘回流<small>日志一键生成术语 / 提示词草稿</small></span></div></div>
+  <p class="nt">只用一次是工具，转起来才是标准。第⑤步是真实端点，不是路线图。</p></div>`));
+BG.push(screen('MVP 边界','已定稿 · 五模块',372,`<div class="doc"><div class="tg">模块</div>
+  ${TBL('<th>模块</th><th>本期</th>',[['M1 提示词库','完整','ok'],['M5 项目与流程','完整','ok'],['M6 标准包与注入','完整','ok'],['M3 术语库','瘦身（预置 + CRUD + 生成 TERMS.md）','mid'],['M2 Skill 中心','瘦身（扫描 + 登记）','mid'],['M4 技巧库 / M7 团队协作','Phase 2','no']].map(r=>'<tr><td>'+r[0]+'</td><td>'+CP(r[1],r[2])+'</td></tr>').join(''))}
+  <p class="nt">Web SPA + CLI 双形态。CLI 是注入与退场的唯一物理通道 —— 浏览器写不了本地项目文件。</p></div>`));
+BG.push(screen('实测数字','v0.1.0',372,`<div class="doc"><div class="kpi">
+  <div class="k"><b>109</b><span>预置术语</span></div><div class="k"><b>3</b><span>流程模板</span></div>
+  <div class="k"><b>20</b><span>精选提示词</span></div><div class="k"><b>6</b><span>注入助手</span></div>
+  <div class="k"><b>450</b><span>测试用例</span></div><div class="k"><b>5</b><span>CLI 命令</span></div>
+  <div class="k"><b>0</b><span>默认外联</span></div><div class="k"><b>3</b><span>平台 CI</span></div></div>
+  <p class="nt">数字取自仓库发布说明与门禁实测；版本迭代后以 <span class="mn2">pnpm test</span> 汇总行为准。</p></div>`));
+BG.push(screen('信任底线','对一个会写你文件的工具',372,`<div class="doc"><div class="tg">写盘每一跳的防线</div>
+  <ul class="ul"><li>路径双层校验 → 整包注入前检查 → 写盘前 resolve 复核</li><li>悬空符号链接一律拒绝，不会顺链接在项目外建文件</li><li>覆盖前强制备份；<span class="mn2">--dry-run</span> 承诺零写入</li><li>同一项目并发 sync 用文件锁互斥，抢不到即零写入</li></ul>
+  <div class="hr2"></div><div class="tg">网络</div>
+  <p>服务绑 <span class="mn2">127.0.0.1</span>，Host 校验只放行 localhost。遥测默认关闭，关闭即零外联。</p></div>`));
+
+/* ── 02 设计系统 ───────────────────────── */
+const SW=[['品牌','#2f6f4f','主按钮 / 当前态 / 数字','var(--b)'],['品牌深','#275c41','hover','var(--bh)'],['品牌浅','#e8f1ec','选中底 / 提示条','var(--bs)'],['边框','#e4e4e7','卡片 / 分隔','var(--bd)'],['底','#fafafa','页面底','var(--bg)'],['卡片','#ffffff','面板','var(--pn)'],['正文','#18181b','主文字','var(--fg)'],['次要','#71717a','说明 / 标签','var(--fg3)'],['警告','#b45309','超阈值提示','var(--am)'],['危险','#b91c1c','删除 / 阻挡','var(--rd)']];
+const DS=[];
+DS.push(screen('色板','10 token',520,`<div class="doc"><div class="sw">${SW.map(s=>`<div class="swi"><i style="background:${s[1]}"></i><div><b>${s[0]}</b><span class="mn2">${s[1]}</span><span>${s[2]}</span></div></div>`).join('')}</div>
+  <p class="nt">强调色锁定品牌绿一处：主按钮、当前态、选中行、飞轮数字。状态色只用于语义，不做装饰。</p></div>`));
+DS.push(screen('字阶与节奏','13.5 / 4px 栅格',520,`<div class="doc"><div class="ts2">
+  ${[['页面标题',15,600,'项目工作台'],['卡片标题',14,600,'包明细 · default@1.0.0'],['正文',13.5,400,'全项目完成度 79%（共 24 项，待办 5 项）'],['说明',11.5,400,'只读解析 pack.lock.json；写盘唯一入口是 CLI'],['标签',11,500,'启用 · 规则 · Claude Code'],['等宽数字',11.5,400,'9f2c41ab77e0 · 293.07 kB']].map(t=>`<div class="tr2"><span class="mn2 spec">${t[1]} / ${t[2]}</span><span style="font-size:${t[1]}px;font-weight:${t[2]}">${t[3]}</span></div>`).join('')}
+  </div><div class="hr2"></div><p>圆角 6px（控件）/ 8px（卡片）· 间距 4 的倍数 · 控件高 23 / 26 / 30px 三档 · 卡片投影一层极轻。</p></div>`));
+DS.push(screen('组件','四态齐备',520,`<div class="doc"><div class="tg">按钮</div>
+  <div class="rw2">${BTN('新建标准包','p')}${BTN('导出 JSON')}${BTN('删除','d')}${BTN('禁用','dis')}</div>
+  <div class="tg">标签</div><div class="rw2">${CP('启用','b')}${CP('草稿','k')}${CP('已弃用','r')}${CP('目录导出','l')}${CP('Claude Code','b')}</div>
+  <div class="tg">输入与错误</div>
+  <div class="two2"><input class="in2" value="default" readonly /><input class="in2 err" value="Default_Pack" readonly /></div>
+  <p class="er2">包名不符合 slug 规则（[a-z0-9-]）</p>
+  <div class="tg">空状态</div><div class="em2">还没有标准包 —— 点右上角「新建」，五步向导把资产组装成可注入的包</div></div>`));
+DS.push(screen('关键状态','三态对比',520,`<div class="doc"><div class="tg">漂移三态（diff 退出码）</div>
+  <div class="st3">${[['一致','退出码 0','IN_SYNC','ok'],['有改动','退出码 2 · 报 DRIFT','DRIFT','wn'],['出错','退出码 1 · 整包中止','PATH_REJECTED','er']].map(x=>`<div class="st2 ${x[3]}"><b>${x[0]}</b><span class="mn2">${x[1]}</span><span class="mn2">${x[2]}</span></div>`).join('')}</div>
+  <div class="tg">覆盖前必问（三选一）</div>
+  <div class="pik">${['以包为准（覆盖，旧文件先备份）','保留本地手改（包内容不落地）','跳过（什么都不动）'].map(x=>'<div class="pk"><i></i>'+x+'</div>').join('')}</div>
+  <p class="nt">冲突文件逐个人工裁决；任何覆盖前先写 <span class="mn2">.openvibe/backup/</span>。</p></div>`));
+
+/* ── 03 设计稿 ───────────────────────── */
+const UI=[];
+UI.push(screen('提示词库','1440 · 双栏 + 过滤器',1180,app('提示词库',
+  '<div class="fl2"><div class="tr3"><div class="ti2 on">全部<b>20</b></div><div class="ti2 i2">/精选<b>20</b></div><div class="ti2 i2">/项目<b>—</b></div><div class="ti2 i2">/回流<b>—</b></div><div class="nt2">拖提示词行到文件夹可移动</div></div>'
+  +'<div class="lw2"><div class="fl3">'+['全部','规则','参考','草稿','启用','已弃用'].map((f,i)=>'<span class="fc2'+(i===0?' on':'')+'">'+f+'</span>').join('')+'<span class="rt2">'+BTN('导入')+BTN('导出 JSON')+BTN('导出 Markdown')+'</span></div>'
+  +'<div class="fl3 nt2">共 12 条</div>'
+  +TBL('<th style="width:34%">标题</th><th style="width:14%">用途</th><th style="width:20%">标签</th><th style="width:13%">状态</th><th></th>',
+    [['规则遵守强化（防漂移）','规则','精选, 防漂移','启用','b'],['错误处理范式','规则','精选, 错误处理','启用','b'],['安全底线（写文件与不可逆操作）','规则','精选, 安全','启用','b'],['提交信息规范','规则','精选, 提交规范','启用','b'],['SQL 生成约束','规则','精选, 数据','启用','b'],['日志与可观测性','规则','精选, 可观测性','草稿','k'],['代码审查请求','参考','精选, 代码审查','启用','b']].map(r=>`<tr><td class="fw2">${r[0]}</td><td>${CP(r[1])}</td><td class="nt2">${r[2]}</td><td>${CP(r[3],r[4])}</td><td><span class="rt2">${BTN('复制','xs')}${BTN('编辑','xs')}</span></td></tr>`).join(''))
+  +'<div class="pg2"><span>共 12 条</span><span class="rt2">上一页 · 第 1 页 · 下一页</span></div></div></div>',{btn:'新建提示词'})));
+UI.push(screen('术语库','1440 · 搜索 + 多选 + TERMS.md 预览',1180,app('术语库',
+  '<div class="fl2"><div class="lw2"><div class="sf2"><span>搜索中文名 / 英文 / 别名 / 定义</span></div><div class="fl3 nt2">共 109 条 · 其中种子词条 109 条 · 当前页 10 条</div>'
+  +TBL('<th style="width:26px"></th><th style="width:22%">术语</th><th style="width:20%">English</th><th>定义</th>',
+    [['氛围编程','vibe coding','Vibe Coding, 氛围式编程','以自然语言意图驱动、AI 生成代码、人负责意图表达与结果验收的开发方式。',1],['提示词','prompt','Prompt, 提示语, prm','喂给模型的任务指令文本；按 rule 与 reference 分用。',1],['规则文件','rules file','CLAUDE.md, AGENTS.md','注入项目的持久化行为约束；各平台格式由适配器映射，正文同源。',1],['规则漂移','rule drift','drift, 漂移','长会话中模型逐渐偏离规则约束的现象。',1],['上下文窗口','context window','context, 窗口','模型单次可感知的输入长度上限。',0],['规格驱动开发','spec-driven development','SDD, spec-kit','先写规格再生成代码的开发范式。',0]].map(r=>`<tr${r[4]?' class="sel2"':''}><td><span class="ck2${r[4]?' on':''}"></span></td><td class="fw2">${r[0]}<br><span class="nt2">${r[2]}</span></td><td class="mn2">${r[1]}</td><td class="nt2">${r[3]}</td></tr>`).join(''))
+  +'<div class="pg2">'+BTN('全选当前结果','xs')+BTN('清空选择','xs')+BTN('生成 TERMS.md','xs p')+'</div></div>'
+  +'<div class="lw2 bl2"><div class="hd2"><b>TERMS.md 预览</b><span class="nt2">只读 · 确定性输出</span><span class="rt2">'+CP('英文 alpha（默认）')+BTN('复制全文','xs')+'</span></div>'
+  +'<div class="cod2"># 术语表 · default@1.0.0\n\n> 本文件由选集确定性渲染：同一选集 + 同一排序 → 字节级一致。\n\n## 氛围编程 · vibe coding\n\n- **别名**：Vibe Coding, 氛围式编程\n- **定义**：以自然语言意图驱动、AI 生成代码、人负责意图表达与结果验收的开发方式。\n\n## 提示词 · prompt\n\n- **别名**：Prompt, 提示语, prm\n- **定义**：喂给模型的任务指令文本；按 rule 与 reference 分用。</div>'
+  +'<p class="nt2 pdx">产物随标准包注入项目（TERMS.md，18.4 kB · ≈11.2k tok）。</p></div></div>',{btn:'新建词条'})));
+UI.push(screen('Skill 台账','1440 · 扫描登记 + 版本',1180,app('Skill 台账',
+  '<div class="cd2"><div class="hd2"><b>Skill 台账</b><span class="nt2">共 6 条</span><span class="rt2">'+BTN('扫描本地 Skills')+BTN('手动登记','p')+'</span></div>'
+  +TBL('<th style="width:22%">名称</th><th>描述</th><th style="width:12%">来源</th><th style="width:14%">版本</th><th style="width:22%">安装到</th><th style="width:60px"></th>',
+    [['prompt-review','审查提示词质量并给出改写建议，按可测试性评分。','本地扫描','v3','claude-code, cursor'],['spec-writer','把模糊需求整理成可验收的规格条目，标注假设与未知项。','本地扫描','v2','claude-code, generic-agents'],['repo-onboard','接手陌生仓库：读入口、路由与全局样式，产出实现基线。','本地扫描','v4','cursor, generic-agents'],['sql-guard','生成 SQL 前校验注入面与索引命中。','手动登记','v1','claude-code, cursor']].map(r=>`<tr><td class="fw2">${r[0]}</td><td class="nt2">${r[1]}</td><td>${CP(r[2],r[2]==='本地扫描'?'k':'l')}</td><td class="mn2">${r[3]}<br><span class="nt2">最新</span></td><td>${r[4].split(', ').map(x=>CP(NM[x]||x)).join(' ')}</td><td>${BTN('版本','xs')}</td></tr>`).join(''))
+  +'</div><p class="nt2 pdx">扫描只读，不改磁盘目录；手动登记即时获得 v1，扫描到内容变化才追加版本。</p>',{btn:'手动登记'})));
+UI.push(screen('流程模板','1440 · 内置只读 + 阶段明细',1180,app('流程模板',
+  '<div class="rw2 pdx"><span class="nt2">内置三套模板只读；复制为自定义后再裁剪。</span><span class="rt2">'+BTN('新建模板')+BTN('复制为自定义','p')+'</span></div>'
+  +'<div class="g3b">'+[['个人轻量流','3 个阶段 · 9 项检查','启动 → 开发 → 复盘'],['Spec 驱动流','7 个阶段 · 14 项检查','需求澄清 → PRD → Spec 规格 → 计划 → 实现 → 审查 → 复盘'],['复盘流','4 个阶段 · 5 项检查','收集 → 分析 → 决议 → 回流']].map(f=>`<div class="cd2"><div class="hd2"><b>${f[0]}</b>${CP('内置','k')}<span class="rt2 nt2">${f[1]}</span></div><div class="pdx"><div class="rw2">${f[2].split(' → ').map(x=>CP(x)).join('')}</div><div class="rw2 mt2">${BTN('复制为自定义','xs')}${BTN('用此模板建项目','xs')}</div></div></div>`).join('')+'</div>'
+  +'<div class="cd2 mt2"><div class="hd2"><b>Spec 驱动流 阶段明细</b>'+CP('不可直接编辑','k')+'<span class="rt2 nt2">内置模板不可编辑，请先「复制为自定义」</span></div><div class="pdx2">'
+  +[['实现','按任务序执行','每任务完成即验证','DEV_LOG 同步'],['审查','逻辑一致性 / 批判性 / 第一性原理三维过一遍'],['复盘','CHECK 报告','回流候选确认入库']].map(s=>`<div class="stg2"><span class="mn2 num">·</span><b>${s[0]}</b><span class="rw2">${s.slice(1).map(c=>CP(c)).join('')}</span></div>`).join('')
+  +'</div></div>',{btn:'新建模板'})));
+UI.push(screen('项目工作台','1440 · 健康摘要',1180,app('项目工作台',
+  '<div class="rw2 pdx"><b class="h2t">项目工作台</b><span class="nt2">共 2 个项目</span><span class="rt2">'+BTN('新建项目','p')+'</span></div>'
+  +[['灵典 OpenVibe','Spec 驱动流','实现','~/Documents/OpenVibe',19,24,'DEV-0049 · 判据单源进 PRD D15 行'],['openvibe-demo','个人轻量流','开发','~/.openvibe-demo',4,9,'—']].map(p=>`<div class="cd2 mt2"><div class="hd2"><b>${p[0]}</b>${CP('进行中','b')}<span class="rt2 nt2">快照自 ${p[1]}</span>${BTN('打开工作台','xs')}${BTN('归档','xs')}</div><div class="pdx g3c">
+   <div>${KV('当前阶段',p[2])}${KV('未完项',(p[5]-p[4])+' 项')}${KV('最近日志',p[6])}</div>
+   <div>${KV('本地路径','<span class="mn2">'+p[3]+'</span>')}${KV('流程',p[1])}${KV('更新','2026-09-27 10:09')}</div>
+   <div>${KV('注入',CP('default@1.0.0','b')+' '+CP('lock 存在','k'))}<div class="bar2 mt2"><i style="width:${Math.round(p[4]/p[5]*100)}%"></i></div><span class="nt2">全项目完成度 ${Math.round(p[4]/p[5]*100)}%（共 ${p[5]} 项，待办 ${p[5]-p[4]} 项）</span></div></div></div>`).join(''),{btn:'新建项目'})));
+UI.push(screen('工作台详情','1440 · 阶段条 + 看板 + 日志',1180,app('工作台',
+  '<div class="rw2 pdx"><span class="btn2 xs">返回项目列表</span><b class="h2t">灵典 OpenVibe</b>'+CP('进行中','b')+CP('快照自 Spec 驱动流','k')+'</div>'
+  +'<div class="cd2"><div class="pdx"><div class="sgs2">'+[['实现','3/3','on'],['审查','0/1',''],['复盘','0/2','']].map(s=>`<span class="sg2${s[2]?' on':''}"><b>${s[0]}</b><span class="mn2">${s[1]} · ${s[1]==='3/3'?'100':'0'}%</span></span>`).join('')+'</div>'
+  +'<div class="g3c mt2"><div>'+KV('流程','Spec 驱动流')+KV('当前阶段','实现')+KV('本地路径','<span class="mn2">~/Documents/OpenVibe</span>')+'</div>'
+  +'<div>'+KV('注入状态',CP('default@1.0.0','b'))+KV('lock 文件',CP('存在','b'))+KV('指纹','<span class="mn2">9f2c41ab77e0</span>')+'</div>'
+  +'<div><span class="nt2 mn2">npx openvibe-cli diff "~/Documents/OpenVibe"</span><div class="mt2">'+BTN('复制','xs')+'</div><span class="nt2">只读解析 pack.lock.json；写盘唯一入口是 CLI。</span></div></div></div></div>'
+  +'<div class="two2 mt2"><div class="cd2"><div class="hd2"><b>阶段清单</b><span class="nt2">全项目完成度 79%（共 24 项，待办 5 项）</span></div><div class="pdx2">'
+  +'<div class="nt2 fw2">实现 <span class="cpx b">当前</span></div>'
+  +['按任务序执行','每任务完成即验证','DEV_LOG 同步'].map(c=>'<div class="ck3 on"><span class="ck2 on"></span>'+c+'</div>').join('')
+  +'<div class="nt2 fw2 mt2">审查</div><div class="ck3"><span class="ck2"></span>逻辑一致性 / 批判性 / 第一性原理三维过一遍</div></div></div>'
+  +'<div class="cd2"><div class="hd2"><b>任务看板</b><span class="nt2">拖动 ⠿ 手柄换列；也可用方向按钮（键盘可达）</span></div><div class="pdx2"><div class="kb2">'
+  +[['待办',[['P2 暗色主题评估','复盘']]],['进行中',[['组包向导体量估算','实现'],['T10 反例用例补齐','实现']]],['已完成',[['实现 clean 退场腿','实现']]]].map(col=>`<div class="kl2"><b>${col[0]} <span class="mn2">${col[1].length}</span></b>${col[1].map(t=>`<div class="kc2"><span>⠿ ${t[0]}</span>${CP(t[1],'k')}</div>`).join('')}</div>`).join('')
+  +'</div></div></div></div>'
+  +'<div class="cd2 mt2"><div class="hd2"><span class="tb2 on">DEV 日志</span><span class="tb2">CHECK 日志</span><span class="rt2">'+BTN('导出 DEV_LOG.md','xs')+BTN('记一条 DEV','xs p')+'</span></div>'
+  +TBL('<th style="width:86px">编号</th><th>标题</th><th style="width:110px">关联提交</th><th style="width:186px">回流</th>',
+    [['DEV-0049','判据单源进 PRD D15 行','513ffb5'],['DEV-0048','队列 ⑦ 第 6 次推送登记','f78bc45']].map(r=>`<tr><td class="mn2">${r[0]}</td><td>${r[1]}</td><td class="mn2 nt2">${r[2]}</td><td><span class="rt2">${BTN('存为术语候选','xs')}${BTN('存为提示词草稿','xs')}</span></td></tr>`).join(''))
+  +'<p class="nt2 pdx">日志只追加不修改：编号按同项目同类型最大值 +1。</p></div>',{btn:null,search:false})));
+UI.push(screen('标准包 + 向导','1440 · 列表 / 明细 / 五步组包',1180,app('标准包',
+  '<div class="rw2 pdx"><b class="h2t">标准包</b><span class="nt2">共 1 个包</span><span class="rt2">'+BTN('新建标准包','p')+'</span></div>'
+  +'<div class="cd2">'+TBL('<th style="width:15%">包名</th><th style="width:26%">选集</th><th style="width:30%">目标平台</th><th style="width:10%">更新</th><th></th>',
+    [['default','提示词 20 · 术语 109 · Skill 0','6 个','2026-09-27']].map(r=>`<tr><td class="fw2">${r[0]}<br><span class="nt2">v1.0.0</span></td><td class="nt2">${r[1]}<br>流程 个人轻量流</td><td>${['claude-code','cursor','generic-agents','codebuddy','trae','minicode'].map(t=>CP(NM[t],'b')).join(' ')}</td><td class="nt2">${r[3]}</td><td><span class="rt2">${BTN('明细','xs')}${BTN('编辑','xs')}</span></td></tr>`).join(''))+'</div>'
+  +'<div class="cd2 mt2"><div class="hd2"><b>包明细 · default@1.0.0</b>'+CP('指纹 9f2c41ab77e0','k')+'<span class="rt2">'+BTN('回到向导继续编辑','xs')+'</span></div><div class="pdx g3c">'
+  +'<div><div class="nt2 fw2">定义</div>'+KV('包名','<span class="mn2">default</span>')+KV('版本','<span class="mn2">1.0.0</span>')+KV('流程模板','个人轻量流')+KV('目标平台','6 个')+'</div>'
+  +'<div><div class="nt2 fw2">导出历史（不可变实例）</div>'+TBL('<th>版本</th><th>通道</th><th>指纹</th>','<tr><td class="mn2">1.0.0</td><td>'+CP('目录导出','l')+'</td><td class="mn2 nt2">9f2c41ab77e0</td></tr>')+'</div>'
+  +'<div><div class="nt2 fw2">注入历史</div>'+TBL('<th>项目路径</th><th>时间</th>','<tr><td class="mn2 nt2">~/Documents/OpenVibe</td><td class="nt2">09-27 09:14</td></tr><tr><td class="mn2 nt2">~/.openvibe-demo</td><td class="nt2">09-27 09:31</td></tr>')+'</div></div></div>'
+  +'<div class="cd2 mt2"><div class="hd2"><b>组装向导</b><span class="nt2">五步组包：定义 → 流程 → 资产 → 平台 → 预览导出</span><span class="rt2">'+BTN('退出向导','xs')+'</span></div><div class="pdx"><div class="sps2">'
+  +['① 基本信息','② 流程模板','③ 资产挑选','④ 目标平台','⑤ 预览与导出'].map((s,i)=>`<span class="spz2${i===4?' on':''}">${s}</span>`).join('')+'</div>'
+  +'<div class="two2 mt2"><div><div class="nt2 fw2">产物文件（所见即所得，字节 = 导出字节）</div><table class="t2"><tbody>'
+  +[['CLAUDE.md','3.1 kB','主规则文件'],['.cursor/rules/openvibe.mdc','3.2 kB','YAML frontmatter'],['AGENTS.md','3.1 kB','通用约定'],['CODEBUDDY.md','3.1 kB','正文复用主模板'],['.trae/rules/openvibe.md','3.2 kB','自定义文件名'],['MINI.md','3.1 kB','正文复用主模板'],['TERMS.md','18.4 kB','109 条术语'],['CHECKLIST.md','0.9 kB','个人轻量流 3 阶段'],['.openvibe/pack.lock.json','0.6 kB','台账（CLI 写入）']].map(f=>`<tr><td class="mn2">${f[0]}</td><td class="nt2">${f[1]}</td><td class="nt2">${f[2]}</td></tr>`).join('')+'</tbody></table>'
+  +'<p class="nt2 mt2">指纹 9f2c41ab77e0 · sha256 · 额外覆盖平台：Codex / OpenCode / Cline / Qwen Code / zcode / Kimi Code</p></div>'
+  +'<div><div class="nt2 fw2">近似上下文量（≈tok，非计费口径）</div>'
+  +[['CLAUDE.md','3.1 kB','≈ 1.6k tok'],['AGENTS.md','3.1 kB','≈ 1.6k tok'],['openvibe.mdc','3.2 kB','≈ 1.7k tok'],['TERMS.md','18.4 kB','≈ 11.2k tok']].map(f=>`<div class="rw2 sp3"><span class="mn2">${f[0]}</span><span class="nt2">${f[1]} · ${f[2]}</span></div>`).join('')
+  +'<div class="bar2 mt2"><i style="width:76%"></i></div>'+CP('Claude Code ≈14.2k 近似上下文量，已超过提示线 —— 只提示，不影响导出与注入','a')
+  +'<div class="nt2 fw2 mt2">整包落盘足迹</div>'+KV('文件数','9 文件')+KV('解包后','约 39 kB')+KV('导出通道','两通道同一生成器')
+  +'<div class="rw2 mt2">'+BTN('下载 bundle JSON','xs')+BTN('导出到目录','xs p')+'</div>'
+  +'<p class="nt2 mt2">目录导出写 ~/.openvibe/packs/&lt;name&gt;@&lt;version&gt;/，git 友好纯文本；同选集同排序 → 字节级一致（幂等）。</p></div></div></div></div>',{btn:'新建标准包'})));
+UI.push(screen('CLI 终端','1440 · 注入 / 漂移 / 退场',1180,app('CLI 终端',
+  '<div class="rw2 pdx"><b class="h2t">CLI 终端</b><span class="nt2">注入 / 退场是写盘唯一通道；Web 只读展示</span></div><div class="two2">'
+  +'<div class="cd2"><div class="hd2"><b>运行命令</b><span class="nt2">Node ≥ 22</span></div><div class="pdx2">'
+  +[['openvibe serve','起本地服务并开浏览器','npx openvibe-cli serve --open'],['openvibe sync','注入预置包到测试目录','npx openvibe-cli sync ~/.openvibe-demo --pack default'],['openvibe diff','查漂移','npx openvibe-cli diff ~/.openvibe-demo'],['openvibe clean','退场（先看计划，零写入）','npx openvibe-cli clean ~/.openvibe-demo --dry-run']].map(c=>`<div class="pn2"><div class="rw2"><b class="mn2 hl2">${c[0]}</b><span class="nt2">${c[1]}</span><span class="rt2">${BTN('运行','xs')}</span></div><div class="cod2 sml">${c[2]}</div></div>`).join('')
+  +'</div></div>'
+  +'<div class="cd2"><div class="hd2"><b>回显</b><span class="nt2">退出码 2 · 有改动 / 没退干净</span><span class="rt2">'+BTN('--json','xs')+BTN('清屏','xs')+'</span></div><div class="pdx2"><div class="tm2">'
+  +'<div class="ln2"><span class="g3n">➜</span> <span class="hl2">openvibe clean</span> <span class="dm2">~/.openvibe-demo --dry-run</span></div>'
+  +'<div class="ln2"><span class="dm2">锁</span> 已取得 .openvibe/sync.lock <span class="dm2">（pid 41207）</span></div>'
+  +[['UPDATE','CLAUDE.md','delete'],['UPDATE','AGENTS.md','delete'],['UPDATE','TERMS.md','delete'],['UPDATE','CHECKLIST.md','delete'],['DRIFT','MINI.md','keep（已改动，默认保留）'],['UPDATE','.cursor/rules/openvibe.mdc','delete'],['UPDATE','.trae/rules/openvibe.md','delete'],['UPDATE','CODEBUDDY.md','delete'],['UPDATE','.openvibe/pack.lock.json','delete（收尾）']].map(p=>`<div class="ln2"><span class="s1c sU2">${p[0]}</span><span class="fx4">${p[1]}</span><span class="dm2">${p[2]}</span></div>`).join('')
+  +'<div class="ln2"><span class="dm2">dry-run：以上为计划，零写入零备份。退出码与真跑同语义，CI 可用同一套判定读计划输出。</span></div>'
+  +'<div class="ln2"><span class="w2n">没退干净</span>：1 个已改动文件默认保留，需 <span class="hl2">--force</span> 才连它一起删（改后内容先进备份）。</div>'
+  +'</div></div></div></div>',{btn:null,search:false})));
+UI.push(screen('开箱三步','1440 · 首启向导条（每步真实副作用）',1180,app('工作台',
+  '<div class="ob2"><div class="oh2"><b>开箱三步</b>'+CP('第 1 / 3 步','b')+'<span class="rt2">'+BTN('上一步','xs dis')+BTN('下一步','xs')+BTN('跳过','xs')+'</span></div>'
+  +'<div class="g4"><div class="bz2"><b>你的资产库已就位</b><span>下面是库存真实计数：</span><div class="rw2 mt2">'+CP('精选提示词 20 条','b')+CP('术语 109 条','b')+CP('流程模板 3 条','b')+'</div><div class="rw2 mt2">'+BTN('去提示词库','xs')+BTN('去术语库','xs')+BTN('去流程模板','xs')+'</div></div>'
+  +'<div class="bz2"><b>看一个标准包长什么样</b><span>文件树渲染自 preview API，与导出字节同源：</span><div class="mn2 nt2 mt2">CLAUDE.md<br>.cursor/rules/openvibe.mdc<br>AGENTS.md<br>CODEBUDDY.md<br>.trae/rules/openvibe.md<br>MINI.md<br>TERMS.md<br>CHECKLIST.md<br>.openvibe/pack.lock.json</div></div>'
+  +'<div class="bz2"><b>注入试试</b><span>在另一个终端执行这条命令，本页自动检测 lock 文件：</span><div class="cod2 sml mt2">npx openvibe-cli sync "~/.openvibe-demo" --pack default</div><div class="rw2 mt2">'+BTN('复制命令','xs')+BTN('我已注入','xs')+'<span class="nt2">检测中 00/60 次（每 2 秒）</span></div></div></div></div>'
+  +'<div class="cd2 mt2"><div class="hd2"><b>项目工作台</b><span class="nt2">共 2 个项目 · 向导完成后不再出现</span></div><div class="pdx2 nt2">首启 ≤3 条命令、≤5 分钟：起服务 → 注入 → 看漂移。</div></div>',{btn:'新建项目'})));
+UI.push(screen('设置','1440 · 数据与隐私',1180,app('设置',
+  '<div class="two2"><div class="cd2"><div class="hd2"><b>服务信息</b></div><div class="pdx2">'+KV('版本','<span class="mn2">0.1.0</span>')+KV('监听端口','<span class="mn2">8787</span>')+KV('数据目录','<span class="mn2">~/.openvibe/</span>')+KV('数据库','<span class="mn2">data/openvibe.db</span>')+'<span class="nt2">仅监听 127.0.0.1；token 在 config.json（0600）。</span></div></div>'
+  +'<div class="cd2"><div class="hd2"><b>种子内容</b><span class="rt2">'+BTN('重播种子并重建预置包','xs')+'</span></div><div class="pdx2">'+KV('库存计数','术语 109 / 模板 3 / 提示词 20')+KV('预置包','default@1.0.0')+'<span class="nt2">幂等：内容未变即跳过；用户改过的条目只跳过并说明原因。</span></div></div>'
+  +'<div class="cd2"><div class="hd2"><b>匿名统计</b>'+CP('未询问 · 关闭','k')+'</div><div class="pdx2"><span class="nt2">白名单三类事件（pack_injected / flow_template_used / project_active）+ 日粒度 + 不含路径与内容；关闭时零队列零外联。</span></div></div>'
+  +'<div class="cd2"><div class="hd2"><b>备份说明</b></div><div class="pdx2"><span>状态全在数据目录（openvibe.db + config.json + packs/）。<b>备份 = 停服务后整目录复制。</b></span><span class="nt2">项目侧 .openvibe/ 只放 lock 与覆盖前备份。</span></div></div>'
+  +'<div class="cd2"><div class="hd2"><b>运行时</b>'+CP('v0.1.0','b')+'</div><div class="pdx2">'+KV('测试','<span class="mn2">450 用例 / 48 文件</span>')+KV('Web 入口','<span class="mn2">293.07 kB</span>')+KV('CLI 产物','<span class="mn2">3.59 MB</span>')+KV('CLI 命令','<span class="mn2">serve / sync / scan / diff / clean</span>')+'<span class="nt2">三平台 CI；win32 门控跳过 8 支 POSIX 语义用例，按未验证处理。</span></div></div>'
+  +'<div class="cd2"><div class="hd2"><b>开箱向导</b><span class="rt2">'+BTN('重新显示向导','xs')+'</span></div><div class="pdx2">'+KV('向导标记','未完成')+'<span class="nt2">向导仅在「无项目且未完成」时出现；每步都产生真实副作用。</span></div></div></div>',{btn:null,search:false})));
+
+/* ── 装配（外壳已提供 .hdr 与滚动容器）────────── */
+const SEC=[
+  ['01','项目背景','产品是什么、闭环怎么转、本期做到哪、信任底线在哪'],
+  ['02','设计系统','一套浅色工程台：品牌绿锁一处，状态色只承载语义'],
+  ['03','设计稿','九页全量还原 —— 取真数据、真文案、真状态，非占位稿']
+];
+const rows=[BG,DS,UI];
+document.getElementById('wrap').insertAdjacentHTML('beforeend',SEC.map((s,i)=>`<div class="sec"><div class="sh"><span class="sn">${s[0]}</span><b>${s[1]}</b><span class="d2">${s[2]}</span></div><div class="srow">${rows[i].join('')}</div></div>`).join(''));
+</script>
+<script>
+/* 画布 chrome：平移 + 屏卡内存态重排（约 1.6KB）；缩放由预览宿主提供 */
+(function(){
+  const vp=document.getElementById('vp'),wd=document.getElementById('wd');
+  let x=0,y=0,pan=null,drag=null;
+  const app=()=>wd.style.transform='translate('+x+'px,'+y+'px)';
+  document.getElementById('wrap').insertAdjacentHTML('afterbegin','<div class="hdr"><h1>灵典 OpenVibe · 设计总览</h1><p>vibe coding 的标准化工作台 —— 本地优先，数据全在 ~/.openvibe/；Web 管资产与流程，CLI 是写盘的唯一通道。</p><div class="hint2">滚轮缩放 · 拖动屏卡可重排 · 拖空白处平移 · 按 0 复位</div></div>');
+  vp.addEventListener('mousedown',e=>{
+    if(e.target.closest('.sc-d'))return;
+    pan={sx:e.clientX,sy:e.clientY,ox:x,oy:y};vp.classList.add('pan');
+  });
+  document.addEventListener('mousedown',e=>{
+    const el=e.target.closest('.sc-d');if(!el||pan)return;
+    if(e.target.closest('input,table,textarea,.cod2,.t2,.tm2'))return;
+    const r=el.getBoundingClientRect();
+    drag={el,sx:e.clientX,sy:e.clientY,sl:el.offsetLeft,st:el.offsetTop,moved:false};
+    el.classList.add('dr');el.style.left=el.offsetLeft+'px';el.style.top=el.offsetTop+'px';
+  },true);
+  window.addEventListener('mousemove',e=>{
+    if(pan){x=pan.ox+e.clientX-pan.sx;y=pan.oy+e.clientY-pan.sy;app();return;}
+    if(drag){
+      const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;
+      if(!drag.moved&&Math.abs(dx)+Math.abs(dy)<4)return;
+      drag.moved=true;drag.el.style.position='absolute';
+      drag.el.style.left=(drag.sl+dx)+'px';drag.el.style.top=(drag.st+dy)+'px';
+      drag.el.style.transform='';return;
+    }
+  });
+  window.addEventListener('mouseup',()=>{
+    if(pan){pan=null;vp.classList.remove('pan');}
+    if(drag){
+      const el=drag.el;
+      if(drag.moved){
+        const c=el.getBoundingClientRect(),cx=c.left+c.width/2;
+        const row=el.parentElement,items=[...row.children].filter(n=>n!==el&&n.classList.contains('sc-d'));
+        let before=null;
+        for(const n of items){const r=n.getBoundingClientRect();if(cx<r.left+r.width/2){before=n;break;}}
+        el.style.position='';el.style.left='';el.style.top='';
+        row.insertBefore(el,before);
+      }else{el.style.position='';el.style.left='';el.style.top='';}
+      el.classList.remove('dr');drag=null;
+    }
+  });
+  document.addEventListener('keydown',e=>{if(e.key==='0'){x=0;y=0;app();}});
+})();
+</script>
+</body>
+</html>

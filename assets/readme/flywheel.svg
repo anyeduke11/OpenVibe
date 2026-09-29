@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="340" viewBox="0 0 1200 340"
+     role="img" aria-labelledby="ov-loop-title ov-loop-desc">
+  <title id="ov-loop-title">标准化飞轮：沉淀资产 → 组装标准包 → 注入项目 → 经验回流</title>
+  <desc id="ov-loop-desc">三张卡片自左向右：本地库沉淀五类资产；组装成带内容指纹的标准包；注入项目落盘九个文件并写入六个助手适配器。底部一条回流箭头把项目里的开发日志送回本地库。</desc>
+
+  <defs>
+    <marker id="ov-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#2f6f4f"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="340" rx="24" fill="#fafafa" stroke="#e4e4e4" stroke-width="1.5"/>
+
+  <g id="stage-1" transform="translate(56 44)">
+    <rect width="320" height="140" rx="14" fill="#ffffff" stroke="#e4e4e4" stroke-width="1.5"/>
+    <rect width="6" height="140" rx="3" fill="#2f6f4f"/>
+    <text x="28" y="40" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+          font-size="22" font-weight="700" fill="#181818">① 沉淀资产</text>
+    <text x="28" y="76" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+          font-size="18" fill="#404040">提示词 · 术语 · Skill 台账</text>
+    <text x="28" y="106" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+          font-size="18" fill="#404040">流程模板 · 开发日志</text>
+  </g>
+
+  <line x1="384" y1="114" x2="430" y2="114" stroke="#2f6f4f" stroke-width="2.4" marker-end="url(#ov-arrow)"/>
+
+  <g id="stage-2" transform="translate(440 44)">
+    <rect width="320" height="140" rx="14" fill="#ffffff" stroke="#e4e4e4" stroke-width="1.5"/>
+    <rect width="6" height="140" rx="3" fill="#2f6f4f"/>
+    <text x="28" y="40" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+          font-size="22" font-weight="700" fill="#181818">② 组装标准包</text>
+    <text x="28" y="76" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+          font-size="18" fill="#404040">bundle + 内容指纹 + 版本</text>
+    <text x="28" y="106" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+          font-size="18" fill="#404040">预览即导出产物</text>
+  </g>
+
+  <line x1="768" y1="114" x2="814" y2="114" stroke="#2f6f4f" stroke-width="2.4" marker-end="url(#ov-arrow)"/>
+
+  <g id="stage-3" transform="translate(824 44)">
+    <rect width="320" height="140" rx="14" fill="#ffffff" stroke="#e4e4e4" stroke-width="1.5"/>
+    <rect width="6" height="140" rx="3" fill="#2f6f4f"/>
+    <text x="28" y="40" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+          font-size="22" font-weight="700" fill="#181818">③ 注入项目</text>
+    <text x="28" y="76" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+          font-size="18" fill="#404040">九个文件落盘</text>
+    <text x="28" y="106" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+          font-size="18" fill="#404040">指纹写入 pack.lock</text>
+  </g>
+
+  <g id="adapter-row" transform="translate(56 214)" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">
+    <text x="0" y="22" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+          font-size="18" fill="#535353">写入：</text>
+    <rect x="62" y="0" width="146" height="32" rx="8" fill="#e8f1ec"/>
+    <text x="135" y="22" text-anchor="middle" fill="#2f6f4f">claude-code</text>
+    <rect x="218" y="0" width="96" height="32" rx="8" fill="#e8f1ec"/>
+    <text x="266" y="22" text-anchor="middle" fill="#2f6f4f">cursor</text>
+    <rect x="324" y="0" width="180" height="32" rx="8" fill="#e8f1ec"/>
+    <text x="414" y="22" text-anchor="middle" fill="#2f6f4f">generic-agents</text>
+    <rect x="514" y="0" width="128" height="32" rx="8" fill="#e8f1ec"/>
+    <text x="578" y="22" text-anchor="middle" fill="#2f6f4f">codebuddy</text>
+    <rect x="652" y="0" width="78" height="32" rx="8" fill="#e8f1ec"/>
+    <text x="691" y="22" text-anchor="middle" fill="#2f6f4f">trae</text>
+    <rect x="740" y="0" width="116" height="32" rx="8" fill="#e8f1ec"/>
+    <text x="798" y="22" text-anchor="middle" fill="#2f6f4f">minicode</text>
+  </g>
+
+  <path id="return-loop" d="M984 190v82H28v-158h18" fill="none" stroke="#2f6f4f" stroke-width="2.4"
+        stroke-dasharray="7 6" marker-end="url(#ov-arrow)"/>
+  <text x="600" y="296" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif"
+        font-size="18" fill="#535353">④ 回流：项目里的开发日志 → 术语 / 提示词草稿（带来源反链），下次组包即可用</text>
+</svg>

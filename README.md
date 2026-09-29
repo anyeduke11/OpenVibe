@@ -4,28 +4,28 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](./LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A522-339933)](./package.json)
 
-> **Vibe coding 的标准化工作台** —— 把提示词、术语、流程和项目经验变成可管理、可复用、可分发的工程标准，
-> 一条命令注入 Claude Code / Cursor / CodeBuddy / Trae / MiniCode 的项目目录。
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="OpenVibe 灵典：把提示词、术语、流程模板与项目经验收进一个本地库，组装成标准包，一条命令注入六个 AI 助手的项目目录。右侧终端卡片是 openvibe diff 的真实产物清单：手改过的 CLAUDE.md 报 DRIFT，其余八个文件 IN_SYNC。">
+</p>
 
-你大概遇到过这种情况：同一个坑，你给 AI 讲过三遍，每个项目讲一遍，同事还得再讲一遍。
-OpenVibe 把这些「讲过一遍又一遍的话」收进一个本地库，攒成**标准包**，再写进各个项目的规则文件里 ——
+同一个坑，给 AI 讲过三遍：每个项目讲一遍，换助手再讲一遍，同事还得再讲一遍。
+OpenVibe 把这些「讲过一遍又一遍的话」收进一个**本地库**，攒成**标准包**，一条命令写进各个项目的规则文件——
 并且知道哪些是你手改过的。
 
 ## 30 秒上手
 
 ```bash
 npx openvibe-cli serve --open                                  # ① 起本地服务，自动开浏览器
-npx openvibe-cli sync ~/your-project --pack default             # ② 把预置标准包注入你的项目
-npx openvibe-cli diff ~/your-project                            # ③ 看有没有漂移（0=一致，2=有改动）
+npx openvibe-cli sync ~/your-project --pack default            # ② 把预置标准包注入你的项目
+npx openvibe-cli diff ~/your-project                           # ③ 看有没有漂移（0=一致，2=有改动）
 ```
 
-> 全局装过一次（`npm i -g openvibe-cli`）之后就不必每行都带 `npx`。
-> `openvibe-cli` 尚未在 npm 上线（v0.1.0 发布的最后一步）。上线前改用源码构建产物：
-> `pnpm install && pnpm pkg:cli` → `cd apps/cli/pkg && npm pack` → `npm i -g apps/cli/pkg/openvibe-cli-0.1.0.tgz`，之后命令同上。
+> **`openvibe-cli` 尚未在 npm 上线**（v0.1.0 发布的最后一步，registry 实测 404）。
+> 上线前改用源码构建产物：`pnpm install && pnpm pkg:cli` → `cd apps/cli/pkg && npm pack` →
+> `npm i -g apps/cli/pkg/openvibe-cli-0.1.0.tgz`，之后命令同上（全局装过就不必每行带 `npx`）。
 
-第 ① 步首启就会把 **109 条术语 / 3 套流程模板 / 20 条精选提示词** 播进本地库，并自动组装出一个 `default` 标准包
-—— 不用先建库再对着空界面发呆。第 ② 步默认先给预览表、要你确认，覆盖任何已有文件前会先备份。
-跑完你会得到（实测于干净沙箱）：
+第 ① 步首启会把 **109 条术语 / 3 套流程模板 / 21 条精选提示词**播进本地库，并自动组装出一个 `default` 标准包
+——不用先建库再对着空界面发呆。第 ② 步默认先给预览表、要你确认，覆盖任何已有文件前会先备份。跑完你会得到：
 
 | 写入的文件 | 谁读它 |
 |---|---|
@@ -51,9 +51,13 @@ npx openvibe-cli diff ~/your-project                            # ③ 看有没�
 | AI 编码项目流程随意、质量靠运气 | 可裁剪的流程模板 + 检查清单 + 开发/检查日志 |
 | 手改的规则会被工具无声覆盖 | `diff` 报漂移，冲突三选一（以包为准 / 保留本地 / 跳过），覆盖前必定备份 |
 
-**核心闭环（标准化飞轮）**：沉淀资产 → 组装标准包 → 注入项目 → 项目里长出的新经验回流成资产。
-回流不是口号：在项目工作台写一条开发日志，可以直接从日志生成术语/提示词草稿并挂上来源反链，
-下次组包就能用。
+**核心闭环（标准化飞轮）**：
+
+<p align="center">
+  <img src="./assets/readme/flywheel.svg" width="100%" alt="标准化飞轮四步：本地库沉淀提示词、术语、Skill 台账、流程模板与开发日志；组装成带内容指纹的标准包；注入项目落盘九个文件并写入六个助手适配器；项目里的开发日志回流成术语与提示词草稿，下次组包即可用。">
+</p>
+
+回流不是口号：在项目工作台写一条开发日志，可以直接从日志生成术语/提示词草稿并挂上来源反链，下次组包就能用。
 
 ## 功能一览
 
@@ -76,13 +80,15 @@ openvibe serve [--port 8787] [--open]     本地 API + Web UI，首启生成配�
 openvibe sync <dir> [--pack <n[@v]>]      注入：--dry-run 零写入 / --file|--dir 离线注入 / --target 只写指定平台
 openvibe scan  [--skills | --project <d>] 扫描 skill 目录或项目规则文件并登记
 openvibe diff  <dir>                      产物 vs lock 比对 + 是否有更新版本；退出码 0 一致 / 2 漂移
-openvibe clean <dir> [--yes]              退场：删当前 lock 登记且未改动的受管文件（删前一律备份）；--dry-run 只出计划零写入 / --force 连改过的一起删；退出码 0 全清 / 2 有保留或已取消（未删任何文件） / 1 出错
+openvibe clean <dir> [--yes]              退场：删当前 lock 登记且未改动的受管文件（删前一律备份）；
+                                          --dry-run 只出计划零写入 / --force 连改过的一起删；
+                                          退出码 0 全清 / 2 有保留或已取消（未删任何文件）/ 1 出错
 ```
 
 三条全局旗标 `--server` / `--token` / `--json`；`--json` 下 stdout 只有一个 JSON 对象且禁用一切交互，
 适合挂在 CI 或别的工具里。
 
-## 架构一图
+## 进程与数据边界
 
 ```
         你的浏览器 ── http://127.0.0.1:8787（只听本地）
@@ -102,7 +108,7 @@ openvibe clean <dir> [--yes]              退场：删当前 lock 登记且未�
         apps/cli  薄客户端：只做传输 + 交互 + 文件 IO，业务逻辑不在它身上
 ```
 
-- 只有一个运行时依赖：`better-sqlite3`（原生模块不能打包），其余全部内联进单文件 `cli.js`。
+- 只有一个运行时依赖：`better-sqlite3`（原生模块不能打包），其余全部内联进单文件 `cli.js`（约 3.5 MB）。
 - 数据是**一个 SQLite 文件**，没有服务、没有账号、没有后台常驻。
 - CLI 断网可用：`sync --file bundle.json` / `--dir` 走离线注入，不需要起 serve。
 
@@ -147,7 +153,8 @@ openvibe clean <dir> [--yes]              退场：删当前 lock 登记且未�
 
 写文件侧的防线（`sync` 的每一跳）：路径双层校验 → 整包注入前检查 → 每次写盘前 `resolve` 复核（悬空符号链接
 一律拒绝，不会顺着链接在项目外凭空建文件）→ 覆盖前强制备份 → `--dry-run` 零写入 → 同一项目并发 `sync`
-用文件锁互斥（抢不到就 `SYNC_BUSY`，零写入）。
+用文件锁互斥（抢不到就 `SYNC_BUSY`，零写入）。硬链接目标按「解链后新建」写，副作用只落在目标这一个目录项上
+（`packages/core/src/inject/atomic-write.ts`）。
 
 ## 常见问题
 
@@ -177,10 +184,10 @@ npm / npx 用户走 `prebuild-install` 按平台与 Node ABI 取预编译包，�
 - **整文件管理，无块级合并**：受管单位是整个产物文件；注入后你改过的段落（DRIFT）不会被自动重写。
   退场用 `clean`（默认只删未改动的受管文件，删除前一律先备份），回滚同理靠 `.openvibe/backup/`；
   没有 `update` 子命令（标记已预埋，块级合并是下一档要做的事）。
-- **真实点击与中文输入已有自动化证据，拖拽没有**：浏览器走查里「navigate 后读 DOM」那一类驱动器测不到真实用户动作
-  （合成点击拿不到 transient user activation）。2026-09-24 起另有一条裸 CDP **真输入**驱动器覆盖复制按钮与
-  中文输入搜索两条场景（真鼠标点击 + 真中文注入 + 系统剪贴板逐字节反查，需有头浏览器）；
-  **看板拖拽仍无自动化证据**，如需验证请手工做一次。
+- **验证面有边界**：三平台 CI 每轮跑全量用例，但 win32 腿会门控跳过 8 支 POSIX 语义用例（硬链接/目录链接），
+  这 8 支靠本机三平台正向断言 + win32 事实探针覆盖，**CI 的 win32 腿不构成它们的证据**；
+  浏览器侧自 2026-09-24 起有一条裸 CDP **真输入**驱动器，覆盖复制按钮与中文输入搜索两条场景
+  （真鼠标点击 + 真中文注入 + 系统剪贴板逐字节反查，需有头浏览器），**看板拖拽仍无自动化证据**，如需验证请手工做一次。
 - 中文 UI 优先，暂无英文版；种子内容以中文技术术语为主，欢迎补其他语言与领域。
 - 团队权限、审批流、LLM 密钥托管均在 P2/P3 计划内，本期没有。
 
@@ -195,8 +202,8 @@ npm / npx 用户走 `prebuild-install` 按平台与 Node ABI 取预编译包，�
 ```bash
 git clone https://github.com/anyeduke11/OpenVibe && cd OpenVibe
 pnpm install                # pnpm ≥ 10，corepack enable 即可
-pnpm lint && pnpm typecheck && pnpm test        # 450 用例 / 48 文件（unit / integration / cli / web-jsdom 四层；采样 2026-09-27 07:49 @ 63bd17e 本机 rc=0，支数随提交变动、以 pnpm test 汇总行为准。win32 会门控跳过 8 支 POSIX 语义用例）
-pnpm seed:check && pnpm bundle:check            # 另两道门禁：种子数量与构成配额、Web 体积闸门
+pnpm lint && pnpm typecheck && pnpm test        # 476 用例 / 55 文件（unit / integration / cli / web-jsdom 四层；采样 2026-09-29 11:57 @ c17e3fd 本机：lint 与 typecheck 零输出、test 475 passed，余 1 支撞 5 s 超时预算——单独复跑该文件 5/5 绿且该支实测 940 ms。支数随提交变动，以 pnpm test 汇总行为准）
+pnpm seed:check && pnpm bundle:check            # 另两道门禁：种子数量与构成配额、Web 体积闸门（入口 293.16 kB ≤ 300 kB）
 pnpm pkg:cli                                    # 产出发布暂存目录 apps/cli/pkg/
 cd apps/cli/pkg && npm pack                     # → openvibe-cli-<版本>.tgz，可 npm i -g 它
 ```
@@ -213,6 +220,7 @@ docs/
 ├── tasks.md / dev-plan.md          T1–T9 任务分解与日级排期、验收-测试映射
 ├── release-notes/                  发布说明（v0.1.0 起；含「本版未验证」清单）
 ├── competitive-*.md                竞品调研与深度对比
+├── prototypes/                     早期视觉原型（可交互 HTML，含三套暖系方案对比）
 ├── DEV-00NN 证据                   docs/devlog-evidence/：真机走查驱动器 + 日志，可对 HEAD 复跑
 └── specs/                          逐模块规格（输入输出、边界、验收标准）
     ├── m1-prompt-library.md   m2-skill-registry.md   m3-glossary.md
