@@ -208,8 +208,8 @@ pnpm pkg:cli                                    # 产出发布暂存目录 apps/
 cd apps/cli/pkg && npm pack                     # → openvibe-cli-<版本>.tgz，可 npm i -g 它
 ```
 
-开发环境请读 [CONTRIBUTING.md](./CONTRIBUTING.md)（含跨平台纪律清单与依赖边界规则）。
-每完成一个任务组在 [DEV_LOG.md](./DEV_LOG.md) 追加一条 `DEV-NNNN`（问题/思路/变更/验证/风险）。
+开发环境请读 [CONTRIBUTING.md](https://github.com/anyeduke11/OpenVibe/blob/main/CONTRIBUTING.md)（含跨平台纪律清单与依赖边界规则）。
+每完成一个任务组在 [DEV_LOG.md](https://github.com/anyeduke11/OpenVibe/blob/main/DEV_LOG.md) 追加一条 `DEV-NNNN`（问题/思路/变更/验证/风险）。
 
 ## 文档地图
 
@@ -230,7 +230,7 @@ docs/
 
 里程碑：P0 文档定稿 → T1 脚手架 → T2 存储核心 → T3 提示词库 → T4 术语库 → T5 项目流程 →
 T6 组包导出 → T7 CLI 注入 → T8 种子全量 + 开箱体验 → **T9 飞轮 E2E + 发布（当前）**。
-细节见 [DEV_LOG.md](./DEV_LOG.md)。
+细节见 [DEV_LOG.md](https://github.com/anyeduke11/OpenVibe/blob/main/DEV_LOG.md)。
 
 ## 许可
 

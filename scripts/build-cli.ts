@@ -13,6 +13,7 @@
  *   dist/seed/            content/seed 的拷贝
  *   dist/migrations/      core 的 SQL（runner.ts 按 import.meta.url 找 ./migrations，打包后即此处）
  *   README.md / LICENSE
+ *   assets/readme/        README 首屏引用的两张 SVG（包内 README 与仓库根同源，图不进包即是死链）
  */
 import {
   chmodSync,
@@ -45,6 +46,13 @@ export const PUBLISH_NAME = 'openvibe-cli'
  * **我们沙箱里装过的那份清单 == npm 上别人装到的那份**。
  */
 export const PUBLISH_BIN_PATH = 'dist/cli.js'
+/**
+ * README 首屏引用 `assets/readme/hero.svg` 与 `flywheel.svg`。包内 README 就是仓库根那一份
+ * （同源，不另维护精简版），所以这两张图必须随包走——少一条，装包方和 npm 页面看到的就是死链
+ * （2026-09-30 owner 裁「SVG 进包」，队列 ㉑(a)）。
+ */
+export const README_ASSET_DIR = 'assets/readme'
+export const README_ASSETS = ['hero.svg', 'flywheel.svg']
 
 export interface PublishManifestOptions {
   version: string
@@ -80,7 +88,7 @@ export function publishManifest(
     ...meta,
     type: 'module',
     bin: { openvibe: PUBLISH_BIN_PATH },
-    files: ['dist'],
+    files: ['dist', README_ASSET_DIR],
     engines: source.engines ?? { node: '>=22' },
     dependencies: options.runtimeExternal,
   }
@@ -147,6 +155,13 @@ export async function main(): Promise<void> {
   cpSync(MIGRATIONS_DIR, join(STAGE, 'dist', 'migrations'), { recursive: true })
   copyFileSync(join(REPO, 'README.md'), join(STAGE, 'README.md'))
   copyFileSync(join(REPO, 'LICENSE'), join(STAGE, 'LICENSE'))
+  mkdirSync(join(STAGE, README_ASSET_DIR), { recursive: true })
+  for (const asset of README_ASSETS) {
+    const src = join(REPO, README_ASSET_DIR, asset)
+    // 缺图不是「少一张装饰」而是包内 README 的死链，宁可不发布也不发一个裂首屏的包
+    if (!existsSync(src)) fail(`README 引用 ${src}，包内 README 与仓库根同源，缺它即死链`)
+    copyFileSync(src, join(STAGE, README_ASSET_DIR, asset))
+  }
   writeFileSync(
     join(STAGE, 'package.json'),
     `${JSON.stringify(publishManifest(sourceManifest, {

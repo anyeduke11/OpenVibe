@@ -1467,3 +1467,50 @@
 - **未验证面净变化**: 清空 **0** 格，**新挂 3 格**——① release 资产的**可安装性**未验（没在干净机器上 `npm i -g <tgz>` 后跑五命令；`[DEV-0020]` 那 **51 项发布形态断言仍是 `c28c2b1` 树的凭据，本轮未复跑**）；② **全历史内容级**密钥扫描未做（独立 agent 只做了「138 提交的文件名维度」+「`cbdee74` 单树的内容维度」，它自己建议 `gitleaks`/`trufflehog --all`）；③ GitHub 侧其他面（Issues / PR / Discussions / Wiki / Actions 日志）未扫。另**保留一格旧的**：看板拖拽仍无任何自动化证据。
 - **潜在风险**: ① **tag 已二次移动**⇒ 已 clone 的人 `git fetch --tags` **不会**自动改本地 tag（非 force fetch），他们手里仍是 `5f7fd3c`；这是移动公开 tag 的固有代价，owner 在选项里知情选定。② **release body 是创建时快照**（6,968 字符 = `docs/release-notes/v0.1.0.md` @ `cbdee74`）⇒ 此后改该文件不会同步到 release 页，两边会静默分家。③ **本笔的 README 纠错没有进 release 资产**（资产是不可变快照，除非 `gh release upload --clobber` 重挂）⇒ **公开发布的 tgz 里那条 cwd 错的命令仍在**；修它要「新 HEAD 干净重建 → 重挂资产 → sha256 变」，且 tag 要不要第三次移动另裁 ⇒ 与 `㉑(a)` 合并处理更省。④ **`/Users/duke/…` 与个人 Gmail 的暴露面**经独立复核确认为**已公开、无机密附着**（`apps/server/test/telemetry-flush.test.ts:445` 只有路径串 `/Users/duke/.ssh/id_ed25519`，全树 `BEGIN … PRIVATE KEY` **0 命中**；邮箱在 138 个提交的 author/committer 元数据里）⇒ 清理需改写历史，`㉑(b)` 待裁，本笔不动。⑤ README 首屏第一条命令 `npx openvibe-cli serve --open` **今天照抄会失败**（npm 404），披露 blockquote 紧邻且给了替代路径 ⇒ 属已知取舍而非漏写，独立 agent 判为「MISLEADING 边缘」而非 UNSUPPORTED；排序要不要调与 `㉑(a)` 同批裁。
 - **owner 手上未收的**: **①** 19 行短名单 + 第 21 条提示词逐条签 → **②** 真 `npm publish`（现在有了 release `.tgz` 作过渡安装路径，但 npm 仍 404 ⇒ D15 仍无起点）→ **㉑** 两条待裁（(a) 装包 README 的 **4** 处死引用怎么修 + 首屏命令排序；(b) 已公开历史里的用户名路径与提交邮箱要不要改写历史）→ **⑦ 第 10 次推送**（本笔 + README 一行 + `docs/decisions.md` 更新，**均未推**；不推不阻塞，只是让远端少一笔差额）。
+
+---
+
+## [DEV-0065] 队列 ㉑(a) 落地：两张 SVG 进包 + README 的仓库文档链接绝对化（§0.3 **B 级**，升 `m6-cli-injection.md` v1.10）· 第三次移动 `v0.1.0` tag 让装包 README 不再带四条死链
+
+- **时间**: 2026-09-30 00:2x–01:0x +0800。起点：owner 令「更新 GitHub 对应的 About 和 release，**更新后检查 release 的压缩包是否有敏感信息**」；开工前两问裁定 —— **① tag 跟过去**（推新 HEAD → CI 三平台绿 → 第三次 force-move `refs/tags/v0.1.0` → 从**干净 checkout** 重建 `.tgz`）、**② 一起修：SVG 进包 + 链接绝对化**（队列 ㉑(a) 那三个候选修法取第一案）。开工钉 sha `93bb697`。
+- **类型**: §0.3 **B 级**——`publishManifest()` 的 `files` 形状变了、装包产物的文件集合也变了，撞 §0.3「拿不准往高级别归」。已按 B 级三走：① 本条登记 → ② `docs/specs/m6-cli-injection.md` 版本行追加 **v1.10** 段 + §5 新增第 4 条 → ③ 同步 dev-plan §9 映射表：**无可同步格**（`grep -rn "SCRIPT-PKG\|pkg:cli\|build-cli" docs/dev-plan.md docs/tasks.md` 零命中，发布暂存包从来只由 `tests/publish-manifest.test.ts` 与 `[DEV-0019]`/`[DEV-0020]` 的走查承载），不为此凭空造一格。
+- **关联文件**: `scripts/build-cli.ts`（常量 + 拷贝清单 + `files`）、`tests/publish-manifest.test.ts`（`SCRIPT-PKG-01` 改钉两条、新增 `SCRIPT-PKG-05`）、`README.md`（3 行链接绝对化，**行数 237 未变** ⇒ 不挪动 `DEV_LOG.md:623`/`:1172` 那两条入边行号引用，见 `[DEV-0062]` 的偏账）、`docs/specs/m6-cli-injection.md`（§5.4 + 版本行）、`docs/release-notes/v0.1.0.md`（已知局限补一条）、`docs/decisions.md`（㉑ 状态格）、`DEV_LOG.md` 本条。
+- **一条不变式**（本轮真正落的东西）：**包内 `README.md` 引用的每个相对路径，都必须在包内解析得开**。包内 README 与仓库根同源（本仓不另维护精简版，`[DEV-0019]` 定的口径），所以「进包」与「绝对化」不是两个修法而是同一条的两侧——图是包内资产（进包），文档是仓库侧（绝对 URL）。
+- **变更**:
+  1. `scripts/build-cli.ts` 导出 `README_ASSET_DIR = 'assets/readme'` 与 `README_ASSETS = ['hero.svg', 'flywheel.svg']`；`main()` 在拷 README/LICENSE 之后建目录逐支 `copyFileSync`，**缺文件即 `fail()`**——缺图不是「少一张装饰」而是发一个裂首屏的包，宁可不产出。
+  2. `publishManifest()` 的 `files` 由 `['dist']` → `['dist', README_ASSET_DIR]`（暂存清单实读回显 `["dist","assets/readme"]`）。
+  3. `README.md:211/212/233` 的 `[CONTRIBUTING.md](./CONTRIBUTING.md)`、`[DEV_LOG.md](./DEV_LOG.md)` ×2 换成 `https://github.com/anyeduke11/OpenVibe/blob/main/…`；两张图**保持相对**（现在包内解析得开了）。
+  4. 闸：`SCRIPT-PKG-05` 逐条解析 README 的 `](./…)` 与 `src="./…"`（两种写法都要抓——**当初就是走 `src=` 才漏掉的**），未解析集合非空即红；并钉 `refs.length > 0` 防「正则零命中 ⇒ 恒真通过」。
+- **门禁现测（2026-09-30 00:4x 本机，工作树 = 本笔 + 两个并行会话的在途改动 ⇒ 分栏记账）**:
+
+  | 闸 | 工作树现测 | 归因与口径 |
+  |---|---|---|
+  | `pnpm lint` | rc=0，零输出 | 全树 |
+  | `pnpm typecheck` | rc=0，零输出 | 首跑 **rc=2**，唯一一条是**本笔自己的** `tests/publish-manifest.test.ts` 里 `m[1]` 的 `possibly undefined`；加 `filter((r): r is string …)` 后转绿——不是并行噪声 |
+  | `pnpm test` | rc=0，**56 文件 / 489 支 / 0 skipped**，6.96 s，零 `Test timed out` | 本笔只贡献 `SCRIPT-PKG-05` 一支；**提交树的权威数是 55 文件 / 477 支**（`93bb697` 的 476 + 本笔 1），多出的 1 文件 / 12 支来自并行会话未提交的 `apps/server/test/ports.api.test.ts` 等 ⇒ 本笔不替那些路径记数，提交树以 CI 为准 |
+  | `pnpm seed:check` | rc=0（109 术语 / 3 模板 / 21 提示词） | 与 `[DEV-0059]` 后同值 |
+  | `pnpm bundle:check` | rc=0，入口 **296.38 kB ≤ 300 kB** | **这不是提交树的数**：提交树应仍 ~293 kB。并行会话的设计系统那笔（四支 `.woff2` + `index.css`）把预算余量从 6.84 kB 吃到 **3.62 kB** ⇒ 见「潜在风险①」 |
+- **变异反证（`SCRIPT-PKG-05` 有牙）**: 往 README 追加一行 `[design.md](./docs/design.md)` ⇒ 该支变红（`1 failed / 4 passed`）；撤回后 `cmp` 与备份**逐字节相同**。
+- **装包回环实测（本笔的交付凭据，工作树那份，非发布资产）**: `pnpm pkg:cli` → `cd apps/cli/pkg && npm pack` → **42 条 / 1,304,019 B**，`tar tzf` 命中 `package/assets/readme/{hero,flywheel}.svg`；解包后对包内 README 逐个 `[ -e ]`：`LICENSE` / `package.json` / `assets/readme/hero.svg` / `assets/readme/flywheel.svg` = **4/4 IN_TARBALL，0 死链**（`[DEV-0062]` 量的是 4/4 MISSING）。42 = 36 + 本笔 2 支图 + 并行会话 4 支字体，**提交树重建应是 38 条**——这条算术在资产重建后核对。
+- **三个对外动作（按「不可逆排在内容冻结之后」排序，逐个复核授权面）**:
+
+  | # | 动作 | 授权来源与边界披露 |
+  |---|---|---|
+  | 1 | `git push`（`origin/main` 快进，非 force） | 队列 ⑦ **第 10 次推送**——⑦ 行的既有授权各覆盖当次，本笔是**新一次放行请求**，此处即为披露 |
+  | 2 | `git push --force origin refs/tags/v0.1.0`（**第三次**移动公开 tag） | owner 本轮裁「tag 跟过去」直接覆盖；代价沿用 `[DEV-0061]` 风险①：已 clone 者 `git fetch --tags` **不会**自动更新本地 tag |
+  | 3 | `gh release upload v0.1.0 --clobber` 换掉资产 +（若做）`gh release edit --notes-file` | owner 令「更新 release」覆盖附件替换；**正文同步是边界扩大**，做与不做都在本条记明 |
+  | — | 仓库 About | **不动**：`[DEV-0062]` 00:4x 已实测 `description` 末句与 topics 12 条即目标态，本笔无新增对外断言 ⇒ 避掉一次对外写 |
+- **共享工作树的携带账（本笔最容易做错的地方）**: 本笔开工时索引里已有并行会话**暂存**的设计系统变更集（`CLAUDE.md`/`DESIGN.md`/四支字体/`useTheme.ts`/`index.css` …），`docs/decisions.md`、`docs/release-notes/v0.1.0.md`、`DEV_LOG.md`、`README.md` 四处另有 `[DEV-0062]` 那轮**未提交**的改写。所以本笔**不用** `git commit`（那会把别人暂存的东西一起发出去），也不用路径限定 `git add`（`[DEV-0061]` 净发现⑥ 已证它会吞掉同文件他人的未提交行）：
+  - 提交树 = `git read-tree HEAD` 到**私有 index**（`GIT_INDEX_FILE`）→ 六个路径逐条 `git hash-object -w` + `update-index --cacheinfo` → `git write-tree` → `git commit-tree -p 93bb697` → `git update-ref`。
+  - 四个共享文件的本笔改动都**同时**写进工作树，且用的锚串在 HEAD 版与工作树版里逐字节相同（`本机用户名路径 \| \*\*待裁\*\* \|`、`## 本版本\*\*未\*\*验证的事` 两处已核）⇒ 并行会话随后提交它们的工作树时，本笔的文字**作为它们文件内容的一部分一起落地**，谁也不覆盖谁。
+  - 本笔**没有**替 `[DEV-0062]` 登记任何内容：㉑ 行里那些改正后的资产三值、四目标口径、㉒ 行、净状态计数全部仍是他们的未提交行；提交树里的 ㉑ 行仍是 `93bb697` 那一版 + 本笔的状态格。
+- **被推翻 ×1**: 我原本打算把㉑(a) 的修法写成「发布用精简 README」的替代方案之一并顺带落地——读完 `[DEV-0062]` 的三案注记才确认「同源、不另维护精简版」是本仓自己定过的纪律，替代方案当场否掉；本轮只在**同一份** README 上做事。
+- **净发现**: ① **「进包」和「绝对化」不是两个选项而是一条不变式的两侧**——㉑(a) 原写「三个候选修法」把二者对立起来，实际最优解是两个同时做：图属于包内资产（跟着 `files` 走），仓库文档属于仓库外引用（绝对 URL），分开才闭合；只挑其一仍留死链。② **`src=` 与 `](…)` 是两种引用形状，只抓一种的闸等于没闸**——原缺陷能活到发布，正是因为走查人（我）盯着 Markdown 链接看。③ **在并行会话实时改同一棵树时，「本树现测」四个字的含金量会掉**：本轮 lint/typecheck/test 全绿的数是**混合树**的数，必须与 CI 在提交树上的数分栏登记，否则就像 `[DEV-0062]` 缺陷① 那样「每个数字都真，测的却是别人（或上一版）的东西」。
+- **未验证面净变化**: 清空 **1** 格——`[DEV-0062]` 潜在风险② 那条「用户机器上的 README 仍带四条死链」在本笔之后由**新资产**清掉（前提：动作 2、3 真做完并在 release 页回环复测）。新挂 **1** 格——**包内 README 的渲染效果只在解包文件层面验（引用可解析），没有在 npm 页面或 `node_modules` 的 Markdown 渲染器里实看过**；npm 仍 404，也没有 GitHub 的 npm 页面可看。保留旧格：装包后跑通五命令（未在干净机复验）、全历史内容级扫描、Issues/PR/Wiki/Actions 侧、看板拖拽。
+- **编号现取的实况**（写成一条，因为它是这条纪律的失效模式）：00:5x 现取时，工作树 `DEV_LOG.md` 最大 **`[DEV-0063]`**（并行会话的 Skill 扫描条目，未提交）、索引里最大 `[DEV-0062]`、`HEAD` 里最大 `[DEV-0061]`，而 `git grep 'DEV-006[4-9]'` 又命中在途代码注释里预约好的 **`DEV-0064`**（`packages/core/src/repos/skills.ts` 的 ZCode 插件根）⇒ 本笔取 **`DEV-0065`** 跨过两个在途号。本仓已有 `DEV-0044` 重号的前例，编号闸从来只是「现取 + 目测」，不是机器闸；并行会话越多，这条越容易撞。
+- **潜在风险**: ① **入口预算已被并行会话吃到 3.62 kB 余量**（工作树 296.38 / 闸 300）——若那笔按现形态入库，任何再加一行的 Web 改动都可能撞 `bundle:check`；本轮不替它改阈值也不替它瘦身。② tag 第三次移动 ⇒ 对外「`v0.1.0` 指向哪一笔」第三次改写，已 clone 者手里仍是旧值；这是 owner 明确接受的代价。③ **本笔与 `[DEV-0062]` 会先后改同一批行**，若他们工作树里本笔文字被手抖丢掉，`SCRIPT-PKG-05` 与 `files` 断言会立刻变红，不会静默。④ 发布说明里那行「挂在 release 上的那份资产 = `dcf6b684…`」在动作 3 之后**当场过期**——按 §13-8 数字单源，本条与 release 页/`gh api` 为准，且本笔会在补记段写真三值。
+- **owner 手上未收的**: **①** 19 行短名单 + 第 21 条提示词逐条签 → **②** 真 `npm publish` → **㉑(b)** 已公开历史里的本机用户名路径与 Gmail 要不要改写历史（本笔只清了**装包产物**的引用面，历史一字未动）→ **㉒**（并行会话新立，本笔不代裁）他人项目名 `Hotspot`/`AgentFeed` 要不要匿名化 → **⑦** 第 10 次推送与第三次 tag 移动的放行。
+
+### 01:0x 补记（同笔登记的第二段：动作 1–3 的执行实况）
+
+- 待执行后回填：推送与 CI 的 run 结论、tag 移动前后的对象 sha、干净 checkout 的 `git status` 脏项数、重建资产的 **体积 / sha256 / 条目数 / 解包体积**、与 GitHub 记的 `asset.digest` 的三方同值凭据、release 正文同步与否，以及**用户令的最后一步**——新资产内的敏感信息复扫（10 类模式 + 正/负对照，逐条给命令）。

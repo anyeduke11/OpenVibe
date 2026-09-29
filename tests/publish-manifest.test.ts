@@ -38,7 +38,8 @@ describe('发布暂存清单（T9a-2 · SCRIPT-PKG）', () => {
     // 这样沙箱里装过的清单与 npm 上用户装到的清单是同一份
     expect(m.bin).toEqual({ openvibe: 'dist/cli.js' })
     expect(m.type).toBe('module')
-    expect(m.files).toEqual(['dist'])
+    // `assets/readme` 是 README 首屏两张图的落点：包内 README 与仓库根同源，图不进包就是死链（队列 ㉑(a)）
+    expect(m.files).toEqual(['dist', 'assets/readme'])
     // 仓库形态的 bin 一旦漏进发布包，npx 起来就是 ERR_UNKNOWN_FILE_EXTENSION
     expect(JSON.stringify(m.bin)).not.toContain('src/index.ts')
   })
@@ -69,5 +70,19 @@ describe('发布暂存清单（T9a-2 · SCRIPT-PKG）', () => {
     expect((m.engines as { node: string }).node).toBe('>=22')
     expect(String(m.description).length).toBeGreaterThan(10)
     expect((m.keywords as string[]).length).toBeGreaterThan(3)
+  })
+
+  it('SCRIPT-PKG-05: 包内 README 的每个相对路径都能在包内解析（㉑(a) 的死链闸）', () => {
+    const readme = readFileSync(join(REPO, 'README.md'), 'utf8')
+    // Markdown 链接与 `<img src>` 两种写法都要抓：两张图正是走 src 才漏掉过
+    const refs = [...readme.matchAll(/(?:\]\(|src=")\.\/([^)"\s#]+)/g)]
+      .map((m) => m[1])
+      .filter((r): r is string => r !== undefined)
+    // 零命中说明正则失效而不是「链接都好了」——恒真断言不算闸
+    expect(refs.length).toBeGreaterThan(0)
+    // npm 无条件带 README.md / LICENSE / package.json，其余条目由 files 决定
+    const packaged = ['README.md', 'LICENSE', 'package.json', ...(built().files as string[])]
+    const unresolved = refs.filter((r) => !packaged.some((f) => r === f || r.startsWith(`${f}/`)))
+    expect(unresolved).toEqual([])
   })
 })
