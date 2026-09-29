@@ -128,7 +128,7 @@ describe('E2E-FLOW-01 飞轮主链（dev-plan §9-T9）', () => {
       expect(settings.db.status).toBe('ok')
       expect(settings.seed.terms).toBeGreaterThanOrEqual(100)
       expect(settings.seed.flowTemplates).toBe(3)
-      expect(settings.seed.prompts).toBe(20)
+      expect(settings.seed.prompts).toBe(21)
       expect(serveSummary?.firstRun).toBe(true)
       // 零外联是发布口径：没手写端点就连上报器都不建（结构闸门，不是运行时开关）
       expect(serveSummary?.telemetry.endpoint).toBe('')

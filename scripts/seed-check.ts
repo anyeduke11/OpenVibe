@@ -3,7 +3,8 @@
  * 校验：包络结构 + 条目 schema（复用 shared zod）+ 数量阈值 + 受控词表 + 附录 B 基线
  *      + 质量门槛（definition 长度、example 覆盖率、别名重复）+ TERMS.md 渲染后的表格完整性。
  * 阈值常量在下方 THRESHOLDS：T4 期 terms ≥60 / templates =3 / prompts =0；
- * T8 起为正式口径 terms ≥100 / templates =3 / prompts =20（dev-plan §11.4、DEV-0019）。
+ * T8 起为正式口径 terms ≥100 / templates =3 / prompts =20（dev-plan §11.4、DEV-0019）；
+ * seed-content v1.2 起内置「开源发布脱敏与上传」一条 ⇒ prompts =21。
  */
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -22,7 +23,7 @@ import {
 const THRESHOLDS = {
   termsMin: 100,
   templatesExact: 3,
-  promptsExact: 20,
+  promptsExact: 21,
   /** seed-content §3.4 构成配额 */
   ruleMin: 6,
   platformMarkMin: 4,
