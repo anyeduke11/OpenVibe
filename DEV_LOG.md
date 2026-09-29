@@ -1514,3 +1514,45 @@
 ### 01:0x 补记（同笔登记的第二段：动作 1–3 的执行实况）
 
 - 待执行后回填：推送与 CI 的 run 结论、tag 移动前后的对象 sha、干净 checkout 的 `git status` 脏项数、重建资产的 **体积 / sha256 / 条目数 / 解包体积**、与 GitHub 记的 `asset.digest` 的三方同值凭据、release 正文同步与否，以及**用户令的最后一步**——新资产内的敏感信息复扫（10 类模式 + 正/负对照，逐条给命令）。
+
+- 待执行后回填：推送与 CI 的 run 结论、tag 移动前后的对象 sha、干净 checkout 的 `git status` 脏项数、重建资产的 **体积 / sha256 / 条目数 / 解包体积**、与 GitHub 记的 `asset.digest` 的三方同值凭据、release 正文同步与否，以及**用户令的最后一步**——新资产内的敏感信息复扫（10 类模式 + 正/负对照，逐条给命令）。**（原句留档不删；下列即答案，取数时刻 2026-09-30 00:53–01:0x +0800）**
+
+- **动作 1 推送与 CI**：`git push`（非 force、未改 git config）实推 `cbdee74..f7df600` **1 笔**；推前 00:56 现测代理关（`scutil --proxy` `HTTPEnable : 0`）、`curl -o /dev/null -w %{http_code} https://github.com` = **200**、`nc -z ssh.github.com 443` open ⇒ 走既有 HTTPS 直连，传输选择记 `[DEV-0060]` 那套探法。CI run **`36601015203`** @ `f7df600`：`gh run view 36601015203 --json conclusion,jobs` 现测 `conclusion=success`、三 job 全 `success`（首 job 16:53:36Z 起、末 job 16:55:34Z 毕）；逐平台 **`Test Files` 三侧 55**、ubuntu / macOS **477 passed / 0 skip**、win32 **469 passed + 8 skipped**（总 477）。⇒ 提交树的权威测试数由 CI 给出，与「门禁现测」表里工作树那栏（56 文件 / 489）分账成立；**win32 那 8 支仍是未验证面，不是通过**（口径同 `[DEV-0060]`）。取数一律 `--json`，**不引 watcher 退出码**（`[DEV-0058]`）。
+
+- **动作 2 第三次移动公开 tag**：`git ls-remote origin 'refs/tags/v0.1.0*'` 前 = tag 对象 `8cfa5c1f09d9f54a8d8c245f2481ce9e38a8e410` → peel `cbdee74`；后 = **`bd344b5c158b306632693a61e980eb607470ca92`** → peel **`f7df600b9c136f987bbd41040692f080029e2ddc`**。本地 tag 用 `git cat-file tag` 把旧正文（第 6–14 行，**496 B**）原样取回再 `git tag -a -F` 重建，`diff <(sed -n '5,$p' 旧) <(sed -n '5,$p' 新)` **零输出** ⇒ 消息除 tagger 时间戳外逐字节相同。消息里那句「npm 包 `openvibe-cli` 尚未发布（registry 实测 404）」本轮 `npm view openvibe-cli version` 复测仍 **404** ⇒ 自指断言未腐烂，才敢原样带过去。**执行细节与选项文本有一处差**：owner 选项与我上一条表都写 `git push --force`，实推用 `--force-with-lease=refs/tags/v0.1.0:8cfa5c1… --no-thin`——同一语义（覆盖公开 tag）但多一道「远端值不是我 00:5x 读到的那个就拒推」的闸，属**更严不更松**，在此披露而非静默替换。
+
+- **动作 3 资产从干净 checkout 重建 + 三方同值**：provenance = `/tmp/ov-clean-065` @ `f7df600`，`git status --porcelain` 现测 **0 行**（本笔的构建产物不落仓库工作树，避掉「工作树那份 ≠ 发布那份」这个 `[DEV-0062]` 已抓过的坑）。**本笔真正交付的那条不变式，在从 release 页下载回来的那份上逐条复验**：`perl -ne '…/(?:\]\(|src=")(\.\/[^)"\s#]+)/g…'` 抓到 4 条相对引用，逐个 `[ -e ]` = **4/4 IN_TARBALL**（`./LICENSE`、`./package.json`、`./assets/readme/hero.svg`、`./assets/readme/flywheel.svg`）——`[DEV-0062]` 量的旧资产是 **4/4 MISSING**，这就是队列 ㉑(a) 从「裂首屏」翻到「不裂」的那格实测。
+
+  | 量 | 值 | 取数命令 |
+  |---|---|---|
+  | 体积 | **1,156,881 B**（旧资产 1,154,710 B ⇒ +2,171 B） | `ls -l` / `gh api …releases/tags/v0.1.0` `assets[].size` 两侧同值 |
+  | sha256 | **`f7730943a8f3786f3139f77f76b6a347b61550f8a7caf9c4fb2cba065534ee5c`** | 本机 `shasum -a 256` == GitHub 记 `asset.digest`（`sha256:` 前缀后同串）== 回环下载件 `shasum` |
+  | 条目数 | **38**（旧 36 ⇒ 恰为本笔那两张 SVG） | `tar tzf … \| wc -l` |
+  | 解包 | **38 文件 / 4.8 MB** | `tar xzf` + `find -type f \| wc -l` + `du -sh` |
+  | 字节回环 | `cmp` 下载件 vs 本机构件 **rc=0，一字不差** | `cmp /tmp/ov-roundtrip/… /tmp/ov-clean-065/apps/cli/pkg/…` |
+
+  上一条「装包回环实测」的算术（42 = 36 + 图 2 + 并行字体 4）**在提交树上落成 38** 已核对：并行会话那四支 `.woff2` 不在 `f7df600`，故发布资产里没有它们。
+
+- **release 正文同步（做了；这是「动作 3」表里预告的边界扩大，此处给凭据）**：来源**必须**是提交树那份——`git show f7df600:docs/release-notes/v0.1.0.md`（**12,494 B / 118 行**），而工作树那份是 **14,887 B**、多出的正是 `[DEV-0062]` 未提交的散文；用工作树等于把别人没入库的文字签进对外发布说明。`gh release edit v0.1.0 --notes-file` 后回读 `gh api … --jq '.body'` 与源文件 `diff`（去行尾空白）**只剩一个尾空行** ⇒ 正文与仓内稿同源。`published_at` 仍是首建时刻 `2026-09-29T09:21:49Z`（`edit` 不改发布时间，对外「v0.1.0 何时发布」这条没被我这轮挪动）。
+- **仓库 About 未动（第 2 次避掉一次对外写）**：`gh api repos/anyeduke11/OpenVibe` 现测 `description` 仍是 `[DEV-0062]` 落的那版（末句含「v0.1.0 用源码构建或 release 的 `.tgz` 安装；npm 包 `openvibe-cli` 尚未发布」——本轮该两句都复测成立：release 附件在位、registry 404）、`homepage` 仍 `null`、topics **12** 条。owner 令的「更新 about」在实测面上是**无需更新**，我不为动作而动作。
+
+- **敏感信息复扫（owner 令的最后一步；扫的是从 release 页 `gh release download` 回来的那份，不是本机手里那份文件）**：脚本 `/tmp/ov-secret-scan.py` = **17 条内容模式 + 6 条结构闸**，每条模式配一份合成夹具样本，先跑控制组证明规则**能**命中再跑真件。
+
+  | 检查 | 结果 | 判读 |
+  |---|---|---|
+  | 控制组（夹具 17 条） | **17/17 命中** | 每条规则都有牙。修之前是 **13/15**：`Bearer 硬编码` 那条把引号写成必需（真样本 `Authorization: Bearer <jwt>` 不命中）、`SSH 私钥头` 那条在 `-----` 前放 `\b`（`-` 非 word char，位置 0 永不成立）⇒ **两条恒 0 的死闸**，没有夹具我就把「0 命中」当结论报出去了 |
+  | 负对照（专用空文件） | 误报 **0** | 不是「模式太宽见啥咬啥」 |
+  | 私钥块 / `ghp_`·`github_pat_` / `sk-…` / `AIza` / `AKIA` / `xox*` / `_authToken` / `x-api-key` / Bearer 硬编码 / `key=value` 凭据赋值 / **LLM 凭据赋值**（OPENAI\|ANTHROPIC\|DASHSCOPE\|DEEPSEEK\|MOONSHOT\|ZHIPU\|GEMINI… 十六家前缀 × `API_KEY`）/ SSH 私钥头 / 云凭据文件形态 / URL 内嵌凭据 | 各 **0** | 发布件内无任何凭据 |
+  | 结构闸：`.env*` / `.bak`·`.orig`·`.swp`·`~`·`.DS_Store`·`.pem`·`.key`·`.kdbx` / `node_modules` / `*.js.map`·`*.css.map` / 测试与开发残留目录 / `.sqlite`·`.db` | 各 **0**（38 条目全列过） | 无备份、无 sourcemap、无数据文件、无开发残留随包走 |
+  | 私有 IP / 内网段 | **1** 命中 → `package/dist/cli.js:16478` | **BENIGN**：`uniquelocal: ["10.0.0.0/8","172.16.0.0/12","192.168.0.0/16","fc00::/7"]` 是 esbuild 内联进来的 Express `trust proxy` 常量表（`IP_RANGES`），RFC1918 文档段，不是任何真实内网地址 |
+  | 本机绝对路径 | **1** 命中 → `package/dist/web/assets/ProjectsPage-f8Al2NBJ.js:1` | **BENIGN**：命中体是 `/Users/you`，来自向导输入框的 `placeholder:"/Users/you/work/my-project"`（示例文案）。全件 **0** 处 `/Users/duke` |
+  | 邮箱 | **1** 命中 → `package/dist/cli.js:11339` | **BENIGN**：`author: "Matteo Collina <hello@matteocollina.com>"` 是 `thread-stream` 的公开 npm 元数据被 bundle 带进来的第三方署名。维护者邮箱在全件 **0** 处 |
+  | 定向复核（`sk-` / `Bearer` / 手机号 / 18 位数） | 全为假阳 | `sk-` 只命中 markdown 类名 `task-list-item`；`Bearer` 真件里只有模板插值 `Bearer ${options.token}` 与 `--token <token>` 的选项说明，**无字面量 token**；18 位数字来自 `dist/web/assets/index-BWidlRir.js` 里一条 `Ol("888888…")` 的位压缩常量表 |
+
+- **同一条命令顺手扫了提交树（`f7df600`，528 个非 `node_modules`/`.git` 文件）**：17 条内容模式 **0** 命中；`/Users/duke` 在**受版本控制**的文件里 **32 处 / 28 行 / 10 个文件**（`DEV_LOG.md` 8、`docs/decisions.md` 1、`apps/server/test/telemetry-flush.test.ts` 1、`docs/devlog-evidence/**` 22——取数 `git grep -oI "/Users/duke" f7df600 | wc -l` = 32（occurrences）、`-nI | wc -l` = 28（lines）、`-lI | wc -l` = 10（files），报数必须带单位，否则两条都对的数会看着互相否证）；维护者邮箱在受控文件里 **0** 处，但在 **141 笔提交中的 140 笔** 的 author/committer 元数据里（`git log --format='%ae\|%ce' | sort -u` 现测两个唯一值，另一笔 committer 是 GitHub 的 `noreply@github.com`），**外加本轮重建的那枚 tag 的 tagger 字段**。这三件都属队列 **㉑(b)**，本轮**一字未动历史、也未改 tagger 身份**——清它只有 `filter-repo` 级改写，须 owner 另行授权。`DEV_LOG.md:681` 被邮箱模式命中是假阳（`git@ssh.github.com` 是传输写法，不是地址）。
+
+- **独立 agent 二次复查（standing mandate 的第 4 步，本轮重跑）**：派无上下文 reviewer，只给它路径与待验清单（tag peel / 资产三值 vs `asset.digest` / 自写模式扫 / 命中分类 / 规则自测 / 提交树 / 包内四条引用），不给我的结论。它独立测得：`refs/tags/v0.1.0` = `bd344b5c…` → peel `f7df600b9c13…`；资产 **sha256 `f7730943…` / 1,156,881 B / 38 条**与 `gh api` 的 `digest`·`size` 同值；**25 条模式 × 38 文件，凭据类与各禁用文件名全 0**；包内 4 条相对引用 **4/4 解析得开**；`README.md`/`LICENSE`/两张 SVG 与 `f7df600` **逐字节相同**，`package.json` 按设计不同（由 `publishManifest()` 生成、无 `scripts` 生命周期字段）。判定 **CLEAN**。两处**它比我多抓到的**：① `dist/cli.js` 里 `9007199254740991` / `18446744073709551615` 一类会被手机号规则咬，是 `MAX_SAFE_INTEGER`/`BigInt` 上界常量（我那条只报了 web 资产里的位压缩常量表，两类都真，都 BENIGN）；② 维护者 Gmail 除提交元数据外**也在本轮重建的 tag 的 tagger 字段里**（我原句只写「提交的 author/committer」——少报一格）。它的自测同样先抓到自己的死闸：**首跑 24/25**，修正三条（`C:\Users` 因夹具里反斜杠双写、`pem_cert` 与 `aws_sk_pair` 无样本）后才 0 失效——**与本笔「没有夹具就把 0 命中当结论」那条净发现是同一件事的两次独立复现**。它还纠了一处单位差：tree 上 `/Users/duke` 它报 **28 行**、我报 **32 处**，复算 `git grep -oI` = 32 occurrences / `-nI` = 28 lines / 10 files ⇒ **两个数都对，单位不同**，登记时必须带单位。工具坑它多记一条：`grep -q $'\0'` 会退化成空模式而把每个文件判成二进制，它弃用该探测并 `-I`/`-a` 双跑对数确认没有文件被静默跳过。
+
+- **未验证面净变化（补记段）**：清空 **0** 格、新挂 **3** 格——① GitHub release **页面 UI** 的呈现没看（`gh api` 与字节回环都过了，人眼没看）；② 包内 README 的两张 SVG 在**渲染器里**（npm 页面 / GitHub / 编辑器预览）是否显示仍未验，本轮只验到「引用可解析」；③ 复扫脚本的 17 条模式是**我选的集合**，不等于「所有敏感物」的完备刻画——它抓不到「以 base64 或自定义编码塞进去的凭据」，这类要靠人看内容而不是靠模式。保留旧格：装包后跑通五命令、全历史内容级扫描、Issues/PR/Wiki/Actions 侧、看板拖拽。
+
+- **本笔（补记本身）的账**：这是一笔**只动文档**的 commit，推上去是队列 ⑦ 的**第 11 次推送**；tag **不动**、资产**不重挂**、About **不写**——补记里写真值时引用的资产就是 `f7df600` 那份，所以「登记在 B 上、内容在 f7df600」这个错位是刻意的，凭据 = `git diff f7df600..<本笔> -- README.md apps packages content scripts tests` **输出为空**（对外可见的东西一字未改，只有日志与队列文件动了行）。
