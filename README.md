@@ -22,7 +22,7 @@ npx openvibe-cli diff ~/your-project                           # ③ 看有没�
 
 > **`openvibe-cli` 尚未在 npm 上线**（v0.1.0 发布的最后一步，registry 实测 404）。
 > 上线前改用源码构建产物：`pnpm install && pnpm pkg:cli` → `cd apps/cli/pkg && npm pack` →
-> `npm i -g apps/cli/pkg/openvibe-cli-0.1.0.tgz`，之后命令同上（全局装过就不必每行带 `npx`）。
+> `npm i -g openvibe-cli-0.1.0.tgz`（cwd 仍在上一步的 `apps/cli/pkg`，故路径不带前缀），之后命令同上（全局装过就不必每行带 `npx`）。
 
 第 ① 步首启会把 **109 条术语 / 3 套流程模板 / 21 条精选提示词**播进本地库，并自动组装出一个 `default` 标准包
 ——不用先建库再对着空界面发呆。第 ② 步默认先给预览表、要你确认，覆盖任何已有文件前会先备份。跑完你会得到：
@@ -202,7 +202,7 @@ npm / npx 用户走 `prebuild-install` 按平台与 Node ABI 取预编译包，�
 ```bash
 git clone https://github.com/anyeduke11/OpenVibe && cd OpenVibe
 pnpm install                # pnpm ≥ 10，corepack enable 即可
-pnpm lint && pnpm typecheck && pnpm test        # 476 用例 / 55 文件（unit / integration / cli / web-jsdom 四层；采样 2026-09-29 11:57 @ c17e3fd 本机：lint 与 typecheck 零输出、test 475 passed，余 1 支撞 5 s 超时预算——单独复跑该文件 5/5 绿且该支实测 940 ms。支数随提交变动，以 pnpm test 汇总行为准）
+pnpm lint && pnpm typecheck && pnpm test        # 476 用例 / 55 文件（unit / integration / cli / web-jsdom 四层；采样 2026-09-29 17:40 本机、即本笔提交树：lint 与 typecheck 零输出，test 476 passed / 0 skipped。支数随提交变动，以 pnpm test 汇总行为准）
 pnpm seed:check && pnpm bundle:check            # 另两道门禁：种子数量与构成配额、Web 体积闸门（入口 293.16 kB ≤ 300 kB）
 pnpm pkg:cli                                    # 产出发布暂存目录 apps/cli/pkg/
 cd apps/cli/pkg && npm pack                     # → openvibe-cli-<版本>.tgz，可 npm i -g 它
