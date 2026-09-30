@@ -36,3 +36,13 @@ export function pinyinKey(text: string): string {
     .toLowerCase()
     .replaceAll(' ', '')
 }
+
+/**
+ * 注音展示串（m3 词条头词的 ruby 注音，DESIGN.md term-card）：
+ * 带声调、保留 pinyin-pro 的词组分隔（多音字按词组消歧，与 pinyinKey 同一词典）。
+ * 空串原样返回；非汉字字符透传。
+ */
+export function pinyinDisplay(text: string): string {
+  if (text === '') return ''
+  return pinyin(text, { toneType: 'symbol' })
+}

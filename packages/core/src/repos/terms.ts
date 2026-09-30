@@ -16,7 +16,7 @@ import {
   type TermUpdateInput,
   type TermsOrderBy,
 } from '@openvibe/shared'
-import { pinyinKey, parseJsonColumn, sha256Hex, stableJson } from './util'
+import { pinyinDisplay, pinyinKey, parseJsonColumn, sha256Hex, stableJson } from './util'
 import { searchTermRowids } from '../search/fts'
 
 type TermRow = {
@@ -50,6 +50,7 @@ function rowToTerm(row: TermRow): TermOut {
     seedHash: row.seed_hash,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    pinyin: pinyinDisplay(row.zh ?? ''),
   }
 }
 

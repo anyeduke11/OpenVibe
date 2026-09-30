@@ -54,6 +54,8 @@ export const TermOut = TermCreateInput.extend({
   seedHash: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  /** 派生只读：zh 的带声调注音串（词级，供头词 ruby）；zh 缺省时为空串 */
+  pinyin: z.string(),
 })
 export type TermOut = z.infer<typeof TermOut>
 

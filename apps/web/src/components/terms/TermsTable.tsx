@@ -105,10 +105,17 @@ export function TermsTable(props: {
                   </td>
                   <td className="px-2 py-2.5">
                     <button
-                      className="text-left font-medium text-ink-strong hover:text-brand"
+                      className="text-left text-[15px] font-semibold text-ink-strong hover:text-brand"
                       onClick={() => props.onEdit(term)}
                     >
-                      <Highlight text={term.zh ?? '—'} ranges={rangesOf(matches, 'zh')} />
+                      {term.pinyin ? (
+                        <ruby className="term-ruby">
+                          <Highlight text={term.zh ?? '—'} ranges={rangesOf(matches, 'zh')} />
+                          <rt>{term.pinyin}</rt>
+                        </ruby>
+                      ) : (
+                        <Highlight text={term.zh ?? '—'} ranges={rangesOf(matches, 'zh')} />
+                      )}
                     </button>
                   </td>
                   <td className="px-2 py-2.5 text-ink-body">

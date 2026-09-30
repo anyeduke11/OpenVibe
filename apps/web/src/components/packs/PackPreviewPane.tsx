@@ -26,6 +26,11 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
       <div className="flex items-center gap-3 text-xs">
         <span className="text-ink-subtle">{zh.packs.preview.fingerprint}</span>
         <span className="mono text-ink-body">{preview.fingerprint}</span>
+        {/* 验印章（DESIGN.md Components）：预览指纹 = 导出产物指纹，即「验」通过的时刻 */}
+        <span className="seal-badge">
+          <span className="zi">验</span>
+          {zh.packs.preview.sealed}
+        </span>
       </div>
 
       {preview.coveredPlatforms.length > 0 && (

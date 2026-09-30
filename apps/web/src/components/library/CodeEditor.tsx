@@ -1,4 +1,5 @@
 import { lazy, Suspense, type ComponentProps, type ReactElement } from 'react'
+import { useTheme } from '../../hooks/useTheme'
 
 /**
  * 编辑器（dev-plan §5.4：CodeMirror 仅抽屉内懒加载，列表页不进包）。
@@ -26,6 +27,7 @@ export function CodeEditor(props: {
   height?: string
   readOnly?: boolean
 }) {
+  const { theme } = useTheme()
   return (
     <Suspense
       fallback={<div className="h-full min-h-40 rounded-md border border-line bg-fill-soft" />}
@@ -35,6 +37,7 @@ export function CodeEditor(props: {
         height={props.height ?? '100%'}
         readOnly={props.readOnly ?? false}
         basicSetup={{ lineNumbers: false, foldGutter: false, autocompletion: false }}
+        theme={theme === 'dark' ? 'dark' : 'light'}
         onChange={props.onChange ?? (() => undefined)}
       />
     </Suspense>

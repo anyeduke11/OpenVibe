@@ -22,9 +22,9 @@ const RAW_PALETTE = new RegExp(
     `|(?<![\\w-])(?:${COLOR_UTILS})-(?:white|black)(?![\\w-])`,
   'g',
 )
-/** 语义色族（index.css @theme 里声明的角色名）：ink / line / fill / panel / canvas / scrim / brand / danger / warn / success / info */
+/** 语义色族（index.css @theme 里声明的角色名）：ink / line / fill / panel / canvas / scrim / brand / on-brand / seal / on-seal / danger / warn / success / info */
 const SEMANTIC_CLASS = new RegExp(
-  `(?<![\\w-])(?:[\\w-]+:)*(?:${COLOR_UTILS})-(ink|line|fill|panel|canvas|scrim|brand|on-brand|danger|warn|success|info)([a-z0-9-]*)(?![\\w-])`,
+  `(?<![\\w-])(?:[\\w-]+:)*(?:${COLOR_UTILS})-(ink|line|fill|panel|canvas|scrim|brand|on-brand|seal|on-seal|danger|warn|success|info)([a-z0-9-]*)(?![\\w-])`,
   'g',
 )
 const DECLARED = /--color-([a-z0-9-]+)\s*:/g
@@ -41,7 +41,8 @@ function sources(dir: string, out: string[] = []): string[] {
 
 const css = readFileSync(THEME_FILE, 'utf8')
 const themeBlock = /@theme\s*\{[\s\S]*?\n\}/.exec(css)?.[0] ?? ''
-const cssOutsideTheme = css.replace(themeBlock, '')
+const darkBlock = /\[data-theme='dark'\]\s*\{[\s\S]*?\n\}/.exec(css)?.[0] ?? ''
+const cssOutsideTheme = css.replace(themeBlock, '').replace(darkBlock, '')
 const files = sources(WEB_SRC)
 const all = files.map((f) => [f, readFileSync(f, 'utf8')] as const)
 const allSource = all.map(([, s]) => s).join('\n')
@@ -81,8 +82,16 @@ describe('WEB-TOKENS · 颜色单一出处', () => {
     expect(residue).toEqual([])
   })
 
-  it('裸 hex 只住在 @theme 块内，其余规则一律走 var()', () => {
+  it('裸 hex 只住在 token 源内（@theme 亮色块 + data-theme 暗色块），其余规则一律走 var()', () => {
     expect(matches(cssOutsideTheme, /#[0-9a-fA-F]{3,8}\b/g, 0)).toEqual([])
+    // 暗色块只允许 --color-* 覆盖，不许夹带别的规则
+    const stray = darkBlock
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/--color-[a-z0-9-]+\s*:[^;]+;/g, '')
+      .replace(/[a-z-]+\s*:\s*;/g, '')
+      .replace(/\[data-theme='dark'\]/, '')
+      .replace(/[{}\s]/g, '')
+    expect(stray).toEqual('')
   })
 
   it('用到的每个语义色名都在 @theme 里声明了', () => {

@@ -600,6 +600,7 @@ export const zh = {
       noFiles: '保存定义后生成预览',
       fingerprint: '指纹',
       sha256: 'sha256',
+      sealed: '预览即产物',
       covered: '额外覆盖平台（只来自兼容矩阵）',
       warnings: '警告',
       noWarnings: '无警告',
@@ -759,5 +760,10 @@ export const zh = {
     loading: '加载中…',
     failed: (msg: string) => `请求失败：${msg}`,
     none: '—',
+    theme: {
+      aria: '切换亮暗主题（温纸白 / 夜账本）',
+      dark: '夜账本',
+      light: '温纸白',
+    },
   },
 } as const

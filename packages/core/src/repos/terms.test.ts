@@ -25,6 +25,19 @@ describe('UT-FTS-03/04 · 术语搜索（主名/英文/别名）', () => {
   })
 })
 
+describe('UT-TERM-OUT · pinyin 派生字段（头词 ruby 注音，DESIGN.md term-card）', () => {
+  it('带声调、词组分隔；zh 缺省时为空串；非汉字透传', () => {
+    const h = newDb()
+    const repo = new TermsRepo(h.db)
+    expect(repo.create({ zh: '规则漂移', definition: '定义', status: 'active' }).pinyin).toBe(
+      'guī zé piāo yí',
+    )
+    expect(repo.create({ zh: '重复', definition: '定义', status: 'active' }).pinyin).toBe('chóng fù')
+    expect(repo.create({ en: 'RAG', definition: '定义', status: 'active' }).pinyin).toBe('')
+    h.close()
+  })
+})
+
 describe('UT-COMPOSE 前置 · TERMS.md 确定性渲染', () => {
   it('同一选集两次渲染字节一致；表格符转义', () => {
     const h = newDb()

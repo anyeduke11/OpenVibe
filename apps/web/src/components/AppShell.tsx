@@ -2,6 +2,7 @@ import { useState, Suspense } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useProjectList } from '../hooks/useProjects'
+import { useTheme } from '../hooks/useTheme'
 import {
   useFlywheelStats,
   useOnboardingToggle,
@@ -15,15 +16,16 @@ import { OnboardingBar } from './onboarding/OnboardingBar'
 import { TelemetryAskCard } from './onboarding/TelemetryAskCard'
 import { toast } from './ui/Toaster'
 
-// 侧栏固定七项（dev-plan §5.1）
+// 书脊侧栏七项（dev-plan §5.1；视觉形态见 DESIGN.md「书脊侧栏」）：
+// 单字汉字为图标，竖排标签随侧栏，激活态松绿洗底 + 朱砂书签点
 const NAV = [
-  { to: '/library', label: zh.nav.library },
-  { to: '/terms', label: zh.nav.terms },
-  { to: '/skills', label: zh.nav.skills },
-  { to: '/flows', label: zh.nav.flows },
-  { to: '/projects', label: zh.nav.projects },
-  { to: '/packs', label: zh.nav.packs },
-  { to: '/settings', label: zh.nav.settings },
+  { to: '/library', label: zh.nav.library, hz: '库' },
+  { to: '/terms', label: zh.nav.terms, hz: '词' },
+  { to: '/skills', label: zh.nav.skills, hz: '技' },
+  { to: '/flows', label: zh.nav.flows, hz: '流' },
+  { to: '/projects', label: zh.nav.projects, hz: '项' },
+  { to: '/packs', label: zh.nav.packs, hz: '包' },
+  { to: '/settings', label: zh.nav.settings, hz: '设' },
 ]
 
 /**
@@ -77,7 +79,7 @@ function TopBand() {
   )
 }
 
-/** 分包后页面 chunk 在路上时的占位（Suspense 只包住 Outlet，侧栏与顶栏不跟着闪） */
+/** 分包后页面 chunk 在路上时的占位（Suspense 只包住 Outlet，书脊与顶栏不跟着闪） */
 function PageLoading() {
   return (
     <div
@@ -90,35 +92,68 @@ function PageLoading() {
   )
 }
 
+/** 书脊主题切换：昼/夜单字按钮（亮「温纸白」/ 暗「夜账本」，DESIGN.md Colors） */
+function ThemeToggle() {
+  const { theme, toggle } = useTheme()
+  const dark = theme === 'dark'
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={zh.common.theme.aria}
+      title={dark ? zh.common.theme.light : zh.common.theme.dark}
+      className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-panel text-sm text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
+    >
+      {dark ? '昼' : '夜'}
+    </button>
+  )
+}
+
 export function AppShell() {
   return (
-    <div className="flex h-full">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-line bg-panel">
-        <div className="border-b border-line-hair px-5 py-4">
-          <div className="text-sm font-semibold text-brand">{zh.appName}</div>
-          <div className="mt-0.5 text-[11px] text-ink-faint">vibe coding 的标准化工作台</div>
+    <div className="flex h-full max-md:flex-col">
+      {/* 书脊（DESIGN.md Layout）：竖排衬线字标 + 单字导航；<md 退化为横向顶栏 */}
+      <aside className="flex w-[76px] shrink-0 flex-col items-center gap-4 border-r border-line bg-canvas py-4 max-md:w-full max-md:flex-row max-md:gap-3 max-md:overflow-x-auto max-md:border-b max-md:border-r-0 max-md:py-2 max-md:pl-3">
+        <div className="flex flex-col items-center gap-1.5 max-md:flex-row max-md:gap-2">
+          <div
+            className="wordmark v-rl border-b border-line-strong pb-2 text-2xl tracking-[0.3em] text-ink-strong max-md:border-b-0 max-md:border-r max-md:pb-0 max-md:pr-2 max-md:tracking-[0.12em] max-md:[writing-mode:horizontal-tb]"
+            aria-label={zh.appName}
+          >
+            灵典
+          </div>
+          <div className="text-[9px] tracking-widest text-ink-faint max-md:hidden">OPENVIBE</div>
         </div>
-        <nav className="flex-1 p-2">
+        <nav className="flex flex-1 flex-col items-center gap-0.5 max-md:flex-row" aria-label="主导航">
           {NAV.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `mb-0.5 block rounded-md px-3 py-2 text-sm ${
-                  isActive
-                    ? 'bg-brand-soft font-medium text-brand'
-                    : 'text-ink-muted hover:bg-fill-soft'
+                `relative flex w-14 flex-col items-center rounded-md py-1.5 transition-colors hover:bg-fill-soft max-md:w-auto max-md:flex-row max-md:gap-1.5 max-md:px-2.5 ${
+                  isActive ? 'bg-brand-soft text-brand' : 'text-ink-muted hover:text-ink'
                 }`
               }
             >
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <span
+                      aria-hidden
+                      className="absolute left-1 top-1/2 h-1 w-1 -translate-y-1/2 rounded-[1px] bg-seal max-md:static max-md:-translate-y-0"
+                    />
+                  )}
+                  <span className="text-[17px] font-semibold leading-tight">{item.hz}</span>
+                  <span className="text-[10px] leading-tight max-md:text-[11px]">{item.label}</span>
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-line-hair px-5 py-3 text-[11px] leading-relaxed text-ink-faint">
-          数据存 <span className="mono">~/.openvibe/</span>
-          <br />
-          本工具仅监听 127.0.0.1
+        <div className="flex flex-col items-center gap-2 max-md:flex-row">
+          <ThemeToggle />
+          <div className="v-rl text-[9px] leading-relaxed tracking-wider text-ink-faint max-md:[writing-mode:horizontal-tb]">
+            数据存 ~/.openvibe/ · 仅监听 127.0.0.1
+          </div>
         </div>
       </aside>
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">

@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // 首帧前预涂主题，防暗色用户闪白（与 useTheme.ts 同键位）
+      try {
+        if (localStorage.getItem('openvibe.theme') === 'dark')
+          document.documentElement.dataset.theme = 'dark'
+      } catch (e) {}
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>OpenVibe 灵典 · 标准化工作台</title>
   </head>

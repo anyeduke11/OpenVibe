@@ -1,38 +1,91 @@
 @import 'tailwindcss';
 
-/* 全仓颜色的单一出处：换肤只改本块，调用点不再出现字面色阶。
-   中性族按角色命名（一个 shade 在 text/border/bg 下承担不同角色）；
-   状态族保留强度下标——同一状态有 soft 容器与 solid 按钮两形态，合并会改对比度。 */
+/* ============================================================
+   墨松账本 · 书斋版 —— 设计 token 单一出处（DESIGN.md 为规范源）
+   亮 = 温纸白；暗 = 夜账本。换肤只改本块，调用点不出现字面色阶。
+   中性族按角色命名；状态族保留强度下标（soft 容器与 solid 两形态）。
+   ============================================================ */
+
+/* ---------- 字体（自托管 OFL，可变字体；中文走系统原生栈） ---------- */
+@font-face {
+  font-family: 'Source Sans 3';
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url('./assets/fonts/source-sans-3-latin-var.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('./assets/fonts/jetbrains-mono-latin-var.woff2') format('woff2');
+}
+/* 灵典 wordmark 专用：思源宋体 900，仅两个 unicode-range 切片（含「灵」「典」），
+   合计 ~79KB；其余汉字回落系统衬线（Songti SC / SimSun） */
+@font-face {
+  font-family: 'Noto Serif SC';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('./assets/fonts/noto-serif-sc-900-s0.woff2') format('woff2');
+  unicode-range: U+7e, U+2026, U+4e03, U+4e25, U+4e30, U+4e34, U+4e45, U+4e5d, U+4e89, U+4eae, U+4ed8, U+4f11, U+4f19, U+4f24, U+4f34, U+4f59, U+4f73, U+4f9d, U+4fb5, U+5047, U+505c, U+5170, U+519c, U+51cf, U+5267, U+5356, U+5374, U+5382, U+538b, U+53e6, U+5426, U+542b, U+542f, U+5462, U+5473, U+554a, U+5566, U+5708, U+571f, U+5757, U+57df, U+57f9, U+5802, U+590f, U+591c, U+591f, U+592b, U+5965, U+5979, U+5a01, U+5a5a, U+5b63, U+5b69, U+5b81, U+5ba1, U+5ba3, U+5c3c, U+5c42, U+5c81, U+5de7, U+5dee, U+5e0c, U+5e10, U+5e55, U+5e86, U+5e8f, U+5ea7, U+5f02, U+5f52, U+5f81, U+5ff5, U+60ca, U+60e0, U+6279, U+62c5, U+62ff, U+63cf, U+6444, U+64cd, U+653b, U+65bd, U+65e9, U+665a, U+66b4, U+66fe, U+6728, U+6742, U+677e, U+67b6, U+680f, U+68a6, U+68c0, U+699c, U+6b4c, U+6b66, U+6b7b, U+6bcd, U+6bdb, U+6c38, U+6c47, U+6c49, U+6cb3, U+6cb9, U+6ce2, U+6d32, U+6d3e, U+6d4f, U+6e56, U+6fc0, U+7075, U+7206, U+725b, U+72c2, U+73ed, U+7565, U+7591, U+7597, U+75c5, U+76ae, U+76d1, U+76df, U+7834, U+7968, U+7981, U+79c0, U+7a7f, U+7a81, U+7ae5, U+7b14, U+7c89, U+7d27, U+7eaf, U+7eb3, U+7eb8, U+7ec7, U+7ee7, U+7eff, U+7f57, U+7ffb, U+805a, U+80a1, U+822c, U+82cf, U+82e5, U+8363, U+836f, U+84dd, U+878d, U+8840, U+8857, U+8863, U+8865, U+8b66, U+8bb2, U+8bda, U+8c01, U+8c08, U+8c46, U+8d1f, U+8d35, U+8d5b, U+8d5e, U+8da3, U+8ddf, U+8f93, U+8fdd, U+8ff0, U+8ff7, U+8ffd, U+9000, U+9047, U+9152, U+949f, U+94c1, U+94f6, U+9646, U+9648, U+9669, U+969c, U+96ea, U+97e9, U+987b, U+987e, U+989d, U+9970, U+9986, U+9c7c, U+9c9c;
+}
+@font-face {
+  font-family: 'Noto Serif SC';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('./assets/fonts/noto-serif-sc-900-s1.woff2') format('woff2');
+  unicode-range: U+25, U+4e14, U+4e1d, U+4e3d, U+4e49, U+4e60, U+4e9a, U+4eb2, U+4ec5, U+4efd, U+4f3c, U+4f4f, U+4f8b, U+4fbf, U+5019, U+5145, U+514b, U+516b, U+516d, U+5174, U+5178, U+517b, U+5199, U+519b, U+51b3, U+51b5, U+5207, U+5212, U+5219, U+521d, U+52bf, U+533b, U+5343, U+5347, U+534a, U+536b, U+5370, U+53e4, U+53f2, U+5403, U+542c, U+547d, U+54a8, U+54cd, U+54ea, U+552e, U+56f4, U+5747, U+575b, U+5883, U+589e, U+5931, U+5947, U+5956-5957, U+5a92, U+5b83, U+5ba4, U+5bb3, U+5bcc, U+5c14, U+5c1a, U+5c3d, U+5c40, U+5c45, U+5c5e, U+5df4, U+5e72, U+5e95, U+5f80, U+5f85, U+5fb7, U+5fd7, U+601d, U+626b, U+627f, U+62c9, U+62cd, U+6309, U+63a7, U+6545, U+65ad, U+65af, U+65c5, U+666e, U+667a, U+670b, U+671b, U+674e, U+677f, U+6781, U+6790, U+6797, U+6821, U+6838-6839, U+697c, U+6b27, U+6b62, U+6bb5, U+6c7d, U+6c99, U+6d4b, U+6d4e, U+6d6a, U+6e29, U+6e2f, U+6ee1, U+6f14, U+6f2b, U+72b6, U+72ec, U+7387, U+7533, U+753b, U+76ca, U+76d8, U+7701, U+773c, U+77ed, U+77f3, U+7814, U+793c, U+79bb, U+79c1, U+79d8, U+79ef, U+79fb, U+7a76, U+7b11, U+7b54, U+7b56, U+7b97, U+7bc7, U+7c73, U+7d20, U+7eaa, U+7ec8, U+7edd, U+7eed, U+7efc, U+7fa4, U+804c, U+8058, U+80cc, U+8111, U+817e, U+826f, U+8303, U+843d, U+89c9, U+89d2, U+8ba2, U+8bbf, U+8bc9, U+8bcd, U+8be6, U+8c22, U+8c61, U+8d22, U+8d26-8d27, U+8d8a, U+8f6f, U+8f7b, U+8f83, U+8f91, U+8fb9, U+8fd4, U+8fdc, U+9002, U+94b1, U+9519, U+95ed, U+961f, U+9632-9633, U+963f, U+968f-9690, U+96be, U+9876, U+9884, U+98de, U+9988, U+9999, U+9ec4, U+ff1b;
+}
+
+/* ---------- token：亮色（温纸白） ---------- */
 @theme {
-  /* 表面 */
-  --color-canvas: oklch(98.5% 0 none);
-  --color-panel: #fff;
-  --color-fill-soft: oklch(98.5% 0 none);
-  --color-fill: oklch(96.7% 0.001 286.375);
-  --color-scrim: #000;
+  /* 字族：Latin/数字一张脸，中文系统原生 */
+  --font-sans: 'Source Sans 3', 'PingFang SC', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei',
+    ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* 描边 */
-  --color-line-hair: oklch(96.7% 0.001 286.375);
-  --color-line: oklch(92% 0.004 286.32);
-  --color-line-strong: oklch(87.1% 0.006 286.286);
+  /* 圆角：刻意不均匀 —— 章形近方（sm），面板松（lg） */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
 
-  /* 文字 */
-  --color-ink-ghost: oklch(87.1% 0.006 286.286);
-  --color-ink-faint: oklch(70.5% 0.015 286.067);
-  --color-ink-subtle: oklch(55.2% 0.016 285.938);
-  --color-ink-muted: oklch(44.2% 0.017 285.786);
-  --color-ink-body: oklch(37% 0.013 285.805);
-  --color-ink: oklch(27.4% 0.006 286.033);
-  --color-ink-strong: oklch(21% 0.006 285.885);
+  /* 表面：温纸白 */
+  --color-canvas: #faf9f6;
+  --color-panel: #ffffff;
+  --color-fill-soft: #f5f3ec;
+  --color-fill: #ece9de;
+  --color-scrim: #000000;
 
-  /* 品牌 */
+  /* 账本线 */
+  --color-line-hair: #ece8dd;
+  --color-line: #ded9cb;
+  --color-line-strong: #cbc5b4;
+
+  /* 墨阶（暖） */
+  --color-ink-ghost: #d8d2c2;
+  --color-ink-faint: #b5af9e;
+  --color-ink-subtle: #8f897a;
+  --color-ink-muted: #6e695c;
+  --color-ink-body: #4a463c;
+  --color-ink: #403c33;
+  --color-ink-strong: #26241f;
+
+  /* 松绿：品牌常色 / 流程 / 链接 */
   --color-brand: #2f6f4f;
-  --color-brand-soft: #e8f1ec;
-  --color-on-brand: #fff;
+  --color-brand-soft: #e9f1ec;
 
-  /* 状态 */
+  /* 朱砂：只给「使生效」的动作与验印时刻，永不复用为 danger/链接 */
+  --color-seal: #c3402b;
+  --color-seal-deep: #a03020;
+  --color-seal-wash: #f8ece8;
+  --color-on-seal: #ffffff;
+
+  /* 状态（oklch，亮暗共用中段） */
   --color-danger-50: oklch(97.1% 0.013 17.38);
-  --color-danger-100: oklch(93.6% 0.032 17.717);
   --color-danger-200: oklch(88.5% 0.062 18.334);
   --color-danger-600: oklch(57.7% 0.245 27.325);
   --color-danger-700: oklch(50.5% 0.213 27.518);
@@ -53,6 +106,55 @@
   --color-info-700: oklch(50% 0.134 242.749);
 }
 
+/* ---------- token：暗色（夜账本）——同构，只换光照不换层级 ---------- */
+[data-theme='dark'] {
+  --color-canvas: #1c1b17;
+  --color-panel: #242219;
+  --color-fill-soft: #2a2820;
+  --color-fill: #323026;
+
+  --color-line-hair: #2d2b24;
+  --color-line: #38352b;
+  --color-line-strong: #474438;
+
+  --color-ink-ghost: #3b3930;
+  --color-ink-faint: #5c594d;
+  --color-ink-subtle: #7e7a6c;
+  --color-ink-muted: #a39e8e;
+  --color-ink-body: #c4bfb1;
+  --color-ink: #d8d4c8;
+  --color-ink-strong: #efece1;
+
+  --color-brand: #74b290;
+  --color-brand-soft: #22332a;
+
+  --color-seal: #d9583f;
+  --color-seal-deep: #e56e56;
+  --color-seal-wash: #3b251e;
+  --color-on-seal: #ffffff;
+
+  /* 状态族：soft 洗底转深，文字步转亮 */
+  --color-danger-50: #33221d;
+  --color-danger-200: #5a2f27;
+  --color-danger-600: #d06a5b;
+  --color-danger-700: #d97f72;
+  --color-danger-800: #e49a8e;
+  --color-danger-900: #efb5aa;
+  --color-warn-50: #2f2817;
+  --color-warn-100: #3a2f17;
+  --color-warn-200: #57451b;
+  --color-warn-300: #6e581f;
+  --color-warn-700: #c89c3f;
+  --color-warn-800: #d8b262;
+  --color-success-50: #1f2e25;
+  --color-success-200: #2a4234;
+  --color-success-700: #74b290;
+  --color-success-900: #9bd0b4;
+  --color-info-50: #1c2a38;
+  --color-info-200: #24384a;
+  --color-info-700: #6f9cc5;
+}
+
 html,
 body,
 #root {
@@ -61,10 +163,10 @@ body,
 
 body {
   margin: 0;
-  font-family:
-    ui-sans-serif, system-ui, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-family: var(--font-sans);
   background: var(--color-canvas);
   color: var(--color-ink-strong);
+  -webkit-font-smoothing: antialiased;
 }
 
 textarea,
@@ -73,10 +175,80 @@ input {
 }
 
 .mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
-/* react-markdown 预览 + CodeMirror 容器样式（Tailwind  typography 之外的最小基线） */
+/* 灵典 wordmark：衬线只给品牌与印章字，不给正文标题 */
+.wordmark {
+  font-family: var(--font-serif);
+  font-weight: 900;
+}
+
+/* 书脊侧栏的竖排 */
+.v-rl {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* 注音头词（DESIGN.md term-card）：rt 10px 淡墨、字距拉开、悬挂在头词上方 */
+.term-ruby rt {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--color-ink-subtle);
+  letter-spacing: 0.08em;
+  padding-bottom: 2px;
+}
+
+/* 验印章（朱文印形制）：sm 近方圆角 + 实线描边 + 洗底；
+   出现时机仅限验印语义（指纹一致 / 预览即产物），永远配文字不裸奔 */
+.seal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid var(--color-seal);
+  color: var(--color-seal);
+  background: color-mix(in srgb, var(--color-seal-wash) 55%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 2px 10px 2px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  transform: rotate(-1.5deg);
+}
+.seal-badge .zi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-on-seal);
+  background: var(--color-seal);
+  border-radius: 3px;
+  font-family: var(--font-serif);
+}
+
+/* 验印落章 —— 全站唯一 authored moment：200ms ease-out 落定，无回弹 */
+@keyframes seal-stamp-in {
+  0% {
+    transform: rotate(-1.5deg) scale(1.08);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-1.5deg) scale(1);
+    opacity: 1;
+  }
+}
+.seal-badge.animate {
+  animation: seal-stamp-in 200ms ease-out;
+}
+
+/* react-markdown 预览 + CodeMirror 容器样式（Tailwind typography 之外的最小基线） */
 .html-md {
   font-size: 14px;
   line-height: 1.7;
@@ -113,7 +285,7 @@ input {
   background: var(--color-fill);
   border-radius: 4px;
   padding: 0.1em 0.35em;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 0.92em;
 }
 .html-md pre {
