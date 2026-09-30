@@ -11,12 +11,23 @@ import tailwindcss from '@tailwindcss/vite'
  */
 
 // 开发态：/api 代理到本地 server（Origin/Host 保持 localhost，通过 design §11 鉴权白名单）
+
+/** 前端唯一约定端口（owner 2026-09-30 定）：dev 与 preview 都锁 5144。
+ *  strictPort=true → 端口被占时 vite 直接报错退出，绝不静默漂移到 5174 等备用端口；
+ *  「禁止使用其他端口」由此机制保证，而不是靠约定。 */
+export const WEB_PORT = 5144
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    port: 5173,
+    port: WEB_PORT,
+    strictPort: true,
     proxy: {
       '/api': { target: 'http://127.0.0.1:8787', changeOrigin: false },
     },
+  },
+  preview: {
+    port: WEB_PORT,
+    strictPort: true,
   },
 })

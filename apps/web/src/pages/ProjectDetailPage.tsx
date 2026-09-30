@@ -23,6 +23,8 @@ import {
   useProject,
   useProjectMutations,
 } from '../hooks/useProjects'
+import { useProjectPorts } from '../hooks/useProjectPorts'
+import { PortsPanel } from '../components/projects/PortsPanel'
 import { useTasks, useTaskMutations } from '../hooks/useTasks'
 import { zh } from '../i18n/zh'
 
@@ -37,6 +39,7 @@ export function ProjectDetailPage() {
   const project = useProject(id)
   const checks = useCheckStates(id)
   const injection = useInjectionStatus(id)
+  const ports = useProjectPorts(id)
   const tasks = useTasks(id)
   const flows = useFlowTemplates()
   const [logType, setLogType] = useState<DevLogType>('DEV')
@@ -228,6 +231,8 @@ export function ProjectDetailPage() {
           injection={injection.data}
           onStatusChange={setStatus}
         />
+
+        <PortsPanel data={ports.data} />
 
         <section className="rounded-lg border border-line bg-panel p-4">
           <StageBar

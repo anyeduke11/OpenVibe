@@ -8,6 +8,7 @@ import { registerDevLogRoutes } from './routes/devlog'
 import { registerFlowTemplateRoutes } from './routes/flowTemplates'
 import { registerPackRoutes } from './routes/packs'
 import { registerProjectRoutes } from './routes/projects'
+import { registerPortRoutes } from './routes/ports'
 import { registerPromptRoutes, type PromptRouteDeps } from './routes/prompts'
 import { registerSettingsRoutes, type SettingsRouteInput } from './routes/settings'
 import { registerSkillRoutes } from './routes/skills'
@@ -64,6 +65,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerFlowTemplateRoutes(app, deps)
   registerPackRoutes(app, deps)
   registerProjectRoutes(app, deps)
+  registerPortRoutes({ db })(app)
   registerTaskRoutes(app, deps)
   registerDevLogRoutes(app, deps)
   registerSkillRoutes(app, { ...deps, fetchImpl: options.remoteFetchImpl })

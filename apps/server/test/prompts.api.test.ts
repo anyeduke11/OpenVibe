@@ -227,7 +227,7 @@ describe('T3d · m1 §7 验收映射（API 行为层）', () => {
     const browser = await h.app.inject({
       method: 'GET',
       url: '/api/prompts',
-      headers: { origin: 'http://localhost:5173' },
+      headers: { origin: 'http://localhost:5144' }, // 前端唯一约定端口（vite.config WEB_PORT）
     })
     expect(browser.statusCode).toBe(200)
 
@@ -256,7 +256,7 @@ describe('T3d · m1 §7 验收映射（API 行为层）', () => {
     const evilHost = await h.app.inject({
       method: 'GET',
       url: '/api/prompts',
-      headers: { host: 'evil.example.com', origin: 'http://localhost:5173' },
+      headers: { host: 'evil.example.com', origin: 'http://localhost:5144' },
     })
     expect(evilHost.statusCode).toBe(403)
     expect(evilHost.json().code).toBe('FORBIDDEN_ORIGIN')
