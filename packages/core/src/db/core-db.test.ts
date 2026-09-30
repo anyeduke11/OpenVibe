@@ -22,10 +22,12 @@ describe('UT-MIGRATION-01 · migration 只前进且幂等', () => {
       '0001_init',
       '0002_app_meta_telemetry',
       '0003_pack_exports_bundle_json',
+      '0004_skill_remote_sources',
+      '0005_skill_remote_tracking',
     ])
     expect(migrate(db)).toEqual([])
     const count = (db.prepare('SELECT COUNT(*) AS c FROM schema_migrations').get() as { c: number }).c
-    expect(count).toBe(3)
+    expect(count).toBe(5)
     db.close()
     rmSync(dir, { recursive: true, force: true })
   })

@@ -37,6 +37,8 @@ const SKILL_REPORT: SkillScanReport = {
   updated: 1,
   skipped: 0,
   warnings: ['扫描根不存在或不可读，跳过: /nope'],
+  scannedRoots: ['/home/x/.claude/skills'],
+  missingRoots: ['/nope'],
 }
 
 /** 导入回执：服务端按 title+contentHash 去重，created 是 title 数组 */

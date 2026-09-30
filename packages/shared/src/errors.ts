@@ -9,6 +9,7 @@ export const ERROR_CODES = [
   'UNAUTHORIZED',
   'FORBIDDEN_ORIGIN',
   'NAME_CONFLICT',
+  'REMOTE_UNREACHABLE',
   'INTERNAL',
 ] as const
 export type ErrorCode = (typeof ERROR_CODES)[number]
@@ -23,6 +24,7 @@ export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   NOT_FOUND: 404,
   UNAUTHORIZED: 401,
   FORBIDDEN_ORIGIN: 403,
+  REMOTE_UNREACHABLE: 502,
   INTERNAL: 500,
 }
 

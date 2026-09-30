@@ -38,13 +38,21 @@ export function migrate(db: SqliteDatabase): string[] {
     )
   })
 
+  // 重建表类迁移（0004 起）需要临时关闭外键：DROP TABLE 的隐式 DELETE 会经
+  // ON DELETE CASCADE 清空子表（SQLite 文档 12 步流程的要求）。pragma 不能在事务内改，
+  // 故挂在循环外，跑完立即恢复。
   const result: string[] = []
-  for (const file of files) {
-    const version = file.replace(/\.sql$/, '')
-    if (applied.has(version)) continue
-    const sql = readFileSync(join(MIGRATIONS_DIR, file), 'utf8')
-    runOne(version, sql)
-    result.push(version)
+  db.pragma('foreign_keys = OFF')
+  try {
+    for (const file of files) {
+      const version = file.replace(/\.sql$/, '')
+      if (applied.has(version)) continue
+      const sql = readFileSync(join(MIGRATIONS_DIR, file), 'utf8')
+      runOne(version, sql)
+      result.push(version)
+    }
+  } finally {
+    db.pragma('foreign_keys = ON')
   }
   return result
 }

@@ -29,6 +29,8 @@ export interface BuildAppOptions {
   now?: () => Date
   /** settings 路由的展示字段（dataDir/port/seedDir/dbPath）；缺省由 bootstrap 传入，测试可省 */
   settings?: Partial<SettingsRouteInput>
+  /** skill 远程取数实现（DEV-0067 测试注入点；缺省全局 fetch，出站走 http-guard） */
+  remoteFetchImpl?: typeof fetch
 }
 
 export interface BuiltApp {
@@ -64,7 +66,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerProjectRoutes(app, deps)
   registerTaskRoutes(app, deps)
   registerDevLogRoutes(app, deps)
-  registerSkillRoutes(app, deps)
+  registerSkillRoutes(app, { ...deps, fetchImpl: options.remoteFetchImpl })
   registerSettingsRoutes(app, {
     db,
     appVersion,

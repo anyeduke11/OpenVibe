@@ -168,6 +168,10 @@ async function scanSkills(
   out.hints.push(
     `skill 扫描：发现 ${report.discovered} 新增 ${report.created} 更新 ${report.updated} 跳过 ${report.skipped}`,
   )
+  out.hints.push(`skill 扫描根 ${report.scannedRoots.length} 个`)
+  if (report.missingRoots.length > 0) {
+    out.hints.push(`skill 扫描缺失根 ${report.missingRoots.length} 个（详见警告）`)
+  }
 }
 
 async function importRules(

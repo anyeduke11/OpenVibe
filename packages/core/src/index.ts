@@ -3,7 +3,17 @@ export { openDatabase, defaultDbPath, openvibeHome, type SqliteDatabase } from '
 export { migrate, nowIso } from './db/runner'
 export { runSeed, type SeedBundleResult } from './db/seed'
 export { searchPromptRowids, searchTermRowids, ftsPhrase, type TermSearchHit } from './search/fts'
-export { computeDirHash, parseSkillFrontmatter, defaultScanRoots, SkillsRepo } from './repos/skills'
+export {
+  computeDirHash,
+  parseSkillFrontmatter,
+  defaultScanRoots,
+  discoverSkillRoots,
+  zcodePluginSkillRoots,
+  hashSkillEntries,
+  skillNameIssue,
+  reviewSkill,
+  SkillsRepo,
+} from './repos/skills'
 export { PromptsRepo } from './repos/prompts'
 export { TermsRepo } from './repos/terms'
 export { FlowTemplatesRepo } from './repos/flows'

@@ -4,6 +4,7 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { AddressInfo } from 'node:net'
 import type { FastifyInstance } from 'fastify'
+import { EnvHttpProxyAgent, setGlobalDispatcher } from 'undici'
 import { migrate, openDatabase, runSeed, type SqliteDatabase } from '@openvibe/core'
 import { DEFAULT_PORT, TELEMETRY_FLUSH_INTERVAL_MS, type SeedSummary } from '@openvibe/shared'
 import { buildApp, FALLBACK_APP_VERSION } from './app'
@@ -46,6 +47,26 @@ export class BootError extends Error {
 
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost', '::1'])
 const HERE = dirname(fileURLToPath(import.meta.url))
+
+/**
+ * 出站代理（DEV-0069）：设置了 HTTPS_PROXY/HTTP_PROXY（或显式 OPENVIBE_PROXY）时，
+ * 全局 fetch 走 undici EnvHttpProxyAgent——远程 skill 源与遥测上报共用。守卫不变：
+ * assertRemoteUrl 仍在本地校验目标（https/白名单/DNS 公网），代理只承担隧道。
+ * 必须在首次出站 fetch 前调用；重复调用幂等。
+ */
+let proxyInstalled = false
+export function installProxyDispatcher(env: NodeJS.ProcessEnv = process.env): string | null {
+  const proxy = env.OPENVIBE_PROXY ?? env.HTTPS_PROXY ?? env.https_proxy ?? env.HTTP_PROXY ?? env.http_proxy
+  if (proxy === undefined || proxy === '' || proxyInstalled) {
+    return proxyInstalled ? (proxy ?? null) : null
+  }
+  // 让 EnvHttpProxyAgent 读到归一后的值（OPENVIBE_PROXY 是本项目的显式别名）
+  env.HTTPS_PROXY = env.HTTPS_PROXY ?? env.https_proxy ?? proxy
+  env.HTTP_PROXY = env.HTTP_PROXY ?? env.http_proxy ?? proxy
+  setGlobalDispatcher(new EnvHttpProxyAgent())
+  proxyInstalled = true
+  return proxy
+}
 
 export function defaultWebRoot(): string {
   return resolveWebRoot(HERE)
@@ -100,6 +121,9 @@ export async function bootstrap(options: BootstrapOptions): Promise<BootstrapRes
   const bindHost = host === 'localhost' ? '127.0.0.1' : host
   const dbPath = options.dbPath
   const warnings: string[] = []
+  // 代理（DEV-0069）：必须在任何出站 fetch（skill 源 / 遥测）之前安装
+  const proxyUsed = installProxyDispatcher()
+  if (proxyUsed !== null) warnings.push(`出站请求走代理 ${proxyUsed}（HTTPS_PROXY/OPENVIBE_PROXY）`)
 
   let db: SqliteDatabase
   try {

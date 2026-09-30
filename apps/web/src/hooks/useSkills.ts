@@ -1,8 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   SkillCreateInput,
+  SkillDuplicatesReport,
   SkillOut,
+  SkillRemoteImportInput,
+  SkillRemoteImportReport,
+  SkillRemoteSearchReport,
+  SkillRetrackInput,
+  SkillRetrackReport,
+  SkillReviewInput,
+  SkillReviewReport,
   SkillScanReport,
+  SkillUpdateCheckInput,
+  SkillUpdateCheckReport,
   SkillUpdateInput,
   SkillVersionOut,
 } from '@openvibe/shared'
@@ -68,4 +78,57 @@ export function useSkillMutations() {
   })
 
   return { create, update, remove, scan }
+}
+
+/** 远程源（DEV-0067）：搜索 SkillHub 市场 / 按源导入，全部走服务端出站守卫 */
+export function useSkillRemote() {
+  const search = useMutation({
+    mutationFn: (q: string) =>
+      apiJson<SkillRemoteSearchReport>('/api/skills/remote/search', {
+        method: 'POST',
+        body: { source: 'skillhub', q },
+      }),
+  })
+  const importSkill = useMutation({
+    mutationFn: (input: SkillRemoteImportInput) =>
+      apiJson<SkillRemoteImportReport>('/api/skills/remote/import', {
+        method: 'POST',
+        body: input,
+      }),
+  })
+  return { search, importSkill }
+}
+
+/** 检查更新（DEV-0068）：树指纹对比；报告里 remoteChanged 的条目可一键走 importSkill 重导 */
+export function useSkillUpdateCheck() {
+  return useMutation({
+    mutationFn: (input: SkillUpdateCheckInput) =>
+      apiJson<SkillUpdateCheckReport>('/api/skills/remote/check-updates', {
+        method: 'POST',
+        body: input,
+      }),
+  })
+}
+
+/** 补档（DEV-0069）：未建档的存量远程条目按版本线溯源串重导一次，写树指纹 */
+export function useSkillRetrack() {
+  return useMutation({
+    mutationFn: (input: SkillRetrackInput) =>
+      apiJson<SkillRetrackReport>('/api/skills/remote/retrack', { method: 'POST', body: input }),
+  })
+}
+
+/** 重复整理报告（GET 语义但随对话框打开/手动刷新按需跑，故用 mutation 免缓存歧义） */
+export function useSkillDuplicates() {
+  return useMutation({
+    mutationFn: () => apiJson<SkillDuplicatesReport>('/api/skills/duplicates'),
+  })
+}
+
+/** 内置审查：ids 缺省=全量（无本地目录的条目仅元数据审查） */
+export function useSkillReview() {
+  return useMutation({
+    mutationFn: (input: SkillReviewInput) =>
+      apiJson<SkillReviewReport>('/api/skills/review', { method: 'POST', body: input }),
+  })
 }

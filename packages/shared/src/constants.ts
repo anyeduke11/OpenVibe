@@ -63,7 +63,8 @@ export type FlowKind = (typeof FLOW_KINDS)[number]
 export const DEVLOG_TYPES = ['DEV', 'CHECK'] as const
 export type DevLogType = (typeof DEVLOG_TYPES)[number]
 export const EXPORT_CHANNELS = ['download', 'directory'] as const
-export const SKILL_SOURCES = ['local', 'manual'] as const
+/** DEV-0067 起增 github / skillhub 远程源（B 级 additive 枚举扩展，旧消费方需认新值） */
+export const SKILL_SOURCES = ['local', 'manual', 'github', 'skillhub'] as const
 export type SkillSource = (typeof SKILL_SOURCES)[number]
 
 /** 遥测事件白名单·仅三类（design §11.5，D3/D13） */

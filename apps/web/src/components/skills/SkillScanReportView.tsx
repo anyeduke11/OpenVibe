@@ -1,7 +1,7 @@
 import type { SkillScanReport } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 
-/** 扫描摘要条（m2 FR-1.5）：四项计数 + warnings 明细 */
+/** 扫描摘要条（m2 FR-1.5）：四项计数 + 扫描根清单 + warnings 明细（DEV-0063 起含根覆盖） */
 export function SkillScanReportView(props: { report: SkillScanReport }) {
   const { report } = props
   const cells: { label: string; value: number }[] = [
@@ -20,6 +20,27 @@ export function SkillScanReportView(props: { report: SkillScanReport }) {
             <div className="text-[11px] text-ink-subtle">{c.label}</div>
           </div>
         ))}
+      </div>
+      <div>
+        <details>
+          <summary className="cursor-pointer text-xs font-medium text-ink-subtle">
+            {zh.skills.scanReport.rootsScanned(report.scannedRoots.length)}
+            {report.missingRoots.length > 0 &&
+              ` · ${zh.skills.scanReport.rootsMissing(report.missingRoots.length)}`}
+          </summary>
+          <ul className="mt-1 max-h-32 space-y-0.5 overflow-auto pl-4">
+            {report.scannedRoots.map((r) => (
+              <li key={r} className="mono text-[11px] text-ink-subtle">
+                {r}
+              </li>
+            ))}
+            {report.missingRoots.map((r) => (
+              <li key={r} className="mono text-[11px] text-warn-800">
+                {r}
+              </li>
+            ))}
+          </ul>
+        </details>
       </div>
       <div>
         <h3 className="mb-1 text-xs font-medium text-ink-subtle">{zh.skills.scanReport.warnings}</h3>
