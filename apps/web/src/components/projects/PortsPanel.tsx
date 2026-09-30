@@ -2,7 +2,7 @@ import type { ProjectPortsOut, PortStatus } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 
 /**
- * 端口与服务台账卡（m7）：账本表形制（DESIGN.md ledger 美学——行 hairline、
+ * 端口与服务台账卡（m5 FR-8）：账本表形制（DESIGN.md ledger 美学——行 hairline、
  * 端口/数字等宽），状态语义：监听中=松绿方点、未监听=灰墨方点。
  * 端口是易变态：数据由 useProjectPorts 15s 轻轮询。
  */

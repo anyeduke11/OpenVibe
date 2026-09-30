@@ -6,7 +6,7 @@ import { parseOrThrow } from '../lib/validate'
 import { assertScannableDir, listListeners, scanDeclaredServices } from '../lib/port-scan'
 
 /**
- * 端口与服务（m7「端口与服务」卡）：GET /api/projects/:id/ports。
+ * 端口与服务（m5 FR-8「端口与服务」卡）：GET /api/projects/:id/ports。
  * 只读事实层（仓库声明扫描 + 本机监听查询）在 lib/port-scan.ts；这里做合并与出参整形。
  * localPath 未登记/目录不存在时返回空台账不报错：端口卡对「没填路径」的项目也要能渲染。
  */

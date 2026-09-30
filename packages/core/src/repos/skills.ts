@@ -157,7 +157,7 @@ export function defaultScanRoots(): string[] {
 }
 
 /**
- * ZCode 智能体的插件 skill 根（DEV-0064）。两个来源：
+ * ZCode 智能体的插件 skill 根（DEV-0066）。两个来源：
  * ① `~/.zcode/cli/plugins/installed_plugins.json` 逐插件取 `installPath`（用户显式安装的，
  *    ZCode 实际加载的版本）；
  * ② 清单外的缓存插件（内置/预装，无注册文件）：每插件只取**最高版本**的 skills——缓存里

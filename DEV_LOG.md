@@ -1573,3 +1573,41 @@
 - **顺带把一条边界写清**：正文里不复制在架资产的三值——`:71` 那条 `[DEV-0065]` bullet 早定了「不以本文为准，以 release 页与 `gh api …/asset.digest` 为准，实测登记在 `[DEV-0065]`」；所以 tarball 行留着旧值 + 脚注说清它是哪支树的现测，比在正文里再抄一份会腐烂的数字更符合 §13-8。
 - **开工前的去重（本段最容易漏的一条）**：给锚串计数时发现工作树里「补记二」整块出现了 **2** 次（两份逐字节相同、各 4,739 B），而提交树 `d6f718e` 那份只有 **1** 次。算术排掉「我自己跑了两遍」：回滚基线 605,751 B + 一块 4,741 B = 610,492 B，去重前工作树是 615,233 B，差的正好是第二块的 4,741 B ⇒ 是并行会话随后重写同一文件时把我的整块又落了一遍。已删第二块，备份 `/tmp/ov-065b3-dupseg.txt`；`[DEV-0062]` / `[DEV-0063]` / `[DEV-0066]` 三条未提交条目复核仍在原位。**提炼成纪律**：往共享文件追加内容后，判据不是「我的命令 rc=0」，而是「锚串在工作树与提交树**各命中 1 次**」——并发写会让 rc 说谎。
 - **本笔（追记）的账**：队列 ⑦ 的第 **13** 次推送，动 `DEV_LOG.md` 本段 + `docs/decisions.md` ⑦ 行一句 + `docs/release-notes/v0.1.0.md` 脚注一行；第三次正文写（`gh release edit --notes-file`，源 = 本笔提交树那份）。**tag / 资产 / About 仍一律不动**，`git diff d6f718e..本笔 -- apps packages content scripts tests README.md` 应为空。
+
+---
+
+## [DEV-0071] P2 三波的规格补齐（M2 完整版 / 端口面板 / 暗色主题 + 注音）· **实现先于规格的四笔代码已经全部入库，而「按哪份规格验收」这件事此前无人能答**
+
+- **时间**: 2026-09-30 尾盘（开工钉 sha `453a535` = 本轮三笔的最后一笔；本笔为纯文档轮次）。
+- **类型**: §0.3 **B 级**（四份规格的 FR / 边界 / 验收条目）+ **C 级**（七行代码注释的指针纠正，零行为变更）。流程按 B 级三步走全：① 本条登记 → ② spec 版本行（`m2` v1.1、`m5` v1.1、`m3` v1.1、新建 `theme.md` v1.0）→ ③ 同步 dev-plan（§3.11 schema 清单、§5.5 样式基线、§9 T5 映射表新增「P2 波次追加映射」块、§15.1-7 暗色主题行翻「已交付」）。
+- **关联文件**: `docs/specs/m2-skill-registry.md`（v1.1）、`docs/specs/m5-project-flow.md`（v1.1，新增 FR-8）、`docs/specs/m3-glossary.md`（v1.1，新增 FR-5）、`docs/specs/theme.md`（**新建**，横切 spec）、`docs/dev-plan.md`（六处）、代码注释七行：`packages/core/src/repos/skills.ts:160`、`packages/core/src/repos/skills.test.ts:355`（`DEV-0064`→`DEV-0066`）、`apps/server/src/lib/port-scan.ts:8`、`apps/server/src/routes/ports.ts:9`、`apps/web/src/components/projects/PortsPanel.tsx:5`、`apps/web/src/hooks/useProjectPorts.ts:5`、`packages/shared/src/schemas/ports.ts:4`（`m7`→`m5 FR-8`）。
+- **问题描述**: owner 令「补 P2 功能（M2 完整版 + 暗色主题 + 端口面板）无 spec、提交、CI 零覆盖」中的**无 spec** 那半。三波代码（`060690a` / `db6bb8d` / `453a535`）已入库且 CI 已跑，但：① `m2-skill-registry.md` 还停在 P0 瘦身的 FR-1–FR-3，远程获取、检查更新、重复整理、内置审查**四件事没有规格**；② 端口面板在 PRD / dev-plan / tasks **全文零次提及**（`grep -rn 端口 docs/PRD.md docs/dev-plan.md docs/tasks.md` → 除去运行端口口径后零命中），代码注释写的「m7」指向的是 PRD 的团队模块（M7=多用户与评审），而功能实际落在 M5 项目工作台；③ `docs/specs/` 无主题规格，dev-plan §5.5 仍写「MVP 仅浅色」而暗色已上线；④ `TermOut.pinyin` 是响应形状变更（B 级）却只写在 DEV_LOG 散文里。这正是 dev-plan §0.4 规则 4「No spec, no task」的**反向欠账**——活干完了才补规格，所以本笔的性质是**核对**而不是设计。
+- **实现思路**: 一条底线贯穿——**规格以已入库实现为准逐条核对，凡实现与既有口径（DESIGN.md / PRD / 老 spec 正文）不符，就在规格里点名分歧，不替实现背书**。具体：归属按 PRD 3.2 模块号选（M2 完整版回 `m2`，端口卡回 `m5` 新开 FR-8，主题属横切按 §0.4 规则 5 立 `theme.md`，注音数据回 `m3`）；FR 编号只递增不重排；验收条目一律「文件 + describe/it 标题 + 复跑命令」，**不抄支数与具名上界**（§13-9）；老 spec 里三处从未落地的承诺按实测改写（`parseWarning` 这个字段名从未存在、FR-3.1 承诺的「LIKE」从未写进代码、`name (2)` 新建独立条目与 §7.4 自相矛盾）；dev-plan 侧用「链接 + 节号」而不复制数值（反漂移）。
+- **核心变更**:
+  - `m2-skill-registry.md` → v1.1：新增 **FR-4**（GitHub 整仓/子目录 + SkillHub 导入：搜索仅 skillhub 否则 422、同公式指纹、复用 `recordVersion` 三态、报告七键形状、上限 50/40/400KB/10/15s）、**FR-5**（树指纹零下载比对 + 四态 + 一键重导/retrack）、**FR-6**（`GET /duplicates` 只报告不删，manual 空指纹不参与）、**FR-7**（`POST /review` 三面 11 个 issue 码与分级，并**明写它不是安全扫描**）；FR-1.1 默认根改判为「全部 `~/.<tool>/skills` 存在即扫 + `.Trash` 排除 + ZCode 清单钉版」；§2 范围表拆成 MVP / P2 落地 / Out 三栏；§5 补六个新端点与「CLI 只覆盖 scan、Web-only 四件事」；§6 拆成含**三条实况修正**的边界表；§7 补 6–14 项，其中 14 是「未验证面」。
+  - `m5-project-flow.md` → v1.1：新增 **FR-8「端口与服务」只读卡**七小节（合并语义、白名单文件 + 根与一级子包两级、六源与优先级、`execFile` 固定 argv 的安全面与地址归一、15s 轮询 / 5s `staleTime` / 无 WS、出参形状与 `url` 只给 localhost、**写动作一律不在本卡**）；§2 补 In/Out 行，§5/§6/§7/§8 各补。
+  - `theme.md`（新建 v1.0）：FR-1 切换与持久化（单入口 + `openvibe.theme` + 首帧前预涂 + 不进服务端 settings 的理由）、FR-2 治理闸七小节、FR-3 双主题同构（含「暗块只许 `--color-*`」与 scrim 不对偶的理由）、FR-4 字体与排印（三套 OFL + asset 不占 chunk 预算的诚实代价）、FR-5 五个组件形制；§3 立 **DESIGN.md 语义名 ↔ token 名**映射表（`primary↔seal`/`accent↔brand`/`error↔danger-*`，否则"按 DESIGN.md 走查"无法落地）；§6 十二条边界（含**键位两处硬编码**的漂移症状与复算 grep）；§7 立**对比度可复算**的 node 一行、**未验证面**七条、**§7.5 未对齐清单六行**。
+  - `m3-glossary.md` → v1.1：新增 **FR-5 注音派生字段**（派生点唯一在 `rowToTerm`、词组级多音字消歧与排序键同源、空串而非 null、**不进 TERMS.md / 不进检索 / 不参与排序**、additive 且 CLI 不消费 terms）；§3/§5/§6 各补；§7 补 6–10 项，含 **§7.9 纠偏**（见下 finding）。
+  - dev-plan 六处：§3.11 补 `ports.ts` 行与 skill 远程族、term 搜索族与派生字段注；§5.5 追加「仅浅色已作废」同步段；§9 T5 的 SPEC 依据行扩 FR 区间 + **新增「P2 波次追加映射」表**（m2-6…m2-15、m5-9…m5-12、thm-1…thm-3、term-py-1…2，其中三行是**负向登记**）；§15.1-7 暗色主题行翻「已交付」并保留 09-23 那段现状描述。
+- **测试验证**:
+  - 测试命令: `pnpm lint` / `pnpm typecheck` / `pnpm seed:check` / `pnpm test` / `pnpm bundle:check`（本笔纯文档 + 注释，但按 §0.1 逐条验收在 HEAD 全量复跑，不拿「文档改动」免测）
+  - 验证结果: **五闸全绿**（采样 2026-09-30 17:17，工作树 = HEAD `453a535` + 本笔文档与注释改动；平台 `Darwin 27.0.0 arm64`；PATH 上的 node 是 **v26.4.0** 而 CI 用 Node 22——本地/CI 运行时版本差属已知面，此处如实标注）：
+    - `pnpm lint` rc=0（零输出）
+    - `pnpm typecheck` rc=0（根 tsconfig + `apps/web/tsconfig` 双查）
+    - `pnpm seed:check` 通过：`terms ≥100 / templates=3 / prompts=21`、TERMS.md 渲染 109 行表头列数一致、example 覆盖 100%
+    - `pnpm test` **57 文件全绿 / 527 支全绿**（运行时输出数，非抄写；`f7df600` 时代登记的 55 文件 / 476 支已被这三笔的测试增量作废，现值以本行命令为准）
+    - `pnpm bundle:check` 通过：**入口 299.03kB ≤ 300kB（余量 0.97kB）**、23 个 chunk、最大 347.45kB ≤ 500kB；四支字体 woff2 共 139.29kB 走 asset 通道不占 chunk 预算，CSS 35.28kB
+    - ⚠️ 入口余量从设计落地那笔登记的 295.24kB 收窄 **3.79kB** 到 299.03kB——下次往入口塞 JS 前必须先看这道闸（`theme.md` §8 脆弱面④同源）
+    - 痕迹闸（dev-plan §15.6 第 5 条，逐份数行、要求每份 ≥1）：`grep -c '^\| 版本 \|' docs/specs/*.md` 现测 **9 份各 1**（含新建的 `theme.md`）
+- **潜在风险与 finding（本轮查出、按归属交回，不在本笔代填）**:
+  1. **符号链接环会让整批扫描失败**：spec 原承诺「截断/跳过」，实测 `computeDirHash` 遇环**抛 `ELOOP`**（探针：`/tmp` 造 `sk/self -> sk` 后直接调用），`scan()` 不捕获，且 `apps/server` **没有 `setErrorHandler`**（grep 零命中）⇒ 一个环状链接让整个 `POST /skills/scan` 以 Fastify 默认 500 形状失败。已写进 `m2` §6.1.4 实况修正，**修复属实现侧**（catch 后记 warning，或补错误处理钩子）。
+  2. **256KB SKILL.md 截断从未实现**（老 spec 的 FR 承诺，代码里找不到对应常量）——已在 `m2` §6 点名「未实现」，不留成"隐式作废"。
+  3. **悬空编号 `DEV-0064`**：`060690a` 的提交信息、`packages/core` 两处注释都引用它，而 `grep -c '^## \[DEV-0064\]' DEV_LOG.md` → **0**（真实号是 DEV-0066）。注释两处本笔已改；**提交信息不可改**（历史），dev-plan §3.2 那行里的 `DEV-0064` 属并行会话未提交行，本笔不动、留待其自行纠。
+  4. **DEV_LOG 编号撞车（未提交侧）**：工作树里 `## [DEV-0044] / [DEV-0045] / [DEV-0046]` **各出现两次**（已入库的是 09-27 队列⑥复核三笔，工作树新增的是 09-29/30 设计系统三笔），HEAD 每号只 1 次 ⇒ 设计系统那三条记录**尚未提交且用了已占用的号**。本 spec 一律**按标题引用**、按 commit sha 引实现，不按号引用；改号属那三行的作者，本笔不代改。
+  5. **端口波次没有 DEV_LOG 记录**，其截图挂在 `docs/devlog-evidence/DEV-0047/`，而 DEV-0047 是 09-27 的队列④收口笔，两者无关——已在 `m5` 版本行明写欠账，补号交 owner。
+  6. **四个远程对话框零覆盖**：无 DOM 断言、无截图（`docs/devlog-evidence/` 无 DEV-0067/0068/0069 目录）；`PortsPanel` 同样只有端点级与纯函数级凭据。端点绿 ≠ 界面可用。
+  7. **暗色朱砂未达 AA 正文阈**（本笔新查，可复算）：`#D9583F` on `#1C1B17` = **4.45**、白字 on 暗朱砂 = **3.88**，两条都低于 4.5；亮侧 4.88 达标。DESIGN.md 说暗色「提亮保对比」，实测差 0.05 与 0.62 ⇒ 三个候选改法列在 `theme.md` §7.5-5 待裁。
+  8. **两处"设计有、实现无"的静默面**：DESIGN.md 承诺的**注音设置开关**未实现（`theme.md` §7.5-3）；**验印落章动画** `.seal-badge.animate` 与 `@keyframes seal-stamp-in` 在 CSS 里，但**没有任何组件挂它**（`grep -rn animate apps/web/src --include='*.tsx'` 零命中）⇒ 全站唯一表演位从不播放（§7.5-8）。另 DESIGN.md 内部自相矛盾一处：通则「≤150ms」与例外「落章 200ms」并存（§7.5-4）。
+  9. **`IT-SEED-REAL-01（§7.1）` 名实不符**：它自称映射 m3 §7.1，实际断言 `>= 60`，而规格门槛是 ≥100 ⇒ 「≥100」在 IT 层并未被证明，真正压门槛的是 `seed:check` 负向闸与 `UT-SEED-02`。已写进 `m3` §7.9 与 dev-plan 映射表 term-py-2，防后来者把这行当凭据。
+  10. **头词字号与字体体积两处口径漂移**：DESIGN.md 19px ↔ 实现 15px；宋体子集「约 5KB」↔ 实测两支 **79,156 B**、四支 139,288 B（asset 不占 chunk 预算，但体积要如实登记）。列 `theme.md` §7.5-1/-2。
+  11. **本笔自身的性质限制**：纯文档 + 注释轮次，**未新增任何测试、未改任何行为**，上面五闸数字是本笔实测而非他笔抄写；`docs/specs/theme.md` 是新建文件，§13-9 的痕迹闸（逐份数 `^| 版本 |` 每份 ≥1）现测 **9 份各 1**（`grep -c '^| 版本 |' docs/specs/*.md`）。

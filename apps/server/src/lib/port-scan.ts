@@ -5,7 +5,7 @@ import { promisify } from 'node:util'
 import type { DeclaredService, PortListener, PortServiceSource } from '@openvibe/shared'
 
 /**
- * 端口与服务扫描（m7「端口与服务」卡的服务端事实层）。
+ * 端口与服务扫描（m5 FR-8「端口与服务」卡的服务端事实层）。
  *
  * 安全面（write-up 见 DEV-0047）：
  * - 目录扫描只读仓库内已登记项目的 localPath 下的白名单文件名，解析失败静默跳过；

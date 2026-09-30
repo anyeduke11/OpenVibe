@@ -352,7 +352,7 @@ describe('默认扫描根发现（DEV-0063：~/.<tool>/skills 存在即扫）', 
   })
 })
 
-describe('ZCode 插件 skill 根（DEV-0064：清单钉版 + 缓存最高版本兜底）', () => {
+describe('ZCode 插件 skill 根（DEV-0066：清单钉版 + 缓存最高版本兜底）', () => {
   let home: string
   let manifest: string
   let cacheRoot: string

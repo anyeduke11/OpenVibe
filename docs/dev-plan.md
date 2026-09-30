@@ -616,9 +616,10 @@ const assign = db.transaction(() => {
 | 文件 | 导出 |
 |------|------|
 | prompt.ts | `PromptCreateInput / PromptUpdateInput / PromptQuery / PromptOut / PromptVersionOut / PromptImportItem` |
-| term.ts | `TermCreateInput / TermUpdateInput / TermOut / TermSearchOut / RenderTermsMdInput` |
-| skill.ts | `SkillCreateInput / SkillOut / SkillVersionOut / SkillScanInput / SkillScanReport` |
+| term.ts | `TermCreateInput / TermUpdateInput / TermOut / TermMatch / TermSearchOut / RenderTermsMdInput`——`TermOut.pinyin` 是**派生只读字段**（非入参、非库列），随 m3 v1.1 FR-5 登记 |
+| skill.ts | 台账与扫描：`SkillCreateInput / SkillUpdateInput / SkillQuery / SkillOut / SkillVersionOut / SkillScanInput / SkillScanReport`；P2 完整版另加远程族 `SkillRemoteSearchInput / SkillRemoteImportInput / SkillRemoteCheckInput / SkillRemoteCheckOut / SkillRetrackInput / SkillRetrackOut / DuplicateReport / SkillReviewInput / SkillReviewOut`（规格 `specs/m2-skill-registry.md` FR-4–FR-7，2026-09-30 补写） |
 | flow.ts | `FlowTemplateCreateInput / FlowTemplateOut / StageSchema` |
+| ports.ts | `PortDeclaration / PortListener / PortRow / PortsOut`——项目端口台账（m5 FR-8，只读，无入参 schema） |
 | project.ts | `ProjectCreateInput / ProjectUpdateInput / ProjectOut / InjectionStatusOut` |
 | task.ts / devlog.ts | `TaskCreateInput / TaskOut / DevLogCreateInput / DevLogOut` |
 | pack.ts | `PackCreateInput / PackUpdateInput / PackOut / PreviewOut / ExportInput / PackManifestSchema`（对齐 design §7.2） |
@@ -753,6 +754,8 @@ AppShell 侧栏固定七项（库/术语/Skill/流程/项目/标准包/设置）
 ### 5.5 样式基线
 
 Tailwind v4 + Radix Primitives（Dialog/Popover/Tabs/Toast/Tooltip/Select）；无组件库锁定（design §2 UI 行）；深浅色 MVP 仅浅色（P1.1 评估暗色）。
+
+**2026-09-30 同步（承 D19 的「归 P2」项）**：上一行的「仅浅色」已作废——暗色主题与设计 token 化随 `453a535` 落地。口径入口三层：`DESIGN.md`（设计系统规范源，gstack spec 格式）→ `docs/specs/theme.md`（横切行为规格：双 token 源、持久化与预涂、字体自托管、组件形制、治理闸）→ `apps/web/src/index.css` 的 `@theme` 亮块 + `[data-theme='dark']` 暗块（颜色的单一出处）。机器闸 = `tests/design-tokens.test.ts` 的 `WEB-TOKENS · 颜色单一出处`。本行不抄 token 数、色族数与字体体积（§13-9），取数命令在 `theme.md` §7。
 
 ---
 
@@ -1076,7 +1079,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 
 ### T5 · M5 项目流程 + M2 Skill 台账（W3D1–D4，4 人日）
 
-**SPEC 依据**：m5 FR-1–FR-7、m2 FR-1–FR-3；design §5/§6。
+**SPEC 依据**：m5 FR-1–FR-7（P2 追加 FR-8）、m2 FR-1–FR-3（P2 完整版追加 FR-4–FR-7）；design §5/§6。横切视觉另见 `specs/theme.md`，注音数据见 `specs/m3-glossary.md` FR-5。
 
 **工作项**
 - [ ] `server/routes/{flowTemplates,projects,tasks,devlog}.ts`（§3.4–3.7；含 builtin 403、switch-stage、injection-status 只读解析 lock 夹具）
@@ -1102,6 +1105,33 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 | m2-3 | 未变更全 skipped | IT-SKILL-03 |
 | m2-4 | 手动+同名目录合并 versions=2 | IT-SKILL-04 |
 | m2-5 | 删 skill 级联 | UT-CASCADE-02 |
+
+**P2 波次追加映射（2026-09-30 补 spec 时同步；实现先于规格，逐笔 = `060690a` 远程/整理/审查、`db6bb8d` 端口面板、`453a535` 主题与注音）**
+
+> 本表按 §13-9 只写**文件 + describe/it 标题**，不抄支数与具名上界；取数命令的单源在 `docs/tasks.md` §2b 的 T10 验收行。列「未验证面」的行是**负向登记**，不得读成已通过。
+
+| # | spec 验收 | 用例 / 凭据 |
+|---|-----------|-------------|
+| m2-6 | FR-4.2–4.4 GitHub 整仓与子目录导入、URL 归一、同内容 skipped | `apps/server/test/skills.api.test.ts` describe「远程导入 / 整理 / 审查（DEV-0067）」的 it「GitHub 整仓导入：建账带溯源版本串；重扫同内容 skipped；仓库 URL 归一」+ it「GitHub 指定子目录导入（DEV-0068）：path 过滤 + 树指纹建档；检查更新三态」 |
+| m2-7 | FR-4.5 SkillHub 清单 sha256 与 core 同公式、COS 302 放行 | 同 describe 的 it「SkillHub 按 slug 导入：清单 sha256 直接算指纹（与 core 同公式）；SKILL.md 走 COS 302」；搜索面 it「SkillHub 搜索映射 slug/名称/下载量；非法仓库格式 422」 |
+| m2-8 | FR-4.6 落账复用 `recordVersion` 三态 + 与本地同名合并 | `packages/core/src/repos/skills.test.ts` describe「远程导入落账 upsertRemote（DEV-0067）」两支（新建→同指纹跳过→指纹变化追加版本；与本地同名条目合并且不改写 `skill_dir`） |
+| m2-9 | FR-5.3 检查更新四态（upToDate / remoteChanged / notTracked / checkFailed） | it「SkillHub 检查更新：清单 sha256 指纹对比 upToDate；建档字段写入」+ m2-6 引用的子目录导入支（含三态断言）；**`checkFailed` 的单列覆盖只在 API 层注入失败，真网络失败未测** |
+| m2-10 | FR-6 重复整理只报告不删（同内容组 / stale / 名称异常 / manual 不参与） | 两侧同族：`skills.api.test.ts` it「重复整理与审查端点：同内容组/失效目录/名称异常 + 审查分级」；`skills.test.ts` describe「重复整理与内置审查（DEV-0067）」的 duplicates 支 |
+| m2-11 | FR-7 内置审查的 issue 码与分级 | `skills.test.ts` it「reviewSkill：引号名 fail、空描述 fail、无触发词 info、凭据串 fail、家目录 warn、干净技能零问题」 |
+| m2-12 | FR-5.5 存量一键建档（retrack） | it「retrack 补档（DEV-0069）：存量条目按版本线溯源串重导建档；解析失败逐条报」 |
+| m2-13 | FR-4.7/§6.2 出站安全面（https-only、主机白名单、DNS 公网、逐跳复检、超时） | `apps/server/test/http-guard.test.ts` 三支 describe：「isPublicIp · 环回/私有/保留地址判定」「assertRemoteUrl · 协议与主机白名单（DNS 之前）」「guardedFetch · 重定向逐跳复检」；测试注入 `fetchImpl`/解析结果，**不碰真实网络** |
+| m2-14 | FR-1.1 默认根发现（存在即扫、`.Trash` 排除、cwd `.claude/skills` 并入）与 ZCode 插件根（清单钉版 + 缓存最高版本） | `skills.test.ts` describe「默认扫描根发现（DEV-0063：~/.<tool>/skills 存在即扫）」两支 + describe「ZCode 插件 skill 根（DEV-0066：清单钉版 + 缓存最高版本兜底）」三支 |
+| m2-15 | **未验证面**（m2 spec §7.14）：四个远程对话框（导入 / 检查更新 / 整理 / 审查）**无 DOM 断言、无截图凭据**；`docs/devlog-evidence/` 无 DEV-0067/0068/0069 目录 | 判据 = 端点级与算法级绿，**界面级零覆盖**；符号链接环（`ELOOP` 整批抛出）与 256KB 截断两条 spec 修正**无实现无用例** |
+| m5-9 | FR-8.2/8.3 端口声明六源、优先级去重、monorepo 一级子包、非法 JSON 不炸 | `apps/server/test/ports.api.test.ts` describe「port-scan · 声明扫描器（纯文件解析）」三支 |
+| m5-10 | FR-8.4 监听解析（lsof / netstat 地址归一）与真机不可用降级 warning | describe「port-scan · 监听器解析（罐头输出）」三支（含 it「真机 lsof 不可用时降级为 warning 不抛（runner 注入抛错）」） |
+| m5-11 | FR-8.5/8.6 声明 × 监听合并、`url` 仅 localhost、未登记路径空台账、项目 404 | describe「GET /api/projects/:id/ports」两支 |
+| m5-12 | **未验证面**（m5 spec §7.12）：15s 轮询、`listenersWarning` 的前端渲染、真机 `lsof`/`netstat` 三平台差异均未测；端口波次**无 DEV_LOG 记录**（截图挂在无关的 `DEV-0047/`） | 判据 = 单端点与两个纯解析器绿，面板本体靠罐头输出推断 |
+| thm-1 | `specs/theme.md` FR-2 token 治理（调用点零裸色阶、裸 hex 只住 token 源、引用必声明、声明必被引用） | `tests/design-tokens.test.ts` describe「WEB-TOKENS · 颜色单一出处」四道 `it`；unit project（`pnpm vitest run --project unit tests/design-tokens.test.ts`） |
+| thm-2 | `theme.md` FR-1/FR-3/FR-4/FR-5（主题持久化、预涂、双主题同构、字体 asset、组件形制） | **人工凭据**：`docs/devlog-evidence/DEV-0046/01-library-light.png`、`02-library-dark.png`、`03-terms-dark-ruby.png`（暗色那张做过 PNG 采样）；对比度按 `theme.md` §7.4 的 node 一行复算 |
+| thm-3 | **未验证面与未对齐** | `theme.md` §7.6（无像素回归、无 `data-theme` 断言、win32/linux 系统字重未目验）与 §7.5 未对齐清单（头词字号、宋体切片体积、注音开关、落章动画未挂、暗色朱砂 AA 未达标） |
+| term-py-1 | m3 FR-5 注音派生字段（带声调词级串、多音字按词组消歧、纯英文空串） | `packages/core/src/repos/terms.test.ts` describe「UT-TERM-OUT · pinyin 派生字段（头词 ruby 注音，DESIGN.md term-card）」；与排序同源面 = describe「UT-COMPOSE-01 · 排序口径」的 it「pinyin 走词典键（多音字按词组消歧），与码点序不同」+ `apps/server/test/terms.api.test.ts` it「IT-TERM-RENDER-01（§7.3）」的 pinyin 次序断言 |
+| term-py-2 | m3 §7.9 纠偏：`IT-SEED-REAL-01（§7.1）` 断言的是 `>= 60`，**低于 m3 §7.1 的 ≥100** ⇒ ≥100 由 `SCRIPT-SEED-01`（负向闸）与 `UT-SEED-02` 保证 | 判据落在 `seed:check` 与 UT 层，IT 层不背书 ≥100（本行为口径声明，不是新增用例） |
+
 
 ### T6 · M6a 组包导出 + 契约快照（W3D5 – W4D5 上午，5.5 人日）★ 关键路径
 
@@ -1380,7 +1410,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 | **进 P1.1 · T11 发布运营** | 4 | 三条冒烟的真实输入证据 | §14-6 | ✅**探针已跑（2026-09-23）：三条判据在有头 Chrome 全过；无头侧判据①不成立且属环境限制** ⇒ 前置解除，证据形态定为「有头裸 CDP 真输入跑判据①，无头只跑②③」，驱动器已入库（`docs/devlog-evidence/DEV-0024/s2-cdp-real-input.mjs`）。本轮按 D21 改的 Playwright 口径（不引入 + 三条冒烟标未验证缺口）是裁定本身，不随探针结果回退。结论单源见 §15.4-S2；**2026-09-24 三条场景已各自接上该骨架并跑通（有头 FAIL=0 SKIP=0，两支日志各 26 断言），数字单源见 §15.4b** | 0.5–1 |
 | | 5 | CLAUDE.md `@import` 受管子文件 | §14-3 | S-1 spike 卡 · ✅**探针已跑完**（结论见下） | 0.5 |
 | | 6 | 发布传播执行清单 | §14-5 | `tasks.md` 新 T11 组勾选项（非产品功能，不占 §0.4 八段式闸）· ✅已立 | 0.5 |
-| **归 P2** | 7 | 暗色主题 | `:754`「P1.1 评估暗色」 | 前置是**设计 token 化重构**：实测 `apps/web/src/index.css` 的 `@theme` 只有 `--color-brand`/`--color-brand-soft` 两个 token，`.html-md` 内 30+ 处字面 hex，全仓 `dark` / `prefers-color-scheme` / `[data-theme]` **零命中**——不是加 class，是重构，量级不估 | — |
+| **归 P2** | 7 | 暗色主题 | `:754`「P1.1 评估暗色」 | 前置是**设计 token 化重构**：实测 `apps/web/src/index.css` 的 `@theme` 只有 `--color-brand`/`--color-brand-soft` 两个 token，`.html-md` 内 30+ 处字面 hex，全仓 `dark` / `prefers-color-scheme` / `[data-theme]` **零命中**——不是加 class，是重构，量级不估。**→ 已交付（2026-09-30）**：token 化与暗色双源随 `453a535` 落地，规格补在 `specs/theme.md`（本行前面那段「实测」是 09-23 时点现状，按日志不回改的原样留着）；`prefers-color-scheme` 至今零命中，**系统跟随仍是未做面**（`theme.md` §6.7） | — |
 | | 8 | **遥测增长看板**（基于埋点计数的对外公开页） | `tasks.md §3 变体备案` ② | 需新 spec（横切 M1/M5 + design §11.5 Worker 计数端点），未开。**本项原名「飞轮遥测面板」是同名异物，已改称**：MVP 已交付的是**本地**飞轮五项卡片（`apps/web/src/components/onboarding/FlywheelCard.tsx` + `GET /api/stats`，规格 `specs/onboarding.md` FR-3，`apps/server/src/routes/settings.ts:146` 注释明写「全本地 SQL 聚合，不参与遥测」），归 P2 的是**用遥测计数的对外看板**——两者不同物，勿再混称（见 15.5-6） | — |
 | | 9 | **M4 技巧库** | `PRD.md:168` 标 P1 优先级 | **PRD 与计划间口径断裂**：`tasks.md` / `dev-plan.md` 全文零次提及 M4，`docs/specs/` 无 m4 spec——既未实现也未被显式裁掉；且 PRD **自身**三处冲突（3.2-M4 标 P1 vs 3.3「M4 进 Phase 2」vs 第 8 章 P2 行）。**已裁并勘误：D22**（2026-09-23，PRD v0.1.5 就地改标题为「（P1，Phase 2）」+ 勘误留痕，第 8 章 P2 行加注）；进入实施前仍须补 m4 spec | — |
 | | 10 | `@import` 受管子文件**落地** | S-1 结论 | 可行，但属 **A 级契约变更**（文件集合改变 → golden 三夹具全量失效），须走 `schemaVersion +1` 独立流程，不并进 P1.1 | — |
