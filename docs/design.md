@@ -301,7 +301,7 @@ interface Adapter {
 - 命令/旗标/退出码/安全边界已在 [specs/m6-cli-injection.md](./specs/m6-cli-injection.md) §3–§6 锁定，此处不重复。
 - 配置解析链：旗标 > 环境变量 > `~/.openvibe/config.json`（§4）；HTTP 走 `fetch`，超时 5s，401 详式提示。
 - 交互确认用 @clack/prompts（sync 的 CONFLICT/DRIFT 逐文件/批量两种粒度）；`--json` 下禁用一切交互（m6b §5.2 的 TTY 防挂起规则）。
-- 分发：`apps/cli` 的 `package.json` 声明 `bin: { openvibe }`（装后直呼 `openvibe sync`），**发布名 `openvibe-cli`**（D17，2026-09-21 registry 404 实测；`openvibe` 已被占）；`npx openvibe-cli` 即用（serve 首跑自动拉包）。
+- 分发：`apps/cli` 的 `package.json` 声明 `bin: { openvibe }`（装后直呼 `openvibe sync`），**发布名 `openvibe`**（D24，2026-10-01 改判：`openvibe` 现测 HTTP 200 而 `versions:0` ⇒ 全部下架可占；**本行只改发布名，§7.3 的受管块标记串里那句 `npx openvibe-cli sync` 一字未动**——那是 A 级冻结对象，连同代码里三处仍在生成旧命令的串一起挂队列 ㉘）；`npx openvibe-cli` 即用（serve 首跑自动拉包）。
 
 ## 10. Web 信息架构（apps/web）
 

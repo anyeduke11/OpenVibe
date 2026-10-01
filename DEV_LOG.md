@@ -1941,3 +1941,32 @@
 - ③ **本机发不了的三条穷举**（`_authToken`／npmmirror 两条队列行 ② 早已登记，此处只补当时没测的 `npm whoami` 输出，**不重复入行**）：`npm whoami --registry https://registry.npmjs.org` → `npm error need auth`；`grep -c '_authToken' ~/.npmrc` → `0`；`npm config get registry` → `https://registry.npmmirror.com`。凭据不由本会话代持，也不让 owner 贴进对话。
 - ④ **不能 `npm publish apps/cli`**（行 ② 此前未记 `private` 一格，本笔补进现状列）：`apps/cli/package.json` 现测 `private: true` 且 `bin → ./src/index.ts`（TS 源、无 build 脚本），与 `build-cli.ts:5` 的头注一致 ⇒ 可发布物只能是 `scripts/build-cli.ts` 生成的清单与 bundle（release `v0.1.0` 挂的 `openvibe-cli-0.1.0.tgz`，1,156,881 B，`gh release view v0.1.0 --json assets` 现测）。
 - 队列见 `docs/decisions.md`：本笔动 **㉗ 新立**（笔二 `6aa73ef`，CI run `36826281943` 三平台 `success`）与 **② 的现状列补记**（笔三）。本补记零产品代码，凭据只有上面四条命令的输出与一次 `gh release view`。
+## [DEV-0084] owner 四条裁定一次性落地：㉖ 两半件进代码、㉗ 采拆 chunk 但**明写未落地**、D24 改名停在 A 级闸前 · 附**一处别人未提交的前提被我现测否证**与**一次取号撞车**
+
+- **时间**: 2026-10-01 16:0x–16:5x（起点 = 上一笔 `b5c0325` 的 CI 回读到账）
+- **类型**: §0.3 **B 级两处**（`ProjectPortsOut.projectPath` 的出参语义、`PUBLISH_NAME` 的对外身份）＋ **C 级两处**（注释与措辞）＋ **A 级零处**（本笔在红线前止步并立 ㉘ 接住）
+- **关联文件**: 代码面 `50f676a`：`packages/shared/src/schemas/ports.ts` `packages/shared/src/shared.test.ts` `apps/web/src/components/projects/PortsPanel.test.tsx` `docs/specs/m5-project-flow.md`（v1.2 段）`scripts/build-cli.ts` `tests/publish-manifest.test.ts` ｜ 登记面（本笔）：`docs/decisions.md`（口径行加态 ＋ ㉖ ㉗ ② ＋ 新 ㉘ ＋ 上界 ＋ 净状态）`docs/PRD.md`（D24 新行、D17/§0-14 指针、版本行 v0.1.9、变更日志）`docs/design.md` §9 分发行
+- **问题描述**: 上一轮出给 owner 的四条最承重裁定同时回到「待裁」。真正的难点不在改哪一处，而在**四条里有一条（㉗）的落点文件正被并行会话改着、有一条（改名）的余波撞在 §7.3 冻结契约上**——顺手做完就是越权。
+- **实现思路**: 一条线切「可改 / 不可改」。**可改**：出参 schema、注释与它凭什么存在、发布名常量与其门禁、队列与 PRD 的登记面。**不可改**：受管块标记串（design §7.3 逐字冻结、已烤进 golden 与用户盘上文件）、`zh.ts` 拆分（两文件未入库）。**不猜**：㉗ 判「已裁待落」而不是「已裁已落」；㉘ 的 (3) 与 (1) 同批，不在本笔拆着改。
+- **核心变更**:
+  - **㉖(a) ①**：`projectPath` 从 `z.string().min(1)` 放宽为 `z.string()`。这条最容易被读成「修一个不会炸的小不一致」——**违例方是 schema，spec 是对的**：`m5` §6-7 本就写「未登记 `localPath` 返回 `projectPath=''`」。此刻不炸的唯一原因是出参侧没有运行时闸（复算 `grep -rnE 'setSchemaCompiler\|serializerCompiler' apps/server/src packages --include='*.ts'` 于 `b5c0325` 零命中），所以真正的收益是：下一笔补出参校验时不再当场抛 500。同形先例已记在 `m6-standard-pack.md` 版本行的 v1.4 段。
+  - **㉖(b)**：删「供『未声明的本机监听』参考区」那句 promise，定性为合并输入。连带把 `m5` §7-12 里那条**负向登记撤销**（它曾是「未验证面」的一格），并把 `PortsPanel.test.tsx` 第 07 支的注释由「钉现状」改成「钉契约」——断言一字未动，改的是它凭什么存在。
+  - **D24 改名**：`PUBLISH_NAME` → `openvibe`，`SCRIPT-PKG-01` 同步。**停在红线上**：`pack-contract.ts:43` 的 `regenerate: npx openvibe-cli sync` 不改。**下笔前重扫才发现余波比初稿大**：初稿把 (3) 写成「README／release notes／四份 spec」，实测 `git grep -n openvibe-cli 50f676a -- apps packages` 里还有**三处代码生成点**——`packages/core/src/local/lock.ts:67` 的 `suggestedCommand` 是直接显示给用户照抄的那一行、`OnboardingBar.tsx:57-58`、`pack-source.ts:121`，外带四支测试逐字钉住；而 `docs/specs/m6-standard-pack.md` 那处命中**只在工作树**（并行会话未入库），提交树里 `docs/specs` 只有两份。三处判级分别立进 **㉘** 的 (1)(2)(3)。
+  - **㉗**：状态写 **已裁待落**，并给出为什么不能算落地的具名证据（`apps/web/vite.config.ts`、`apps/web/src/i18n/zh.ts` 在 `git status` 里是别人的未提交行）。并行会话未入库段自报的「24 chunk／入口 300.44 kB」**不复算就不写成本笔数字**，只在行内标成旁证——若属实，本行的余量已不是 0.97 kB 而是越线，那句话的举证责任在动那两文件的人。
+  - **取号两撞，各记一笔**：① **DEV 号**：本登记初稿取 `DEV-0083`（HEAD 最大 0082），落笔前扫工作树才发现并行会话已把 `[DEV-0083]` 写在未入库的段落里 ⇒ 改取 **0084**；成规「取号前先 grep」在共享工作树里**必须两棵树都扫**，只扫提交树等于扫到昨天的号。② **D 号**：全表 grep 报出的最大号是 D24，而唯一的 D24 命中是 DEV_LOG 里一句「本轮不取新号（`grep -rn D24 …` → 0）」——那句话自己把 D24 算进了任何扫描。逐行验真：D23 是 `docs/PRD.md` 的实裁定行，D24 只活在那句自述里 ⇒ **本笔取 D24**。同一句「提到的号 ≠ 占用的号」在两类编号上都成立。
+- **测试验证**（代码面 `50f676a` 实跑；本笔纯文档，见「七道电池」第 7 道）:
+  - RED：`pnpm vitest run --project unit packages/shared/src/shared.test.ts -t "UT-PORTS-01"` → `× expected false to be true`，命中 `shared.test.ts:190`（正是空串那半件，不是别处）。GREEN：同命令 `1 passed`，全文件 `16 passed`。
+  - `pnpm vitest run --project web apps/web/src/components/projects/PortsPanel.test.tsx` → `7 passed`（断言未动，只动注释，用于证否「改注释顺手改行为」）。
+  - `pnpm vitest run --project integration apps/server/test/ports.api.test.ts` → `11 passed`。
+  - 改名腿同走 RED→GREEN：先改断言得 `AssertionError: expected 'openvibe-cli' to be 'openvibe'`，再改常量 → `tests/publish-manifest.test.ts` `5 passed`。
+  - `pnpm typecheck` 两条 tsc 项目均干净。**五闸全量未跑**、`bundle:check` 未跑、CI 到本笔提交时未验。**本笔（0084）纯文档**：产品代码零改动，凭据只有 diff 与 grep，不得读成「测试通过」。
+  - 提交侧硬闸（两笔同族）：`.zwork/commit0083a.py` 取树前验 `pack-contract.ts` 工作树 == HEAD、`git diff tests/golden` 为空、六个文件的锚串逐命中；`.zwork/commit0083b.py` 验**两树分锚各命中 1**、表格列数闸、`㉒ ㉕` 与 `DEV-0083` 只在工作树而**不在我的提交树**（不代并行会话提交）。golden 零 diff 同时是本轮七道电池的第 3 道。
+- **一处别人未提交的前提被我现测否证**（本笔最想留的一条）:
+  - 我在向 owner 出题时把 `m4-playbook.md` §8.2 那句「**② 已作废——书脊竖排侧栏已随换肤退场**」当成了事实，问题因此写成「剩六处待裁」。现测：`apps/web/src/components/AppShell.tsx:21-28` 的七字 NAV（库 词 技 流 项 包 设）**仍在**，`apps/web/src/index.css:188` 的「书脊侧栏的竖排」`writing-mode: vertical-rl` **仍在**；`docs/specs/theme.md` 的 v2.0 撤销表**只在工作树**，其 HEAD 版本行仍是 v1.0、HEAD 里 `[V2 未落地]` 命中 **0** 处而工作树命中 **20** 处。⇒ 那句作废是**拿未落地的改动当已发生**，而且写成了完成时态。
+  - 后果与处置：owner 的「六条全按推荐采」少了一栏。本笔不擅自把 ② 并入，改按表内 ② 自己的推荐 **「新增『巧』，不动 M2 既有字」** 落，并在 spec 里明写「② 不作废的前提」与它将来如何随 V2 真落地而退场。**这是同一类错的第三次**（前两次：把 CI 数字凭记忆写、把 describe 名的「兜底」当成缺失），根因都一样——引用了工作树里别人的进行时，没回读提交树。本笔起，凡引用户外前提一律带「被测树 sha + 取数命令」。
+- **潜在风险**:
+  1. ㉘ 未裁前，「发布名 = `openvibe`」在仓库内是**半改状态**（代码改了、对外文档与冻结串没改，且 `lock.ts` 仍在前端生成旧命令）。缓解：`SCRIPT-PKG-01` 钉住新名，README 与 release notes 仍写旧名且**都明写「尚未在 npm 上线」** ⇒ 今天没有一条对外命令是真的可跑错的；但下笔碰 README 的人必须先读 ㉘。
+  2. `APP_ID` 是死值，留着就是第二个真源；本笔不动它，因为它和 (1) 同一族，拆开改会把 ㉘ 拆成两次裁。
+  3. `projectPath` 放宽后，任何**新**调用方拿到的类型仍是 `string`，无法从类型上区分「有路径」与「空串」。当前只有 `PortsPanel.tsx:41` 一个消费点且它显式判空。若将来加消费点，判空义务在调用方——这已是 spec §6-7 的既有口径，不是本笔新引入的。
+  4. **队列「状态」从四种变五种**：`已裁待落` 是本笔新增的口径。缓解：口径行与 ㉗ 行同笔落地（本文件自述它是队列唯一事实源，加态只写在行里而不写口径行就会自相矛盾）；若 owner 认为该并入「待签」或删除此态，那是**口径级**改动，改一处要同批改 ㉗ 与本节。
+  5. 本笔的 CI 凭据只覆盖提交树；工作树未提交条目 29 条（`git status --porcelain | wc -l`，树 `50f676a`），其中 `zh.ts`／`vite.config.ts` 是 ㉗ 的落点，`theme.md`／`m4-playbook.md` 是上面那条被否证的作废声明的所在，`DEV_LOG.md` 尾部是并行会话的 `[DEV-0083]` 段。**这些本笔一条都没代提交。**
