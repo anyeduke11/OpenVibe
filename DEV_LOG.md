@@ -1932,3 +1932,12 @@
 - **潜在风险**: ① 摘支数让「取数成本」从读一个数字变成跑一条 `grep`——表注已把单源指到 `docs/tasks.md` §2b 的 T10 验收行，但若下一笔没跑那条命令就写「已覆盖」，本表不会替它兜住；② 超时负向登记写在 `dev-plan` 而非 `m2-skill-registry §7.14`：spec 的未验证面清单要改是 **B 级**（需 bump 版本行），本笔没那个授权，所以这条负向目前只有覆盖图一个真源，读 spec 的人看不到；③ `.zwork/` 未被 `.gitignore` 收录（现测 `git check-ignore -q .zwork` 非零），本笔在其中落了脚本与草稿（复算 `ls .zwork | grep -c 0082`） ⇒ 一次并行会话的 `git add -A` 就能把它们扫进提交；加一行 `.gitignore` 是 owner/并行为共享配置的改动，本笔不自作主张；④ 队列 ㉗ 若裁成 ②（i18n 按需），首屏文案会多一次 chunk 往返——那是可感知的产品变化，不能当成纯体积优化。
 
 队列状态见 `docs/decisions.md`（本笔动 ㉗ 新立一行）。
+
+#### 14:4x–14:5x 补记（发布前置的四条实测进队列行 ②：两个名字各是不同形状的 404、本机凭据穷举、`apps/cli` 直接发不出去）
+
+- **为什么这条要落到行 ② 而不是留在本会话的报告里**：行 ② 的状态是**可做待排（owner 手上）**——机器侧能做的只剩「把 owner 下手前要撞的四件事量清楚」，量完不写进单源就等于下一轮又要重测一遍。四组现测（采样 2026-10-01 14:4x，registry 一律显式指 `https://registry.npmjs.org`，因为本机默认是 `registry.npmmirror.com`）：
+- ① **发布名可用**：`openvibe-cli`（D17 定名，`scripts/build-cli.ts:41` 的 `PUBLISH_NAME`）现测 `E404 Not Found - GET https://registry.npmjs.org/openvibe-cli` ⇒ 从未发布过，名字是干净的。复算命令：`npm view openvibe-cli version --registry https://registry.npmjs.org`。
+- ② **D17 的一条前提今天不再成立**：D17 写「`openvibe` 已被占」，而 `npm view openvibe version --registry https://registry.npmjs.org` 现测返的是**另一种 404**——`404 Unpublished on 2026-04-28T08:55:24.989Z`。它不是「从未存在」，是「曾发布后撤销」，且撤销点距今五个月（npm 的重发冷却以 24 小时计）。**但「名字现在能不能占住」未验**——只有真发一次才知道，本笔不替 owner 试。改判 D17 会连带动 `bin` 名与冷启动命令的所有对外文案（`openvibe-cli` 装后 bin 就是 `openvibe`），属 owner 裁决，本笔**只记新输入、不动 D17**。
+- ③ **本机发不了的三条穷举**（`_authToken`／npmmirror 两条队列行 ② 早已登记，此处只补当时没测的 `npm whoami` 输出，**不重复入行**）：`npm whoami --registry https://registry.npmjs.org` → `npm error need auth`；`grep -c '_authToken' ~/.npmrc` → `0`；`npm config get registry` → `https://registry.npmmirror.com`。凭据不由本会话代持，也不让 owner 贴进对话。
+- ④ **不能 `npm publish apps/cli`**（行 ② 此前未记 `private` 一格，本笔补进现状列）：`apps/cli/package.json` 现测 `private: true` 且 `bin → ./src/index.ts`（TS 源、无 build 脚本），与 `build-cli.ts:5` 的头注一致 ⇒ 可发布物只能是 `scripts/build-cli.ts` 生成的清单与 bundle（release `v0.1.0` 挂的 `openvibe-cli-0.1.0.tgz`，1,156,881 B，`gh release view v0.1.0 --json assets` 现测）。
+- 队列见 `docs/decisions.md`：本笔动 **㉗ 新立**（笔二 `6aa73ef`，CI run `36826281943` 三平台 `success`）与 **② 的现状列补记**（笔三）。本补记零产品代码，凭据只有上面四条命令的输出与一次 `gh release view`。
