@@ -162,13 +162,21 @@ describe('port-scan · 监听器解析（罐头输出）', () => {
     expect(parsed[2]).toMatchObject({ port: 8787, addr: '127.0.0.1', pid: 999 })
   })
 
-  it('真机 lsof 不可用时降级为 warning 不抛（runner 注入抛错）', async () => {
-    const boom: CommandRunner = async () => {
+  it('真机命令不可用时降级为 warning 不抛（runner 注入抛错）', async () => {
+    // 查听命令本身分平台（darwin/linux=lsof，win32=netstat -ano），warning 前缀跟着命令名走
+    const expected =
+      process.platform === 'win32'
+        ? { file: 'netstat', args: ['-ano', '-p', 'tcp'], prefix: 'netstat 查询失败' }
+        : { file: 'lsof', args: ['-nP', '-iTCP', '-sTCP:LISTEN'], prefix: 'lsof 查询失败' }
+    let invoked: { file: string; args: string[] } | undefined
+    const boom: CommandRunner = async (file, args) => {
+      invoked = { file, args }
       throw new Error('command not found')
     }
     const r = await listListeners(boom)
     expect(r.listeners).toEqual([])
-    expect(r.warning).toContain('lsof 查询失败')
+    expect(invoked).toEqual({ file: expected.file, args: expected.args })
+    expect(r.warning).toContain(expected.prefix)
   })
 })
 
@@ -196,12 +204,22 @@ describe('GET /api/projects/:id/ports', () => {
     expect(created.status).toBe(201)
     const pid = created.json.id
 
-    const fakeRunner: CommandRunner = async (_file, _args) =>
-      [
-        'COMMAND   PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME',
-        'node    111  duke   18u  IPv4 0x1 0t0  TCP 127.0.0.1:4321 (LISTEN)',
-        'node    222  duke   19u  IPv4 0x2 0t0  TCP *:8787 (LISTEN)',
-      ].join('\n')
+    // 夹具随 listListeners 的平台分支换形：win32 跑 parseNetstatListen，喂 lsof 文本会解出 0 条
+    const isWin = process.platform === 'win32'
+    const fakeRunner: CommandRunner = async () =>
+      (
+        isWin
+          ? [
+              '  Proto  Local Address          Foreign Address        State           PID',
+              '  TCP    127.0.0.1:4321         127.0.0.1:0            LISTENING       111',
+              '  TCP    0.0.0.0:8787           0.0.0.0:0              LISTENING       222',
+            ]
+          : [
+              'COMMAND   PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME',
+              'node    111  duke   18u  IPv4 0x1 0t0  TCP 127.0.0.1:4321 (LISTEN)',
+              'node    222  duke   19u  IPv4 0x2 0t0  TCP *:8787 (LISTEN)',
+            ]
+      ).join('\n')
 
     // 直接用 lib 组装（路由的注入点在 registerPortRoutes；此处走 buildApp 默认路径,
     // 但为了不依赖真机 lsof 的具体进程名，合并逻辑用注入 runner 独立验证一次）
@@ -217,7 +235,8 @@ describe('GET /api/projects/:id/ports', () => {
     expect(merged[0]).toMatchObject({
       port: 4321,
       state: 'listening',
-      process: 'node',
+      // netstat -ano 不含进程名，解析器统一补 'netstat' 占位（port-scan.ts:278）
+      process: isWin ? 'netstat' : 'node',
       pid: 111,
       url: 'http://localhost:4321',
     })

@@ -1734,3 +1734,40 @@
 - **修法（当场做完）**：① 通道一 = 逐路径 `git update-index --cacheinfo 100644,$(git rev-parse <new>:<path>),<path>`，`^MM` 计数由 **5 → 0**；② 通道二 = 三方合并把本笔行合回磁盘（`git merge-file -L worktree -L 7e8d82a -L 938fc31 <工作树副本> <base> <new>`，只在**无冲突标记**且**写回前工作树内容与读入快照逐字节相同**（CAS）才落盘，只动自己的行、并行会话的 284/5-4/1-1/3-3 行原样保留）。四个文件里三个自动合上，`docs/decisions.md` **报冲突 rc=3** ⇒ 按人工处置（见下）。合后复核：`grep -c '^## \[DEV-0076\]' DEV_LOG.md` = 1、`^| D23 |` = 1、`^| v0.1.8 |` = 1、`^| ㉓ |` = 1、`| 14 | **M7 团队协作**` = 1，且并行会话的 `533/533` 与 `| ㉒ | ` **两处仍在**。
 - **撞出的实质分歧（不是文本冲突）**：并行会话在本笔之后立了队列 **㉒**（他人项目名匿名化，**待裁**）并把净状态改成「待裁 2（㉑+㉒）」，与本笔的「待裁 2（㉑+㉓残留）/ 已裁已落 18」正面相撞。处置按 `docs/decisions.md` 自带的 **㉑ 先例**定规矩：**带开放子问的行只计一次、且归「待裁」**——本笔初稿把 ㉓ 记进「已裁已落 17→18」是**我自己的计数错**，双计了同一行。改判后：磁盘版（含 ㉒）「待裁 **3** / 已裁已落 **17**」对 23 行闭合，提交版（不含 ㉒）「待裁 **2** / 已裁已落 **17**」对 22 行闭合；两份都逐行按状态列现数复算过，脚本口径 = 取每行第 3 列前缀分类。
 - **纪律建议（待 owner 认，两条同批）**：① `update-ref` 之后必须紧跟「主索引修复 + 工作树合回」两步，并把 `git status --porcelain | grep -c '^MM'` = **0** 与 `git diff --numstat` 的删除列 = **并行会话的行数而非本笔行数** 一起当收口凭据；② 走 plumbing 的文档提交，**落库前应先看目标文件是否带 ` M`**——带则默认会撞面，宜提前把本笔行设计成**追加式**（本笔的 D23/㉓/§15.1-14 三行都是表格内插入，位置敏感，这才导致 `merge-file` 需要人工处置）。
+
+## [DEV-0077] win32 的红不止 `[DEV-0074]` 数的两处：端口面板 2 条平台耦合断言 + onboarding 1 条 5s 闸口超时 · 附「darwin 无法自证 win32」这条口径的**部分推翻**
+
+- **时间**: 2026-10-01 10:1x（开工钉 sha `ca78742`；本笔**动测试与门禁配置**，不是纯文档轮次）
+- **类型**: §0.3 **C 级**（测试断言 + vitest 配置；零产品代码、零契约、golden 未动）
+- **关联文件**: `apps/server/test/ports.api.test.ts`（三处）、`vitest.config.ts:22-27`（integration project 一处）
+- **问题描述**: `main` 当前在 CI 上是**红的**——run `36796390998` @ `6246cb7`：ubuntu / macos success、**windows-latest failure**（取数 `gh run view 36796390998 --json jobs`，结论只认 `--json`）。`[DEV-0074]` 把它数成「失败面全部落在端口面板一套的 **2 条断言**」，本笔读同一份日志（job `110160693538`）**否证**：`Failed Tests 3`，分布在 2 个文件——除 ports 两条外还有 `apps/server/test/onboarding.api.test.ts:262` 的 `IT-ONB-09`，失败形状是 `Error: Test timed out in 5000ms`，与平台耦合无关。**两类要两种修法**：只修断言，main 仍红。
+- **实现思路**: ① **断言类**不改产品，让断言跟着平台分支，并把「本平台实调了哪条命令 + argv」钉进断言——原写法只验到本机那半条路径，win32 走 netstat 分支这件事**从未被断言过**。② **超时类**不抬单支而抬 project 闸口：`IT-ONB-09` 本机 40ms、win32 7845ms，同文件另有 3821 / 3690 / 3559 / 3128 四支贴着 5s ⇒ 病在闸口不在用例，只给 `IT-ONB-09` 加 timeout 等于留下四支随机爆红。先例是同文件 `cli` project 的 `testTimeout: 30_000` 与它那句「默认值会掩盖成超时失败」。
+- **核心变更**:
+  - `ports.api.test.ts` 「真机 lsof 不可用时降级…」→ 「真机命令不可用时降级…」：期望按 `process.platform` 取 `{file, args, prefix}`，**新增** `expect(invoked).toEqual({file, args})` 断言实调命令与参数，warning 前缀随命令名走。
+  - 同文件 `fakeRunner` 的罐头表按平台给形（win32 给 `netstat -ano` 的 `LISTENING` 行，其余给 lsof 表），合并断言里 `process` 随平台取 `'netstat'`（占位，见净发现 3）或 `'node'`。
+  - `vitest.config.ts` integration project 加 `testTimeout: 20_000`（对实测最慢仍留 2.5x 余量），注释带 CI run 号与四个实测耗时，让后来者知道闸口为什么不是 5s。
+- **测试验证**（RED→GREEN 全部本机取到，win32 用**仿真**）:
+
+  | 探针 | 命令 | 实测 |
+  |---|---|---|
+  | 改前 darwin 基线 | `npx vitest run --project integration apps/server/test/ports.api.test.ts` | **8 passed**，110ms |
+  | 改前 win32 仿真 **RED** | `npx vitest run --config /tmp/ov-win/win32.config.ts`（`setupFiles` 一行把 `process.platform` 改成 `win32`） | **2 failed / 6 passed**：`expected 'netstat 查询失败：command not found' to contain 'lsof 查询失败'`；`{port: 4321, state: 'idle'}` vs 期望 `listening / pid 111 / process node` ⇒ 与 CI 三条失败里的两条**逐字相同** |
+  | 改后 win32 仿真 | 同上 | **8 passed**（57ms） |
+  | 改后 darwin | 同基线命令 | **8 passed**（107ms） |
+  | 变异反证（夹具不可互换） | `npx tsx /tmp/ov-win/cross.mts` | lsof 表进 netstat 解析器 **[]**、netstat 表进 lsof 解析器 **[]**、各自对口解析 **2 / 2** 条 ⇒ 「按平台换夹具」是承重不是装饰；实调命令 `win32 → ["netstat",["-ano","-p","tcp"]]`、`darwin / linux → ["lsof",["-nP","-iTCP","-sTCP:LISTEN"]]` |
+  | 全量串行（工作树） | `npx vitest run --no-file-parallelism` | **57 文件 / 533 支全绿**，21.69s |
+  | eslint | `npx eslint apps/server/test/ports.api.test.ts` | rc=0 |
+  | typecheck 分账 | `npx tsc --noEmit -p tsconfig.json` | 全仓 **6 条** error 全在 `packages/core/src/repos/skills.test.ts`（并行会话未提交文件，本笔未触碰）；本笔两文件 **0 条** |
+  | golden | `git diff --name-only tests/golden \| grep -c .` | **0** ⇒ 非 A 级 |
+
+- **失败支数的两本账**: CI 现测提交树 **527**（516 passed + 8 skipped + 3 failed，Test Files 2 failed / 55 passed）；本笔工作树 **533**——差 6 支在并行会话未提交的用例里。本笔不替那些路径记数，提交树权威数仍以推上去后 CI 复跑为准。
+- **被本笔推翻的一条（自己上一轮的数）**: `[DEV-0074]`「失败面全部落在端口面板一套（`db6bb8d` 引入）的 2 条断言」→ 同一 run 实为 **3 条失败 / 2 个文件**，第三条属超时类、与端口面板无关。**错因**：从「平台耦合」这个假设出发挑了两条就没读完 `Failed Tests 3` 那行——**数失败面要读汇总行，不能从自己的假设反推清单**。原叙述按写作时点保留，不回改。
+- **潜在风险**:
+  1. **仿真 ≠ 真机 win32**：netstat 二进制没真跑过（测试全程注入 runner），`assertScannableDir` 与 `packExportDir` 在 Windows 短路径（日志里可见 `C:\Users\RUNNER~1\…`）与大小写不敏感盘上的面本笔未碰 ⇒ 推上去仍可能出新的红。
+  2. 抬 `testTimeout` 把真 hang 的暴露点从 5s 推到 20s：代价是 CI 反馈慢 15s，收益是不再有 3.8s 级用例随机爆红。若 `IT-ONB-09` 真机慢过 20s，该查的是导出路径而不是闸口。
+  3. 本笔动的是**根配置**（四个 project 里的 integration 一侧）——提交前实测 `vitest.config.ts` 不在并行会话的 17 个 ` M` 文件内；`vite.config.ts`（apps/web，他们正在改）与本笔无关，两个名字像但不是同一份。
+- **净发现（可复用）**:
+  1. **`process.platform` 可在进程内仿真**：`Object.getOwnPropertyDescriptor(process,'platform')` → `{value:'darwin', writable:false, configurable:true}`，`Object.defineProperty(process,'platform',{value:'win32',configurable:true})` 立即生效 ⇒ 一份放 `/tmp` 的临时 vitest config（`root` 指仓库 + `setupFiles` 一行）就能在 darwin 上拿到 win32 分支的 RED→GREEN 凭据。**这部分推翻** `[DEV-0074]` 的「本机 darwin 无法自证 win32 变绿，凭据只能是推上去让 CI 复跑」——**分支选择与纯文本解析类可本机自证**；真跑系统命令、真机 IO 时序那类仍只能靠 CI。临时 config 不入库。
+  2. **win32 runner 的 IO 比本机慢 10–50 倍**（同支 `IT-ONB-09` 40ms → 7845ms）：凡「真实 SQLite 播种 + 落盘导出」的 integration 用例，5s 默认闸口在本项目是系统性风险而非个案。判据形状：先看失败时长与失败类型（超时 vs 断言），**别把超时当断言修**。
+  3. **`netstat -ano` 没有进程名，占位值直通 UI**（本笔顺手查出，属产品面，不在本笔改）：`port-scan.ts:278` 把 `process` 硬编为 `'netstat'`，实测两行监听都解成 `["netstat","netstat"]`，而 `PortsPanel.tsx:70` 把它当进程名显示成 `netstat·111` ⇒ **win32 上每个监听都标成进程「netstat」**，是显示层的假事实。三种处置（用 `tasklist` 反查 / 只显示 pid / 文案改「进程名未知」）各有代价，且本机不可验 ⇒ 待 owner 裁。
+  4. **main 变红没有闸**：`6246cb7` 推上去后红了一个自然日才被读到。若 owner 愿意，最小接住物是推送前先 `gh run list --branch main -L 1 --json conclusion`（本仓 `openvibe-progress-audit` 已有这套取数口径）——「推分支 = 零 run、推 main = 三平台 run」，这一步只花一秒。

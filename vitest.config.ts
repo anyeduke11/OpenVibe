@@ -20,6 +20,10 @@ export default defineConfig({
           name: 'integration',
           environment: 'node',
           include: ['apps/server/test/**/*.test.ts'],
+          // 同 cli project 那条理由，win32 runner 上复现过一次：真实 SQLite 播种 + 导出落盘
+          // 在 windows-latest 比本机慢 10–50 倍，run 36796390998 实测单支最高 7845ms（越过默认 5s 判超时），
+          // 另有 3821 / 3690 / 3559 / 3128 四支贴着闸口 ⇒ 抬到 20s（对实测最慢仍有 2.5x 余量，真卡死仍会红）
+          testTimeout: 20_000,
         },
       },
       {
