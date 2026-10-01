@@ -9,6 +9,7 @@ import {
   PACK_SECTION_ORDER,
   PACK_TITLE,
   PackSelection,
+  ProjectPortsOut,
   PromptCreateInput,
   SCHEMA_VERSION,
   TermCreateInput,
@@ -178,5 +179,18 @@ describe('UT-PACKCONTRACT-01 · 标准包正文契约常量（design §7.3/§7.4
       'CLAUDE.md',
     ])
     expect(compareCodeUnit('x', 'x')).toBe(0)
+  })
+})
+
+describe('UT-PORTS-01 · 端口台账出参契约（m5 FR-8）', () => {
+  const base = { projectPath: '/repo/demo', scannedFiles: [], services: [], listeners: [] }
+
+  it('projectPath 承认空串：未登记 localPath 是合法出参，不是缺键也不是 4xx（owner 裁 ㉖(a)①）', () => {
+    expect(ProjectPortsOut.safeParse(base).success).toBe(true)
+    expect(ProjectPortsOut.safeParse({ ...base, projectPath: '' }).success).toBe(true)
+    // 放宽的只有长度，不是可选性：键缺席仍应被拒
+    const missing = { ...base } as Record<string, unknown>
+    delete missing.projectPath
+    expect(ProjectPortsOut.safeParse(missing).success).toBe(false)
   })
 })

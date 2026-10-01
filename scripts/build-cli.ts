@@ -1,9 +1,9 @@
 /**
- * pkg:cli —— 把 workspace 形态的 CLI 变成可发布的 `openvibe-cli` 单文件包（T9-2）。
+ * pkg:cli —— 把 workspace 形态的 CLI 变成可发布的 `openvibe` 单文件包（T9-2，发布名见 D24）。
  *
  * 为什么必须有这一步（实测于 `bbf5fc2`，见 DEV-0019 之后的 T9 开工盘点）：
  * `apps/cli/package.json` 是 `private: true` + `bin → ./src/index.ts` 且**没有任何 build 脚本**，
- * 而 bootstrap/seed-dir 的产物路径按 monorepo 布局解析——`npx openvibe-cli serve --open`
+ * 而 bootstrap/seed-dir 的产物路径按 monorepo 布局解析——`npx openvibe serve --open`
  * 在今天的仓库形态下起不来（onboarding §7 验收 1 的第一条命令不成立）。
  *
  * 产出的暂存包（`apps/cli/pkg/`，gitignore）：
@@ -38,8 +38,8 @@ const DIST_WEB = join(REPO, 'apps', 'web', 'dist')
 const SEED_DIR = join(REPO, 'content', 'seed')
 const MIGRATIONS_DIR = join(REPO, 'packages', 'core', 'src', 'db', 'migrations')
 
-/** D17 定案：npm 包名与冷启动命令 `openvibe-cli`（`openvibe` 已被占），装后 bin 为 `openvibe` */
-export const PUBLISH_NAME = 'openvibe-cli'
+/** D24（2026-10-01）把发布名改回 `openvibe`；D17 那条「已被占」的前提经复算作废。bin 仍 `openvibe` */
+export const PUBLISH_NAME = 'openvibe'
 /**
  * 不带 `./` 前缀：`npm publish` 的 normalize 会把 `./dist/cli.js` 改写成 `dist/cli.js`
  * 并打一条误导性的「was invalid and removed」警告（实测 npm 11）。写成品即可让

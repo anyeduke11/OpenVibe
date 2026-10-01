@@ -117,10 +117,10 @@ describe('WEB-PORTS · 端口台账卡的合并渲染（m5 FR-8 §7-11 的显示
     expect(screen.queryByText(zh.projects.ports.noPath)).toBeNull()
   })
 
-  it('07 本机监听清单当前不进台账：listeners 三条而 services 空 ⇒ 只有 empty 文案、没有表', () => {
-    // 钉的是**现状**而非应然：schema 注释（packages/shared/src/schemas/ports.ts）写着 listeners
-    // 「供『未声明的本机监听』参考区」，而卡上没有那个参考区。将来真要建，这支必须同笔改判并回
-    // spec 加验收条目——不能让一个字段悄悄变成 UI。
+  it('07 本机监听清单不进台账：listeners 三条而 services 空 ⇒ 只有 empty 文案、没有表', () => {
+    // 钉的是**契约**：`listeners` 自 owner 裁 ㉖(b) 起定性为「services 的合并输入、不出 UI」，
+    // schema 侧不再 promise 参考区。将来真要建那一区，得先回 `m5` 加验收条目再改这支——
+    // 不能让一个字段悄悄变成 UI。
     render(
       <PortsPanel
         data={outOf({

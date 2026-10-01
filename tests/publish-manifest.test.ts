@@ -8,7 +8,7 @@ import { publishManifest } from '../scripts/build-cli'
 /**
  * T9a-2 发布清单门禁（SCRIPT-PKG）。
  *
- * 为什么值得钉成用例而不是走查笔记：`openvibe-cli` 是**单文件 bundle**，暂存清单必须把
+ * 为什么值得钉成用例而不是走查笔记：发布包是**单文件 bundle**，暂存清单必须把
  * 四个 `@openvibe/*` workspace 依赖整个摘掉（npm 上不存在这些包，留着就装不上），
  * bin 必须指向编译产物（现仓库的 `./src/index.ts` 在发布包里根本执行不了）。
  * 另外 `pnpm publish --dry-run` 只会生成临时清单，不替仓库补 license/repository/engines——
@@ -31,9 +31,12 @@ const built = (): Record<string, unknown> =>
   })
 
 describe('发布暂存清单（T9a-2 · SCRIPT-PKG）', () => {
-  it('SCRIPT-PKG-01: bin 指向编译产物，包名与 bin 命令按 D17 定案', () => {
+  it('SCRIPT-PKG-01: bin 指向编译产物，包名按 D24 改回 openvibe、bin 命令不变', () => {
     const m = built()
-    expect(m.name).toBe('openvibe-cli')
+    // D17 的「`openvibe` 已被占」前提于 2026-10-01 复算作废：registry 返 200 但 `versions:0`、
+    // `dist-tags:{}`，21 个历史版本号外加一个 `unpublished` 键 ⇒ 全部下架、名字可占。
+    expect(m.name).toBe('openvibe')
+    expect(JSON.stringify(m.name)).not.toContain('openvibe-cli')
     // 与 npm publish 的 normalize 结果一致（它会把 './dist/cli.js' 改写成 'dist/cli.js'），
     // 这样沙箱里装过的清单与 npm 上用户装到的清单是同一份
     expect(m.bin).toEqual({ openvibe: 'dist/cli.js' })

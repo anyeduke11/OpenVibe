@@ -56,11 +56,12 @@ export const PortStatus = z.object({
 export type PortStatus = z.infer<typeof PortStatus>
 
 export const ProjectPortsOut = z.object({
-  projectPath: z.string().min(1),
+  /** 已登记的 localPath；未登记时是**空串**（不是缺键、也不是 4xx），所以此处不能加 `min(1)` */
+  projectPath: z.string(),
   /** 本次认读过的文件（仓库相对路径，空目录/无声明为空数组） */
   scannedFiles: z.array(z.string()),
   services: z.array(PortStatus),
-  /** 本机全部 TCP LISTEN 监听器（供「未声明的本机监听」参考区） */
+  /** 本机全部 TCP LISTEN 监听器：只作 services 的合并输入，不出独立清单（owner 裁 ㉖(b)） */
   listeners: z.array(PortListener),
   /** 监听扫描器不可用/失败时的降级说明（lsof 缺失、权限不足等），正常为空 */
   listenersWarning: z.string().optional(),
