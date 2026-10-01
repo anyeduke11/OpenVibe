@@ -119,11 +119,17 @@ function startHolder(project: string): Holder {
 /** 等锁落到盘上并核对归属，返回锁的绝对路径与逐字节原文（供事后比对「他人的锁原样在」） */
 async function waitLocked(project: string, holderPid: number | undefined) {
   const lockAbs = join(project, SYNC_LOCK_REL)
-  // 夹具靠 stdin 生命周期持锁，拿不到异步握手 → 轮询锁文件出现（5s 兜底）
-  for (let i = 0; i < 100 && !existsSync(lockAbs); i += 1)
+  // 夹具靠 stdin 生命周期持锁，拿不到异步握手 → 轮询到「读得出内容」为止（5s 兜底）。
+  // 只轮询 existsSync 会红：acquire 走 `{ flag: 'wx' }`，O_EXCL 的 open 与写内容之间锁文件以
+  // 0 字节可见（`packages/core/src/inject/sync-lock.ts` 的 `SYNC_LOCK_REREAD_LIMIT` 段实测），
+  // 产品侧 inspect() 有界重读让过那一瞬，测试侧抢先 JSON.parse('') 就抛 SyntaxError。
+  let content = ''
+  for (let i = 0; i < 100; i += 1) {
+    if (existsSync(lockAbs)) content = readFileSync(lockAbs, 'utf8')
+    if (content !== '') break
     await new Promise((r) => setTimeout(r, 50))
-  expect(existsSync(lockAbs), '夹具未在 5s 内抢到锁').toBe(true)
-  const content = readFileSync(lockAbs, 'utf8')
+  }
+  expect(content, '夹具未在 5s 内写出锁内容').not.toBe('')
   // 「场上有一把锁文件」不等于「spawn 出来的那个进程持有它」：归属以盘上 pid 为准（承 sync-lock.test.ts:159）
   const held = JSON.parse(content) as { pid: number; command: string }
   expect(held.pid).toBe(holderPid)

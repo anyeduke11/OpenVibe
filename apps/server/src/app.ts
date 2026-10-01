@@ -8,7 +8,7 @@ import { registerDevLogRoutes } from './routes/devlog'
 import { registerFlowTemplateRoutes } from './routes/flowTemplates'
 import { registerPackRoutes } from './routes/packs'
 import { registerProjectRoutes } from './routes/projects'
-import { registerPortRoutes } from './routes/ports'
+import { type PortRouteDeps, registerPortRoutes } from './routes/ports'
 import { registerPromptRoutes, type PromptRouteDeps } from './routes/prompts'
 import { registerSettingsRoutes, type SettingsRouteInput } from './routes/settings'
 import { registerSkillRoutes } from './routes/skills'
@@ -32,6 +32,8 @@ export interface BuildAppOptions {
   settings?: Partial<SettingsRouteInput>
   /** skill 远程取数实现（DEV-0067 测试注入点；缺省全局 fetch，出站走 http-guard） */
   remoteFetchImpl?: typeof fetch
+  /** 本机端口监听查询实现（m5 FR-8 测试注入点；缺省走真机 lsof / netstat） */
+  listListenersImpl?: PortRouteDeps['listListenersImpl']
 }
 
 export interface BuiltApp {
@@ -65,7 +67,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerFlowTemplateRoutes(app, deps)
   registerPackRoutes(app, deps)
   registerProjectRoutes(app, deps)
-  registerPortRoutes({ db })(app)
+  registerPortRoutes({ db, listListenersImpl: options.listListenersImpl })(app)
   registerTaskRoutes(app, deps)
   registerDevLogRoutes(app, deps)
   registerSkillRoutes(app, { ...deps, fetchImpl: options.remoteFetchImpl })

@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
 import { buildApp } from '../src/app'
+import type { PortRouteDeps } from '../src/routes/ports'
 import {
   listListeners,
   parseLsofListen,
@@ -23,9 +24,11 @@ interface Harness {
 
 const openHandles: Harness[] = []
 
-async function makeHarness(): Promise<Harness> {
+async function makeHarness(
+  listListenersImpl?: PortRouteDeps['listListenersImpl'],
+): Promise<Harness> {
   const handle = newDb()
-  const { app } = await buildApp({ db: handle.db, token: TOKEN })
+  const { app } = await buildApp({ db: handle.db, token: TOKEN, listListenersImpl })
   const h: Harness = { app, handle, root: mkdtempSync(join(tmpdir(), 'ov-ports-')) }
   openHandles.push(h)
   return h
@@ -181,7 +184,24 @@ describe('port-scan · 监听器解析（罐头输出）', () => {
 })
 
 describe('GET /api/projects/:id/ports', () => {
-  it('声明 × 监听合并：监听中的带进程与 url，未监听 idle；未登记路径返回空台账', async () => {
+  /** 内存库无种子：先自建一条最小模板再挂项目（与 flow.api.test.ts 同法） */
+  async function mkProject(h: Harness, localPath?: string): Promise<string> {
+    const tpl = await api<{ id: string }>(h, 'POST', '/api/flow-templates', {
+      name: '端口测试模板',
+      kind: 'custom',
+      stages: [{ name: '开发', checklist: [], artifacts: [] }],
+    })
+    expect(tpl.status).toBe(201)
+    const created = await api<{ id: string }>(h, 'POST', '/api/projects', {
+      name: '演示项目',
+      flowTemplateId: tpl.json.id,
+      ...(localPath === undefined ? {} : { localPath }),
+    })
+    expect(created.status).toBe(201)
+    return created.json.id
+  }
+
+  it('声明 × 监听合并：监听中的带进程与 url，未监听 idle', async () => {
     const h = await makeHarness()
 
     // 造一个项目目录：.env 声明 4321；注入 runner 假装 4321 在听、8787 也在听
@@ -246,6 +266,65 @@ describe('GET /api/projects/:id/ports', () => {
     expect(res.status).toBe(200)
     expect(res.json.projectPath).toBe(projDir)
     expect(Array.isArray(res.json.services)).toBe(true)
+  })
+
+  it('未登记 localPath ⇒ 空台账且 HTTP 200（projectPath 是空串，不是缺键也不是 4xx）', async () => {
+    // m5 §6-7 / §7-7 那条 promise 此前只活在上一支的标题里，正文从未建过「没有路径」的项目。
+    const h = await makeHarness()
+    const pid = await mkProject(h)
+    const res = await api<Record<string, unknown>>(h, 'GET', `/api/projects/${String(pid)}/ports`)
+    expect(res.status).toBe(200)
+    expect(res.json.projectPath).toBe('')
+    expect(res.json.services).toEqual([])
+    expect(res.json.scannedFiles).toEqual([])
+    // 「只有本机监听清单」不要求非空（CI 上可能真的扫不到），只要求形状在
+    expect(Array.isArray(res.json.listeners)).toBe(true)
+  })
+
+  it('localPath 指向已消失的目录 ⇒ 声明侧置空 + listenersWarning 说明原因，本机监听照报', async () => {
+    // 注入一个「干净可用」的监听实现：否则 CI 上 lsof 缺失也会填上 listenersWarning，
+    // 那条断言就分不清是目录原因还是扫描器原因（本机 darwin 有 lsof，红了也看不出来）。
+    const h = await makeHarness(async () => ({ listeners: [] }))
+    const gone = join(h.root, 'gone')
+    const pid = await mkProject(h, gone)
+    const res = await api<Record<string, unknown>>(h, 'GET', `/api/projects/${String(pid)}/ports`)
+    expect(res.status).toBe(200)
+    expect(res.json.projectPath).toBe(gone)
+    expect(res.json.services).toEqual([])
+    expect(res.json.scannedFiles).toEqual([])
+    expect(typeof res.json.listenersWarning).toBe('string')
+    expect(String(res.json.listenersWarning).length).toBeGreaterThan(0)
+  })
+
+  it('路由级合并（注入监听实现）：监听中的带 process/pid/url，未监听的三者一律缺席', async () => {
+    // 上一支的 route 级断言只有 `Array.isArray(services)`——它只能证明「没抛」。端口是易变态，
+    // 真机 lsof 在 CI 上给什么全凭运气，所以合并语义要端到端钉住就必须有注入点（本轮补上
+    // buildApp 缺的那一层转发：registerPortRoutes 本来就收 listListenersImpl）。
+    type Row = { port: number; state: string; process?: string; pid?: number; url?: string }
+    const h = await makeHarness(async () => ({
+      listeners: [{ port: 4321, addr: '127.0.0.1', process: 'node', pid: 111 }],
+    }))
+    const projDir = join(h.root, 'proj')
+    mkdirSync(projDir)
+    writeFileSync(join(projDir, '.env'), 'PORT=4321\n')
+    writeFileSync(join(projDir, 'docker-compose.yml'), 'services:\n  web:\n    ports:\n      - "8787:80"\n')
+    const pid = await mkProject(h, projDir)
+
+    const res = await api<{ services: Row[] }>(h, 'GET', `/api/projects/${String(pid)}/ports`)
+    expect(res.status).toBe(200)
+    expect(res.json.services).toHaveLength(2)
+    const byPort = new Map(res.json.services.map((s) => [s.port, s]))
+    expect(byPort.get(4321)).toMatchObject({
+      state: 'listening',
+      process: 'node',
+      pid: 111,
+      url: 'http://localhost:4321',
+    })
+    const idle = byPort.get(8787)
+    expect(idle?.state).toBe('idle')
+    expect(idle?.process).toBeUndefined()
+    expect(idle?.pid).toBeUndefined()
+    expect(idle?.url).toBeUndefined()
   })
 
   it('不存在的项目 404', async () => {

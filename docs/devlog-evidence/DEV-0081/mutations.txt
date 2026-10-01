@@ -1,0 +1,54 @@
+# 变异对照实录 · DEV-0081 · 端口面板 7 支 DOM 腿 + 端口端点 3 支新腿
+# 复算：python3 docs/devlog-evidence/DEV-0081/mutation-check.py
+# 采样：2026-10-01 11:21 +0800 · 开工钉 sha 30e7fee · 被测树含本笔未提交改动
+
+=== 变异对照（改坏 → 跑该测试文件 → 还原）===
+M1 进程列无条件拼 process·pid（idle 不再降级）
+   rc=1  Tests  1 failed | 6 passed (7)
+   RED: × WEB-PORTS · 端口台账卡的合并渲染（m5 FR-8 §7-11 的显示侧） > 02 未监听的行一律降级：进程列与打开列都是「—」，整行没有任何链接 5ms
+   预期腿「02」 命中
+M2 warning 无条件渲染（去掉 !== undefined 闸）
+   rc=1  Tests  1 failed | 6 passed (7)
+   RED: × WEB-PORTS · 端口台账卡的合并渲染（m5 FR-8 §7-11 的显示侧） > 04 listenersWarning 有则原样印、无则该节点不存在（不是留一个空 <p>） 5ms
+   预期腿「04」 命中
+M3 未登记路径与无声明共用一条文案（noPath 退场）
+   rc=1  Tests  1 failed | 6 passed (7)
+   RED: × WEB-PORTS · 端口台账卡的合并渲染（m5 FR-8 §7-11 的显示侧） > 06 三种空卡互不串：未加载 / 未登记路径 / 有路径无声明各给各的文案 3ms
+   预期腿「06」 命中
+M4 打开链接丢掉 rel=noreferrer
+   rc=1  Tests  1 failed | 6 passed (7)
+   RED: × WEB-PORTS · 端口台账卡的合并渲染（m5 FR-8 §7-11 的显示侧） > 01 监听中的行三件套齐全：状态点文案==aria-label、进程列带 pid、打开列是真链接 55ms
+   预期腿「01」 命中
+M5 认读清单无条件渲染（去掉 scannedFiles.length>0 闸）
+   rc=1  Tests  1 failed | 6 passed (7)
+   RED: × WEB-PORTS · 端口台账卡的合并渲染（m5 FR-8 §7-11 的显示侧） > 05 认读清单：scannedFiles 非空才出现，且按、连接原样列出 4ms
+   预期腿「05」 命中
+M6 来源列丢掉 i18n 标签（直接印 source 枚举）
+   rc=1  Tests  1 failed | 6 passed (7)
+   RED: × WEB-PORTS · 端口台账卡的合并渲染（m5 FR-8 §7-11 的显示侧） > 03 来源列同时给中文标签与仓库相对路径（缺路径就无法解释这个端口从哪认出来的） 4ms
+   预期腿「03」 命中
+M7 空卡判据换成按 listeners 判（本机监听悄悄变成 UI）
+   rc=1  Tests  2 failed | 5 passed (7)
+   RED: × WEB-PORTS · 端口台账卡的合并渲染（m5 FR-8 §7-11 的显示侧） > 06 三种空卡互不串：未加载 / 未登记路径 / 有路径无声明各给各的文案 3ms
+   RED: × WEB-PORTS · 端口台账卡的合并渲染（m5 FR-8 §7-11 的显示侧） > 07 本机监听清单当前不进台账：listeners 三条而 services 空 ⇒ 只有 empty 文案、没有表 1ms
+   预期腿「07」 命中
+MA1 未登记路径改为抛错（真实产品行为是 200 空台账）
+   rc=1  Tests  1 failed | 10 passed (11)
+   RED: × GET /api/projects/:id/ports > 未登记 localPath ⇒ 空台账且 HTTP 200（projectPath 是空串，不是缺键也不是 4xx） 35ms
+   预期腿「未登记 localPath」 命中
+MA2 目录消失时不再给 listenersWarning（静默置空）
+   rc=1  Tests  1 failed | 10 passed (11)
+   RED: × GET /api/projects/:id/ports > localPath 指向已消失的目录 ⇒ 声明侧置空 + listenersWarning 说明原因，本机监听照报 9ms
+   预期腿「已消失的目录」 命中
+MA3 idle 行也补一个 pid:0（显示层发明事实）
+   rc=1  Tests  1 failed | 10 passed (11)
+   RED: × GET /api/projects/:id/ports > 路由级合并（注入监听实现）：监听中的带 process/pid/url，未监听的三者一律缺席 9ms
+   预期腿「路由级合并」 命中
+MA4 不转发注入点（验证 DI 缝承重、不是死代码）
+   rc=1  Tests  1 failed | 10 passed (11)
+   RED: × GET /api/projects/:id/ports > 路由级合并（注入监听实现）：监听中的带 process/pid/url，未监听的三者一律缺席 38ms
+   预期腿「路由级合并」 命中
+=== 还原复核 ===
+apps/server/src/app.ts: 与备份逐字节相同=True  git-vs-HEAD numstat=4	2	apps/server/src/app.ts
+apps/server/src/routes/ports.ts: 与备份逐字节相同=True  git-vs-HEAD numstat=0 行
+apps/web/src/components/projects/PortsPanel.tsx: 与备份逐字节相同=True  git-vs-HEAD numstat=0 行
