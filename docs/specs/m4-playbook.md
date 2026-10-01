@@ -6,8 +6,8 @@
 | 优先级 | Phase 2（**D22 勘误判归**，PRD 3.3「M2 完整版、M4、M7 进 Phase 2」+ 第 8 章 P2 行）；表内三行的 P1 是模块**内部**相对优先级，不构成进 MVP 的承诺 |
 | 上游 | PRD 3.2-M4（三行能力）、PRD D22、owner 裁定 ⑫（2026-09-26，`playbookIds` 闸的拆法） |
 | 下游设计 | design.md §5（数据模型 DDL）、§7.3（确定性顺序）、§7.4（各产物文件格式）、§7.6（指纹）、§7.7（路径与规模安全） |
-| 关联任务 | **无**。dev-plan §9 只到 T1–T9、tasks.md §2b 只到 T10–T11，全仓对 M4 的任务化落点为零（PRD D22 自陈此缺口）。开工闸的现行形态不是新 T 号而是 dev-plan **§15.1 裁定表**（痕迹闸在 §15.6 第 5 条）⇒ §8.2 待裁闭合后先入裁定表、再申请 T12。**本文件此刻不是开工依据** |
-| 版本 | **v0.9 草案（2026-09-30，DEV-0074 新建）**。非 v1.0：§8.2 **七处**「待裁」（①–⑦）未闭合前不满足 §0.4 第 1/3/4 条对「定稿八段式 + 验收可判定 + No spec no task」的要求；本轮纯新文件，未改任何既有规格。§7.5 三探针已跑完（① terms 关联口径、② 脏数据 0 行、③ NAV 七字实况），探针债不挡定稿，挡定稿的是那七处裁 |
+| 关联任务 | **无**。dev-plan §9 只到 T1–T9、tasks.md §2b 只到 T10–T11，全仓对 M4 的任务化落点为零（PRD D22 自陈此缺口）。开工闸的现行形态不是新 T 号而是 dev-plan **§15.1 裁定表**（痕迹闸在 §15.6 第 5 条）⇒ §8.2 **已于 2026-10-01 闭合**、规格升 v1.0。**但本文件仍不是开工依据**：剩下的前置是 dev-plan §15.1-9 的状态改判＋ `docs/tasks.md` 的 **T12 正式申请**（T12 此刻仍是空位，`[DEV-0078]`）。这两步没做，本格的实况就读作「无」 |
+| 版本 | **v1.0（2026-10-01，owner 七裁到账；登记见 `[DEV-0085]`）**。原 v0.9 自设的定稿闸是「§8.2 七处待裁未闭合」，现已闭合：**①③④⑤⑥⑦ 六条按表内推荐全采，② 亦按推荐采且判「不作废」**（作废它的那句更正只在未入库的工作树里，凭据与现测见 §8.2「裁定回填」）⇒ §0.4 第 1/3/4 条满足。**③ 裁不完整，留两处未覆盖**（`antiPractice` 无上限、`scenario` 的单位在「KB」与「字符」之间含糊），本文件把它们写在裁定里而不是替 owner 补一个数。v0.9 那句「本轮纯新文件，未改任何既有规格」是写作时点现状，按「日志不回改」原样留。§7.5 三探针已跑完（① terms 关联口径、② 脏数据 0 行、③ NAV 七字实况），探针债不挡定稿，挡定稿的是那七处裁 |
 
 ---
 
@@ -49,7 +49,7 @@
 | `seedHash` | 文本 | seed 项 | 幂等再跑，照 `TermsRepo.setSeedHash`（`packages/core/src/repos/terms.ts:255`） |
 | `createdAt` / `updatedAt` | ISO | — | 照 terms |
 
-长度上限进 `packages/shared/src/constants.ts` 的 `LIMITS` 对象，键名照 `termZhMax` / `termDefinitionMaxBytes` 律：`playbookScenarioMax`、`playbookProblemMaxBytes`、`playbookPracticeMaxBytes`、`playbookAntiPracticeMaxBytes`。**数值本 spec 不写死**（待裁③）。
+长度上限进 `packages/shared/src/constants.ts` 的 `LIMITS` 对象，键名照 `termZhMax` / `termDefinitionMaxBytes` 律：`playbookScenarioMax`、`playbookProblemMaxBytes`、`playbookPracticeMaxBytes`、`playbookAntiPracticeMaxBytes`。**数值 = ③ 已裁（2026-10-01）**：`playbookPracticeMaxBytes` 4 KB、`playbookProblemMaxBytes` 1 KB、`playbookScenarioMax` 1 KB（**单位待定**，见 §8.2 裁定回填 ③ 的第二处未覆盖）；`playbookAntiPracticeMaxBytes` 裁定未给数。
 
 ## 4. 功能需求（FR）
 
@@ -61,7 +61,7 @@
 ### FR-2 存储与检索
 1. 新迁移 `packages/core/src/db/migrations/0006_playbooks.sql`（现最高 `0005_skill_remote_tracking.sql`）：`CREATE TABLE playbooks` + FTS 影子表 `fts_playbooks` + `playbooks_fts_ai/ad/au` 三触发器，**逐形照** `0001_init.sql:56-71`（表）与 `:191-204`（FTS 与三触发器）。触发器与主表**同迁移**——分开发布是静默失效（建了表、检索永空）。
 2. 检索复用 terms 的做法：`PlaybooksRepo.search` 对齐 `TermsRepo.search`（`repos/terms.ts:217`）与 `termMatchRanges`（`:58`）的中文命中语义（design §12）。**不得自造分词器**。
-3. 幂等：`findByNaturalKey`（照 `:260`）+ `seedItemHash`（照 `:267`）。自然键取值属待裁④。
+3. 幂等：`findByNaturalKey`（照 `:260`）+ `seedItemHash`（照 `:267`）。自然键取值 = ④ 已裁：`(scenario, problem)` 复合键——同场景多条不同问题须共存，重灌不得静默 skip。
 4. `sortForMd` 同类逻辑必须走 `compareCodeUnit`（`packages/shared/src/pack-contract.ts`，禁 `localeCompare`——CI 三平台字节一致性依赖此，design §7.3/§7.6）。
 
 ### FR-3 API
@@ -89,7 +89,7 @@
 
 ### FR-7 组包接入
 1. `packages/core/src/pack/resolve.ts`：`ResolveDeps`（`:16-21`）加 `playbooks`；`StaleDetails`（`:45-50`）加 `playbookIds: string[]`；`resolvePack`（`:57`）用同一个 `pick`（`:30`）取快照并物化进 `ResolvedPack`（物化 map 形制照 terms `:112-118`）。
-2. `EMPTY_SELECTION`（`:92-97`）的判定链加入 playbooks 腿——否则「只选技巧」被拒时用户看不到归因。能否成包本身属待裁⑤。
+2. `EMPTY_SELECTION`（`:92-97`）的判定链加入 playbooks 腿——否则「只选技巧」被拒时用户看不到归因。能否成包本身 = ⑤ 已裁：**不能**（技巧缺场景上下文时单发价值低）。
 3. composer（`packages/core/src/pack/composer.ts`；terms 推送在 `:182`、skills 在 `:188-190`）push 新产物后，指纹（`:192-195` `fingerprintOf`）与 lock（`buildPackLock`，`packages/core/src/inject/lock.ts:27`，`files` 源自 `plan.files`）**应当无需改动即自动覆盖**——这条现在只是推断，必须由 §7.3 的变异反证转正：往 composer 加一条技巧产物后若指纹未变，说明 lock/指纹链有第二处硬编文件清单，届时先修链再谈 M4。
 4. token 估算必须收录新文件：`CONTEXT_AUX`（`apps/server/src/lib/pack-assemble.ts:88`）漏收 ⇒ m6a FR-6 的 ≈token 系统性低估（阈值与系数单源 `packages/core/src/pack/size.ts:13-16`）。
 5. 字节防线（`LIMITS.singleFileMaxBytes` / `packTotalMaxBytes`，现值 512KB / 2MB）自动适用于 `PLAYBOOKS.md`，警告不阻断的既有口径不改。
@@ -105,9 +105,9 @@
 
 ### FR-9 预置 seed
 1. 新文件 `content/seed/playbooks.json`，`{schemaVersion:1, items:[…]}` 形态照 `content/seed/terms.json`（该形态的断言在 `packages/core/src/db/seed.ts:79-82`）。
-2. 注册**两处**、缺一处就是「seed 写了但从不装载」：`BUNDLES`（`seed.ts:26-30`）加一行；`scripts/seed-check.ts` 加 `checkPlaybooks`（照 `checkTerms` `:125`）与 `THRESHOLDS`（`:24`，现有 `termsMin`）新键。门槛数值属待裁③。
+2. 注册**两处**、缺一处就是「seed 写了但从不装载」：`BUNDLES`（`seed.ts:26-30`）加一行；`scripts/seed-check.ts` 加 `checkPlaybooks`（照 `checkTerms` `:125`）与 `THRESHOLDS`（`:24`，现有 `termsMin`）新键。门槛数值 = ③ 已裁：`THRESHOLDS.playbooksMin = 10`（照现有 `termsMin: 100` 的形制）。
 3. 装载路径复用既有 `runSeed`（首启 `apps/server/src/bootstrap.ts:165`，目录由 `defaultSeedDir()` `apps/server/src/lib/seed-dir.ts:13`；重灌走 `apps/server/src/routes/settings.ts:122`）。**不新建装载入口。**
-4. 演示包是否自动带上精选技巧属待裁⑥（`apps/server/src/lib/default-pack.ts:83,231` 现硬编 `playbookIds: []`）。
+4. 演示包是否自动带上精选技巧 = ⑥ 已裁：**不进** `default` 演示包——`apps/server/src/lib/default-pack.ts:83` 的硬编 `playbookIds: []` 因此保持（`:231` 是选集透传，不是硬编），§7.4 的契约快照断言不动。
 
 ### FR-10 Web UI
 1. 新页 `apps/web/src/pages/PlaybooksPage.tsx` + `components/playbooks/`，路由 `/playbooks`，注册形制照 terms（`apps/web/src/App.tsx:14` lazy、`:37` Route）。
@@ -126,7 +126,7 @@
 1. `verified=true` 而 `evidence` 为空 ⇒ 422，归因到 `verified` 字段（FR-4.1 的收紧是双向的）。
 2. `related*` 指向已删除资产 ⇒ **照 terms 的既有语义：拒绝，不静默丢**，M4 不新造规则。三项同源证据（现取）：闸是模块私有函数 `validateRelatedIds`（`packages/core/src/repos/terms.ts:75`，非法即 `throw`，`:88-90`），`create` 在 `:123`、`update` 在 `:163` 各过一次；既有断言腿标题 `relatedTermIds 自指或引用不存在 → VALIDATION_ERROR`（`packages/core/src/repos/terms.test.ts:85`）。⇒ M4 的 `relatedPromptIds` / `relatedTermIds` / `relatedSkillIds` 三条共用同一把闸；§7.1 必须有对应的自指/不存在两型负向腿。
 3. `status` 从 `published` 改回 `draft` ⇒ 已导出实例不变（快照语义），只影响之后的重导。
-4. 空选集：`playbookIds: []` ⇒ 不产 `PLAYBOOKS.md`；「只选技巧、其余全空」能否成包属待裁⑤，未裁前 `resolvePack` 保持现行为（拒 `EMPTY_SELECTION`）。
+4. 空选集：`playbookIds: []` ⇒ 不产 `PLAYBOOKS.md`；「只选技巧、其余全空」能否成包 = ⑤ 已裁：**不能**，`resolvePack` 维持现行为（拒 `EMPTY_SELECTION`），归因须指到「只选了技巧」这一因。
 5. seed 自然键撞车 ⇒ 走 `runSeed` 既有的 `SeedBundleResult`（`seed.ts:17-24`）形态：计入 `skipped` 并留 warning，不报错、不产生第二条同键记录（用户改过 ⇒ seed_hash 为 NULL 的条目按既有纪律同样跳过）。
 6. 库中是否存在历史脏数据（拆闸期隐患）：闸自 `be0c885`（owner 裁 ⑫ 的落地笔）起就一直拦着，故 `standard_packs.selection`（`0001_init.sql:138`，表名 `standard_packs` 在 `:133`）JSON 里 `playbookIds` 非空**应为 0 行**；这不是假设，须由 §7.5 探针②实测为 0 才允许拆闸。若非 0，先做数据侧归零再拆。
 7. 迁移与 FTS 触发器不同批 ⇒ 检索静默永空（无报错面），§7.2 的建表腿必须同时断言三触发器存在。
@@ -182,7 +182,7 @@
 - 平级：`m6-standard-pack.md`（FR-8 的文档同步落点，见 §4 FR-8.3）、`m6-cli-injection.md`（注入与 lock 面）、`m3-glossary.md`（`relatedTermIds` 与 `related*` 同形态）、`m5-project-flow.md`（复盘回流的数据源 `dev_log_entries`；**注意 m5 现 v1.1 的 FR-8 是端口面板，本模块与它无关**）、`theme.md`（卡片形制与颜色闸）、`seed-content.md`（预置内容审校流程，M4 seed 若走同一审校闸须登记裁决列）。
 - 不做跨模块承诺：M4 不提供注入、不提供 skill 分发、不提供团队评审。
 
-### 8.2 待裁清单（owner 裁完才能升 v1.0；每条给候选与推荐）
+### 8.2 裁定记录（原「待裁清单」，2026-10-01 闭合；候选与推荐列按「日志不回改」原样留，裁定读下方的「裁定回填」）
 
 | # | 问题 | 候选 | 推荐 | 未裁的后果 |
 |---|---|---|---|---|
@@ -193,6 +193,30 @@
 | ⑤ | 「只选技巧、其余全空」能否成包；`verified` 是否参与排序 | 能 / 不能；参与 / 不参与 | **不能**（技巧缺场景上下文时单发价值低）、排序不参与（确定性优先） | `EMPTY_SELECTION` 归因写不出来 |
 | ⑥ | M4 精选技巧是否自动进 `default` 演示包 | 进 / 不进 | **不进**（首启零内容风险小，且演示包字节变了会牵动 §7.4 那条契约快照断言） | 开箱体验与契约快照谁先动，实现时才决定 = 返工 |
 | ⑦ | 待裁① 派生：选 A（独立文件）时，包**指纹与 lock 登记到底变不变** | 不变（新增文件名只在被选时出现）／变（正文交叉引用行 FR-7.6 改了主上下文文件字节） | 判**会改**并把它写成 FR-7.6 的靶心断言，而非等实现时才发现 | 「一个包能产几种字节」无人能答，`sync` 的漂移/冲突判定与 `clean` 的退场集合都会读成含糊 |
+
+**裁定回填（2026-10-01，owner 「六条全按推荐采」＋ ② 按推荐采，无一条改判）**
+
+- **① = A**：独立 `PLAYBOOKS.md`，不动 `PACK_SECTION_ORDER` 的四节冻结序 ⇒ FR-8.4 的零回归硬闸继续有效。
+- **③ = 推荐值**：`practice` 4 KB、`scenario` / `problem` 各 1 KB、`playbooksMin = 10`。**两处未覆盖，实现那笔必须回头问而不是替 owner 补数**：
+  (a) `playbookAntiPracticeMaxBytes` 表内没给值；(b) `playbookScenarioMax` 的**单位**含糊——该键名与 `termZhMax`（100 字符）同族、
+  按字符计数，而裁定写的是「1 KB」；`packages/shared/src/constants.ts` 的 `LIMITS` 里 `*Max` 与 `*MaxBytes` 是两套语义
+  （复算 `grep -n 'Max:\|MaxBytes:' packages/shared/src/constants.ts` 于 `e391310`）。把 1 KB 直接写成 1024 字节 = 静默选了一个单位。
+- **④ = `(scenario, problem)`** 复合自然键。
+- **⑤ = 不能成包**；`verified` **不参与排序**（确定性优先）。
+- **⑥ = 不进** `default` 演示包。
+- **⑦ = 判「会改」**：选 A 时包指纹与 lock 登记会变，写成 FR-7.6 的靶心断言，不等实现时才发现。
+
+**② 不作废——按表内推荐裁成「新增『巧』，不动 M2 既有字」。留这一整段的原因是它被作废的方式，不是它本身有多大**：
+本表上方那条 2026-10-01 更正写「② 已作废——书脊竖排侧栏已随 V2 换肤退场，凭据 `theme.md` §3.4」。**那句话只活在未入库的工作树里**，
+而它引的凭据自己也标着未落地。提交树（`e391310`）现测三件：
+① `apps/web/src/components/AppShell.tsx:21-28` 的 `NAV` 仍是「库 / 词 / 技 / 流 / 项 / 包 / 设」七字、「技」仍指 `/skills`；
+② `apps/web/src/index.css:188`「书脊侧栏的竖排」与 `:190` `writing-mode: vertical-rl` 仍在；
+③ `docs/specs/theme.md` 的 HEAD 版本行仍是 **v1.0**，**§3.4 整节不存在**（复算 `git show HEAD:docs/specs/theme.md | grep -c '撤销清单'` → **0**），
+`[V2 未落地]` 在 HEAD **0** 处、在工作树 **20** 处（同命令去掉 `git show HEAD:` 前缀即得工作树读数——两个数都现测，别只报一个）。
+**而 HEAD 版的 theme.md 恰恰是支撑 ② 的**：其 FR-5 第 6 条（HEAD 行 102）明写「M4 落地时不能占用「技」字，需另定单字（走本 FR 的 B 级修订）」
+——所以「新增一个单字」不是我挑的方案，是**已入库的上游 spec 对本模块提的要求**；把它连字带凭据一起判作废，等于同时否证一条 v1.0 的 FR。
+**它将来怎么退场**：V2 真把书脊撤掉并**入库**之后，② 随那次撤销自行作废（届时是「已裁已落后的作废」，与现在拿进行时当完成时不同），
+落点是 `theme.md` 的版本行 ＋ 本文件版本行 ＋ FR-10-2 三处同批改，缺一处就留下第二个真源。
 
 ### 8.3 M7 的边界（本 spec 不替 owner 决定）
 
