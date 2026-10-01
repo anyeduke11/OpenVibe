@@ -1772,6 +1772,13 @@
   3. **`netstat -ano` 没有进程名，占位值直通 UI**（本笔顺手查出，属产品面，不在本笔改）：`port-scan.ts:278` 把 `process` 硬编为 `'netstat'`，实测两行监听都解成 `["netstat","netstat"]`，而 `PortsPanel.tsx:70` 把它当进程名显示成 `netstat·111` ⇒ **win32 上每个监听都标成进程「netstat」**，是显示层的假事实。三种处置（用 `tasklist` 反查 / 只显示 pid / 文案改「进程名未知」）各有代价，且本机不可验 ⇒ 待 owner 裁。
   4. **main 变红没有闸**：`6246cb7` 推上去后红了一个自然日才被读到。若 owner 愿意，最小接住物是推送前先 `gh run list --branch main -L 1 --json conclusion`（本仓 `openvibe-progress-audit` 已有这套取数口径）——「推分支 = 零 run、推 main = 三平台 run」，这一步只花一秒。
 
+#### 10:5x–11:1x 补记（推后回读 CI：本笔押在「推上去才算数」的那一半已到账）
+
+- **真机 win32 数**（run **`36805454503`** @ `9d7661e`，`gh run view 36805454503 --json conclusion,jobs` 现测 `conclusion=success` 且三 job 全 `success`）：windows-latest `Test Files **57 passed (57)**`、`Tests **519 passed | 8 skipped (527)**`；ubuntu / macos 各 **527 passed / 0 skip**。**对照上轮同位 run**（`36796390998` @ `6246cb7`：win32 516 passed + **3 failed**）⇒ 本笔那三处改动（两条平台耦合断言 + integration `testTimeout` 20 s）在真机上判**过**，风险① 那句「推上去仍可能出新的红」没有落在本笔的改动面上。
+- **取数口径**（复现照此，别从 conclusion 反推支数）：`gh run view <run> --log` 后按 job 名筛含 `Test Files` / `Tests` 的汇总行，**ANSI 色码要先 `re.sub(r'\x1b\[[0-9;]*m','')` 剥掉**——带色码时 `re.search(r'Tests\s+\d')` 直接不命中，会给出「零失败支数」的假 0（同 `[DEV-0074]` 的探针静默归零族）。
+- **风险① 变了形但没清空**：真 `netstat` 二进制**确实被跑过一回了**——`apps/server/test/ports.api.test.ts` 的路由级用例走 `buildApp` 的默认 runner，win32 上即真发 `netstat -ano -p tcp`。但它只断「HTTP 200 + `services` 是数组」，**不断「解析出非零监听」**⇒ **「不炸」有凭据、「解得对」仍无**。`assertScannableDir` / `packExportDir` 在 Windows 短路径（`C:\Users\RUNNER~1\…`）与大小写不敏感盘上的面同前，未验。8 支 `it.skipIf(IS_WINDOWS)` 按既有口径记**未验证面**，不是通过。
+- **净发现④「main 变红没有闸」本轮再次兑现，且仍未修**：`e61a33d`（纯文档）推上去后 macos 冒烟腿随机红了一次（run `36805907062`），读到的方式是**顺手** `gh run list -L 3`，不是任何闸。那条腿的真因与处置在 `[DEV-0079]`；本笔那三处改动与它无关（驱动器代码两次 run 之间逐字节相同，凭据见 `[DEV-0079]` 归类段）。
+
 ## [DEV-0078] T13 登记落进 `docs/tasks.md` 新开的 **§2c（P2 任务组）** · dev-plan §15.1-14 的①就地转「已登记」· **T12 故意留空**
 
 - **时间**: 2026-10-01 10:2x（开工钉 sha `9d7661e`；本笔**纯文档**，零产品代码）。与上一笔 `9d7661e`（win32 测试与门禁）分开的理由是归属不同任务组，且并进去会让本笔的「零产品代码」声明失效（治理电池检查 7）。
@@ -1793,3 +1800,34 @@
   2. **T12 的洞是故意的**：M4 七裁闭合后须由那笔补 T12 行；在此之前 §2c 只有一个 T13，编号不连续属实况。
   3. 并行会话仍在写这两个文件，本笔按 `[DEV-0076]` 补记的两条静默回退通道做了主索引修复与工作树合回，收口凭据同样取 `^MM` = 0 与删除列 = 他们的行数。
 - **净发现（可复用）**: 凡文档里出现「等 X 落库后单独一笔补」的表述，**当场就要配一个可数的判据**（本笔是 `grep -c 'T13' docs/tasks.md` 由 0 → 2）。`DEV-0076` 把预留声明写进 spec 头部只是止血——预留声明本身也是一条悬空引用，它承诺的动作没有落点就等于没登记。
+
+## [DEV-0079] 常驻冒烟闸的 `SM-2c` 是**单发探针**：macos 随机红的真因不在产品树里 · 附 `[DEV-0077]` 的真机 win32 凭据、队列 ② 的「本机不可发已穷举」与**新立 ㉔**
+
+- **时间**: 2026-10-01 10:4x–11:1x（开工钉 sha `e61a33d`）。本笔动一个 tracked 脚本 + `DEV_LOG.md` + `docs/decisions.md` + 两份结果日志，**零产品代码**（`apps/` `packages/` `content/` `tests/` 一字未动）。
+- **类型**: §0.3 **C 级**（CI 常驻闸驱动器的判据形状；`docs/specs/**` 未触、`.github/workflows/ci.yml` 未改、`vitest.config.ts` 未改 ⇒ 不升 spec 版本行、不动门禁定义）。
+- **关联文件**: `docs/devlog-evidence/DEV-0025/three-smokes.mjs:583`（`SM-2c` 一条腿）、`docs/devlog-evidence/DEV-0079/three-smokes-{fixed,mutation}-20261001.txt`（两份 run 日志）、本登记、`docs/decisions.md`（行 ② 补记 + 新行 **㉔** + 净状态计数）。
+- **问题描述**: 远端 `main` 在 `9d7661e` 三平台绿之后，**下一笔 `e61a33d`（纯文档）又红**——run **`36805907062`** 只有 `verify (macos-latest)` 一个 job 红，且该 job **只有 1 个步骤**红（取数 `gh run view 36805907062 --json jobs --jq '.jobs[] | "\(.name) \(.conclusion) steps_failed=\([.steps[]|select(.conclusion=="failure")]|length)"'` → macos `failure`/**1**，ubuntu、windows `success`/**0**）；同一 macos job 的 vitest 仍 **57 文件 / 527 支全过** ⇒ 红不在测试树。红腿是 `FAIL SM-2c 结果表里出现该术语的勾选框（aria-label 即中文名）`，而**紧跟着的 `SM-2d 真点击勾选后底部报「已选 1 条」` 是 PASS**（同 run 日志相邻两行）。
+- **归类（先于读代码就能拿的凭据）**: `git diff 9d7661e..e61a33d -- docs/devlog-evidence/ apps packages scripts tests` 输出 **0 行**（`git diff --numstat 9d7661e..e61a33d` 现测三文件：`DEV_LOG.md` 22/0、`docs/dev-plan.md` 1/1、`docs/tasks.md` 13/1）⇒ 驱动器与绿跑**逐字节相同**，这条红只能是**时序 flaky，不是代码回归**。顺序很重要：先拿这条再读代码，否则会把时差当产品缺陷去修 UI。这是 `[DEV-0077]` 净发现④「main 变红没有闸」的下一次兑现——这次不到一小时就被读到，但**读到的方式仍是顺手 `gh run list -L 3`，那道闸至今没装**。
+- **实现思路**: 根因在腿自身的形状。`SM-2b` 钉的是「检索请求**已发出**」（轮询 `requests` 到 4 s），`SM-2c` 却用**一次** `evalJs` 问 DOM 拿 0/1、**零等待**——请求发出与响应渲染之间没有 happens-before。同文件 `:602` 早已把这条纪律写成注释（「『复制全文』按钮从首帧就在（只是 disabled）——所以 SM-2e 过了不等于预览已就绪，必须轮询」），`SM-2c` 是**已知纪律的漏网点**，不是新发现。修法取既有 `waitForProbe`（`:288`，到点返回 `null` 而**不抛**），**不用** `waitForNode`（`:377`，到点抛错会把「渲染慢」升级成整段 SM-2 中止、改变失败形状）。上界 6 s 与同段 `SM-2d` 的 `waitForText(…, 6_000)` 取同值——同一处 DOM 的两条腿共用一个预算，比各自拍数好。
+- **核心变更**: `three-smokes.mjs` 里 `SM-2c` 的判定由「单发 `evalJs` 取 0/1」改为「`waitForProbe` 轮询探针（`el ? 1 : null`，6 s）」，判定式相应改为对返回值 `=== 1`。**断言严格度未降**：到点仍无即 FAIL，失败打印形状与修前一致。
+- **测试验证**（本机 darwin 现测；本笔**未跑五闸全量**，凭据只到「该驱动器 + 该文件 lint + golden 零 diff」，**不得**由上轮 `57/533` 推及本笔）:
+  | 判据 | 命令 | 实测 |
+  |---|---|---|
+  | 修后 GREEN | `HEADLESS=1 SHOTS=0 EXPECT_SKIP=2 node docs/devlog-evidence/DEV-0025/three-smokes.mjs` | **rc=0**、`结果：FAIL=0 SKIP=2`、`PASS SM-2c … 术语「瞬时用户激活」`、`PASS SKIP 条数等于预期 2 — 实得 SKIP=2 FAIL=0 platform=darwin`、`PASS 驱动器结束时无残留本进程子进程` |
+  | 变异反证（本腿仍会判红，不是橡皮章） | 只把**探针**选择器换成不存在的 aria-label（`realClick(aria)` 保持真选择器）后同法跑，`EXPECT_SKIP=3` | **rc=1**、`FAIL SM-2c` 而 `SM-2d` 仍 `PASS` ⇒ **与 CI 那条红同形状**；同跑另有 `FAIL SKIP 条数等于预期 3 — 实得 SKIP=2 FAIL=1` ⇒ 两条判据各自独立生效 |
+  | 同族扫描（这条缺陷在本文件还有几处） | python 解析全部 `check(` 调用体（按括号配平跨行取值），筛「含 `evalJs` 且不含 `waitFor|hasText|waitGone`」 | 命中 **1 处 = 本腿自身**（改前）⇒ 全文件其余腿早已是轮询形态，**无第二个落点** |
+  | lint | `npx eslint docs/devlog-evidence/DEV-0025/three-smokes.mjs` | **rc=0**（`docs/devlog-evidence/**.mjs` 确在 eslint 覆盖面内，口径见队列 ⑲ 的覆盖对账） |
+  | golden | `git diff --name-only tests/golden/ \| grep -c .` | **0** ⇒ 非 A 级 |
+- **顺带收的两笔账（不是本笔引入，本笔只登记实况）**:
+  1. **`[DEV-0077]` 段末补记**：真机 win32 凭据到账（run `36805454503` 三 job `success`，win32 `57 files` / `519 passed | 8 skipped (527)`，对照上轮 516 + 3 failed）。**变形不清**的两格也写在那段里：真 `netstat` 只被「不炸」这一断言覆盖（不断「解得对」），8 支 win32 skip 仍是**未验证面**。
+  2. **`docs/decisions.md` 行 ②**（真 `npm publish`）补「本机不可发」的**穷举凭据**：注册表 `curl` **404**、`npm view` **E404**、`npm whoami` **rc=1**、`NPM_TOKEN` **unset**、`~/.npmrc` 只有 `registry=https://registry.npmmirror.com` 一行且 `_authToken` 类命中 **0** ⇒ 发布**必须**显式 `--registry=https://registry.npmjs.org`（否则会把包发到镜像站，同 `C-88`）、`.github/workflows` 只有 `ci.yml`（无 publish 工作流）、`gh secret list` **空** ⇒ **不存在机器可代的路径**。产物已在手并与 release 资产同值（`1,156,881 B` / sha256 前缀 `f7730943a8f3786f` / 38 条目）。本笔同时登记一条**待 owner 裁的新取舍**：`v0.1.0` 的 tag 现落后 `main` **14 笔**（取数 `git rev-list --count v0.1.0..main`，采样 `e61a33d`），照原裁「从 tag `f7df600` 重建包」发出去的 `0.1.0` 会缺这 14 笔内容；三案（照原案发→随后 `0.1.1`／先第三次 force-move tag 再重建再发／改发 `0.1.1`）都在 owner 手上。
+  3. **新立队列 ㉔**：`port-scan.ts:278` 把 `netstat` 的 `process` 硬编为字符串 `'netstat'`，`PortsPanel.tsx:70` 原样当进程名渲染 ⇒ **Windows 上每行监听都标成进程「netstat」**，是显示层的假事实而非解析失败（`[DEV-0077]` 净发现③查出）。本笔采「只登记不改」：三案代价从 C 到 B 不等（(a) `tasklist` 反查=新增外部命令，触碰 port-scan 文件头「无 shell、固定 argv」的安全面叙述；(b) 只显示 pid；(c) 文案改「进程名未知」）。净状态「待裁」按**提交树** **2 → 3**（并行会话的 ㉒ 落库后即 4；同 `[DEV-0076]` 的做法，本行不预支未入库的行）。
+- **潜在风险**:
+  1. **6 s 上界是借来的数**（同 `SM-2d`）而不是量出来的：更慢的 runner 上仍可能红。判据形状——若再红，先看该 run 里 `SM-2c` 与 `SM-2d` 谁红：**两条都红才是产品问题**，只有 2c 红说明上界不够。
+  2. **修 flaky 闸的通用风险是把它哄成常绿**。本笔证到了「变异后仍 rc=1 且 FAIL 落在 2c」，但**没证**「那台 macos runner 的响应真会慢过 6 s」——那要等下一次真红才有数据。日志两份入库（`docs/devlog-evidence/DEV-0079/`）就是为了下次能对读。
+  3. tracked 改动只有 `three-smokes.mjs` 一个，而它**不在 vitest 覆盖面内**（CI 用独立一步跑）⇒ 产品测试套件对本笔零感知，任何「五闸全绿」的说法都不适用于本笔。
+  4. 本笔未查「为什么响应会晚到 4 s 以上」这一层（`/api/terms/search` 的服务端耗时、Radix 表格渲染、还是 CDP `Runtime.evaluate` 排队）。只把闸的形状改对，**没把时序问题归因给谁**。
+- **净发现（可复用）**:
+  1. **「相邻两笔、驱动代码逐字节相同」是把一条红归类为 flaky 的最省凭据**：一条 `git diff <绿跑sha>..<红跑sha> -- <驱动与产品路径>` 计数为 0 就够，且它在读日志之前就能跑。先读代码再归类会付出「把时差当回归修」的代价。
+  2. **一条腿「等待」什么，要跟它的名字一致**：`SM-2b` 的名字是「发出了请求」，`SM-2c` 的名字是「表里出现勾选框」——后者判据本体在 DOM，DOM 由响应渲染，两者之间**必须**夹一次等待。可复跑审计口径：`check(` 调用体里出现裸 `evalJs`（无 `waitFor*`）即列入可疑清单，一条 python 解析给出全量与条数。
+  3. **两条判据各自独立生效的证据可以从变异跑里顺带取**：那次变异同时让 `SM-2c` 与「SKIP 条数等于预期」红 ⇒ `EXPECT_SKIP` 不是装饰。这比单独为它再设计一次反例便宜，代价是变异脚本要**只**动一处选择器（本笔刻意保留 `realClick(aria)` 的真选择器，才让 `SM-2d` 仍 PASS、把红局限到 2c）。

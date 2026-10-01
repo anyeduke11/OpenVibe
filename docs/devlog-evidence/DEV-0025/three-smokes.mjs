@@ -580,9 +580,16 @@ try {
     await sleep(100)
   }
   check('SM-2b 中文检索真发出了 /api/terms/search 请求', req2 !== '', req2.slice(0, 120))
+  // SM-2b 只证明检索请求「已发出」，响应渲染在其后。本腿原为单发探针 ⇒ run 36805907062 的 macos
+  // 在响应到达前一瞬取到 0 就记 FAIL，而同 run 用轮询的 SM-2d 反而过（同族口径见本段「SM-2e 过了
+  // 不等于预览已就绪」）。改轮询到 6 s：到点仍无即 FAIL，不把时差哄成通过、也不当产品缺陷误伤。
+  const got2c = await waitForProbe(
+    () => evalJs(`(() => {const el=${aria}; return el ? 1 : null})()`),
+    6_000,
+  )
   check(
     'SM-2c 结果表里出现该术语的勾选框（aria-label 即中文名）',
-    await evalJs(`(() => {const el=${aria}; return el ? 1 : 0})()`) === 1,
+    got2c === 1,
     `术语「${String(term.zh)}」`,
   )
   await realClick(aria)
