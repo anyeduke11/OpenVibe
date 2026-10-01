@@ -1,89 +1,134 @@
-# SPEC · M7 团队协作（架构前提裁定单 · 不含 FR）
+# SPEC · M7 团队协作（v1.0：三裁已落，含八段式 FR）
 
 | 项 | 值 |
 |------|------|
 | 模块 | M7 团队协作（PRD 3.2-M7，`docs/PRD.md §3.2-M7` 三行能力） |
-| 优先级 | Phase 2（PRD 3.3 `:219`「M2 完整版、M4、M7 进 Phase 2」+ 第 8 章 P2 行 `:428`）；表内三行的 P1 是模块**内部**相对优先级，不构成进 MVP 的承诺 |
+| 优先级 | Phase 2（PRD 3.3 + 第 8 章 P2 行）；表内三行的 P1 是模块**内部**相对优先级，不构成进 MVP 的承诺 |
 | 上游 | PRD 3.2-M7、PRD §3.1 模块总览的「M7 横切所有模块」依赖关系行、design §11 安全设计的「只听本地」设定 |
-| 关联任务 | **无**。实测 `grep -rn 'T12\|T13' docs/tasks.md docs/dev-plan.md` → 仅 **1** 处命中，且该处是 dev-plan §15.1-9 里「下一空号 T12」这句**叙述**而非任务条目 ⇒ T12 起全部空闲。因 `m4-playbook.md` 头部格已声明它开工时申请 T12，本模块按 **T13** 排（两处不得撞号）。本文件**不是开工依据** |
-| 版本 | **v0.1 架构前提裁定单（2026-09-30，DEV-0074 新建）**。**§4 有意留空**：三处前提（P-1/P-2/P-3）未裁前写 FR 就是假规格——裁完才升 v1.0 并补八段式 FR。本轮纯新文件，未改任何既有规格 |
+| 关联任务 | **T13**（本模块申请号；`m4-playbook.md` 头部格已声明它开工时申请 T12，两处不撞）。**tasks.md 的登记尚未落**——该文件此刻有并行会话未提交改动，等它落库后单独一笔把 T13 行写进 `docs/tasks.md`，本行是预留声明不是已登记 |
+| 版本 | **v1.0（2026-10-01，owner 三裁落定：P-1 = B+C、P-2 = c、P-3 = ii）**，由 v0.1「架构前提裁定单」升版（§0.3 B 级：owner 后改 + 本版本行）。§4 由「有意留空」改为八段式 FR-1–FR-7。**同版纠正一处 v0.1 的假事实**：原 §3 P-2 候选 c 写「`draft → published` 已是既有形态」——实况词表是 **`draft` / `active`**（`packages/core/src/db/migrations/0001_init.sql:66` 的 terms CHECK、`:13` 的 prompts CHECK 三值含 `deprecated`；zod 侧 `packages/shared/src/constants.ts:51-52`），**全仓无 `published` 这个词**（`grep -rn "published" packages/shared/src/constants.ts` → 0）。**另挂两条待确认**（§8.2-①②）：评审对象粒度 owner 未单列、P-3=ii 的目的端解释 |
 
 ---
 
-## 1. 为什么本轮不写 FR
+## 1. 背景：为什么 v0.1 不写 FR
 
-- PRD 3.2-M7 给的是**能力清单**（多用户与角色 / PR 式评审 / 共享库与使用统计），不是可判定需求：三条都没有验收口径，写进 FR 只能写成「支持多用户」这类无法判 pass/fail 的句子（§0.4 第 3 条禁止）。
-- 更硬的一条：这三条与产品**根设定**冲突。现形态是单进程本地服务 + 单文件 SQLite + 只听回环（证据见 §2），「多用户」在此架构下要么服务端化（推翻本地优先与安全设定）、要么走文件同步（与 M6 双向同步撞面）。**先有架构裁定，才谈得上 FR**。
-- 一条现状纠偏（本会话内我自己写错又推翻的）：曾把 M7 读成「全库零提及」。**否证**——按文件计数（`grep -rc 'M7' docs/specs/*.md`，采样 sha `6246cb7`）= 四份兄弟 spec `m1` **1** / `m3` **1** / `m5` **2** / `m6a` **1**，另加 `m4-playbook.md` **6** 与本文件自身；其中四份兄弟 spec 的 Out 格各挂一个名字：`m1-prompt-library.md §2 范围 Out 栏`「团队评审流」、`m3-glossary.md §2 范围 Out 栏`「社区提案-审核流」、`m5-project-flow.md §2 范围 Out 栏`「多人协作 / 指派（`assignee` 字段预留不启用）」、`m6-standard-pack.md §2 范围 Out 栏`「团队包共享与评审」⇒ **M7 的「一」实际是四条不同能力，PRD 未指定谁收口**。另一侧的真空同样实测：`grep -n 'M7' docs/decisions.md` → **0**（全库零裁定记录）。
-- 附带一条防误读：`m5-project-flow.md §2 范围 Out 栏` 的「`assignee` 字段预留」**不是** schema 事实——`grep -rn 'assignee' packages apps | wc -l` → **0**，代码里从无此字段，它只是命名占位。读到「字段预留」先 grep 代码。
+- PRD 3.2-M7 给的是**能力清单**（多用户与角色 / PR 式评审 / 共享库与使用统计），不是可判定需求：三条都没有验收口径，直接写进 FR 只能写成「支持多用户」这类无法判 pass/fail 的句子（§0.4 第 3 条禁止）。
+- 更硬的一条：这三条与产品**根设定**冲突。现形态是单进程本地服务 + 单文件 SQLite + 只听回环（证据见 §2），「多用户」在此架构下要么服务端化（推翻本地优先与安全设定）、要么走文件同步（与 M6 双向同步撞面）。**先有架构裁定，才谈得上 FR**——这就是 v0.1 那份裁定单的用途，本节起转为背景。
+- 现状纠偏（v0.1 内我自己写错又推翻的，留着因为它示范了这类错法）：曾把 M7 读成「全库零提及」。**否证**——按文件计数（`grep -rc 'M7' docs/specs/*.md`，采样 sha `6246cb7`）= 四份兄弟 spec `m1` **1** / `m3` **1** / `m5` **2** / `m6a` **1**，另加 `m4-playbook.md` **6** 与本文件自身；四份兄弟 spec 的 Out 格各挂一个名字：`m1-prompt-library.md §2 范围 Out 栏`「团队评审流」、`m3-glossary.md §2 范围 Out 栏`「社区提案-审核流」、`m5-project-flow.md §2 范围 Out 栏`「多人协作 / 指派（`assignee` 字段预留不启用）」、`m6-standard-pack.md §2 范围 Out 栏`「团队包共享与评审」⇒ **M7 的「一」实际是四条不同能力**。另一侧的真空同样实测：`grep -n 'M7' docs/decisions.md` → v0.1 时点 **0**（全库零裁定记录），现由该表 ㉓ 行闭合。
+- 附带一条防误读（同样重要）：`m5-project-flow.md §2 范围 Out 栏` 的「`assignee` 字段预留」**不是** schema 事实——`grep -rn 'assignee' packages apps | wc -l` → **0**，代码里从无此字段，它只是命名占位。读到「字段预留」先 grep 代码。
 
-## 2. 现状架构设定（裁定必须建立在这张表上）
+## 2. 现状架构设定（本 FR 全部建立在这张表上）
 
-| # | 约束 | 出处（实测） | 对 M7 的含义 |
+| # | 约束 | 出处（实测） | M7 的处理 |
 |---|---|---|---|
-| C1 | server 只绑回环，非回环地址直接拒绝 | `apps/server/src/bootstrap.ts:48`（`LOOPBACK_HOSTS`）、`:83`、`:116`、`:121`、`:174`；`docs/design.md §11 安全设计` 第 1 条「只听本地」 | 「多用户」若指跨机器多人，**当前无法接受任何远端连接**，这是设定不是 bug |
-| C2 | `Host` / `Origin` 双校验防 DNS rebinding 与恶意网页 | `docs/design.md §11 安全设计` 第 1 条及其 Origin 白名单子项（非本地 Origin → 403） | 任何「让同事访问我的 OpenVibe」的走法都要**主动拆掉这两道闸** |
-| C3 | 单次 token，未传则每次启动随机生成 | `apps/server/src/bootstrap.ts:141`（`randomBytes(32)`）、`:21`（落盘在 CLI serve 侧） | 现凭据模型是**一个进程一个令牌**，没有「谁」的概念，无角色可言 |
-| C4 | 单文件 SQLite + WAL + `busy_timeout=5000` | `packages/core/src/db/index.ts:29`、`:31`；WAL 有断言腿 `packages/core/src/db/core-db.test.ts:37` | WAL 允许单写多读，**不支持多机写**；「共享库」若指同一份可写库，需要换成服务端 DB 或冲突合并层 |
-| C5 | **实体表 16 张，零** user / role / member / session / account | 口径：migrations 的 `CREATE TABLE` 唯一名 **17** 个，减去 `0004_skill_remote_sources.sql:5` 的表重建临时表 `skills_new` ⇒ 实体表 16；身份类零命中（`grep -rniE 'CREATE TABLE.*(user\|role\|member\|session\|account)' packages/core/src/db/migrations/*.sql` → **0**）；本机实例库另含 `fts_prompts`/`fts_terms` 影子表与 `schema_migrations`，不计入实体 | M7 不是「加个字段」，是从 0 起身份层；同时说明四份 spec 的 Out 承诺此前无人当真 |
-| C6 | 资产对外只有**只读产物**一条通道：组包 → CLI 注入 → lock | `packages/core/src/pack/composer.ts`、`packages/core/src/inject/lock.ts:27` | 已存在的「分发」是文件级单向；团队共享可走这条路，**不需要服务端**（这是 P-1 候选 B 的支点） |
-| C7 | Web 端口锁 5144 + `strictPort`，`::1` 陷阱刚修 | `apps/web/vite.config.ts:24-28`、`:34-36`（DEV-0070 / DEV-0072） | 端口是机制化承诺，多用户方案不得引入端口漂移 |
+| C1 | server 只绑回环，非回环地址直接拒绝 | `apps/server/src/bootstrap.ts:48`（`LOOPBACK_HOSTS`）、`:83`、`:116`、`:121`、`:174`；`docs/design.md §11 安全设计` 第 1 条「只听本地」 | **不动**。共享走文件，远端连接一个也不开 |
+| C2 | `Host` / `Origin` 双校验防 DNS rebinding 与恶意网页 | `docs/design.md §11 安全设计` 第 1 条及其 Origin 白名单子项 | **不动**。P-1 未选 A，故无需拆闸 |
+| C3 | 单次 token，未传则每次启动随机生成 | `apps/server/src/bootstrap.ts:141`（`randomBytes(32)`） | **不动**。署名（FR-1）**不是**凭据，两者不同物 |
+| C4 | 单文件 SQLite + WAL + `busy_timeout=5000` | `packages/core/src/db/index.ts:29`、`:31`；WAL 断言腿 `packages/core/src/db/core-db.test.ts:37` | **不动**。共享不走同一份可写库 |
+| C5 | **实体表 16 张，零** user / role / member / session / account | 口径：migrations 的 `CREATE TABLE` 唯一名 **17** 个减去 `0004_skill_remote_sources.sql:5` 的重建临时表 `skills_new`；身份类 grep **0** 命中 | 仍**不建身份表**。M7 只加一张 `review_events`（署名写进它的列，见 FR-3） |
+| C6 | 资产对外只有**只读产物**一条通道：组包 → CLI 注入 → lock | `packages/core/src/pack/composer.ts`、`packages/core/src/inject/lock.ts:27` | 复用其**形制**但不复用其通道：团队共享走资产源侧 JSON 文件（FR-4），注入产物与 lock 一律不改 |
+| C7 | Web 端口锁 5144 + `strictPort` | `apps/web/vite.config.ts:24-28`、`:34-36` | **不动** |
 
-## 3. 三处前提裁定项（owner 裁完才能进 §4）
+## 3. 三处前提：裁定结果与其派生后果
 
-### P-1 「多用户」的载体是什么
-| 候选 | 做法 | 代价 | 与 C1–C5 的关系 |
-|---|---|---|---|
-| **A 服务端化** | 中心服务 + 多租户库，OpenVibe 变瘦客户端 | 推翻本地优先；C1/C2 两道安全闸要拆；C4 换库；工期以「周」为单位起跳 | **冲突最深** |
-| **B 文件级共享** | 每台机器各自本地服务，共享的是**资产文件/包**（git 仓库、云盘目录），走 C6 既有产物通道 | 无身份层；并发写靠文件约定与人工；「角色」无法表达 | 与 C1/C2/C4 **零冲突**，与「多用户与角色」只部分对齐 |
-| **C 本机多身份** | 仍是单用户进程，但给写操作加**署名**（`author` 字段 + 审计），支持「切换身份」而非「并发多人」 | 是伪多用户；但让 PRD 的「使用统计」和「评审留痕」第一次有数据源 | 与全部设定兼容；C5 需新增表（B 级 schema 变更，非 A 级契约） |
-| D 裁掉 | 明写 M7 出局，四份 spec 的 Out 格改为「不做」 | 放弃「团队标准」这条差异化叙事 | — |
-
-**推荐：B + C 叠加**（文件级共享做分发，本机署名做留痕），**不选 A**。理由：A 不是「多做一个功能」，是把产品的根设定换掉；而 PRD 三条能力里真正稀缺的是**「先审后入团队标准」的流程**，流程可以在文件与署名之上表达，不必在服务端之上。
-**未裁的后果**：P-2 / P-3 的候选集无法收敛，FR 只能写成假规格。
-
-### P-2 「PR 式评审」的载体
-- 候选 a：**产品内建评审流**（新增 review 状态机 + 评审人字段 + 队列 UI）——依赖 P-1=A 或 C，工作量最大的那一支。
-- 候选 b：**借力外部 PR**——把资产导出为仓库内文件（复用 C6 的产物与 `PACK_FILE_*` 形制），评审发生在 GitHub/Gitea，OpenVibe 只做**导入消费**（现成面：`apps/web/src/components/skills/*` 已有远程导入与 `remote_ref` 溯源，见 `m2-skill-registry.md` FR-4/FR-5）。
-- 候选 c：**两段态 + 署名**——`draft → published` 已是既有形态（`0001_init.sql:56-71` 的 terms 两态同源，M4 spec §3 亦沿用），把「谁能置 published」变成一条本地权限位。
-**推荐：b 起步、c 兜内圈**。b 的成本几乎全在既有能力上，且「先审后入」的审计链天然由 PR 历史承担；c 给不想用 git 的个人/小圈留一条最薄路径。a 在 P-1 不选 A 时不成立。
-**必须一并裁的**：评审的**对象粒度**（单条资产 vs 一次组包）——它决定 schema 形状，含糊则 FR 无法判定。
-
-### P-3 「成员使用统计」的数据从哪来
-- 现状：注入侧**不回传**任何信息。`telemetry_events` 表存在（`packages/core/src/db/migrations/0002_app_meta_telemetry.sql:7`），但本地飞轮五项卡片明写「全本地 SQL 聚合，不参与遥测」（`apps/server/src/routes/settings.ts:146`），而**对外**看板是 D19 的 P2 项、尚未开做（dev-plan §15.1-8）。
-- 候选 i：只做**本机统计**（我用了几条技巧/哪个包同步了几次）——零新基建，与 P-1=C 的署名叠加后可扩展成「按署名的使用留痕」。
-- 候选 ii：注入侧回传——需要 C1/C2 拆闸或引入一个上报端点，属 D19 同面，**不该由 M7 单独立项**。
-**推荐：i**，并把 ii 显式挂到 D19 遥测看板名下，避免两边重复立项。
-**未裁的后果**：「使用统计」会写成一个无数据源的 FR，验收永远无法 pass。
+### P-1 「多用户」的载体 → **owner 裁：B + C 叠加**
+- B 文件级共享：每台机器各自本地服务，共享的是**资产文件**（git 仓库 / 云盘目录），落形制见 FR-4。
+- C 本机署名：写操作留**署名**痕迹，支持「谁改的」，不支持「并发多人」。
+- **未选 A（服务端化）** ⇒ C1/C2/C3/C4 四道设定全部原样，本模块不触发 A 级流程。
+- **未选 D（裁掉）** ⇒ PRD 3.2-M7 三行保留，但**其措辞要与本裁定对齐**：「多用户与角色」在 B+C 下 = 「多人各自机器 + 署名留痕，无角色」，「角色」一词在产品里不存在（§6.1 明写天花板）。改判建议见 `DEV-0076`，本文件不代改 PRD。
+### P-2 「先审后入」的载体 → **owner 裁：c（两段态 + 本机署名）**
+- 形态：复用既有 `draft` / `active` 两态（纠正：不是 `published`，见头部版本行），把「谁能置 `active`」表达为一条**本地动作 + 署名事件**，而非权限位。
+- **未选 b（借力外部 PR）** ⇒ 不新增「导出成 PR / 消费 PR 状态」的通道；评审发生在 OpenVibe 内。
+- **未选 a（内建评审流）** 的边界要说清：c 是「两态 + append-only 事件」，**不是**评审人队列 + 工作台 UI 那套状态机（那属 a，且它依赖 P-1=A/C 的更强身份）。
+- 评审对象粒度：owner 未单列 ⇒ 本文件按 **单条资产** 定形（FR-3.3），并把「变更集视图」作为导出前的核对手段；这一条要 owner 确认（§8.2-①）。
+### P-3 「成员使用统计」的数据源 → **owner 裁：ii（注入侧回传聚合）**
+- 落地形制（FR-6）：**目的端 = 团队共享仓库里的 append-only 计数文件**，由 CLI 在注入成功后写，成员 pull 后本地聚合。这样 ii 的「跨机器回传聚合」成立，而**不新开网络路径、不拆 C1/C2、不动 D13 匿名遥测的任何承诺**。
+- **未选 i** ⇒ 纯本机统计不再是终态，但 FR-5 保留本机聚合作为 pull 前的可见面（同一份数据两种呈现）。
+- 若 owner 本意是走 D13 那条匿名遥测通道出网 ⇒ **不是本 FR**，那是 A 级：要新增第四类白名单事件（`packages/shared/src/constants.ts:71` 现为三值）、要放开「五段之外一律不进请求体——路径、文件内容、机器标识不带出」（`packages/shared/src/schemas/settings.ts:149-157`），且这条承诺 README 与设置页对外公开过 ⇒ 须 `schemaVersion +1` + 新 D 编号（§8.2-②）。
 
 ## 4. 功能需求（FR）
 
-**本节有意为空。** 解锁条件：P-1、P-2（含对象粒度）、P-3 三条各有 owner 裁定 → 本文件升 v1.0，FR 按 §0.4 八段式补齐，并同时申请 T13。在此之前任何「M7 已实现 / 可开工」的表述都不成立。
+### FR-1 本机署名
+1. 署名 = `config.json` 新增一个非空字符串字段（上限 32 码点，与 `LIMITS` 同族纪律），首次使用团队功能时要求设置。**它是自陈标签，不是凭据**：C3 的单 token 机制不因它改变，网络面一个字节也不因它放开。
+2. 署名历史不可追改：改名写一条 `review_events`（`kind='identity_renamed'`），历史事件里的旧署名**原样留着**——否则使用统计可被回填篡改，这是本模块唯一的数据可信性支点。
+3. 不提供任何「按署名限制操作」的能力（§6.1）。
+
+### FR-2 评审态贯通
+1. 复用既有词表，**不新增第三态**：terms `draft|active`（`0001_init.sql:66`）、prompts `draft|active|deprecated`（`:13`）。`deprecated` 不参与评审流转，只作下线标记。
+2. skills 侧现**无** `status` 列（口径：`grep -rn "status" packages/core/src/db/migrations/*.sql` → **6 行 / 4 张表**——prompts `:13`、terms `:66`、projects `:92`、tasks `:114` 是列定义，`0001_init.sql:18`/`:117` 是两条索引行不是列；无 skills）⇒ 新迁移加 `status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','active'))` + 同形索引（对齐 `idx_prompts_status`，`:18`）。
+3. 存量 backfill 判据必须写进迁移报告（迁移后 `draft`/`active` 各多少行）。**seed 一侧已核，v0.1 挂的「导出首轮为空」担忧被否证**：三份 seed 文件的条目**都不带 status 字段**（`content/seed/` 实测 = prompts 21 / terms 109 / flow-templates 3 条，`'status' in item` 命中 **0/21、0/109、0/3**；`grep -rn 'status' content/seed/` 只有 **1** 行命中，且那是某条 prompt 正文里的 `git status` 字样，不是字段），但**导入路径硬编了 active**——`packages/core/src/db/seed.ts:124`（terms）、`:178`（prompts）、`:193`（flows）三处 create 均传 `status: 'active'`。⇒ seed 资产一进库就是 `active`，FR-4 的导出首轮**不为空**；`DEFAULT 'draft'` 只作用于本机新建与 skills 迁移回填，不会把精选内容挡在共享之外。
+4. 只有 `active` 资产参与团队导出；`draft` 只在本机台账可见。
+
+### FR-3 评审动作与署名留痕
+1. 新表 `review_events(id, kind, asset_kind, asset_id, from_status, to_status, actor, at, note)`，**只 INSERT**：无 UPDATE/DELETE 路径，迁移与仓储层都不给（判读见 §7.2）。
+2. 状态跃迁的**唯一入口**是一个 transition 函数（服务端一处），它同写资产列 + 写事件行，并拒绝同态自转（`draft→draft`）。除它之外不得有任何路径能改这三张表的 `status`。
+3. **粒度 = 单条资产**（承 §3 P-2）。理由：status 本就挂在单条资产上；若另建「组包级审批」就需要第二套状态机，撞 FR-2.1 的「不新增第三态」。
+4. 导出前给**变更集视图**：本次将进入共享的全部资产 + 各自最近一条事件，供人在团队仓库里逐条否决。这是 c 形态下「PR 式评审」的全部剩余形态，不假称它有 diff 评审能力。
+
+### FR-4 团队共享 = 文件级（复用 `content/seed` 同形 JSON）
+1. 导出目标：`<teamDir>/openvibe-team/{terms,prompts,skills}.json` + 一个 `meta.json`（`exportedAt` / `exportedBy`(署名) / `schemaVersion` / 每文件条数）。**字段形制与 hash 纪律沿用 `docs/specs/seed-content.md`**，不发明第二套资产格式。
+2. 导入走**既有通道**（M1 prompts 导入 / M3 terms / M2 skills 登记），M7 不新建解析器、不新建合并算法；同名冲突沿用各处既有语义（同名并入版本线 / `seedHash` 比对）。
+3. 传输由用户负责（git、云盘、拷 U 盘都行）：OpenVibe 只在 `<teamDir>` 里读写文件，**不联网**（守 C1/C2/C6）。
+4. 空集合不产文件（与 `m4-playbook.md` 的 `PLAYBOOKS.md` 同律）；导出是幂等的：同库同态重导 ⇒ 字节相同（`cmp` 可验）。
+5. 与 M6 的边界：M6 的 `sync`/`clean` 处理**项目内产物**，本 FR 处理**资产源**；两个「同步」不同物，UI 与文档都不得共用一个词。
+
+### FR-5 本机统计（pull 前的可见面）
+1. 数据源全部现成：M5 项目/任务/日志、M6 注入 lock、M2 台账、`review_events`；聚合走既有本地 SQL（与 `apps/server/src/routes/settings.ts` 的飞轮五项同法，零新埋点）。
+2. 呈现复用既有卡片位，不新开页面。
+
+### FR-6 注入侧计数回传（P-3 = ii 的落地）
+1. 目的端：`<teamDir>/openvibe-team/usage/<署名>.jsonl`，一行一次注入事件，**固定六键** `{at, project, pack, packVersion, target, platform}`；多余键一律拒（严格解析）。
+2. 生成点：CLI `sync` 成功之后写一行；**未配置 `<teamDir>` ⇒ 静默不写、不报错、不建目录**。写文件不新增网络路径。
+3. 聚合：成员 pull 团队仓库后本地读全部 `<署名>.jsonl`，得「谁在哪个项目注入了哪个包几个平台」。
+4. **本 FR 不使用、也不改动 D13 匿名遥测**：三类白名单（`constants.ts:71`）、五段体（`settings.ts:149-157`）、默认关与单出口函数 `reportEvent()`（`apps/cli/src/telemetry.ts:28`，「关闭即返回——不写队列、不外联」见 `:7`）全部原样保留。§7.10 用一条断言把这件事钉住。
+
+### FR-7 明确不做（负向 FR，防范围回涨）
+不提供：多用户登录、角色与权限、并发写合并、中心服务、远端读取、评审人队列与通知、按署名的配额。**任何一条要翻案，都要重开 §3 P-1 而不是加 FR。**
 
 ## 5. 输入 / 输出
 
-本轮无。裁定后若走 P-1=B，输出形态大概率是「资产文件的仓库内目录约定」，届时在 §5 给字节级契约。
+- **文件契约**：`openvibe-team/{terms,prompts,skills}.json`（seed 同形）、`meta.json`、`usage/<署名>.jsonl`（六键固定）。字节级字段清单以 `docs/specs/seed-content.md` 为准，本文件不复制（避免第二真源）。
+- **API**：`POST /api/team/export`、`POST /api/team/import`、`GET /api/team/changeset`（FR-3.4 视图）、`POST /api/assets/:kind/:id/transition`（FR-3.2 唯一跃迁入口）、`GET /api/team/usage`（FR-6.3 聚合读）。
+- **CLI**：`openvibe sync` 成功后按 FR-6.2 追加一行（无新子命令）。
+- **库**：新表 `review_events` 一张 + skills 一个 `status` 列，一支迁移。**包/lock 契约（design §7）与 adapter 产物（§8）零改动** ⇒ 本模块整体属 **B 级**（例外见 §8.2-②）。
 
 ## 6. 边界与异常
 
-1. 若强行在本轮写 FR，会造出三类假规格：① 「支持多用户与角色」无身份表且拒绝远端连接（撞 C1/C3/C5）；② 「变更走 PR 式评审」未定评审对象粒度，无法判定 pass/fail；③ 「成员使用统计」无回传通道（§3 P-3 现状），验收永远拿不到数据。
-2. 四份 spec 的 Out 格与 M4 spec 的 `§8.3` 必须与本文件的裁定**同批改判**（§0.3 B 级第③步），否则裁完之后文档仍教用户等一个不存在的功能。落点逐处点名：`m1-prompt-library.md §2 范围 Out 栏`、`m3-glossary.md §2 范围 Out 栏`、`m5-project-flow.md §2 范围 Out 栏`、`m6-standard-pack.md §2 范围 Out 栏`、`docs/specs/m4-playbook.md` §2 Out 行与 §8.3。
-3. 与 M6 双向同步的撞面必须写明归属：`openvibe sync` / `clean` 处理的是**项目内产物**，M7 若走文件级共享处理的是**资产源**——两个「同步」不同物，规格里不得共用一个词。
-4. 端口设定不可被 M7 改动：C7 的 `strictPort` 5144 与回环绑定是机制化承诺，若 P-1 选 A 则必须先拆这条承诺并留痕，不能静默。
+1. **署名不是身份**：任何人可改自己机器上的署名，统计可被自我夸大，`review_events.actor` 可被伪填。这是 B+C 形态的**已知天花板**，必须在设置页与 README 的团队段明写「本机自陈，不构成认证」；不写就是给用户假安全感（§7.11 负向登记）。
+2. **`usage/*.jsonl` 是团队仓库里的明文**：含项目名、包名、平台。它与匿名遥测**不同域**——前者由用户自行选择把目录放进哪个仓库、可见范围由那个仓库决定；后者受 D13 三类白名单与「机器标识不带出」约束。UI 与文档不得把两者都叫「遥测」（本仓 §15.5-6 的同名异物教训在此重演风险最高）。
+3. 团队目录不可写 / 不存在 → 导出与回传都记 warning 并跳过，**不影响本机台账与注入主流程**（注入成功是本模块任何动作的前置，不能被文件共享失败拖红）。
+4. 导入遇到 `meta.json` 缺失或 `schemaVersion` 不匹配 → 拒绝导入并说明版本，不猜格式、不做静默降级解析。
+5. `review_events` 只增不改 ⇒ 长期体积由审计价值兜着，不自动裁剪；清理策略若将来要加，须先裁「事件是否仍是唯一可信痕迹源」（FR-1.2 的支点）。
+6. 端口设定不可被 M7 改动（C7）；回环绑定不可被 M7 改动（C1）。
 
-## 7. 验收标准（本裁定单的验收 = 三裁落地且可复算）
+## 7. 验收标准（pass/fail）
 
-1. 每条前提有 owner 裁定且**指向本文件的候选字母**（判读：`grep -n 'P-1\|P-2\|P-3' docs/decisions.md` 命中 ≥3 且各带 A/B/C/a/b/c/i/ii 之一的字面）。当前为 **0 命中**（本轮实测，采样 sha `6246cb7`）。
-2. 裁定后 §4 不得仍为空——若为空却出现 T13 或代码提交，即为绕过 §0.4 闸口（判读：`grep -rn 'T13' docs/tasks.md docs/dev-plan.md` 与 §4 是否为空同时成立）。
-3. 文档同步腿：§6.2 列出的六个落点全部改判，判读 `grep -rn 'M7' docs/specs/*.md` 的命中行措辞与裁定一致。
-4. 若走 P-1=B，须新增一份「资产共享文件约定」规格（八段式），并把 C6 的产物通道复用写成可判定验收；**不得**以「用 git 就行」结题。
+> 支数不入正文（dev-plan §13-8/§13-9）。每条给测试文件 + 具名族；取数：`grep -oE "IT-TEAM-[0-9]+" <文件> | sort -u`。本机与并行会话共存时串行复跑取数（`--no-file-parallelism`，凭据见 `DEV-0074`）。
+
+1. 署名必填与改名留痕：未设署名时团队导出被拦并给一条可执行提示；改名后新写的事件带新署名、**历史事件字节不变**。—— `UT-M7-IDENT-01`
+2. **审计表只增**：仓储层与迁移中不存在 `UPDATE review_events` / `DELETE FROM review_events`（源码 grep 断言 + 尝试调用不存在方法的负例）。—— `CORE-REVIEW-01`
+3. 跃迁唯一入口：三条资产路由只 POST transition 才改 status；任何 PATCH 端点试图写 `status` → 422（FR-3.2「除它之外不得有任何路径能改这三张表的 status」）。—— `IT-TEAM-02`
+4. 同态自转拒绝：`draft→draft` 报错且不产生事件行。—— `CORE-REVIEW-02`
+5. skills 新列 backfill：迁移后条数报告与库内实况一致，存量 skill **一条不丢**（前后计数相等）。—— 迁移测试 `CORE-DB-*` 同族新支
+6. `draft` 不进导出（正/负对照）：同一 kind 下备一条 draft 与一条 active，导出 JSON 只含后者，且条数字段与 `meta.json` 相符。—— `IT-TEAM-EXPORT-01`
+7. 导出→导入 round-trip：字段与 hash 全等，同库重导两次字节相同（`cmp`）。—— `IT-TEAM-EXPORT-02`
+8. 空集合不产文件；未配 `teamDir` 时零写入、零建目录、零外联。—— `IT-TEAM-EXPORT-03` + `UT-USAGE-01`
+9. 回传行严格六键：多余键/缺键都拒；`sync` 成功后恰追加一行且不影响注入退出码。—— `UT-USAGE-02`
+10. **隐私承诺未被动**（把 §3 P-3 的边界钉成断言）：`TELEMETRY_EVENTS` 仍为三值、`TelemetryBatchEvent` 仍为五字段、关闭态仍零网络调用。—— `SHARED-TELEMETRY-*` 同族新增一条形状断言
+11. **未验证面（明写，不是遗漏）**：多人多机的真实并发使用**无实测**（单机多副本可测的是文件读写与幂等，测不出两人同时改同一资产）；FR-1 的署名天花板、FR-6 的明文可见范围只由文档与 UI 提示表达，**无自动化可证**；`/skills` 与工作台上的新入口属 DOM 未验证面（同 `m2-skill-registry.md` §7.14 形态）。
 
 ## 8. 依赖
 
-- 上游：PRD 3.2-M7 / 3.3 / 第 8 章 P2 行；design §11 安全设计；D19（遥测看板，P-3 的 ii 归属它）。
-- 平级：`m6-cli-injection.md`（sync/lock/clean 面，§6.3 的措辞归属）、`m2-skill-registry.md`（FR-4/FR-5 远程导入是 P-2 候选 b 的现成支点）、`m4-playbook.md` §8.3（同一结论的两份写法）、`onboarding.md` FR-3（本地统计卡是 P-3 候选 i 的复用面）。
-- 不做跨模块承诺：M7 不提供注入、不提供 skill 分发实现、不替 owner 决定架构路线。
+- 上游：PRD 3.2-M7 / 3.3 / 第 8 章 P2 行；design §11 安全设计；`docs/specs/seed-content.md`（资产 JSON 字节形制）。
+- 平级：`m6-cli-injection.md`（sync 成功后是 FR-6.2 的挂载点；§6.5 的措辞归属）、`m2-skill-registry.md`（FR-2.2 的 skills status 新列落在它的台账域）、`m1-prompt-library.md` / `m3-glossary.md`（FR-2.1 词表同源）、`m4-playbook.md` §8.3（同一结论的两份写法）、`onboarding.md` FR-3（FR-5 的卡片复用面）。
+- 队列：`docs/decisions.md` ㉓ 行（三裁的单源）；D 编号：**D23**（`docs/PRD.md` 附录 D 新行，本模块三前提一条记）。
+- 不做跨模块承诺：M7 不提供注入、不提供 skill 分发实现（见 `m2-skill-distribution.md`）、不替 owner 决定架构路线。
 
-### 8.2 未验证面（负向登记）
-1. 本文件 §2 全部为静态代码/文档取证，**没有**任何运行期多用户/并发写的实测——不存在可跑的 M7，故无实测面。
-2. win32 与真实浏览器点击面同 `m4-playbook.md` §7.7，本文件不重复承诺。
+### 8.2 待确认（v1.0 只剩两条开口）
+
+| # | 事项 | 为什么留 |
+|---|---|---|
+| ① | **评审对象粒度**（单条资产 vs 变更集）owner 未随三裁给出 | 本文件按单条资产定形（FR-3.3 给了理由），但 owner 若要「组包级审批」则 FR-2.1 的「不新增第三态」与 FR-3 的表形状都要改 ⇒ 这不是措辞问题，是 schema 问题，须 owner 点头后另升一版 |
+| ② | **P-3=ii 的目的端解释** | 本文件走「团队仓库明文文件」这条合规解，代价是它**不是**匿名遥测、也不喂 D19 的增长看板。若 owner 本意是「注入侧回传到我们收」，那是 A 级（新白名单事件 + 放开机器标识 + README 承诺改写），须新 D 编号 + `schemaVersion +1`，不并入本模块 |
+
+> v0.1 曾挂的第三条「`content/seed/*.json` 是否携带 status 字段」**已在同一轮闭合**，证据与结论见 FR-2.3：JSON 三条目均无该字段，但 `seed.ts:124/178/193` 硬编 `status: 'active'` ⇒ 「导出首轮为空」不成立。留这一行是为了记下「它当时是可测而未测」——写「未核」之前先跑一次 grep。
