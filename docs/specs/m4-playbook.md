@@ -7,7 +7,7 @@
 | 上游 | PRD 3.2-M4（三行能力）、PRD D22、owner 裁定 ⑫（2026-09-26，`playbookIds` 闸的拆法） |
 | 下游设计 | design.md §5（数据模型 DDL）、§7.3（确定性顺序）、§7.4（各产物文件格式）、§7.6（指纹）、§7.7（路径与规模安全） |
 | 关联任务 | **T12**（2026-10-01 正式申请，登记见 `[DEV-0087]`；原写作 **无**，下面那段是申请前的实况与闸的形态说明，按「日志不回改」原样留着）。dev-plan §9 只到 T1–T9、tasks.md §2b 只到 T10–T11，全仓对 M4 的任务化落点为零（PRD D22 自陈此缺口）。开工闸的现行形态不是新 T 号而是 dev-plan **§15.1 裁定表**（痕迹闸在 §15.6 第 5 条）⇒ §8.2 **已于 2026-10-01 闭合**、规格升 v1.0。**但本文件仍不是开工依据**：剩下的前置是 dev-plan §15.1-9 的状态改判＋ `docs/tasks.md` 的 **T12 正式申请**（T12 此刻仍是空位，`[DEV-0078]`）。这两步没做，本格的实况就读作「无」。**2026-10-01 两步都已做完 ⇒ 上句的「读作无」是申请前的时点话**；三条开工前置与实现工作面见 `docs/tasks.md` §2c 的 T12，本文件不复述。本格由 **无** 改成 T12 属**元数据指针同步**（FR 与 §7 验收零改动）⇒ 判 C 级，不 bump 版本行；判级理由记在 `[DEV-0087]` |
-| 版本 | **v1.0（2026-10-01，owner 七裁到账；登记见 `[DEV-0085]`）**。原 v0.9 自设的定稿闸是「§8.2 七处待裁未闭合」，现已闭合：**①③④⑤⑥⑦ 六条按表内推荐全采，② 亦按推荐采且判「不作废」**（作废它的那句更正只在未入库的工作树里，凭据与现测见 §8.2「裁定回填」）⇒ §0.4 第 1/3/4 条满足。**③ 裁不完整，留两处未覆盖**（`antiPractice` 无上限、`scenario` 的单位在「KB」与「字符」之间含糊），本文件把它们写在裁定里而不是替 owner 补一个数。v0.9 那句「本轮纯新文件，未改任何既有规格」是写作时点现状，按「日志不回改」原样留。§7.5 三探针已跑完（① terms 关联口径、② 脏数据 0 行、③ NAV 七字实况），探针债不挡定稿，挡定稿的是那七处裁 |
+| 版本 | **v1.1（2026-10-01，**B 级**：owner 补掉 ③ 的两处未覆盖数值 ⇒ §3 的四键全进字节族、`playbookAntiPracticeMaxBytes` = 2048；登记见 `[DEV-0088]`）**。上一版 **v1.0（2026-10-01，owner 七裁到账；登记见 `[DEV-0085]`）**。原 v0.9 自设的定稿闸是「§8.2 七处待裁未闭合」，现已闭合：**①③④⑤⑥⑦ 六条按表内推荐全采，② 亦按推荐采且判「不作废」**（作废它的那句更正只在未入库的工作树里，凭据与现测见 §8.2「裁定回填」）⇒ §0.4 第 1/3/4 条满足。**③ 裁不完整，留两处未覆盖**（`antiPractice` 无上限、`scenario` 的单位在「KB」与「字符」之间含糊），本文件把它们写在裁定里而不是替 owner 补一个数。**→ 那两处已于 v1.1 闭合（`[DEV-0088]`）：四段全按字节族、`playbookAntiPracticeMaxBytes` = 2048 B。上句是 v1.0 的时点话，原样留。**v0.9 那句「本轮纯新文件，未改任何既有规格」是写作时点现状，按「日志不回改」原样留。§7.5 三探针已跑完（① terms 关联口径、② 脏数据 0 行、③ NAV 七字实况），探针债不挡定稿，挡定稿的是那七处裁 |
 
 ---
 
@@ -49,7 +49,7 @@
 | `seedHash` | 文本 | seed 项 | 幂等再跑，照 `TermsRepo.setSeedHash`（`packages/core/src/repos/terms.ts:255`） |
 | `createdAt` / `updatedAt` | ISO | — | 照 terms |
 
-长度上限进 `packages/shared/src/constants.ts` 的 `LIMITS` 对象，键名照 `termZhMax` / `termDefinitionMaxBytes` 律：`playbookScenarioMax`、`playbookProblemMaxBytes`、`playbookPracticeMaxBytes`、`playbookAntiPracticeMaxBytes`。**数值 = ③ 已裁（2026-10-01）**：`playbookPracticeMaxBytes` 4 KB、`playbookProblemMaxBytes` 1 KB、`playbookScenarioMax` 1 KB（**单位待定**，见 §8.2 裁定回填 ③ 的第二处未覆盖）；`playbookAntiPracticeMaxBytes` 裁定未给数。
+长度上限进 `packages/shared/src/constants.ts` 的 `LIMITS` 对象，键名照 `termZhMax` / `termDefinitionMaxBytes` 律（owner 2026-10-01 裁「四段全按字节族」⇒ 第一段跟着改名，`*Max` 按字符、`*MaxBytes` 按 UTF-8 字节）：`playbookScenarioMaxBytes`、`playbookProblemMaxBytes`、`playbookPracticeMaxBytes`、`playbookAntiPracticeMaxBytes`。**数值 = ③ 已裁，两处未覆盖已于 2026-10-01 闭合（`[DEV-0088]`），四段全按字节计**：`playbookScenarioMaxBytes` = **1024**、`playbookProblemMaxBytes` = **1024**、`playbookPracticeMaxBytes` = **4096**、`playbookAntiPracticeMaxBytes` = **2048**（owner 明说「同 `termExampleMaxBytes`」，该键现测 `packages/shared/src/constants.ts` = `2 * 1024`）。单位含糊自此消失：四段既然全进字节族，就不再有「1 KB 是 1024 字符还是 1024 字节」的第二读法；字符族（`termZhMax: 100` 那种按字符计）与字节族是两套语义，本节四键一律后者。**校验口径**：超限按 UTF-8 字节数比 `LIMITS`，422 `VALIDATION_ERROR`（FR-1.2），种子哈希与渲染不受键名影响。**这四值是 §4 FR-1 与 `schemas/playbooks.ts` 的单源，tasks/dev-plan 只指回本节不复制。**
 
 ## 4. 功能需求（FR）
 
@@ -201,6 +201,7 @@
   (a) `playbookAntiPracticeMaxBytes` 表内没给值；(b) `playbookScenarioMax` 的**单位**含糊——该键名与 `termZhMax`（100 字符）同族、
   按字符计数，而裁定写的是「1 KB」；`packages/shared/src/constants.ts` 的 `LIMITS` 里 `*Max` 与 `*MaxBytes` 是两套语义
   （复算 `grep -n 'Max:\|MaxBytes:' packages/shared/src/constants.ts` 于 `e391310`）。把 1 KB 直接写成 1024 字节 = 静默选了一个单位。
+  **→ 2026-10-01 两处都裁了（`[DEV-0088]`，owner 亲答两问）**：**(a)** `playbookAntiPracticeMaxBytes` = **2048 B**，原话「同 `termExampleMaxBytes`」；**(b)** 单位问题由**键名**消解——裁「四段上限全按字节族」⇒ `playbookScenarioMax` 改名 `playbookScenarioMaxBytes`，四值定为 scenario 1024 ／ problem 1024 ／ practice 4096 ／ antiPractice 2048（B）。上面那句「静默选了一个单位」正是本裁要消掉的歧义，现在单位是 owner 选的、不是实现笔代选的。⇒ §3 那格随之更新，四值与键名的**单源在 §3**，本行只记来处；`playbooksMin = 10` 不变，`THRESHOLDS` 那条不受本裁影响。
 - **④ = `(scenario, problem)`** 复合自然键。
 - **⑤ = 不能成包**；`verified` **不参与排序**（确定性优先）。
 - **⑥ = 不进** `default` 演示包。
