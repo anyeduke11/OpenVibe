@@ -1623,3 +1623,46 @@
   - **为什么引用先行**：B 级三步流程的第① 步（DEV_LOG 登记）正握在并行会话手里，按共享工作树归属纪律本笔**不代提**别人未完成的登记行（`git status` 现测：8 个已改文件 + 1 个未跟踪原型仍在工作树，其中 `DEV_LOG.md` 与 `docs/dev-plan.md` 是本笔与那会话共写的两份）。代价是「指向空」的中间态被我留在了提交树里，而不是留在自己看得见的工作树里——这比编号撞车（`潜在风险` ④）更难被发现。
   - **闭合条件（谁做 / 做什么 / 怎么验）**：那 250 行入库后复跑命令 1，应 **0 → 7**，命令 2 的 27 个引用随即全部落地；执行方是并行会话或 owner 指定的一次提交，不是本笔。闭合前的影响面限于文档可追溯性：CI、发布资产、npm 包都不读 `DEV_LOG` 标题，`tests/golden*` 用的是 fixture 目录内的副本，故五闸数字不因这条悬空而改变。
   - **本轮门禁**：纯 `DEV_LOG.md` 追加，零代码、零规格改动，**五闸未复跑，本笔不声称跑过任何闸**；`fcefe00` 的全绿凭据以本记录「测试验证」段为准。
+
+## [DEV-0074] M4 技巧库规格（v0.9 草案）+ M7 架构前提裁定单（v0.1，§4 FR 有意留空）· **本轮产出的不是功能，是「哪些还不能开工」的可判定清单**
+
+- **时间**: 2026-09-30 22:15 前后（开工钉 sha `6246cb7`；本笔**纯文档**，零产品代码）。
+- **类型**: §0.3 **B 级**（两份规格新建）。流程按 B 级三步走全：① 本条登记 → ② spec 版本行（新建 `docs/specs/m4-playbook.md` v0.9 草案、新建 `docs/specs/m7-team-collab.md` v0.1）→ ③ 同步 dev-plan（§15.1 裁定表第 9 行「M4 技巧库」补「spec 已立但仍不得开工」）。
+- **关联文件**: `docs/specs/m4-playbook.md`（新建，199 行）、`docs/specs/m7-team-collab.md`（新建，89 行）、`docs/dev-plan.md` §15.1 裁定表第 9 行（tip `6246cb7` 下即第 1415 行）行内追加，原叙述不回改。
+- **问题描述**: owner 令「4、补，然后开始做 M4/M7 与三条 P1 子功能」。两处欠账性质不同：① **M4** 是 dev-plan §15.1-9 挂着的「PRD 与计划口径断裂」项——`docs/specs/` 无 m4 文件，而 §0.4「No spec, no task」禁止无规格开工，所以「开始做 M4」的**第一步只能是立规格**；② **M7** 更糟：PRD 3.2-M7（`docs/PRD.md:211-215`）给的是**能力清单**（多用户与角色 / PR 式评审 / 共享库与使用统计），三条都无验收口径，且与产品根设定正面冲突（只听回环、每轮随机 token、单文件 SQLite WAL、库内零身份表，证据见 `m7-team-collab.md` §2 的 C1–C7）。此时写 FR 只能写成「支持多用户」这种无法判 pass/fail 的句子——**那才是 §0.4 真正禁止的东西**。
+- **实现思路**: 一份「能判的全判死、不能判的全进待裁表」（M4：八段式齐全 + FR-1–FR-10 + §8.2 七处待裁，头部格明写「本文件此刻不是开工依据」）；一份「不写 FR，改写架构前提裁定单」（M7：§4 留空 + 三处前提 P-1/P-2/P-3 各给候选/代价/推荐/未裁后果）。两条纪律贯穿：每条引用带 `file:line`；凡写「实测」必带复算命令**与正/负对照**（本仓已两次栽在「失配型假 0」上）。
+- **核心变更**:
+  - `m4-playbook.md` v0.9：五段结构（`scenario/problem/practice/antiPractice` + `related*` 三数组）、`verified ⇒ evidence ≥ 1` 的收紧方向、复盘回流**复用** `ReflowActions.tsx` 加第三个目标而不新建通道、**禁止自动提取**（凭据：全仓 `playbookCandidate|extractPlaybook` 0 命中）、`PLAYBOOKS.md` 空集合不产文件、组包接入的**两处**落点（composer push 产物 + `composer.ts:123-126` 的正文交叉引用行）、FR-8 拆 `playbookIds` 闸的四层同批（refine / 两条反向断言 / m6a 两处文档 / 零回归硬闸）、§7.3 用「两个包只差一条技巧 ⇒ 指纹必须不同」把「lock 自动覆盖」从推断转正、§7.7 负向登记 win32 对 FTS 三触发器与 `seedHash` 是**从未验证**而非跳过。
+  - `m7-team-collab.md` v0.1：§2 七条根设定约束表（C1 只绑回环 `bootstrap.ts:48/83/116/121/174`、C2 Host/Origin 双闸 `design.md:322/324`、C3 每次启动随机 token `bootstrap.ts:141`、C4 WAL `db/index.ts:29/31` 且有断言腿 `core-db.test.ts:37`、C5 实体表 16 张零身份表、C6 资产对外只有只读产物一条通道、C7 5144 `strictPort`）；§3 三处前提各给候选，**推荐 P-1 = B+C 叠加（文件级共享 + 本机署名）而非服务端化**、P-2 = 借力外部 PR 起步、P-3 = 只做本机统计并把回传显式挂到 D19 名下；§6.2 列出裁定后必须同批改判的**六个文档落点**。
+  - dev-plan §15.1-9：补「m4 spec 已立但 v0.9 非 v1.0，七处待裁未闭合前不构成开工依据；T12 归 M4」。
+- **测试验证**:
+  - **本笔不声称跑过任何闸**。工作树含并行会话的 10 个非文档文件（`git diff --name-only -- . ':(exclude)docs' ':(exclude)DEV_LOG.md'` 实测 10 行：`README.md`、`apps/server/src/routes/skills.ts`、`SkillCleanupDialog.tsx`、`useSkills.ts`、`zh.ts`、`vite.config.ts`、`core/src/index.ts`、`skills.test.ts`、`skills.ts`、`schemas/skill.ts`），跑了也不属本笔凭据；治理电池检查 7 因此判本笔凭据形态为 **diff + grep**。
+  - 实际跑的是 `openvibe-doc-governance-self-audit` 七道电池（采样 sha `6246cb7`）：① D 号最大 22，本笔未新增 D；② spec 版本行 **11/11**（含两份新建）；③ `tests/golden` 零 diff；④ 行号型跨文件引用全仓 90 处，本笔新增的 8 处已按下条改判为节锚；⑤ 「实测」队列 m4=5 / m7=5，逐条带命令；⑥ 同名异物核对：代码里 `playbook*` 命中的是 `playbookIds` 接缝与 `default-pack.ts` 硬编 `[]`，`M7` 在 `*.ts(x)` **0 命中** ⇒ 「M4/M7 未实现」判定成立；⑦ 见上。
+  - 文档级凭据：`git diff --numstat` 本笔 = 3 文件（2 新建 + dev-plan 1 行改）；`grep -c 'DEV-0073' docs/specs/m4-playbook.md docs/specs/m7-team-collab.md docs/dev-plan.md` 改判前 2/1/1、改判后 **0/0/0**。
+- **编号撞车两次（本笔最该被记住的一条）**: 原取 **DEV-0072** → 并行会话 21:36 用掉（vite 绑 `::1` 修复）；改取 **DEV-0073** → 并行会话约 22:05 又用掉（整理能力升级「同内容组整合」）；落 **0074**。取号时刻实测：`grep -oE '^## \[DEV-[0-9]{4}\]' DEV_LOG.md | sort -n | tail -1` → **0073**（工作树），HEAD 树 → 0071。**机制缺陷**：`DEV_LOG` 编号是共享计数器，但**没有「领取」这个动作**，同一工作树两会话并行时，「取号 → 写记录 → 提交」的窗口内必然撞号，且撞了不报错（只有散文引用会静默指错）。**建议补一条纪律**（待 owner 认）：取号与提交之间不得插入其他工作，或先在 dev-plan §15.1 追加一行占位号。
+  - **本条自带一处新悬空**（不重犯 `DEV-0071` 补记那类的做法是先写出来）：上面点名的 **DEV-0072 / DEV-0073 正文此刻只在工作树里，不在提交树**——`git show HEAD:DEV_LOG.md | grep -cE 'DEV-007[23]'` → **0**（HEAD tip `6246cb7`），而工作树 `grep -c` 有命中。也就是说本笔入库后，提交树里会出现「一条记录引用两笔尚未入库的编号」。这不是错号，是**顺序债**：谁先把 0072/0073 提上去，此引用即闭合；两笔若最终被丢弃或改号，须回本行更正。复跑判据（闭合后应 **0 → ≥1**）：`git show HEAD:DEV_LOG.md | grep -cE '^## \[DEV-007[23]\]'`。
+- **被本笔推翻的、我自己先前的结论（四条，全部否证于本笔之内）**:
+  1. 「`docs/specs/` 里 4 处注释误指 M7 主题、属未登记缺陷」→ **作废**：`grep -rniE 'm7' apps packages --include='*.ts' --include='*.tsx'` → **0 命中**，`DEV-0071` 的 C 级七行注释改判已收口。
+  2. 「`m6-standard-pack.md` §8 Out 写『多用户协作 → 未实现（M7）』」→ **假**：`grep -n '多用户协作' docs/specs/m6-standard-pack.md` → **0**。真身是 `:24` 的「团队包共享与评审（P2/M7）」。
+  3. 「`m5-project-flow.md:26` 已把 `assignee` 字段写进预留，是字段先于制度的债」→ **读法错**：`grep -rn 'assignee' packages apps | wc -l` → **0**，代码从无此字段，那是命名占位而非 schema 事实。已在 m7 §1 写成防误读条款。
+  4. 「未签收 tombstone 在 `DEV-0012`」→ **错号**：实为 `docs/devlog-evidence/DEV-0019/seed-review.md:84`；另一处 `DEV-0037/seed-review.md:87` 编号无误。
+  另有一条初稿错判：M7 曾写「全库零提及」，`grep -rn 'M7' docs/specs/*.md` 命中六处即否证——**M7 不是空白，是被稀释成四条不同能力**。
+- **探针闭合（M4 §7.5 三条全过）**: ①terms 关联口径=拒（`terms.test.ts:85`）；②脏数据 `standard_packs` 总行 **1** / 含 `playbookIds` 键 **1** / 非空数组 **0**，正对照同形状查 `termIds` → **1**（排掉失配型假 0），采样于本机实例库的只读副本（`cp` 三份文件后 `sqlite3 -readonly`，避免对活库加锁）；③书脊已用「库词技流项包设」七字（`AppShell.tsx:22-28`），「技」在 `:24` 归 `/skills`，候选「巧/训/例/坑」四字均未占用。
+- **本笔附带查出的、影响收口的三件事（不在原计划内）**:
+  1. **并行负载下全量 `pnpm test` 不可信**：21:47 前后那轮全量跑 rc=1，12 文件 / 15 支失败，但**失败时长全在 45,645–989,588ms 区间（即超时），无一条断言失败**，collect 阶段 1,058s（正常 ~12s），当时 load avg **43.47**（10 核 16GB）。串行复跑（`--no-file-parallelism`，逐文件）12 文件 **141 支全绿、rc 全 0**。⇒ 收口期凡见「测试红」必须先辨时长形状；候选纪律：本机共存时门禁以串行复跑取证。
+  2. **推送前 `origin/main` 缓存会骗人**：`git status -sb` 报 ahead **7**，`git ls-remote` 实况 tip `7973575` ⇒ 真实 ahead **5**。owner 授权后已推 `7973575..6246cb7`（ahead 归 0），这是此前「3 笔 feat 代码从未被 CI 验过」的唯一解法。
+  3. **那次推送把 `main` 推成了红**：run `36796390998` @ `6246cb7` 三平台判决 = ubuntu **success** / macos **success** / **windows failure**（取数：`gh run view 36796390998 --json jobs --jq '.jobs[] | "\(.name) | \(.conclusion)"'`；结论只认 `--json conclusion`，`watch` 的退出码会吞）。失败面全部落在端口面板一套（`db6bb8d` 引入）的 **2 条断言**，且是**测试侧平台耦合**而非产品缺陷：
+     - `ports.api.test.ts:165-172`「真机 lsof 不可用时降级为 warning 不抛」注入一个必抛 runner，却断言 `warning` 含「lsof 查询失败」；而 `lib/port-scan.ts:298-302` 在 win32 走的是 `netstat -ano -p tcp` 分支 ⇒ 实收「netstat 查询失败：command not found」。降级行为本身三平台都对（`listeners: []` + warning + HTTP 200），错的只有那条**消息前缀**。
+     - `ports.api.test.ts:199-223` 的 `fakeRunner` 无论平台都返回 **lsof 格式**表头；win32 下 `parseNetstatListen` 解出 0 条监听 ⇒ `merged[0].state` 从期望 `'listening'` 变 `'idle'`。
+     - 分级含义：此前 win32 的暴露形态是 `it.skipIf(IS_WINDOWS)`（**跳过 = 未验证**，见 §15.6 DoD ③与 `m4-playbook.md` §7.7），本笔起多了一种形态 = **失败 = main 红**。修复只需两处让测试随平台给夹具/改断言，但**本机 darwin 无法自证 win32 变绿**，凭据只能是「推上去让 CI 复跑」——需要 owner 单独授权，且**不并进本笔纯文档提交**（并进去就让检查 7 的「零产品代码」声明失效）。
+- **潜在风险**:
+  1. **窗口继续撞**：本笔提交后若并行会话又取 0074，同一问题复发；缓解只有「取号即提交」。
+  2. **v0.9/v0.1 被当开工依据读**：两份文件头部格与 §4 已用显式措辞拦（「本文件此刻不是开工依据」「本节有意为空」），但真正的闸是 dev-plan §15.1 裁定表——那里若没同步就批准 T12/T13，规格文本拦不住。
+  3. **M7 若裁成 P-1=A（服务端化）**：要主动拆 `design.md:322/324` 两道安全闸并换库，属 **A 级**，须 owner + `schemaVersion +1` + 新 D 编号，不能随实现静默发生。
+  4. **文档欠账**：m7 §6.2 列的六个 Out 落点尚未随裁定改判（本轮只登记，未动那四份 spec）。
+  5. **M4 门槛数值三处未裁**（`LIMITS` 四段上限、`THRESHOLDS.playbooksMin`、seed 自然键），未裁则 `seed:check` 不拦空库，M4 上线即「有模块没内容」。
+- **净发现（供 owner 决其他模块时复用，非本笔范围）**:
+  1. `packages/core/src/pack/composer.ts:123-126` 的正文交叉引用行（现写「见 `TERMS.md`（N 条）」）是**任何新增包产物的第二处必改点**——只产文件不产引用行，注入侧的 AI 就不知道该文件存在。M1–M3 的规格从未写明这条，M4 已补进 FR-7.6。
+  2. `content/seed/flow-templates.json:103` 的检查项「日志/指标/会话摘录齐备」把**尚未实现的 M5 会话记录挂接**当成既成事实在执行——这是三条 P1 子功能之一的真实欠账形状。
+  3. `buildPackLock` 对「包更新后消失的旧文件」原样留档、`sync` 不清理（`inject/lock.ts:40-44`）⇒ 从「带技巧」改回「不带技巧」会出现「文件还在、正文不再提它」的半退场态；退场归 `openvibe clean`，M4 不新写退场逻辑。
+  4. 根 `package.json` **只有 `golden:update`，没有 `golden:check`** ⇒ 契约快照的复跑命令必须写成 vitest 形态，任何文档里的 `pnpm golden:check` 都是空转凭据。
