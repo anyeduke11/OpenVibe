@@ -77,6 +77,64 @@ export function searchTermRowids(db: SqliteDatabase, q: string): TermSearchHit[]
   return rows.map((r) => ({ rowid: r.rowid, matchedFields: fieldsOf(r) }))
 }
 
+/** 技巧搜索命中：与术语同一形状（rowid + 命中字段清单），故复用同一类型 */
+export type PlaybookSearchHit = TermSearchHit
+
+/** m4 FR-2.2：分流与分词器都照术语那条线——只换检索列，不自造口径 */
+export function searchPlaybookRowids(db: SqliteDatabase, q: string): PlaybookSearchHit[] {
+  const lower = q.toLowerCase()
+  const fieldsOf = (row: {
+    scenario: string
+    problem: string
+    practice: string
+    anti_practice: string
+    tags: string
+  }) => {
+    const fields: string[] = []
+    if (row.scenario.toLowerCase().includes(lower)) fields.push('scenario')
+    if (row.problem.toLowerCase().includes(lower)) fields.push('problem')
+    if (row.practice.toLowerCase().includes(lower)) fields.push('practice')
+    if (row.anti_practice.toLowerCase().includes(lower)) fields.push('antiPractice')
+    if (parseCsvIncludes(row.tags, lower)) fields.push('tags')
+    return fields
+  }
+
+  const cols = 'scenario, problem, practice, anti_practice, tags'
+  // join 分支必须带表前缀：两个表都有同名列，不限定就是 ambiguous column
+  const joined = 'p.scenario, p.problem, p.practice, p.anti_practice, p.tags'
+
+  if (q.length >= 3) {
+    const rows = db
+      .prepare(
+        `SELECT p.rowid AS rowid, ${joined}
+           FROM fts_playbooks f JOIN playbooks p ON p.rowid = f.rowid
+          WHERE fts_playbooks MATCH ? ORDER BY rank, p.rowid ASC`,
+      )
+      .all(ftsPhrase(q)) as PlaybookFtsRow[]
+    return rows.map((r) => ({ rowid: r.rowid, matchedFields: fieldsOf(r) }))
+  }
+
+  const like = `%${q}%`
+  const rows = db
+    .prepare(
+      `SELECT rowid, ${cols} FROM playbooks
+        WHERE scenario LIKE ? OR problem LIKE ? OR practice LIKE ?
+           OR anti_practice LIKE ? OR tags LIKE ?
+        ORDER BY updated_at DESC, id ASC`,
+    )
+    .all(like, like, like, like, like) as PlaybookFtsRow[]
+  return rows.map((r) => ({ rowid: r.rowid, matchedFields: fieldsOf(r) }))
+}
+
+interface PlaybookFtsRow {
+  rowid: number
+  scenario: string
+  problem: string
+  practice: string
+  anti_practice: string
+  tags: string
+}
+
 function parseCsvIncludes(aliasesJson: string, lower: string): boolean {
   try {
     const arr = JSON.parse(aliasesJson) as string[]

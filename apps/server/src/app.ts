@@ -4,9 +4,12 @@ import { APP_NAME, SCHEMA_VERSION } from '@openvibe/shared'
 import { openDatabase, type SqliteDatabase } from '@openvibe/core'
 import { registerAuth } from './plugins/auth'
 import { registerErrors } from './plugins/errors'
+import { registerCliCommandRoutes } from './routes/cliCommands'
 import { registerDevLogRoutes } from './routes/devlog'
 import { registerFlowTemplateRoutes } from './routes/flowTemplates'
+import { registerNavCountRoutes } from './routes/navCounts'
 import { registerPackRoutes } from './routes/packs'
+import { registerPlaybookRoutes } from './routes/playbooks'
 import { registerProjectRoutes } from './routes/projects'
 import { type PortRouteDeps, registerPortRoutes } from './routes/ports'
 import { registerPromptRoutes, type PromptRouteDeps } from './routes/prompts'
@@ -64,6 +67,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   const deps: PromptRouteDeps = { db }
   registerPromptRoutes(app, deps)
   registerTermRoutes(app, deps)
+  registerPlaybookRoutes(app, deps)
   registerFlowTemplateRoutes(app, deps)
   registerPackRoutes(app, deps)
   registerProjectRoutes(app, deps)
@@ -71,6 +75,9 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerTaskRoutes(app, deps)
   registerDevLogRoutes(app, deps)
   registerSkillRoutes(app, { ...deps, fetchImpl: options.remoteFetchImpl })
+  // V2 只读聚合端点：侧栏角标一次取全 + CLI 命令参考（纯常量，无 DB 依赖）
+  registerNavCountRoutes(app, deps)
+  registerCliCommandRoutes(app)
   registerSettingsRoutes(app, {
     db,
     appVersion,

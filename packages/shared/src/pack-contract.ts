@@ -4,7 +4,7 @@
 
 import type { AdapterId } from './constants'
 import type { Stage } from './schemas/flow'
-import type { ManifestPrompt, ManifestSkill, ManifestTerm } from './schemas/pack'
+import type { ManifestPlaybook, ManifestPrompt, ManifestSkill, ManifestTerm } from './schemas/pack'
 
 /** 选集解析后的包（repos 已按 selection 取内容快照，§7.2 的 manifest 内嵌资产即源于此） */
 export interface ResolvedPack {
@@ -17,6 +17,12 @@ export interface ResolvedPack {
   prompts: ManifestPrompt[]
   terms: ManifestTerm[]
   skills: ManifestSkill[]
+  /**
+   * 技巧快照（m4 FR-7.1）。**选填**：golden 夹具是 A 级冻结契约输入（tests/golden/fixtures.ts
+   * 不得改），把它变成必填等于借 M4 之手改契约快照面；渲染侧一律按缺省 = 未选技巧处理，
+   * 与「playbookIds 缺省」在字节上等价（FR-8.4）。
+   */
+  playbooks?: ManifestPlaybook[]
 }
 
 /**
@@ -69,6 +75,8 @@ export const PACK_SECTION_ORDER = [
 // ============ §7.1 / §7.4 产物文件名 ============
 
 export const PACK_FILE_TERMS = 'TERMS.md'
+/** m4 FR-6.1：独立产物，不进主正文新节（§8.2 ① 裁 A，否则所有既有包指纹变化） */
+export const PACK_FILE_PLAYBOOKS = 'PLAYBOOKS.md'
 export const PACK_FILE_CHECKLIST = 'CHECKLIST.md'
 export const PACK_FILE_SKILLS = 'SKILLS.md'
 export const PACK_FILE_MANIFEST = 'openvibe.pack.json'

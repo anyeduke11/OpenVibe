@@ -7,7 +7,7 @@ import type { SqliteDatabase } from '@openvibe/core'
 export function referencedPackNames(
   db: SqliteDatabase,
   assetId: string,
-  selectionKey: 'promptIds' | 'termIds' | 'skillIds',
+  selectionKey: 'promptIds' | 'termIds' | 'skillIds' | 'playbookIds',
 ): string[] {
   const rows = db.prepare('SELECT name, selection FROM standard_packs').all() as {
     name: string

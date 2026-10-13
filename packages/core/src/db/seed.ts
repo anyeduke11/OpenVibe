@@ -6,7 +6,8 @@ import { sha256Hex, stableJson } from '../repos/util'
 import { FlowTemplatesRepo } from '../repos/flows'
 import { PromptsRepo } from '../repos/prompts'
 import { TermsRepo } from '../repos/terms'
-import type { FlowKind, PlatformMark, Stage } from '@openvibe/shared'
+import { PlaybooksRepo } from '../repos/playbooks'
+import type { DevLogEvidence, FlowKind, PlatformMark, Stage } from '@openvibe/shared'
 
 /**
  * 种子幂等加载（design §15 / dev-plan §7.4）：
@@ -27,6 +28,7 @@ const BUNDLES = [
   { bundle: 'terms', file: 'terms.json' },
   { bundle: 'flow-templates', file: 'flow-templates.json' },
   { bundle: 'prompts', file: 'prompts.json' },
+  { bundle: 'playbooks', file: 'playbooks.json' },
 ] as const
 
 interface TermsSeedItem {
@@ -52,6 +54,16 @@ interface PromptsSeedItem {
   folderPath: string
   platformMarks: PlatformMark[]
   useAs: 'rule' | 'reference'
+}
+
+interface PlaybooksSeedItem {
+  scenario: string
+  problem: string
+  practice: string
+  antiPractice?: string
+  tags: string[]
+  verified?: boolean
+  evidence?: DevLogEvidence[]
 }
 
 export function runSeed(db: SqliteDatabase, seedDir: string): SeedBundleResult[] {
@@ -104,6 +116,7 @@ function mergeBundle(
   const terms = new TermsRepo(db)
   const flows = new FlowTemplatesRepo(db)
   const prompts = new PromptsRepo(db)
+  const playbooks = new PlaybooksRepo(db)
 
   for (const item of items) {
     try {
@@ -193,6 +206,46 @@ function mergeBundle(
             status: 'active',
           })
           prompts.setSeedHash(existing.id, seedHash)
+          result.updated += 1
+        }
+      } else if (bundle === 'playbooks') {
+        // 技巧腿与 terms 腿同纪律：自然键定位 → seed_hash 比对 → 用户改过则 skipped + warning
+        const b = item as PlaybooksSeedItem
+        const body = {
+          scenario: b.scenario,
+          problem: b.problem,
+          practice: b.practice,
+          antiPractice: b.antiPractice ?? '',
+          tags: b.tags ?? [],
+        }
+        const seedHash = playbooks.seedItemHash(body)
+        const existing = playbooks.findByNaturalKey(body.scenario, body.problem)
+        if (!existing) {
+          const created = playbooks.create({
+            ...body,
+            relatedPromptIds: [],
+            relatedTermIds: [],
+            relatedSkillIds: [],
+            source: 'openvibe-seed',
+            // seed 直接落 published：draft 只进不了包（M4 FR-6.2 只渲染 published），
+            // 预置技巧若全是 draft 等于「有模块没内容」
+            status: 'published',
+            verified: b.verified === true,
+            evidence: b.evidence ?? [],
+          })
+          playbooks.setSeedHash(created.id, seedHash)
+          result.created += 1
+        } else if (existing.seedHash === null) {
+          result.skipped += 1
+          result.warnings.push(`技巧已被用户修改，跳过升级: ${body.scenario}`)
+        } else {
+          // verified 与 evidence 随同一次请求下发，绕不开 FR-4.2 的「置真须带证据」
+          playbooks.update(existing.id, {
+            ...body,
+            verified: b.verified === true,
+            evidence: b.evidence ?? [],
+          })
+          playbooks.setSeedHash(existing.id, seedHash)
           result.updated += 1
         }
       }

@@ -26,7 +26,7 @@ const STEPS = [
   zh.packs.wizard.step5,
 ]
 
-const EMPTY_STALE: AssetIds = { promptIds: [], termIds: [], skillIds: [] }
+const EMPTY_STALE: AssetIds = { promptIds: [], termIds: [], skillIds: [], playbookIds: [] }
 
 /** 第 4 步的文件名提示（design §8.2 映射；实际清单以第 5 步预览为准） */
 const MAIN_PATH_HINT: Record<AdapterId, string> = {
@@ -38,11 +38,16 @@ const MAIN_PATH_HINT: Record<AdapterId, string> = {
   minicode: 'MINI.md',
 }
 
-/** 把 STALE_SELECTION 的 details 归一成三栏 id 清单（resolve.ts 的 StaleDetails 形状） */
+/** 把 STALE_SELECTION 的 details 归一成四栏 id 清单（resolve.ts 的 StaleDetails 形状） */
 function toAssetIds(details: unknown): AssetIds {
   const d = (details ?? {}) as Partial<Record<keyof AssetIds | 'flowTemplateId', unknown>>
   const list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
-  return { promptIds: list(d.promptIds), termIds: list(d.termIds), skillIds: list(d.skillIds) }
+  return {
+    promptIds: list(d.promptIds),
+    termIds: list(d.termIds),
+    skillIds: list(d.skillIds),
+    playbookIds: list(d.playbookIds),
+  }
 }
 
 /**
@@ -64,6 +69,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
     promptIds: initial?.selection.promptIds ?? [],
     termIds: initial?.selection.termIds ?? [],
     skillIds: initial?.selection.skillIds ?? [],
+    playbookIds: initial?.selection.playbookIds ?? [],
   })
   const [targets, setTargets] = useState<AdapterId[]>(initial?.targets ?? ['claude-code', 'generic-agents'])
   const [version, setVersion] = useState('1.0.0')
@@ -96,6 +102,8 @@ export function PackWizard(props: { initial: PackOut | null }) {
       if (nameTaken(trimmed)) return zh.packs.wizard.nameTaken(trimmed)
     }
     if (step === 2) {
+      // m4 §6.4（owner 裁定 ⑤）：技巧**不计入**成包的最低选集——只选技巧仍不可成包，
+      // 归因文案在 zh.packs.wizard.assetsRequired 里点明「只选了技巧」。
       const empty =
         assets.promptIds.length + assets.termIds.length + assets.skillIds.length === 0 &&
         flowTemplateId === ''
@@ -112,7 +120,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
       promptIds: assets.promptIds,
       termIds: assets.termIds,
       skillIds: assets.skillIds,
-      playbookIds: [],
+      playbookIds: assets.playbookIds,
       flowTemplateId: flowTemplateId === '' ? null : flowTemplateId,
     }
     try {

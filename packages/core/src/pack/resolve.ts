@@ -2,6 +2,7 @@ import {
   AppError,
   type FlowTemplateOut,
   type PackSelection,
+  type PlaybookOut,
   type PromptOut,
   type ResolvedPack,
   type SkillOut,
@@ -9,6 +10,7 @@ import {
   type AdapterId,
 } from '@openvibe/shared'
 import type { FlowTemplatesRepo } from '../repos/flows'
+import type { PlaybooksRepo } from '../repos/playbooks'
 import type { PromptsRepo } from '../repos/prompts'
 import type { SkillsRepo } from '../repos/skills'
 import type { TermsRepo } from '../repos/terms'
@@ -17,6 +19,7 @@ export interface ResolveDeps {
   prompts: PromptsRepo
   terms: TermsRepo
   skills: SkillsRepo
+  playbooks: PlaybooksRepo
   flows: FlowTemplatesRepo
 }
 
@@ -46,6 +49,7 @@ type StaleDetails = {
   promptIds: string[]
   termIds: string[]
   skillIds: string[]
+  playbookIds: string[]
   flowTemplateId: string[]
 }
 
@@ -60,7 +64,13 @@ export function resolvePack(
   version: string,
   deps: ResolveDeps,
 ): ResolvedPack {
-  const stale: StaleDetails = { promptIds: [], termIds: [], skillIds: [], flowTemplateId: [] }
+  const stale: StaleDetails = {
+    promptIds: [],
+    termIds: [],
+    skillIds: [],
+    playbookIds: [],
+    flowTemplateId: [],
+  }
 
   const prompts = pick<PromptOut>(
     selection.promptIds,
@@ -70,6 +80,12 @@ export function resolvePack(
   )
   const terms = pick<TermOut>(selection.termIds, (id) => deps.terms.get(id), 'termIds', stale)
   const skills = pick<SkillOut>(selection.skillIds, (id) => deps.skills.get(id), 'skillIds', stale)
+  const playbooks = pick<PlaybookOut>(
+    selection.playbookIds,
+    (id) => deps.playbooks.get(id),
+    'playbookIds',
+    stale,
+  )
 
   let flow: ResolvedPack['flow'] = null
   if (selection.flowTemplateId) {
@@ -88,10 +104,14 @@ export function resolvePack(
     )
   }
 
+  // 裁定 ⑤：只选技巧**成不了包**——技巧缺场景上下文时单发价值低；
+  // 但归因必须写清是「只选了技巧」，否则用户在向导里看不到自己漏了什么。
   if (prompts.length === 0 && terms.length === 0 && skills.length === 0 && !flow) {
     throw new AppError(
       'EMPTY_SELECTION',
-      '空选集不可组包：至少挑一条提示词 / 术语 / skill，或选一个流程模板（m6a FR-2.4）',
+      playbooks.length > 0
+        ? '只选了技巧不成包：技巧缺场景上下文，至少再挑一条提示词 / 术语 / skill，或选一个流程模板（m4 §6.4）'
+        : '空选集不可组包：至少挑一条提示词 / 术语 / skill，或选一个流程模板（m6a FR-2.4）',
     )
   }
 
@@ -121,6 +141,15 @@ export function resolvePack(
       description: s.description,
       skillDir: s.skillDir ?? '',
       versionLabel: versionLabelOf(deps.skills, s),
+    })),
+    // 证据不进包：包注入的是「怎么做」，不是「怎么验的」
+    playbooks: playbooks.map((p) => ({
+      scenario: p.scenario,
+      problem: p.problem,
+      practice: p.practice,
+      antiPractice: p.antiPractice,
+      verified: p.verified,
+      status: p.status,
     })),
   }
 }

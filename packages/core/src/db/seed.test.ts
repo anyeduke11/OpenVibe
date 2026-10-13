@@ -37,6 +37,12 @@ const baseFiles = {
     schemaVersion: 1,
     items: [{ title: '代码审查请求', content: '审查 {{language}} 代码', tags: ['精选'], platformMarks: ['generic'], useAs: 'reference' }],
   },
+  'playbooks.json': {
+    schemaVersion: 1,
+    items: [
+      { scenario: '变更评审', problem: '只列功能清单', practice: '三件套 + 回退耗时实测', antiPractice: '口头承诺可回退', tags: ['风险陷阱'] },
+    ],
+  },
 }
 
 describe('UT-SEED-01 · 种子幂等与升级（夹具 bundle）', () => {
@@ -46,16 +52,29 @@ describe('UT-SEED-01 · 种子幂等与升级（夹具 bundle）', () => {
     writeSeedDir(h.dir, baseFiles)
 
     const first = runSeed(h.db, h.dir)
-    expect(first.map((r) => r.status)).toEqual(['imported', 'imported', 'imported'])
+    expect(first.map((r) => r.status)).toEqual([
+      'imported',
+      'imported',
+      'imported',
+      'imported',
+    ])
     expect(first[0]?.created).toBe(2)
+    // 第四条 bundle 也进幂等腿（m4 FR-9.2），否则「技巧不重复装载」无人可证
+    expect(first[3]?.created).toBe(1)
 
     const count = () => (h.db.prepare('SELECT COUNT(*) AS c FROM terms').get() as { c: number }).c
     const afterFirst = count()
     expect(afterFirst).toBe(2)
+    expect(
+      (h.db.prepare('SELECT COUNT(*) AS c FROM playbooks').get() as { c: number }).c,
+    ).toBe(1)
 
     const second = runSeed(h.db, h.dir)
     expect(second.every((r) => r.status === 'skipped')).toBe(true)
     expect(count()).toBe(afterFirst)
+    expect(
+      (h.db.prepare('SELECT COUNT(*) AS c FROM playbooks').get() as { c: number }).c,
+    ).toBe(1)
     h.close()
   })
 
@@ -111,16 +130,27 @@ describe('UT-SEED-01 · 种子幂等与升级（夹具 bundle）', () => {
 describe('UT-SEED-02 · 真实 content/seed 首启计数', () => {
   const REPO_SEED_DIR = fileURLToPath(new URL('../../../../content/seed', import.meta.url))
 
-  it('导完后 SQLite 计数 terms ≥100 / 模板 7 / 提示词 21，且无单条失败', () => {
+  it('导完后 SQLite 计数 terms ≥100 / 模板 7 / 提示词 21 / 技巧 ≥10，且无单条失败', () => {
     const h = newDb()
     const results = runSeed(h.db, REPO_SEED_DIR)
 
-    expect(results.map((r) => r.status)).toEqual(['imported', 'imported', 'imported'])
+    expect(results.map((r) => r.status)).toEqual([
+      'imported',
+      'imported',
+      'imported',
+      'imported',
+    ])
     const counts = (table: string): number =>
       (h.db.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get() as { c: number }).c
     expect(counts('terms')).toBeGreaterThanOrEqual(100)
     expect(counts('flow_templates')).toBe(7)
     expect(counts('prompts')).toBe(21)
+    expect(counts('playbooks')).toBeGreaterThanOrEqual(10)
+    // 预置技巧必须是 published，否则「有模块没内容」——进不了包（FR-6.2）
+    expect(
+      (h.db.prepare("SELECT COUNT(*) AS c FROM playbooks WHERE status='published'").get() as { c: number })
+        .c,
+    ).toBe(counts('playbooks'))
 
     // 空库首启：全部应为新增，不允许 updated/skipped，也不允许逐条 warning
     for (const r of results) {

@@ -249,33 +249,50 @@ describe('T6d · m6a 标准包 API（dev-plan §3.8 + bundle 通道）', () => {
     expect(missing.json().code).toBe('NOT_FOUND')
   })
 
-  it('IT-ERR-04（owner 裁 ⑫）: selection.playbookIds 非空即拒，且「不传/传空」两形态照旧放过', async () => {
+  it('IT-ERR-04（owner 裁 ⑫ / M4 FR-8）: playbookIds 闸已拆——非空进选集，指向已删除才 422 STALE_SELECTION', async () => {
     const h = await makeHarness()
     const pack = await mkPack(h)
 
+    // 拆闸后非空不再是 schema 层拒绝：存得住，落选集
     const created = await api(h, 'POST', '/api/packs', {
       name: 'pb-try',
       selection: { ...pack.selection, playbookIds: ['pbx_not_a_real_id'] },
       targets: ['claude-code'],
     })
-    expect(created.statusCode).toBe(422)
-    expect(created.json().code).toBe('VALIDATION_ERROR')
-    const fields = (created.json().details as { fieldErrors: Record<string, string[]> }).fieldErrors
-    // 键是 zod 的 path.join('.') ⇒ 嵌套字段带 `selection.` 前缀。只按 `playbookIds` 查会让键形变化溜过
-    expect(Object.keys(fields)).toEqual(['selection.playbookIds'])
-    expect(fields['selection.playbookIds']?.[0]).toContain('M4')
+    expect(created.statusCode).toBe(201)
+    expect((created.json() as PackOut).selection.playbookIds).toEqual(['pbx_not_a_real_id'])
 
-    const patched = await api(h, 'PATCH', `/api/packs/${pack.id}`, {
-      selection: { ...pack.selection, playbookIds: ['pbx_not_a_real_id'] },
+    // 拒的位置后移到组包侧：引用不存在 ⇒ STALE_SELECTION 并点名（与 promptIds/termIds 同腿）
+    const stale = await api(h, 'POST', `/api/packs/${(created.json() as PackOut).id}/preview`, {})
+    expect(stale.statusCode).toBe(422)
+    expect(stale.json().code).toBe('STALE_SELECTION')
+    expect((stale.json().details as { playbookIds: string[] }).playbookIds).toEqual([
+      'pbx_not_a_real_id',
+    ])
+
+    // 有效技巧 ⇒ 进产物（反向腿：拆闸不是「技巧进不了包」）
+    const playbook = await api(h, 'POST', '/api/playbooks', {
+      scenario: '核心系统投产前的变更评审',
+      problem: '评审只看功能清单',
+      practice: '变更清单、可执行回退脚本、影响面清单三件套，回退耗时实测。',
+      status: 'published',
     })
-    expect(patched.statusCode).toBe(422)
-    expect(patched.json().code).toBe('VALIDATION_ERROR')
+    expect(playbook.statusCode).toBe(201)
+    const pbId = (playbook.json() as { id: string }).id
+    const linked = await api(h, 'PATCH', `/api/packs/${pack.id}`, {
+      selection: { ...pack.selection, playbookIds: [pbId] },
+    })
+    expect(linked.statusCode, linked.body).toBe(200)
+    const out = await preview(h, pack.id, '1.0.0')
+    expect(out.files.map((f) => f.path)).toContain('PLAYBOOKS.md')
+    expect(out.fingerprint).toBeTruthy()
 
-    // 加闸不许顺手把 `default([])` 变成必填：显式空与完全不传都得放过
+    // 拆闸不许顺手把 `default([])` 变成必填：显式空与完全不传都得放过
     const emptied = await api(h, 'PATCH', `/api/packs/${pack.id}`, {
       selection: { ...pack.selection, playbookIds: [] },
     })
     expect(emptied.statusCode).toBe(200)
+    expect((await preview(h, pack.id, '1.0.0')).files.map((f) => f.path)).not.toContain('PLAYBOOKS.md')
     const omitted = await api(h, 'POST', '/api/packs', {
       name: 'pb-omitted',
       selection: {

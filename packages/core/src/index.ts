@@ -2,7 +2,14 @@
 export { openDatabase, defaultDbPath, openvibeHome, type SqliteDatabase } from './db'
 export { migrate, nowIso } from './db/runner'
 export { runSeed, type SeedBundleResult } from './db/seed'
-export { searchPromptRowids, searchTermRowids, ftsPhrase, type TermSearchHit } from './search/fts'
+export {
+  searchPromptRowids,
+  searchTermRowids,
+  searchPlaybookRowids,
+  ftsPhrase,
+  type TermSearchHit,
+  type PlaybookSearchHit,
+} from './search/fts'
 export {
   computeDirHash,
   parseSkillFrontmatter,
@@ -17,6 +24,7 @@ export {
 } from './repos/skills'
 export { PromptsRepo } from './repos/prompts'
 export { TermsRepo } from './repos/terms'
+export { PlaybooksRepo } from './repos/playbooks'
 export { FlowTemplatesRepo } from './repos/flows'
 export { ProjectsRepo, type ProjectHealthSummary } from './repos/projects'
 export { TasksRepo } from './repos/tasks'

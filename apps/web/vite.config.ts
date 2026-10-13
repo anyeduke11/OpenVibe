@@ -20,6 +20,10 @@ export const WEB_PORT = 5144
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    // 显式绑 IPv4 回环：vite 默认 host='localhost' 在 macOS 解析到 ::1（仅 IPv6），
+    // 会导致 127.0.0.1:5144 拒连（DEV-0071 实测）。绑 127.0.0.1 后 localhost 走浏览器
+    // fallback 仍可达；与 server 侧的回环绑定纪律（design §11.1）一致。
+    host: '127.0.0.1',
     port: WEB_PORT,
     strictPort: true,
     proxy: {
@@ -27,6 +31,7 @@ export default defineConfig({
     },
   },
   preview: {
+    host: '127.0.0.1',
     port: WEB_PORT,
     strictPort: true,
   },

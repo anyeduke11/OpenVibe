@@ -1,0 +1,1565 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OpenVibe 灵典 · 暖纸 V2 · 可读性交互 Demo</title>
+<meta name="description" content="暖色系高可读性前端交互演示：真实种子内容 + 运行时对比度自检。" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet" media="print" onload="this.media='all'" />
+<noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" /></noscript>
+<style>
+/* ============================================================================
+   暖纸 V2 · 设计 token（唯一出处）
+   规则：所有颜色只在这里出现一次。调用点只写 var(--xxx)，不写字面色值。
+   文字色按「角色」命名而非色阶：同一 shade 在不同底色上承担不同职责。
+   ========================================================================== */
+:root {
+  /* 表面 */
+  --canvas:        #faf5ec;
+  --canvas-2:      #f4ecdf;
+  --panel:         #fffdf9;
+  --panel-2:       #f8f1e6;
+  --panel-sunk:    #f1e7d8;
+
+  /* 描边 */
+  --line-hair:     #efe5d5;
+  --line:          #e3d6c1;
+  --line-strong:   #cdbca2;
+
+  /* 文字（暖墨，不用纯黑：纯黑在暖底上视觉过硬） */
+  --ink:           #2a2018;   /* 标题 / 强调 */
+  --ink-body:      #4a3b2d;   /* 正文 */
+  --ink-muted:     #6a5846;   /* 次要说明 */
+  --ink-faint:     #806e5a;   /* 元信息 / 标签，不承载长文本（对 panel 4.81:1，卡在 AA 线上方） */
+
+  /* 强调：赭石 */
+  --accent:        #a8501c;
+  --accent-deep:   #7c3811;
+  --accent-soft:   #f7e8d7;
+  --accent-line:   #e4c9ab;
+  --on-accent:     #fffaf3;
+
+  /* 状态（软容器 + 实心两形态，分开是因为合并会改对比度） */
+  --ok:            #3d6b37;   --ok-soft:    #ecf2e3;   --ok-line:   #c6dcbb;
+  --warn:          #92610e;   --warn-soft:  #f9efd7;   --warn-line: #e6cf9d;
+  --danger:        #ab3527;   --danger-soft:#fbe7e2;   --danger-line:#eec2b8;
+  --info:          #2b5a74;   --info-soft:  #e4edf2;   --info-line: #bdd3df;
+
+  --scrim:         rgba(42, 32, 24, .42);
+
+  /* 阴影：只做扩散，不做硬边 */
+  --sh-1: 0 1px 2px rgba(74, 52, 30, .05), 0 1px 1px rgba(74, 52, 30, .04);
+  --sh-2: 0 4px 16px -4px rgba(74, 52, 30, .12), 0 2px 4px rgba(74, 52, 30, .05);
+  --sh-3: 0 24px 48px -16px rgba(58, 40, 22, .26), 0 8px 16px -8px rgba(58, 40, 22, .12);
+
+  /* 圆角 / 间距 */
+  --r-1: 6px; --r-2: 10px; --r-3: 14px; --r-4: 20px;
+
+  /* 字号：CJK 密集正文落在 15px，比拉丁默认更紧 */
+  --fs-h1: 30px; --fs-h2: 21px; --fs-h3: 16px;
+  --fs-body: 15px; --fs-sm: 13.5px; --fs-xs: 12.5px;
+  --lh-body: 1.72; --lh-tight: 1.45;
+
+  --font: 'Outfit', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --dur: 160ms;
+}
+
+[data-theme='night'] {
+  --canvas:        #16120f;
+  --canvas-2:      #1b1613;
+  --panel:         #1e1915;
+  --panel-2:       #26201a;
+  --panel-sunk:    #14100d;
+  --line-hair:     #2b241d;
+  --line:          #3a312a;
+  --line-strong:   #51453a;
+  --ink:           #f7eee3;
+  --ink-body:      #e0d4c3;
+  --ink-muted:     #b5a592;
+  --ink-faint:     #9a8b76;
+  --accent:        #e9a63f;
+  --accent-deep:   #f2b862;
+  --accent-soft:   #372814;
+  --accent-line:   #57401f;
+  --on-accent:     #1b1510;
+  --ok:            #8cbf70;   --ok-soft:    #1f2c1a;   --ok-line:   #34492c;
+  --warn:          #e0b055;   --warn-soft:  #302511;   --warn-line: #4c3a18;
+  --danger:        #e8836f;   --danger-soft:#36201a;   --danger-line:#57302a;
+  --info:          #7fb4d2;   --info-soft:  #182832;   --info-line: #2a414f;
+  --scrim:         rgba(8, 5, 3, .62);
+  --sh-1: 0 1px 2px rgba(0, 0, 0, .34);
+  --sh-2: 0 4px 16px -4px rgba(0, 0, 0, .5), 0 2px 4px rgba(0, 0, 0, .3);
+  --sh-3: 0 24px 48px -16px rgba(0, 0, 0, .68), 0 8px 16px -8px rgba(0, 0, 0, .45);
+}
+
+/* --------------------------------------------------------------- base --- */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink-body);
+  font-family: var(--font);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+h1, h2, h3, h4 { color: var(--ink); line-height: var(--lh-tight); margin: 0; font-weight: 600; letter-spacing: -.01em; }
+a { color: var(--accent); }
+button, input, textarea, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+::selection { background: var(--accent-soft); color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.mono { font-family: var(--mono); font-variant-ligatures: none; }
+.num  { font-variant-numeric: tabular-nums; }
+.prose { max-width: 68ch; }              /* 长文本行长闸门：超过就难读 */
+.muted { color: var(--ink-muted); }
+.faint { color: var(--ink-faint); }
+
+/* -------------------------------------------------------------- shell --- */
+.top {
+  position: sticky; top: 0; z-index: 30;
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 20px; height: 58px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand .mark {
+  width: 30px; height: 30px; border-radius: 8px; flex: none;
+  background: linear-gradient(150deg, var(--accent) 0%, var(--accent-deep) 100%);
+  color: var(--on-accent); display: grid; place-items: center;
+  font-size: 15px; font-weight: 700; box-shadow: var(--sh-1);
+}
+.brand b { font-size: 15px; color: var(--ink); font-weight: 600; letter-spacing: -.01em; }
+.brand span { display: block; font-size: 11.5px; color: var(--ink-faint); line-height: 1.3; margin-top: -2px; }
+.top .spacer { flex: 1; }
+
+.shell { display: grid; grid-template-columns: 216px minmax(0, 1fr); align-items: start; }
+.side {
+  position: sticky; top: 58px; height: calc(100dvh - 58px);
+  padding: 16px 12px; border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 2px; overflow-y: auto;
+}
+.nav-i {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: var(--r-1);
+  background: transparent; color: var(--ink-muted);
+  font-size: var(--fs-sm); text-align: left; cursor: pointer;
+  transition: background var(--dur), color var(--dur);
+}
+.nav-i svg { flex: none; opacity: .8; }
+.nav-i:hover { background: var(--panel-2); color: var(--ink); }
+.nav-i[aria-current='page'] { background: var(--accent-soft); color: var(--accent-deep); font-weight: 500; }
+.nav-i[aria-current='page'] svg { opacity: 1; }
+.nav-i u { margin-left: auto; font-size: 11px; text-decoration: none; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.nav-i[aria-current='page'] u { color: var(--accent); }
+.side-f { margin-top: auto; padding: 12px 10px 2px; border-top: 1px solid var(--line-hair); font-size: 11.5px; color: var(--ink-faint); line-height: 1.6; }
+.side-f code { font-size: 11px; color: var(--ink-muted); }
+
+main { padding: 26px 30px 72px; min-width: 0; }
+.view { max-width: 1120px; margin: 0 auto; animation: rise var(--dur) ease-out; }
+@keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.vh { margin-bottom: 22px; }
+.vh h1 { font-size: var(--fs-h1); letter-spacing: -.02em; }
+.vh p { margin: 7px 0 0; color: var(--ink-muted); font-size: var(--fs-sm); max-width: 74ch; }
+
+/* --------------------------------------------------------------- card --- */
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-2); box-shadow: var(--sh-1); }
+.card-h { display: flex; align-items: center; gap: 8px; padding: 13px 16px; border-bottom: 1px solid var(--line-hair); }
+.card-h h3 { font-size: var(--fs-h3); }
+.card-h .sp { flex: 1; }
+.card-b { padding: 16px; }
+.card-b.tight { padding: 12px 16px; }
+
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g-side { grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+
+/* -------------------------------------------------------------- stats --- */
+.stat { padding: 14px 16px; }
+.stat .k { font-size: 12px; color: var(--ink-faint); letter-spacing: .02em; }
+.stat .v { font-size: 27px; font-weight: 600; color: var(--ink); line-height: 1.25; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.stat .d { font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
+
+/* ------------------------------------------------------------ buttons --- */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 13px; border-radius: var(--r-1);
+  border: 1px solid var(--line-strong); background: var(--panel);
+  color: var(--ink-body); font-size: var(--fs-sm); font-weight: 500;
+  cursor: pointer; white-space: nowrap;
+  transition: background var(--dur), border-color var(--dur), color var(--dur), transform var(--dur);
+}
+.btn:hover { background: var(--panel-2); color: var(--ink); }
+.btn:active { transform: translateY(.5px); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: var(--sh-1); }
+.btn.primary:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--ink-muted); }
+.btn.ghost:hover { background: var(--panel-2); color: var(--ink); }
+.btn.danger { background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger); }
+.btn.danger:hover { background: var(--danger); border-color: var(--danger); color: var(--panel); }
+.btn.sm { padding: 4px 9px; font-size: var(--fs-xs); }
+.btn.icon { padding: 5px; }
+
+/* --------------------------------------------------------------- chip --- */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--panel-2);
+  color: var(--ink-muted); font-size: 11.5px; line-height: 1.7; white-space: nowrap;
+}
+.chip.accent { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-deep); }
+.chip.ok     { background: var(--ok-soft);     border-color: var(--ok-line);     color: var(--ok); }
+.chip.warn   { background: var(--warn-soft);   border-color: var(--warn-line);   color: var(--warn); }
+.chip.danger { background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger); }
+.chip.info   { background: var(--info-soft);   border-color: var(--info-line);   color: var(--info); }
+.chip.plain  { background: transparent; }
+
+button.chip { cursor: pointer; transition: all var(--dur); }
+button.chip:hover { border-color: var(--line-strong); color: var(--ink); }
+button.chip[aria-pressed='true'] { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-deep); font-weight: 500; }
+
+/* -------------------------------------------------------------- input --- */
+.field { display: block; position: relative; }
+.field svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--ink-faint); pointer-events: none; }
+.input {
+  width: 100%; padding: 8px 12px 8px 32px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-1);
+  background: var(--panel); color: var(--ink);
+  font-size: var(--fs-sm);
+  transition: border-color var(--dur), box-shadow var(--dur);
+}
+.input::placeholder { color: var(--ink-faint); }
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.input.plain { padding-left: 12px; }
+label.lb { display: block; font-size: 12px; font-weight: 500; color: var(--ink-muted); margin-bottom: 5px; }
+
+/* --------------------------------------------------------------- tabs --- */
+.tabs { display: flex; gap: 2px; padding: 3px; background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--r-1); }
+.tabs button {
+  border: 0; background: transparent; color: var(--ink-muted);
+  padding: 5px 11px; border-radius: 4px; font-size: var(--fs-xs); font-weight: 500; cursor: pointer;
+  transition: all var(--dur);
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected='true'] { background: var(--panel); color: var(--ink); box-shadow: var(--sh-1); }
+
+/* -------------------------------------------------------------- table --- */
+table.tb { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+table.tb th {
+  text-align: left; font-size: 11.5px; font-weight: 600; color: var(--ink-faint);
+  letter-spacing: .03em; padding: 0 12px 8px; border-bottom: 1px solid var(--line);
+}
+table.tb td { padding: 9px 12px; border-bottom: 1px solid var(--line-hair); vertical-align: top; color: var(--ink-body); overflow-wrap: anywhere; }
+table.tb tr:last-child td { border-bottom: 0; }
+table.tb tbody tr { transition: background var(--dur); }
+table.tb tbody tr:hover { background: var(--panel-2); }
+
+/* -------------------------------------------------------------- lists --- */
+.rows { display: flex; flex-direction: column; }
+.row {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 11px 14px; border: 0; border-bottom: 1px solid var(--line-hair);
+  background: transparent; text-align: left; cursor: pointer;
+  transition: background var(--dur);
+}
+.row:last-child { border-bottom: 0; }
+.row:hover { background: var(--panel-2); }
+.row[aria-selected='true'] { background: var(--accent-soft); }
+.row .tx { min-width: 0; flex: 1; }
+.row .t1 { font-size: var(--fs-sm); font-weight: 500; color: var(--ink); display: flex; align-items: center; gap: 6px; }
+.row .t2 { font-size: var(--fs-xs); color: var(--ink-muted); margin-top: 1px;
+  overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
+
+/* -------------------------------------------------------------- check --- */
+/* .chk = 带文字的勾选行；.cbx = 独立勾选框（列表行里单用）。
+   两者共用一套外观，所以 .cbx 必须是 .chk 的兄弟写法而不是子类。 */
+.chk { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: var(--fs-sm); }
+.chk input, .cbx { appearance: none; width: 16px; height: 16px; flex: none; margin: 0;
+  border: 1.5px solid var(--line-strong); border-radius: 4px; background: var(--panel);
+  display: grid; place-content: center; cursor: pointer; transition: all var(--dur); }
+.chk input::after, .cbx::after { content: ''; width: 8px; height: 8px; transform: scale(0); transition: transform var(--dur);
+  background: var(--on-accent); clip-path: polygon(14% 44%, 0 65%, 40% 100%, 100% 16%, 82% 0%, 38% 68%); }
+.chk input:checked, .cbx:checked { background: var(--accent); border-color: var(--accent); }
+.chk input:checked::after, .cbx:checked::after { transform: scale(1); }
+.chk input:checked + span { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+.row:has(.cbx:checked) { background: var(--accent-soft); }
+
+/* ------------------------------------------------------------- kanban --- */
+.kb { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.kb-col { background: var(--panel-2); border: 1px solid var(--line-hair); border-radius: var(--r-2); padding: 10px; min-height: 180px; }
+.kb-col > h4 { font-size: 12px; color: var(--ink-muted); font-weight: 600; letter-spacing: .03em; margin-bottom: 9px; display: flex; align-items: center; gap: 6px; }
+.kb-col > h4 u { margin-left: auto; text-decoration: none; color: var(--ink-faint); font-weight: 400; }
+.task {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-1);
+  padding: 10px 11px; margin-bottom: 7px; box-shadow: var(--sh-1);
+}
+.task p { margin: 0; font-size: var(--fs-sm); line-height: 1.55; color: var(--ink); }
+.task .ops { display: flex; gap: 4px; margin-top: 8px; }
+.task.done p { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+.empty-hint { border: 1px dashed var(--line-strong); border-radius: var(--r-1); padding: 14px; text-align: center; font-size: var(--fs-xs); color: var(--ink-faint); }
+
+/* ----------------------------------------------------------- timeline --- */
+.tl { list-style: none; margin: 0; padding: 0; position: relative; }
+.tl::before { content: ''; position: absolute; left: 7px; top: 10px; bottom: 10px; width: 2px; background: var(--accent-line); }
+.tl li { position: relative; padding: 0 0 16px 26px; }
+.tl li:last-child { padding-bottom: 0; }
+.tl li::before {
+  content: ''; position: absolute; left: 1px; top: 5px; width: 14px; height: 14px;
+  border-radius: 50%; background: var(--panel); border: 2px solid var(--accent);
+}
+.tl li[data-on='1']::before { background: var(--accent); }
+.tl li .h { display: flex; align-items: center; gap: 7px; font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+.tl li .ck { margin-top: 6px; display: flex; flex-direction: column; gap: 5px; }
+.tl li .art { margin-top: 6px; font-size: 11.5px; color: var(--ink-faint); }
+
+/* ------------------------------------------------------------- drawer --- */
+.scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 50; display: flex; justify-content: flex-end; animation: fade var(--dur); }
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+.drawer {
+  width: min(620px, 100%); background: var(--panel); height: 100%;
+  border-left: 1px solid var(--line); box-shadow: var(--sh-3);
+  display: flex; flex-direction: column; animation: slide var(--dur) cubic-bezier(.2,.7,.3,1);
+}
+@keyframes slide { from { transform: translateX(18px); opacity: .4 } to { transform: none; opacity: 1 } }
+.drawer header { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px 14px; border-bottom: 1px solid var(--line); }
+.drawer header h3 { font-size: 18px; }
+.drawer header p { margin: 4px 0 0; font-size: var(--fs-xs); color: var(--ink-muted); }
+.drawer .body { padding: 18px 20px; overflow-y: auto; flex: 1; }
+.drawer footer { display: flex; gap: 8px; padding: 12px 20px; border-top: 1px solid var(--line); background: var(--panel-2); }
+
+/* ----------------------------------------------------------- markdown --- */
+.md { font-size: var(--fs-sm); line-height: 1.78; color: var(--ink-body); max-width: 66ch; }
+.md h1 { font-size: 16px; margin: 0 0 12px; }
+.md ol, .md ul { margin: 0 0 12px; padding-left: 20px; }
+.md li { margin-bottom: 7px; }
+.md strong { color: var(--ink); font-weight: 600; }
+.md code { background: var(--panel-sunk); border: 1px solid var(--line-hair); border-radius: 4px; padding: .5px 5px; font-family: var(--mono); font-size: 12.5px; }
+
+/* -------------------------------------------------------------- toast --- */
+.toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 14px);
+  background: var(--ink); color: var(--canvas); padding: 9px 16px; border-radius: 999px;
+  font-size: var(--fs-sm); z-index: 60; opacity: 0; pointer-events: none;
+  transition: all var(--dur); box-shadow: var(--sh-2);
+}
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------------------------------------------------------- code block --- */
+pre.code {
+  margin: 0; padding: 12px 14px; border-radius: var(--r-1);
+  background: var(--panel-sunk); border: 1px solid var(--line-hair);
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
+  color: var(--ink-body); overflow-x: auto; white-space: pre;
+}
+pre.code .cm { color: var(--accent); }
+/* 窄栏里的预览：宁可折行也不横向裁切 —— 裁掉的半个字比多一行更难读 */
+pre.code.wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ------------------------------------------------------ design system --- */
+.sw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 10px; }
+.sw { border: 1px solid var(--line); border-radius: var(--r-1); overflow: hidden; background: var(--panel); }
+.sw i { display: block; height: 46px; }
+.sw .meta { padding: 8px 10px; }
+.sw .meta b { display: block; font-size: 12.5px; color: var(--ink); font-weight: 500; }
+.sw .meta code { font-size: 11px; color: var(--ink-muted); font-family: var(--mono); }
+.sw .meta em { display: block; font-style: normal; font-size: 11px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+
+.ts-row { display: grid; grid-template-columns: 128px 1fr; gap: 14px; align-items: baseline; padding: 9px 0; border-bottom: 1px solid var(--line-hair); }
+.ts-row:last-child { border-bottom: 0; }
+.ts-row code { font-family: var(--mono); font-size: 11.5px; color: var(--ink-muted); }
+.ts-row .samp { color: var(--ink); }
+
+.kv { display: grid; grid-template-columns: 96px 1fr; gap: 0 14px; margin: 0; }
+.kv dt { font-size: 12.5px; color: var(--ink-muted); padding: 7px 0; border-bottom: 1px solid var(--line-hair); }
+.kv dd { margin: 0; font-size: var(--fs-sm); color: var(--ink); padding: 7px 0; border-bottom: 1px solid var(--line-hair); }
+
+.chk-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.chk-list li { display: flex; gap: 8px; align-items: flex-start; font-size: var(--fs-sm); color: var(--ink-body); }
+.chk-list svg { flex: none; margin-top: 4px; color: var(--ok); }
+
+.note { display: flex; gap: 9px; padding: 11px 13px; border-radius: var(--r-1);
+  background: var(--info-soft); border: 1px solid var(--info-line); color: var(--ink-body); font-size: var(--fs-xs); line-height: 1.65; }
+.note svg { flex: none; color: var(--info); margin-top: 2px; }
+.note.warn { background: var(--warn-soft); border-color: var(--warn-line); }
+.note.warn svg { color: var(--warn); }
+
+.tagbar { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.hr { height: 1px; background: var(--line-hair); border: 0; margin: 18px 0; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.row-w { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+
+/* ---------------------------------------------------------- responsive --- */
+/* 断点里必须继续用 minmax(0,1fr)：写 1fr 等于 minmax(auto,1fr)，
+   auto 最小值取内容宽度 —— 表格里的长路径会把整列撑破容器。 */
+@media (max-width: 1080px) {
+  .g-side { grid-template-columns: minmax(0, 1fr); }
+  .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; height: auto; flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; }
+  .nav-i { width: auto; white-space: nowrap; }
+  .nav-i u, .side-f { display: none; }
+  main { padding: 18px 16px 60px; }
+  .g2, .g3, .kb { grid-template-columns: minmax(0, 1fr); }
+  .top { height: auto; padding: 10px 14px; flex-wrap: wrap; }
+  .ts-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .kv { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .kv dt { border-bottom: 0; padding-bottom: 0; color: var(--ink-faint); }
+  .kv dd { padding-top: 2px; }
+  .tabs { flex-wrap: wrap; }
+}
+@media (max-width: 560px) {
+  .g4 { grid-template-columns: minmax(0, 1fr); }
+  .sw-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .card-h { flex-wrap: wrap; }
+  .vh h1 { font-size: 25px; }
+}
+</style>
+</head>
+
+<body data-theme="paper">
+<header class="top">
+  <div class="brand">
+    <div class="mark">典</div>
+    <div>
+      <b>OpenVibe 灵典</b>
+      <span>暖纸 V2 · 可读性优先 · 交互演示</span>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip plain mono" id="verChip">v0.1.0</span>
+  <button class="btn sm" id="themeBtn" aria-label="切换主题"></button>
+</header>
+
+<div class="shell">
+  <aside class="side">
+    <nav id="nav" aria-label="主导航"></nav>
+    <div class="side-f">
+      数据目录<br /><code>~/.openvibe/</code><br />
+      <span class="faint">单 SQLite 文件 · 仅监听 127.0.0.1</span>
+    </div>
+  </aside>
+  <main><div class="view" id="view"></div></main>
+</div>
+
+<div id="layer"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   0 · 工具
+   ======================================================================== */
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 1900);
+}
+
+/* 图标：lucide 24×24，stroke 2，currentColor */
+const ICO = {
+  gauge: '<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+  library: '<path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/>',
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  flow: '<rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/>',
+  kanban: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>',
+  box: '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  palette: '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  left: '<path d="m15 18-6-6 6-6"/>',
+  right: '<path d="m9 18 6-6-6-6"/>',
+  copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  type: '<polyline points="4 7 4 4 20 4 20 7"/><line x1="9" x2="15" y1="20" y2="20"/><line x1="12" x2="12" y1="4" y2="20"/>',
+  refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  terminal: '<polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>',
+  layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+};
+const ic = (n, sz = 16) =>
+  `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICO[n] || ''}</svg>`;
+
+/* ==========================================================================
+   1 · 真实内容（取自 content/seed/*.json，与产品首启播种一致）
+   ======================================================================== */
+const PLATFORMS = [
+  { id: 'claude-code', name: 'Claude Code', file: 'CLAUDE.md' },
+  { id: 'cursor', name: 'Cursor', file: '.cursor/rules/openvibe.mdc' },
+  { id: 'generic-agents', name: 'AGENTS.md（通用）', file: 'AGENTS.md' },
+  { id: 'codebuddy', name: 'CodeBuddy', file: 'CODEBUDDY.md' },
+  { id: 'trae', name: 'Trae', file: '.trae/rules/openvibe.md' },
+  { id: 'minicode', name: 'MiniCode', file: 'MINI.md' },
+];
+
+const TERMS = [
+  { zh: '氛围编程', en: 'vibe coding', alias: ['Vibe Coding', '氛围式编程'], tags: ['基础概念'],
+    def: '以自然语言意图驱动、AI 生成代码、人负责意图表达与结果验收的开发方式；代码不再是逐行手写，而是逐轮对话收敛。',
+    ex: '给编码代理一句「把列表接口改成分页加排序，保留旧参数兼容」，两轮内拿到可运行 diff 并完成验收。' },
+  { zh: '规则漂移', en: 'rule drift', alias: ['drift', '漂移', '规则失效'], tags: ['风险陷阱', '协作流程'],
+    def: '长会话中模型逐渐偏离规则文件约束的现象；表现为忽略命名规范、跳过检查清单、擅自扩大改动范围。',
+    ex: '第 40 轮后模型开始直接改生成物目录，用 diff 命令检出漂移并以 sync 修复回受管状态。' },
+  { zh: '上下文窗口', en: 'context window', alias: ['context', '窗口', 'token 上限'], tags: ['基础概念', '风险陷阱'],
+    def: '模型单次可感知的输入长度上限，超出即截断或压缩；会话越长可装载的项目事实越少，是多数退化的物理来源。',
+    ex: '一次会话塞入整仓源码后模型开始漏改既有调用点，改为按任务只装载相关文件。' },
+  { zh: '静默失败', en: 'silent failure', alias: ['无声跳过', '静默忽略'], tags: ['风险陷阱', '质量工程'],
+    def: '错误发生但不报错、不中断也不提示的运行结果；批量导入、钩子脚本与幂等升级中最危险的一类。',
+    ex: '导入 12 条只成功 9 条，报告里必须列出 3 条跳过及原因，否则就是静默失败。' },
+  { zh: '验收标准', en: 'acceptance criteria', alias: ['AC', 'DoD', '完成定义'], tags: ['质量工程', '协作流程'],
+    def: '判定任务「做完了」的可观测条件，最好能写成 pass/fail 命题；它同时是人审的尺子和自动化测试的输入。',
+    ex: '把「搜索要好用」改写成「中文两字词命中并给出降级提示」，验收才有讨论基准。' },
+  { zh: '提示词膨胀', en: 'prompt bloat', alias: ['规则堆叠', '越长越安全'], tags: ['风险陷阱', '提示工程'],
+    def: '把每次踩坑都追加进规则文件、以为写更多就更保险的做法；实际会稀释重点、加剧漂移并抬高每次调用的固定成本。',
+    ex: '规则文件从 200 行压回 60 行、细则移到按需加载的技能后，遵循率反而上升。' },
+  { zh: '过度授权', en: 'over-permissioning', alias: ['自动批准', 'YOLO 模式'], tags: ['风险陷阱', '协作流程'],
+    def: '把删除、推送、发布等不可逆动作交给代理免确认执行的配置倾向；省下的交互成本会以事故形式回收。',
+    ex: '保留推送与删除的人工确认、放开只读工具，代理吞吐与安全性可以兼顾。' },
+  { zh: '内容指纹', en: 'content fingerprint', alias: ['fingerprint', '哈希', 'sha256'], tags: ['数据与存储', '质量工程'],
+    def: '由产物内容确定性算出的短摘要，用于判定「这份文件是不是我们托管的那一版」；确定性要求倒逼实现去掉时间戳与随机序。',
+    ex: '同一组 5 条词条生成两次产物 sha256 相同，才允许注入项目供人与 AI 共用。' },
+  { zh: '覆盖前备份', en: 'pre-write backup', alias: ['备份', 'backup'], tags: ['风险陷阱', '质量工程'],
+    def: '任何一次写盘之前先把目标文件的原件复制到项目内 .openvibe/backup/ 的硬性约定；备份先于覆盖，不可后补。',
+    ex: '同步覆盖 CLAUDE.md 前先复制到 .openvibe/backup/2026-09-29T02-14-08Z/，回滚直接从这份取。' },
+  { zh: '幂等', en: 'idempotency', alias: ['重复执行', '可重入'], tags: ['质量工程', '方法论'],
+    def: '同一操作重复执行多次与执行一次结果等价的性质；标准包注入、种子升级与扫描登记都必须幂等，否则重跑就变成事故。',
+    ex: '对已注入项目再跑一次同版本同步，全部文件判为「最新」，只补记登记信息。' },
+  { zh: '干跑', en: 'dry run', alias: ['预演', '零写入'], tags: ['质量工程', '协作流程'],
+    def: '完整执行注入规划但不落盘的模式，用来先给人看「将要写哪些文件、哪些会被覆盖」；写盘类命令的默认防线。',
+    ex: '先 dry-run 出一张表：写入 9 个文件、冲突 1 个、备份 1 个，确认后再真正执行。' },
+  { zh: '三维审查', en: 'three-dimension review', alias: ['逻辑一致性审查', '第一性原理审查'], tags: ['质量工程', '方法论'],
+    def: '交付前依次过三遍：产物内部口径是否一致、是否存在反例与过度承诺、每处设计能否说回原始目的；用于防「自洽的错」。',
+    ex: '核对方案写「八端点」、实现与规格实为九个，就是逻辑一致性审查的产出。' },
+  { zh: '漂移检测', en: 'drift detection', alias: ['diff 检查', '新鲜度判定'], tags: ['风险陷阱', '协作流程'],
+    def: '以目标文件实际哈希与受管登记哈希比对，判定注入产物是被更新、被手改还是被删除；是规则失效的早期信号。',
+    ex: '工程师手改 TERMS.md 补了一条词，diff 报出两处漂移，遂回流为词条而非继续手改。' },
+  { zh: '人类在环', en: 'human in the loop', alias: ['HITL', '人工确认'], tags: ['协作流程', '风险陷阱'],
+    def: '在关键动作前保留人工决策点的设计；不追求全自动，而是让不可逆动作必须有人签字。',
+    ex: '删除、推送、发布三类动作强制人工确认，其余只读动作全自动，兼顾吞吐与安全。' },
+  { zh: '反思回流', en: 'reflow', alias: ['回流入库', '资产回流'], tags: ['方法论', '协作流程'],
+    def: '把项目过程中出现的新词、新坑、新问法转成资产库草稿（术语或提示词），带来源反链，供后续确认转正。',
+    ex: '日志详情页一键「存为术语候选」，草稿态入库并记住来源项目与日志编号。' },
+  { zh: '飞轮', en: 'flywheel', alias: ['标准化飞轮', '闭环'], tags: ['方法论', '协作流程'],
+    def: '沉淀 → 组包 → 注入 → 回流 的四步闭环；每转一圈资产更厚、下一圈的注入更省力，转速由回流质量决定。',
+    ex: '开发日志回流成术语草稿，下次组包直接可用，注入文件里的术语表又更全一轮。' },
+  { zh: '冷启动死', en: 'cold-start death', alias: ['空库劝退', '首启空白'], tags: ['风险陷阱', '方法论'],
+    def: '工具首次打开没有可用内容、用户必须先自行录入才见价值，从而在证明价值之前就被放弃的现象；预置种子是对它的正面防御。',
+    ex: '首启即有 109 条术语与 21 条精选提示词可搜可复制，才谈得上三分钟看到价值。' },
+  { zh: '适配器', en: 'adapter', alias: ['平台契约', 'adapter'], tags: ['工具平台', '基础概念'],
+    def: '把同一份标准包产物按平台规则改写成对应文件名与外壳的模块；正文同源，只换壳不复制内容。',
+    ex: '同一份规则正文生成 CLAUDE.md、AGENTS.md 与 .cursor/rules/openvibe.mdc 三个产物。' },
+  { zh: '确定性', en: 'determinism', alias: ['可复现', '同样输入同样输出'], tags: ['质量工程', '方法论'],
+    def: '相同输入必然产出逐字节相同结果的性质；标准包、TERMS.md 与黄金快照全部依赖它，否则指纹与 diff 都失去意义。',
+    ex: '导出产物里去掉生成时间戳，因为时间戳让同一份内容每次指纹都不同。' },
+];
+
+const PROMPTS = [
+  { t: '规则遵守强化（防漂移）', d: '每轮静默自检五项约束，不复述条款', tags: ['精选', '防漂移'], plat: ['claude-code', 'cursor', 'generic', 'codebuddy', 'trae', 'minicode'], st: 'active',
+    c: '# 规则遵守（每轮静默自检，不复述条款）\n\n开工前逐条核对，任一不满足先停下说明，不得继续：\n\n1. 本轮改动是否只落在需求提到的文件与目录？出现了未提及的文件改动 → 停。\n2. 是否引入了新依赖、新顶层目录、新的全局状态？有 → 先说明理由再动。\n3. 与规则文件冲突时按 **安全底线 > 项目规则 > 个人偏好** 裁决，并在回复里点名冲突项。\n4. 不确定的地方写成显式假设，不要用「通常情况」把猜测包装成事实。\n5. 不得为了「完成任务」而放宽以上任何一条；做不到就如实说做不到。\n\n输出只给结论与改动，不复述本文件内容。' },
+  { t: '安全底线（写文件与不可逆操作）', d: '删除、推送、发布三类动作的人工确认约定', tags: ['精选', '安全'], plat: ['claude-code', 'cursor'], st: 'active',
+    c: '# 安全底线\n\n- 删除、推送、发布、对外发送四类动作**必须**先展示影响范围，等确认再执行。\n- 覆盖任何已存在的文件前先备份原件，备份路径写进回复。\n- 路径越出工作区、跟随悬空符号链接写盘，一律拒绝并说明。\n- 密钥、令牌、.env 内容不进日志、不进回复、不进提交。' },
+  { t: '错误处理范式', d: '只在系统边界校验，错误三要素', tags: ['精选', '错误处理'], plat: ['generic', 'claude-code'], st: 'active',
+    c: '# 错误处理约定\n\n- 只在**系统边界**校验：用户输入、外部 API、文件与网络。内部函数信任调用方，不写重复防御。\n- 禁止空 catch、禁止只打日志继续跑。捕获后要么处理并恢复，要么补充上下文后重抛。\n- 错误信息三要素：发生了什么 / 在哪里（模块与关键入参名，不含密钥与文件正文）/ 下一步可执行动作。\n- 新增错误类型前先查现有码表，能复用就不新建；跨层传播不得丢失原始错误。\n- 可预期失败（参数不合法、目标不存在）与程序缺陷分开处理，不共用一个兜底分支。' },
+  { t: '三维审查（交付前）', d: '逻辑一致性 / 批判性 / 第一性原理', tags: ['精选', '代码审查'], plat: ['claude-code', 'generic'], st: 'active',
+    c: '# 交付前三维审查\n\n1. **逻辑一致性**：规格说 N 个，实现是否真是 N 个；文档与代码逐条对。\n2. **批判性**：找反例与过度承诺——哪里说了「一定」，哪里经不起一个反例。\n3. **第一性原理**：每处设计能否说回原始目的；说不回去的是历史包袱。\n\n三遍各列问题清单，不给结论式夸奖。' },
+  { t: '上下文装载（接手项目）', d: '陌生仓库的最小充分上下文', tags: ['精选', '上手'], plat: ['claude-code', 'cursor', 'generic', 'codebuddy'], st: 'active',
+    c: '# 接手项目的上下文装载\n\n按需装载，不要一次塞满：\n\n1. 先读规则文件（AGENTS.md / CLAUDE.md）与术语表，确认约束口径。\n2. 只读与本轮任务相关的目录树，其余按需展开。\n3. 涉及写入前先确认路径在受管范围内。\n4. 读完先给一句「我理解这个项目是……」再动手。' },
+  { t: 'Bug 最小复现', d: '剥离无关因素直到稳定复现', tags: ['精选', '调试'], plat: ['claude-code', 'minicode'], st: 'active',
+    c: '# 最小复现\n\n- 贴一整段日志不如给出「两个词条加一次渲染调用」的可复现代码。\n- 复现步骤写成：输入 → 期望 → 实际 → 最小触发条件。\n- 剥离无关因素，直到删掉任意一行都不再复现。' },
+  { t: '复盘报告生成', d: 'CHECK 报告：问题归类 + 行动项 + 回流', tags: ['精选', '复盘'], plat: ['generic', 'minicode', 'trae'], st: 'active',
+    c: '# 复盘报告\n\n按四段写：\n\n1. **事实**：做了什么、验证了什么（给命令与退出码，不给形容词）。\n2. **问题**：按重复性 / 达成度 / 合规性 / 引用可靠性四维归类。\n3. **决议**：每个问题给处理方式（修 / 缓 / 记录）与 P0/P1/P2 定级。\n4. **回流**：本轮新词与新问法列成候选，带来源反链。' },
+  { t: '测试生成', d: '边界 + 回归 + 可观测', tags: ['精选', '测试'], plat: ['cursor', 'generic'], st: 'active',
+    c: '# 测试生成\n\n- 每个新行为至少一条边界用例（空、超长、并发、异常输入）。\n- 已修复缺陷必须补回归用例，断言要打在行为上而非实现细节上。\n- 断言失败信息要能独立读懂：期望什么、实际什么、在哪一层。' },
+  { t: '性能剖析引导', d: '先测再改，禁止凭感觉优化', tags: ['精选', '性能'], plat: ['claude-code', 'trae'], st: 'active',
+    c: '# 性能优化\n\n1. 先给可复现的测量方法与基线数字，没有基线不许提优化。\n2. 一次只改一处，改完重测，数字没动就回滚。\n3. 区分「读起来更快」与「跑起来更快」，只认后者。' },
+  { t: '数据建模引导', d: '先问清读写路径再定字段', tags: ['精选', '数据建模'], plat: ['generic', 'claude-code'], st: 'active',
+    c: '# 数据建模\n\n- 先问：谁写、谁读、多久写一次、读的时候按什么过滤。\n- 字段能由其他字段算出来就不要冗余存，除非有实测性能理由。\n- 约束写进 schema，不要只写在文档里。' },
+  { t: '提交信息规范', d: '小步原子提交 + 验证句', tags: ['精选', '提交规范'], plat: ['generic', 'cursor'], st: 'active',
+    c: '# 提交信息\n\n- 一次提交一件事，能单独回滚。\n- 标题写「做了什么」，正文写「为什么」与「怎么验证的」。\n- 验证句必须带命令与结果，不写「已测」。' },
+  { t: '开源发布：README、脱敏闸、推送与独立复核', d: '发布前的四道闸门', tags: ['精选', '发布脱敏'], plat: ['claude-code', 'cursor', 'codex', 'generic'], st: 'draft',
+    c: '# 开源发布闸门\n\n1. **脱敏**：路径、域名、内网地址、账号、令牌逐项过一遍。\n2. **README**：三分钟内能让人跑起来，命令可复制。\n3. **推送**：显式确认后再推，不在脚本里自动 push。\n4. **独立复核**：由另一轮会话或人复核，不由生成者自己签字。' },
+];
+
+const FLOWS = [
+  { name: '个人轻量流', kind: 'light', builtin: true,
+    stages: [
+      { n: '启动', art: ['需求便签'], c: ['需求一句话写清', '标准包已注入（openvibe diff clean）', '建 DEV_LOG.md'] },
+      { n: '开发', art: ['代码 + DEV_LOG'], c: ['分小步提交', '每轮改动后测试通过', '下班前追加 DEV 日志'] },
+      { n: '复盘', art: ['CHECK_LOG'], c: ['检查清单全勾', '写 CHECK 报告', '新词/新坑回流入库（术语/提示词草稿）'] },
+    ] },
+  { name: 'Spec 驱动流', kind: 'spec_driven', builtin: true,
+    stages: [
+      { n: '需求澄清', art: ['需求纪要'], c: ['五问齐备（谁/现状/期望/为何现在/完成标准）', '假设显式标注'] },
+      { n: 'PRD', art: ['PRD.md'], c: ['目标可衡量', '边界（In/Out）明确', '成功指标有数'] },
+      { n: 'Spec 规格', art: ['specs/'], c: ['输入输出/边界/验收标准逐条可测'] },
+      { n: '计划', art: ['tasks.md'], c: ['任务拆分有依赖序', '工作量有量级'] },
+      { n: '实现', art: ['代码 + 测试'], c: ['按任务序执行', '每任务完成即验证', 'DEV_LOG 同步'] },
+      { n: '审查', art: ['审查记录'], c: ['逻辑一致性/批判性/第一性原理三维过一遍'] },
+      { n: '复盘', art: ['CHECK_LOG + 新资产'], c: ['CHECK 报告', '回流候选确认入库'] },
+    ] },
+  { name: '复盘流', kind: 'retro', builtin: true,
+    stages: [
+      { n: '收集', art: ['素材清单'], c: ['日志/指标/会话摘录齐备'] },
+      { n: '分析', art: ['问题清单'], c: ['问题按维度归类（重复性/达成度/合规性/引用可靠性）'] },
+      { n: '决议', art: ['行动项'], c: ['每问题有处理方式（修/缓/记录）', 'P0/P1/P2 定级'] },
+      { n: '回流', art: ['资产增量'], c: ['术语/提示词/模板改进已入库或建草稿'] },
+    ] },
+];
+
+const PACK_FILES = [
+  { f: 'CLAUDE.md', r: 'Claude Code', a: 'claude-code', s: 'drift' },
+  { f: '.cursor/rules/openvibe.mdc', r: 'Cursor', a: 'cursor', s: 'sync' },
+  { f: 'AGENTS.md', r: '通用约定（Codex / Zcode / Kimi）', a: 'generic-agents', s: 'sync' },
+  { f: 'CODEBUDDY.md', r: 'CodeBuddy', a: 'codebuddy', s: 'sync' },
+  { f: '.trae/rules/openvibe.md', r: 'Trae', a: 'trae', s: 'sync' },
+  { f: 'MINI.md', r: 'MiniCode', a: 'minicode', s: 'sync' },
+  { f: 'TERMS.md', r: '术语表全文，人和 AI 都能读', a: 'shared', s: 'sync' },
+  { f: 'CHECKLIST.md', r: '流程模板对应的检查清单', a: 'shared', s: 'sync' },
+  { f: '.openvibe/pack.lock.json', r: 'OpenVibe 自己的台账', a: 'lock', s: 'sync' },
+];
+
+const INJECT = [
+  '# 规则遵守（每轮静默自检，不复述条款）\n\n开工前逐条核对，任一不满足先停下说明，不得继续：\n\n1. 本轮改动是否只落在需求提到的文件与目录？\n2. 是否引入了新依赖、新顶层目录、新的全局状态？\n3. 与规则文件冲突时按 安全底线 > 项目规则 > 个人偏好 裁决。\n4. 不确定的地方写成显式假设。\n5. 不得为了「完成任务」而放宽以上任何一条。\n\n<!-- 手改痕迹：第 12 行被工程师改过，因此 diff 判定为 DRIFT -->\n5.1 提交前先跑一遍 lint（本地手加）',
+];
+
+const INJECT_TMPL = `# OpenVibe 标准包 · default@1.0.0
+
+> 由 \`openvibe sync\` 写入，生成后请勿手工编辑。
+> 重新生成：\`openvibe sync <dir> --pack default\`　校验：\`openvibe diff <dir>\`
+
+## 规则段落（3）
+- 规则遵守强化（防漂移）　fingerprint: 4f2a9c1e8b73
+- 安全底线（写文件与不可逆操作）　fingerprint: 9d1b7e4c2a60
+- 错误处理范式　fingerprint: 0c8e5b93d417
+
+## 术语（19）
+- 规则漂移 / rule drift
+- 内容指纹 / content fingerprint
+- 覆盖前备份 / pre-write backup
+- 干跑 / dry run
+- 人类在环 / human in the loop
+- 确定性 / determinism
+
+## 阶段清单（Spec 驱动流 · 7 阶段）
+1. 需求澄清　2. PRD　3. Spec 规格　4. 计划
+5. 实现　　　6. 审查　　7. 复盘
+
+---
+pack: default@1.0.0　fingerprint: 4f2a9c1e8b73d5a2
+generated-by: openvibe-cli 0.1.0
+`;
+
+const DEVLOG = [
+  { id: 'DEV-0057', type: '修复', t: '提示词抽屉：一次性询问的落点请求要活过页面', body: '询问在刷新后消失。原因是询问状态写进了组件本地 state，路由切换即丢。改为写服务端字段，前端只读。', risk: '无' },
+  { id: 'DEV-0055', type: '推送', t: '第 7 次推送凭据入册：三平台 CI success', body: '本地纯快进 24 笔落定，fetch 不动工作树。run 登记时仍为 queued，CI 结论另笔。', risk: '无' },
+  { id: 'DEV-0042', type: '设计', t: '设计 token 层落地：625 处字面色阶收进 @theme', body: '换肤只改一个块，调用点不再出现字面色阶，像素零漂移。', risk: '无' },
+];
+
+/* ==========================================================================
+   2 · 状态
+   ======================================================================== */
+const S = {
+  view: 'wb',
+  theme: 'paper',
+  libQuery: '',
+  libTag: '全部',
+  openPrompt: null,
+  termQuery: '',
+  termTag: '全部',
+  termSel: new Set(['规则漂移', '内容指纹', '干跑']),
+  flowIdx: 1,
+  flowChecks: {},
+  tasks: [
+    { id: 1, s: 0, t: '三问齐备：谁 / 现状 / 期望 / 为何现在 / 完成标准' },
+    { id: 2, s: 0, t: '假设显式标注，不把猜测包装成事实' },
+    { id: 3, s: 1, t: 'PRD 目标可衡量，边界 In/Out 明确' },
+    { id: 4, s: 1, t: 'specs/ 输入输出与验收标准逐条可测' },
+    { id: 5, s: 1, t: 'hardlink 目标按「解链后新建」写' },
+    { id: 6, s: 2, t: '16 支三平台正向断言 + win32 事实探针' },
+    { id: 7, s: 2, t: 'Web 入口体积闸门 293.16 kB ≤ 300 kB' },
+  ],
+  packSel: new Set(PLATFORMS.map((p) => p.id)),
+  packTab: '产物清单',
+};
+
+const NAV = [
+  { id: 'wb', label: '工作台', icon: 'gauge', count: null },
+  { id: 'lib', label: '提示词库', icon: 'library', count: PROMPTS.length },
+  { id: 'term', label: '术语库', icon: 'book', count: TERMS.length },
+  { id: 'flow', label: '流程模板', icon: 'flow', count: FLOWS.length },
+  { id: 'proj', label: '项目工作台', icon: 'kanban', count: null },
+  { id: 'pack', label: '标准包', icon: 'box', count: null },
+  { id: 'ds', label: '设计系统', icon: 'palette', count: null },
+];
+
+function renderNav() {
+  $('#nav').innerHTML = NAV.map((n) =>
+    `<button class="nav-i" data-v="${n.id}" ${S.view === n.id ? 'aria-current="page"' : ''}>
+      ${ic(n.icon)}<span>${n.label}</span>${n.count ? `<u class="num">${n.count}</u>` : ''}
+    </button>`).join('');
+}
+
+/* 极简 Markdown → HTML（够用即可：标题 / 有序无序 / 加粗 / 行内码） */
+function md(src) {
+  const inline = (s) => esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.+?)`/g, '<code>$1</code>');
+  const out = [];
+  let list = null;
+  const close = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (const raw of src.split('\n')) {
+    const line = raw.trimEnd();
+    if (!line.trim()) { close(); continue; }
+    if (line.startsWith('# ')) { close(); out.push(`<h1>${inline(line.slice(2))}</h1>`); continue; }
+    if (/^\d+\.\s/.test(line)) {
+      if (list !== 'ol') { close(); out.push('<ol>'); list = 'ol'; }
+      out.push(`<li>${inline(line.replace(/^\d+\.\s/, ''))}</li>`); continue;
+    }
+    if (/^-\s/.test(line)) {
+      if (list !== 'ul') { close(); out.push('<ul>'); list = 'ul'; }
+      out.push(`<li>${inline(line.slice(2))}</li>`); continue;
+    }
+    close();
+    out.push(`<p>${inline(line)}</p>`);
+  }
+  close();
+  return out.join('');
+}
+
+/* ==========================================================================
+   3 · 视图
+   ======================================================================== */
+function head(title, desc) {
+  return `<div class="vh"><h1>${title}</h1><p>${desc}</p></div>`;
+}
+
+function card(title, body, extra = '') {
+  return `<section class="card"><div class="card-h"><h3>${title}</h3><span class="sp"></span>${extra}</div><div class="card-b">${body}</div></section>`;
+}
+
+/* -------------------------------------------------------- 3.1 工作台 --- */
+function flywheelSVG() {
+  const BW = 172, BH = 54;
+  const A = { x: 8,   y: 20,  t: '本地库沉淀',   d: '提示词 / 术语 / 流程模板' };
+  const B = { x: 240, y: 20,  t: '组装标准包',   d: '选择集 → 产物 + 指纹' };
+  const C = { x: 240, y: 172, t: '注入项目落盘', d: '九个文件 · 六个适配器' };
+  const D = { x: 8,   y: 172, t: '日志回流成资产', d: '日志 → 术语 / 提示词草稿' };
+  const box = (n) => `<g>
+      <rect x="${n.x}" y="${n.y}" width="${BW}" height="${BH}" rx="9"
+            fill="var(--panel)" stroke="var(--line)"/>
+      <text x="${n.x + BW / 2}" y="${n.y + 23}" text-anchor="middle" font-size="13"
+            font-weight="600" fill="var(--ink)">${n.t}</text>
+      <text x="${n.x + BW / 2}" y="${n.y + 40}" text-anchor="middle" font-size="10.5"
+            fill="var(--ink-muted)">${n.d}</text>
+    </g>`;
+  const arrow = (d) => `<path d="${d}" stroke="var(--accent)" stroke-width="1.6"
+            fill="none" marker-end="url(#ah)" />`;
+  return `<svg viewBox="0 0 420 246" width="100%" style="max-width:430px;min-width:0;flex:1 1 260px" role="img"
+       aria-label="标准化飞轮四步闭环：本地库沉淀 → 组装标准包 → 注入项目落盘 → 日志回流成资产">
+    <defs><marker id="ah" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10z" fill="var(--accent)"/></marker></defs>
+    ${box(A)}${box(B)}${box(C)}${box(D)}
+    ${arrow(`M${A.x + BW + 6} ${A.y + BH / 2} H${B.x - 8}`)}
+    ${arrow(`M${B.x + BW / 2} ${B.y + BH + 6} V${C.y - 8}`)}
+    ${arrow(`M${C.x - 6} ${C.y + BH / 2} H${D.x + BW + 8}`)}
+    ${arrow(`M${D.x + BW / 2} ${D.y - 6} V${A.y + BH + 8}`)}
+    <ellipse cx="210" cy="123" rx="70" ry="41" fill="var(--accent-soft)" opacity=".6"/>
+    <text x="210" y="118" text-anchor="middle" font-size="14" font-weight="600" fill="var(--accent-deep)">标准化飞轮</text>
+    <text x="210" y="137" text-anchor="middle" font-size="10.5" fill="var(--ink-muted)">转得越快，资产越厚</text>
+  </svg>`;
+}
+
+function viewWB() {
+  const drift = PACK_FILES.filter((f) => f.s === 'drift').length;
+  return head('工作台', '把提示词、术语、流程模板与项目经验收进一个本地库，组装成标准包，一条命令注入六个 AI 助手的项目目录。')
+    + `<div class="stack">
+    <div class="grid g4">
+      <div class="card stat"><div class="k">术语库</div><div class="v">109</div><div class="d">拼音 + 英文双序可搜</div></div>
+      <div class="card stat"><div class="k">精选提示词</div><div class="v">21</div><div class="d">规则类 / 参考类分用途</div></div>
+      <div class="card stat"><div class="k">流程模板</div><div class="v">3</div><div class="d">内置只读，复制后裁剪</div></div>
+      <div class="card stat"><div class="k">AI 助手适配器</div><div class="v">6</div><div class="d">正文同源，只换外壳</div></div>
+    </div>
+
+    <div class="grid g-side">
+      <div class="stack">
+        ${card('标准化飞轮', `<div class="row-w" style="align-items:flex-start;gap:20px">
+          ${flywheelSVG()}
+          <div class="prose" style="flex:1;min-width:200px;font-size:var(--fs-sm)">
+            <p style="margin-top:0">四步闭环不是口号：开发日志可以直接生成术语 / 提示词草稿并挂上来源反链，下次组包即可用。</p>
+            <p>当前项目 <code class="mono">~/work/bid-board</code> 完成度 <b class="num">79%</b>，24 项里待办 5 项。</p>
+            <div class="row-w" style="margin-top:12px">
+              <button class="btn primary" data-go="pack">${ic('box', 15)} 看标准包产物</button>
+              <button class="btn" data-go="proj">${ic('kanban', 15)} 打开项目工作台</button>
+            </div>
+          </div>
+        </div>`)}
+
+        ${card('注入产物与漂移', `
+        <div class="note warn" style="margin-bottom:14px">${ic('alert', 16)}<div>
+          <b>检测到 ${drift} 处漂移</b>：<code class="mono">CLAUDE.md</code> 被手工改过（新增一条 lint 前置）。
+          <code class="mono">openvibe diff</code> 退出码 <b class="mono num">2</b>。覆盖前会先备份到
+          <code class="mono">.openvibe/backup/</code>，冲突三选一：以包为准 / 保留本地 / 跳过。
+        </div></div>
+        <table class="tb">
+          <thead><tr><th>写入的文件</th><th>谁读它</th><th style="width:120px">状态</th></tr></thead>
+          <tbody>${PACK_FILES.map((f) => `<tr>
+            <td class="mono" style="font-size:12.5px;color:var(--ink)">${f.f}</td>
+            <td class="faint" style="font-size:12.5px">${f.r}</td>
+            <td>${f.s === 'drift'
+              ? `<span class="chip warn">${ic('alert', 12)} DRIFT</span>`
+              : `<span class="chip ok">${ic('check', 12)} IN_SYNC</span>`}</td>
+          </tr>`).join('')}</tbody>
+        </table>`)}
+      </div>
+
+      <div class="stack">
+        ${card('开发日志', `<div class="rows" style="margin:-16px">
+          ${DEVLOG.map((d) => `<div class="row" style="cursor:default">
+            <div class="tx">
+              <div class="t1"><span class="chip accent">${d.type}</span> ${d.t}</div>
+              <div class="t2" style="-webkit-line-clamp:2">${d.body}</div>
+            </div>
+          </div>`).join('')}
+        </div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line-hair)">
+          <div class="row-w" style="justify-content:space-between">
+            <span class="faint mono" style="font-size:11.5px">DEV_LOG.md · 条目编号稳定</span>
+            <button class="btn sm" data-act="reflow">${ic('refresh', 13)} 回流为资产草稿</button>
+          </div>
+        </div>`)}
+
+        ${card('数据与边界', `<dl class="kv">
+          <dt>数据目录</dt><dd class="mono" style="font-size:12.5px">~/.openvibe/</dd>
+          <dt>数据库</dt><dd class="mono" style="font-size:12.5px">data/openvibe.db（SQLite / WAL）</dd>
+          <dt>监听</dt><dd class="mono" style="font-size:12.5px">127.0.0.1:8787</dd>
+          <dt>测试</dt><dd class="num">476 用例 / 55 文件</dd>
+          <dt>Web 入口</dt><dd class="num">293.16 kB ≤ 300 kB</dd>
+        </dl>`)}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ------------------------------------------------------- 3.2 提示词库 --- */
+function viewLib() {
+  const tags = ['全部', ...new Set(PROMPTS.flatMap((p) => p.tags.filter((t) => t !== '精选')))];
+  const q = S.libQuery.trim().toLowerCase();
+  const list = PROMPTS.filter((p) =>
+    (S.libTag === '全部' || p.tags.includes(S.libTag)) &&
+    (!q || p.t.toLowerCase().includes(q) || p.d.toLowerCase().includes(q) || p.tags.join(',').toLowerCase().includes(q)));
+
+  const platName = (id) => (PLATFORMS.find((x) => x.id === id) || { name: id }).name.replace('（通用）', '');
+
+  return head('提示词库', '按文件夹、标签与平台标记组织的可复用提示词集合，带版本历史与导入导出。左侧搜索支持中文子串、英文 ≥3 字符走全文索引。')
+    + `<div class="stack">
+    <div class="row-w">
+      <label class="field" style="flex:1;max-width:420px">${ic('search', 16)}
+        <input class="input" id="libQ" placeholder="搜索标题 / 说明 / 标签" value="${esc(S.libQuery)}" />
+      </label>
+      <div class="tagbar">${tags.map((t) =>
+        `<button class="chip" data-libtag="${esc(t)}" aria-pressed="${S.libTag === t}">${esc(t)}</button>`).join('')}</div>
+      <span class="sp" style="flex:1"></span>
+      <button class="btn primary" data-act="newprompt">${ic('check', 14)} 新建提示词</button>
+    </div>
+
+    <div class="grid g-side">
+      <section class="card">
+        <div class="card-h"><h3>共 ${list.length} / ${PROMPTS.length} 条</h3><span class="sp"></span>
+          <span class="faint" style="font-size:11.5px">点条目打开编辑器</span></div>
+        <div class="rows">
+          ${list.length ? list.map((p) => `<button class="row" data-prompt="${esc(p.t)}">
+            <div class="tx">
+              <div class="t1">${esc(p.t)} ${p.st === 'draft' ? '<span class="chip">草稿</span>' : ''}</div>
+              <div class="t2">${esc(p.d)}</div>
+              <div class="row-w" style="margin-top:5px;gap:4px">
+                ${p.tags.filter((t) => t !== '精选').map((t) => `<span class="chip">${esc(t)}</span>`).join('')}
+                ${p.plat.slice(0, 3).map((x) => `<span class="chip plain">${esc(platName(x))}</span>`).join('')}
+                ${p.plat.length > 3 ? `<span class="chip plain">+${p.plat.length - 3}</span>` : ''}
+              </div>
+            </div>
+          </button>`).join('') : `<div class="card-b"><div class="empty-hint">没有匹配的提示词 —— 换个关键词，或清空筛选</div></div>`}
+        </div>
+      </section>
+
+      <div class="stack">
+        ${card('平台标记怎么用', `<div class="prose" style="font-size:var(--fs-sm)">
+          <p style="margin-top:0">同一份正文按适配器套壳，<b>不复制内容</b>。选中某平台才会产出该平台产物。</p>
+          <p>规则类（rule）不允许变量，注入后长期生效；参考类（reference）用于一次性任务，可带 <code class="mono">{{变量}}</code>。</p>
+        </div>
+        <div class="row-w" style="margin-top:12px">
+          ${PLATFORMS.map((p) => `<span class="chip">${esc(p.name)}</span>`).join('')}
+        </div>`)}
+
+        ${card('导入 / 导出', `<div class="row-w">
+          <button class="btn sm" data-act="io">${ic('copy', 13)} 导出 JSON</button>
+          <button class="btn sm" data-act="io">${ic('copy', 13)} 导出 Markdown</button>
+          <button class="btn sm" data-act="io">${ic('layers', 13)} 四形态导入</button>
+        </div>
+        <div class="note" style="margin-top:12px">${ic('info', 15)}<div>导入单文件失败不阻塞其余条目；跳过项会在报告里逐条列出原因，避免静默失败。</div></div>`)}
+      </div>
+    </div>
+  </div>`;
+}
+
+function openPrompt(title) {
+  const p = PROMPTS.find((x) => x.t === title);
+  if (!p) return;
+  S.openPrompt = p;
+  const platName = (id) => (PLATFORMS.find((x) => x.id === id) || { name: id }).name.replace('（通用）', '');
+  $('#layer').innerHTML = `<div class="scrim" data-scrim>
+    <aside class="drawer" role="dialog" aria-modal="true" aria-label="编辑提示词">
+      <header>
+        <div style="flex:1">
+          <h3>${esc(p.t)}</h3>
+          <p>${esc(p.d)}</p>
+          <div class="row-w" style="margin-top:8px;gap:5px">
+            ${p.tags.map((t) => `<span class="chip accent">${esc(t)}</span>`).join('')}
+            <span class="chip">版本 v3</span>
+          </div>
+        </div>
+        <button class="btn icon ghost" data-close aria-label="关闭">${ic('x', 17)}</button>
+      </header>
+      <div class="body">
+        <label class="lb">正文（Markdown）</label>
+        <pre class="code" style="margin-bottom:18px;white-space:pre-wrap">${esc(p.c)}</pre>
+        <label class="lb">渲染预览</label>
+        <div class="md">${md(p.c)}</div>
+        <hr class="hr" />
+        <label class="lb">平台标记（同源套壳）</label>
+        <div class="row-w">${p.plat.map((x) => `<span class="chip ok">${ic('check', 12)} ${esc(platName(x))}</span>`).join('')}</div>
+        <div class="row-w" style="margin-top:12px;gap:6px">
+          <button class="btn sm" data-act="v1">v1</button>
+          <button class="btn sm" data-act="v2">v2</button>
+          <button class="btn sm primary" data-act="v3">v3（当前）</button>
+          <button class="btn sm" data-act="diff">${ic('library', 13)} 与 v2 比对</button>
+        </div>
+      </div>
+      <footer>
+        <button class="btn" data-close>取消</button>
+        <span style="flex:1"></span>
+        <button class="btn" data-act="copy">${ic('copy', 14)} 复制</button>
+        <button class="btn primary" data-act="save">${ic('check', 14)} 保存</button>
+      </footer>
+    </aside></div>`;
+  document.addEventListener('keydown', escClose);
+}
+function escClose(e) { if (e.key === 'Escape') closeDrawer(); }
+function closeDrawer() {
+  $('#layer').innerHTML = '';
+  S.openPrompt = null;
+  document.removeEventListener('keydown', escClose);
+}
+
+/* --------------------------------------------------------- 3.3 术语库 --- */
+function viewTerm() {
+  const tags = ['全部', ...new Set(TERMS.flatMap((t) => t.tags))];
+  const q = S.termQuery.trim().toLowerCase();
+  const list = TERMS.filter((t) =>
+    (S.termTag === '全部' || t.tags.includes(S.termTag)) &&
+    (!q || [t.zh, t.en, ...t.alias].join(' ').toLowerCase().includes(q)));
+  const sel = TERMS.filter((t) => S.termSel.has(t.zh));
+
+  const mdTable = [
+    '| 术语 | English | 别名 | 定义 |',
+    '|---|---|---|---|',
+    ...sel.map((t) => `| ${t.zh} | ${t.en} | ${t.alias.join('、')} | ${t.def} |`),
+  ].join('\n');
+
+  return head('术语库', '拼音与英文双序搜索，多选后实时预览 TERMS.md —— 同一组选集渲染两次，产物 sha256 必须相同。')
+    + `<div class="stack">
+    <div class="row-w">
+      <label class="field" style="flex:1;max-width:420px">${ic('search', 16)}
+        <input class="input" id="termQ" placeholder="搜索中文 / English / 别名" value="${esc(S.termQuery)}" />
+      </label>
+      <div class="tagbar">${tags.map((t) =>
+        `<button class="chip" data-termtag="${esc(t)}" aria-pressed="${S.termTag === t}">${esc(t)}</button>`).join('')}</div>
+    </div>
+
+    <div class="grid g-side">
+      <section class="card">
+        <div class="card-h"><h3>共 ${list.length} / ${TERMS.length} 条（演示子集 · 库内 109 条）</h3></div>
+        <div class="rows">
+          ${list.length ? list.map((t) => `<label class="row" style="cursor:pointer">
+            <input class="cbx" type="checkbox" ${S.termSel.has(t.zh) ? 'checked' : ''}
+              data-term="${esc(t.zh)}" aria-label="选择 ${esc(t.zh)}" />
+            <div class="tx">
+              <div class="t1">${esc(t.zh)} <span class="faint mono" style="font-weight:400;font-size:12px">${esc(t.en)}</span></div>
+              <div class="t2" style="-webkit-line-clamp:2">${esc(t.def)}</div>
+              <div class="row-w" style="margin-top:5px;gap:4px">
+                ${t.tags.map((x) => `<span class="chip">${esc(x)}</span>`).join('')}
+                ${t.alias.slice(0, 2).map((x) => `<span class="chip plain">${esc(x)}</span>`).join('')}
+              </div>
+            </div>
+          </label>`).join('') : `<div class="card-b"><div class="empty-hint">没有命中词条 —— 试试英文或别名</div></div>`}
+        </div>
+      </section>
+
+      <div class="stack">
+        ${card('TERMS.md 实时预览', `
+          <div class="row-w" style="margin-bottom:11px">
+            <span class="chip accent">已选 ${sel.length} 条</span>
+            <span class="sp" style="flex:1"></span>
+            <button class="btn sm ghost" data-act="terms-clear">清空</button>
+            <button class="btn sm" data-act="copy">${ic('copy', 13)} 复制</button>
+          </div>
+          <pre class="code wrap" style="max-height:420px;overflow:auto">${esc(mdTable)}</pre>
+          <div class="note" style="margin-top:12px">${ic('shield', 15)}<div>
+            列序固定为 <code class="mono">术语 | English | 别名 | 定义</code>，排序确定性 —— 没有时间戳、没有随机序，
+            同一选集两次渲染逐字节一致，内容指纹才判得出 <code class="mono">IN_SYNC</code>。
+          </div></div>`)}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ------------------------------------------------------- 3.4 流程模板 --- */
+function viewFlow() {
+  const f = FLOWS[S.flowIdx];
+  const kindName = { light: '轻量', spec_driven: 'Spec 驱动', retro: '复盘' }[f.kind];
+  return head('流程模板', '三套内置模板只读，复制成自己的再裁剪阶段。检查清单既是提示词的一部分，也是复盘输入。')
+    + `<div class="grid g-side">
+    <div class="stack">
+      <div class="grid g3">
+        ${FLOWS.map((x, i) => `<button class="card" data-flow="${i}" style="text-align:left;cursor:pointer;padding:14px;
+          ${i === S.flowIdx ? 'border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)' : ''}">
+          <div class="row-w" style="justify-content:space-between">
+            <b style="font-size:var(--fs-sm);color:var(--ink)">${esc(x.name)}</b>
+            <span class="chip ${i === S.flowIdx ? 'accent' : ''}">${kindNameOf(x.kind)}</span>
+          </div>
+          <div class="faint" style="font-size:12px;margin-top:5px">${x.stages.length} 个阶段 · ${x.stages.reduce((n, s) => n + s.c.length, 0)} 个检查项</div>
+        </button>`).join('')}
+      </div>
+
+      ${card(`${esc(f.name)} · 阶段`, `<ol class="tl">
+        ${f.stages.map((s, i) => {
+          const key = f.name + i;
+          const ck = S.flowChecks[key] || {};
+          const done = s.c.filter((_, j) => ck[j]).length;
+          return `<li data-on="${done === s.c.length ? 1 : 0}">
+            <div class="h">${esc(s.n)}
+              <span class="chip ${done === s.c.length ? 'ok' : 'plain'} num">${done}/${s.c.length}</span>
+            </div>
+            <div class="ck">${s.c.map((t, j) => `<label class="chk">
+              <input type="checkbox" data-ck="${key}|${j}" ${ck[j] ? 'checked' : ''} /><span>${esc(t)}</span>
+            </label>`).join('')}</div>
+            <div class="art">产物：${s.art.map((a) => `<code class="mono">${esc(a)}</code>`).join('、')}</div>
+          </li>`;
+        }).join('')}
+      </ol>
+      <div class="row-w" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line-hair)">
+        <button class="btn primary" data-act="copy-flow">${ic('copy', 14)} 复制成我的模板</button>
+        <button class="btn" data-act="trim">${ic('layers', 14)} 裁剪阶段</button>
+        <span style="flex:1"></span>
+        <span class="chip">内置模板只读</span>
+      </div>`)}
+    </div>
+
+    <div class="stack">
+      ${card('为什么要做成可裁剪', `<div class="prose" style="font-size:var(--fs-sm)">
+        <p style="margin-top:0">Spec 驱动流 7 个阶段适合大需求，个人小改动套上去就是负担。裁剪后剩下的阶段序列仍可导出成 <code class="mono">CHECKLIST.md</code> 注入项目。</p>
+        <p>阶段之间的依赖顺序不会因为裁剪而错乱 —— 删的是阶段，不是连线。</p>
+      </div>`)}
+      ${card('回流闭环', `<div class="prose" style="font-size:var(--fs-sm)">
+        <p style="margin-top:0">复盘阶段的检查清单里有一项叫「新词/新坑回流入库」。勾不上，说明这轮的资产没有沉淀 —— 这是飞轮转不起来的第一个可观测信号。</p>
+        <button class="btn sm" data-act="reflow" style="margin-top:10px">${ic('refresh', 13)} 从开发日志生成草稿</button>
+      </div>`)}
+    </div>
+  </div>`;
+}
+const kindNameOf = (k) => ({ light: '轻量', spec_driven: 'Spec 驱动', retro: '复盘' }[k] || k);
+
+/* ----------------------------------------------------- 3.5 项目工作台 --- */
+const COLS = ['待办', '进行中', '已完成'];
+function viewProj() {
+  const flow = FLOWS[1];
+  const stage = flow.stages[4];
+  const done = S.tasks.filter((t) => t.s === 2).length;
+  const pct = Math.round(((S.tasks.length - S.tasks.filter((t) => t.s === 0).length) / S.tasks.length) * 100);
+  return head('项目工作台', '阶段条 + 看板拖拽（键盘 / 按钮同效）+ 开发日志 + 回流入口 + 注入状态。')
+    + `<div class="stack">
+    <section class="card">
+      <div class="card-b tight" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div>
+          <div class="faint" style="font-size:11.5px">当前项目</div>
+          <b style="font-size:var(--fs-h3);color:var(--ink)">OpenVibe 灵典 <span class="mono faint" style="font-weight:400;font-size:12.5px">~/work/openvibe</span></b>
+        </div>
+        <span style="flex:1"></span>
+        <div style="text-align:right">
+          <div class="faint" style="font-size:11.5px">全项目完成度</div>
+          <b class="num" style="font-size:var(--fs-h3);color:var(--ink)">${pct}%</b>
+        </div>
+      </div>
+      <div class="card-b tight" style="border-top:1px solid var(--line-hair);display:flex;gap:6px;flex-wrap:wrap">
+        ${flow.stages.map((s, i) => `<span class="chip ${i === 4 ? 'accent' : 'plain'}" style="padding:4px 11px">${esc(s.n)}</span>`).join('')}
+      </div>
+    </section>
+
+    <div class="grid g-side">
+      <div class="stack">
+        ${card(`阶段 · ${esc(stage.n)}　产物：${stage.art.map((a) => `<code class="mono">${esc(a)}</code>`).join('、')}`, `
+        <div class="kb">
+          ${COLS.map((name, ci) => {
+            const ts = S.tasks.filter((t) => t.s === ci);
+            return `<div class="kb-col">
+              <h4>${name} <u class="num">${ts.length}</u></h4>
+              ${ts.length ? ts.map((t) => `<article class="task ${ci === 2 ? 'done' : ''}">
+                <p>${esc(t.t)}</p>
+                <div class="ops">
+                  <button class="btn sm icon" data-mv="${t.id}|l" ${ci === 0 ? 'disabled' : ''} aria-label="左移">${ic('left', 13)}</button>
+                  <button class="btn sm icon" data-mv="${t.id}|r" ${ci === 2 ? 'disabled' : ''} aria-label="右移">${ic('right', 13)}</button>
+                  <span style="flex:1"></span>
+                  <span class="faint mono" style="font-size:10.5px;align-self:center">#${t.id}</span>
+                </div>
+              </article>`).join('') : `<div class="empty-hint">暂无任务</div>`}
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="row-w" style="margin-top:14px">
+          <button class="btn sm" data-act="add-task">${ic('check', 13)} 加一条任务</button>
+          <span style="flex:1"></span>
+          <span class="faint" style="font-size:11.5px">已完成 ${done} / ${S.tasks.length}　·　按钮与键盘同效，键盘焦点全程可见</span>
+        </div>`)}
+      </div>
+
+      <div class="stack">
+        ${card('注入状态', `<dl class="kv">
+          <dt>标准包</dt><dd class="mono" style="font-size:12.5px">default@1.0.0</dd>
+          <dt>指纹</dt><dd class="mono" style="font-size:12.5px">4f2a9c1e8b73d5a2</dd>
+          <dt>受管文件</dt><dd class="num">9</dd>
+          <dt>漂移</dt><dd><span class="chip warn">${ic('alert', 12)} 1 处 · CLAUDE.md</span></dd>
+          <dt>上次同步</dt><dd class="num" style="font-size:12.5px">2026-09-29 02:14</dd>
+        </dl>
+        <div class="row-w" style="margin-top:12px">
+          <button class="btn sm" data-act="dry">${ic('shield', 13)} 干跑</button>
+          <button class="btn sm primary" data-act="sync">${ic('check', 13)} 同步</button>
+        </div>`)}
+
+        ${card('本阶段检查清单', stage.c.map((t) => `<label class="chk" style="display:flex;margin-bottom:8px">
+          <input type="checkbox" class="chkbox" /><span>${esc(t)}</span></label>`).join(''))}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* --------------------------------------------------------- 3.6 标准包 --- */
+function viewPack() {
+  const files = PACK_FILES.filter((f) => f.a === 'lock' || f.a === 'shared' || S.packSel.has(f.a));
+  const drift = files.filter((f) => f.s === 'drift').length;
+  const tabs = ['产物清单', '预览即产物', '导出历史'];
+  return head('标准包', '五步向导组包；预览即产物（与导出字节一致），所以「所见」和「注入」永远不会是两回事。')
+    + `<div class="stack">
+    <section class="card">
+      <div class="card-b tight" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div>
+          <div class="faint" style="font-size:11.5px">标准包</div>
+          <b style="font-size:var(--fs-h3);color:var(--ink)">default <span class="mono" style="color:var(--ink-muted);font-weight:400">@1.0.0</span></b>
+        </div>
+        <div>
+          <div class="faint" style="font-size:11.5px">内容指纹</div>
+          <b class="mono" style="font-size:13px;color:var(--ink)">4f2a9c1e8b73d5a2</b>
+        </div>
+        <div>
+          <div class="faint" style="font-size:11.5px">产物</div>
+          <b class="num" style="font-size:13px;color:var(--ink)">${files.length} 个文件</b>
+        </div>
+        <span style="flex:1"></span>
+        ${drift ? `<span class="chip warn">${ic('alert', 12)} ${drift} 处漂移</span>` : `<span class="chip ok">${ic('check', 12)} 全部最新</span>`}
+        <button class="btn primary" data-act="wizard">${ic('layers', 14)} 组包向导</button>
+      </div>
+    </section>
+
+    <div class="grid g-side">
+      <div class="stack">
+        <div class="tabs" role="tablist">
+          ${tabs.map((t) => `<button role="tab" data-packtab="${t}" aria-selected="${S.packTab === t}">${t}</button>`).join('')}
+        </div>
+
+        ${S.packTab === '产物清单' ? card('受管文件', `
+          <table class="tb">
+            <thead><tr><th>文件</th><th>读取方</th><th style="width:110px">状态</th></tr></thead>
+            <tbody>${files.map((f) => `<tr>
+              <td class="mono" style="font-size:12.5px;color:var(--ink)">${f.f}</td>
+              <td class="faint" style="font-size:12.5px">${f.r}</td>
+              <td>${f.s === 'drift' ? `<span class="chip warn">DRIFT</span>` : `<span class="chip ok">IN_SYNC</span>`}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+          <div class="row-w" style="margin-top:14px">
+            <button class="btn sm" data-act="diff-file">${ic('library', 13)} 逐文件 diff</button>
+            <button class="btn sm" data-act="dl">${ic('copy', 13)} 下载 bundle</button>
+            <span style="flex:1"></span>
+            <span class="faint" style="font-size:11.5px">整文件管理，无块级合并</span>
+          </div>`) : ''}
+
+        ${S.packTab === '预览即产物' ? card('CLAUDE.md · 预览即注入字节', `
+          <pre class="code" style="max-height:460px;overflow:auto">${esc(INJECT[0])}</pre>
+          <div class="note warn" style="margin-top:12px">${ic('alert', 15)}<div>
+            最后两行是本地手改（标了注释）。重新同步前 <code class="mono">diff</code> 会报 DRIFT，冲突三选一：
+            以包为准（覆盖，先备份）/ 保留本地（跳过）/ 逐文件处理。
+          </div></div>`) : ''}
+
+        ${S.packTab === '导出历史' ? card('导出记录', `
+          <table class="tb">
+            <thead><tr><th>时间</th><th>形态</th><th>版本</th><th style="width:100px">操作</th></tr></thead>
+            <tbody>
+              <tr><td class="num" style="font-size:12.5px">2026-09-29 02:11</td><td>bundle JSON</td><td class="mono" style="font-size:12.5px">1.0.0</td><td><button class="btn sm" data-act="dl">下载</button></td></tr>
+              <tr><td class="num" style="font-size:12.5px">2026-09-28 19:40</td><td>目录导出</td><td class="mono" style="font-size:12.5px">1.0.0</td><td><button class="btn sm" data-act="dl">下载</button></td></tr>
+              <tr><td class="num" style="font-size:12.5px">2026-09-26 10:05</td><td>bundle JSON</td><td class="mono" style="font-size:12.5px">0.9.0</td><td><button class="btn sm" data-act="dl">下载</button></td></tr>
+            </tbody>
+          </table>
+          <div class="note" style="margin-top:12px">${ic('info', 15)}<div>
+            别人拿到 bundle 后 <code class="mono">sync --file</code> 即可离线注入；注入产物的指纹一致，<code class="mono">diff</code> 判得出来。
+          </div></div>`) : ''}
+      </div>
+
+      <div class="stack">
+        ${card('选平台（决定产出哪些文件）', `
+          <div class="stack" style="gap:8px">
+            ${PLATFORMS.map((p) => `<label class="chk" style="width:100%">
+              <input type="checkbox" data-plat="${p.id}" ${S.packSel.has(p.id) ? 'checked' : ''} />
+              <span style="flex:1">${esc(p.name)}</span>
+              <code class="mono faint" style="font-size:11px">${esc(p.file)}</code>
+            </label>`).join('')}
+          </div>
+          <hr class="hr" style="margin:14px 0" />
+          <dl class="kv">
+            <dt>提示词</dt><dd class="num">3 条（全部规则类）</dd>
+            <dt>术语</dt><dd class="num">19 条</dd>
+            <dt>阶段</dt><dd class="num">Spec 驱动流 · 7 阶段</dd>
+            <dt>台账</dt><dd class="mono" style="font-size:12.5px">pack.lock.json</dd>
+          </dl>`)}
+
+        ${card('写盘侧的防线', `<ol class="tl" style="font-size:var(--fs-sm)">
+          ${['路径双层校验', '整包注入前检查', '每次写盘前 resolve 复核（悬空符号链接一律拒绝）',
+             '覆盖前强制备份', '--dry-run 零写入', '同项目并发 sync 用文件锁互斥']
+            .map((s) => `<li data-on="1"><div class="h" style="font-weight:400;font-size:var(--fs-sm)">${esc(s)}</div></li>`).join('')}
+        </ol>`)}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ------------------------------------------------------- 3.7 设计系统 --- */
+/* 每个 token：名称 / 角色 / 用途 / （可选）对比度基准底色。
+   缺省一律以面板底为基准；只有「压在某个底上」的颜色才显式指定基准，
+   否则会算出 1.0x 这种看着像 bug 的数字。 */
+const TOKENS = [
+  { g: '表面', list: [['canvas', '页面底', '背景'], ['panel', '面板', '卡片 / 抽屉'], ['panel-2', '次级面', '分组 / 表头'], ['panel-sunk', '凹陷', '代码块']] },
+  { g: '描边', list: [['line-hair', '发丝线', '行分隔'], ['line', '常规线', '卡片边'], ['line-strong', '强线', '输入框边']] },
+  { g: '文字', list: [['ink', '主文字', '标题 / 强调'], ['ink-body', '正文', '段落主体'], ['ink-muted', '次要', '说明文字'], ['ink-faint', '弱化', '元信息，不承载长文本']] },
+  { g: '强调', list: [['accent', '赭石', '链接 / 图标文字'], ['accent-deep', '深赭', '悬停 / 深底文字'], ['accent-soft', '浅赭', '选中容器'], ['on-accent', '反色文字', '按钮上的文字', 'accent']] },
+  { g: '状态', list: [['ok', '一致 / 成功', 'IN_SYNC'], ['warn', '漂移 / 警告', 'DRIFT'], ['danger', '不可逆 / 错误', '删除'], ['info', '提示', '说明']] },
+];
+const TEXT_TOKENS = new Set(['ink', 'ink-body', 'ink-muted', 'ink-faint', 'accent', 'accent-deep', 'on-accent', 'ok', 'warn', 'danger', 'info']);
+
+function hex2rgb(h) {
+  h = h.trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+function relLum(hex) {
+  const [r, g, b] = hex2rgb(hex).map((v) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contrast(a, b) {
+  const l1 = relLum(a), l2 = relLum(b);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+function grade(c) {
+  if (c >= 7) return { t: 'AAA', cls: 'ok' };
+  if (c >= 4.5) return { t: 'AA', cls: 'ok' };
+  if (c >= 3) return { t: '仅大字 / 图形', cls: 'warn' };
+  return { t: '装饰专用', cls: 'danger' };
+}
+const tokenVal = (n) => getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim();
+
+const TYPE_SCALE = [
+  ['H1 页面标题', '30px / 600 / 1.25', '项目工作台', '30px', 600],
+  ['H2 区块标题', '21px / 600 / 1.35', '受管文件与漂移', '21px', 600],
+  ['H3 卡片标题', '16px / 600 / 1.4', '包明细 · default@1.0.0', '16px', 600],
+  ['正文', '15px / 400 / 1.72', '同一份正文按适配器套壳，不复制内容。', '15px', 400],
+  ['次要正文', '13.5px / 400 / 1.6', '覆盖任何已有文件前会先备份原件。', '13.5px', 400],
+  ['元信息', '12.5px / 400 / 1.5', '数据目录 ~/.openvibe/ · 仅监听 127.0.0.1', '12.5px', 400],
+  ['等宽', '12.5px / 400 / 1.7', 'openvibe sync ~/your-project --pack default', '12.5px', 400],
+];
+
+function viewDS() {
+  return head('设计系统 · 暖纸 V2', '所有颜色只在 :root 的 @theme 块出现一次，调用点只写 var(--xxx)。下面的对比度是页面在运行时用 CSS 变量真实算出来的，不是标注上去的。')
+    + `<div class="stack">
+    <div class="row-w">
+      <span class="chip accent">${ic('check', 12)} 正文对比度 ≥ 7:1（AAA）</span>
+      <span class="chip ok">${ic('check', 12)} 元信息 ≥ 4.5:1（AA）</span>
+      <span class="chip ok">${ic('check', 12)} 正文行长 ≤ 68ch</span>
+      <span class="chip ok">${ic('check', 12)} 焦点环 2px + offset</span>
+      <span class="chip ok">${ic('check', 12)} prefers-reduced-motion 全关动效</span>
+      <span style="flex:1"></span>
+      <span class="chip">当前主题：${S.theme === 'paper' ? '暖纸（浅）' : '暖夜（深）'}</span>
+    </div>
+
+    <section class="card">
+      <div class="card-h">${ic('palette', 16)}<h3>色板与对比度</h3><span class="sp"></span>
+        <span class="faint" style="font-size:11.5px">基准：面板底 <span class="mono">${tokenVal('panel')}</span>（on-accent 配强调底）　WCAG 2.1</span></div>
+      <div class="card-b">
+        ${TOKENS.map((g) => `<div style="margin-bottom:18px">
+          <div style="font-size:12px;font-weight:600;color:var(--ink-muted);letter-spacing:.04em;margin-bottom:8px">${g.g}</div>
+          <div class="sw-grid">
+            ${g.list.map(([n, role, use, bg]) => {
+              const v = tokenVal(n);
+              const against = bg ? tokenVal(bg) : tokenVal('panel');
+              const c = contrast(v, against);
+              const gr = grade(c);
+              return `<div class="sw">
+                <i style="background:${v}"></i>
+                <div class="meta">
+                  <b>${role}</b>
+                  <code>--${n}</code>
+                  ${TEXT_TOKENS.has(n)
+                    ? `<em>${c.toFixed(2)}:1 <span class="chip ${gr.cls}" style="padding:0 5px">${gr.t}</span>${
+                        bg ? `<span class="faint"> on --${bg}</span>` : ''}</em>`
+                    : `<em class="faint">${use}</em>`}
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`).join('')}
+      </div>
+    </section>
+
+    <div class="grid g2">
+      ${card('字阶（CJK 密度校准）', `<div>
+        ${TYPE_SCALE.map(([name, spec, sample, size, w]) => `<div class="ts-row">
+          <code>${spec}</code>
+          <span class="samp" style="font-size:${size};font-weight:${w};${name === '等宽' ? 'font-family:var(--mono)' : ''}">${esc(sample)}</span>
+        </div>`).join('')}
+      </div>
+      <div class="note" style="margin-top:14px">${ic('info', 15)}<div>
+        汉字是方块字、视觉重量大。照搬拉丁默认的 <code class="mono">16px / 1.8</code> 会让中文页显得稀、每屏装不下几行；
+        正文收在 <b>15px / 1.72</b>，行距略紧但仍可读。
+      </div></div>`)}
+
+      ${card('组件', `
+        <div style="margin-bottom:16px">
+          <label class="lb">按钮</label>
+          <div class="row-w">
+            <button class="btn primary" data-act="noop">${ic('check', 14)} 主要操作</button>
+            <button class="btn">次要操作</button>
+            <button class="btn ghost">幽灵按钮</button>
+            <button class="btn danger">${ic('x', 14)} 删除</button>
+            <button class="btn" disabled>禁用</button>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <label class="lb">状态胶囊（不只靠颜色：每个都带文字）</label>
+          <div class="row-w">
+            <span class="chip ok">${ic('check', 12)} 一致 · 退出码 0</span>
+            <span class="chip warn">${ic('alert', 12)} 有改动 · 退出码 2</span>
+            <span class="chip danger">${ic('x', 12)} 出错 · 退出码 1</span>
+            <span class="chip info">${ic('info', 12)} 提示</span>
+            <span class="chip accent">${ic('book', 12)} 中性标签</span>
+          </div>
+        </div>
+        <div style="margin-bottom:16px">
+          <label class="lb">输入</label>
+          <label class="field" style="max-width:320px;display:block">${ic('search', 16)}
+            <input class="input" placeholder="搜索标题 / 正文 / 标签" /></label>
+        </div>
+        <div style="margin-bottom:16px">
+          <label class="lb">勾选（已选项自动划掉，一眼看出完成度）</label>
+          <div class="stack" style="gap:7px">
+            <label class="chk"><input type="checkbox" checked /><span>分小步提交</span></label>
+            <label class="chk"><input type="checkbox" /><span>每轮改动后测试通过</span></label>
+            <label class="chk"><input type="checkbox" checked /><span>下班前追加 DEV 日志</span></label>
+          </div>
+        </div>
+        <div>
+          <label class="lb">代码块</label>
+          <pre class="code">npx openvibe-cli <span class="cm">sync</span> ~/your-project <span class="cm">--pack</span> default</pre>
+        </div>`)}
+    </div>
+
+    <div class="grid g2">
+      ${card('可读性十项（这个 Demo 的验收线）', `<ul class="chk-list">
+        ${['正文对比度 ≥ 7:1（AAA），不用纯黑 #000 —— 纯黑在暖底上视觉过硬',
+           '次要文字 ≥ 4.5:1；弱化色只承载元信息，不承载长文本',
+           '正文行长 ≤ 68ch，超出即换行容器而不是拉宽文本块',
+           '正文 15px / 行高 1.72，字重不低于 400（细体在暖底上发虚）',
+           '中文优先字体栈：PingFang SC / Hiragino Sans GB / 微软雅黑',
+           '数字与时间用 tabular-nums，表格列不跳动',
+           '状态不只靠颜色 —— 每个状态都配图标与文字',
+           '焦点环 2px 实心 + 2px offset，键盘全程可达',
+           '动效 160ms，prefers-reduced-motion 下全部关闭',
+           '深色主题不反相亮度，保留同一暖相，只降明度']
+          .map((t) => `<li>${ic('check', 14)}<span>${esc(t)}</span></li>`).join('')}
+      </ul>`)}
+
+      ${card('换肤成本', `<div class="prose" style="font-size:var(--fs-sm)">
+        <p style="margin-top:0">产品里 <code class="mono">apps/web/src/index.css</code> 已经把 625 处字面色阶收进 <code class="mono">@theme</code> 单一出处。换肤只改那一个块，调用点一行不动，像素零漂移。</p>
+        <p>本 Demo 的两套主题（暖纸 / 暖夜）就是同一个 token 契约的两个取值实现 —— 右上角切换可以直接验证。</p>
+        <div class="row-w" style="margin-top:12px">
+          <button class="btn" id="themeBtn2">${ic(S.theme === 'paper' ? 'moon' : 'sun', 14)} 切到${S.theme === 'paper' ? '暖夜' : '暖纸'}</button>
+        </div>
+      </div>
+      <hr class="hr" />
+      <dl class="kv">
+        <dt>圆角</dt><dd class="mono num" style="font-size:12.5px">6 / 10 / 14 / 20 px</dd>
+        <dt>阴影</dt><dd>只做扩散，无硬边（3 级）</dd>
+        <dt>间距基数</dt><dd class="num">4 px</dd>
+      </dl>`)}
+    </div>
+  </div>`;
+}
+
+/* ==========================================================================
+   4 · 渲染与事件
+   ======================================================================== */
+const VIEWS = { wb: viewWB, lib: viewLib, term: viewTerm, flow: viewFlow, proj: viewProj, pack: viewPack, ds: viewDS };
+
+function render() {
+  renderNav();
+  $('#view').innerHTML = VIEWS[S.view]();
+  const tb = $('#themeBtn');
+  tb.innerHTML = (S.theme === 'paper' ? ic('moon', 15) : ic('sun', 15)) + (S.theme === 'paper' ? '暖夜' : '暖纸');
+  $('#themeBtn').setAttribute('aria-label', S.theme === 'paper' ? '切换到暖夜深色主题' : '切换到暖纸浅色主题');
+}
+
+function setTheme(t) {
+  S.theme = t;
+  document.body.dataset.theme = t;
+  document.documentElement.dataset.theme = t;
+  render();
+  toast(t === 'paper' ? '已切到暖纸（浅色）' : '已切到暖夜（深色）');
+}
+
+document.addEventListener('click', (e) => {
+  const g = (sel) => e.target.closest(sel);
+
+  const nav = g('[data-v]');            if (nav) { S.view = nav.dataset.v; closeDrawer(); render(); window.scrollTo({ top: 0 }); return; }
+  const go = g('[data-go]');            if (go) { S.view = go.dataset.go; render(); return; }
+
+  if (g('#themeBtn') || g('#themeBtn2')) { setTheme(S.theme === 'paper' ? 'night' : 'paper'); return; }
+
+  // 提示词库
+  const lt = g('[data-libtag]');       if (lt) { S.libTag = lt.dataset.libtag; render(); return; }
+  const pr = g('[data-prompt]');        if (pr) { openPrompt(pr.dataset.prompt); return; }
+
+  // 术语库
+  const tt = g('[data-termtag]');       if (tt) { S.termTag = tt.dataset.termtag; render(); return; }
+
+  // 流程
+  const fw = g('[data-flow]');          if (fw) { S.flowIdx = +fw.dataset.flow; render(); return; }
+
+  // 项目
+  const mv = g('[data-mv]');
+  if (mv && !mv.disabled) {
+    const [id, dir] = mv.dataset.mv.split('|');
+    const t = S.tasks.find((x) => x.id === +id);
+    t.s = Math.max(0, Math.min(2, t.s + (dir === 'l' ? -1 : 1)));
+    render();
+    toast(`「${t.t.slice(0, 14)}…」→ ${COLS[t.s]}`);
+    return;
+  }
+
+  // 标准包
+  const pt = g('[data-packtab]');       if (pt) { S.packTab = pt.dataset.packtab; render(); return; }
+
+  // 抽屉关闭
+  if (g('[data-close]') || (g('[data-scrim]') && e.target.matches('[data-scrim]'))) { closeDrawer(); return; }
+
+  // 其余动作：统一给反馈（原型不接后端）
+  const act = g('[data-act]');
+  if (act) {
+    const a = act.dataset.act;
+    const msg = {
+      newprompt: '新建提示词：草稿入库（演示不落库）',
+      copy: '已复制到剪贴板', save: '已保存（演示不落库）', io: '导出：四形态之一（演示）',
+      reflow: '已生成术语 / 提示词草稿，带来源反链',
+      'copy-flow': '已复制为我的模板（内置模板只读）',
+      trim: '进入阶段裁剪（演示）', 'add-task': '已加一条待办（演示）',
+      dry: '干跑：写入 9 个文件 · 冲突 1 个 · 备份 1 个 · 零写入',
+      sync: '同步完成：8 个 IN_SYNC，1 个冲突待决',
+      'diff-file': 'diff 退出码 2 —— CLAUDE.md 报 DRIFT',
+      dl: '已下载 bundle（演示）', wizard: '组包向导：5 步（演示）',
+      v1: '已切到 v1', v2: '已切到 v2', v3: '已切到 v3（当前）',
+      diff: 'v2 → v3：新增第 5 条「不得为完成任务放宽约束」',
+      'terms-clear': '已清空选集', noop: '主要操作',
+    }[a] || '演示动作';
+    toast(msg);
+    return;
+  }
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'libQ') {
+    S.libQuery = e.target.value;
+    const pos = e.target.selectionStart;
+    render();
+    const n = $('#libQ'); if (n) { n.focus(); n.setSelectionRange(pos, pos); }
+  }
+  if (e.target.id === 'termQ') {
+    S.termQuery = e.target.value;
+    const pos = e.target.selectionStart;
+    render();
+    const n = $('#termQ'); if (n) { n.focus(); n.setSelectionRange(pos, pos); }
+  }
+});
+
+document.addEventListener('change', (e) => {
+  const t = e.target;
+  if (t.dataset.term) {
+    S.termSel.has(t.dataset.term) ? S.termSel.delete(t.dataset.term) : S.termSel.add(t.dataset.term);
+    render();
+  }
+  if (t.dataset.ck) {
+    const [k, j] = t.dataset.ck.split('|');
+    (S.flowChecks[k] = S.flowChecks[k] || {})[j] = t.checked;
+    render();
+  }
+  if (t.dataset.plat) {
+    S.packSel.has(t.dataset.plat) ? S.packSel.delete(t.dataset.plat) : S.packSel.add(t.dataset.plat);
+    render();
+  }
+  if (t.classList.contains('chkbox')) {
+    toast(t.checked ? '已勾选：勾满才算过阶段' : '已取消勾选');
+  }
+});
+
+/* 键盘：看板左右移动（与按钮同效） */
+document.addEventListener('keydown', (e) => {
+  if (S.view !== 'proj' || e.metaKey || e.ctrlKey) return;
+  if (e.target.matches('input, textarea')) return;
+  const cur = e.target.closest('.task');
+  if (!cur) return;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    const b = cur.querySelector(`[data-mv$="${e.key === 'ArrowLeft' ? '|l' : '|r'}"]`);
+    if (b && !b.disabled) b.click();
+  }
+});
+
+render();
+</script>
+</body>
+</html>

@@ -16,7 +16,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SCRIPT = join(REPO_ROOT, 'scripts', 'seed-check.ts')
 const REAL_SEED_DIR = join(REPO_ROOT, 'content', 'seed')
-const SEED_FILES = ['terms.json', 'flow-templates.json', 'prompts.json'] as const
+const SEED_FILES = ['terms.json', 'flow-templates.json', 'prompts.json', 'playbooks.json'] as const
 
 /** 篡改后必然一起被点到的兜底错误，用于确认「负向探针没被别的报错抢先掩盖」 */
 type Run = { status: number | null; out: string }

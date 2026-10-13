@@ -161,3 +161,59 @@ export const TelemetryBatch = z.object({
   events: z.array(TelemetryBatchEvent).min(1).max(TELEMETRY_FLUSH_BATCH),
 })
 export type TelemetryBatch = z.infer<typeof TelemetryBatch>
+
+/**
+ * 本机事件台账（DB-1 批的 GET /api/telemetry/events）：append-only 的本地队列只读视图。
+ *
+ * **字段名与表列的映射（telemetry_events 无 name/ts/props 三列，别按名字猜）**：
+ * | 本字段   | 表列（migrations/0002_app_meta_telemetry.sql:7-16） |
+ * |----------|--------------------------------------------------|
+ * | `name`   | `event`   CHECK 枚举，恒为 TELEMETRY_EVENTS 之一 |
+ * | `ts`     | `queued_at` 入队时刻（ISO）                    |
+ * | `props`  | 该行其余已存列的逐字透出（见下）               |
+ * props 装的是「除 id/name/ts 之外该行已存的内容」，不是自造结构：
+ * value（客户端自报，≤200 字）/ day / os / appVersion / sent_at（null = 尚未外发）。
+ *
+ * 隐私口径（D-3 遥测默认关闭）：本端点**只读本地 SQLite，绝不出网**，返回值不含用户标识与本机路径
+ * ——表里本来就没有这两类列，props 也不做任何拼接/推断。
+ */
+export const TELEMETRY_EVENTS_LIMIT_DEFAULT = 50
+export const TELEMETRY_EVENTS_LIMIT_MAX = 200
+
+export const TelemetryLedgerItemOut = z.object({
+  id: z.number().int(),
+  name: z.enum(TELEMETRY_EVENTS),
+  ts: z.string().min(1),
+  props: z.object({
+    /** 客户端自报的有界值（TelemetryEventInput.value，≤200 字） */
+    value: z.string(),
+    day: z.string(),
+    os: z.enum(TELEMETRY_OS),
+    appVersion: z.string(),
+    /** null = 仍在本地队列（尚未被 flush 端点收下） */
+    sentAt: z.string().nullable(),
+  }),
+})
+export type TelemetryLedgerItemOut = z.infer<typeof TelemetryLedgerItemOut>
+
+export const TelemetryLedgerOut = z.object({
+  items: z.array(TelemetryLedgerItemOut),
+  /** 表总行数（含已外发），与 items 长度无关 */
+  total: z.number().int(),
+})
+export type TelemetryLedgerOut = z.infer<typeof TelemetryLedgerOut>
+
+/**
+ * `?limit=` 的解析口径：**非法值回落默认**，不是 422。
+ * 本端点契约要求 `limit=abc` / `limit=0` / 缺省一律回落到 50，与仓内「入参失败即 422」的默认姿态
+ * 有意不同——它是个纯读端点，坏参数不该把整个侧栏打挂。
+ * 上限 200 是硬夹取：超限按 200 返回，不回落 50。
+ */
+export const TelemetryLedgerLimit = z.preprocess(
+  (raw) => {
+    const n = Number(raw)
+    return Number.isInteger(n) ? n : Number.NaN
+  },
+  z.number().int().min(1).max(TELEMETRY_EVENTS_LIMIT_MAX),
+)
+export type TelemetryLedgerLimit = z.infer<typeof TelemetryLedgerLimit>

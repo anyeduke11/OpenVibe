@@ -52,6 +52,8 @@ export type UseAs = (typeof USE_AS)[number]
 
 export const PROMPT_STATUS = ['draft', 'active', 'deprecated'] as const
 export const TERM_STATUS = ['draft', 'active'] as const
+/** m4 §3：published 才是可进包口径（FR-6.2 只渲染 published） */
+export const PLAYBOOK_STATUS = ['draft', 'published'] as const
 /** TERMS.md 排序口径（m3 FR-4.2）：默认英文 alpha，可选拼音（词典）与手动（选集顺序） */
 export const TERMS_ORDER_BY = ['en-alpha', 'pinyin', 'manual'] as const
 export type TermsOrderBy = (typeof TERMS_ORDER_BY)[number]
@@ -93,6 +95,11 @@ export const LIMITS = {
   termEnMax: 100,
   termDefinitionMaxBytes: 4 * 1024,
   termExampleMaxBytes: 2 * 1024,
+  // m4 §3 四段全按字节族（owner 2026-10-01 裁 [DEV-0088]）；键名即单位，不留「KB 是字符还是字节」的第二读法
+  playbookScenarioMaxBytes: 1024,
+  playbookProblemMaxBytes: 1024,
+  playbookPracticeMaxBytes: 4 * 1024,
+  playbookAntiPracticeMaxBytes: 2 * 1024,
   projectNameMax: 100,
   packNameMax: 64,
   pathSegmentMax: 128,
@@ -117,6 +124,7 @@ export const ID_PREFIXES = {
   skill: 'sk_',
   skillVersion: 'skv_',
   term: 'trm_',
+  playbook: 'pbx_',
   flowTemplate: 'flw_',
   project: 'prj_',
   checkState: 'cks_',

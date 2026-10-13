@@ -286,7 +286,8 @@ describe('POST /api/settings/reseed + 预置 default 包（FR-1，D-3）', () =>
     const h = await makeHarness(join(sandbox, 'missing'))
     const res = await api<ReseedOut>(h, 'POST', '/api/settings/reseed')
     expect(res.statusCode).toBe(200)
-    expect(Object.values(res.json.seed.bundles)).toEqual(['error', 'error', 'error'])
+    // 四条 bundle（terms / flow-templates / prompts / playbooks，m4 FR-9.2 加了第四条）
+    expect(Object.values(res.json.seed.bundles)).toEqual(['error', 'error', 'error', 'error'])
     expect(res.json.seed.warnings.join(' ')).toContain('种子文件处理失败')
     expect(res.json.defaultPack).toMatchObject({
       status: 'failed',

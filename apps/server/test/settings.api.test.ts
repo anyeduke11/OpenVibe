@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
 import { APP_META_KEYS, type SqliteDatabase } from '@openvibe/core'
 import type { TelemetryEnqueueOut, TelemetrySettingsOut } from '@openvibe/shared'
+import { TelemetryLedgerOut } from '@openvibe/shared'
 import { buildApp } from '../src/app'
 
 /**
@@ -217,3 +218,113 @@ describe('POST /api/telemetry/events（C-41：CLI 的入队通道）', () => {
     )
   })
 })
+
+describe('GET /api/telemetry/events（本机事件台账 · 只读本地）', () => {
+  /** 开闸后连灌 n 条（注入固定时钟 ⇒ queued_at 单调可断言） */
+  async function fill(h: Harness, n: number): Promise<void> {
+    await api(h, 'POST', '/api/settings/telemetry', { enabled: true })
+    for (let i = 0; i < n; i++) {
+      const res = await api<TelemetryEnqueueOut>(h, 'POST', '/api/telemetry/events', {
+        event: 'pack_injected',
+        value: `fixture@1.0.${String(i)}`,
+      })
+      expect(res.json.queued).toBe(true)
+    }
+  }
+
+  /** noUncheckedIndexedAccess 下取首条：空台账直接炸在测试里，而不是静默滑过断言 */
+  const firstOf = (body: TelemetryLedgerOut): TelemetryLedgerOut['items'][number] => {
+    const first = body.items[0]
+    if (first === undefined) throw new Error('台账应有至少一条')
+    return first
+  }
+
+  it('IT-LEDGER-01: 200 + 字段齐全；name/ts/props 是表列 event/queued_at/其余列的映射', async () => {
+    const h = await makeHarness()
+    await fill(h, 2)
+
+    const res = await api<TelemetryLedgerOut>(h, 'GET', '/api/telemetry/events')
+    expect(res.statusCode).toBe(200)
+    expect(TelemetryLedgerOut.safeParse(res.json).success).toBe(true)
+    expect(res.json.total).toBe(2)
+    expect(res.json.items).toHaveLength(2)
+
+    // 最新一条在前（id DESC）
+    const first = firstOf(res.json)
+    expect(first.name).toBe('pack_injected')
+    expect(first.ts).toBe('2026-09-21T23:40:00.000Z')
+    expect(first.props).toEqual({
+      value: 'fixture@1.0.1',
+      day: '2026-09-21',
+      os: 'mac',
+      appVersion: '0.3.1',
+      sentAt: null,
+    })
+    expect(Object.keys(first).sort()).toEqual(['id', 'name', 'props', 'ts'])
+    expect(Object.keys(first.props).sort()).toEqual([
+      'appVersion',
+      'day',
+      'os',
+      'sentAt',
+      'value',
+    ])
+  })
+
+  it('IT-LEDGER-02: 空台账 200 且 total=0；读端点零副作用（行数与开关都不变）', async () => {
+    const h = await makeHarness()
+    const empty = await api<TelemetryLedgerOut>(h, 'GET', '/api/telemetry/events')
+    expect(empty.statusCode).toBe(200)
+    expect(empty.json).toEqual({ items: [], total: 0 })
+
+    await fill(h, 1)
+    const rowsBefore = eventCount(h)
+    await api(h, 'GET', '/api/telemetry/events')
+    expect(eventCount(h)).toBe(rowsBefore)
+    // 关闭态读得到历史台账，但不会因此开闸
+    await api(h, 'POST', '/api/settings/telemetry', { enabled: false })
+    expect((await api<TelemetryLedgerOut>(h, 'GET', '/api/telemetry/events')).json.total).toBe(1)
+    expect(
+      (await api<TelemetrySettingsOut>(h, 'GET', '/api/settings/telemetry')).json.enabled,
+    ).toBe(false)
+  })
+
+  it('IT-LEDGER-03: limit 边界 —— 缺省 50、合法值按数取、超 200 夹 200', async () => {
+    const h = await makeHarness()
+    await fill(h, 60)
+
+    const dflt = await api<TelemetryLedgerOut>(h, 'GET', '/api/telemetry/events')
+    expect(dflt.json.items).toHaveLength(50)
+    expect(dflt.json.total).toBe(60) // total 是表总行数，与 items 长度无关
+
+    const one = await api<TelemetryLedgerOut>(h, 'GET', '/api/telemetry/events?limit=1')
+    expect(one.json.items).toHaveLength(1)
+    expect(one.json.total).toBe(60)
+    expect(firstOf(one.json).props.value).toBe('fixture@1.0.59') // 取最新那条
+
+    const edge = await api<TelemetryLedgerOut>(h, 'GET', '/api/telemetry/events?limit=200')
+    expect(edge.json.items).toHaveLength(60)
+
+    const over = await api<TelemetryLedgerOut>(h, 'GET', '/api/telemetry/events?limit=9999')
+    expect(over.json.items).toHaveLength(60) // 夹到 200，本库只有 60 行
+    expect(over.json.total).toBe(60)
+  })
+
+  it('IT-LEDGER-04: 非法 limit 一律回落默认 50（不是 422）', async () => {
+    const h = await makeHarness()
+    await fill(h, 60)
+
+    for (const q of ['limit=abc', 'limit=0', 'limit=-3', 'limit=1.5', 'limit=', 'limit=%20']) {
+      const res = await api<TelemetryLedgerOut>(h, 'GET', `/api/telemetry/events?${q}`)
+      expect(res.statusCode).toBe(200)
+      expect(res.json.items, q).toHaveLength(50)
+    }
+  })
+
+  it('IT-LEDGER-05: 缺令牌 401（台账同样受鉴权插件保护）', async () => {
+    const h = await makeHarness()
+    await fill(h, 1)
+    const anon = await api(h, 'GET', '/api/telemetry/events', undefined, false)
+    expect(anon.statusCode).toBe(401)
+  })
+})
+

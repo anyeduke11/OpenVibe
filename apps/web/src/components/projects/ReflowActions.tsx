@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import type { DevLogOut, PromptOut, TermOut } from '@openvibe/shared'
+import type { DevLogOut, PlaybookOut, PromptOut, TermOut } from '@openvibe/shared'
 import { useDevLogMutations, useReflowOrigin } from '../../hooks/useDevLog'
 import { useTermList } from '../../hooks/useTerms'
 import { zh } from '../../i18n/zh'
 import { PromptEditorDrawer } from '../library/PromptEditorDrawer'
+import { PlaybookEditorDrawer } from '../playbooks/PlaybookEditorDrawer'
 import { TermEditorDrawer } from '../terms/TermEditorDrawer'
 import { toast } from '../ui/Toaster'
 import { btnGhost, chipCls } from '../ui/styles'
@@ -12,15 +13,15 @@ function selectedText(): string {
   return (window.getSelection()?.toString() ?? '').trim()
 }
 
-/** 回流快捷入口（m5 FR-7）：日志正文（或选中段落）→ 术语候选 / 提示词草稿，成功后回写 linkedAssetIds */
+/** 回流快捷入口（m5 FR-7）：日志正文（或选中段落）→ 术语候选 / 提示词草稿 / 技巧草稿，成功后回写 linkedAssetIds */
 export function ReflowActions(props: { entry: DevLogOut; projectName: string }) {
   const { entry, projectName } = props
-  const [mode, setMode] = useState<'term' | 'prompt' | null>(null)
+  const [mode, setMode] = useState<'term' | 'prompt' | 'playbook' | null>(null)
   const [draft, setDraft] = useState('')
   const terms = useTermList()
   const { linkAsset } = useDevLogMutations(entry.projectId)
 
-  const openWith = (next: 'term' | 'prompt') => {
+  const openWith = (next: 'term' | 'prompt' | 'playbook') => {
     setDraft(selectedText() || entry.body)
     setMode(next)
   }
@@ -38,6 +39,7 @@ export function ReflowActions(props: { entry: DevLogOut; projectName: string }) 
 
   const onTermSaved = (term: TermOut) => afterCreate(term.id)
   const onPromptSaved = (prompt: PromptOut) => afterCreate(prompt.id)
+  const onPlaybookSaved = (playbook: PlaybookOut) => afterCreate(playbook.id)
 
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -46,6 +48,11 @@ export function ReflowActions(props: { entry: DevLogOut; projectName: string }) 
       </button>
       <button className={btnGhost} onClick={() => openWith('prompt')}>
         {zh.projects.reflow.prompt}
+      </button>
+      {/* M4 FR-5：回流面板的第三个目标类型。人工确认是唯一入库路径——抽屉不会自动落库，
+          必须由人把「正确做法」补完再保存（FR-4.2 同源的显式动作纪律）。 */}
+      <button className={btnGhost} onClick={() => openWith('playbook')}>
+        {zh.projects.reflow.playbook}
       </button>
       <span className="text-[11px] text-ink-faint">{zh.projects.reflow.pickHint}</span>
       {entry.linkedAssetIds.length > 0 && (
@@ -78,6 +85,19 @@ export function ReflowActions(props: { entry: DevLogOut; projectName: string }) 
             title: entry.title === '' ? `${projectName} ${entry.displayNo}` : entry.title,
             content: draft,
             status: 'draft',
+          }}
+        />
+      )}
+      {mode === 'playbook' && (
+        <PlaybookEditorDrawer
+          playbook={null}
+          prefillSource="reflow"
+          open
+          onClose={() => setMode(null)}
+          onSaved={onPlaybookSaved}
+          prefill={{
+            scenario: entry.title === '' ? `${projectName} ${entry.displayNo}` : entry.title,
+            problem: draft,
           }}
         />
       )}

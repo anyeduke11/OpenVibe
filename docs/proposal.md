@@ -46,7 +46,7 @@ vibe coding 已是主流开发方式，而各 AI 编码平台的规则/技能目
 | M3 术语库 | 瘦身 | 预置 ≥100 词条、CRUD、中英/别名全文搜索、一键生成 `TERMS.md`（提案审核流后移 P1） | [specs/m3-glossary.md](./specs/m3-glossary.md) |
 | M5 项目与流程 | 完整 | 项目工作台、3 套流程模板、阶段检查清单、简化看板、DEV/CHECK 开发日志、复盘回流快捷入口 | [specs/m5-project-flow.md](./specs/m5-project-flow.md) |
 | M6 标准包与注入 | 完整 | 组装向导、纯 Markdown 文件生成、`openvibe sync` 注入（dry-run/冲突备份/指纹漂移检测） | [specs/m6-standard-pack.md](./specs/m6-standard-pack.md)、[specs/m6-cli-injection.md](./specs/m6-cli-injection.md) |
-| 种子内容 | 必交付 | ≥100 术语、3 流程模板、20 精选提示词，开箱即用 | [specs/seed-content.md](./specs/seed-content.md) |
+| 种子内容 | 必交付 | ≥100 术语、3 流程模板、精选提示词（定值单源见 [specs/seed-content.md](./specs/seed-content.md) FR-4：`DEV-0059` 起为 21），开箱即用 | [specs/seed-content.md](./specs/seed-content.md) |
 | 开箱体验 | 必交付（澄清 D4 新增） | 预置演示标准包 + 可跳过 ≤3 步首启向导 + 飞轮统计面板 | [specs/onboarding.md](./specs/onboarding.md) |
 
 **明确不做（MVP 外，防蔓延）**：M2 完整版（生态源导入、多平台 skill 分发、冲突检测 UI）、M4 技巧库、M7 团队协作与评审、AI 测试场、复盘候选自动提取（MVP 用人工快捷入口替代）、双向同步、桌面端/浏览器扩展。
@@ -86,7 +86,7 @@ MVP 验收 = 这一圈在真实项目上端到端走通（见 §6 与 tasks.md D
 ## 5. 交付物清单
 
 1. **软件**：pnpm monorepo——`apps/web`（SPA）、`apps/server`（API + 静态托管）、`apps/cli`（`npx openvibe-cli`）、`packages/core`（领域模型 + 存储标准包生成器，Web/CLI 共用）、`packages/adapters`（平台目录契约适配）、`content/seed`（种子内容）。
-2. **内容**：≥100 术语、3 流程模板、20 精选提示词（质量标准见 [specs/seed-content.md](./specs/seed-content.md)）；词条允许 60 条首发、seed 幂等热补至 100（D14）。
+2. **内容**：≥100 术语、3 流程模板、精选提示词（定值单源见 [specs/seed-content.md](./specs/seed-content.md) FR-4：`DEV-0059` 起为 21；质量标准同文）；词条允许 60 条首发、seed 幂等热补至 100（D14）。
 3. **文档**：本套规划文档（proposal / specs / design / tasks）+ 用户 README + 标准包文件契约（design.md §7，独立评审对象）。
 4. **验收证据**：E2E 飞轮一条龙的自动化测试（**2026-09-23 D21 裁定不引入 Playwright**，原写法作废）——实际形态：vitest 集成 + CLI 临时目录 + 真 serve 子进程的主链 `E2E-FLOW-01`（八腿，DEV-0020 已收），加裸 CDP 浏览器走查驱动器；三条冒烟（导入→复制 / 术语搜索→TERMS.md / 开箱向导三步）的**真实用户动作**证据**已收（2026-09-24）**：驱动器 `docs/devlog-evidence/DEV-0025/three-smokes.mjs` 用真鼠标点击 + 真中文输入 + 进程外剪贴板反查跑通三条场景（**有头 FAIL=0 SKIP=0**；无头下两条系统剪贴板腿按设计记 SKIP，不记 PASS）。数字与限制单源在 dev-plan §15.4b。
 

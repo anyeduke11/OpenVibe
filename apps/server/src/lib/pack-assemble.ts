@@ -1,6 +1,7 @@
 import { ADAPTER_MAIN_PATH, coveredPlatforms, planMainFiles } from '@openvibe/adapters'
 import {
   FlowTemplatesRepo,
+  PlaybooksRepo,
   PromptsRepo,
   SIZE_WARN_THRESHOLD,
   SkillsRepo,
@@ -17,6 +18,7 @@ import {
 import {
   PACK_FILE_CHECKLIST,
   PACK_FILE_MANIFEST,
+  PACK_FILE_PLAYBOOKS,
   PACK_FILE_SKILLS,
   PACK_FILE_TERMS,
   compareCodeUnit,
@@ -55,6 +57,7 @@ export function renderPack(
     prompts: new PromptsRepo(db),
     terms: new TermsRepo(db),
     skills: new SkillsRepo(db),
+    playbooks: new PlaybooksRepo(db),
     flows: new FlowTemplatesRepo(db),
   }
   const resolved: ResolvedPack = resolvePack(definition, pack.selection, version, deps)
@@ -84,8 +87,14 @@ export function toPreviewOut(rendered: RenderedPack): PreviewOut {
   }
 }
 
-/** 某平台真正读进上下文的那批文件：自己的主文件 + 三个辅助产物（存在才算） */
-const CONTEXT_AUX = [PACK_FILE_TERMS, PACK_FILE_CHECKLIST, PACK_FILE_SKILLS] as const
+/** 某平台真正读进上下文的那批文件：自己的主文件 + 四个辅助产物（存在才算） */
+const CONTEXT_AUX = [
+  PACK_FILE_TERMS,
+  PACK_FILE_CHECKLIST,
+  PACK_FILE_SKILLS,
+  // m4 FR-7.4：漏收会让 ≈token 系统性低估，技巧越多低估越多
+  PACK_FILE_PLAYBOOKS,
+] as const
 
 export function buildSizeEstimate(
   files: { path: string; content: string }[],

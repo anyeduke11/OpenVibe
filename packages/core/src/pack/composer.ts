@@ -1,6 +1,7 @@
 import {
   ADAPTER_IDS,
   PACK_FILE_CHECKLIST,
+  PACK_FILE_PLAYBOOKS,
   PACK_FILE_SKILLS,
   PACK_FILE_TERMS,
   PACK_GENERATOR,
@@ -18,9 +19,11 @@ import {
   extractVariables,
   packSubject,
   renderFrontmatter,
+  renderPlaybooksMdTable,
   renderTermsMdTable,
   termSortKey,
   type AdapterId,
+  type ManifestPlaybook,
   type ManifestPrompt,
   type ManifestSkill,
   type ManifestTerm,
@@ -87,6 +90,13 @@ function sortedSkills(skills: readonly ManifestSkill[]): ManifestSkill[] {
   )
 }
 
+/** 可进包的技巧（FR-6.2）：published 且选中。排序键与仓储层同律（码点序 + id 兜底） */
+function publishedPlaybooks(playbooks: readonly ManifestPlaybook[] | undefined): ManifestPlaybook[] {
+  return [...(playbooks ?? [])]
+    .filter((p) => p.status === 'published')
+    .sort((a, b) => compareCodeUnit(a.scenario, b.scenario) || compareCodeUnit(a.problem, b.problem))
+}
+
 // ============ 主正文（§7.3 固定节序，空节整体省略） ============
 
 function stageBlock(stage: Stage): string {
@@ -104,6 +114,7 @@ function renderBody(resolved: ResolvedPack): string {
   const ordered = sortedPrompts(resolved.prompts)
   const rules = ordered.filter((p) => p.useAs === 'rule')
   const references = ordered.filter((p) => p.useAs === 'reference')
+  const playbooks = publishedPlaybooks(resolved.playbooks)
 
   const lines: string[] = [
     PACK_MARKER_BEGIN(resolved.name, resolved.version),
@@ -118,7 +129,12 @@ function renderBody(resolved: ResolvedPack): string {
   }
 
   section(PACK_SECTION_FLOW, resolved.flow?.stages.map(stageBlock) ?? [])
-  section(PACK_SECTION_RULES, rules.map(promptBlock))
+  // FR-7.6 交叉引用行挂在「行为规则」节内（§8.2 ① 已裁不新增第五节）：
+  // 技巧是行为指引，这是四个现有节里唯一语义通用的；空选集时 blocks 为空 ⇒ 整节省略 ⇒ 字节不变。
+  section(PACK_SECTION_RULES, [
+    ...rules.map(promptBlock),
+    ...(playbooks.length ? [`见 ${PACK_FILE_PLAYBOOKS}（${playbooks.length} 条）`] : []),
+  ])
   // terms 非空 ⇒ TERMS.md 必生成（FR-2.1），故正文恒为一行引用，无需 §7.3 的内联兜底
   section(
     PACK_SECTION_TERMS,
@@ -187,6 +203,23 @@ export function composePack(resolved: ResolvedPack, deps: ComposeDeps): Rendered
   }
   if (canonical.skills.length > 0) {
     generated.push({ path: PACK_FILE_SKILLS, content: renderSkillsMd(canonical) })
+  }
+  // FR-6.3：空集合不产文件（空文件进指纹会把「没选」和「选了空的」混成同一字节）
+  const playbooks = publishedPlaybooks(canonical.playbooks)
+  if (playbooks.length > 0) {
+    generated.push({
+      path: PACK_FILE_PLAYBOOKS,
+      content: renderPlaybooksMdTable(
+        subject,
+        playbooks.map((p) => ({
+          scenario: p.scenario,
+          problem: p.problem,
+          practice: p.practice,
+          antiPractice: p.antiPractice,
+          verified: p.verified,
+        })),
+      ),
+    })
   }
 
   const files: PlannedFileOut[] = generated

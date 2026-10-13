@@ -1,0 +1,170 @@
+# SPEC · 出参侧三条边界断言（草案：包产出复查、契约级出参断言、脏行列改「未知」）
+
+| 项 | 值 |
+|------|------|
+| 模块 | 横切能力（校验边界，非 PRD 3.2 的资产模块）——沿用「横切能力用功能名」命名法（dev-plan §0.4 第 5 条） |
+| 优先级 | **RF3-4**（PRD §10.2 表 RF3 行；分析文 §7 Phase 3 表 3-4 行判级预判 **B**）。归属 RF3 而非 RF1 的唯一理由是它不带新功能、只补防线，见 §6.1 |
+| 上游 | PRD §10.2/§10.3；分析文 §4.9（AD8「校验边界：出参侧只补三条，不做全局环绕」）· §7 Phase 3 表 3-4 行（**出口判据单源在那里**）· §2.1 差距表 ㉖ 行「此刻不炸的唯一原因是出参侧没有闸」；`docs/decisions.md` ㉖ |
+| 下游设计 | design §7.3–§7.6（manifest／bundle／lock 的 A 级契约面）、§9（分层：`apps/*` 只做交互与序列化）；`docs/specs/entry-budget.md` §3 的入口体积基线（本项与它有**直接体积冲突**，见 §3-6 与 FR-2） |
+| 关联任务 | **无**。PRD §10.4 第三组原文：「本轮**不建任务组**。RF0–RF5 各阶段开工前须先在 `docs/specs/` 补规格，任务组编号（T14 起）待规格落地后在 `tasks.md` 另起」 |
+| 版本 | **v0.9 草案（2026-10-03，纯新文件；本轮不改任何既有规格）**。按 dev-plan §0.4 第 1/3/4 条**不构成开工依据**：本文件的 FR-2 与上游分析文的建议**方向相反**（把「浏览器 DEV 包一层 safeParse」从默认动作降级为可选增强），这个改判须 owner 认，见 §8.2 待裁① |
+
+---
+
+## 1. 目标与用户价值
+
+- 现状是**单边防守**：入参 41 个 `parseOrThrow` 调用点守着 72 个端点（`apps/server/src/lib/validate.ts:24` 起统一转 422 + `fieldErrors`），出参侧运行期校验**一处都没有**。用户提交的坏数据会被拒，系统吐出的坏数据一路裸奔到浏览器，然后在某个 `.map()` 上炸成白屏——**报错的人和写错的人不是同一个模块**，这是排障成本最差的形状。
+- 更贵的是静默：`parseJsonColumn`（`packages/core/src/repos/util.ts:19-26`）对非法 JSON「回退默认值」，脏列在 Web 上长成**空数组**，用户看到的是「我的词条没了」，而真相是那一行没坏、是它的一个 JSON 列坏了。分析文 §4.9 第三行点的正是这条，本文件把它从「推测」升成「实测」（§3-7、§3-8）。
+- 但**全局环绕是双输**（分析文自己写的张力：性能与噪音）。所以本项的形状是**三条边界、一处都不多**：包产出面（写用户磁盘、跨机传输、有指纹语义）、契约面（25 个已存在却从未被调用的 `*Out` schema）、行→领域面（9 个仓储出口的 JSON 列与枚举列）。
+- 一个必须说出口的意外收获：**出参 schema 早就写好了**。`packages/shared/src/schemas/` 里 25 个 `*Out` 全部是 `z.object`，今天 100% 只当 `z.infer` 的类型源用（该目录 84 处 `z.infer`）。所以本项不是「新增一层校验」，而是**让已有的一半资产真的工作**——这也是它判级只到 B 的物理理由。
+
+## 2. 范围
+
+| In（本 spec 覆盖） | Out（明确不做，写明理由与去向） |
+|---|---|
+| E1 包产出面：服务端渲染后对 `manifestJson` 过 `PackManifestSchema`，失败显式报错 | 给 72 个端点统一挂响应校验环绕（分析文 §4.9 点名的双输；且 Fastify 侧今天零挂载点，见 §3-6） |
+| E2 契约面：25 个 `*Out` schema 逐个进**契约测试**（拿真响应 `parse`，不是拿类型比较） | 在生产构建的浏览器里加任何运行期校验（22 B 余量不允许，见 §3-6 与 FR-2.3） |
+| E3 行→领域面：9 个 `rowTo*` 的**关键列白名单**断言，失败转「未知」 | 全表全列扫描、启动期一致性体检（另案：`write-selfproof.md` 管磁盘侧，本文件不管） |
+| 「未知」的单一表达方式（一处口径，禁止各页各造） | 把「未知」做成第四套状态词汇（与 `write-selfproof.md` §6.5 同族的警告，见 §6.4） |
+| 出参断言覆盖率作为 MT4 的一个分子（FR-5，供 `docs-governance-check.md` 取数） | 改入参侧任何行为（41 处 `parseOrThrow` 的 422 语义、`fieldErrors` 形状一字不动） |
+| 把 `appMeta.read` 的容错**登记为有意例外**并写清它守的是什么 | 顺手重构 `parseJsonColumn` 的签名或调用点数量（26 处出现、8 个文件，本项不追求减少） |
+
+## 3. 现状与实测基线（采样：2026-10-03 工作树；引用提交树 `54789b8`）
+
+| # | 量 | 现测值 | 复算命令 |
+|---|---|---|---|
+| 1 | 入参侧覆盖 | `parseOrThrow`（`apps/server/src/lib/validate.ts:21`）在 routes 内 **41** 个调用点，覆盖 **10/10** 个 route 文件；端点总数 **72**（GET 28／POST 29／PATCH 7／DELETE 7／PUT 1） | `grep -rho 'parseOrThrow(' apps/server/src/routes \| wc -l`；`grep -rhoE 'app\.(get\|post\|patch\|put\|delete)\(' apps/server/src/routes \| wc -l` |
+| 2 | 出参侧运行期校验 | **0**。server 内 `.parse(`/`.safeParse(` 只有两处且都不是出参：`lib/validate.ts:22`（入参）、`lib/telemetry-flush.ts:64`（遥测外发批体，属出口不属 API 出参） | `grep -rn '\.safeParse(\|\.parse(' apps/server/src \| grep -v JSON.parse` |
+| 3 | 已存在但未被调用的出参 schema | **25** 个 `export const *Out = z.object(...)`／`.extend(...)`，分布在 9 个 schema 文件：pack 6／settings 6／prompt 2／term 2／skill 2／task 3／project 2／flow 1／ports 1 | `grep -rc '^export const [A-Za-z]*Out = ' packages/shared/src/schemas/*.ts` |
+| 4 | 同一目录的类型层用法 | `z.infer` **84** 处 ⇒ 与第 3 行合读：schema 的全部现行用途是喂类型，不是跑校验 | `grep -rn 'z\.infer' packages/shared/src/schemas \| wc -l` |
+| 5 | 「导入了但没调用」的实物凭据 | `FlywheelStatsOut` 在 `apps/server/src/routes/settings.ts:11` 是**值导入**（同行其它项写 `type`，它没写），却只在 `:149` 当返回类型标注用 | `grep -n 'FlywheelStatsOut' apps/server/src/routes/settings.ts`（两行，第二行是类型位） |
+| 6 | **浏览器里今天没有 zod** | 生产 dist 内含 `ZodError` 字样的 chunk **0**，尽管 web 有 **24** 处运行期（非 `import type`）`@openvibe/shared` 引用——`packages/shared/package.json` 标了 `"sideEffects": false`，未用到的 `z.object` 构造被摇掉了。负对照：`grep -rl ZodError apps/web/src` **0**（说明不是改名） | `grep -rl 'ZodError' apps/web/dist/assets \| wc -l`（正对照：`grep -rl 'from .zod.' packages/shared/src` = 9） |
+| 7 | 入口体积余量 | 入口 chunk **299,978 B**／预算 300,000 B／**余量 22 B**（`scripts/bundle-check.ts:14` 的 `entryMaxKb: 300`）⇒ 与第 6 行并读：**把 zod 运行期引进入口 = 门禁当场红**，且没有可谈判空间 | `pnpm bundle:check`（口径同 `entry-budget.md` §3-1） |
+| 8 | web 侧调用面 | `apiJson<T>`（`apps/web/src/api/client.ts:47-51`）末行 `return (await res.json()) as T` = 裸断言；`apiJson<` 调用点 **69** 处，全部经这一个函数 | `grep -rn 'apiJson<' apps/web/src \| wc -l` |
+| 9 | DEV 分支的既有先例 | web 源码内 `import.meta.env` **0** 命中 ⇒ FR-2 若走 DEV 分支路线是**新造模式**，不是沿用 | `grep -rn 'import\.meta\.env' apps/web/src \| wc -l` |
+| 10 | 行→领域出口 | `function rowTo*` **9** 个（packs／projects／devlog／flows／prompts／telemetry／skills／tasks／terms 各一），每个仓储一份，无集中出口 | `grep -rho 'function rowTo[A-Za-z]*(' packages/core/src/repos \| wc -l` |
+| 11 | 静默回退点 | `parseJsonColumn<T>(raw, fallback)`：**catch 掉就 return fallback**。在 repos 内出现 **26** 次／8 文件（prompts 7／terms 5／projects 3／packs 3／devlog 3／skills 2／flows 2／util 1 定义） | `grep -rn 'parseJsonColumn' packages/core/src/repos \| wc -l` |
+| 12 | 枚举列裸断言 | `rowToPrompt`（`packages/core/src/repos/prompts.ts:44-46`）连用三处 `as`：`platformMarks`／`useAs`／`status` ⇒ DB 里一个越界字符串会带着合法类型出门 | `sed -n '34,51p' packages/core/src/repos/prompts.ts` |
+| 13 | 同族但**有反向裁定**的点 | `AppMetaRepo.read`（`packages/core/src/repos/appMeta.ts:16-24`）同样「损坏回退 fallback」，且 docblock（`:4-6`）**明写这是刻意的**：「单个键损坏不该拖垮设置页与遥测闸门」 | `sed -n '1,26p' packages/core/src/repos/appMeta.ts` |
+| 14 | 无 try 的 JSON 列 | `apps/server/src/lib/refs.ts:19` `JSON.parse(row.selection) as Record<string, unknown>` 是**裸 parse**（坏了会抛，不是静默）⇒ 与第 11 行是两类病，处方不同 | `grep -n 'JSON.parse' apps/server/src/lib/refs.ts` |
+| 15 | manifest／bundle／lock 校验的**已有**分布 | 运行期 `safeParse` 已有 6 处，全在**读侧**：CLI `pack-source.ts:137`／`:219`（manifest）、`:200`（bundle）；core `inject/lock.ts:62`、`local/lock.ts:56`（lock）。测试侧 `packages/core/src/pack/pack.test.ts:411-412` 已对渲染产物 safeParse | `grep -rn 'Pack\(Manifest\|Bundle\|Lock\)Schema\.' apps packages \| grep -v test` |
+
+**与上游的两处不符（照 §10-8 口径登记）**：① 分析文 §4.9 首行「出参 0 校验」在**运行期**意义下成立，但它建议的处方隐含「需要先有 schema」——实际 25 个 schema 已存在（§3-3），本项因此从「建一层」缩成「接上线」。② 分析文 §4.9 表第二行「只在开发模式包一层 safeParse，生产零开销」在本仓**有一个未被上游发现的前提**：生产零开销要求 DCE 真的把 schema 摇掉，而 §3-6/§3-7 实测余量只有 22 B，一次没验证过的 DCE 假设不该押在唯一的预算线上。
+
+## 4. 数据与核心概念
+
+- **三条边界（E1／E2／E3）**：E1 = 包产出面（`toPreviewOut` 与其后的目录导出），E2 = API 契约面（25 个 `*Out`），E3 = 存储读出面（9 个 `rowTo*`）。判「算不算一条边界」的唯一标准：**这条数据会离开产生它的那个函数所在层吗**。E1 离开进程到磁盘，E2 离开进程到浏览器，E3 离开 DB 到进程内——三层各一条，不增设第四层。
+- **断言 vs 环绕**：断言 = 在**一个已知产出点**校验一次；环绕 = 在**每个响应出口**（72 个）校验一次。本文件全部处方都是断言。分析文 §4.9 的「不做全局环绕」是本文件的边界条款，不是可商量项。
+- **「未知」的定义**：既不是抛、也不是空，而是一个**可被界面区分渲染的第三态**——值缺失、但原因已知。它必须满足：① 能被序列化成 JSON（不引入 `undefined` 键的歧义）；② 有配套的诊断文本（否则与静默空无差别）；③ 全仓只有一种编码形态（§6.4）。
+- **契约测试（本文件的 E2 主形态）**：拿真响应对 `*Out.parse()` 的测试。与类型断言的区别是可判真假——`expectTypeOf` 只证明「写代码的人怎么想」，`Schema.parse(response)` 证明「运行时那个对象真的长这样」。
+- **不是本概念的东西**：本文件不管磁盘侧一致性（`write-selfproof.md` 管），不管文档一致性（`docs-governance-check.md` 管），不管 adapter 产物形状（`adapter-fixtures.md` 管）。四者的共同点是都属「自证」，但**各自的失败形状、失败面、门禁都不同**，合并成一个「校验层」是本文档明确拒绝的方向。
+
+## 5. 功能需求
+
+### FR-1 · E1 包产出面：服务端复查自己拼出来的 manifest
+
+1. 服务端渲染完一个包（`toPreviewOut`，`apps/server/src/lib/pack-assemble.ts:68-85`）后，对 `rendered.manifestJson` 过 `PackManifestSchema.safeParse` 一次，**失败即显式失败**（走 `AppError`，HTTP 5xx），不得返回一个「看起来成功」的预览。
+2. 目录导出路径（`lib/pack-export.ts`）与预置包组装（`lib/default-pack.ts:95` 已在 `JSON.parse` 种子）都各过一次，且**复用同一个函数**——本项的第一戒律是「校验点只有一处」，两处就等 §6.2 的漂移。
+3. 这条断言**只在服务端**，CLI 侧不动（§3-15 显示读侧校验已在 CLI 存在，`pack-source.ts:137/200/219`）。补齐后的形状是：**服务端管「我写出去的是不是合法契约」，CLI 管「我读进来的是不是合法契约」**，两句都不越界。
+4. 契约零变化：本 FR 不新增、不改名、不动值域，触的只是 design §7 那份 A 级契约的**读法**（原来只在消费侧验，现在生产侧也验）。**若实现时发现有响应过不了 `PackManifestSchema`，那是缺陷不是契约要放宽**——停，报，不就地改 schema。
+
+### FR-2 · E2 契约面：25 个 `*Out` 上线，但上线的是测试
+
+1. **主案（必做）**：为 25 个 `*Out` 各写一条契约测试，断言真实响应的 `parse` 成功。落点在 `apps/server/test/`（与现有 `packs.api.test.ts:207` 已在测试里 `PackBundleSchema.parse(...)` 同一形制，**照抄这个先例而不是新造框架**）。逐端点归属：每条测试登记它守的是哪个端点，72 个端点里 GET 侧 28 个是主覆盖面（出参才有意义）。
+2. 覆盖面先补**空值与哨兵**这两类最容易漂的形状：`optional` 字段缺席、`nullable` 字段为 `null`、空数组。三类在 §3-4 的 `z.infer` 用法里完全不被检查。
+3. **浏览器侧运行期校验 = 可选增强，且默认关**。要做，必须同时满足两条凭据：① `pnpm bundle:check` 绿；② 生产 dist 内 `ZodError` 命中数仍为 **0**（§3-6 那条命令，FR-2 的独有验收）。任一不满足 ⇒ 该增强**不得进主分支**，退回 2-1 的测试形态。这条改判的理由是 §3-7 的 22 B：入口预算是全仓最紧的闸，不该为一层调试期日志承担回归风险。
+4. `apiJson<T>`（`client.ts:47-51`）的裸 `as T` **保持原样**，除非要动它不可（3 的增强若落地也走**动态 `import()`** + DEV 分支，静态 import 会把 zod 钉进入口图）。
+
+### FR-3 · E3 行→领域面：关键列断言，失败转「未知」
+
+1. **白名单，不整机**。逐仓储列出「坏了会让界面说谎」的列：`prompts` 的 `variables`／`tags`／`platform_marks`／`use_as`／`status`，`terms` 的 5 个 JSON 列，`standard_packs` 的 `selection`，`flow_templates` 的 `stages`，`skills`／`projects`／`dev_log_entries` 各自的 JSON 列。**`content`／`title`／时间戳不在白名单**（它们是 TEXT 直读，不经 parse，加断言只加噪音）。
+2. 断言的形态：JSON 列验「是不是声明的容器形状」（数组／对象 + 元素是 string），枚举列验「值域内」（复用 `shared` 里已有的 `TASK_STATUS`／`PROJECT_STATUS` 等常量作单一值域源，**不新写一份字面量数组**）。
+3. 失败语义 = 「未知」，不是「空」。具体编码见 FR-4。
+4. 一处集中：`repos/util.ts` 加一个 `assertJsonColumn`／等价小工具，26 处调用点逐步收敛到它——**但本 FR 不要求一次改完**（`prompts.ts` 的 7 处先做，其余随各模块改动顺路带）。这是刻意的：为了「统一」而一次性碰 8 个仓储文件，回归面比收益大。
+5. `refs.ts:19` 的裸 `JSON.parse`（§3-14）**并入本 FR**，处方不同：它今天是抛异常，改成同样的「未知」+ 诊断，别让它长成第五种失败形态。
+
+### FR-4 · 「未知」只有一个形状
+
+1. 建议形状：字段值仍为 `null`（或该列原有的容器零值），**另加**一个诊断通道（读侧 `warnings[]` 或等价列表），文案进 i18n（措辞与 §6.3 的「假零禁止」一致：不得显示成「0 条」「无」而不带原因）。
+2. 反例（三条都不许）：把整行丢弃（用户以为删了）／抛出去变 500（一处脏数据不该打死列表页）／静默回退（今天的形状，本项要改掉的那一半）。
+3. **不新增对外状态词**：`未知` 是展示层词汇，不是新的领域枚举。若实现发现需要往 `*Out` schema 里加键（比如 `columnErrors`），**判级从 B 升 A**——因为它改的是跨进程契约面。这条写死是为了防止「加个诊断字段」变成第二次 `schemaVersion` 事故。
+
+### FR-5 · 覆盖率可复算（供 MT4 取数）
+
+1. 分子：被至少一条契约测试 `parse` 过的 `*Out` schema 数；分母：**25**（§3-3，采样时点）。基线 = **0/25**（本项开工前的真值）。
+2. 复算命令必须与 §3-3/§3-1 同族（一条 `grep` 能跑完），并登记进 `docs-governance-check.md` 的 MT4 覆盖比那一节，**不另立第二个口径**。
+
+### FR-6 · 现有防线一条不放松
+
+1. 入参 41 处 `parseOrThrow` 的 422 + `fieldErrors` 行为一字不动；`appMeta.read` 的容错保留（FR-7）；golden、`bundle:check`、`seed:check`、三平台 CI 全不动（PRD §10.5）。
+2. 新增断言**不得**使既有测试变红。若变红，先判「断言抓到真缺陷」还是「断言写错」，禁止用放宽 schema 的方式收尾。
+
+### FR-7 · `appMeta.read` 登记为有意例外
+
+1. 保留「损坏回退 fallback」（§3-13），并写明理由：该 KV 承载 `telemetryEnabled`（`appMeta.ts:8-11` 的三键之一），损坏时**回落默认 = 遥测关**是隐私方向上的安全侧，「显式未知」在这里反而更差。
+2. 这条例外的适用面**只到 `app_meta`**。FR-3 的白名单机制不得反过来把 `appMeta` 卷进去，也不得援引它作为「别处也可以静默」的先例——把这句写进注释，防止一年后有人拿它当挡箭牌。
+
+## 6. 边界与异常
+
+### 6.1 为什么排 RF3 而不是 RF1
+本项零新功能、零新数据面，用户不会在任何界面看到它「出现了」。它的收益全在**下一次漂移发生时**——所以按分析文 §7 的阶段划分（Phase 3 = 闭环与度量），而不是按实现难度。这条排序有代价：见 §8.2 待裁②（是否值得提前到 RF1 尾巴）。
+
+### 6.2 「两处校验」正是本项要治的病
+FR-1 若在服务端两处（预览、导出）各写一次 manifest 校验，就变成了 §4.9 批评的那种双源。所以 FR-1.2 要求复用同一函数，且**新端点接入时以「有没有过那个函数」为验收项**（契约测试里断一次，不靠人记）。
+
+### 6.3 「假零」是这条边界的失败模式原型
+`PackPreviewPane.test.tsx` 的 `05` 号用例已经把「`sizeEstimate` 缺席 ⇒ 整块不渲染，而不是印「≈0 tok」」当成验收（I-1 通则）。FR-3/FR-4 是同一原则换到数据层：**空是一种断言，未知才是诚实**。写 FR-4 时直接引这条既有裁定，不另立论据。
+
+### 6.4 第四套状态词汇的风险
+仓里已经有三套注入状态词（`planner.ts:14` 的 `INJECT_STATUSES`、`apps/cli/src/output.ts:13` 的 `SYNC_STATES`、`retirement.ts:40-60` 的四态），`entry-budget.md` FR-7 正在收敛前两套，`service-layer.md` §8.2 待裁②在议第三套。本项再加一个「未知」，必须**明确它不进那三套**：它是列级诊断标签，不参与状态机迁移、不参与指纹、不参与 lock。这句话不写，将来一定会被误接进状态枚举。
+
+### 6.5 脏数据怎么造（测试的前置难点）
+`rowTo*` 的输入是 DB 行，而仓储写入路径不会产生非法 JSON ⇒ 测试必须**绕过仓储直接写 SQL**。这是可行的（`packages/core/src/test-support/` 已有 DB 夹具设施），但要点明：本项的测试是「构造一个现实中不该出现但会出现的行」，属于**防御性用例**，不得反过来为了让测试通过而给仓储加输入清洗（那是另一件事，判级也不同）。
+
+### 6.6 性能不是借口，但要设护栏
+25 个 schema 里最大的是 `PreviewOut`（含 `files[]` 全文与 `sizeEstimate`），对每次预览响应做整机 `parse` 是可感知的开销。这正是 FR-2 选测试而非运行期环绕的技术原因，不是偷懒。若将来确需运行期校验，护栏是：只 parse **元数据骨架**（`files[].path`／`sha256`／`sizeEstimate`），不 parse `content`。
+
+### 6.7 与 `write-selfproof.md` 的分工线
+两个文件都会碰到「不一致要显式」，但面不同：**本文件的边界在进程内与 HTTP 上（数据是不是我声明的形状）**，`write-selfproof.md` 的边界在**磁盘上**（文件是不是我写出去的那份）。交点是 manifest：manifest 的**形状**合法性归本 FR-1，manifest 里记的哈希与磁盘**是否一致**归 `write-selfproof.md` FR-1。这条线要在两份文件里都写，只写一边等于没写。
+
+## 7. 验收标准（pass／fail 二值）
+
+| ID | 判据 | pass 条件 |
+|---|---|---|
+| `SRV-OUTV-01` | E1 生效 | 人为让服务端拼出非法 manifest（夹具注入）⇒ 预览请求 5xx + 可读错误，**不返回 200** |
+| `SRV-OUTV-02` | E1 单点 | 预览与目录导出两条路径共用同一个校验函数（源码层一条 grep：校验调用点数 = 1，调用它的位置 = 2） |
+| `IT-OUTV-03` | E2 契约测试 | 25/25 个 `*Out` 各有一条真响应 `parse` 通过的测试；空值／哨兵／空数组三类形状各有覆盖 |
+| `UT-OUTV-04` | E3 白名单断言 | 对 `variables = 'not-json'`、`status = 'weird'` 的行：`rowToPrompt` 产出「未知」诊断，且 `warnings`/诊断通道含列名 |
+| `UT-OUTV-05` | 不静默也不打死 | 同一条脏行：列表页响应 200，脏行带诊断，其余行正常（不得整行丢弃） |
+| `SRV-OUTV-06` | refs 归一 | `lib/refs.ts` 的裸 parse 已并入 FR-3 形态（该文件内 `JSON.parse` 命中数 = 0 或被同一工具包裹） |
+| `UT-OUTV-07` | 值域同源 | 枚举断言用的值域来自 `shared` 常量（源码 grep 不得出现第二份 `['ready','draft',...]` 字面量） |
+| `BUILD-OUTV-01` | 体积不变量 | `pnpm bundle:check` 绿 **且** `grep -rl 'ZodError' apps/web/dist/assets` 命中 0（FR-2.3 的双凭据） |
+| `GOLD-OUTV-01` | 契约零变化 | `tests/golden/` 零 diff（FR-1.4 的凭据：加断言不许动产物字节） |
+| `REG-OUTV-01` | 覆盖率入账 | MT4 覆盖比记录 `0/25 → N/25`，且分子可由一条 grep 复算 |
+
+### 7.7 未验证面（负向登记，不得读成已通过）
+
+- **① 真实脏数据频率**：全仓没有任何一列的损坏率数据，「脏行会变空」目前是**机制推导**（§3-11 代码事实），不是现网观测。上线后若一条也没触发，不能反推「不需要这条」。
+- **② 生产 DCE 行为**：FR-2.3 的双凭据能证明「加进去没涨」，但**不能证明**「不加就一定涨」——22 B 余量下的最坏情况未被实测，只有 §3-6/§3-7 两个静态事实。
+- **③ 性能数字**：§6.6 说 `PreviewOut` 整机 parse 可感知，未测。判据是「不做环绕」这个决定本身不需要性能数据支撑（分析文 §4.9 已作结论），但「元数据骨架 parse」这条退路要真用得先测。
+- **④ CLI 侧未覆盖**：`apps/cli` 直读 DB 吗？不读（`local-event-ledger.md` §3 已实测 CLI 从不打开 DB 文件），所以 CLI 的出参面只有它自己的 `verifyPack`。Web/server 之外的第三个消费方（未来的 `openvibe` 包导出物）不在本文件验。
+- **⑤ 8 个仓储只先做 1 个**：FR-3.4 明写分阶段，故首轮验收后仍有 7 个仓储的 JSON 列保持静默回退。**这是登记，不是通过。**
+
+## 8. 依赖
+
+| 方向 | 项 |
+|---|---|
+| 前置 | `entry-budget.md`（FR-2.3 的双凭据依赖它的体积基线与 `bundle:check` 口径）；分析文 §10-8 重采样纪律（§3 全部数字按它登记） |
+| 并行 | `service-layer.md`（E1/E3 的落点在 `toPreviewOut` 与 `rowTo*`，两者都在它的搬迁范围内：**先搬后加断言**，否则同一文件改两遍） |
+| 后置 | `docs-governance-check.md` FR-7（MT4 覆盖比取数）；`context-density.md`（它的分母口径若要断言，依赖本文件的 `*Out` 契约测试先站住） |
+| 不依赖 | `local-event-ledger.md`、`growth-path.md`、`adapter-fixtures.md`（三者的数据面与本项正交） |
+
+### 8.2 待裁清单（不代 owner 裁）
+
+| # | 待裁 | 我的倾向与理由 |
+|---|---|---|
+| ① | **FR-2 的改判是否认**：分析文 §4.9 说「浏览器 DEV 包一层 safeParse」，本文件把它降为可选增强 + 默认走契约测试。认不认？ | **认改判**：69 个调用点共用一个 `apiJson<T>`，测试形态覆盖同样完整，却不押 22 B 余量在一条未验证的 DCE 假设上。但这是**否证上游建议**，须签字，不能我自己判 |
+| ② | 排 RF3 还是提前到 RF1 尾巴（`service-layer.md` 搬迁时顺手做 E1/E3，省一次改同一批文件） | 倾向**提前 E3、留 E2**：E3 与仓储搬迁同文件，同做省一次回归；E2 是纯新增测试，任何时点都行 |
+| ③ | **FR-4 加诊断字段是否触 A**：本文件按「不新增键 ⇒ B」写（沿用分析文 §4.9 判级），但「往 `*Out` 加一个键」在 PRD §10.2 的判级表里可能算契约变更 | 倾向**先按不加键设计**（诊断走已有 `warnings[]` 通道，`PreviewOut` 已有该字段），把这条消解掉；若必须加键，**按 A 准备** |
+| ④ | 「未知」的展示文案与位置（列级诊断在 Web 上长什么样：小三角？行内脚注？设置页汇总？） | 不做新交互语言（与 `growth-path.md` FR-4 同一条硬约束）。建议复用既有 warning 展示位，具体待设计侧定 |
+| ⑤ | FR-3.4 的分阶段边界：**做到第几个仓储算本项收口**（只做 prompts？还是 8 个全做？） | 倾向**只做 prompts + packs 两个**即收口：一个 JSON 列最多（7 处）、一个含 `selection`（E3 里后果最重），其余登记为后续。但「收口线画在哪」是 owner 的进度判断，不是我的 |

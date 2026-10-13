@@ -1,85 +1,181 @@
-import { useState, Suspense } from 'react'
+import { Suspense, useCallback, useEffect, useState, type ComponentType } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
-import { useProjectList } from '../hooks/useProjects'
+import { useNavCounts, type NavCounts } from '../hooks/useNavCounts'
 import { useTheme } from '../hooks/useTheme'
-import {
-  useFlywheelStats,
-  useOnboardingToggle,
-  useSettings,
-  useTelemetrySettings,
-  useTelemetryToggle,
-} from '../hooks/useSettings'
 import { zh } from '../i18n/zh'
-import { FlywheelCard } from './onboarding/FlywheelCard'
-import { OnboardingBar } from './onboarding/OnboardingBar'
-import { TelemetryAskCard } from './onboarding/TelemetryAskCard'
-import { toast } from './ui/Toaster'
-
-// 书脊侧栏七项（dev-plan §5.1；视觉形态见 DESIGN.md「书脊侧栏」）：
-// 单字汉字为图标，竖排标签随侧栏，激活态松绿洗底 + 朱砂书签点
-const NAV = [
-  { to: '/library', label: zh.nav.library, hz: '库' },
-  { to: '/terms', label: zh.nav.terms, hz: '词' },
-  { to: '/skills', label: zh.nav.skills, hz: '技' },
-  { to: '/flows', label: zh.nav.flows, hz: '流' },
-  { to: '/projects', label: zh.nav.projects, hz: '项' },
-  { to: '/packs', label: zh.nav.packs, hz: '包' },
-  { to: '/settings', label: zh.nav.settings, hz: '设' },
-]
 
 /**
- * 顶栏三件套（dev-plan §5.1「OnboardingBar + FlywheelCard 常驻顶栏」）：
- * 向导条按 FR-2.1 双条件出现（无项目 && 未完成），飞轮卡常驻，
- * 询问卡只在「已见过首次注入且 askState=unset」时出现（FR-4.2 / D13）。
+ * 应用外壳（DESIGN.md「暖纸 · 可读性工作台 V2」Layout）。
+ *
+ * V1 的书脊竖排侧栏（76px、单字导航、衬线竖排字标）已随 2026-10-01 换肤裁定退场，
+ * 本文件是它的替换面：顶栏 58px + 侧栏 216px 四组八项。
+ *
+ * 侧栏「工作台」这一项指新增的 `/` 全局首页（lazy chunk），与项目内的
+ * `ProjectDashboard`（「项目工作台」，`/projects/:id` 内的健康摘要 + 注入状态只读桥接）
+ * 不是同一个东西——DESIGN.md Layout 专门点名了这处同名异物，两者不得合并。
  */
-function TopBand() {
-  const qc = useQueryClient()
-  const settings = useSettings()
-  const projects = useProjectList('all')
-  const stats = useFlywheelStats()
-  const telemetry = useTelemetrySettings()
-  const markDone = useOnboardingToggle()
-  const toggleTelemetry = useTelemetryToggle()
-  const [step, setStep] = useState(1)
 
-  const firstRun =
-    settings.data !== undefined &&
-    projects.data !== undefined &&
-    !settings.data.onboardingDone &&
-    projects.data.total === 0
+/** 四组八项；`count` 指向 NavCounts 的键，null 表示该项没有 API total 口径 */
+const NAV_GROUPS: ReadonlyArray<{
+  key: string
+  label: string
+  items: ReadonlyArray<{ to: string; label: string; count: keyof NavCounts | null }>
+}> = [
+  {
+    key: 'overview',
+    label: zh.nav.group.overview,
+    items: [
+      { to: '/', label: zh.nav.workbench, count: null },
+      // DESIGN.md 的侧栏八项里没有这一项（那版写在成长阶段机落地之前）。
+      // 暂挂在「概览」组：F0–F3 是关于用户成熟度的概览，语义上与工作台同级。
+      // 这是一处对 DESIGN.md Layout 的偏离，需要 owner 确认是入册还是并回工作台。
+      { to: '/growth', label: zh.nav.growth, count: null },
+    ],
+  },
+  {
+    key: 'assets',
+    label: zh.nav.group.assets,
+    items: [
+      { to: '/library', label: zh.nav.library, count: 'prompts' },
+      { to: '/terms', label: zh.nav.terms, count: 'terms' },
+      { to: '/playbooks', label: zh.nav.playbooks, count: 'playbooks' },
+      { to: '/skills', label: zh.nav.skills, count: 'skills' },
+      { to: '/flows', label: zh.nav.flows, count: 'flows' },
+    ],
+  },
+  {
+    key: 'engineering',
+    label: zh.nav.group.engineering,
+    items: [
+      { to: '/projects', label: zh.nav.projects, count: 'projects' },
+      { to: '/packs', label: zh.nav.packs, count: 'packs' },
+    ],
+  },
+  {
+    key: 'system',
+    label: zh.nav.group.system,
+    items: [{ to: '/settings', label: zh.nav.settings, count: null }],
+  },
+]
 
-  const finish = () =>
-    markDone.mutate(true, {
-      onSuccess: () => {
-        setStep(1)
-        void qc.invalidateQueries({ queryKey: ['stats'] })
-      },
-    })
-
-  const choose = (enabled: boolean) =>
-    toggleTelemetry.mutate(enabled, {
-      onSuccess: () =>
-        toast(
-          zh.telemetryAsk.chose(enabled ? zh.settings.telemetry.on : zh.settings.telemetry.off),
-        ),
-    })
-
+/** 品牌位：accent tile + on-accent 字（V2 无衬线字标、无印章，渐变仅此一处豁免） */
+function Brand() {
   return (
-    <>
-      {firstRun && (
-        <OnboardingBar step={step} onStepChange={setStep} onSkip={finish} onDone={finish} />
-      )}
-      {stats.data !== undefined && <FlywheelCard {...stats.data} />}
-      {/* 首次注入之后才询问（FR-4.2）；injections 变化要等 stats 重取，故挂载条件在此而非卡内 */}
-      {telemetry.data !== undefined && (stats.data?.injections ?? 0) > 0 && (
-        <TelemetryAskCard askState={telemetry.data.askState} onChoose={choose} />
-      )}
-    </>
+    <div className="flex items-center gap-2.5">
+      <div
+        aria-hidden
+        className="grid size-[30px] shrink-0 place-items-center rounded-lg bg-gradient-to-br from-accent to-accent-deep text-[15px] font-bold text-on-accent shadow-1"
+      >
+        灵
+      </div>
+      <div className="leading-tight">
+        <div className="text-[15px] font-semibold text-ink">{zh.appName}</div>
+        <div className="text-[11.5px] text-ink-muted">vibe coding 标准化工作台</div>
+      </div>
+    </div>
   )
 }
 
-/** 分包后页面 chunk 在路上时的占位（Suspense 只包住 Outlet，书脊与顶栏不跟着闪） */
+/**
+ * 主题切换：全站唯一入口（DESIGN.md Layout：右上角 暖纸↔暖夜）。
+ * 展示名是「暖纸/暖夜」，落库的属性值仍是 `dark`（改值会让已存 dark 的用户无声回亮）。
+ */
+function ThemeSegmented() {
+  const { theme, setTheme } = useThemeSet()
+  return (
+    <div role="group" aria-label={zh.common.theme.aria} className={segCls}>
+      <button
+        type="button"
+        aria-pressed={theme === 'light'}
+        onClick={() => setTheme('light')}
+        className={segBtnCls(theme === 'light')}
+      >
+        暖纸
+      </button>
+      <button
+        type="button"
+        aria-pressed={theme === 'dark'}
+        onClick={() => setTheme('dark')}
+        className={segBtnCls(theme === 'dark')}
+      >
+        暖夜
+      </button>
+    </div>
+  )
+}
+
+const segCls =
+  'inline-flex items-center gap-0.5 rounded-sm border border-line bg-panel-2 p-0.5'
+const segBtnCls = (on: boolean) =>
+  `rounded-sm px-2 py-1 text-xs transition-colors ${
+    on ? 'bg-panel text-ink shadow-1' : 'text-ink-muted hover:text-ink'
+  }`
+
+// useTheme 只暴露 toggle；分段控件需要按值设置，这一层做一次极薄适配
+function useThemeSet(): { theme: 'light' | 'dark'; setTheme: (t: 'light' | 'dark') => void } {
+  const { theme, toggle } = useTheme()
+  return { theme, setTheme: (t) => (t === theme ? undefined : toggle()) }
+}
+
+function SideNav() {
+  const counts = useNavCounts()
+  return (
+    <aside
+      aria-label={zh.common.nav.aria}
+      className="flex w-[216px] shrink-0 flex-col overflow-y-auto border-r border-line bg-canvas py-3 max-md:w-full max-md:flex-row max-md:gap-2 max-md:overflow-x-auto max-md:border-b max-md:border-r-0 max-md:py-2"
+    >
+      <nav className="flex flex-col gap-3.5 max-md:flex-row max-md:gap-2" aria-label={zh.common.nav.aria}>
+        {NAV_GROUPS.map((g) => (
+          <div key={g.key} className="flex flex-col max-md:flex-row">
+            <div className="px-2.5 pb-1 text-[11.5px] text-ink-faint max-md:hidden">{g.label}</div>
+            <ul className="flex flex-col gap-0.5 max-md:flex-row max-md:gap-1">
+              {g.items.map((it) => {
+                const n = it.count ? counts.data?.[it.count] : undefined
+                return (
+                  <li key={it.to}>
+                    <NavLink
+                      to={it.to}
+                      end={it.to === '/'}
+                      className={({ isActive }) =>
+                        `relative flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors max-md:whitespace-nowrap ${
+                          isActive
+                            ? 'bg-accent-soft font-semibold text-accent-deep'
+                            : 'text-ink-body hover:bg-panel-2 hover:text-ink'
+                        }`
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          {isActive && (
+                            <span
+                              aria-hidden
+                              className="absolute -left-2.5 top-1.5 bottom-1.5 w-0.5 rounded-r bg-accent max-md:static max-md:hidden"
+                            />
+                          )}
+                          <span className="grow truncate">{it.label}</span>
+                          {n !== undefined && (
+                            <span className="num text-[11.5px] text-ink-faint">{n}</span>
+                          )}
+                        </>
+                      )}
+                    </NavLink>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
+      </nav>
+      <div className="mt-auto border-t border-line-hair px-2.5 pt-2.5 text-[11.5px] leading-relaxed text-ink-faint max-md:hidden">
+        <div className="mono break-all">{zh.nav.footerPath}</div>
+        <div className="mono">{zh.nav.footerHost}</div>
+        <div>SQLite · 本地优先</div>
+      </div>
+    </aside>
+  )
+}
+
+/** 页面 chunk 在路上时的占位（Suspense 只包 Outlet，顶栏与侧栏不跟着闪） */
 function PageLoading() {
   return (
     <div
@@ -92,78 +188,78 @@ function PageLoading() {
   )
 }
 
-/** 书脊主题切换：昼/夜单字按钮（亮「温纸白」/ 暗「夜账本」，DESIGN.md Colors） */
-function ThemeToggle() {
-  const { theme, toggle } = useTheme()
-  const dark = theme === 'dark'
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label={zh.common.theme.aria}
-      title={dark ? zh.common.theme.light : zh.common.theme.dark}
-      className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-panel text-sm text-ink-muted transition-colors hover:border-line-strong hover:text-ink-body"
-    >
-      {dark ? '昼' : '夜'}
-    </button>
+/**
+ * ⌘K / Ctrl K 唤起命令面板。面板本体**懒加载**：入口只留这一个监听器，
+ * 面板（含 Dialog 与三个搜索请求）第一次唤起时才进网络。
+ *
+ * 监听纪律：输入态（INPUT/TEXTAREA/SELECT/contentEditable）内不劫持单键；
+ * 带 meta/ctrl/alt 的组合键放行。CodeMirror 落在 contenteditable 内，
+ * 因此编辑器里按 ⌘K 同样不被抢。
+ */
+function useCommandPalette() {
+  const [Palette, setPalette] = useState<ComponentType<{ onClose: () => void }> | null>(null)
+
+  const load = useCallback(
+    (then: (P: ComponentType<{ onClose: () => void }>) => void) => {
+      void import('./CommandPalette').then((m) => then(m.CommandPalette))
+    },
+    [],
   )
+
+  const open = useCallback(() => {
+    load((P) => setPalette(() => P))
+  }, [load])
+  const close = useCallback(() => setPalette(null), [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'k' || !(e.metaKey || e.ctrlKey)) return
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable))
+        return
+      e.preventDefault()
+      // 已载入过则直接开关，不重复 import
+      if (Palette) close()
+      else open()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [Palette, close, open])
+
+  return { Palette, open, close }
 }
 
 export function AppShell() {
+  const { Palette, open, close } = useCommandPalette()
   return (
-    <div className="flex h-full max-md:flex-col">
-      {/* 书脊（DESIGN.md Layout）：竖排衬线字标 + 单字导航；<md 退化为横向顶栏 */}
-      <aside className="flex w-[76px] shrink-0 flex-col items-center gap-4 border-r border-line bg-canvas py-4 max-md:w-full max-md:flex-row max-md:gap-3 max-md:overflow-x-auto max-md:border-b max-md:border-r-0 max-md:py-2 max-md:pl-3">
-        <div className="flex flex-col items-center gap-1.5 max-md:flex-row max-md:gap-2">
-          <div
-            className="wordmark v-rl border-b border-line-strong pb-2 text-2xl tracking-[0.3em] text-ink max-md:border-b-0 max-md:border-r max-md:pb-0 max-md:pr-2 max-md:tracking-[0.12em] max-md:[writing-mode:horizontal-tb]"
-            aria-label={zh.appName}
-          >
-            灵典
-          </div>
-          <div className="text-[9px] tracking-widest text-ink-faint max-md:hidden">OPENVIBE</div>
-        </div>
-        <nav className="flex flex-1 flex-col items-center gap-0.5 max-md:flex-row" aria-label="主导航">
-          {NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `relative flex w-14 flex-col items-center rounded-md py-1.5 transition-colors hover:bg-panel-2 max-md:w-auto max-md:flex-row max-md:gap-1.5 max-md:px-2.5 ${
-                  isActive ? 'bg-accent-soft text-accent' : 'text-ink-muted hover:text-ink-body'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <span
-                      aria-hidden
-                      className="absolute left-1 top-1/2 h-1 w-1 -translate-y-1/2 rounded-[1px] bg-accent max-md:static max-md:-translate-y-0"
-                    />
-                  )}
-                  <span className="text-[17px] font-semibold leading-tight">{item.hz}</span>
-                  <span className="text-[10px] leading-tight max-md:text-[11px]">{item.label}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="flex flex-col items-center gap-2 max-md:flex-row">
-          <ThemeToggle />
-          <div className="v-rl text-[9px] leading-relaxed tracking-wider text-ink-faint max-md:[writing-mode:horizontal-tb]">
-            数据存 ~/.openvibe/ · 仅监听 127.0.0.1
-          </div>
-        </div>
-      </aside>
-      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <TopBand />
-        <div className="min-h-0 flex-1 overflow-hidden">
+    <div className="flex h-full flex-col">
+      <header className="sticky top-0 z-40 flex h-[58px] shrink-0 items-center gap-3 border-b border-line bg-panel px-4">
+        <Brand />
+        <span className="mono ml-1 rounded-sm border border-line-hair bg-panel-2 px-2 py-0.5 text-[11.5px] text-ink-muted">
+          v0.2.0
+        </span>
+        <div className="grow" />
+        <div className="mono hidden text-xs text-ink-muted sm:block">{zh.nav.footerHost}</div>
+        <button
+          type="button"
+          onClick={open}
+          aria-label={zh.palette.title}
+          title={zh.palette.hint}
+          className="mono rounded-sm border border-line bg-panel px-2 py-1 text-[11.5px] text-ink-muted transition-colors hover:border-line-strong hover:text-ink-body"
+        >
+          ⌘K
+        </button>
+        <ThemeSegmented />
+      </header>
+      <div className="flex min-h-0 flex-1 max-md:flex-col">
+        <SideNav />
+        <main className="min-w-0 flex-1 overflow-y-auto">
           <Suspense fallback={<PageLoading />}>
             <Outlet />
           </Suspense>
-        </div>
-      </main>
+        </main>
+      </div>
+      {Palette && <Palette onClose={close} />}
     </div>
   )
 }

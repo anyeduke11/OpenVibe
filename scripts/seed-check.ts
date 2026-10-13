@@ -12,10 +12,14 @@ import { fileURLToPath } from 'node:url'
 import {
   CONTROLLED_TAG_VOCAB,
   FlowTemplateCreateInput,
+  PLAYBOOKS_MD_DIVIDER,
+  PLAYBOOKS_MD_HEADER,
+  PlaybookCreateInput,
   PromptCreateInput,
   TermCreateInput,
   TERMS_MD_DIVIDER,
   TERMS_MD_HEADER,
+  renderPlaybooksMdTable,
   renderTermsMdTable,
   utf8ByteLength,
 } from '@openvibe/shared'
@@ -24,6 +28,8 @@ const THRESHOLDS = {
   termsMin: 100,
   templatesExact: 7,
   promptsExact: 21,
+  /** m4 FR-9.2：预置技巧门槛（裁定 ③） */
+  playbooksMin: 10,
   /** seed-content §3.4 构成配额 */
   ruleMin: 6,
   platformMarkMin: 4,
@@ -65,6 +71,20 @@ const FLOW_TEMPLATE_STAGES: Record<string, readonly string[]> = {
 }
 
 const TERM_ALLOWED_KEYS = ['zh', 'en', 'aliases', 'definition', 'example', 'tags'] as const
+/** 种子文件里不写 id/source/status/related*：由导入器写入（FR-4 的 verified/evidence 是内容的一部分，故保留） */
+const PLAYBOOK_ALLOWED_KEYS = [
+  'scenario',
+  'problem',
+  'practice',
+  'antiPractice',
+  'tags',
+  'verified',
+  'evidence',
+] as const
+/** m4 FR-4.3：反例缺失不毁条目，但过半数条目必须有反例——技巧的价值在「不这么做的后果」 */
+const PLAYBOOK_ANTI_MIN_RATIO = 0.5
+/** 正确做法去空白后的最低字数；低于此值基本是「正确的废话」 */
+const PLAYBOOK_PRACTICE_MIN_CHARS = 60
 /** seed-content §7.3 的阶段数口径 */
 const EXPECTED_STAGE_COUNTS: Record<string, number> = {
   个人轻量流: 3,
@@ -237,6 +257,120 @@ function checkTerms(): void {
   notes.push(`TERMS.md 渲染 ${rows.length} 行，表头/列数一致`)
 }
 
+/** m4 FR-9.2：结构校验 + 复合自然键唯一 + PlaybookCreateInput 复用 + 渲染完整性 */
+function checkPlaybooks(): void {
+  const file = 'playbooks.json'
+  const items = itemsOf(file)
+  if (items.length < THRESHOLDS.playbooksMin) {
+    fail(file, '数量', `${items.length} 条 < 门槛 ${THRESHOLDS.playbooksMin} 条`)
+  }
+
+  const naturalKeys = new Set<string>()
+  const tagsVocab = new Set<string>(CONTROLLED_TAG_VOCAB)
+  let withAnti = 0
+
+  items.forEach((raw, index) => {
+    const where = `#${index + 1}`
+    const item = asRecord(raw)
+    if (!item) {
+      fail(file, where, '条目不是对象')
+      return
+    }
+    for (const key of Object.keys(item)) {
+      if (!(PLAYBOOK_ALLOWED_KEYS as readonly string[]).includes(key)) {
+        fail(file, where, `种子文件不允许字段 ${key}（id/source/status/related* 由导入器写入）`)
+      }
+    }
+    const scenario = typeof item['scenario'] === 'string' ? item['scenario'] : ''
+    const problem = typeof item['problem'] === 'string' ? item['problem'] : ''
+    const practice = typeof item['practice'] === 'string' ? item['practice'] : ''
+    const antiPractice = typeof item['antiPractice'] === 'string' ? item['antiPractice'] : ''
+    const tags = stringArray(item['tags']) ?? []
+    const verified = item['verified'] === true
+    const evidence = Array.isArray(item['evidence']) ? item['evidence'] : []
+
+    const parsed = PlaybookCreateInput.safeParse({
+      scenario,
+      problem,
+      practice,
+      antiPractice,
+      tags,
+      verified,
+      evidence,
+      source: 'openvibe-seed',
+      status: 'published',
+    })
+    if (!parsed.success) {
+      fail(file, `${where} ${scenario}`, parsed.error.issues[0]?.message ?? 'schema 不通过')
+    }
+    if (noSpace(practice).length < PLAYBOOK_PRACTICE_MIN_CHARS) {
+      fail(
+        file,
+        `${where} ${scenario}`,
+        `practice 去空白仅 ${String(noSpace(practice).length)} 字，门槛 ${String(PLAYBOOK_PRACTICE_MIN_CHARS)}`,
+      )
+    }
+    if (tags.length === 0 || tags.length > 2) {
+      fail(file, `${where} ${scenario}`, `tags 需 1-2 个，收到 ${tags.length}`)
+    }
+    for (const tag of tags) {
+      if (!tagsVocab.has(tag)) fail(file, `${where} ${scenario}`, `标签不在受控词表: ${tag}`)
+    }
+    // 预转义会让渲染二次转义（与 terms 同一条纪律）
+    for (const [field, text] of [
+      ['scenario', scenario],
+      ['problem', problem],
+      ['practice', practice],
+      ['antiPractice', antiPractice],
+    ] as const) {
+      if (text.includes('\\|')) {
+        fail(file, `${where} ${scenario}`, `${field} 预转义了 \\|，渲染会二次转义（应存裸 |）`)
+      }
+    }
+    if (antiPractice !== '') withAnti += 1
+
+    const naturalKey = `${scenario}\u0000${problem}`
+    if (naturalKeys.has(naturalKey)) {
+      fail(file, `${where} ${scenario}`, '自然键 (scenario,problem) 重复，种子升级会互相覆盖')
+    }
+    naturalKeys.add(naturalKey)
+  })
+
+  const antiRatio = items.length === 0 ? 0 : withAnti / items.length
+  if (antiRatio < PLAYBOOK_ANTI_MIN_RATIO) {
+    fail(file, '质量', `带反例的条目 ${(antiRatio * 100).toFixed(0)}% < 50% 门槛`)
+  } else {
+    notes.push(`反例覆盖 ${(antiRatio * 100).toFixed(0)}%`)
+  }
+
+  // PLAYBOOKS.md 表格完整性：表头逐字固定 + 每行恰 6 个裸 `|`（五列）。
+  const rows = items.flatMap((raw) => {
+    const item = asRecord(raw)
+    return item
+      ? [
+          {
+            scenario: typeof item['scenario'] === 'string' ? item['scenario'] : '',
+            problem: typeof item['problem'] === 'string' ? item['problem'] : '',
+            practice: typeof item['practice'] === 'string' ? item['practice'] : '',
+            antiPractice: typeof item['antiPractice'] === 'string' ? item['antiPractice'] : '',
+            verified: item['verified'] === true,
+          },
+        ]
+      : []
+  })
+  const lines = renderPlaybooksMdTable('选集', rows).split('\n')
+  if (lines[4] !== PLAYBOOKS_MD_HEADER || lines[5] !== PLAYBOOKS_MD_DIVIDER) {
+    fail(file, '渲染', 'PLAYBOOKS.md 表头与 shared 契约不一致')
+  }
+  lines.slice(6, 6 + rows.length).forEach((line, index) => {
+    const bare = countBarePipes(line)
+    if (bare !== 6) {
+      fail(file, `渲染 #${String(index + 1)}`, `表格列数错位（裸 | 计 ${String(bare)}，期望 6）`)
+    }
+  })
+  notes.push(`PLAYBOOKS.md 渲染 ${rows.length} 行，表头/列数一致`)
+}
+
 function checkTemplates(): void {
   const file = 'flow-templates.json'
   const items = itemsOf(file)
@@ -361,6 +495,7 @@ function main(): void {
     checkTerms()
     checkTemplates()
     checkPrompts()
+    checkPlaybooks()
   } catch (err) {
     errors.push(`读取/解析失败: ${String(err)}`)
   }
@@ -371,7 +506,7 @@ function main(): void {
     process.exit(1)
   }
   console.log(
-    `[seed:check] 通过 — terms ≥${THRESHOLDS.termsMin} / templates=${THRESHOLDS.templatesExact} / prompts=${THRESHOLDS.promptsExact}`,
+    `[seed:check] 通过 — terms ≥${THRESHOLDS.termsMin} / templates=${THRESHOLDS.templatesExact} / prompts=${THRESHOLDS.promptsExact} / playbooks ≥${THRESHOLDS.playbooksMin}`,
   )
   for (const note of notes) console.log(`  · ${note}`)
 }

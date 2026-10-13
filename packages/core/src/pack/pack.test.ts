@@ -13,6 +13,7 @@ import { FlowTemplatesRepo } from '../repos/flows'
 import { PromptsRepo } from '../repos/prompts'
 import { SkillsRepo } from '../repos/skills'
 import { TermsRepo } from '../repos/terms'
+import { PlaybooksRepo } from '../repos/playbooks'
 import { newDb } from '../test-support/new-db'
 import {
   buildBundle,
@@ -454,6 +455,7 @@ describe('UT-RESOLVE-01 · selection → 内容快照（m6a §6.2）', () => {
     const prompts = new PromptsRepo(h.db)
     const terms = new TermsRepo(h.db)
     const skills = new SkillsRepo(h.db)
+    const playbooks = new PlaybooksRepo(h.db)
     const flows = new FlowTemplatesRepo(h.db)
     const prompt = prompts.create({
       title: '代码审查请求',
@@ -468,7 +470,7 @@ describe('UT-RESOLVE-01 · selection → 内容快照（m6a §6.2）', () => {
       kind: 'light',
       stages: [{ name: '启动', checklist: [{ id: 'c1', text: '写清需求' }], artifacts: ['便签'] }],
     })
-    return { h, prompts, terms, skills, flows, prompt, term, skill, flow }
+    return { h, prompts, terms, skills, playbooks, flows, prompt, term, skill, flow }
   }
 
   const selectionOf = (f: ReturnType<typeof fixture>) => ({
@@ -485,7 +487,7 @@ describe('UT-RESOLVE-01 · selection → 内容快照（m6a §6.2）', () => {
       { id: 'pk_1', name: 'default', description: '', targets: ['claude-code'] },
       selectionOf(f),
       '1.0.0',
-      { prompts: f.prompts, terms: f.terms, skills: f.skills, flows: f.flows },
+      { prompts: f.prompts, terms: f.terms, skills: f.skills, playbooks: f.playbooks, flows: f.flows },
     )
     expect(resolved.prompts[0]).toEqual({
       title: '代码审查请求',
@@ -517,7 +519,7 @@ describe('UT-RESOLVE-01 · selection → 内容快照（m6a §6.2）', () => {
         { id: 'pk_1', name: 'default', description: '', targets: ['claude-code'] },
         selectionOf(f),
         '1.0.0',
-        { prompts: f.prompts, terms: f.terms, skills: f.skills, flows: f.flows },
+        { prompts: f.prompts, terms: f.terms, skills: f.skills, playbooks: f.playbooks, flows: f.flows },
       )
       expect.unreachable()
     } catch (err) {
@@ -536,7 +538,7 @@ describe('UT-RESOLVE-01 · selection → 内容快照（m6a §6.2）', () => {
         { id: 'pk_1', name: 'default', description: '', targets: ['claude-code'] },
         { promptIds: [], termIds: [], skillIds: [], playbookIds: [], flowTemplateId: null },
         '1.0.0',
-        { prompts: f.prompts, terms: f.terms, skills: f.skills, flows: f.flows },
+        { prompts: f.prompts, terms: f.terms, skills: f.skills, playbooks: f.playbooks, flows: f.flows },
       ),
     ).toThrowError(/EMPTY|空/)
     f.h.close()

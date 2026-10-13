@@ -2106,3 +2106,34 @@
   5. **字体删除是资产动作**：3 删（noto-serif 两切片 79,156 B + source-sans）1 增（outfit-latin-var）在起手工作树里就已发生（`[DEV-0080]` 记「须 owner 签收后才动」），本笔只是随代码轮落库；签收状态以 owner「开始①」的指令为准，净体积口径（−75,720 B）以 `theme.md` FR-4.3 为单源。
   6. **取号与撞号**：本号按 FR-1.2 取两树最大号 0089 + 1 = **0090**（自查 `grep -c '^## \[DEV-0090\]'`：工作树 1、提交树 0）；工作树另有 7 组已知撞号（0044/0045/0046/0074/0075/0076/0077，`docs/specs/docs-governance-check.md` FR-1.4 已登记为 error 级、「历史不豁免」），**不属本笔、本笔不改号不动它们**——原样落库 + 提交信息标注，最终处置见「owner 手上未收的」③。
 - **owner 手上未收的**: ① FR-5.1 形制细节（`shadow-1` / focus-visible 2px 环 / disabled 40%）待 UI 轮，前置是入口预算有着落；② 入口拆分三案在队列 ㉗；③ **7 组撞号的最终处置**——本笔选择原样落库并在提交信息标注（`docs-governance-check.md` FR-1.4 的登记形状就是「闸报出、不靠人记」，改号要逐处消歧 42 处引用且有至少 1 处歧义，风险高于收益），若 owner 要落库后改号是另一笔；④ README 三处数字口径不属本笔（「3 套流程模板」对提交树仍成立、`476 用例/55 文件` 是带 sha 的历史快照、`npx openvibe-cli` 待 D24/D25 发布笔）；⑤ 本笔随功能笔落库，未 push、未打 tag、无任何对外动作。
+
+## [DEV-0091] M4 技巧库落地 + V2 组件形制补齐：九件工作包全链打通 · FR-8 拆 playbookIds 闸（A 级，零回归凭据实测） · `[DEV-0090]` 风险① 结清
+
+- **时间**: 2026-10-13（本机 darwin；起手树 = `72ede49` 之上叠加并行会话未提交工作树；五闸复跑时点见「测试验证」）
+- **类型**: 混合轮，按 §0.3 拆开判——**M4 功能面判 C**（新增文件/端点/页面，不改既有契约形状）；**FR-8 拆 `PackSelection.playbookIds` 闸判 A**（动 design §7 冻结块边缘的选集契约，owner 已裁 D25 + standing 指令授权，零回归凭据见下）；**组件形制补齐判 C**（`apps/web/src/components/ui/styles.ts` 逐条对齐 DESIGN.md Components，不动 `index.css` 一个 token）
+- **关联文件**: `packages/core/src/db/migrations/0006_playbooks.sql`、`packages/core/src/repos/playbooks.ts`、`packages/shared/src/schemas/playbooks.ts`、`packages/shared/src/playbooks-md.ts`、`apps/server/src/routes/playbooks.ts`、`packages/core/src/pack/{resolve,composer}.ts`、`packages/shared/src/schemas/pack.ts`、`content/seed/playbooks.json`、`apps/web/src/{pages/PlaybooksPage.tsx,components/playbooks/*,hooks/usePlaybooks.ts}`、`docs/dev-plan.md §17`、`docs/specs/m4-playbook.md` v1.2、`docs/specs/m6-standard-pack.md` v1.6
+- **问题描述**: M4 技巧库自 2026-09-30 立规格、2026-10-01 七裁到账，但 `tasks.md` T12 一直停在「人日未估」，代码零行；owner 本轮指令「对于没有开发的 phase，本次制定开发计划一并实现」把三道前置全部解锁。**本笔的难点不在写功能，在三处「拆闸」与两处「文档谎报」**——都是只改代码会留下的、且很难被自己发现的债。
+- **实现思路（设计→实现）**:
+  1. **先计划后代码**：九个工作包（W1–W9）连级判定与三轨关键路径写进 `docs/dev-plan.md §17`，人日 **5.2**（关键路径轨道 1 = 2.3 天）单源在 §17.4，`tasks.md` T12 只回指不复制数字。
+  2. **FR-7.6 交叉引用行落点**：§8.2 ① 已裁「不新增第五节」，`PACK_SECTION_ORDER` 是四节冻结序 ⇒ 这一行只能挂进现有某节。取 **`PACK_SECTION_RULES`（「## 行为规则」）**——四节里唯一语义通用的一节（技巧是行为指引）；空选集时 `section()` 的 `blocks.length===0` 早返回 ⇒ 未选技巧时字节不变，§7.4 零回归闸仍成立。
+  3. **`ManifestPlaybook` 不进 `PackManifestSchema`**：进了就是每个包的 manifest 都多出 `"playbooks": []`，FR-8.4 零回归当场失效。技巧仍经 `files[]` + 指纹 + 正文引用行传递，不是静默吞。
+  4. **`ResolvedPack.playbooks` 设为选填**：改成必填会让 `tests/golden/fixtures.ts`（A 级冻结、硬闸禁止改动）构造的字面量过不了 typecheck；渲染侧按 `?? []` 兜。
+  5. **四处方言缺口登记不自裁**（`dev-plan §17.6`）：`source` 闭集多出 `openvibe-seed`（seed 可追溯，照 `TERM_SOURCE_RE` 形制，**落在 spec §3 字面之外，待 owner 追认**）· `sortForMd` 主键取 `scenario` + `id` 兜底、不引入 `orderBy` 枚举 · `renderMd` 空选集回 `EMPTY_SELECTION` · 交叉引用行落点（见上）。
+  6. **seed 内容零 verified**：worker 初稿给 2 条打了 `verified:true` 并附「演练报告 0 份」「改动 6 文件 180 行」等**无人执行过的证据**。按 FR-4.2 的反谎报原则（「静默把『没验过』写成『亲测有效』是资产库的信任事故」）**全部翻回 false 并清空 evidence**——宁可开箱 0 条亲测，也不让种子替用户宣称实测。
+- **核心变更**:
+  - **M4 全链**：迁移 + FTS 三触发器（同迁移，§6.7 分开发布=检索静默永空）· `PlaybooksRepo` 十方法 · 六端点 · `PLAYBOOKS.md` 渲染器（标题/引导/表头/分隔/转义全常量）· `resolve`/`composer`/`CONTEXT_AUX` 接入 · 侧栏角标由六格扩七格。
+  - **FR-8 拆闸（代码半 + 文档半同笔）**：`pack.ts` 的 `.refine` 删除、字段与改写后的注释保留；两处孤儿断言同批改判（`IT-ERR-04` 转 `STALE_SELECTION`、shared 侧「非空即拒」转「非空且有效 ⇒ 进产物」）；**文档三处**同批（`m6-standard-pack.md` v1.6 的 §3 / §6 第 3 条 / §7 验收第 7 条）+ `decisions.md` ⑫ 队列行补现状追记。
+  - **组件形制**：`btnPrimary` 补 `shadow-1` + focus-visible 2px `accent` outline/2px offset + disabled **40%**（原 50%）· 新增 `CHIP_TONES` 六形制 / `chipPressed` / `NOTE_TONES` 四态 / `emptyHintCls` / `rowCls` / `ledgerHeadCls`。**`[DEV-0090]` 风险① 至此结清**——它当时收回的理由是「入口预算只剩 0.02 kB，加上去就破闸」，本轮入口因三张常驻卡移出 AppShell 降到 **293.74 kB**（余 6.26 kB），形制补齐不再需要抬阈值。
+- **测试验证**: 全部 2026-10-13 本机复跑，支数随提交变动、以汇总行为准：
+  - `pnpm test` → **63 文件 / 580 支全过**（较 `[DEV-0090]` 的 58/545 增 5 文件 35 支：M4 三族 `UT-PB-*` 7 / `CORE-PB-*` 9 / `IT-PB-*` 7 + nav/cli-commands 两族）；
+  - `pnpm typecheck` rc=0 · `pnpm lint` rc=0 · `pnpm seed:check` rc=0（新增 `playbooks ≥10` 门槛，现 13 条；PLAYBOOKS.md 渲染 13 行表头/列数一致、反例覆盖 100%）· `pnpm bundle:check` 入口 **293.74 kB ≤ 300 kB** / 39 chunk / 最大 347.45 kB ≤ 500 kB；
+  - **FR-8.4 零回归硬闸（拆闸的全部凭据）**：`npx vitest --project unit --run tests/golden.test.ts` → **3 passed**（G1/G2/G3）；`git status --porcelain -- tests/golden/ content/seed/terms.json content/seed/flow-templates.json content/seed/prompts.json` → **0 行**；
+  - **FR-7.3 变异反证（推断转正）**：两包定义（其余四字段全同、仅差 1 条技巧）指纹 `be608b1f…` ≠ `fe6293e5…`，`files` 与 `lock.files` 各差一条 `PLAYBOOKS.md`，≈token 206 → 319 ⇒ **链路上无第二处硬编文件清单**，FR-8 得以开工。
+- **潜在风险**:
+  1. **`source` 闭集超出 spec §3 字面**：多出 `openvibe-seed` 一态（理由见「实现思路」5），落在 FR-1.3「只接受闭集字面量」的同类条款上，**待 owner 追认或改 spec**——实现已按 terms 同族形态落，改回的成本是 seed 行不可追溯。
+  2. **§7.4 那条孤儿文档闸的扫法有洞（本笔修口径，不是修判据）**：原命令 `grep … | grep -E '恒为|非空即|未上'` **在任何正确实现下都返 ≥1**——`m6-standard-pack.md` 头部 v1.4 版本行按「日志不回改」原样记着「改为非空即 422」，与被扫模式逐字相同。一条永远红的闸不是凭据，它训练人忽略它。修法是补 `grep -v '^11:'`（版本行），**`恒为`/`未上` 两词仍在扫，判据强度一字未减**。同批还补记第三处：`§7 验收第 7 条`（原「四种 4xx」）**不被原模式集扫到**（字面是「非空 \`playbookIds\` 四种 4xx」）——模式集按最初被引用的两处用词写，没覆盖第三处。凭据形态见 `m4-playbook.md` §7.4。
+  3. **FR-8.3 的同步落点指针指错了文件**：spec 原写「`docs/dev-plan.md` §15.2 裁 ⑫ 格指向处」，而 §15.2 根本没有 ⑫ 这一格（复算 `grep -n '⑫' docs/dev-plan.md` 只命中 §9 历史叙述与 §16.14 枚举口径）。⑫ 的真位置是 `docs/decisions.md` 队列表，已改判。**登记的理由**：这是 §16.12 那族缺陷的第四例——规格里的跨文件指针本身指错，照着做的人会去不存在的格子里「同步」，找不到就以为已经同步过了。
+  4. **未验证面一条不因本笔消解**（spec §7.7）：win32 的 FTS 三触发器与 `seedHash` 幂等**从未验证**（本仓无同类门控支，本机 darwin 绿不覆盖它）· 真实浏览器点击零凭据 · `PLAYBOOKS.md` 被六类工具读取后的效果属外部行为 · 多用户并发写属 M7。**spec §7.6 的四条人工腿（截图归档）本笔未做。**
+  5. **侧栏从 DESIGN.md 的「四组八项」变九项**：多出的「成长与统计」暂挂「概览」组（上一轮留下），**本轮又加「技巧库」成十项**——两处偏离都**待 owner 定**（入册 DESIGN.md，还是并回工作台页）。
+  6. **worker 越权检查**：本轮 M4 后端由 worker 承接，brief 末尾显式写了「❌ 不要 git commit / push」，事后 `git log` 复核确认**无自提交**。另 worker 主动登记了一处越界（一行 `tests/seed-check.test.ts` 的 `SEED_FILES` 数组加 `'playbooks.json'`）——该数组是沙箱基线，不加则必红，属最小必要，已复核未改其断言逻辑。
+- **owner 手上未收的**: ① `source` 闭集第三态的追认 ② 侧栏八/九/十项对 DESIGN.md 的偏离裁定 ③ spec §7.6 四条人工腿（截图归档）④ 推送授权（本笔只落本地 commit）

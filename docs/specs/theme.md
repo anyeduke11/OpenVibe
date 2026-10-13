@@ -4,10 +4,10 @@
 |------|------|
 | 模块 | **横切能力**（不属于 PRD 3.2 的任何 M 号）——按 dev-plan §0.4 规则 5「横切能力用功能名」立文件，与 `onboarding.md`、`seed-content.md` 同类 |
 | 优先级 | P2（PRD 第 8 章 P2 行「暗色主题（前置是设计 token 化重构）」；D19 由 P1.1 移入 P2；dev-plan §15.1-7） |
-| 上游 | PRD 第 8 章 P2 行 + 附录 D D19、**`DESIGN.md`（设计系统规范源，gstack spec 格式，2026-09-29 /design-consultation 定稿）**、`CLAUDE.md`（把 DESIGN.md 立为视觉/UI 口径入口）、dev-plan §5.5 样式基线 |
+| 上游 | PRD 第 8 章 P2 行 + 附录 D D19、**`DESIGN.md`（设计系统规范源，gstack spec 格式；v2.0 起为「暖纸 · 可读性工作台」，V1「墨松账本 · 书斋版」由 owner 2026-10-01 裁定全盘替换）**、`CLAUDE.md`（把 DESIGN.md 立为视觉/UI 口径入口）、dev-plan §5.5 样式基线、对照原型 `docs/prototypes/暖系-暖纸V2-可读性交互Demo-20260929.html` |
 | 下游设计 | design.md §2（Tailwind v4 + Radix 无组件库锁定）、dev-plan §5.1 路由表 / §5.2 组件清单 |
-| 关联任务 | **无 tasks.md 任务行**（实测 `grep -c 暗色 docs/tasks.md` → 0）；实现随 commit `453a535` 入库，本 spec 是 §0.4 规则 4「No spec, no task」的**欠账补写**（实现先于规格，见 §7.1） |
-| 版本 | v1.0（2026-09-30 定稿。**补写件**：亮暗主题、token 化、字体自托管、ruby 注音形制已于 2026-09-29/30 落地并入库（`git show 453a535 --stat`），但当时未建 spec，dev-plan §5.5 仍写「MVP 仅浅色」——本文件按**已入库实现 + DESIGN.md 口径**逐条核对写出，凡两者不一致处一律在 §7.5「未对齐」点名，**不替实现背书**；本行是本文件唯一版本行，后续修订按 §0.3 B 级追加 `→ v1.x` 段） |
+| 关联任务 | **无 tasks.md 任务行**（实测 `grep -c 暗色 docs/tasks.md` → 0）；v1.0 是随实现补写的欠账件（实现先于规格，见 §7.1），**v2.0 反过来是改判件——规格先行、代码未动**（owner 2026-10-01 定的顺序），凡 V2 条目均标 `[未落地]` |
+| 版本 | v1.0（2026-09-30 定稿。**补写件**：亮暗主题、token 化、字体自托管、ruby 注音形制已于 2026-09-29/30 落地并入库（`git show 453a535 --stat`），但当时未建 spec，dev-plan §5.5 仍写「MVP 仅浅色」——本文件按**已入库实现 + DESIGN.md 口径**逐条核对写出，凡两者不一致处一律在 §7.5「未对齐」点名，**不替实现背书**）→ **v2.0**（2026-10-01，**换肤改判**：owner 要求以暖纸 V2 原型为准重构前端 UI/UX，DESIGN.md 由 V1「墨松账本 · 书斋版」整体替换为 V2「暖纸 · 可读性工作台」，本 spec 随之改判。**改判根据不是审美**：V1 有两支承载文字的 token 不过 AA——`--color-ink-faint` 2.19:1、`--color-ink-subtle` 3.48:1，实测调用点 **118 + 124 = 242 处**（复算 `node docs/devlog-evidence/DEV-0080/census.mjs`——仓内驱动器；**初版脚本曾住在 `/tmp/openvibe-v2/census.js`、已随 /tmp 丢失**，故 2026-10-01 重写为仓内件并在 `30e7fee` 复现同六个数：`118 / 124 / 242` 与 `2.19 / 3.48`），另有暗色朱批按钮白字 3.88:1（v1.0 §7.4-③ 的既有 finding 至今未裁）。**本笔内容**：① token 契约 40 → **29 支**，`brand→accent(赭石)`、`seal*→删（红只剩 danger）`、`success→ok`、`fill-soft/fill→panel-2/panel-sunk`、墨阶 7 → 4 档按角色归并、`canvas/panel` 转暖；② 撤销 V1 五个招牌形制（书脊竖排侧栏 / 朱批 / 验印章与落章动效 / ruby 注音展示 / 衬线字标与思源宋体），逐条与后果见 §3.4；③ 新增两条硬约束——**文字配对 AA 全表**（§4 FR-3.6）与**断点/阴影的 token 化口径**（FR-3.7、FR-2.5）；④ 字体由三支改两支（Outfit 替换 Source Sans 3，宋体切片删除），OFL 与 `tnum` 两条前置**已实查**（§4 FR-4.1）；⑤ §7.5 八条未对齐逐条改判（四条随退场作废、三条重写、一条转为 V2 验收项）。**暗色属性值仍叫 `dark` 不叫 `night`**（理由见 §3.1 末与 §6.1）。**本轮零代码改动**：`apps/web/**` 与 `tests/design-tokens.test.ts` 一律未动，V2 落地属下一轮（Phase A–D），因此 §7 里凡 V2 项都是**待验**而不是已验；`tests/design-tokens.test.ts` 的四道闸在**本笔时点仍是 V1 值全绿**（实测 2026-10-01 08:54，4/4）。本行是本文件唯一版本行，后续修订按 §0.3 B 级追加 `→ v2.x` 段 |
 
 ---
 
@@ -16,161 +16,197 @@
 把「换一套肤色」从「重写一遍样式」降级成「改一个文件的两块 token」，同时让 OpenVibe 在视觉上像**中文开发者的 native 工作台**而不是翻译过来的 admin 壳：
 
 - **暗环境是真场景**：开发者夜里编码要暗色，但暗色必须是**完整对偶 token 组**（同层级、同语义），不是给几个类名加 `dark:` 前缀——否则每个调用点都要维护两套，换肤成本随页面数线性增长。
-- **稀有即有意义**：朱砂（`seal`）只出现在「使生效」的一刻（注入/应用/覆盖确认/验印），日常动作是松绿与墨阶。颜色一旦通胀，信任信号就失效——而 lock 指纹 / diff 一致 / 预览即产物这套产品灵魂**全靠视觉信号传达**。
-- **中文是第一公民**：不为中文塞 CJK webfont（数 MB，撞 `bundle:check` 闸门），而是 Latin/数字给一张可再分发的脸 + 中文交给各平台最好的系统渲染器，排印质量（行高 ≥1.7、字距只给拉丁、表数字 tnum）补位。
+- **清晰即信任**（v2.0 改判，替换 v1.0 的「稀有即有意义」）：本地工具的可信度来自**读得清**与**列对齐**——文字配对全表过 AA、数字全表 tnum、状态三通道（图标 + 文字 + 颜色）。v1.0 靠「一枚稀有权威色（朱砂只在验印出现）」承载信任，代价是两支常用文字色不过 AA；稀有度换来了记忆点，却把可读性输掉了。
+- **中文是第一公民**：不为中文塞 CJK webfont（数 MB，撞 `bundle:check` 闸门），而是 Latin/数字给一张可再分发的脸 + 中文交给各平台最好的系统渲染器，排印质量（行高 ≥1.7、字距只给拉丁、表数字 tnum、行长 ≤68ch）补位。
 
-> 本 spec **只拥有主题/token/字体/形制**这一层。词条卡的 ruby **数据语义**在 `m3-glossary.md` FR-5（`TermOut.pinyin` 派生字段），本文件只规定它长什么样（§4 FR-5.5），不复制字段契约——反漂移原则（dev-plan §0.3）。
+> 本 spec **只拥有主题/token/字体/形制**这一层。词条卡的 ruby **数据语义**在 `m3-glossary.md` FR-5（`TermOut.pinyin` 派生字段）；v2.0 撤的是**展示层注音**，字段本身必须留（它还承担 `en-alpha|pinyin|manual` 三种排序口径，`packages/core/src/repos/terms.ts`），本文件不再规定它长什么样。
 
 ## 2. 范围
 
 | In（本 spec 拥有） | Out（明确不做 / 未做） |
 |--------------------|------------------------|
-| 亮「温纸白」+ 暗「夜账本」**双 token 源**（`apps/web/src/index.css` 的 `@theme` 块 + `[data-theme='dark']` 覆盖块） | 第三套主题、用户自定义配色、每模块独立肤色 |
-| 主题切换 + **客户端 localStorage 持久化**（单键 `openvibe.theme`） | 服务端 `settings` 存主题（**刻意不做**：会动 `GET /settings` 响应形状 = §0.3 B 级契约面） |
+| 亮「暖纸」+ 暗「暖夜」**双 token 源**（`apps/web/src/index.css` 的 `@theme` 块 + `[data-theme='dark']` 覆盖块），各 **29 支颜色 token** `[V2 未落地：现库为 40 支]` | 第三套主题、用户自定义配色、每模块独立肤色 |
+| 主题切换 + **客户端 localStorage 持久化**（单键 `openvibe.theme`，值 `light\|dark`） | 服务端 `settings` 存主题（**刻意不做**：会动 `GET /settings` 响应形状 = §0.3 B 级契约面） |
 | 首帧前预涂脚本（防暗色用户闪白） | 跟随系统 `prefers-color-scheme`（实测全仓零命中，含 `matchMedia` 亦零命中 → 见 §6.7） |
-| 三套自托管字体（Source Sans 3 / JetBrains Mono / 思源宋体 900 切片 ×2，均 OFL）+ 中文系统原生栈 | CJK webfont、Fontshare 等禁止再分发的字体源（见 §8 许可纪律） |
-| token 治理闸（`tests/design-tokens.test.ts`，四道 WEB-TOKENS 断言） | 像素级视觉回归基线（无 golden 截图对比，暗色正确性目前只有人工目验凭据 → §7.6） |
-| 组件形制：朱批按钮 / 危险动作互斥形制 / 验印章 / 书脊侧栏 / 注音 rt | 动效库、`prefers-reduced-motion` 支持（实测零命中 → §6.8） |
+| 文字/底色配对的 **AA 全表**与 `-soft` 容器使用矩阵（§4 FR-3.6） | 像素级视觉回归基线（无 golden 截图对比；主题正确性 = 四道闸 + 一次运行时自检屏 → §7.6） |
+| 两支自托管字体（Outfit / JetBrains Mono，均 OFL）+ 中文系统原生栈 | CJK webfont、Fontshare 等禁止再分发的字体源（见 §8 许可纪律） |
+| token 治理闸（`tests/design-tokens.test.ts`，四道 WEB-TOKENS 断言）+ 扩闸义务（FR-2.6） | 把 AA 对比度做进 CI（对比度矩阵由设置页第 7 区**运行时**呈现，见 m5/DESIGN.md 可读性十项；静态闸只保证「颜色单源」） |
+| 组件形制：强调按钮 / 危险动作互斥形制 / chip 三件套 / 顶栏 + 分组侧栏 / 统计卡 / 骨架 + 进度 + 分段 `[V2 未落地]` | 动效库；`prefers-reduced-motion` 在 v1.0 是「已知未做」，**v2.0 升为硬要求**（FR-5.7） |
 
 ## 3. 数据与核心概念
 
+### 3.1 值域与挂载点
+
 ```
-Theme  = "light" | "dark"                  // 二值，无 "system"
+Theme  = "light" | "dark"                  // 二值，无 "system"；V2 不改值域，只改两值的**取名**（亮=暖纸，暗=暖夜）
 STORAGE_KEY = "openvibe.theme"             // 值只有 "dark" 被判定；其余（含读失败）一律 light
 挂载点 = document.documentElement.dataset.theme  // 即 <html data-theme="dark">，全站唯一祖先
 ```
 
-**token 分层**（单一出处 = `apps/web/src/index.css`）：
+> **为什么不采用原型的 `[data-theme='night']`**：属性值是**用户数据**的一部分（`localStorage` 里存的就是字面 `'dark'`），改名的代价是既有暗色用户下次打开无声回亮（§6.2 的解析规则只认 `'dark'`）；同时 `tests/design-tokens.test.ts:44` 用 `\[data-theme='dark'\]` **字面**匹配暗块，改名即让第 2 道闸把暗块当"块外 CSS"而变红。原型那只是 demo 的选择器命名，不是设计决策，**不值得为它付这两笔代价**。展示层的主题名（暖纸/暖夜）走 `apps/web/src/i18n/zh.ts` 的文案键，与属性值解耦。
+
+### 3.2 token 分层（单一出处 = `apps/web/src/index.css`）
 
 | 层 | 载体 | 规则 |
 |----|------|------|
-| 字族/圆角 | `@theme { --font-* / --radius-* }` | **不随主题变**；`--font-sans` 是「Latin 一张脸 + 中文系统栈」的栈序，暗块不许改 |
-| 颜色（亮） | `@theme { --color-* }` | 唯一的**字面 hex / oklch 许可地**（亮块 + 暗块之外一处都不许，由闸钉住） |
+| 字族/圆角 | `@theme { --font-* / --radius-* }` | **不随主题变**；`--font-sans` 是「Latin 一张脸 + 中文系统栈」的栈序，暗块不许改。V2 撤 `--font-serif`（衬线只服务 V1 字标与印字） |
+| 阴影 | `@theme { --shadow-1/2/3 }` | 值一律写成 `color-mix(in srgb, var(--color-scrim) N%, transparent)`，**不写字面 rgba**；这样暗态自动换浓淡，暗块不需要 `--shadow-*` 覆盖，「暗块只允许 `--color-*`」这条不变量得以保留（FR-2.5） |
+| 颜色（亮） | `@theme { --color-* }` | 唯一的**字面 hex 许可地**（亮块 + 暗块之外一处都不许，由闸钉住） |
 | 颜色（暗） | `[data-theme='dark'] { --color-* }` | **只允许 `--color-*` 覆盖**，夹带任何其他声明 = 治理闸直接失败（闸内做了剥离复算） |
 
-**DESIGN.md 语义名 ↔ 本仓 token 名**（DESIGN.md 用 Figma 式角色名，实现用 Tailwind v4 色utility 名，两套名字必须能对上，否则「按 DESIGN.md 走查」无法落地）：
+### 3.3 三名合一（v2.0 改判：取消 v1.0 的「DESIGN.md 角色名 ↔ 实现 token 名」映射表）
 
-| DESIGN.md | token（`--color-…`） | Tailwind 类 |
-|-----------|---------------------|-------------|
-| `primary`（朱砂，使生效） | `seal` / `seal-deep`（hover）/ `seal-wash`（洗底）/ `on-seal`（印上文字） | `bg-seal` `text-on-seal` … |
-| `accent`（松绿，品牌常色） | `brand` / `brand-soft` | `text-brand` `bg-brand-soft` |
-| `error`（与朱砂**互斥**） | `danger-50/200/600/700/800/900`（oklch 族） | `text-danger-700` |
-| 中性墨阶 / 账本线 / 表面 | `ink-*`（ghost→strong 七档）/ `line-*`（三档）/ `canvas` `panel` `fill` `fill-soft` `scrim` | `text-ink-body` `border-line` … |
-| 状态族 | `warn-*` `success-*` `info-*`（各带 soft 容器与 solid 两形态） | 同上 |
+v1.0 用 Figma 式角色名（`primary`/`surface`/`text-muted`…）写 DESIGN.md，实现用 Tailwind 语义名（`seal`/`canvas`/`ink-muted`…），两套名字靠一张映射表勉强对齐——**按 DESIGN.md 走查时每次都要查表**，这就是漂移温床。v2.0 起 **DESIGN.md frontmatter 的 `colors` 键名 = `index.css` 的 `--color-*` 名 = Tailwind utility 名**，一个名字走三处：
 
-> **暗色生效机制（易被误判为"没生效"）**：Tailwind v4 把 `@theme` 编译进 `@layer theme`，而 `[data-theme='dark']` 块是**未入层**的普通 CSS——未层 CSS 在与分层 CSS 冲突时胜出，故暗块不需要比 `:root` 更高的特异性。凭据：DEV_LOG「SSRF 误报裁定 + 视觉目验 + ruby 注音头词落地」那条记录做过 PNG 采样，暗色画布实测 `rgb(28,27,23)` = `#1C1B17`。
+| 语义 | token / DESIGN.md 键 | Tailwind 类 | 承担 |
+|------|---------------------|-------------|------|
+| 强调 | `accent` `accent-deep` `accent-soft` `accent-line` `on-accent` | `bg-accent` `text-on-accent` `bg-accent-soft` `border-accent-line` | 主按钮、激活导航、链接、`aria-pressed` 选中段、强调 chip |
+| 纸面 | `canvas` `panel` `panel-2` `panel-sunk` | `bg-canvas` `bg-panel` `hover:bg-panel-2` `bg-panel-sunk` | 画布 / 卡片 / 悬浮与次级容器 / 下沉容器（代码块） |
+| 线 | `line-hair` `line` `line-strong` | `border-line-hair` … | 行分隔 / 卡片描边 / 输入与区块描边 |
+| 墨 | `ink` `ink-body` `ink-muted` `ink-faint` | `text-ink` `text-ink-body` `text-ink-muted` `text-ink-faint` | 标题 / 正文 / 次要说明 / 元信息（**四档，全部 ≥4.5:1**） |
+| 状态 | `ok` `warn` `danger` `info` 各带 `-soft` `-line` | `text-ok` `bg-danger-soft` `border-info-line` | 一致 · 漂移 · 错误/破坏 · 中性提示与反链 |
+| 遮罩 | `scrim` | `bg-scrim/40`、阴影经 `color-mix` | Dialog 遮罩 + **阴影颜色通道源** |
+
+> V1→V2 的**改名向量**（哪些旧名要消失、旧调用点落到哪个新名）以 DESIGN.md「Migration & Retirements」的改名表为准；本 spec 只拥有其中的**治理后果**（闸要扩、暗块要同构、体积要重登记）。
+
+### 3.4 撤销清单与后果（v2.0）
+
+| V1 招牌 | V2 处置 | 顺带产生的账 |
+|---------|---------|--------------|
+| 书脊竖排侧栏（76px，`writing-mode: vertical-rl`，七个单字导航） | 顶栏 58px + 侧栏 216px 四组八项；`.v-rl` 退场 | `m4-playbook.md` FR-10.2「书脊单字冲突必须先解决」与**同文件 §8.2 ②**「书脊第 8 个单字」（推荐新增「巧」）**同时作废**（前提消失；**2026-10-01 本笔就地更正指针**——此处原写「dev-plan 队列」，实测该待裁的**落点**是 `m4-playbook.md` §8.2 表，`dev-plan.md` §15.1-9 那格只是转述它存在（复算 `grep -c 书脊 docs/decisions.md` → **0**：队列文件里从来没有这一行，本仓队列单源是 `docs/decisions.md`）；m4 侧两处已随本笔标注失效，不留悬空引用，而 §15.1-9 那格的「七处待裁」此刻读作**六处**——本轮不改 dev-plan，落点见 `[DEV-0080]` 未完成段）；`theme.md` v1.0 FR-5.6 里「M4 落地时不能占用『技』字」这条约束一并失效 |
+| 朱砂朱批（`seal` 四件套 = 使生效的权威红） | 赭石 `accent` 成为唯一强调通道；**红只剩 `danger`，只表错误与破坏** | `--color-seal*` / `--color-on-seal` 删除；用户肌肉记忆里的「红 = 批准」需重新教育（本轮唯一一处**语义反转**，不是单纯换色） |
+| 验印章 `.seal-badge`（含 −1.5° 微旋、`seal-stamp-in` 落章动效） | 信任信号改由信息承担：`ok` chip + mono 指纹 + `created\|idempotent` 状态；动效无表演位 | CSS 类与 `@keyframes` 删除（v1.0 §7.5-8 那条「动画是死代码」的 finding 随删除而消解）；§7.5-7「验印只覆盖一条链」同样作废 |
+| ruby 注音头词（`.term-ruby rt`） | 展示层撤；头词改 16px/600 + 英文副行 | **`TermOut.pinyin` 必须保留**（排序口径）；§7.5-3「注音无开关」的待裁项随展示退场而作废 |
+| 衬线字标（思源宋体 900 两切片，仅服务 `.wordmark` 与「验」字） | 品牌位改 accent tile + `on-accent` 字；`--font-serif` 退场 | 两支 woff2（40,240 + 38,916 = **79,156 B**）删除；§6.6「换 wordmark 文案须先确认新字在切片内」这条边界随之下线。**删文件属破坏性动作，落地那轮需 owner 签收** |
 
 ## 4. 功能需求（FR）
 
+> 标记约定：`[已落地]` = v1.0 实现与 V2 口径不冲突，无需重做；`[V2 未落地]` = 本笔只写规格，验收时**不得声称已验**。
+
 ### FR-1 主题切换与持久化
-1. 唯一入口：书脊侧栏底部**单字按钮**，亮态显示「夜」、暗态显示「昼」（即"点它会变成什么"），`aria-label` 固定为「切换亮暗主题（温纸白 / 夜账本）」，`title` 显示当前态名。除该按钮外全站无第二个切换入口。
-2. 持久化走客户端 `localStorage`，键 `openvibe.theme`；**不进服务端 settings**——`GET/POST /api/settings` 的形状是 P0 冻结面，主题不属之。
-3. **首帧前预涂**：`index.html` 的内联脚本必须在挂载 React 之前读同一键并设 `data-theme`，使暗色用户刷新时不出现亮色闪烁。该脚本与 `useTheme.ts` 的键位是**两处硬编码**（见 §6.1）。
-4. 主题态在页面刷新后保持；`localStorage` 不可用（无痕 / 配额）时**降级为仅本会话生效**，读与写两处各自 `try/catch` 静默，不得因存储失败抛错到 UI。
-5. 不做系统跟随（§2 Out），因此**系统暗色用户首次启动得到的是亮色**，这是有意的一次点击成本而非缺陷；若要改判属新增 FR，走 §0.3 B 级。
+1. 唯一入口：`[V2 未落地]` 从书脊侧栏底部迁到**顶栏右侧**（图标 + 文字双通道，`aria-label` 固定为「切换主题（暖纸 / 暖夜）」）。**单入口这条纪律不变**——顶栏与设置页不得各放一个开关；设置页第 7 区只给「主题切换在顶栏」的说明行。除该按钮外全站无第二个切换入口。
+2. `[已落地]` 持久化走客户端 `localStorage`，键 `openvibe.theme`，值域 `light|dark`；**不进服务端 settings**——`GET/POST /api/settings` 的形状是 P0 冻结面，主题不属之。
+3. `[已落地]` **首帧前预涂**：`apps/web/index.html` 的内联脚本必须在挂载 React 之前读同一键并设 `data-theme`，使暗色用户刷新时不出现亮色闪烁。该脚本与 `useTheme.ts` 的键位是**两处硬编码**（见 §6.1）。
+4. `[已落地]` 主题态在页面刷新后保持；`localStorage` 不可用（无痕 / 配额）时**降级为仅本会话生效**，读与写两处各自 `try/catch` 静默，不得因存储失败抛错到 UI。
+5. `[已落地]` 不做系统跟随（§2 Out），因此**系统暗色用户首次启动得到的是亮色**，这是有意的一次点击成本而非缺陷；若要改判属新增 FR，走 §0.3 B 级。
 
 ### FR-2 token 单一出处与治理闸
-1. 换肤**只改** `apps/web/src/index.css` 的亮块与暗块；调用点（`apps/web/src/**/*.{ts,tsx}`）不得出现 Tailwind 自带色阶——禁用清单以 `tests/design-tokens.test.ts` 的 `RAW_FAMILIES` / `RAW_PALETTE` 为单源（本文不抄色族个数，§13-9 同族纪律）。
-2. 裸 hex/oklch 字面量只许住在两个 token 块内；其余 CSS 规则一律 `var(--color-…)`。
-3. **引用必声明**：用到的每个语义色名都要在 `@theme` 里存在——Tailwind v4 对未知色名**静默不产出 CSS**，写错一处表现为"少个颜色"而不是报错。
-4. **声明必被引用**：未被任何调用点引用的 token 会被 v4 tree-shake 掉，换肤时**静默失效**——闸的第 4 道专抓这一类。（实例：落地时删掉了失去引用的 `--color-on-brand` 与 `--color-danger-100`，而不是留着当"备用"。）
-5. 暗色覆盖块内**只允许 `--color-*` 声明与注释**；加一条 `box-shadow` 或 `font-*` 进暗块即闸红。理由：暗块混入结构性规则 = 把"换肤"变成"改布局"，双主题同构从此不可保证。
-6. 新增色族（如再加一组状态色）必须**同时扩闸**（`SEMANTIC_CLASS` 的色族清单），不得绕闸——落地时原 3 支断言先红，修法是扩闸。
-7. 治理闸跑在 **unit** project（根 `vitest.config.ts` 的 `include: ['packages/*/src/**/*.test.ts', 'tests/**/*.test.ts']`），命令 `pnpm test`（可单跑 `pnpm vitest run --project unit tests/design-tokens.test.ts`）。
+1. 换肤**只改** `apps/web/src/index.css` 的亮块与暗块；调用点（`apps/web/src/**/*.{ts,tsx}`）不得出现 Tailwind 自带色阶——禁用清单以 `tests/design-tokens.test.ts` 的 `RAW_FAMILIES` / `RAW_PALETTE` 为单源（本文不抄色族个数，§13-9 同族纪律）。`[已落地]`
+2. `[已落地]` 裸 hex/oklch 字面量只许住在两个 token 块内；其余 CSS 规则一律 `var(--color-…)`。**V2 追加**：阴影 token 内也不得写字面 `rgba(...)`，颜色通道必须是 `color-mix(… var(--color-scrim) …)`（FR-2.5）——否则暗色块需要第二套阴影，同构保证破裂。
+3. `[已落地]` **引用必声明**：用到的每个语义色名都要在 `@theme` 里存在——Tailwind v4 对未知色名**静默不产出 CSS**，写错一处表现为"少个颜色"而不是报错。
+4. `[已落地]` **声明必被引用**：未被任何调用点引用的 token 会被 v4 tree-shake 掉，换肤时**静默失效**——闸的第 4 道专抓这一类。（实例：v1.0 落地时删掉了失去引用的 `--color-on-brand` 与 `--color-danger-100`；V2 普查现测 `seal-wash` 引用数为 0（只被 `.seal-badge` 的 `var()` 用到），随印章退场一起删。）
+5. `[已落地]` 暗色覆盖块内**只允许 `--color-*` 声明与注释**；加一条 `box-shadow` 或 `font-*` 进暗块即闸红。理由：暗块混入结构性规则 = 把"换肤"变成"改布局"，双主题同构从此不可保证。
+6. `[V2 未落地]` **新增/改名色族必须同时扩闸**（`SEMANTIC_CLASS` 的家族清单）。V2 的扩闸清单：
+   - 加入：`accent`、`on-accent`、`ok`、`canvas-2`（若启用；V2 决定不启用，见 §7.4-5）、`panel-2`、`panel-sunk`、`panel-sunk` 的兄弟形 `sunk` 后缀由 `([a-z0-9-]*)` 捕获，无需单列。
+   - 移除：`brand`、`on-brand`、`seal`、`on-seal`、`success`、`fill`（`fill` 作为 Tailwind utility 前缀仍在 `COLOR_UTILS` 里，被移除的是**语义族名** `fill`/`fill-soft`）。
+   - **改判说明**：v1.0 FR-2.6 说「落地时原 3 支断言先红，修法是扩闸」。V2 同构复现——**只改名不扩闸会立刻红第 3/4 道**（`bg-accent` 不被识别为语义色名 ⇒ `--color-accent` 被判"声明未引用"），这是设计期的正向拦截，不是闸的缺陷。
+7. `[已落地]` 治理闸跑在 **unit** project（根 `vitest.config.ts` 的 `include: ['packages/*/src/**/*.test.ts', 'tests/**/*.test.ts']`），命令 `pnpm test`（可单跑 `pnpm vitest run --project unit tests/design-tokens.test.ts`）。
 
 ### FR-3 双主题同构（"只换光照，不换层级"）
-1. 亮暗**同名同档**：`ink-*` 七档、`line-*` 三档、`canvas/panel/fill/fill-soft`、`brand`、`seal` 四件套在暗块全部有对应值，不许暗块漏一档而靠亮值穿透（漏档 = 暗色下某处仍是纸白）。
-2. 状态族换法固定：`*-50/100/200/300`（soft 容器/洗底）**转深**，`*-600/700/800/900`（文字/描边）**转亮**；亮色侧是 oklch，暗色侧是手调 hex——这一处不对称是刻意的（暗底上 oklch 中段亮度会刺眼），改任一侧都要在 §7.4 复算里重新判对比度。
-3. `--color-scrim` **两主题共用 `#000000`**（暗块不覆盖）：它只作 Dialog 遮罩 `bg-scrim/30`，黑色遮罩在两套底色下都成立，不需要对偶值。闸的「声明必被引用」会保住它不被 tree-shake。
-4. 布局、圆角、字族、字号阶梯**不因主题变**；主题差异只允许出现在颜色通道。
-5. `data-theme` 只挂在 `<html>`，全站不出现局部子树换肤（无 per-component 主题作用域）。
+1. `[V2 未落地]` 亮暗**同名同档**：**29 支**颜色 token（强调 5 + 纸面 4 + 线 3 + 墨 4 + scrim 1 + 状态 12）在暗块全部要有对应值，不许暗块漏一档而靠亮值穿透（漏档 = 暗色下某处仍是纸白）。
+2. `[V2 未落地]` 状态族换法固定：`-soft`（容器）**转深**、`-line`（描边）**转深但比 soft 亮一档**、`solid`（文字）**转亮**。V1 的"亮侧 oklch / 暗侧手调 hex"不对称在 V2 **取消**——两侧都用 hex，同一份手算复核口径（§7.4）。
+3. `[V2 改判]` `--color-scrim` **不再两主题共用 `#000000`**：V2 亮 = `#2A2018`（温墨）、暗 = `#080503`，且 scrim 同时是**阴影的颜色通道源**（FR-2.5），所以它必须进暗块覆盖（v1.0 FR-3.3 那句「暗块不覆盖它」在 V2 不成立；闸的「声明必被引用」仍保住它不被 tree-shake）。调用点写 `bg-scrim/40`，**不随主题变 alpha**（原型给的 0.42/0.62 两值属 demo 微调，一处 alpha 双主题共用足够，登记为偏离）。
+4. `[已落地]` 布局、圆角、字族、字号阶梯**不因主题变**；主题差异只允许出现在颜色通道（阴影经 scrim 间接随主题浓淡，属颜色通道）。
+5. `[已落地]` `data-theme` 只挂在 `<html>`，全站不出现局部子树换肤（无 per-component 主题作用域）。
+6. `[V2 未落地]` **文字配对 AA 全表**（这是 v2.0 立约的核心）：任何**承载文字**的前景/背景配对，在两套主题都要 ≥4.5:1（正文阈）；3.0 大字阈只允许给 ≥24px 或 ≥18.66px bold 的文字。唯一使用矩阵例外——**`ink-faint` 只允许落 `canvas/panel/panel-2/panel-sunk` 四种纸底**，不得落五类 `-soft` 容器（暖夜下 `ink-faint on accent-soft` = 4.29、`on ok-soft` = 4.41，其余全表 ≥4.5）。全表数值与复算命令见 §7.4。
+7. `[V2 未落地]` **断点不 token 化**：沿用 Tailwind v4 默认档，把原型的 1080/900/560 **就近映射**到 `lg/md/sm`，不新增 `--breakpoint-*`。理由：仓内已有 38 处 `max-md:`/`md:` 变体（复算见 §7.4-4），为 5–8% 的像素差全量重写不划算；折叠语义（`lg` 以下 `g-side` 转单列、`md` 以下侧栏转横向滚动、`sm` 以下全单列）逐条照搬原型。**断点内必须继续用 `minmax(0,1fr)`**，否则长指纹会撑破栅格。
 
 ### FR-4 字体与排印
-1. 三套自托管 + 一个系统栈，`--font-sans/serif/mono` 三个出口：Latin 与数字 = Source Sans 3（可变 200–900）；代码/指纹/路径 = JetBrains Mono（可变 400–800，`font-variant-numeric: tabular-nums`）；wordmark 与「验」印字 = 思源宋体 900；中文正文 = 系统原生栈（PingFang SC / HarmonyOS Sans SC / MiSans / Microsoft YaHei）。
-2. 全部 `font-display: swap`，离线可用（系统栈兜底），字体是**渲染增强**而非阻塞依赖。
-3. 思源宋体只以 **`unicode-range` 两个切片**引入，仅服务 `.wordmark`（「灵典」）与 `.seal-badge .zi`（「验」），**不给正文标题**——衬线出现的两处都是品牌/印章语义。
-4. 字体文件走 vite **asset 通道**（`src/assets/fonts/*.woff2`），因此**不进 `bundle:check` 的 chunk 预算**（闸只读 `dist/assets/*.js`）；这是"诚实代价"，体积必须按 §7.3 的命令实测登记，不得沿用 DESIGN.md 写作时的估算数。
-5. 排印基线：正文 15px / 行高 ≥1.7（中文必需）、界面标签 12px 且**字距只给拉丁**、注音 `rt` 10px 字距 0.08em、`--font-serif` 只走 `.wordmark`。
-6. 许可纪律：只用 **OFL**（可再分发、可子集化）的字体进 tarball/包；DESIGN.md Decisions Log 已裁掉 Fontshare（其 ITF Free Font License 禁止再分发字体文件）——**新增字体前先查许可是否允许随包分发**。
+1. `[V2 未落地]` **两支自托管 + 一个系统栈**，`--font-sans/mono` 两个出口：Latin 与数字 = **Outfit**（可变 `wght 100–900`，latin 子集）；代码/指纹/路径 = **JetBrains Mono**（可变 400–800，`font-variant-numeric: tabular-nums`）；中文 = 系统原生栈（PingFang SC / Hiragino Sans GB / HarmonyOS Sans SC / MiSans / Microsoft YaHei）。`--font-serif` 与思源宋体切片删除（§3.4）。
+   - **两道前置已实查**（不是引用 DESIGN.md 的说法）：license——Outfit latin 可变子集内嵌 nameID 14 = `https://scripts.sil.org/OFL` ⇒ OFL，可再分发可子集化；表数字——GSUB feature 集合实测 `ccmp, frac, liga, pnum, rvrn, tnum` ⇒ `tnum` 存在，「全表数字」这条不会静默回落比例字距。复算命令见 §7.4-3。
+   - **改判理由**：v1.0 选 Source Sans 3 的理由（与思源黑体同出 Adobe 体系、度量天然协调）在 V2 不再生效——V2 的记忆点从"度量协调"改到"暖纸 + 单强调色"，Outfit 的几何感更贴原型。owner 已裁「全盘换肤」，字体属换肤范围。**若 owner 只想要颜色而不要字面，本条是唯一需要回退的条目**（回退代价：`--font-sans` 栈序改回，Outfit woff2 退回 Source Sans 3，其余 FR 不受影响）。
+2. `[已落地]` 全部 `font-display: swap`，离线可用（系统栈兜底），字体是**渲染增强**而非阻塞依赖。
+3. `[V2 未落地]` 字体文件走 vite **asset 通道**（`src/assets/fonts/*.woff2`），因此**不进 `bundle:check` 的 chunk 预算**（闸只读 `dist/assets/*.js`）；这是"诚实代价"，体积必须按 §7.4-2 的命令实测登记，不得沿用任何文档里的估算数。V2 = **2 支 / 63,568 B**（V1 为 4 支 / 139,288 B；差额 −75,720 B 里，宋体两切片占 −79,156 B，Outfit 替换 Source Sans 3 净 +3,436 B）。
+4. `[V2 未落地]` 排印基线：正文 **15px / 1.72**（中文行高必须 ≥1.7）、**正文最小字重 400**；阶梯 30/21/16/15/13.5/12.5；负字距只给大标题（≤ −0.01em），**标签不再加 0.04em 字距**（V1 那条是给拉丁标签的，V2 标签多为中文）；长文本容器 `max-width: 68ch`。
+5. `[V2 未落地]` 数字一律 `tabular-nums`（`.mono` 与 `.num` 两个类是单一出处），台账表格、统计卡、侧栏计数、指纹与时间戳全部走它——「列对齐即信任」是 V2 保留自 V1 的少数信条之一。
+6. `[已落地]` 许可纪律：只用 **OFL**（可再分发、可子集化）的字体进 tarball/包；**新增字体前先查许可是否允许随包分发**（v1.0 已据此裁掉 Fontshare 的 ITF 类"免费但禁再分发"字体）。
 
-### FR-5 组件形制（账本 + 验印母题的五个落点）
-1. `btnPrimary` = 朱砂实心（`border-seal bg-seal text-on-seal`，hover `seal-deep`），**只给"使生效"类动作**（注入/应用/覆盖确认/保存/确认）。
-2. `btnDanger` 与朱砂**互斥**：透明底 + `danger-700` 文字 + `line-strong` 描边 + 调用点二次确认；禁止继承朱砂样式（两套形制混用会让"权威动作"和"破坏动作"在用户眼里同色）。
-3. `.seal-badge`（验印章）= `radius-sm` 近方圆角 + 1.5px 朱砂描边 + `seal-wash` 洗底 + 方章字块 + `-1.5deg` 微旋，**永远配文字不裸奔**；出现时机限验印语义（指纹一致 / 预览即产物）。DESIGN.md 的口径是**三处**（lock 指纹校验通过、diff 一致、装包验证），实现当前**只落一处**（`PackPreviewPane` 的「验 · 预览即产物」，取数 `grep -rn "seal-badge" apps/web/src --include='*.tsx'` → 命中 1）⇒ 差的两处属未做，见 §7.5-7。
-4. `.seal-badge.animate`（验印落章）按设计应是**全站唯一 authored moment**：200ms `ease-out` 从 `scale(1.08)` + `opacity 0` 落定，无回弹；其余过渡 ≤150ms 且只解释状态变化。**现状：动画类与 `@keyframes seal-stamp-in` 都在 CSS 里，但没有任何组件挂 `.animate`**（取数 `grep -rn "animate" apps/web/src --include='*.tsx'` → 零命中）⇒ 该表演位实际不播放，属"CSS 写了、行为没接"（§7.5-8）。本条按**设计要求**写为 FR，实现缺口不反向充当验收标准（dev-plan §0.1 反例条）。
-5. `.term-ruby rt` = 10px / `font-weight 400` / `--color-ink-subtle` / 字距 0.08em；只在词条头词有非空 `pinyin` 时包裹（缺省降级为无 ruby）。数据契约在 `m3-glossary.md` FR-5。
-6. 书脊侧栏 = 宽 76px、`writing-mode: vertical-rl` 竖排字标与标签、单字导航（激活项 `bg-brand-soft text-brand` + 左侧朱砂 1px 书签点）、`<md` 退化为横向顶栏并把竖排转回横排。**七个单字槽全部指向已实现路由**（`AppShell.tsx` 的 `NAV`：库 `/library`、词 `/terms`、技 `/skills`、流 `/flows`、项 `/projects`、包 `/packs`、设 `/settings`）——**注意同名异物**：这里的「技」是 **M2 Skill 台账**，不是 PRD 3.2 的 **M4 技巧库**（M4 无 spec 无实现，dev-plan §15.1-9 / D22）；M4 落地时不能占用「技」字，需另定单字（走本 FR 的 B 级修订）。
+### FR-5 组件形制（暖纸 V2 的六个落点）
+1. `[V2 未落地]` `btnPrimary` = 赭石实心（`border-accent bg-accent text-on-accent`，hover `accent-deep`）+ `shadow-1`；focus-visible `2px accent` outline + `2px offset`；disabled 40% 透明度。文案动词仍是「使生效」类（注入/应用/保存/确认）。**`on-accent` 用 `#FFFAF3` 而非纯白**——暖底上的实心按钮字色也要带纸温。
+2. `[改判]` `btnDanger` 与强调色**互斥**（v1.0 是「与朱砂互斥」，V2 换成「与赭石互斥」，纪律不变）：`danger-soft` 底 + `danger-line` 描边 + `danger` 字，hover 转 `danger` 实心，调用点**必须二次确认并给影响范围**。禁止与 `btnPrimary` 出现在同一动作上。现状缺口不变：`SkillCleanupDialog.tsx`（merge/repair/批量删）、`PackWizard.tsx`（导出写盘）仍无确认，属 UI 轮的必修项。
+3. `[V2 未落地]` **chip 三件套**：`bg-*-soft` + `border-*-line` + `text-*-solid`，**永远配图标 + 文字**（FR-3.6 的矩阵就管着这五类容器内的文字色）。可按压筛选 chip 用 `aria-pressed`，选中态转 `accent-soft` + `accent-deep`。
+4. `[V2 未落地]` **验印退场后的信任落点**：`PackPreviewPane` 的「预览即产物」改为 `ok` chip（图标 + 文字，无旋转、无动效）；指纹/路径/命令一律 `.mono`；导出状态用 `created|idempotent` 双 chip 表达。**不再有"印章"这一形制**。
+5. `[V2 未落地]` **顶栏 + 分组侧栏**：顶栏 58px（品牌 tile + 版本 chip + 主题切换）；侧栏 216px 四组八项（概览/资产/工程/系统），资产项带 API `total` 计数（`tabular-nums` 右对齐，**禁硬编码 109/21/3**）；激活项 `bg-accent-soft text-accent-deep` + 左侧 2px accent 指示条；`md` 以下侧栏转横向滚动条并隐藏计数与页脚。页脚固定「数据存 ~/.openvibe/ · 仅监听 127.0.0.1」。
+6. `[V2 未落地]` **三个新建原子**：`Progress`（6px 槽 `line-hair` + `accent` 实心段）、`Skeleton`（`panel-2` 块，只渐隐）、`Segmented`（`panel-2` 槽 + 选中段 `panel` 底 + `shadow-1`）。分段控件用于**注入冲突处置**：段数**由数据给**——`packages/core/src/inject/planner.ts` 的 `RULES` 对 `DRIFT` 给三个 `options`（`overwrite` / `keep-local` / `skip`）、对 `CONFLICT` 只给两个（`overwrite` / `skip`，本包从未拥有该文件，"保留本地"不适用），**界面不硬写三档**（v1.0 与本文件初稿都写作「冲突三选一」，那是一处字面歧义，已由 `m6-standard-pack.md` v1.5 的 FR-7.5 纠正）。默认选中项 = 「保留本地」**仍是 owner 待裁**（队列 **㉕**，`docs/decisions.md`；DESIGN.md Decisions Log 2026-09-29 那行只确立了"设计建议"地位，产品默认值变更属行为裁定，且 `defaultDecision` 已在 v0.1.0 对外发布为 `overwrite`）。
+7. `[V2 未落地]` **动效降级 + 减动效支持**：统一 `160ms` + `cubic-bezier(.2,.7,.3,1)`，仅用于解释状态变化；`prefers-reduced-motion: reduce` 下 transition/animation 全关（v1.0 §6.8 的"已知未做"在 V2 是验收项）。全站**无 authored moment**（v1.0 FR-5.4 的落章随朱砂退场）。
+8. `[已落地]` 每个组件必须同批交付空 / 加载 / 错误 / 超长内容四态。
 
 ## 5. 输入 / 输出
 
 - **API**：无。主题面**零服务端契约**（这是 FR-1.2 的刻意选择，不新增也不修改任何端点）。
 - **文件落点（实现侧单一出处清单）**：
-  - `apps/web/src/index.css` —— `@font-face` ×4、`@theme` 亮块、`[data-theme='dark']` 暗块、`.mono/.wordmark/.v-rl/.term-ruby/.seal-badge(.zi/.animate)`
-  - `apps/web/src/hooks/useTheme.ts` —— `readStoredTheme` / `applyTheme` / `useTheme`（`{theme, toggle}`，全站唯一状态出口）
+  - `apps/web/src/index.css` —— `@font-face` `[V2：2 支，现为 4 支]`、`@theme` 亮块（含 `--shadow-*`）、`[data-theme='dark']` 暗块、`.mono/.num/.prose` `[V2 删：.wordmark .v-rl .term-ruby .seal-badge(.zi/.animate) @keyframes seal-stamp-in]`、`.html-md`（值改指 V2 token）、`.cm-editor`
+  - `apps/web/src/hooks/useTheme.ts` —— `readStoredTheme` / `applyTheme` / `useTheme`（`{theme, toggle}`，全站唯一状态出口，值域不变）
   - `apps/web/index.html` —— 首帧前预涂内联脚本
-  - `apps/web/src/components/AppShell.tsx` —— `ThemeToggle`（单字按钮）+ 书脊 `<aside>`
-  - `apps/web/src/components/ui/styles.ts` —— `btnPrimary/btnGhost/btnDanger/inputCls/chipCls` 的类组合单一出处
-  - `apps/web/src/i18n/zh.ts` —— `common.theme.{aria,dark,light}` 三键
-  - `apps/web/src/assets/fonts/` —— 4 个 woff2
-  - `tests/design-tokens.test.ts` —— 治理闸
-- **文档口径**：`DESIGN.md`（规范源，含 YAML token 五组 + Colors/Typography/Layout/Elevation/Shapes/Components/Do&Don'ts/Motion/Decisions Log）、`CLAUDE.md`（规定"任何视觉/UI 决策前先读 DESIGN.md，QA 模式要 flag 不符项"）。
+  - `apps/web/src/components/AppShell.tsx` —— `ThemeToggle`（**V2 移到顶栏**）+ 侧栏 `<aside>`（书脊 → 216px 分组）
+  - `apps/web/src/components/ui/styles.ts` —— `btnPrimary/btnGhost/btnDanger/inputCls/labelCls/chipCls/btnBase` 的类组合单一出处（V2 全部重写常量值）
+  - `apps/web/src/i18n/zh.ts` —— `common.theme.{aria,dark,light}` 三键（V2 文案改「暖纸 / 暖夜」）
+  - `apps/web/src/assets/fonts/` —— `[V2：2 个 woff2，现为 4 个]`
+  - `tests/design-tokens.test.ts` —— 治理闸（`[V2]` `SEMANTIC_CLASS` 家族清单要按 FR-2.6 扩）
+- **文档口径**：`DESIGN.md`（规范源，含 YAML token 组 + Colors/Typography/Layout/Elevation/Shapes/Components/Readability Contract/Do&Don'ts/Motion/Migration/Decisions Log）、`CLAUDE.md`（规定"任何视觉/UI 决策前先读 DESIGN.md，QA 模式要 flag 不符项"，并登记 AA 硬约束）。
 - **对下游输出**：亮暗两套都成立且无调用点字面色阶 ⇒ 后续任何页面/组件新增只需引用语义 token，不再触碰 `index.css`。
 
 ## 6. 边界与异常
 
 1. **键位双处硬编码**（`useTheme.ts` 与 `index.html` 各写一次 `'openvibe.theme'`）：改一处而漏另一处的症状是"暗色用户刷新时闪一下亮色"，不报错、不可测——改键必须同步两处（复算：`grep -rn "openvibe.theme" apps/web/src/hooks/useTheme.ts apps/web/index.html` → 期望 **2** 处命中；少于 2 即某处漂了）。
-2. 存储值只认字面 `'dark'`，任何其他值（含手写脏值、`null`、旧版本残留）一律解析为 `light` ⇒ 主题面**无脏值路径**，也不需要迁移。
+2. 存储值只认字面 `'dark'`，任何其他值（含手写脏值、`null`、旧版本残留）一律解析为 `light` ⇒ 主题面**无脏值路径**，也不需要迁移。**这也是 §3.1 拒绝把属性值改成 `night` 的直接原因**——改名等于制造一次静默迁移。
 3. `localStorage` 读失败（无痕、Safari 隔离存储）降级为 `light`；写失败静默、仅本会话生效。两处 `try/catch` 都在，不得让存储异常冒到渲染层。
-4. 暗块里写非 `--color-*` 声明 ⇒ 闸第 2 道红（它会剥掉注释与 `--color-*:` 行后要求残串为空）。这是**设计期就拦**而不是上线后目验。
-5. 引用未声明色名 ⇒ 闸第 3 道红；声明未被引用 ⇒ 闸第 4 道红（v4 会 tree-shake，留着等于没有）。
-6. 思源宋体只嵌两切片、共 371 个码点 token（`grep -oE "U\+[0-9a-fA-F]{2,6}" apps/web/src/index.css | wc -l`）：**换 wordmark 文案（如「灵典」改他字）必须先确认新字在切片内**，不在则回落到系统衬线（Songti SC/SimSun），表现为"字标忽然不像了"而不是报错。
+4. 暗块里写非 `--color-*` 声明 ⇒ 闸第 2 道红（它会剥掉注释与 `--color-*:` 行后要求残串为空）。这是**设计期就拦**而不是上线后目验。V2 的 `--shadow-*` 因此住在**亮块**（`@theme`）而非暗块，靠 `var(--color-scrim)` 间接随主题变。
+5. 引用未声明色名 ⇒ 闸第 3 道红；声明未被引用 ⇒ 闸第 4 道红（v4 会 tree-shake，留着等于没有）。**改名轮的两条可预期红**：① 只改 token 不扩 `SEMANTIC_CLASS` ⇒ 新名被判"声明未引用"；② 调用点漏改一个旧名 ⇒ 旧名被判"引用未声明"。两道都是正向拦截，不许用"先把旧 token 留着当备用"绕开。
+6. `[V2 下线]` v1.0 的「宋体切片只含 371 个码点，换 wordmark 文案须先确认新字在切片内」这条边界随衬线字标退场消失。
 7. 无系统跟随：`prefers-color-scheme` / `matchMedia` 全仓零命中。系统暗色用户首启是亮色（FR-1.5 有意为之）。
-8. 无 `prefers-reduced-motion` 支持：验印落章 200ms 动效对动敏感用户不可关闭——属已知未做面（§7.6），不在本版本声称。
-9. 中文系统栈按平台不同（macOS 苹方 / Windows 雅黑 / Linux 思源或 Noto），**Windows 雅黑字重偏重**，头词的 semibold 映射需按平台微调；本机三平台目验只做过 macOS（§7.6）。
-10. `--color-on-seal` 在亮暗两块**都声明为 `#ffffff`**（暗块写了同值）。这看似冗余，但删掉暗块那行不影响外观、留着才被「声明必被引用」算作"暗色有对偶"——若将来暗色改深字，改动点就在暗块这一行，不在调用点。
+8. `[V2 改判]` `prefers-reduced-motion` 在 v1.0 是"已知未做"（V1 那唯一的落章动效对动敏感用户不可关闭）；V2 升为硬要求（FR-5.7），落地前该缺口仍在。
+9. 中文系统栈按平台不同（macOS 苹方 / Windows 雅黑 / Linux 思源或 Noto），**Windows 雅黑字重偏重**，头词的 semibold 映射需按平台微调；本机三平台目验只做过 macOS（§7.6）。V2 撤掉宋体与注音后，这条风险**只剩字重映射一维**。
+10. `[V2 改判]` v1.0 的「`--color-on-seal` 亮暗两块都声明 `#ffffff`」不再适用：V2 的 `on-accent` 亮 = `#FFFAF3`、暗 = `#1B1510`，**两侧不同值**（暗态强调提为暖金，实心块上的字必须转深才够对比）。同构性靠"两侧都有值"保证，不靠"两侧同值"。
+11. `[V2 新增]` **`ink-faint` 与 `-soft` 容器的配对禁区**（FR-3.6）：静态闸查不出来（闸只看名字有没有声明/引用，不看谁坐在谁上面），所以这条靠两处收口——组件形制里 `-soft` 容器内只用 `ink/ink-body/ink-muted` 或状态 solid 字（FR-5.3），加上设置页第 7 区运行时矩阵红牌。**登记为已知未机器化的约束**。
 
 ## 7. 验收标准（pass/fail）
 
 > 本段的"自动化项"一律给**文件 + describe/it 标题 + 命令**，不写支数（dev-plan §13-9）；"人工项"给可复跑的走查路径与判读表。§7.1 是本 spec 的性质声明，不是验收项。
 
-1. **补写件的判定基准**：本 spec 是 2026-09-30 对已入库实现（`git show 453a535 --stat` 的 23 个文件）的反向核对。凡实现与 DESIGN.md 口径不符，**判定以本文件 §7.5 的清单为准**，§7.2–§7.4 只验"闸与实测数"，不含对 DESIGN.md 的背书。
-2. **token 治理闸**：`tests/design-tokens.test.ts` 的 `WEB-TOKENS · 颜色单一出处` 四道断言全绿——四道标题分别是「调用点零残留字面色阶」「裸 hex 只住在 token 源内…」「用到的每个语义色名都在 @theme 里声明了」「声明的每个 token 都被引用…」；取数 `grep -cE "^[[:space:]]*it[\.(]" tests/design-tokens.test.ts`，命令 `pnpm vitest run --project unit tests/design-tokens.test.ts`。**判据 = 全绿；任一红即本模块不合格**（闸的 4 道就是 FR-2.1–2.5 的机器版）。
-3. **字体 asset 与预算**：`bundle:check` 入口/chunk 闸绿，且字体四支合计体积以命令为准——
+1. **两副面孔的判定基准**：v1.0 部分（FR-1.2–1.5、FR-2.1–2.5、FR-3.4–3.5、FR-4.2/4.6、FR-5.8）是对**已入库实现**的反向核对，判定基准 = 本文件 §7.5 的清单；v2.0 部分（标 `[V2 未落地]` 者）是**改判后的待验规格**，判定 = 落地轮交付后的复跑，本笔时点一律记"未验"。
+2. **token 治理闸**：`tests/design-tokens.test.ts` 的 `WEB-TOKENS · 颜色单一出处` 四道断言全绿——四道标题分别是「调用点零残留字面色阶」「裸 hex 只住在 token 源内…」「用到的每个语义色名都在 @theme 里声明了」「声明的每个 token 都被引用…」；取数 `grep -cE "^[[:space:]]*it[\.(]" tests/design-tokens.test.ts`，命令 `pnpm vitest run --project unit tests/design-tokens.test.ts`。**判据 = 全绿；任一红即本模块不合格**（闸的 4 道就是 FR-2.1–2.5 的机器版）。本笔时点实测 **4/4 绿（2026-10-01 08:54，值仍为 V1）**；V2 落地后须**重跑并扩闸**（FR-2.6）。
+3. **字体 asset 与预算**：`bundle:check` 入口/chunk 闸绿，且字体合计体积以命令为准——
    `node -e 'const fs=require("fs"),d="apps/web/src/assets/fonts/";const a=fs.readdirSync(d).filter(f=>f.endsWith(".woff2"));console.log(a.length, a.reduce((s,f)=>s+fs.statSync(d+f).size,0))'`
-   预期形状：`4` 与 `≈139,288 B`（口径 = `sample sha 453a535` 工作树实测、按 1000B=1KB、不含 `.DS_Store`；DESIGN.md 写作时的「~60–90KB」与「宋体子集约 5KB」是**估算**，已被实测作废 ⇒ 见 §7.5-2）。
+   预期形状：`[V1 现值] 4 与 139,288 B` → `[V2 目标] 2 与 63,568 B`（口径 = 工作树实测、按 1000B=1KB、不含 `.DS_Store`；DESIGN.md V1 写作时的「~60–90KB」与「宋体子集约 5KB」是估算，已被实测作废 ⇒ §7.5-2）。
 4. **对比度可复算（WCAG 2.1 相对亮度，sRGB，正文阈 4.5 / 大字阈 3.0）**：
    ```
-   node -e 'const L=h=>{const[r,g,b]=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);return .2126*r+.7152*g+.0722*b};const C=(a,b)=>{const[l1,l2]=[L(a),L(b)].sort((x,y)=>y-x);return((l1+.05)/(l2+.05)).toFixed(2)};console.log(C("C3402B","FAF9F6"),C("D9583F","1C1B17"),C("FFFFFF","D9583F"),C("FFFFFF","C3402B"))'
+   node -e 'const L=h=>{const[r,g,b]=[0,2,4].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);return .2126*r+.7152*g+.0722*b};const C=(a,b)=>{const[l1,l2]=[L(a),L(b)].sort((x,y)=>y-x);return((l1+.05)/(l2+.05)).toFixed(2)};console.log(C("75634C","F1E7D8"),C("75634C","FFFDF9"),C("9A8B76","26201A"),C("9A8B76","372814"),C("1B1510","E9A63F"),C("A8501C","16120F"))'
    ```
-   2026-09-30 实测四个数（口径：`main` 工作树 + 上式手算，非浏览器取色）：`4.88 / 4.45 / 3.88 / 5.14`。
-   判读：① 亮色朱砂 on 温纸白 **4.88 ≥ 4.5** ⇒ AA 正文达标（DESIGN.md 手算「≈4.9」与此吻合）；② 暗色朱砂文字/描边 on 夜账本 **4.45 < 4.5** ⇒ **AA 正文未达标**、AA 大字达标；③ 暗色实心按钮白字 **3.88 < 4.5** ⇒ **AA 正文未达标**（`btnPrimary` 实际 14px 常规字重 = 属正文档）；④ 亮色实心按钮白字 5.14 达标。**②③ 是 finding，不是通过项**，登记在 §7.5-5 待裁；改任一侧 token 都必须重跑本条。
-5. **人工目验凭据**（本 spec 落地时的唯一视觉凭据）：`docs/devlog-evidence/DEV-0046/01-library-light.png`、`02-library-dark.png`、`03-terms-dark-ruby.png` 三张存在且分别对应「亮色书脊首页 / 暗色首页 / 暗色 + 注音词条页」；暗色那张做过 PNG 采样（画布 `rgb(28,27,23)`）。走查路径：`pnpm dev` → 5144 → 首页点书脊「夜」→ 刷新看是否闪白 → `/terms` 看 `rt` 是否悬挂不破行。
-6. **未验证面（不得声称已验）**：
-   - 四道闸之外的**暗色全站覆盖**没有自动化：无像素回归基线、无 `data-theme` 断言、无暗色下的 DOM 快照。暗色正确性目前 = 上面 3 张截图 + 一次采样，属**单点人工凭据**。
+   2026-10-01 实测六个数（口径：手算 token 值，**非浏览器取色**；V2 值为设计值，落地后须从渲染页复采）：`4.71 / 5.67 / 4.85 / 4.29 / 8.60 / 3.40`。
+   判读：① 暖纸最弱文字配对 `ink-faint on panel-sunk` **4.71 ≥ 4.5** ⇒ AA 达标；② `ink-faint on panel` 5.67 达标；③ 暖夜 `ink-faint on panel-2` **4.85** 达标；④ 暖夜 `ink-faint on accent-soft` **4.29 < 4.5** ⇒ **这就是 FR-3.6 那条使用矩阵例外的唯一根因**（`ink-faint` 不得落 `-soft`）；⑤ 暖夜实心按钮 `on-accent on accent` **8.60** ⇒ v1.0 §7.4-③ 那条 3.88 的未裁 finding 被 V2 直接跨过；⑥ 赭石原值 on 暖夜画布 **3.40** ⇒ 暗态强调必须提为暖金，只够大字阈。**改任一侧 token 都必须重跑本条。**
+5. **V2 token 集合的封闭性**：`grep -oE '^\s+--color-[a-z0-9-]+' apps/web/src/index.css | sort -u` 在 V2 落地后应得 **29 支 × 2 块**（`sort -u` 去重后应得 **29 行**：亮块 29 + 暗块 29，未去重是 58 次声明，且名字集合相等）；原型自带的 `--canvas-2`（demo 内 `var(--canvas-2)` 命中 **0**）与 `--r-3/--r-4`（零引用）**不带入**——带进来即撞闸第 4 道。
+6. **人工目验凭据**：
+   - `[V1 已存]` `docs/devlog-evidence/DEV-0046/01-library-light.png`、`02-library-dark.png`、`03-terms-dark-ruby.png` 三张存在且分别对应「亮色书脊首页 / 暗色首页 / 暗色 + 注音词条页」。**第三张随 V2 撤注音而变成历史件**，不得当作 V2 凭据复用。
+   - `[V2 待产]` 落地轮须另出一组：暖纸 / 暖夜 ×（工作台 / 提示词库 / 术语库 / 项目详情 / 组包向导 / 设置第 7 区），并保留「运行时对比度自检」那张。走查路径：`pnpm dev` → 顶栏切暖夜 → 刷新看是否闪白 → 设置页第 7 区看是否全绿 → `/terms` 看长英文别名是否撑破列宽。
+7. **未验证面（不得声称已验）**：
+   - **V2 全部**：本笔是纯文档轮，没有跑过任何前端构建/渲染；§7.4 的六个数是**手算 token 值**，不是浏览器采样。
+   - 四道闸之外的**暗色全站覆盖**没有自动化：无像素回归基线、无 `data-theme` 断言、无暗色下的 DOM 快照。
+   - **FR-3.6 的配对矩阵与 FR-6/§6.11 的 `-soft` 禁区无静态自动化**：需要 DOM 层的样式组合分析，超出闸的能力；现阶段只有组件形制纪律 + 运行时自检屏。
    - 首帧预涂（FR-1.3）与降级路径（FR-1.4、§6.3）**无自动化**：需要真刷新时序与无痕环境，未做用例。
-   - 验印落章动效（FR-5.4）无自动化，且 `prefers-reduced-motion` 未支持（§6.8）。
-   - Windows / Linux 的系统字体栈与字重映射未目验（DEV_LOG 换肤那笔的潜在风险②自述「需在三个平台各目验一次」，现只做了 macOS）。
-   - 书脊七条路由的**渲染与交互无自动化断言**（导航态、激活书签点、`<md` 退化布局都靠目验），书脊竖排（`writing-mode: vertical-rl`）的跨浏览器细节未验证；极窄屏（320px）下注音 rt 宽度未测（DEV_LOG ruby 落地那笔风险②同源）。
-   - 暗色遮罩 `bg-scrim/30` 在暗底上的对话框边界可读性未目验（scrim 不对偶，§3 表 FR-3.3）。
-   - 书脊导航的「技」指向未实现的 M4（§2 模块本身无 spec，见 dev-plan §15.1-9）⇒ 视觉上像已交付，属**导航暴露未实现模块**，待 M4 spec 落定后判保留/摘除。
-7. **上游缺席登记**：PRD 3.2 未把「主题/token 化/字体」列为任何模块功能，仅第 8 章 P2 行与 D19 提到「暗色主题（前置是设计 token 化重构）」；dev-plan §5.5 仍写「深浅色 MVP 仅浅色（P1.1 评估暗色）」。本 spec 立起后，§5.5 那格由本笔同步改写为指向本文，避免"文档说没做、代码已做完"的第二次漂移。
+   - `prefers-reduced-motion`（FR-5.7）在 V2 落地前无实现、无用例。
+   - Windows / Linux 的系统字体栈与字重映射未目验（只做过 macOS）；Outfit 换脸后 Windows 雅黑的字重落差需重走一遍。
+   - 分组侧栏八项的**渲染与交互无自动化断言**（导航态、激活指示条、计数取数、`md` 以下转横向条）；极窄屏（320px）未测。
+   - 暗态遮罩 `bg-scrim/40`（V2  scrim = `#080503`）在暗底上的对话框边界可读性未目验。
+   - `[V1 遗留、V2 消失]` 书脊「技」指向未实现的 M4 这条导航暴露问题，随书脊退场消失；M4 的入口改由「资产」组的 Skill 项承担（同义提醒：侧栏「技」从来是 **M2 Skill 台账**，不是 PRD 3.2 的 **M4 技巧库**）。
+8. **上游缺席登记**：PRD 3.2 未把「主题/token 化/字体」列为任何模块功能，仅第 8 章 P2 行与 D19 提到「暗色主题（前置是设计 token 化重构）」；dev-plan §5.5 那格已由 v1.0 那笔改写为指向本文（避免"文档说没做、代码已做完"的二次漂移）。**v2.0 新增的上游欠账**：DESIGN.md 换版属 C 级文档事件，dev-plan §5.5 若仍写 V1 的「温纸白 / 夜账本」两个名字，落地轮须同笔改为「暖纸 / 暖夜」并指向本文与 DESIGN.md。
 
-### 7.5 未对齐清单（DESIGN.md 口径 ↔ 已入库实现，逐条待裁）
+### 7.5 未对齐清单（v1.0 八条的逐条改判）
 
-| # | DESIGN.md 说 | 实现是 | 影响 | 处置 |
-|---|--------------|--------|------|------|
-| 1 | 词条头词 **19px** semibold（Typography / term-card 两处同数） | `TermsTable.tsx` 头词 `text-[15px] font-semibold`（换肤那笔 DEV_LOG 里就写的是 15px） | 头词与正文同级，「内容面头词大」的记忆点弱化 | 待裁：改实现（一行）或改 DESIGN.md 口径并留痕 |
-| 2 | wordmark 宋体「只嵌这两字的可变子集约 5KB」；字体诚实代价 ~60–90KB | 两支切片共 **79,156 B**、四支共 139,288 B，且切片含 371 个码点而非两字 | 数字陈旧（不影响功能，asset 不占 chunk 预算） | 本文 §7.3 以实测命令为单源；DESIGN.md 那两数按原样留着当写作时点记录 |
-| 3 | 「ruby 注音可在设置关闭（关闭后回退为副行拼音）」 | **无开关**：`pinyin` 非空即渲染 ruby，全站无设置项、无降级副行 | 承诺的可访问性选择权缺失 | 已登记为增强项（DEV_LOG ruby 落地那笔风险④「属增强项」）；要做属 §0.3 B 级新增 FR + 设置页落点 |
-| 4 | Motion「全站 ≤150ms」同时「the one authored moment = 200ms 落章」 | 实现取 200ms | DESIGN.md **自相矛盾**（通则与例外同文档并存） | 待裁：把通则改写成「≤150ms，唯一例外为验印落章 200ms」，否则走查无法判红 |
-| 5 | 「暗色用提亮档 `#D9583F` 保对比」 | 实测 4.45（文字/描边）与 3.88（白字实心按钮），两项 AA 正文未达标 | 暗色下**朱批按钮**是全站最关键动作，却是唯一不达标的对比组合 | 待裁三选一：① 暗态按钮改深字（`#1C1B17` on `#D9583F` = 4.45，仍差 0.05）；② 暗态底色转深（白字 on `#A03020` = 7.15，达标但朱砂在暗底变沉、失去"提亮"初衷）；③ 认大字阈并加厚字重（按钮文案 ≥14px bold 可主张 3.0 阈）。任一改动都要重跑 §7.4 |
-| 6 | `error` = `#B3372A` 单色 | 实现是 `danger-*` oklch 六档族（`btnDanger` 取 `-700`，暗色另值） | 语义等价、形状不同；按 DESIGN.md 字面找 `#B3372A` 会找不到 | 以 §3 映射表为准（`error ↔ danger-*`），DESIGN.md 的十六进制按其原文当历史记录 |
-| 7 | seal-badge 出现时机「仅三处：lock 指纹校验通过、diff 一致、装包验证」 | 只落**一处**（`PackPreviewPane` 预览即产物）；复跑 `grep -rn "seal-badge" apps/web/src --include='*.tsx'`（采样 2026-09-30 工作树） | 「验印」信任信号只覆盖了一条链，另两条（lock 校验、diff 一致）视觉上无印 | 待裁：另两处是否随 M5/M6 的对应界面补挂；补挂属新增调用点，不触 token 块 |
-| 8 | 「The one authored moment：验印落章 200ms 落定」 | CSS 有 `.seal-badge.animate` 与 `@keyframes seal-stamp-in`，**无任何组件挂 `.animate`**（复跑 `grep -rn "seal-badge" apps/web/src --include='*.tsx'` 无 `animate` 后缀；`grep -rn '\banimate\b' apps/web/src --include='*.tsx'` 零命中）⇒ 动画是死代码，表演位从不播放 | 设计最强调的那一下"盖章感"实际不存在 | 待裁：在验印章出现处按验印通过时机挂 `.animate`（一处即可），并据此重跑 §7.4 与目验 |
+| # | v1.0 说的是 | v2.0 改判 |
+|---|-------------|-----------|
+| 1 | DESIGN.md 头词 19px，实现是 15px（`TermsTable.tsx`） | **收敛为 16px/600**：V2 阶梯（30/21/16/15/13.5/12.5）里 16 是 H3 档，头词取它；19px 那档在新阶梯里不存在。落地轮改 `TermsTable.tsx` 一处 |
+| 2 | wordmark 宋体「只嵌两字约 5KB」、字体诚实代价 ~60–90KB | **作废**：宋体两切片（79,156 B）整体删除，V2 字体 = 2 支 / 63,568 B，§7.3 命令为单源 |
+| 3 | 「ruby 注音可在设置关闭」而实现无开关 | **作废**：注音展示层随 V1 退场撤销，无开关可谈。`TermOut.pinyin` 字段保留（排序口径），契约仍在 `m3-glossary.md` FR-5 |
+| 4 | Motion「全站 ≤150ms」与「唯一 authored moment 200ms」自相矛盾 | **作废**：V2 统一 160ms 且**无 authored moment**，矛盾的两边同时消失 |
+| 5 | 暗态朱砂 `#D9583F` 文字 4.45 / 白字实心按钮 3.88，两项 AA 不达标，待裁三选一 | **作废并被跨过**：朱砂退场 ⇒ 暗态强调是暖金 `#E9A63F` + `on-accent #1B1510` = **8.60**；原三选一不再需要裁 |
+| 6 | `error` = `#B3372A` 单色，实现是 `danger-*` oklch 六档 | **改判**：V2 状态族统一三档制（`solid / -soft / -line`，hex），`error` 这个名字不再存在，红 = `danger #AB3527`（亮）/ `#E8836F`（暗）。DESIGN.md 已按 V2 重写，映射表由 §3.3 取代 |
+| 7 | seal-badge 设计要求出现三处（lock 校验 / diff 一致 / 装包验证），实现只落一处 | **作废**：验印章整体退场（§3.4）。**留下的问题**：原三条链的信任表达改为 `ok` chip + mono 指纹 + 状态 chip，落点仍要在落地轮逐处指定（diff 一致那条依赖 m6 新增的 dry-run/diff 端点，见 `m6-standard-pack.md` FR-7） |
+| 8 | `.seal-badge.animate` 与 `@keyframes seal-stamp-in` 是死代码，表演位从不播放 | **作废**：类与 keyframes 随朱砂一起删。死代码的教训写进 FR-2.4 的口径：V2 落地时**先删 CSS 再宣布换肤完成**，不留"备用形制" |
 
 ## 8. 依赖
 
-- **依赖**：Tailwind v4 的 `@theme` → utility 生成与 tree-shake 语义（FR-2.3/2.4 两条断言成立的前提）；Radix Primitives 提供 Dialog/Toast 等浮层（scrim、shadow 形制的宿主）；vite asset 管线（字体走 asset 不 JS 侧）；`CLAUDE.md` 的"先读 DESIGN.md"纪律；pinyin 数据来自 `packages/core`（FR-5.5 的 `TermOut.pinyin`，非本模块）。
+- **依赖**：Tailwind v4 的 `@theme` → utility 生成与 tree-shake 语义（FR-2.3/2.4 两条断言成立的前提）与 `--shadow-*` / `--radius-*` 命名空间；Radix Primitives 提供 Dialog/Toast 等浮层（scrim、shadow 形制的宿主）；vite asset 管线（字体走 asset 不 JS 侧）；`CLAUDE.md` 的"先读 DESIGN.md"纪律；pinyin 数据来自 `packages/core`（§3.4 的字段保留理由，非本模块）。
 - **被依赖**：`apps/web` 全部页面与组件的视觉；`m1/m2/m3/m5/m6` 各 spec 的 UI 验收条目凡涉及颜色/字体，判定口径都指向本文件与 `DESIGN.md`，不各自描述颜色。
-- **许可与分发**：Source Sans 3 / JetBrains Mono / Noto Serif SC 均 SIL OFL（允许再分发与子集化），故可随 `apps/web` 产物与 CLI tarball 同域分发；**禁止引入 ITF 类"免费但禁再分发"的字体**。
-- **脆弱面（改动前必读）**：① `@theme` 与 `[data-theme='dark']` 的**层内/层外关系**是暗色生效的机制（§3 末段），把暗块包进 `@layer` 或改用 `@utility` 都可能静默破坏换肤；② 键位两处硬编码（§6.1）；③ 暗块内只许 `--color-*`，结构性差异要落在亮块之外的非主题规则；④ `bundle:check` 只统计 `.js`，字体膨胀**不会被闸拦**，靠 §7.3 的实测命令人工登记。
+- **许可与分发**：Outfit / JetBrains Mono 均 SIL OFL（允许再分发与子集化，Outfit 的 license URL 已内嵌于字体 name 表实测），故可随 `apps/web` 产物与 CLI tarball 同域分发；**禁止引入 ITF 类"免费但禁再分发"的字体**。
+- **脆弱面（改动前必读）**：① `@theme` 与 `[data-theme='dark']` 的**层内/层外关系**是暗色生效的机制（Tailwind v4 把 `@theme` 编进 `@layer theme`，暗块是未层 CSS，未层在与分层冲突时胜出，故暗块不需要更高特异性）——把暗块包进 `@layer` 或改用 `@utility` 都可能静默破坏换肤；② 键位两处硬编码（§6.1）；③ 暗块内只许 `--color-*`，结构性差异要落在亮块之外的非主题规则（阴影因此住在亮块并经 `var(--color-scrim)` 变浓淡，FR-2.5）；④ `bundle:check` 只统计 `.js`，字体膨胀**不会被闸拦**，靠 §7.3 的实测命令人工登记；⑤ **入口 JS 只剩 0.08 kB 余量**（299.92/300，实测 2026-10-01 08:54）⇒ V2 落地的新屏必须 `lazy()` 独立 chunk，图标走原型那套 24 个 inline SVG path 的 `ICO` 表，**不引 `lucide-react` 整包**；⑥ 改名轮的两道可预期闸红（§6.5）不许用"留旧 token 备用"绕开。

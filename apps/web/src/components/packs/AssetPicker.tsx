@@ -1,15 +1,17 @@
 import { useState } from 'react'
+import { usePlaybookList } from '../../hooks/usePlaybooks'
 import { usePromptAggregates } from '../../hooks/usePrompts'
 import { useSkillList } from '../../hooks/useSkills'
 import { useTermList } from '../../hooks/useTerms'
 import { zh } from '../../i18n/zh'
 import { chipCls, inputCls } from '../ui/styles'
 
-/** 选集三栏的 id 集合；同一形状复用给 STALE_SELECTION 明细（字段名与 resolve.ts 一致） */
+/** 选集四栏的 id 集合；同一形状复用给 STALE_SELECTION 明细（字段名与 resolve.ts 的 StaleDetails 一致） */
 export interface AssetIds {
   promptIds: string[]
   termIds: string[]
   skillIds: string[]
+  playbookIds: string[]
 }
 
 interface AssetPickerProps {
@@ -115,24 +117,29 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
   )
 }
 
-/** 步骤 3 三栏多选（m6a FR-1.3）：提示词取 active，术语与 skill 全列；STALE_SELECTION 明细标红 */
+/** 步骤 3 四栏多选（m6a FR-1.3）：提示词取 active，术语、技巧与 skill 全列；STALE_SELECTION 明细标红 */
 export function AssetPicker(props: AssetPickerProps) {
   const prompts = usePromptAggregates({ status: 'active' })
   const terms = useTermList()
   const skills = useSkillList('')
+  const playbooks = usePlaybookList()
   const { value, stale, onChange } = props
+  const staleAll = [
+    ...stale.promptIds,
+    ...stale.termIds,
+    ...stale.skillIds,
+    ...stale.playbookIds,
+  ]
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <p className="text-xs text-ink-muted">{zh.packs.wizard.assetsHint}</p>
-      {stale.promptIds.length + stale.termIds.length + stale.skillIds.length > 0 && (
+      {staleAll.length > 0 && (
         <p className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-xs text-danger">
-          {zh.packs.preview.stale(
-            [...stale.promptIds, ...stale.termIds, ...stale.skillIds].join(', '),
-          )}
+          {zh.packs.preview.stale(staleAll.join(', '))}
         </p>
       )}
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-3">
+      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-4">
         <Column
           title={zh.packs.wizard.promptsCol}
           rows={byUpdated(prompts.data?.items ?? [])}
@@ -168,6 +175,19 @@ export function AssetPicker(props: AssetPickerProps) {
           onToggle={(id) => onChange({ skillIds: toggle(value.skillIds, id) })}
           onSelectAll={(ids) => onChange({ skillIds: [...value.skillIds, ...ids] })}
           onClear={() => onChange({ skillIds: [] })}
+        />
+        {/* M4 技巧栏：只列已发布的（草稿不产字节，m4 FR-6.2）；草稿仍在技巧库页里编辑 */}
+        <Column
+          title={zh.packs.wizard.playbooksCol}
+          rows={byUpdated((playbooks.data?.items ?? []).filter((p) => p.status === 'published'))}
+          label={(r) => r.scenario}
+          note={(r) => r.problem}
+          badge={(r) => (r.verified ? zh.playbooks.verifiedMark : zh.playbooks.status[r.status])}
+          ids={value.playbookIds}
+          staleIds={stale.playbookIds}
+          onToggle={(id) => onChange({ playbookIds: toggle(value.playbookIds, id) })}
+          onSelectAll={(ids) => onChange({ playbookIds: [...value.playbookIds, ...ids] })}
+          onClear={() => onChange({ playbookIds: [] })}
         />
       </div>
     </div>

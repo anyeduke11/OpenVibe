@@ -11,13 +11,19 @@ import {
   FlywheelStatsOut,
   TELEMETRY_EVENTS,
   TelemetryEventInput,
+  TelemetryLedgerLimit,
   TelemetryToggleInput,
   OnboardingToggleInput,
+  TELEMETRY_EVENTS_LIMIT_DEFAULT,
+  TELEMETRY_EVENTS_LIMIT_MAX,
   telemetryDay,
   telemetryOs,
   type SeedSummary,
   type SettingsOut,
   type TelemetryAskState,
+  type TelemetryEvent,
+  type TelemetryLedgerOut,
+  type TelemetryOs,
   type TelemetrySettingsOut,
 } from '@openvibe/shared'
 import { ensureDefaultPack } from '../lib/default-pack'
@@ -59,6 +65,20 @@ function telemetryView(meta: AppMetaRepo): TelemetrySettingsOut {
 
 const countOf = (db: SqliteDatabase, table: string): number =>
   (db.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get() as { c: number }).c
+
+/**
+ * `?limit=` 的读侧口径（契约：默认 50、上限 200、非法值回落默认）：
+ * 合法整数直接用；超 200 夹到 200（不是回落 50）；其余（缺省 / 非数 / 0 / 负数 / 小数 / 重复键）
+ * 一律回落默认。
+ */
+function ledgerLimit(raw: unknown): number {
+  const parsed = TelemetryLedgerLimit.safeParse(raw)
+  if (parsed.success) return parsed.data
+  const n = typeof raw === 'string' ? Number(raw) : Number.NaN
+  return Number.isInteger(n) && n > TELEMETRY_EVENTS_LIMIT_MAX
+    ? TELEMETRY_EVENTS_LIMIT_MAX
+    : TELEMETRY_EVENTS_LIMIT_DEFAULT
+}
 
 export function seedSummaryOf(results: SeedBundleResult[]): SeedSummary {
   const seed: SeedSummary = { created: {}, updated: {}, skipped: {}, bundles: {}, warnings: [] }
@@ -140,6 +160,55 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
       queuedAt: at.toISOString(),
     })
     return { queued: true, reason: 'enabled' as const }
+  })
+
+  /**
+   * 本机事件台账（V2 批）：append-only 队列的只读视图，本机可查、可清空（清空走既有 DB 通道）。
+   *
+   * 隐私口径（D-3 遥测默认关闭）：本端点**只读本地 SQLite，绝不出网**，也不写任何东西；
+   * 返回值不含用户标识与本机路径——telemetry_events 根本没有这类列（见 0002 迁移的七列），
+   * props 只是把该行已存的列逐字搬出来，不做拼接或推断。
+   *
+   * 字段名与表列的映射（表里没有 name/ts/props）：name←event、ts←queued_at、
+   * props←{ value, day, os, app_version→appVersion, sent_at→sentAt }。
+   *
+   * `?limit=` 走「非法回落默认、超限夹到 200」而非 422（契约要求）：纯读端点不该因坏参数被整体打挂。
+   */
+  app.get('/api/telemetry/events', async (req): Promise<TelemetryLedgerOut> => {
+    const { limit } = req.query as { limit?: unknown }
+    const rows = deps.db
+      .prepare(
+        `SELECT id, event, value, day, os, app_version, queued_at, sent_at
+           FROM telemetry_events ORDER BY id DESC LIMIT ?`,
+      )
+      .all(ledgerLimit(limit)) as {
+      id: number
+      event: TelemetryEvent
+      value: string
+      day: string
+      os: TelemetryOs
+      app_version: string
+      queued_at: string
+      sent_at: string | null
+    }[]
+    const total = (
+      deps.db.prepare('SELECT COUNT(*) AS c FROM telemetry_events').get() as { c: number }
+    ).c
+    return {
+      items: rows.map((r) => ({
+        id: r.id,
+        name: r.event,
+        ts: r.queued_at,
+        props: {
+          value: r.value,
+          day: r.day,
+          os: r.os,
+          appVersion: r.app_version,
+          sentAt: r.sent_at,
+        },
+      })),
+      total,
+    }
   })
 
   /**

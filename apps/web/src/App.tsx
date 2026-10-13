@@ -8,10 +8,19 @@ import { AppShell } from './components/AppShell'
  * 没有这一层它们全都会挤进首屏那一个文件里。
  * 命名导出需过一层 `{ default }` 适配——`lazy` 只认默认导出。
  */
+const GrowthPage = lazy(() =>
+  import('./pages/GrowthPage').then((m) => ({ default: m.GrowthPage })),
+)
+const WorkbenchPage = lazy(() =>
+  import('./pages/WorkbenchPage').then((m) => ({ default: m.WorkbenchPage })),
+)
 const LibraryPage = lazy(() =>
   import('./pages/LibraryPage').then((m) => ({ default: m.LibraryPage })),
 )
 const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })))
+const PlaybooksPage = lazy(() =>
+  import('./pages/PlaybooksPage').then((m) => ({ default: m.PlaybooksPage })),
+)
 const SkillsPage = lazy(() => import('./pages/SkillsPage').then((m) => ({ default: m.SkillsPage })))
 const FlowsPage = lazy(() => import('./pages/FlowsPage').then((m) => ({ default: m.FlowsPage })))
 const ProjectsPage = lazy(() =>
@@ -32,9 +41,10 @@ export function App() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<Navigate to="/library" replace />} />
+        <Route index element={<WorkbenchPage />} />
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/playbooks" element={<PlaybooksPage />} />
         <Route path="/skills" element={<SkillsPage />} />
         <Route path="/flows" element={<FlowsPage />} />
         <Route path="/projects" element={<ProjectsPage />} />
@@ -43,7 +53,8 @@ export function App() {
         <Route path="/packs/new" element={<PackNewPage />} />
         <Route path="/packs/:id/edit" element={<PackNewPage />} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate to="/library" replace />} />
+        <Route path="/growth" element={<GrowthPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   )

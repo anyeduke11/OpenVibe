@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ADAPTER_IDS, LIMITS, SCHEMA_VERSION, USE_AS } from '../constants'
+import { ADAPTER_IDS, LIMITS, PLAYBOOK_STATUS, SCHEMA_VERSION, USE_AS } from '../constants'
 import {
   PACK_NAME_RE,
   SEMVER_RE,
@@ -12,15 +12,10 @@ export const PackSelection = z.object({
   promptIds: z.array(z.string()).default([]),
   termIds: z.array(z.string()).default([]),
   skillIds: z.array(z.string()).default([]),
-  // 静默吞输入 = 谎报：`resolve.ts` 从不读这个字段，传了既不进产物也不改指纹，
-  // 调用方以为挂上了技巧库。M4（docs/PRD.md:168，Phase 2）上线时把这道闸拆掉即可，
-  // 拆闸是**变宽**，不碎任何客户端（owner 裁定 ⑫，2026-09-26）。
-  playbookIds: z
-    .array(z.string())
-    .default([])
-    .refine((ids) => ids.length === 0, {
-      message: 'playbookIds 暂不可用：M4 技巧库未上线，选集不会因此产任何文件',
-    }),
+  // 技巧选集（m4 FR-8.1）：闸已拆，字段保留为真实通道——选中的技巧进 PLAYBOOKS.md 产物。
+  // 曾有的 `.refine(ids.length === 0)` 是「M4 未上线」的占位闸，按 owner 裁 ⑫ 在 M4 那笔拆除；
+  // 现语义见 docs/specs/m4-playbook.md FR-8（拆闸只影响此后新建/重导的版本，历史实例不回溯）。
+  playbookIds: z.array(z.string()).default([]),
   flowTemplateId: z.string().nullable().default(null),
 })
 export type PackSelection = z.infer<typeof PackSelection>
@@ -196,6 +191,17 @@ export const ManifestSkill = z.object({
   versionLabel: z.string().default(''),
 })
 export type ManifestSkill = z.infer<typeof ManifestSkill>
+
+/** 组包快照里的技巧条目（m4 FR-7.1）：只带渲染要用的字段，证据不进包 */
+export const ManifestPlaybook = z.object({
+  scenario: z.string(),
+  problem: z.string(),
+  practice: z.string(),
+  antiPractice: z.string().default(''),
+  verified: z.boolean().default(false),
+  status: z.enum(PLAYBOOK_STATUS),
+})
+export type ManifestPlaybook = z.infer<typeof ManifestPlaybook>
 
 /** openvibe.pack.json（manifest，design §7.2） */
 export const PackManifestSchema = z.object({
