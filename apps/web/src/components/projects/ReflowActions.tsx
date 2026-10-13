@@ -49,7 +49,7 @@ export function ReflowActions(props: { entry: DevLogOut; projectName: string }) 
       </button>
       <span className="text-[11px] text-ink-faint">{zh.projects.reflow.pickHint}</span>
       {entry.linkedAssetIds.length > 0 && (
-        <span className={`${chipCls} ml-auto border-line bg-fill-soft text-ink-muted`}>
+        <span className={`${chipCls} ml-auto border-line bg-panel-2 text-ink-muted`}>
           {zh.projects.devlog.linkedAssets(entry.linkedAssetIds.length)}
         </span>
       )}
@@ -91,6 +91,6 @@ export function ReflowOriginLine(props: { assetId: string }) {
   const o = origin.data?.origin
   if (o === null || o === undefined) return null
   return (
-    <span className="text-[11px] text-brand">{zh.projects.reflow.sourceLabel(o.projectName, o.displayNo)}</span>
+    <span className="text-[11px] text-accent">{zh.projects.reflow.sourceLabel(o.projectName, o.displayNo)}</span>
   )
 }

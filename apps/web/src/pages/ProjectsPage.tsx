@@ -5,7 +5,7 @@ import { ProjectList } from '../components/projects/ProjectList'
 import { ProjectWizard } from '../components/projects/ProjectWizard'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
 import { toast } from '../components/ui/Toaster'
-import { btnGhost, btnPrimary, inputCls } from '../components/ui/styles'
+import { btnDanger, btnGhost, btnPrimary, inputCls } from '../components/ui/styles'
 import { useProjectMutations, useProjectList, type ProjectView } from '../hooks/useProjects'
 import { zh } from '../i18n/zh'
 
@@ -52,10 +52,10 @@ export function ProjectsPage() {
         }
       />
 
-      <footer className="flex items-center gap-3 border-t border-line-hair px-5 py-2 text-xs text-ink-subtle">
-        <span>{zh.projects.total(items.length)}</span>
+      <footer className="flex items-center gap-3 border-t border-line-hair px-5 py-2 text-xs text-ink-muted">
+        <span className="mono">{zh.projects.total(items.length)}</span>
         {list.isFetching && <span className="text-ink-faint">刷新中…</span>}
-        <Link className="ml-auto text-brand hover:underline" to="/flows">
+        <Link className="ml-auto text-accent hover:underline" to="/flows">
           {zh.nav.flows}
         </Link>
       </footer>
@@ -71,7 +71,7 @@ export function ProjectsPage() {
                 {zh.editor.cancel}
               </button>
               <button
-                className={`${btnPrimary} border-danger-600 bg-danger-600 hover:bg-danger-700`}
+                className={btnDanger}
                 disabled={remove.isPending}
                 onClick={() => {
                   if (deleting === null) return
@@ -92,7 +92,7 @@ export function ProjectsPage() {
           {deleting !== null && (
             <div className="space-y-2 text-sm">
               <p>{zh.projects.deleteDialog.body(deleting.name)}</p>
-              <p className="text-xs text-danger-700">
+              <p className="text-xs text-danger">
                 {zh.projects.deleteDialog.counts(deleting.health.logCount, deleting.health.taskCount)}
               </p>
             </div>

@@ -111,7 +111,7 @@ describe('UT-SEED-01 · 种子幂等与升级（夹具 bundle）', () => {
 describe('UT-SEED-02 · 真实 content/seed 首启计数', () => {
   const REPO_SEED_DIR = fileURLToPath(new URL('../../../../content/seed', import.meta.url))
 
-  it('导完后 SQLite 计数 terms ≥100 / 模板 3 / 提示词 21，且无单条失败', () => {
+  it('导完后 SQLite 计数 terms ≥100 / 模板 7 / 提示词 21，且无单条失败', () => {
     const h = newDb()
     const results = runSeed(h.db, REPO_SEED_DIR)
 
@@ -119,7 +119,7 @@ describe('UT-SEED-02 · 真实 content/seed 首启计数', () => {
     const counts = (table: string): number =>
       (h.db.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get() as { c: number }).c
     expect(counts('terms')).toBeGreaterThanOrEqual(100)
-    expect(counts('flow_templates')).toBe(3)
+    expect(counts('flow_templates')).toBe(7)
     expect(counts('prompts')).toBe(21)
 
     // 空库首启：全部应为新增，不允许 updated/skipped，也不允许逐条 warning

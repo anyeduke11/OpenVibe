@@ -69,9 +69,10 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
                   key={s}
                   className={`${chipCls} ${
                     source === s
-                      ? 'border-brand bg-brand-soft text-brand'
+                      ? 'border-accent-line bg-accent-soft text-accent-deep'
                       : 'border-line bg-panel text-ink-muted'
                   }`}
+                  aria-pressed={source === s}
                   onClick={() => setSource(s)}
                 >
                   {zh.skills.sources[s]}
@@ -125,7 +126,7 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
                 </button>
               </div>
               {picked !== null && (
-                <p className="text-xs text-ink-subtle">
+                <p className="text-xs text-ink-muted">
                   {zh.skills.remote.picked}
                   <span className="mono">{picked.slug}</span>
                 </p>
@@ -138,7 +139,7 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
                   {search.data.items.map((item) => (
                     <label
                       key={item.slug}
-                      className="flex cursor-pointer items-start gap-2 rounded p-1 hover:bg-fill-soft"
+                      className="flex cursor-pointer items-start gap-2 rounded p-1 hover:bg-panel-2"
                     >
                       <input
                         type="radio"
@@ -148,7 +149,7 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
                         onChange={() => setPicked(item)}
                       />
                       <span className="min-w-0">
-                        <span className="block truncate text-xs font-medium text-ink">{item.name}</span>
+                        <span className="block truncate text-xs font-medium text-ink-body">{item.name}</span>
                         <span className="block truncate text-[11px] text-ink-faint">
                           {item.slug} · {zh.skills.remote.downloads(item.downloads)} · {item.description}
                         </span>
@@ -161,9 +162,9 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
           )}
 
           {report !== null && (
-            <div className="space-y-1 rounded-md border border-line bg-fill-soft p-3 text-xs">
+            <div className="space-y-1 rounded-md border border-line bg-panel-2 p-3 text-xs">
               <p className="font-medium">{zh.skills.remote.reportTitle}</p>
-              <p className="text-ink-subtle">
+              <p className="text-ink-muted">
                 {zh.skills.remote.origin}: <span className="mono">{report.origin}</span>
               </p>
               <p>
@@ -175,7 +176,7 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
                 )}
               </p>
               {report.warnings.map((w) => (
-                <p key={w} className="text-warn-800">
+                <p key={w} className="text-warn">
                   {w}
                 </p>
               ))}

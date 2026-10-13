@@ -89,7 +89,7 @@ describe('WEB-PORTS · 端口台账卡的合并渲染（m5 FR-8 §7-11 的显示
     cleanup()
     render(<PortsPanel data={outOf()} />)
     expect(screen.queryByText(warn)).toBeNull()
-    expect(document.querySelectorAll('[class*="text-warn-700"]')).toHaveLength(0)
+    expect(document.querySelectorAll('[class*="text-warn"]')).toHaveLength(0)
   })
 
   it('05 认读清单：scannedFiles 非空才出现，且按、连接原样列出', () => {

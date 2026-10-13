@@ -66,15 +66,15 @@ export function OnboardingBar(props: OnboardingBarProps) {
   return (
     <section
       aria-label={zh.onboarding.title}
-      className="border-b border-brand/20 bg-brand-soft px-6 py-3"
+      className="border-b border-accent/20 bg-accent-soft px-6 py-3"
     >
       <div className="flex flex-wrap items-center gap-3">
-        <span className="text-sm font-semibold text-brand">{zh.onboarding.title}</span>
-        <span className="text-xs text-ink-subtle">{zh.onboarding.stepOf(step)}</span>
+        <span className="text-sm font-semibold text-accent">{zh.onboarding.title}</span>
+        <span className="text-xs text-ink-muted">{zh.onboarding.stepOf(step)}</span>
         <button
           type="button"
           onClick={props.onSkip}
-          className="ml-auto text-xs text-ink-subtle underline-offset-2 hover:underline"
+          className="ml-auto text-xs text-ink-muted underline-offset-2 hover:underline"
         >
           {zh.onboarding.skip}
         </button>
@@ -92,9 +92,9 @@ export function OnboardingBar(props: OnboardingBarProps) {
         {step === 3 && (
           <div>
             <p className="font-medium">{zh.onboarding.step3.title}</p>
-            <p className="text-xs text-ink-subtle">{zh.onboarding.step3.body}</p>
+            <p className="text-xs text-ink-muted">{zh.onboarding.step3.body}</p>
 
-            <label className="mt-1.5 block text-[11px] text-ink-subtle">
+            <label className="mt-1.5 block text-[11px] text-ink-muted">
               {zh.onboarding.step3.dirLabel}
               <input
                 className={`${inputCls} mt-0.5`}
@@ -122,12 +122,12 @@ export function OnboardingBar(props: OnboardingBarProps) {
                   {zh.onboarding.step3.manual}
                 </button>
                 {!probe.exhausted && (
-                  <span className="text-ink-subtle">
+                  <span className="text-ink-muted">
                     {zh.onboarding.step3.checking(probe.ticks, PROBE_MAX_TICKS)}
                   </span>
                 )}
                 {(checkedManually || probe.exhausted) && (
-                  <span className="text-warn-700">
+                  <span className="text-warn">
                     {status?.error ??
                       probe.data?.problem ??
                       (probe.exhausted
@@ -140,7 +140,7 @@ export function OnboardingBar(props: OnboardingBarProps) {
 
             {lockPresent && status?.pack !== undefined && (
               <div className="mt-1.5 space-y-1">
-                <p className="text-sm font-medium text-success-700">
+                <p className="text-sm font-medium text-ok">
                   {zh.onboarding.step3.detected(status.pack.name, status.pack.version)}
                 </p>
                 {status.injectedAt !== undefined && (
@@ -148,7 +148,7 @@ export function OnboardingBar(props: OnboardingBarProps) {
                     {zh.onboarding.step3.detectedAt(status.injectedAt)}
                   </p>
                 )}
-                <p className="text-xs text-ink-subtle">{zh.onboarding.step3.diffHint}</p>
+                <p className="text-xs text-ink-muted">{zh.onboarding.step3.diffHint}</p>
                 <CommandLine command={diffCommand} onCopy={copy} />
                 <div className="flex flex-wrap items-center gap-3 pt-1">
                   <button type="button" className={btnPrimary} onClick={props.onDone}>
@@ -183,7 +183,7 @@ function StepAssets(props: { seed: SettingsOut['seed'] | undefined }) {
   return (
     <div>
       <p className="font-medium">{zh.onboarding.step1.title}</p>
-      <p className="text-xs text-ink-subtle">{zh.onboarding.step1.body}</p>
+      <p className="text-xs text-ink-muted">{zh.onboarding.step1.body}</p>
       {seed !== undefined && (
         <ul className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
           <li>{zh.onboarding.step1.prompts(seed.prompts)}</li>
@@ -192,13 +192,13 @@ function StepAssets(props: { seed: SettingsOut['seed'] | undefined }) {
         </ul>
       )}
       <div className="mt-1.5 flex gap-3 text-xs">
-        <Link to="/library" className="text-brand underline-offset-2 hover:underline">
+        <Link to="/library" className="text-accent underline-offset-2 hover:underline">
           {zh.onboarding.step1.library}
         </Link>
-        <Link to="/terms" className="text-brand underline-offset-2 hover:underline">
+        <Link to="/terms" className="text-accent underline-offset-2 hover:underline">
           {zh.onboarding.step1.termsLink}
         </Link>
-        <Link to="/flows" className="text-brand underline-offset-2 hover:underline">
+        <Link to="/flows" className="text-accent underline-offset-2 hover:underline">
           {zh.onboarding.step1.flowsLink}
         </Link>
       </div>
@@ -212,8 +212,8 @@ function StepPackPreview(props: { found: boolean; loading: boolean; preview: Pre
       <div>
         <p className="font-medium">{zh.onboarding.step2.title}</p>
         {/* 边界 1：预置包缺失（被删或首启组装失败）时降级为组包向导链接，不放假数据 */}
-        <p className="text-xs text-ink-subtle">{zh.onboarding.step2.missing}</p>
-        <Link to="/packs/new" className="text-xs text-brand underline-offset-2 hover:underline">
+        <p className="text-xs text-ink-muted">{zh.onboarding.step2.missing}</p>
+        <Link to="/packs/new" className="text-xs text-accent underline-offset-2 hover:underline">
           {zh.onboarding.step2.missingLink}
         </Link>
       </div>
@@ -222,7 +222,7 @@ function StepPackPreview(props: { found: boolean; loading: boolean; preview: Pre
   return (
     <div>
       <p className="font-medium">{zh.onboarding.step2.title}</p>
-      <p className="text-xs text-ink-subtle">{zh.onboarding.step2.body}</p>
+      <p className="text-xs text-ink-muted">{zh.onboarding.step2.body}</p>
       {props.loading && <p className="mt-1 text-xs text-ink-faint">{zh.onboarding.step2.loading}</p>}
       <div className="mt-2 max-h-[52vh] overflow-auto rounded-md border border-line bg-panel p-3">
         <PackPreviewPane preview={props.preview} />

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import * as Tabs from '@radix-ui/react-tabs'
 import {
   PLATFORM_MARKS,
@@ -19,6 +19,9 @@ import { ReflowOriginLine } from '../projects/ReflowActions'
 import { CodeEditor } from './CodeEditor'
 import { MarkdownPreview } from './MarkdownPreview'
 import { VersionHistoryPanel } from './VersionHistoryPanel'
+
+/** 填参生成面板懒加载（DEV-0074）：填参 UI 留在懒加载 chunk，入口不过 bundle 门槛 */
+const VariableFillPanel = lazy(() => import('./VariableFillPanel'))
 
 /** 回流预填（m5 FR-7.1）：content 取日志选中段落，状态落 draft */
 export interface PromptPrefill {
@@ -139,14 +142,14 @@ export function PromptEditorDrawer(props: {
         <Tabs.Root defaultValue="edit">
           <Tabs.List className="mb-3 flex gap-1 border-b border-line-hair">
             <Tabs.Trigger
-              className="px-3 py-2 text-sm data-[state=active]:border-b-2 data-[state=active]:border-brand data-[state=active]:font-medium"
+              className="px-3 py-2 text-sm data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:font-medium"
               value="edit"
             >
               {prompt === null ? zh.editor.createTitle : zh.library.edit}
             </Tabs.Trigger>
             {prompt !== null && (
               <Tabs.Trigger
-                className="px-3 py-2 text-sm data-[state=active]:border-b-2 data-[state=active]:border-brand data-[state=active]:font-medium"
+                className="px-3 py-2 text-sm data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:font-medium"
                 value="versions"
               >
                 {zh.editor.versions}
@@ -174,7 +177,7 @@ export function PromptEditorDrawer(props: {
             <div>
               <div className="mb-1 flex items-center justify-between">
                 <label className={`${labelCls} mb-0`}>{zh.editor.content}</label>
-                <label className="flex items-center gap-1 text-[11px] text-ink-subtle">
+                <label className="flex items-center gap-1 text-[11px] text-ink-muted">
                   <input
                     type="checkbox"
                     checked={showPreview}
@@ -196,15 +199,20 @@ export function PromptEditorDrawer(props: {
                 )}
               </div>
               {vars.length > 0 && (
-                <p className="mt-1.5 text-[11px] text-ink-subtle">
+                <p className="mt-1.5 text-[11px] text-ink-muted">
                   {zh.editor.variablesDetected}：
-                  <span className="mono ml-1 rounded bg-warn-50 px-1.5 py-0.5 text-warn-800">
+                  <span className="mono ml-1 rounded bg-warn-soft px-1.5 py-0.5 text-warn">
                     {`{{${vars.join(', ')}}}`}
                   </span>
                   {form.useAs === 'rule' && (
-                    <span className="ml-2 text-warn-700">{zh.editor.ruleVariableWarning}</span>
+                    <span className="ml-2 text-warn">{zh.editor.ruleVariableWarning}</span>
                   )}
                 </p>
+              )}
+              {vars.length > 0 && (
+                <Suspense fallback={null}>
+                  <VariableFillPanel content={form.content} vars={vars} />
+                </Suspense>
               )}
             </div>
             <div className="grid grid-cols-2 gap-3">

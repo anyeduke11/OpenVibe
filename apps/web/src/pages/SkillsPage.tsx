@@ -9,7 +9,7 @@ import { SkillUpdateDialog } from '../components/skills/SkillUpdateDialog'
 import { SkillScanReportView } from '../components/skills/SkillScanReportView'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
 import { toast } from '../components/ui/Toaster'
-import { btnGhost, btnPrimary, inputCls } from '../components/ui/styles'
+import { btnDanger, btnGhost, btnPrimary, inputCls } from '../components/ui/styles'
 import { useDebounced } from '../hooks/useDebounced'
 import { useSkillMutations, useSkillList, type SkillRow } from '../hooks/useSkills'
 import { zh } from '../i18n/zh'
@@ -105,7 +105,7 @@ export function SkillsPage() {
         onCreate={() => setEditor({ skill: null })}
       />
 
-      <footer className="border-t border-line-hair px-5 py-2 text-xs text-ink-subtle">
+      <footer className="border-t border-line-hair px-5 py-2 text-xs text-ink-muted">
         {zh.skills.total(list.data?.total ?? 0)}
         {list.isFetching && <span className="ml-2 text-ink-faint">刷新中…</span>}
       </footer>
@@ -147,7 +147,7 @@ export function SkillsPage() {
                 {zh.editor.cancel}
               </button>
               <button
-                className={`${btnPrimary} border-danger-600 bg-danger-600 hover:bg-danger-700`}
+                className={btnDanger}
                 disabled={remove.isPending}
                 onClick={() => {
                   if (deleting === null) return
@@ -168,7 +168,7 @@ export function SkillsPage() {
           {deleting !== null && (
             <div className="space-y-2 text-sm">
               <p>{zh.skills.deleteDialog.body(deleting.name)}</p>
-              <p className="text-xs text-ink-subtle">{zh.skills.deleteDialog.note}</p>
+              <p className="text-xs text-ink-muted">{zh.skills.deleteDialog.note}</p>
             </div>
           )}
         </DialogPanel>

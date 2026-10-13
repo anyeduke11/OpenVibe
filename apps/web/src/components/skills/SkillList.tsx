@@ -13,7 +13,7 @@ export function SkillList(props: {
   return (
     <div className="min-h-0 flex-1 overflow-auto px-5">
       <table className="w-full border-collapse text-sm">
-        <thead className="sticky top-0 bg-panel text-left text-xs text-ink-subtle">
+        <thead className="sticky top-0 bg-panel text-left text-xs text-ink-muted">
           <tr>
             <th className="border-b border-line-hair py-2 pr-3 font-medium">{zh.skills.columns.name}</th>
             <th className="border-b border-line-hair py-2 pr-3 font-medium">
@@ -34,8 +34,8 @@ export function SkillList(props: {
         </thead>
         <tbody>
           {props.items.map((s) => (
-            <tr key={s.id} className="align-top hover:bg-fill-soft">
-              <td className="max-w-56 border-b border-line-hair py-2 pr-3 font-medium text-ink">
+            <tr key={s.id} className="align-top hover:bg-panel-2">
+              <td className="max-w-56 border-b border-line-hair py-2 pr-3 font-medium text-ink-body">
                 {s.name}
               </td>
               <td className="max-w-md border-b border-line-hair py-2 pr-3 text-xs text-ink-muted">
@@ -45,14 +45,14 @@ export function SkillList(props: {
                 <span
                   className={`${chipCls} ${
                     s.source === 'local'
-                      ? 'border-brand bg-brand-soft text-brand'
-                      : 'border-line bg-fill-soft text-ink-muted'
+                      ? 'border-accent-line bg-accent-soft text-accent'
+                      : 'border-line bg-panel-2 text-ink-muted'
                   }`}
                 >
                   {zh.skills.sources[s.source]}
                 </span>
               </td>
-              <td className="border-b border-line-hair py-2 pr-3 text-right text-xs text-ink-muted">
+              <td className="border-b border-line-hair py-2 pr-3 text-right text-xs text-ink-muted num">
                 {String(s.versionCount)}
               </td>
               <td className="border-b border-line-hair py-2 pr-3">
@@ -75,7 +75,7 @@ export function SkillList(props: {
                   {zh.flows.actions.edit}
                 </button>
                 <button
-                  className={`${btnGhost} ml-1 text-danger-600 hover:border-danger-200 hover:bg-danger-50`}
+                  className={`${btnGhost} ml-1 text-danger hover:border-danger-line hover:bg-danger-soft`}
                   onClick={() => props.onDelete(s)}
                 >
                   {zh.flows.actions.del}
@@ -87,7 +87,7 @@ export function SkillList(props: {
       </table>
 
       {!props.loading && props.items.length === 0 && (
-        <div className="flex flex-col items-center gap-3 py-16 text-sm text-ink-subtle">
+        <div className="flex flex-col items-center gap-3 py-16 text-sm text-ink-muted">
           <p>{zh.skills.empty}</p>
           <button className={btnPrimary} onClick={props.onCreate}>
             {zh.skills.create.title}

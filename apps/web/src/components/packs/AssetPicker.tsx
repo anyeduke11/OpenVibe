@@ -64,14 +64,14 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
           placeholder={zh.packs.wizard.searchAsset}
         />
         <button
-          className="shrink-0 text-[11px] text-brand hover:underline disabled:opacity-40"
+          className="shrink-0 text-[11px] text-accent hover:underline disabled:opacity-40"
           disabled={pending.length === 0}
           onClick={() => props.onSelectAll(pending)}
         >
           {zh.packs.wizard.selectAll}
         </button>
         <button
-          className="shrink-0 text-[11px] text-ink-subtle hover:underline disabled:opacity-40"
+          className="shrink-0 text-[11px] text-ink-muted hover:underline disabled:opacity-40"
           disabled={props.ids.length === 0}
           onClick={props.onClear}
         >
@@ -87,8 +87,8 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
           return (
             <li key={row.id}>
               <label
-                className={`flex cursor-pointer items-start gap-2 rounded px-2 py-1.5 text-sm hover:bg-fill-soft ${
-                  isStale ? 'bg-danger-50 text-danger-700' : ''
+                className={`flex cursor-pointer items-start gap-2 rounded px-2 py-1.5 text-sm hover:bg-panel-2 ${
+                  isStale ? 'bg-danger-soft text-danger' : ''
                 }`}
               >
                 <input
@@ -100,7 +100,7 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
                 <span className="min-w-0">
                   <span className="block truncate" title={props.label(row)}>
                     {props.label(row)}
-                    <span className={`${chipCls} ml-1.5 border-line bg-fill-soft text-ink-subtle`}>
+                    <span className={`${chipCls} ml-1.5 border-line bg-panel-2 text-ink-muted`}>
                       {props.badge(row)}
                     </span>
                   </span>
@@ -124,9 +124,9 @@ export function AssetPicker(props: AssetPickerProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
-      <p className="text-xs text-ink-subtle">{zh.packs.wizard.assetsHint}</p>
+      <p className="text-xs text-ink-muted">{zh.packs.wizard.assetsHint}</p>
       {stale.promptIds.length + stale.termIds.length + stale.skillIds.length > 0 && (
-        <p className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-xs text-danger-700">
+        <p className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-xs text-danger">
           {zh.packs.preview.stale(
             [...stale.promptIds, ...stale.termIds, ...stale.skillIds].join(', '),
           )}

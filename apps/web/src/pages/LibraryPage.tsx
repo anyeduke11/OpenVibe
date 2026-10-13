@@ -9,7 +9,7 @@ import { TagFilterBar } from '../components/library/TagFilterBar'
 import { VariableFillModal } from '../components/library/VariableFillModal'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
 import { toast } from '../components/ui/Toaster'
-import { btnGhost, btnPrimary, inputCls } from '../components/ui/styles'
+import { btnDanger, btnGhost, btnPrimary, inputCls } from '../components/ui/styles'
 import { useDebounced } from '../hooks/useDebounced'
 import { usePromptAggregates, usePromptList, usePromptMutations } from '../hooks/usePrompts'
 import type { PromptFilters } from '../hooks/usePrompts'
@@ -137,7 +137,7 @@ export function LibraryPage() {
             </select>
             <TagFilterBar tags={tags} selected={tag} onToggle={setTag} />
             {q.trim() !== '' && q.trim().length < 3 && (
-              <span className="text-[11px] text-warn-700">{zh.library.shortQueryHint}</span>
+              <span className="text-[11px] text-warn">{zh.library.shortQueryHint}</span>
             )}
             {list.isFetching && !list.isLoading && (
               <span className="text-[11px] text-ink-faint">刷新中…</span>
@@ -187,7 +187,7 @@ export function LibraryPage() {
                 {zh.editor.cancel}
               </button>
               <button
-                className={`${btnPrimary} border-danger-600 bg-danger-600 hover:bg-danger-700`}
+                className={btnDanger}
                 disabled={remove.isPending}
                 onClick={() => {
                   if (deleting === null) return
@@ -211,7 +211,7 @@ export function LibraryPage() {
           {deleting !== null && (
             <div className="space-y-2 text-sm">
               <p>{zh.deleteDialog.body(deleting.title)}</p>
-              <p className="text-xs text-ink-subtle">{zh.deleteDialog.packNote}</p>
+              <p className="text-xs text-ink-muted">{zh.deleteDialog.packNote}</p>
             </div>
           )}
         </DialogPanel>

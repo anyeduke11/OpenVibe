@@ -22,9 +22,9 @@ const RAW_PALETTE = new RegExp(
     `|(?<![\\w-])(?:${COLOR_UTILS})-(?:white|black)(?![\\w-])`,
   'g',
 )
-/** 语义色族（index.css @theme 里声明的角色名）：ink / line / fill / panel / canvas / scrim / brand / on-brand / seal / on-seal / danger / warn / success / info */
+/** 语义色族（index.css @theme 里声明的角色名）：ink / line / panel / canvas / scrim / accent / on-accent / ok / danger / warn / info（V2 起 brand/seal/success/fill 族退场，见 theme.md FR-2.6 扩闸清单） */
 const SEMANTIC_CLASS = new RegExp(
-  `(?<![\\w-])(?:[\\w-]+:)*(?:${COLOR_UTILS})-(ink|line|fill|panel|canvas|scrim|brand|on-brand|seal|on-seal|danger|warn|success|info)([a-z0-9-]*)(?![\\w-])`,
+  `(?<![\\w-])(?:[\\w-]+:)*(?:${COLOR_UTILS})-(ink|line|panel|canvas|scrim|on-accent|accent|ok|danger|warn|info)([a-z0-9-]*)(?![\\w-])`,
   'g',
 )
 const DECLARED = /--color-([a-z0-9-]+)\s*:/g
@@ -51,7 +51,7 @@ function matches(text: string, re: RegExp, group = 1): string[] {
   return [...text.matchAll(re)].map((m) => m[group] ?? '').filter(Boolean)
 }
 
-/** 类名 → 色名：`hover:bg-brand-soft/40` 的色名是 `brand-soft` */
+/** 类名 → 色名：`hover:bg-accent-soft/40` 的色名是 `accent-soft` */
 function colorNames(text: string): string[] {
   const out: string[] = []
   for (const m of text.matchAll(SEMANTIC_CLASS)) {

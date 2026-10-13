@@ -4,8 +4,8 @@ import type { PromptFilters } from '../../hooks/usePrompts'
 import { btnGhost, chipCls } from '../ui/styles'
 
 const STATUS_STYLE: Record<PromptOut['status'], string> = {
-  draft: 'border-line bg-fill text-ink-muted',
-  active: 'border-success-200 bg-success-50 text-success-700',
+  draft: 'border-line bg-panel-2 text-ink-muted',
+  active: 'border-ok-line bg-ok-soft text-ok',
   deprecated: 'border-line-strong bg-panel text-ink-faint line-through',
 }
 
@@ -38,42 +38,42 @@ export function PromptList(props: {
                 e.dataTransfer.setData('text/plain', p.id)
                 e.dataTransfer.effectAllowed = 'move'
               }}
-              className="border-b border-line-hair px-5 py-3 hover:bg-fill-soft"
+              className="border-b border-line-hair px-5 py-3 hover:bg-panel-2"
             >
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
                   <button
-                    className="truncate text-left text-sm font-medium text-ink-strong hover:text-brand"
+                    className="truncate text-left text-sm font-medium text-ink-body hover:text-accent"
                     onClick={() => props.onEdit(p)}
                   >
                     {p.title}
                   </button>
                   {p.description !== '' && (
-                    <p className="mt-0.5 line-clamp-1 text-xs text-ink-subtle">{p.description}</p>
+                    <p className="mt-0.5 line-clamp-1 text-xs text-ink-muted">{p.description}</p>
                   )}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                     <span className={`${chipCls} ${STATUS_STYLE[p.status]}`}>
                       {zh.library.status[p.status]}
                     </span>
-                    <span className={`${chipCls} border-info-200 bg-info-50 text-info-700`}>
+                    <span className={`${chipCls} border-info-line bg-info-soft text-info`}>
                       {zh.library.useAs[p.useAs]}
                     </span>
                     {p.platformMarks.map((m: PlatformMark) => (
-                      <span key={m} className={`${chipCls} border-line bg-panel text-ink-subtle`}>
+                      <span key={m} className={`${chipCls} border-line bg-panel text-ink-muted`}>
                         {m}
                       </span>
                     ))}
                     {p.tags.map((t) => (
                       <span
                         key={t}
-                        className={`${chipCls} border-line bg-fill-soft text-ink-muted`}
+                        className={`${chipCls} border-line bg-panel-2 text-ink-muted`}
                       >
                         #{t}
                       </span>
                     ))}
                     {p.variables.length > 0 && (
                       <span
-                        className={`${chipCls} mono border-warn-200 bg-warn-50 text-warn-700`}
+                        className={`${chipCls} mono border-warn-line bg-warn-soft text-warn`}
                       >
                         {`{{${p.variables.join(', ')}}}`}
                       </span>
@@ -98,7 +98,7 @@ export function PromptList(props: {
         </ul>
       </div>
 
-      <div className="flex items-center justify-between border-t border-line-hair px-5 py-2 text-xs text-ink-subtle">
+      <div className="flex items-center justify-between border-t border-line-hair px-5 py-2 text-xs text-ink-muted">
         <span>{zh.library.total(total)}</span>
         <div className="flex items-center gap-2">
           <button

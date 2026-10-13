@@ -30,7 +30,7 @@ export function CodeEditor(props: {
   const { theme } = useTheme()
   return (
     <Suspense
-      fallback={<div className="h-full min-h-40 rounded-md border border-line bg-fill-soft" />}
+      fallback={<div className="h-full min-h-40 rounded-md border border-line bg-panel-2" />}
     >
       <MarkdownEditor
         value={props.value}

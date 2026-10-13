@@ -17,8 +17,10 @@ import {
   compareCodeUnit,
   dedupeAliases,
   extractVariables,
+  fillVariables,
   findMatchRanges,
   idKindOf,
+  interviewPrompt,
   isValidPackRelativePath,
   newId,
   packSubject,
@@ -33,6 +35,21 @@ describe('UT-EXAMPLE-01 · shared 基础能力', () => {
     expect(id.length).toBeGreaterThan('prm_'.length)
     expect(idKindOf(id)).toBe('prompt')
     expect(idKindOf('unknown-id')).toBeNull()
+  })
+
+  it('两段式：fillVariables 替换已填/保留未填；interviewPrompt 从变量清单生成问参段（DEV-0084）', () => {
+    const content = '仓库：{{repo_url}}｜分支：{{branch}}'
+    expect(fillVariables(content, { repo_url: 'https://x' })).toBe('仓库：https://x｜分支：{{branch}}')
+    expect(fillVariables(content, {})).toBe(content)
+
+    const seg1 = interviewPrompt(['repo_url', 'branch', 'version'])
+    expect(seg1).toContain('- repo_url =')
+    expect(seg1).toContain('- branch =')
+    expect(seg1).toContain('- version =')
+    expect(seg1).toContain('只回答参数清单')
+    expect(interviewPrompt([])).toBe('')
+    // 提取与问参同源：正文中提取到的每个变量都出现在第 1 段里
+    for (const v of extractVariables(content)) expect(seg1).toContain(`- ${v} =`)
   })
 
   it('契约常量：schemaVersion=1、六 adapter、八类受控词表', () => {

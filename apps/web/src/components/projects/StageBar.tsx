@@ -23,7 +23,7 @@ export function StageBar(props: {
               aria-current={isCurrent ? 'step' : undefined}
               className={`flex h-full flex-col items-start gap-0.5 rounded-md border px-3 py-2 text-left transition-colors ${
                 isCurrent
-                  ? 'border-brand bg-brand-soft text-brand'
+                  ? 'border-accent bg-accent-soft text-accent'
                   : 'border-line bg-panel text-ink-muted hover:border-line-strong'
               }`}
             >

@@ -9,11 +9,11 @@ export function ExportHistoryPanel(props: { packId: string }) {
   const items = exports.data?.items ?? []
 
   if (exports.isLoading) return <p className="text-sm text-ink-faint">{zh.common.loading}</p>
-  if (items.length === 0) return <p className="text-sm text-ink-subtle">{zh.packs.exports.empty}</p>
+  if (items.length === 0) return <p className="text-sm text-ink-muted">{zh.packs.exports.empty}</p>
 
   return (
     <table className="w-full border-collapse text-sm">
-      <thead className="sticky top-0 bg-panel text-left text-xs text-ink-subtle">
+      <thead className="sticky top-0 bg-panel text-left text-xs text-ink-muted">
         <tr>
           <th className="px-2 py-2">{zh.packs.exports.version}</th>
           <th className="px-2 py-2">{zh.packs.exports.channel}</th>
@@ -32,7 +32,7 @@ export function ExportHistoryPanel(props: { packId: string }) {
                 {row.fingerprint.slice(0, 12)}
               </span>
             </td>
-            <td className="px-2 py-2 text-xs text-ink-subtle">{row.exportedAt}</td>
+            <td className="px-2 py-2 text-xs text-ink-muted">{row.exportedAt}</td>
             <td className="px-2 py-2">
               <a
                 className={`${btnGhost} no-underline`}

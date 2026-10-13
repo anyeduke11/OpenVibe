@@ -2,14 +2,17 @@ import type { FastifyInstance } from 'fastify'
 import {
   AppError,
   SkillCreateInput,
+  SkillMergeInput,
   SkillRemoteImportInput,
   SkillRemoteSearchInput,
   SkillRetrackInput,
+  SkillRepairInput,
   SkillReviewInput,
   SkillScanInput,
   SkillUpdateCheckInput,
   SkillUpdateInput,
   type SkillRemoteImportReport,
+  type SkillRepairReport,
   type SkillRetrackReport,
 } from '@openvibe/shared'
 import { SkillsRepo, type SqliteDatabase } from '@openvibe/core'
@@ -141,6 +144,36 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
     for (const r of results) {
       report.items.push(r)
       report.summary[r.status] += 1
+    }
+    return report
+  })
+
+  // 整合（DEV-0073）：同内容组选保留项，其余被吸收（版本线搬移、目标并集、目录继承）
+  app.post('/api/skills/merge', async (req) => {
+    const { keepId, absorbIds } = parseOrThrow(SkillMergeInput, req.body)
+    const merged = skills.mergeSkills(keepId, absorbIds)
+    return { keptId: keepId, ...merged }
+  })
+
+  // 名称修复（DEV-0073）：quoted 去引号改名；convention 规范化改名并重写 SKILL.md；
+  // 建议名撞已有条目时自动并入。逐条独立结算，单条失败不影响其余。
+  app.post('/api/skills/repair', async (req) => {
+    const { ids } = parseOrThrow(SkillRepairInput, req.body)
+    const report: SkillRepairReport = {
+      items: [],
+      summary: { renamed: 0, merged: 0, notApplicable: 0, failed: 0 },
+    }
+    for (const id of [...new Set(ids)]) {
+      const skill = skills.get(id)
+      if (skill === null) {
+        report.items.push({ id, name: '', status: 'failed', note: `skill 不存在: ${id}` })
+        report.summary.failed += 1
+        continue
+      }
+      const r = skills.repairName(id)
+      report.items.push({ id, name: skill.name, ...r })
+      if (r.status === 'not-applicable') report.summary.notApplicable += 1
+      else report.summary[r.status] += 1
     }
     return report
   })

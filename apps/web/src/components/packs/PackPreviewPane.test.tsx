@@ -65,7 +65,12 @@ describe('WEB-PREVIEW · 体量显示块（T8 四处未验渲染的正腿）', (
     render(<PackPreviewPane preview={previewOf(WITH_SIZE)} />)
     const warnLine = screen.getByText(/已超过提示线/)
     expect(warnLine.textContent).toContain('claude-code ≈15213')
-    expect(document.querySelectorAll('[class*="text-warn-700"]')).toHaveLength(1)
+    // V2 起 chip 三件套（border-warn-line bg-warn-soft text-warn，DESIGN.md Components）与黄条
+    // 都带 text-warn：warn=true 的 claude-code 贡献 2 处、warn=false 的 cursor 贡献 0 处——
+    // 「只给 warn=true 的平台」由后半句保证，故两处都点名归属于 claude-code。
+    const warnEls = [...document.querySelectorAll('[class*="text-warn"]')]
+    expect(warnEls).toHaveLength(2)
+    expect(warnEls.every((el) => el.textContent?.includes('claude-code'))).toBe(true)
     // 阈值 12000 住在 packages/core；抄进文案就是造第二个源，规格改了而文案不改即为说谎
     expect(warnLine.textContent).not.toMatch(/12[, ]?000/)
   })
@@ -98,7 +103,7 @@ describe('WEB-PREVIEW · 文件树点选', () => {
     expect(screen.getByText(/^CLAUDE\.md · sha256 b{12}/)).toBeTruthy()
     // 高亮态跟着走：选中行的 class 从 ink-muted 换成 brand
     expect(
-      screen.getByRole('button', { name: /CLAUDE\.md/ }).className.includes('bg-brand-soft'),
+      screen.getByRole('button', { name: /CLAUDE\.md/ }).className.includes('bg-accent-soft'),
     ).toBe(true)
   })
 })

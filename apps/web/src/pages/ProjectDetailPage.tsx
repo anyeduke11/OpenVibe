@@ -185,15 +185,15 @@ export function ProjectDetailPage() {
   }
 
   if (project.isLoading) {
-    return <p className="p-6 text-sm text-ink-subtle">{zh.common.loading}</p>
+    return <p className="p-6 text-sm text-ink-muted">{zh.common.loading}</p>
   }
   if (view === undefined) {
     return (
       <div className="space-y-3 p-6">
-        <p className="text-sm text-danger-700">
+        <p className="text-sm text-danger">
           {zh.common.failed(project.error instanceof Error ? project.error.message : 'unknown')}
         </p>
-        <Link className="text-sm text-brand hover:underline" to="/projects">
+        <Link className="text-sm text-accent hover:underline" to="/projects">
           {zh.projects.detail.back}
         </Link>
       </div>
@@ -276,16 +276,17 @@ export function ProjectDetailPage() {
         </div>
 
         <div>
-          <div className="mb-2 flex items-center gap-1">
+          <div className="mb-2 inline-flex items-center gap-0.5 rounded-sm border border-line bg-panel-2 p-0.5">
             {DEVLOG_TYPES.map((type) => (
               <button
                 key={type}
                 type="button"
                 onClick={() => setLogType(type)}
-                className={`rounded-md px-3 py-1.5 text-sm ${
+                aria-pressed={logType === type}
+                className={`rounded-sm px-3 py-1.5 text-sm transition-colors ${
                   logType === type
-                    ? 'bg-brand-soft font-medium text-brand'
-                    : 'text-ink-muted hover:bg-fill'
+                    ? 'bg-panel font-medium text-ink-body shadow-1'
+                    : 'text-ink-muted hover:text-ink-body'
                 }`}
               >
                 {zh.projects.devlog.tabs[type]}

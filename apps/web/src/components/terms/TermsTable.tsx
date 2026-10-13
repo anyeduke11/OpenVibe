@@ -9,8 +9,21 @@ export interface TermRowView {
 }
 
 const STATUS_STYLE: Record<TermOut['status'], string> = {
-  draft: 'border-line bg-fill text-ink-muted',
-  active: 'border-success-200 bg-success-50 text-success-700',
+  draft: 'border-line bg-panel-sunk text-ink-muted',
+  active: 'border-ok-line bg-ok-soft text-ok',
+}
+
+const STATUS_ICON: Record<TermOut['status'], ReactNode> = {
+  draft: (
+    <svg viewBox="0 0 16 16" className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5}>
+      <path d="M11.5 2.5l2 2L6 12l-2.5.5L4 10l7.5-7.5z" />
+    </svg>
+  ),
+  active: (
+    <svg viewBox="0 0 16 16" className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M3.5 8.5l3 3 6-6.5" />
+    </svg>
+  ),
 }
 
 /** 命中片段高亮（m3 FR-3.2）：按偏移切片包 <mark>，区间已由服务端合并去叠 */
@@ -23,7 +36,7 @@ function Highlight(props: { text: string; ranges: MatchRange[] }) {
   sorted.forEach((r, i) => {
     if (r.start < cursor) return
     if (r.start > cursor) nodes.push(text.slice(cursor, r.start))
-    nodes.push(<mark key={i} className="rounded bg-warn-100 px-0.5">{text.slice(r.start, r.end)}</mark>)
+    nodes.push(<mark key={i} className="rounded bg-warn-soft px-0.5">{text.slice(r.start, r.end)}</mark>)
     cursor = r.end
   })
   if (cursor < text.length) nodes.push(text.slice(cursor))
@@ -60,7 +73,7 @@ export function TermsTable(props: {
           />
           {zh.terms.selection.allShown}
         </label>
-        <span className="text-ink-faint">{zh.terms.selection.label(selected.length)}</span>
+        <span className="tabular-nums text-ink-faint">{zh.terms.selection.label(selected.length)}</span>
         {selected.length > 0 && (
           <button className="text-ink-faint underline hover:text-ink-body" onClick={() => props.onSelectAll([])}>
             {zh.terms.selection.clear}
@@ -77,7 +90,7 @@ export function TermsTable(props: {
         )}
         {rows.length > 0 && (
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-panel text-left text-xs text-ink-subtle">
+            <thead className="sticky top-0 bg-panel text-left text-xs text-ink-muted">
               <tr className="border-b border-line">
                 <th className="w-8 px-5 py-2" />
                 <th className="w-56 px-2 py-2">{zh.terms.columns.zh}</th>
@@ -91,8 +104,8 @@ export function TermsTable(props: {
               {rows.map(({ term, matches }) => (
                 <tr
                   key={term.id}
-                  className={`border-b border-line-hair align-top hover:bg-fill-soft ${
-                    selectedSet.has(term.id) ? 'bg-brand-soft/40' : ''
+                  className={`border-b border-line-hair align-top hover:bg-panel-2 ${
+                    selectedSet.has(term.id) ? 'bg-accent-soft/40' : ''
                   }`}
                 >
                   <td className="px-5 py-2.5">
@@ -105,23 +118,16 @@ export function TermsTable(props: {
                   </td>
                   <td className="px-2 py-2.5">
                     <button
-                      className="text-left text-[15px] font-semibold text-ink-strong hover:text-brand"
+                      className="text-left text-[16px] font-semibold text-ink-body hover:text-accent"
                       onClick={() => props.onEdit(term)}
                     >
-                      {term.pinyin ? (
-                        <ruby className="term-ruby">
-                          <Highlight text={term.zh ?? '—'} ranges={rangesOf(matches, 'zh')} />
-                          <rt>{term.pinyin}</rt>
-                        </ruby>
-                      ) : (
-                        <Highlight text={term.zh ?? '—'} ranges={rangesOf(matches, 'zh')} />
-                      )}
+                      <Highlight text={term.zh ?? '—'} ranges={rangesOf(matches, 'zh')} />
                     </button>
                   </td>
-                  <td className="px-2 py-2.5 text-ink-body">
+                  <td className="px-2 py-2.5 text-ink-muted">
                     <Highlight text={term.en ?? '—'} ranges={rangesOf(matches, 'en')} />
                   </td>
-                  <td className="px-2 py-2.5 text-ink-subtle">
+                  <td className="px-2 py-2.5 text-ink-muted">
                     <Highlight text={term.aliases.join('、')} ranges={rangesOf(matches, 'aliases')} />
                   </td>
                   <td className="px-2 py-2.5 text-ink-muted">
@@ -136,7 +142,7 @@ export function TermsTable(props: {
                     {term.tags.length > 0 && (
                       <span className="mt-1 flex flex-wrap gap-1">
                         {term.tags.map((t) => (
-                          <span key={t} className={`${chipCls} border-line bg-fill-soft text-ink-muted`}>
+                          <span key={t} className={`${chipCls} border-line bg-panel-2 text-ink-muted`}>
                             #{t}
                           </span>
                         ))}
@@ -145,10 +151,11 @@ export function TermsTable(props: {
                   </td>
                   <td className="px-2 py-2.5">
                     <div className="flex flex-wrap items-center gap-1">
-                      <span className={`${chipCls} ${STATUS_STYLE[term.status]}`}>
+                      <span className={`${chipCls} gap-1 ${STATUS_STYLE[term.status]}`}>
+                        {STATUS_ICON[term.status]}
                         {zh.terms.status[term.status]}
                       </span>
-                      <span className={`${chipCls} border-line bg-panel text-ink-subtle`}>
+                      <span className={`${chipCls} border-line bg-panel text-ink-muted`}>
                         {term.source === 'openvibe-seed' ? zh.terms.source.seed : zh.terms.source.manual}
                       </span>
                       <button className={btnGhost} onClick={() => props.onEdit(term)}>

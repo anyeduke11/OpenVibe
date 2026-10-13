@@ -93,14 +93,14 @@ export function SkillEditorDrawer(props: {
         <Tabs.Root defaultValue="edit">
           <Tabs.List className="mb-3 flex gap-1 border-b border-line-hair">
             <Tabs.Trigger
-              className="px-3 py-2 text-sm data-[state=active]:border-b-2 data-[state=active]:border-brand data-[state=active]:font-medium"
+              className="px-3 py-2 text-sm data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:font-medium"
               value="edit"
             >
               {zh.skills.edit.title}
             </Tabs.Trigger>
             {skill !== null && (
               <Tabs.Trigger
-                className="px-3 py-2 text-sm data-[state=active]:border-b-2 data-[state=active]:border-brand data-[state=active]:font-medium"
+                className="px-3 py-2 text-sm data-[state=active]:border-b-2 data-[state=active]:border-accent data-[state=active]:font-medium"
                 value="versions"
               >
                 {zh.skills.versions.title}
@@ -141,7 +141,7 @@ export function SkillEditorDrawer(props: {
               <input className={inputCls} value={targets} onChange={(e) => setTargets(e.target.value)} />
             </div>
             {skill !== null && (
-              <p className="text-[11px] text-ink-subtle">
+              <p className="text-[11px] text-ink-muted">
                 {zh.skills.columns.source}：{zh.skills.sources[skill.source]}
                 {skill.skillDir !== null && ` · ${skill.skillDir}`}
               </p>
@@ -160,15 +160,15 @@ export function SkillEditorDrawer(props: {
                     className="rounded-md border border-line px-3 py-2 text-xs"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-ink">{v.versionLabel}</span>
+                      <span className="font-medium text-ink-body">{v.versionLabel}</span>
                       {v.id === skill.latestVersionId && (
-                        <span className={`${chipCls} border-brand bg-brand-soft text-brand`}>
+                        <span className={`${chipCls} border-ok-line bg-ok-soft text-ok`}>
                           {zh.skills.versions.current}
                         </span>
                       )}
                       <span className="ml-auto text-ink-faint">{v.scannedAt}</span>
                     </div>
-                    <p className="mt-1 text-ink-subtle">
+                    <p className="mt-1 text-ink-muted">
                       {zh.skills.versions.fileCount(v.fileCount)} · {zh.skills.versions.dirHash}:{' '}
                       <span className="mono">{v.dirHash === '' ? zh.skills.versions.manualFingerprint : v.dirHash.slice(0, 16)}</span>
                     </p>

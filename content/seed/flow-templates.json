@@ -8,29 +8,62 @@
         {
           "name": "启动",
           "checklist": [
-            { "id": "light-1-1", "text": "需求一句话写清" },
-            { "id": "light-1-2", "text": "标准包已注入（openvibe diff clean）" },
-            { "id": "light-1-3", "text": "建 DEV_LOG.md" }
+            {
+              "id": "light-1-1",
+              "text": "需求一句话写清"
+            },
+            {
+              "id": "light-1-2",
+              "text": "标准包已注入（openvibe diff clean）"
+            },
+            {
+              "id": "light-1-3",
+              "text": "建 DEV_LOG.md"
+            }
           ],
-          "artifacts": ["需求便签"]
+          "artifacts": [
+            "需求便签"
+          ]
         },
         {
           "name": "开发",
           "checklist": [
-            { "id": "light-2-1", "text": "分小步提交" },
-            { "id": "light-2-2", "text": "每轮改动后测试通过" },
-            { "id": "light-2-3", "text": "下班前追加 DEV 日志" }
+            {
+              "id": "light-2-1",
+              "text": "分小步提交"
+            },
+            {
+              "id": "light-2-2",
+              "text": "每轮改动后测试通过"
+            },
+            {
+              "id": "light-2-3",
+              "text": "下班前追加 DEV 日志"
+            }
           ],
-          "artifacts": ["代码 + DEV_LOG"]
+          "artifacts": [
+            "代码 + DEV_LOG"
+          ]
         },
         {
           "name": "复盘",
           "checklist": [
-            { "id": "light-3-1", "text": "检查清单全勾" },
-            { "id": "light-3-2", "text": "写 CHECK 报告" },
-            { "id": "light-3-3", "text": "新词/新坑回流入库（术语/提示词草稿）" }
+            {
+              "id": "light-3-1",
+              "text": "检查清单全勾"
+            },
+            {
+              "id": "light-3-2",
+              "text": "写 CHECK 报告"
+            },
+            {
+              "id": "light-3-3",
+              "text": "新词/新坑回流入库（术语/提示词草稿）"
+            }
           ],
-          "artifacts": ["CHECK_LOG"]
+          "artifacts": [
+            "CHECK_LOG"
+          ]
         }
       ]
     },
@@ -41,56 +74,114 @@
         {
           "name": "需求澄清",
           "checklist": [
-            { "id": "spec-1-1", "text": "五问齐备（谁/现状/期望/为何现在/完成标准）" },
-            { "id": "spec-1-2", "text": "假设显式标注" }
+            {
+              "id": "spec-1-1",
+              "text": "五问齐备（谁/现状/期望/为何现在/完成标准）"
+            },
+            {
+              "id": "spec-1-2",
+              "text": "假设显式标注"
+            }
           ],
-          "artifacts": ["需求纪要"]
+          "artifacts": [
+            "需求纪要"
+          ]
         },
         {
           "name": "PRD",
           "checklist": [
-            { "id": "spec-2-1", "text": "目标可衡量" },
-            { "id": "spec-2-2", "text": "边界（In/Out）明确" },
-            { "id": "spec-2-3", "text": "成功指标有数" }
+            {
+              "id": "spec-2-1",
+              "text": "目标可衡量"
+            },
+            {
+              "id": "spec-2-2",
+              "text": "边界（In/Out）明确"
+            },
+            {
+              "id": "spec-2-3",
+              "text": "成功指标有数"
+            }
           ],
-          "artifacts": ["PRD.md"]
+          "artifacts": [
+            "PRD.md"
+          ]
         },
         {
           "name": "Spec 规格",
-          "checklist": [{ "id": "spec-3-1", "text": "输入输出/边界/验收标准逐条可测" }],
-          "artifacts": ["specs/"]
+          "checklist": [
+            {
+              "id": "spec-3-1",
+              "text": "输入输出/边界/验收标准逐条可测"
+            }
+          ],
+          "artifacts": [
+            "specs/"
+          ]
         },
         {
           "name": "计划",
           "checklist": [
-            { "id": "spec-4-1", "text": "任务拆分有依赖序" },
-            { "id": "spec-4-2", "text": "工作量有量级" }
+            {
+              "id": "spec-4-1",
+              "text": "任务拆分有依赖序"
+            },
+            {
+              "id": "spec-4-2",
+              "text": "工作量有量级"
+            }
           ],
-          "artifacts": ["tasks.md"]
+          "artifacts": [
+            "tasks.md"
+          ]
         },
         {
           "name": "实现",
           "checklist": [
-            { "id": "spec-5-1", "text": "按任务序执行" },
-            { "id": "spec-5-2", "text": "每任务完成即验证" },
-            { "id": "spec-5-3", "text": "DEV_LOG 同步" }
+            {
+              "id": "spec-5-1",
+              "text": "按任务序执行"
+            },
+            {
+              "id": "spec-5-2",
+              "text": "每任务完成即验证"
+            },
+            {
+              "id": "spec-5-3",
+              "text": "DEV_LOG 同步"
+            }
           ],
-          "artifacts": ["代码 + 测试"]
+          "artifacts": [
+            "代码 + 测试"
+          ]
         },
         {
           "name": "审查",
           "checklist": [
-            { "id": "spec-6-1", "text": "逻辑一致性/批判性/第一性原理三维过一遍（PRD 附录 D 方法）" }
+            {
+              "id": "spec-6-1",
+              "text": "逻辑一致性/批判性/第一性原理三维过一遍（PRD 附录 D 方法）"
+            }
           ],
-          "artifacts": ["审查记录"]
+          "artifacts": [
+            "审查记录"
+          ]
         },
         {
           "name": "复盘",
           "checklist": [
-            { "id": "spec-7-1", "text": "CHECK 报告" },
-            { "id": "spec-7-2", "text": "回流候选确认入库" }
+            {
+              "id": "spec-7-1",
+              "text": "CHECK 报告"
+            },
+            {
+              "id": "spec-7-2",
+              "text": "回流候选确认入库"
+            }
           ],
-          "artifacts": ["CHECK_LOG + 新资产"]
+          "artifacts": [
+            "CHECK_LOG + 新资产"
+          ]
         }
       ]
     },
@@ -100,8 +191,15 @@
       "stages": [
         {
           "name": "收集",
-          "checklist": [{ "id": "retro-1-1", "text": "日志/指标/会话摘录齐备" }],
-          "artifacts": ["素材清单"]
+          "checklist": [
+            {
+              "id": "retro-1-1",
+              "text": "日志/指标/会话摘录齐备"
+            }
+          ],
+          "artifacts": [
+            "素材清单"
+          ]
         },
         {
           "name": "分析",
@@ -111,20 +209,263 @@
               "text": "问题按维度归类（重复性/达成度/合规性/引用可靠性，对齐全局 CHECK 规范）"
             }
           ],
-          "artifacts": ["问题清单"]
+          "artifacts": [
+            "问题清单"
+          ]
         },
         {
           "name": "决议",
           "checklist": [
-            { "id": "retro-3-1", "text": "每问题有处理方式（修/缓/记录）" },
-            { "id": "retro-3-2", "text": "P0/P1/P2 定级" }
+            {
+              "id": "retro-3-1",
+              "text": "每问题有处理方式（修/缓/记录）"
+            },
+            {
+              "id": "retro-3-2",
+              "text": "P0/P1/P2 定级"
+            }
           ],
-          "artifacts": ["行动项"]
+          "artifacts": [
+            "行动项"
+          ]
         },
         {
           "name": "回流",
-          "checklist": [{ "id": "retro-4-1", "text": "术语/提示词/模板改进已入库或建草稿" }],
-          "artifacts": ["资产增量"]
+          "checklist": [
+            {
+              "id": "retro-4-1",
+              "text": "术语/提示词/模板改进已入库或建草稿"
+            }
+          ],
+          "artifacts": [
+            "资产增量"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "发布闸问答",
+      "kind": "spec_driven",
+      "stages": [
+        {
+          "name": "参数确认",
+          "checklist": [
+            {
+              "id": "rel-1-1",
+              "text": "仓库/分支/版本三要素齐备"
+            },
+            {
+              "id": "rel-1-2",
+              "text": "后续各段自动继承这些参数"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "请记住本次发布的参数，后续每一段都会用到：\n\n仓库：{{repo_url}}\n分支：{{branch}}\n版本：{{version}}\n\n确认收到后回复「参数已锁定」，不要执行任何操作。"
+        },
+        {
+          "name": "README 体检",
+          "checklist": [
+            {
+              "id": "rel-2-1",
+              "text": "每条命令本机跑过并贴真实输出"
+            },
+            {
+              "id": "rel-2-2",
+              "text": "失效链接与未实现承诺清零"
+            }
+          ],
+          "artifacts": [
+            "README.md"
+          ],
+          "prompt": "针对 {{repo_url}}（分支 {{branch}}，版本 {{version}}）做 README 体检，只输出修改建议清单，不动手改：\n\n1. 只写真做得到的事：安装、快速上手、能力边界、限制、许可。\n2. 删掉过期命令、失效链接与未实现的承诺。\n3. 每条命令本机跑一遍并贴出真实输出，跑不通的标「未验证」。\n4. 输出「问题 → 建议 → 证据（file:行）」三列，等我确认后再改。"
+        },
+        {
+          "name": "脱敏闸",
+          "checklist": [
+            {
+              "id": "rel-3-1",
+              "text": "工作树/备份生成物/全历史三类都扫"
+            },
+            {
+              "id": "rel-3-2",
+              "text": "输出扫过模式三列清单，处置前等确认"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "对 {{repo_url}}（版本 {{version}}）执行推送前脱敏闸，一项不过即停：\n\n1. 工作树：.env*、*.key 与 *.pem、credentials、api_key/token/base_url/组织 id、绝对家目录、用户名邮箱、内网域名与 IP。\n2. 备份与生成物：*.bak、*.orig、*~、node_modules/、构建产物、数据库文件、日志；核对 .gitignore，并跑 git ls-files -i -c --exclude-standard 揪出已被跟踪的忽略项。\n3. 全历史：对全部历史做关键字匹配，命中列提交号；改写历史与轮换密钥须另行授权。\n4. 输出「扫了哪些模式 / 命中什么 / 怎么处置」三列清单，处置前先等确认。"
+        },
+        {
+          "name": "推送与复核",
+          "checklist": [
+            {
+              "id": "rel-4-1",
+              "text": "非 force 快进推送，只交本次改动"
+            },
+            {
+              "id": "rel-4-2",
+              "text": "独立复核只看已上传物，结论带证据"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "{{repo_url}} 的脱敏闸已通过。执行推送与复核：\n\n1. git status 与 git log @{u}..HEAD 核对归属，只交本次改动，非 force 快进推送；更新 About/homepage/topics，口径与 README 一致。\n2. 压缩包从干净 checkout 构建（不含 .git、本地配置、依赖目录），给出 sha256 与包内文件清单。\n3. 派一个不带本次上下文的只读 agent，只看已上传的东西（仓库文件、解压后的包、发布页），逐项回答：有无凭据、有无 env 与备份残留、有无个人路径、包能否解开且文件数与清单一致、README 与 About 有无夸大；每条结论带路径或 file:行证据，禁止复述我的说法。泄露 0 项也要写明扫过哪些模式；未验证面单列。"
+        }
+      ]
+    },
+    {
+      "name": "需求澄清到 PRD",
+      "kind": "spec_driven",
+      "stages": [
+        {
+          "name": "需求访谈",
+          "checklist": [
+            {
+              "id": "prd-1-1",
+              "text": "想法/用户/场景三问有答案"
+            },
+            {
+              "id": "prd-1-2",
+              "text": "后续段自动继承访谈结果"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "我要做一个新产品/功能，请先做需求访谈再动笔：\n\n想法：{{idea}}\n目标用户：{{target_user}}\n使用场景：{{scenario}}\n\n请针对以上信息提出 5-8 个澄清问题（只提问、不要自己补答案），按「必须先答/可以后答」分两组输出，等我回答后再进入下一步。"
+        },
+        {
+          "name": "澄清与 PRD",
+          "checklist": [
+            {
+              "id": "prd-2-1",
+              "text": "FR 编号可追溯到访谈答案"
+            },
+            {
+              "id": "prd-2-2",
+              "text": "非目标显式列出"
+            }
+          ],
+          "artifacts": [
+            "PRD.md"
+          ],
+          "prompt": "基于「{{idea}}」的访谈结论，产出一份 PRD 草稿：\n\n访谈结论：{{answers}}\n\n要求：FR/NFR 编号可追溯到具体答案；非目标显式列出；每条 FR 附可执行验收标准；篇幅 ≤2 页。输出后列出你做了哪些假设。"
+        },
+        {
+          "name": "验收标准",
+          "checklist": [
+            {
+              "id": "prd-3-1",
+              "text": "每条 FR 有 Given/When/Then"
+            },
+            {
+              "id": "prd-3-2",
+              "text": "边界与异常路径覆盖"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "为上述 PRD 补验收标准：每条 FR 给一组 Given/When/Then，覆盖正常路径、边界值与异常路径；标注哪些可自动化测试、哪些需人工验收。输出为可直接进 issue 的清单。"
+        }
+      ]
+    },
+    {
+      "name": "Bug 根因排查",
+      "kind": "light",
+      "stages": [
+        {
+          "name": "现象采集",
+          "checklist": [
+            {
+              "id": "bug-1-1",
+              "text": "现象/环境/复现步骤三要素齐备"
+            },
+            {
+              "id": "bug-1-2",
+              "text": "后续段自动继承采集结果"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "我有一个 bug 要排查，先只做信息整理不做猜测：\n\n现象：{{symptom}}\n环境：{{env}}\n复现步骤：{{steps}}\n\n请输出：一段中性的现象描述（去掉我的主观归因）、复现步骤的规范化重述、以及你还需要的 3-5 条补充信息清单。"
+        },
+        {
+          "name": "假设清单",
+          "checklist": [
+            {
+              "id": "bug-2-1",
+              "text": "每个假设可被一个实验证伪"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "基于上面的现象描述，列出 3-5 个根因假设，按可能性排序：每个假设给出「依据、证伪实验（具体命令或检查点）、预计输出」。只列假设与实验，不要提前下结论。"
+        },
+        {
+          "name": "根因验证",
+          "checklist": [
+            {
+              "id": "bug-3-1",
+              "text": "结论有实验输出支撑"
+            },
+            {
+              "id": "bug-3-2",
+              "text": "被证伪的假设也记录在案"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "我按假设清单做了实验，结果如下：\n\n实验记录：{{results}}\n\n请判断哪个假设成立/被证伪，给出根因结论；结论必须引用实验输出原文；若证据不足，说明还差哪个实验，不要猜。"
+        },
+        {
+          "name": "修复与回归",
+          "checklist": [
+            {
+              "id": "bug-4-1",
+              "text": "修复最小化、不夹带重构"
+            },
+            {
+              "id": "bug-4-2",
+              "text": "回归测试覆盖根因路径"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "根因已定位（见上）。给出修复方案：最小改动 diff、一条覆盖根因路径的回归测试、以及修复后需要复跑的验证清单。修复不夹带重构与格式化。"
+        }
+      ]
+    },
+    {
+      "name": "周度复盘问答",
+      "kind": "retro",
+      "stages": [
+        {
+          "name": "事实采集",
+          "checklist": [
+            {
+              "id": "wk-1-1",
+              "text": "只写事实，不带自我评价"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "帮我做周度复盘的第一步，只整理事实不做评价：\n\n本周完成：{{done}}\n受阻的事：{{blocked}}\n学到的事：{{learn}}\n\n请把以上整理成「完成 / 受阻 / 收获」三张事实清单，每条一行，去掉重复与主观词。"
+        },
+        {
+          "name": "模式分析",
+          "checklist": [
+            {
+              "id": "wk-2-1",
+              "text": "每个模式有至少两条事实支撑"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "基于上面的事实清单找模式：哪些受阻反复出现？哪些收获可复用？每个模式必须引用至少两条事实原文；不足两条的标「单例，不下结论」。输出「模式 → 支撑事实 → 影响」三列。"
+        },
+        {
+          "name": "改进决议",
+          "checklist": [
+            {
+              "id": "wk-3-1",
+              "text": "每条决议可验证、有归属"
+            },
+            {
+              "id": "wk-3-2",
+              "text": "进入下周任务清单"
+            }
+          ],
+          "artifacts": [],
+          "prompt": "基于模式分析，给出下周改进决议：每条含「做什么、归属（我/工具/流程）、如何验证生效」，最多 3 条（宁少勿多）；最后输出一份可直接粘贴进任务清单的 checklist。"
         }
       ]
     }

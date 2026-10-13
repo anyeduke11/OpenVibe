@@ -22,7 +22,7 @@ import {
 
 const THRESHOLDS = {
   termsMin: 100,
-  templatesExact: 3,
+  templatesExact: 7,
   promptsExact: 21,
   /** seed-content §3.4 构成配额 */
   ruleMin: 6,
@@ -53,11 +53,15 @@ const BASELINE_TERMS = [
   '检索增强生成',
 ] as const
 
-/** seed-content §3.3 冻结的三套模板与阶段名（逐字断言，防漂移） */
+/** seed-content §3.3 冻结的七套模板与阶段名（逐字断言，防漂移；DEV-0074 起 3→7 加四套问答框架） */
 const FLOW_TEMPLATE_STAGES: Record<string, readonly string[]> = {
   个人轻量流: ['启动', '开发', '复盘'],
   'Spec 驱动流': ['需求澄清', 'PRD', 'Spec 规格', '计划', '实现', '审查', '复盘'],
   复盘流: ['收集', '分析', '决议', '回流'],
+  发布闸问答: ['参数确认', 'README 体检', '脱敏闸', '推送与复核'],
+  '需求澄清到 PRD': ['需求访谈', '澄清与 PRD', '验收标准'],
+  'Bug 根因排查': ['现象采集', '假设清单', '根因验证', '修复与回归'],
+  周度复盘问答: ['事实采集', '模式分析', '改进决议'],
 }
 
 const TERM_ALLOWED_KEYS = ['zh', 'en', 'aliases', 'definition', 'example', 'tags'] as const
@@ -66,6 +70,10 @@ const EXPECTED_STAGE_COUNTS: Record<string, number> = {
   个人轻量流: 3,
   'Spec 驱动流': 7,
   复盘流: 4,
+  发布闸问答: 4,
+  '需求澄清到 PRD': 3,
+  'Bug 根因排查': 4,
+  周度复盘问答: 3,
 }
 /**
  * 只读覆盖口（T8g）：SCRIPT-SEED-01/02 要在临时副本上制造「删 5 条词条」「改一个阶段名」的负向样本，

@@ -29,7 +29,7 @@ export function DialogPanel(props: {
           <DialogPrimitive.Title className="text-base font-semibold">{title}</DialogPrimitive.Title>
           <DialogPrimitive.Close
             aria-label="关闭弹窗"
-            className="rounded px-2 py-1 text-sm text-ink-subtle hover:bg-fill"
+            className="rounded px-2 py-1 text-sm text-ink-muted hover:bg-panel-sunk"
           >
             ✕
           </DialogPrimitive.Close>

@@ -2071,3 +2071,38 @@
   2. 13 这个数是本机实况、不是全体用户的量级。缓解：行内明写「本机 `~/.openvibe` 只读计数」，不用它外推任何「影响 N 个用户」的话。
   3. `53 条未提交`与`29 笔落后`都是采样时点值，会随并行会话变动。缓解：两处都带「采样 `551ac26`」与复算命令；D26 那句「工作树未提交条目」只用于说明**此刻不具备发布条件**，不是发布闸的永久读数。
   4. spec 升 v1.1 后，任何引用「m4 spec v1.0」的旧行号/版本叙述会过期。缓解：本笔只改 spec 自己的版本行；引用处现测——`docs/decisions.md` 与 `docs/dev-plan.md` 提到 m4 spec 的行都按**版本号**而非行号指认，落地 T12.1 时按「按任务实现 ＋ 偏差写回计划」一并核对。
+
+---
+
+## [DEV-0090] 前端 V2 换肤代码轮 Phase A 收口：V1→V2 色名全迁 + 七支新 token 接线 + 治理闸按 FR-2.6 扩家族清单 · 附两次过程事故的诚实登记
+
+- **时间**: 2026-10-03（本机 darwin；起手树 = `54789b8` 之上叠加并行会话未提交合流工作树；五闸复跑时点见「测试验证」）
+- **类型**: 混合轮，按 §0.3 拆开判——换肤落地 = **B 级**（`apps/web/src` 全域 + `tests/design-tokens.test.ts`；不动 design §7/§8 冻结契约、不动 `schemaVersion`、`tests/golden/` 一个字节未碰）；`SEMANTIC_CLASS` 家族清单扩容 = `theme.md` FR-2.6 明文要求的同笔动作（四道闸判据松紧未变，只是让 V2 新族名被识别）；`census.mjs` 删一个未用导入 = C 级。`content/seed/flow-templates.json` 的 3→7 不属本笔改动（DEV-0074 问答框架的 seed 面），随功能笔同落的原因见「潜在风险」④。
+- **关联文件**: `apps/web/src/index.css`（V2 29 支亮暗各一份——并行会话那轮已落，本笔未改一个 token 值）、`apps/web/src/components/ui/styles.ts`、`apps/web/src/**` 调用点、`apps/web/src/assets/fonts/`（3 删 1 增）、`tests/design-tokens.test.ts`、`apps/web/src/components/skills/SkillCleanupDialog.tsx`、`apps/web/src/pages/PacksPage.tsx`、`apps/web/src/components/packs/PackPreviewPane.test.tsx`、`docs/devlog-evidence/DEV-0080/census.mjs`、本登记。
+- **问题描述**: `[DEV-0080]` 立的是「治理文档先行」，明写真正的收口是代码轮 Phase A，并预言了两条红——「声明的每个 token 都被引用」那道在换皮后会红（未引用的支被 v4 tree-shake 静默失效）、「只改名不扩闸会立刻红第 3/4 道」。本笔起手时工作树正是它预言的半途态：`index.css` 已是 V2 的 29 支（HEAD 是 V1 40 支，复算 `grep -oE '^[[:space:]]*--color-[a-z0-9-]+:' apps/web/src/index.css \| sed 's/[[:space:]]//g;s/:$//' \| sort -u \| wc -l` 两树各跑一遍即见），但 21 个文件仍在用 V1 色名约 180 处（`text-ink-subtle` / `bg-fill-soft` / `text-warn-700` / `bg-brand-soft`…）——Tailwind v4 对未声明色名**静默不产出 CSS**，写错一处表现为「少个颜色」而不是报错；反向还有 7 支 V2 token 声明了没人用。实测两闸红 + lint 两红（`btnDanger` 导入未用 ×2）。
+- **实现思路（设计→实现）**:
+  1. **改名依据单源 = DESIGN.md「Migration & Retirements」改名表 + theme.md §3.3 三名合一**，不自行发明映射；`brand` 一色分两职（链接/激活/强调→`accent`；台账状态「一致」→`ok`）按表逐调用点判读，不全局替换。
+  2. **机械迁移**（墨阶七档→四档按角色归并、`fill-soft/fill→panel-2/panel-sunk`、`success→ok` 族、`danger/warn` 六档→三档）用脚本跑 + 逐文件 review diff；bare 名规则排在具体档位之后并带 `(?![-\w])` 负向预查，防止把已生成的 `-body/-muted/-soft/-line` 二次吞掉。
+  3. **brand/seal 逐调用点判读**：链接/激活/强调→`accent` 族；两处状态位特殊处理——PortsPanel 监听态点与文字→`ok` 族（「监听中」是状态不是强调），DevLogList 编号 chip 按 FR-5.3 三件套落 `border-accent-line bg-accent-soft text-accent`。
+  4. **两处破坏按钮回归 btnDanger**（SkillCleanupDialog 删除所选 / PacksPage 删除包）：它们在换肤中被写成 `${btnPrimary} border-danger bg-danger hover:bg-danger`——正是 FR-5.2 禁止的「危险形制与 primary 混用」；回归 V2 形制（`danger-soft` 底 + `danger-line` 描边 + `danger` 字，hover 转实心）同笔删掉 SkillCleanupDialog 里随之孤立的 `btnPrimary` 导入，两个 lint error 由此根除。
+  5. **按 FR-2.6 扩闸**：`SEMANTIC_CLASS` 家族清单加 `accent`/`on-accent`/`ok`，删 `brand`/`on-brand`/`seal`/`on-seal`/`success`/`fill` 六族——不扩这道，闸第 4 条永远把 7 支新 token 判成「声明未引用」（FR-2.6 原文预判的同一形态）。
+  6. **两次过程事故（登记在此是为了下一个机械轮不再交学费）**：① 迁移脚本写成 `s/$pat/$var/g`，替换串是运行时变量，其中的 `${1}` **不会被二次插值** ⇒ 38 个文件 136 处 utility 前缀（`text-`/`bg-`/`hover:bg-`…）被换成字面量 `${1}`；修复用 `git diff HEAD` 把每处 `${1}<新名>` 与 HEAD 行里的 `<前缀><旧名>` 按序配对还原，5 处配对失败的按泄漏名反推（证明原行是 bare `ink`，按表正解即 `text-ink-body`），2 个未跟踪新文件无 HEAD 基准改人工。② 修那 5 处时用 shell 双引号包 perl，`\Q\${1}\E` 被二次插值成空串，模式退化成 `ink-body→text-ink-body`，又多污染 2 处双重前缀；改 Python 字面量替换一次修清。**同族教训**：匹配类操作必须先在小样本上验；shell 双引号里的 `$` 一律换 Python 或单引号。
+- **核心变更**:
+  - **色名全迁**：V1 机械族零残留（三重 grep 复算为空，命令见「测试验证」）；
+  - **七支新 token 全部接线**：`on-accent` 来自 btnPrimary 实心三件套，`ok`/`ok-soft`/`ok-line` 来自 PortsPanel 监听态、ProjectDashboard「一致」与既有的状态 chip，`accent-deep` 来自 btnPrimary hover 与激活态，`accent-soft`/`accent-line` 来自激活/选中/chip 三件套；
+  - `btnPrimary`/`btnDanger`/`inputCls`/`labelCls` 落 V2 颜色形制（未落项见「潜在风险」①）；
+  - PackPreviewPane  warn 断言 1→2 并强化（见「潜在风险」②）；
+  - `census.mjs` 删未用导入（挡 lint 闸的那一个）。
+- **测试验证**: 全部 2026-10-03 本机复跑，支数随提交变动、以汇总行为准：
+  - `pnpm vitest run --project unit tests/design-tokens.test.ts` → **4 passed (4)**（`WEB-TOKENS · 颜色单一出处` 四道闸）；
+  - `pnpm lint` rc=0 · `pnpm typecheck` rc=0 · `pnpm test` **58 文件 / 545 支全过** · `pnpm seed:check` rc=0 · `pnpm bundle:check` 入口 **299.98 kB ≤ 300 kB** / 27 chunk / 最大 347.45 kB ≤ 500 kB；
+  - V1 残留复算：`grep -rnE '(([a-z0-9-]+:)*(bg|text|border|ring|divide|outline|fill|stroke|from|to|via|decoration|shadow|accent|caret|placeholder)-)(ink-strong|ink-subtle|ink-ghost|fill-soft|fill|brand|on-brand|seal|on-seal|success-[0-9]|danger-(50|100|200|300|600|700|800|900)|warn-(50|100|200|300|600|700|800))\b' --include=*.tsx --include=*.ts apps/web/src` → 空；`grep -rn '\${1}\|text-text-' --include=*.tsx --include=*.ts apps/web/src` → 空；
+  - 冻结面：`git status --porcelain -- tests/golden/` → 0 行（本笔未触 A 级）。
+- **潜在风险**:
+  1. **btnPrimary 的 V2 形制只到颜色三件套**：FR-5.1 的 `shadow-1` 与 focus-visible 2px 环本已写上，实测把入口从 299.96 推到 **300.08（破闸）**；按 `[DEV-0081]` 风险⑦「顶破这道闸时的第一动作不是改 `scripts/` 里的常数（抬阈值属削弱门禁，须 owner 裁）」收回新增，形制升级归 UI 轮（DEV-0080 代码轮 Phase B）。`styles.ts` 内已留注释说明这笔取舍。
+  2. **PackPreviewPane 断言 1→2 是判读不是将就**：HEAD 版选择器 `text-warn-700` 只匹配黄条（chip 彼时用 `text-warn-800` 不匹配）；并行会话放宽到 `text-warn` 预期 V2 改名，而 V2 下 chip 三件套与黄条**都合法带** `text-warn`（DESIGN.md chip 六形制）⇒ 2 处是正确 DOM。断言改为「2 处且文本都属于 claude-code」，比原裸计数更强地保住「只给 warn=true 的平台」（cursor 零贡献）。
+  3. **入口贴顶**：299.98/300 kB。V2 色名净长于 V1（`brand→accent` 每处 +2、`bg-seal→bg-accent` +3），这是改名自身的体积代价；结构性解法（entry 拆分）在队列 ㉗，属 owner 裁。
+  4. **`content/seed/flow-templates.json` 随功能笔同落，A 级性质在此标注**：它 3→7 是 DEV-0074 的 seed 面，与 `terms.api.test.ts`（HEAD 断言 3 / 工作树断言 7）、`e2e-flow.test.ts`（同）强耦合——seed 与测试任何拆法都会产生一个红提交，故只能同笔。`tests/golden/` 未动；A 级凭据形态（`git diff --name-only <BASE>..HEAD -- tests/golden/ content/seed/`）随提交出齐后交 owner 复核。
+  5. **字体删除是资产动作**：3 删（noto-serif 两切片 79,156 B + source-sans）1 增（outfit-latin-var）在起手工作树里就已发生（`[DEV-0080]` 记「须 owner 签收后才动」），本笔只是随代码轮落库；签收状态以 owner「开始①」的指令为准，净体积口径（−75,720 B）以 `theme.md` FR-4.3 为单源。
+  6. **取号与撞号**：本号按 FR-1.2 取两树最大号 0089 + 1 = **0090**（自查 `grep -c '^## \[DEV-0090\]'`：工作树 1、提交树 0）；工作树另有 7 组已知撞号（0044/0045/0046/0074/0075/0076/0077，`docs/specs/docs-governance-check.md` FR-1.4 已登记为 error 级、「历史不豁免」），**不属本笔、本笔不改号不动它们**——原样落库 + 提交信息标注，最终处置见「owner 手上未收的」③。
+- **owner 手上未收的**: ① FR-5.1 形制细节（`shadow-1` / focus-visible 2px 环 / disabled 40%）待 UI 轮，前置是入口预算有着落；② 入口拆分三案在队列 ㉗；③ **7 组撞号的最终处置**——本笔选择原样落库并在提交信息标注（`docs-governance-check.md` FR-1.4 的登记形状就是「闸报出、不靠人记」，改号要逐处消歧 42 处引用且有至少 1 处歧义，风险高于收益），若 owner 要落库后改号是另一笔；④ README 三处数字口径不属本笔（「3 套流程模板」对提交树仍成立、`476 用例/55 文件` 是带 sha 的历史快照、`npx openvibe-cli` 待 D24/D25 发布笔）；⑤ 本笔随功能笔落库，未 push、未打 tag、无任何对外动作。

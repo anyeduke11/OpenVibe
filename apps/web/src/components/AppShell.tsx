@@ -102,7 +102,7 @@ function ThemeToggle() {
       onClick={toggle}
       aria-label={zh.common.theme.aria}
       title={dark ? zh.common.theme.light : zh.common.theme.dark}
-      className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-panel text-sm text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
+      className="flex h-8 w-8 items-center justify-center rounded-md border border-line bg-panel text-sm text-ink-muted transition-colors hover:border-line-strong hover:text-ink-body"
     >
       {dark ? '昼' : '夜'}
     </button>
@@ -116,7 +116,7 @@ export function AppShell() {
       <aside className="flex w-[76px] shrink-0 flex-col items-center gap-4 border-r border-line bg-canvas py-4 max-md:w-full max-md:flex-row max-md:gap-3 max-md:overflow-x-auto max-md:border-b max-md:border-r-0 max-md:py-2 max-md:pl-3">
         <div className="flex flex-col items-center gap-1.5 max-md:flex-row max-md:gap-2">
           <div
-            className="wordmark v-rl border-b border-line-strong pb-2 text-2xl tracking-[0.3em] text-ink-strong max-md:border-b-0 max-md:border-r max-md:pb-0 max-md:pr-2 max-md:tracking-[0.12em] max-md:[writing-mode:horizontal-tb]"
+            className="wordmark v-rl border-b border-line-strong pb-2 text-2xl tracking-[0.3em] text-ink max-md:border-b-0 max-md:border-r max-md:pb-0 max-md:pr-2 max-md:tracking-[0.12em] max-md:[writing-mode:horizontal-tb]"
             aria-label={zh.appName}
           >
             灵典
@@ -129,8 +129,8 @@ export function AppShell() {
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `relative flex w-14 flex-col items-center rounded-md py-1.5 transition-colors hover:bg-fill-soft max-md:w-auto max-md:flex-row max-md:gap-1.5 max-md:px-2.5 ${
-                  isActive ? 'bg-brand-soft text-brand' : 'text-ink-muted hover:text-ink'
+                `relative flex w-14 flex-col items-center rounded-md py-1.5 transition-colors hover:bg-panel-2 max-md:w-auto max-md:flex-row max-md:gap-1.5 max-md:px-2.5 ${
+                  isActive ? 'bg-accent-soft text-accent' : 'text-ink-muted hover:text-ink-body'
                 }`
               }
             >
@@ -139,7 +139,7 @@ export function AppShell() {
                   {isActive && (
                     <span
                       aria-hidden
-                      className="absolute left-1 top-1/2 h-1 w-1 -translate-y-1/2 rounded-[1px] bg-seal max-md:static max-md:-translate-y-0"
+                      className="absolute left-1 top-1/2 h-1 w-1 -translate-y-1/2 rounded-[1px] bg-accent max-md:static max-md:-translate-y-0"
                     />
                   )}
                   <span className="text-[17px] font-semibold leading-tight">{item.hz}</span>

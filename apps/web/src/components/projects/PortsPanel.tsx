@@ -16,9 +16,9 @@ function StateDot(props: { state: PortStatus['state'] }) {
     >
       <span
         aria-hidden
-        className={`h-1.5 w-1.5 rounded-[2px] ${listening ? 'bg-brand' : 'bg-ink-ghost'}`}
+        className={`h-1.5 w-1.5 rounded-[2px] ${listening ? 'bg-ok' : 'bg-ink-faint'}`}
       />
-      <span className={listening ? 'text-brand' : 'text-ink-faint'}>
+      <span className={listening ? 'text-ok' : 'text-ink-faint'}>
         {listening ? zh.projects.ports.listening : zh.projects.ports.idle}
       </span>
     </span>
@@ -43,7 +43,7 @@ export function PortsPanel(props: { data: ProjectPortsOut | undefined }) {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
-            <thead className="text-left text-xs text-ink-subtle">
+            <thead className="text-left text-xs text-ink-muted">
               <tr className="border-b border-line-strong">
                 <th className="px-2 py-2">{zh.projects.ports.colPort}</th>
                 <th className="px-2 py-2">{zh.projects.ports.colService}</th>
@@ -56,16 +56,16 @@ export function PortsPanel(props: { data: ProjectPortsOut | undefined }) {
             <tbody>
               {data.services.map((s) => (
                 <tr key={`${String(s.port)}-${s.service}`} className="border-b border-line-hair">
-                  <td className="mono px-2 py-2 text-ink-strong">{String(s.port)}</td>
+                  <td className="mono px-2 py-2 text-ink">{String(s.port)}</td>
                   <td className="px-2 py-2 text-ink-body">{s.service}</td>
-                  <td className="px-2 py-2 text-xs text-ink-subtle">
+                  <td className="px-2 py-2 text-xs text-ink-muted">
                     {zh.projects.ports.sourceLabel[s.source]}{' '}
                     <span className="mono text-[11px] text-ink-faint">{s.sourceFile}</span>
                   </td>
                   <td className="px-2 py-2">
                     <StateDot state={s.state} />
                   </td>
-                  <td className="mono px-2 py-2 text-xs text-ink-subtle">
+                  <td className="mono px-2 py-2 text-xs text-ink-muted">
                     {s.state === 'listening'
                       ? `${s.process ?? ''}·${String(s.pid ?? '')}`
                       : zh.common.none}
@@ -73,7 +73,7 @@ export function PortsPanel(props: { data: ProjectPortsOut | undefined }) {
                   <td className="px-2 py-2 text-xs">
                     {s.url !== undefined && s.state === 'listening' ? (
                       <a
-                        className="text-brand underline-offset-2 hover:underline"
+                        className="text-accent underline-offset-2 hover:underline"
                         href={s.url}
                         target="_blank"
                         rel="noreferrer"
@@ -92,7 +92,7 @@ export function PortsPanel(props: { data: ProjectPortsOut | undefined }) {
       )}
 
       {data !== undefined && data.listenersWarning !== undefined && (
-        <p className="mt-2 text-[11px] text-warn-700">{data.listenersWarning}</p>
+        <p className="mt-2 text-[11px] text-warn">{data.listenersWarning}</p>
       )}
       {data !== undefined && data.scannedFiles.length > 0 && (
         <p className="mt-2 text-[11px] text-ink-faint">

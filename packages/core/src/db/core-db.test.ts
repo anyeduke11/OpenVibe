@@ -84,7 +84,7 @@ describe('UT-CASCADE-02 · skill 与项目级联', () => {
       name: '个人轻量流',
       kind: 'light',
       stages: [
-        { name: '启动', checklist: [{ id: 'c1', text: '需求一句话写清' }], artifacts: [] },
+        { name: '启动', checklist: [{ id: 'c1', text: '需求一句话写清' }], artifacts: [], prompt: '' },
       ],
     })
     const projects = new ProjectsRepo(h.db)

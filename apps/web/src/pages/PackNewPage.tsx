@@ -17,7 +17,7 @@ export function PackNewPage() {
     return <p className="px-5 py-4 text-sm text-ink-faint">{zh.common.loading}</p>
   if (pack.isError)
     return (
-      <p className="px-5 py-4 text-sm text-danger-700">
+      <p className="px-5 py-4 text-sm text-danger">
         {zh.common.failed((pack.error as Error).message)}
       </p>
     )

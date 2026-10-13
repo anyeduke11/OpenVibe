@@ -8,10 +8,38 @@ import { useSkillRemote, useSkillRetrack, useSkillUpdateCheck } from '../../hook
 import { zh } from '../../i18n/zh'
 
 const STATUS_CHIP: Record<SkillUpdateCheckItem['status'], string> = {
-  upToDate: 'border-line bg-fill-soft text-ink-muted',
-  remoteChanged: 'border-brand bg-brand-soft text-brand',
-  notTracked: 'border-warn-300 bg-warn-50 text-warn-800',
-  checkFailed: 'border-danger-600 bg-danger-50 text-danger-700',
+  upToDate: 'border-ok-line bg-ok-soft text-ok',
+  remoteChanged: 'border-accent-line bg-accent-soft text-accent',
+  notTracked: 'border-warn-line bg-warn-soft text-warn',
+  checkFailed: 'border-danger-line bg-danger-soft text-danger',
+}
+
+const STATUS_ICON: Record<SkillUpdateCheckItem['status'], React.ReactNode> = {
+  upToDate: (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  remoteChanged: (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <path d="M2 8a6 6 0 0110.5-4M14 8a6 6 0 01-10.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8 2v4M8 10v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
+  notTracked: (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1.5L1 14h14L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M8 6v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="8" cy="11.5" r="0.75" fill="currentColor" />
+    </svg>
+  ),
+  checkFailed: (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
 }
 
 /**
@@ -79,11 +107,12 @@ export function SkillUpdateDialog(props: { open: boolean; onClose: () => void })
   }
 
   const renderRow = (item: SkillUpdateCheckItem) => (
-    <div key={item.skillId} className="flex items-center gap-2 rounded p-1.5 text-xs hover:bg-fill-soft">
+    <div key={item.skillId} className="flex items-center gap-2 rounded p-1.5 text-xs hover:bg-panel-2">
       <span className={`${chipCls} shrink-0 ${STATUS_CHIP[item.status]}`}>
+        {STATUS_ICON[item.status]}
         {zh.skills.updates.status[item.status]}
       </span>
-      <span className="min-w-0 flex-1 truncate font-medium text-ink">{item.name}</span>
+      <span className="min-w-0 flex-1 truncate font-medium text-ink-body">{item.name}</span>
       {item.note !== undefined && (
         <span className="hidden max-w-56 truncate text-[11px] text-ink-faint md:block">{item.note}</span>
       )}
@@ -126,12 +155,12 @@ export function SkillUpdateDialog(props: { open: boolean; onClose: () => void })
         }
       >
         <div className="space-y-3 text-sm">
-          <p className="text-xs text-ink-subtle">{zh.skills.updates.hint}</p>
-          {check.isError && <p className="text-xs text-warn-800">{(check.error as Error).message}</p>}
-          {check.isPending && <p className="text-xs text-ink-subtle">{zh.skills.updates.checking}</p>}
+          <p className="text-xs text-ink-muted">{zh.skills.updates.hint}</p>
+          {check.isError && <p className="text-xs text-warn">{(check.error as Error).message}</p>}
+          {check.isPending && <p className="text-xs text-ink-muted">{zh.skills.updates.checking}</p>}
           {report !== undefined && (
             <>
-              <p className="rounded-md border border-line bg-fill-soft p-2 text-xs">
+              <p className="rounded-md border border-line bg-panel-2 p-2 text-xs">
                 {changed.length === 0
                   ? zh.skills.updates.allUpToDate
                   : zh.skills.updates.changedCount(changed.length)}

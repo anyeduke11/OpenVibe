@@ -44,6 +44,8 @@ export const CONTROLLED_TAG_VOCAB = [
   '数据与存储',
 ] as const
 export type ControlledTag = (typeof CONTROLLED_TAG_VOCAB)[number]
+// 术语学习路线（TERM_ROADMAP）在 ./roadmap.ts——constants 被入口 chunk 引用，
+// 路线数据只有懒加载的术语视图用，放这里会把 ~1kB 中文数据抬进入口。
 
 export const USE_AS = ['rule', 'reference'] as const
 export type UseAs = (typeof USE_AS)[number]

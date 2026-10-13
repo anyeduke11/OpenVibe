@@ -7,10 +7,39 @@ import { useSkillReview } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
 
 const LEVEL_CHIP: Record<SkillReviewItem['level'], string> = {
-  ok: 'border-line bg-fill-soft text-ink-muted',
-  info: 'border-line bg-transparent text-ink-subtle',
-  warn: 'border-warn-300 bg-warn-50 text-warn-800',
-  fail: 'border-danger-600 bg-danger-50 text-danger-700',
+  ok: 'border-ok-line bg-ok-soft text-ok',
+  info: 'border-info-line bg-info-soft text-info',
+  warn: 'border-warn-line bg-warn-soft text-warn',
+  fail: 'border-danger-line bg-danger-soft text-danger',
+}
+
+const LEVEL_ICON: Record<SkillReviewItem['level'], React.ReactNode> = {
+  ok: (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  info: (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M8 7v3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="8" cy="5" r="0.75" fill="currentColor" />
+    </svg>
+  ),
+  warn: (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1.5L1 14h14L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M8 6v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="8" cy="11.5" r="0.75" fill="currentColor" />
+    </svg>
+  ),
+  fail: (
+    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  ),
 }
 
 /** 内置审查（DEV-0067）：规范面 + 质量面 + 泄漏面；打开即全量审查，明细按条目折叠 */
@@ -45,11 +74,11 @@ export function SkillReviewDialog(props: { open: boolean; onClose: () => void })
         }
       >
         <div className="space-y-3 text-sm">
-          {review.isPending && <p className="text-xs text-ink-subtle">{zh.skills.reviewDialog.running}</p>}
-          {review.isError && <p className="text-xs text-warn-800">{(review.error as Error).message}</p>}
+          {review.isPending && <p className="text-xs text-ink-muted">{zh.skills.reviewDialog.running}</p>}
+          {review.isError && <p className="text-xs text-warn">{(review.error as Error).message}</p>}
           {report !== undefined && (
             <>
-              <p className="rounded-md border border-line bg-fill-soft p-2 text-xs">
+              <p className="rounded-md border border-line bg-panel-2 p-2 text-xs">
                 {zh.skills.reviewDialog.summary(
                   report.summary.ok,
                   report.summary.info,
@@ -58,16 +87,17 @@ export function SkillReviewDialog(props: { open: boolean; onClose: () => void })
                 )}
               </p>
               {problematic.length === 0 ? (
-                <p className="py-6 text-center text-sm text-ink-subtle">{zh.skills.reviewDialog.allClear}</p>
+                <p className="py-6 text-center text-sm text-ink-muted">{zh.skills.reviewDialog.allClear}</p>
               ) : (
                 <div className="max-h-80 space-y-2 overflow-auto">
                   {problematic.map((item) => (
                     <details key={item.skillId} className="rounded-md border border-line p-2">
                       <summary className="flex cursor-pointer items-center gap-2 text-xs">
                         <span className={`${chipCls} ${LEVEL_CHIP[item.level]}`}>
+                          {LEVEL_ICON[item.level]}
                           {zh.skills.reviewDialog.levels[item.level]}
                         </span>
-                        <span className="truncate font-medium text-ink">{item.name}</span>
+                        <span className="truncate font-medium text-ink-body">{item.name}</span>
                         <span className="text-ink-faint">
                           {String(item.issues.length)} {zh.skills.reviewDialog.issues}
                         </span>

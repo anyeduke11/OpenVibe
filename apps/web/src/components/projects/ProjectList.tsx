@@ -14,12 +14,12 @@ export function ProjectList(props: {
     return <p className="px-5 py-10 text-sm text-ink-faint">{zh.common.loading}</p>
   }
   if (props.items.length === 0) {
-    return <p className="px-5 py-10 text-sm text-ink-subtle">{zh.projects.empty}</p>
+    return <p className="px-5 py-10 text-sm text-ink-muted">{zh.projects.empty}</p>
   }
   return (
     <div className="min-h-0 flex-1 overflow-auto px-5">
       <table className="w-full border-collapse text-sm">
-        <thead className="sticky top-0 bg-panel text-left text-xs text-ink-subtle">
+        <thead className="sticky top-0 bg-panel text-left text-xs text-ink-muted">
           <tr>
             <th className="border-b border-line-hair py-2 pr-3 font-medium">{zh.projects.wizard.name}</th>
             <th className="border-b border-line-hair py-2 pr-3 font-medium">
@@ -45,9 +45,9 @@ export function ProjectList(props: {
           {props.items.map((p) => {
             const done = p.health.total - p.health.unchecked
             return (
-              <tr key={p.id} className="hover:bg-fill-soft">
+              <tr key={p.id} className="hover:bg-panel-2">
                 <td className="max-w-64 border-b border-line-hair py-2 pr-3">
-                  <Link to={`/projects/${p.id}`} className="truncate font-medium text-ink hover:text-brand">
+                  <Link to={`/projects/${p.id}`} className="truncate font-medium text-ink-body hover:text-accent">
                     {p.name}
                   </Link>
                   <div className="truncate text-[11px] text-ink-faint">{p.localPath ?? zh.projects.noPath}</div>
@@ -56,8 +56,8 @@ export function ProjectList(props: {
                   <span
                     className={`${chipCls} ${
                       p.status === 'active'
-                        ? 'border-brand bg-brand-soft text-brand'
-                        : 'border-line bg-fill-soft text-ink-muted'
+                        ? 'border-accent-line bg-accent-soft text-accent-deep'
+                        : 'border-line bg-panel-2 text-ink-muted'
                     }`}
                   >
                     {zh.projects.status[p.status]}
@@ -75,11 +75,11 @@ export function ProjectList(props: {
                         p.health.total,
                       )}
                 </td>
-                <td className="border-b border-line-hair py-2 pr-3 text-[11px] text-ink-subtle">
+                <td className="border-b border-line-hair py-2 pr-3 text-[11px] text-ink-muted">
                   {p.health.lastLogAt ?? zh.projects.never}
-                  <div className="text-ink-faint">{`${String(p.health.logCount)} logs`}</div>
+                  <div className="text-ink-faint mono">{`${String(p.health.logCount)} logs`}</div>
                 </td>
-                <td className="border-b border-line-hair py-2 pr-3 text-[11px] text-ink-subtle">
+                <td className="border-b border-line-hair py-2 pr-3 text-[11px] text-ink-muted">
                   {props.injectionOf(p)}
                 </td>
                 <td className="border-b border-line-hair py-2 pr-3 text-[11px] text-ink-faint">
@@ -90,7 +90,7 @@ export function ProjectList(props: {
                     {zh.projects.open}
                   </Link>
                   <button
-                    className={`${btnGhost} ml-1 text-danger-600 hover:border-danger-200 hover:bg-danger-50`}
+                    className={`${btnGhost} ml-1 text-danger hover:border-danger-line hover:bg-danger-soft`}
                     onClick={() => props.onDelete(p)}
                   >
                     {zh.flows.actions.del}

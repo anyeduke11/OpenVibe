@@ -13,9 +13,10 @@ import {
 } from '@openvibe/shared'
 import { parseJsonColumn, sha256Hex } from './util'
 import { createHash } from 'node:crypto'
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
+import { pinyin } from 'pinyin-pro'
 
 type SkillRow = {
   id: string
@@ -536,7 +537,12 @@ export class SkillsRepo {
     for (const row of rows) {
       const anomaly = skillNameIssue(row.name)
       if (anomaly !== null) {
-        report.nameAnomalies.push({ id: row.id, name: row.name, issue: anomaly })
+        report.nameAnomalies.push({
+          id: row.id,
+          name: row.name,
+          issue: anomaly,
+          suggestedName: suggestSkillName(row.name, anomaly),
+        })
       }
       if (row.source === 'local' && row.skill_dir !== null && !existsSync(row.skill_dir)) {
         report.stale.push({ id: row.id, name: row.name, skillDir: row.skill_dir })
@@ -593,6 +599,168 @@ export class SkillsRepo {
     }
     return { items, summary }
   }
+
+  /**
+   * 整合（DEV-0073）：keepId 吸收 absorbIds。语义：
+   * - 版本线搬移：吸收者的版本按原时间戳搬到保留项名下，与保留项同指纹（UNIQUE
+   *   skill_id+dir_hash）的跳过；手动登记的空指纹 v1 无指纹价值，直接丢弃（计数）。
+   * - 安装目标取并集；保留项缺目录时继承第一个有目录的吸收者的目录（source 不变）。
+   * - 吸收者行删除（其版本已搬走，无级联残留）。
+   */
+  mergeSkills(
+    keepId: string,
+    absorbIds: readonly string[],
+  ): { keptName: string; absorbed: number; versionsMoved: number; versionsDropped: number; warnings: string[] } {
+    const keep = this.get(keepId)
+    if (keep === null) throw new AppError('NOT_FOUND', `保留项 skill 不存在: ${keepId}`)
+    const unique = [...new Set(absorbIds.filter((x) => typeof x === 'string' && x !== ''))].filter(
+      (id) => id !== keepId,
+    )
+    const absorbs = unique
+      .map((id) => {
+        const s = this.get(id)
+        if (s === null) throw new AppError('NOT_FOUND', `被合并 skill 不存在: ${id}`)
+        return s
+      })
+    if (absorbs.length === 0) {
+      throw new AppError('VALIDATION_ERROR', 'absorbIds 去重后为空（不能只吸收自己）')
+    }
+
+    const warnings: string[] = []
+    let moved = 0
+    let dropped = 0
+    let inheritedDir: string | null = null
+    const targets = new Set(keep.installedTargets)
+
+    this.db.transaction(() => {
+      for (const absorb of absorbs) {
+        for (const t of absorb.installedTargets) targets.add(t)
+        if (inheritedDir === null && absorb.skillDir !== null) inheritedDir = absorb.skillDir
+        const rows = this.db
+          .prepare(
+            `SELECT version_label, dir_hash, file_count, scanned_at FROM skill_versions
+              WHERE skill_id = ? ORDER BY scanned_at ASC, rowid ASC`,
+          )
+          .all(absorb.id) as {
+          version_label: string
+          dir_hash: string
+          file_count: number
+          scanned_at: string
+        }[]
+        for (const v of rows) {
+          if (v.dir_hash === '') {
+            dropped += 1 // 手动空指纹 v1：无指纹价值，不搬
+            continue
+          }
+          const dup = this.db
+            .prepare('SELECT id FROM skill_versions WHERE skill_id = ? AND dir_hash = ?')
+            .get(keepId, v.dir_hash) as { id: string } | undefined
+          if (dup !== undefined) {
+            dropped += 1
+            continue
+          }
+          this.db
+            .prepare(
+              `INSERT INTO skill_versions (id, skill_id, version_label, dir_hash, file_count, scanned_at)
+               VALUES (?, ?, ?, ?, ?, ?)`,
+            )
+            .run(newId('skillVersion'), keepId, v.version_label, v.dir_hash, v.file_count, v.scanned_at)
+          moved += 1
+        }
+        this.db.prepare('DELETE FROM skills WHERE id = ?').run(absorb.id)
+      }
+      this.db
+        .prepare(
+          `UPDATE skills SET installed_targets = ?, skill_dir = COALESCE(skill_dir, ?), updated_at = ? WHERE id = ?`,
+        )
+        .run(JSON.stringify([...targets]), inheritedDir, nowIso(), keepId)
+    })()
+    if (dropped > 0) {
+      warnings.push(`丢弃 ${String(dropped)} 个版本（同指纹已存在于保留项，或手动登记的空指纹首版本）`)
+    }
+    return {
+      keptName: keep.name,
+      absorbed: absorbs.length,
+      versionsMoved: moved,
+      versionsDropped: dropped,
+      warnings,
+    }
+  }
+
+  /**
+   * 名称修复（DEV-0073）。原子性：需要重写源文件时（convention + 本地目录），先改文件
+   * 成功再改台账——顺序反了会让下次扫描按旧名重建条目，制造新的重复。
+   * 建议名已被占用时不报错，改为把本条并入既有同名条目（mergeSkills）。
+   */
+  repairName(id: string): {
+    status: 'renamed' | 'merged' | 'not-applicable' | 'failed'
+    newName?: string
+    note?: string
+  } {
+    const skill = this.get(id)
+    if (skill === null) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
+    const issue = skillNameIssue(skill.name)
+    if (issue === null) return { status: 'not-applicable', note: '名称本就合规' }
+    const suggested = suggestSkillName(skill.name, issue)
+    if (suggested === null || suggested === skill.name) {
+      return { status: 'failed', note: '无法生成规范名（剥引号/规范化后为空）' }
+    }
+
+    const conflict = this.db
+      .prepare('SELECT id FROM skills WHERE name = ? AND id != ?')
+      .get(suggested, id) as { id: string } | undefined
+    if (conflict !== undefined) {
+      const merged = this.mergeSkills(conflict.id, [id])
+      return {
+        status: 'merged',
+        newName: suggested,
+        note: `建议名已有台账条目，本条已并入（搬移 ${String(merged.versionsMoved)} 个版本）`,
+      }
+    }
+
+    // convention 的名字来自 SKILL.md frontmatter：台账改名必须连带重写源文件（quoted 不用——
+    // 新解析器剥引号后读出的就是建议名，文件保持原样即可对齐）
+    let fileNote: string | undefined
+    if (issue === 'convention' && skill.skillDir !== null && skill.source === 'local') {
+      const mdPath = join(skill.skillDir, 'SKILL.md')
+      try {
+        const content = readFileSync(mdPath, 'utf8')
+        const rewritten = rewriteFrontmatterName(content, suggested)
+        if (rewritten === null) {
+          return { status: 'failed', note: `SKILL.md 无 frontmatter/name 行，无法重写: ${mdPath}` }
+        }
+        writeFileSync(mdPath, rewritten, 'utf8')
+        fileNote = '已重写 SKILL.md 的 name 字段（否则重扫会按旧名重建条目）'
+      } catch (e) {
+        return {
+          status: 'failed',
+          note: `源文件不可写，未改台账（避免重扫制造新重复）: ${(e as Error).message}`,
+        }
+      }
+    } else if (issue === 'convention') {
+      fileNote = skill.source === 'local' ? '无本地目录，仅改台账' : '远程条目仅改台账（重导会按远端 frontmatter 再判）'
+    }
+
+    this.db
+      .prepare('UPDATE skills SET name = ?, updated_at = ? WHERE id = ?')
+      .run(suggested, nowIso(), id)
+    return { status: 'renamed', newName: suggested, note: fileNote }
+  }
+}
+
+/** 把 SKILL.md frontmatter 里的首个 name: 行替换为新名；无 frontmatter/name → null */
+function rewriteFrontmatterName(content: string, newName: string): string | null {
+  const lines = content.split(/\r?\n/)
+  if (lines[0] !== '---') return null
+  let replaced = false
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i] === '---') break
+    if (!replaced && /^name:/.test(lines[i] ?? '')) {
+      lines[i] = `name: ${newName}`
+      replaced = true
+    }
+  }
+  return replaced ? lines.join('\n') : null
 }
 
 /** 台账名规范（Anthropic SKILL.md 约定）：小写字母/数字/连字符，≤64；返回问题码或 null */
@@ -600,6 +768,41 @@ export function skillNameIssue(name: string): 'quoted' | 'convention' | null {
   if (/^["'].*["']$/.test(name)) return 'quoted'
   if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(name)) return 'convention'
   return null
+}
+
+/**
+ * 名称修复建议（DEV-0073）。分档处理，两档语义不同：
+ * - quoted：只剥包裹引号、原值保留——新版解析器（DEV-0067 剥引号）重扫产出的正是这个名字，
+ *   台账改成它，下次扫描即自动并账（不制造新重复）；值内部引号不动。
+ * - convention：规范化为 slug——ASCII 小写化、非法字符归一为连字符，中文段走拼音
+ *   （与 pinyinKey 同一 pinyin-pro 词典，词组消歧多音字），≤64。此类名字写在 SKILL.md
+ *   frontmatter 里，台账改名必须连带重写源文件（repairName 负责），否则重扫按旧名重建。
+ * 返回 null = 无法生成可用建议（如剥引号后为空）。
+ */
+export function suggestSkillName(name: string, issue: 'quoted' | 'convention'): string | null {
+  const t = name.trim()
+  const inner =
+    t.length >= 2 && ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'")))
+      ? t.slice(1, -1)
+      : t
+  if (issue === 'quoted') return inner === name ? null : inner
+  if (inner === '') return null
+  // 只对中文段做拼音转换（pinyin-pro 的 array 模式会按词切，非汉字逐字透传成单字符——
+  // 'Code' 若整体过 pinyin 会变 'c-o-d-e'）；ASCII/数字段保形，再统一 slug 化
+  const romanized = inner
+    .split(/([\u4e00-\u9fff]+)/)
+    .map((seg) =>
+      /[\u4e00-\u9fff]/.test(seg)
+        ? pinyin(seg, { toneType: 'none', type: 'array' }).join(' ')
+        : seg,
+    )
+    .join('')
+  const slug = romanized
+    .toLowerCase()
+    .replaceAll(/[^a-z0-9]+/g, '-')
+    .replaceAll(/^-+|-+$/g, '')
+  if (slug === '' || slug.length > 64) return null
+  return slug
 }
 
 /**

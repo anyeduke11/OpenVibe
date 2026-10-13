@@ -7,7 +7,7 @@ import { zh } from '../i18n/zh'
 import { PackDetailSheet } from '../components/packs/PackDetailSheet'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
 import { toast } from '../components/ui/Toaster'
-import { btnGhost, btnPrimary, chipCls } from '../components/ui/styles'
+import { btnDanger, btnGhost, btnPrimary, chipCls } from '../components/ui/styles'
 
 /** /packs：列表 + 详情抽屉（导出历史 / 注入历史），组装与导出在向导里（m6a FR-1–FR-5） */
 export function PacksPage() {
@@ -37,14 +37,14 @@ export function PacksPage() {
       <div className="flex-1 overflow-auto px-5 py-4">
         {list.isLoading && <p className="text-sm text-ink-faint">{zh.common.loading}</p>}
         {list.isError && (
-          <p className="text-sm text-danger-700">{zh.common.failed((list.error as Error).message)}</p>
+          <p className="text-sm text-danger">{zh.common.failed((list.error as Error).message)}</p>
         )}
         {items.length === 0 && !list.isLoading && (
-          <p className="text-sm text-ink-subtle">{zh.packs.empty}</p>
+          <p className="text-sm text-ink-muted">{zh.packs.empty}</p>
         )}
         {items.length > 0 && (
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-panel text-left text-xs text-ink-subtle">
+            <thead className="sticky top-0 bg-panel text-left text-xs text-ink-muted">
               <tr>
                 <th className="w-56 px-2 py-2">{zh.packs.columns.name}</th>
                 <th className="px-2 py-2">{zh.packs.columns.targets}</th>
@@ -57,11 +57,11 @@ export function PacksPage() {
               {items.map((pack) => (
                 <tr
                   key={pack.id}
-                  className="cursor-pointer border-b border-line-hair align-top hover:bg-fill-soft"
+                  className="cursor-pointer border-b border-line-hair align-top hover:bg-panel-2"
                   onClick={() => setDetail(pack)}
                 >
                   <td className="px-2 py-2">
-                    <span className="mono text-ink">{pack.name}</span>
+                    <span className="mono text-ink-body">{pack.name}</span>
                     <span className="block truncate text-[11px] text-ink-faint">
                       {pack.description}
                     </span>
@@ -71,7 +71,7 @@ export function PacksPage() {
                       {pack.targets.map((t) => (
                         <span
                           key={t}
-                          className={`${chipCls} border-line bg-fill-soft text-ink-muted`}
+                          className={`${chipCls} border-line bg-panel-2 text-ink-muted`}
                         >
                           {zh.packs.targetLabels[t] ?? t}
                         </span>
@@ -86,7 +86,7 @@ export function PacksPage() {
                     )}
                     <span className="block text-[11px] text-ink-faint">{flowName(pack)}</span>
                   </td>
-                  <td className="px-2 py-2 text-xs text-ink-subtle">{pack.updatedAt}</td>
+                  <td className="px-2 py-2 text-xs text-ink-muted tabular-nums">{pack.updatedAt}</td>
                   <td className="px-2 py-2">
                     <span className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <button className={btnGhost} onClick={() => navigate(`/packs/${pack.id}/edit`)}>
@@ -104,7 +104,7 @@ export function PacksPage() {
         )}
       </div>
 
-      <footer className="border-t border-line-hair px-5 py-2 text-xs text-ink-subtle">
+      <footer className="border-t border-line-hair px-5 py-2 text-xs text-ink-muted tabular-nums">
         {list.data !== undefined ? zh.packs.total(list.data.total) : ''}
       </footer>
 
@@ -119,7 +119,7 @@ export function PacksPage() {
                 {zh.editor.cancel}
               </button>
               <button
-                className={`${btnPrimary} border-danger-600 bg-danger-600 hover:bg-danger-700`}
+                className={btnDanger}
                 disabled={remove.isPending}
                 onClick={() => {
                   if (deleting === null) return
@@ -140,7 +140,7 @@ export function PacksPage() {
           {deleting !== null && (
             <div className="space-y-2 text-sm">
               <p>{zh.packs.deleteDialog.body(deleting.name)}</p>
-              <p className="text-xs text-ink-subtle">{zh.packs.deleteDialog.note}</p>
+              <p className="text-xs text-ink-muted">{zh.packs.deleteDialog.note}</p>
             </div>
           )}
         </DialogPanel>

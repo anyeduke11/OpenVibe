@@ -66,6 +66,7 @@ export function demoResolved(options: DemoOptions = {}): ResolvedPack {
                 name: '设计',
                 checklist: [{ id: 'ck-1', text: '确认边界与验收' }],
                 artifacts: ['spec.md'],
+                prompt: '',
               },
             ],
           },

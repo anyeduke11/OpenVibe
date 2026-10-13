@@ -25,8 +25,8 @@ export function FlywheelCard(props: FlywheelStatsOut) {
         const value = props[item.key]
         return (
           <span key={item.key} className="flex items-baseline gap-1.5">
-            <span className="text-xs text-ink-subtle">{item.label}</span>
-            <span className={`text-sm font-semibold ${value === 0 ? 'text-ink-ghost' : 'text-brand'}`}>
+            <span className="text-xs text-ink-muted">{item.label}</span>
+            <span className={`mono text-sm font-semibold ${value === 0 ? 'text-ink-faint' : 'text-ink-body'}`}>
               {value === 0 ? zh.flywheel.placeholder : String(value)}
             </span>
           </span>

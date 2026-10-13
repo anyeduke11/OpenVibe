@@ -68,6 +68,7 @@ const stage = (name: string, itemCount: number): Stage => ({
     text: `${name} 检查项 ${i + 1}`,
   })),
   artifacts: [],
+  prompt: '',
 })
 
 async function mkTemplate(h: Harness, name: string, stages: Stage[]): Promise<FlowTemplateOut> {
@@ -206,10 +207,18 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
     expect(again.statusCode).toBe(404)
     expect(again.json().code).toBe('NOT_FOUND')
 
-    // 内置模板仍在列表里（三档：个人轻量流 / Spec 驱动流 / 复盘流）
+    // 内置模板仍在列表里（七档：三套基线 + DEV-0074 四套问答框架）
     const list = await injectApi(h, 'GET', '/api/flow-templates')
     const builtins = (list.json().items as FlowTemplateOut[]).filter((t) => t.builtin)
-    expect(builtins.map((t) => t.name).sort()).toEqual(['Spec 驱动流', '个人轻量流', '复盘流'])
+    expect(builtins.map((t) => t.name).sort()).toEqual([
+      'Bug 根因排查',
+      'Spec 驱动流',
+      '个人轻量流',
+      '发布闸问答',
+      '周度复盘问答',
+      '复盘流',
+      '需求澄清到 PRD',
+    ])
   })
 
   it('IT-PROJECT-01（§7.1）: lock 可读 → 包@版本与注入时间；登记版本落后 → upToDate=false', async () => {

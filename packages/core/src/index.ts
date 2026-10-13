@@ -11,6 +11,7 @@ export {
   zcodePluginSkillRoots,
   hashSkillEntries,
   skillNameIssue,
+  suggestSkillName,
   reviewSkill,
   SkillsRepo,
 } from './repos/skills'

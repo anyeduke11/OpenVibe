@@ -9,11 +9,12 @@ import {
 import { zh } from '../i18n/zh'
 import { TagFilterBar } from '../components/library/TagFilterBar'
 import { TermEditorDrawer } from '../components/terms/TermEditorDrawer'
+import { TermRoadmapView } from '../components/terms/TermRoadmapView'
 import { TermsMdPreview } from '../components/terms/TermsMdPreview'
 import { TermsTable, type TermRowView } from '../components/terms/TermsTable'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
 import { toast } from '../components/ui/Toaster'
-import { btnGhost, btnPrimary, inputCls } from '../components/ui/styles'
+import { btnDanger, btnGhost, btnPrimary, inputCls } from '../components/ui/styles'
 import { useDebounced } from '../hooks/useDebounced'
 import { useTermList, useTermMutations, useTermSearch } from '../hooks/useTerms'
 
@@ -24,6 +25,7 @@ export function TermsPage() {
   const [tag, setTag] = useState<string | undefined>()
   const [selected, setSelected] = useState<string[]>([])
   const [orderBy, setOrderBy] = useState<TermsOrderBy>('en-alpha')
+  const [view, setView] = useState<'table' | 'roadmap'>('table')
   const [editor, setEditor] = useState<{ term: TermOut | null } | null>(null)
   const [deleting, setDeleting] = useState<TermOut | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -93,11 +95,24 @@ export function TermsPage() {
           <button className={btnPrimary} onClick={() => setEditor({ term: null })}>
             {zh.terms.newTerm}
           </button>
+          <span className="flex items-center gap-1 rounded-md border border-line p-0.5">
+            {(['table', 'roadmap'] as const).map((v) => (
+              <button
+                key={v}
+                className={`rounded px-2 py-1 text-xs transition-colors ${
+                  view === v ? 'bg-accent-soft text-accent-deep' : 'text-ink-muted hover:bg-panel-2'
+                }`}
+                onClick={() => setView(v)}
+              >
+                {v === 'table' ? zh.terms.viewTable : zh.terms.viewRoadmap}
+              </button>
+            ))}
+          </span>
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <TagFilterBar tags={tags} selected={tag} onToggle={setTag} />
           {searching && trimmed.length < 3 && (
-            <span className="text-[11px] text-warn-700">{zh.terms.shortQueryHint}</span>
+            <span className="text-[11px] text-warn">{zh.terms.shortQueryHint}</span>
           )}
           {(list.isFetching || search_.isFetching) && (
             <span className="text-[11px] text-ink-faint">刷新中…</span>
@@ -105,18 +120,28 @@ export function TermsPage() {
         </div>
       </header>
 
-      <TermsTable
-        rows={rows}
-        selected={selected}
-        loading={searching ? search_.isLoading : list.isLoading}
-        searching={searching}
-        onToggle={onToggle}
-        onSelectAll={setSelected}
-        onEdit={(term) => setEditor({ term })}
-        onDelete={setDeleting}
-      />
+      {view === 'table' ? (
+        <TermsTable
+          rows={rows}
+          selected={selected}
+          loading={searching ? search_.isLoading : list.isLoading}
+          searching={searching}
+          onToggle={onToggle}
+          onSelectAll={setSelected}
+          onEdit={(term) => setEditor({ term })}
+          onDelete={setDeleting}
+        />
+      ) : (
+        <div className="min-h-0 flex-1 overflow-auto">
+          <TermRoadmapView
+            terms={rows.map((r) => r.term)}
+            loading={searching ? search_.isLoading : list.isLoading}
+            onEdit={(term) => setEditor({ term })}
+          />
+        </div>
+      )}
 
-      <footer className="flex items-center gap-3 border-t border-line-hair px-5 py-2 text-xs text-ink-subtle">
+      <footer className="flex items-center gap-3 border-t border-line-hair px-5 py-2 text-xs text-ink-muted">
         <span>{zh.terms.total(rows.length)}</span>
         <span>{zh.terms.seedCount(seedCount)}</span>
         <span className="ml-auto" />
@@ -177,7 +202,7 @@ export function TermsPage() {
                 {zh.editor.cancel}
               </button>
               <button
-                className={`${btnPrimary} border-danger-600 bg-danger-600 hover:bg-danger-700`}
+                className={btnDanger}
                 disabled={remove.isPending}
                 onClick={() => {
                   if (deleting === null) return
@@ -202,7 +227,7 @@ export function TermsPage() {
             <div className="space-y-2 text-sm">
               <p>{zh.terms.deleteDialog.body(deleting.zh || deleting.en || deleting.id)}</p>
               {deleting.source === 'openvibe-seed' && (
-                <p className="text-xs text-ink-subtle">{zh.terms.deleteDialog.seedNote}</p>
+                <p className="text-xs text-ink-muted">{zh.terms.deleteDialog.seedNote}</p>
               )}
             </div>
           )}

@@ -2,10 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   SkillCreateInput,
   SkillDuplicatesReport,
+  SkillMergeInput,
+  SkillMergeReport,
   SkillOut,
   SkillRemoteImportInput,
   SkillRemoteImportReport,
   SkillRemoteSearchReport,
+  SkillRepairInput,
+  SkillRepairReport,
   SkillRetrackInput,
   SkillRetrackReport,
   SkillReviewInput,
@@ -122,6 +126,32 @@ export function useSkillRetrack() {
 export function useSkillDuplicates() {
   return useMutation({
     mutationFn: () => apiJson<SkillDuplicatesReport>('/api/skills/duplicates'),
+  })
+}
+
+/** 整合（DEV-0073）：同内容组选保留项吸收其余 */
+export function useSkillMerge() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: SkillMergeInput) =>
+      apiJson<SkillMergeReport>('/api/skills/merge', { method: 'POST', body: input }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['skills'] })
+      void qc.invalidateQueries({ queryKey: ['skill-versions'] })
+    },
+  })
+}
+
+/** 名称修复（DEV-0073）：quoted 去引号 / convention 规范化+重写源文件 / 撞名自动并入 */
+export function useSkillRepair() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: SkillRepairInput) =>
+      apiJson<SkillRepairReport>('/api/skills/repair', { method: 'POST', body: input }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['skills'] })
+      void qc.invalidateQueries({ queryKey: ['skill-versions'] })
+    },
   })
 }
 

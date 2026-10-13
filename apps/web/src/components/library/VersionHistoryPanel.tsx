@@ -39,7 +39,7 @@ export function VersionHistoryPanel(props: {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-ink-subtle">{zh.versions.pickTwo}</p>
+        <p className="text-xs text-ink-muted">{zh.versions.pickTwo}</p>
         {picked.length === 2 && (
           <button className={btnGhost} onClick={() => setPicked([])}>
             {zh.common.clearFilter}
@@ -70,14 +70,14 @@ export function VersionHistoryPanel(props: {
             <span className="mono font-medium">v{String(v.versionNo)}</span>
             <span className="text-xs text-ink-faint">{v.createdAt}</span>
             {v.changelog !== '' && (
-              <span className="text-xs text-ink-subtle">
+              <span className="text-xs text-ink-muted">
                 {zh.versions.changelog}：{v.changelog}
               </span>
             )}
             <span className="ml-auto flex items-center gap-2">
               {pendingRollback === v.versionNo ? (
                 <>
-                  <span className="text-xs text-danger-700">
+                  <span className="text-xs text-danger">
                     {zh.versions.rollbackConfirm(v.versionNo)}
                   </span>
                   <button

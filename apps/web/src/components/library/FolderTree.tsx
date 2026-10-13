@@ -66,8 +66,8 @@ function FolderBranch(props: BranchProps & { node: FolderNode; depth: number }) 
       <div
         {...dropProps}
         className={`flex items-center gap-1 rounded text-sm ${
-          props.selected === node.path ? 'bg-brand-soft text-brand' : 'hover:bg-fill'
-        } ${props.dragOver === node.path ? 'ring-1 ring-brand' : ''}`}
+          props.selected === node.path ? 'bg-accent-soft text-accent-deep' : 'hover:bg-panel-2'
+        } ${props.dragOver === node.path ? 'ring-1 ring-accent' : ''}`}
         style={{ paddingLeft: `${(depth + 1) * 12}px` }}
       >
         {node.children.length > 0 ? (
@@ -125,7 +125,7 @@ export function FolderTree(props: {
   return (
     <div className="select-none text-sm">
       <div className="mb-1 flex items-center justify-between px-2">
-        <span className="text-xs font-medium text-ink-subtle">{zh.folderTree.title}</span>
+        <span className="text-xs font-medium text-ink-muted">{zh.folderTree.title}</span>
         {props.selected !== null && (
           <button
             className="text-[11px] text-ink-faint hover:text-ink-body"
@@ -148,8 +148,8 @@ export function FolderTree(props: {
           if (id !== '') props.onDropPrompt(id, '/')
         }}
         className={`flex items-center rounded px-2 py-1 ${
-          props.selected === '/' ? 'bg-brand-soft font-medium text-brand' : 'hover:bg-fill'
-        } ${dragOver === '/' ? 'ring-1 ring-brand' : ''}`}
+          props.selected === '/' ? 'bg-accent-soft font-medium text-accent-deep' : 'hover:bg-panel-2'
+        } ${dragOver === '/' ? 'ring-1 ring-accent' : ''}`}
       >
         <button className="flex-1 text-left" onClick={() => props.onSelect('/')}>
           {zh.folderTree.root}

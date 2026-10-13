@@ -61,3 +61,24 @@ export function extractVariables(content: string): string[] {
   }
   return [...names]
 }
+
+/**
+ * 变量替换生成正式正文（DEV-0074）：已填的替换为输入值，未填的**保留占位符原样**
+ * （宽松语义——用户可只填已知参数，剩余留给执行方填）。与 extractVariables 同一
+ * 正则，保证「提取到的变量」与「可替换的变量」永远一致。
+ */
+export function fillVariables(content: string, values: Record<string, string>): string {
+  return content.replace(VARIABLE_PATTERN, (whole, name: string) => {
+    const v = values[name]
+    return v !== undefined && v.trim() !== '' ? v : whole
+  })
+}
+
+/** 统计正文里仍残留的占位符（fillVariables 后用于提示「还有 N 个未填」） */
+export function remainingVariables(filled: string): string[] {
+  const names = new Set<string>()
+  for (const m of filled.matchAll(VARIABLE_PATTERN)) {
+    if (m[1]) names.add(m[1])
+  }
+  return [...names]
+}

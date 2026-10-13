@@ -2,6 +2,7 @@ import { useSettings } from '../hooks/useSettings'
 import {
   BackupSection,
   PackSection,
+  ReadabilitySection,
   SeedSection,
   ServiceSection,
   TelemetrySection,
@@ -9,7 +10,7 @@ import {
 } from '../components/settings/SettingsSections'
 import { zh } from '../i18n/zh'
 
-/** /settings（design §10）：服务信息 / 种子与预置包 / 匿名统计 / 向导重置 / 备份说明 */
+/** /settings（design §10）：服务信息 / 种子与预置包 / 匿名统计 / 向导重置 / 备份说明 / 可读性自检 */
 export function SettingsPage() {
   const settings = useSettings()
   return (
@@ -25,6 +26,7 @@ export function SettingsPage() {
           <TelemetrySection />
           <WizardSection settings={settings.data} />
           <BackupSection />
+          <ReadabilitySection />
         </div>
       </div>
     </div>

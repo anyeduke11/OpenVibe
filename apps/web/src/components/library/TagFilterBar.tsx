@@ -9,16 +9,17 @@ export function TagFilterBar(props: {
   if (props.tags.length === 0) return null
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-xs text-ink-subtle">{zh.common.allTags}</span>
+      <span className="text-xs text-ink-muted">{zh.common.allTags}</span>
       {props.tags.map((tag) => {
         const on = props.selected === tag
         return (
           <button
             key={tag}
+            aria-pressed={on}
             onClick={() => props.onToggle(on ? undefined : tag)}
             className={`rounded-full border px-2.5 py-0.5 text-xs ${
               on
-                ? 'border-brand bg-brand-soft text-brand'
+                ? 'border-accent-line bg-accent-soft text-accent-deep'
                 : 'border-line bg-panel text-ink-muted hover:border-line-strong'
             }`}
           >

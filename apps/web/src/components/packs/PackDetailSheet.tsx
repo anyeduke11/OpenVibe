@@ -44,16 +44,16 @@ export function PackDetailSheet(props: { pack: PackOut | null; onClose: () => vo
       >
         <div className="space-y-5 text-sm">
           <section>
-            <h2 className="mb-2 text-xs font-medium text-ink-subtle">{zh.packs.detail.definition}</h2>
+            <h2 className="mb-2 text-xs font-medium text-ink-muted">{zh.packs.detail.definition}</h2>
             <p className="text-ink-body">{pack.description === '' ? zh.common.none : pack.description}</p>
             <p className="mt-2 flex flex-wrap gap-1">
               {pack.targets.map((t) => (
-                <span key={t} className={`${chipCls} border-line bg-fill-soft text-ink-muted`}>
+                <span key={t} className={`${chipCls} border-line bg-panel-2 text-ink-muted`}>
                   {zh.packs.targetLabels[t] ?? t}
                 </span>
               ))}
             </p>
-            <p className="mt-2 text-xs text-ink-subtle">
+            <p className="mt-2 text-xs text-ink-muted">
               {zh.packs.assetSummary(
                 selection.promptIds.length,
                 selection.termIds.length,
@@ -64,21 +64,21 @@ export function PackDetailSheet(props: { pack: PackOut | null; onClose: () => vo
           </section>
 
           <section>
-            <h2 className="mb-2 text-xs font-medium text-ink-subtle">
+            <h2 className="mb-2 text-xs font-medium text-ink-muted">
               {`${zh.packs.detail.exports}（${String(count)}）`}
             </h2>
             <ExportHistoryPanel packId={pack.id} />
           </section>
 
           <section>
-            <h2 className="mb-2 text-xs font-medium text-ink-subtle">{zh.packs.detail.injections}</h2>
+            <h2 className="mb-2 text-xs font-medium text-ink-muted">{zh.packs.detail.injections}</h2>
             {(injections.data?.items.length ?? 0) === 0 ? (
-              <p className="text-xs text-ink-subtle">{zh.packs.detail.noInjections}</p>
+              <p className="text-xs text-ink-muted">{zh.packs.detail.noInjections}</p>
             ) : (
               <ul className="space-y-1 text-xs text-ink-muted">
                 {injections.data?.items.map((row) => (
                   <li key={row.id} className="flex gap-2">
-                    <span className="mono text-ink">{row.projectPath}</span>
+                    <span className="mono text-ink-body">{row.projectPath}</span>
                     <span className="ml-auto text-ink-faint">{row.injectedAt}</span>
                   </li>
                 ))}

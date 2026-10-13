@@ -193,12 +193,68 @@ export const SkillDuplicatesReport = z.object({
   stale: z.array(
     z.object({ id: z.string(), name: z.string(), skillDir: z.string() }),
   ),
-  /** 名称不符合 SKILL.md 规范（带引号残留 / 不在小写连字符约定内）——报告级，删除后重扫即归一 */
+  /** 名称不符合 SKILL.md 规范（带引号残留 / 不在小写连字符约定内）——报告级，删除或修复（DEV-0073 起带建议名） */
   nameAnomalies: z.array(
-    z.object({ id: z.string(), name: z.string(), issue: z.string() }),
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      issue: z.string(),
+      /** 修复后的建议名（quoted=去引号原值；convention=规范化 slug，中文走拼音）；null=无法生成 */
+      suggestedName: z.string().nullable().default(null),
+    }),
   ),
 })
 export type SkillDuplicatesReport = z.infer<typeof SkillDuplicatesReport>
+
+// ---------------------------------------------------------------------------
+// 整合与修复（DEV-0073）：同内容组合并 / 名称异常修复
+// ---------------------------------------------------------------------------
+
+/** 整合：keepId 吸收 absorbIds（版本线搬移去重、安装目标并集、目录继承），吸收者删除 */
+export const SkillMergeInput = z.object({
+  keepId: z.string().min(1),
+  absorbIds: z.array(z.string().min(1)).min(1),
+})
+export type SkillMergeInput = z.infer<typeof SkillMergeInput>
+
+export const SkillMergeReport = z.object({
+  keptId: z.string(),
+  keptName: z.string(),
+  absorbed: z.number().int().min(0),
+  /** 成功搬到保留项名下的版本数 */
+  versionsMoved: z.number().int().min(0),
+  /** 被丢弃的版本数（同指纹已存在 / 手动登记的空指纹 v1） */
+  versionsDropped: z.number().int().min(0),
+  warnings: z.array(z.string()),
+})
+export type SkillMergeReport = z.infer<typeof SkillMergeReport>
+
+export const SkillRepairInput = z.object({
+  ids: z.array(z.string().min(1)).min(1),
+})
+export type SkillRepairInput = z.infer<typeof SkillRepairInput>
+
+export const SkillRepairItem = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** renamed=已改名（可能连带重写源文件）/ merged=建议名已有条目、本条已并入 /
+   *  not-applicable=名称本就合规 / failed=修复未执行（源文件不可写等，条目未动） */
+  status: z.enum(['renamed', 'merged', 'not-applicable', 'failed']),
+  newName: z.string().optional(),
+  note: z.string().optional(),
+})
+export type SkillRepairItem = z.infer<typeof SkillRepairItem>
+
+export const SkillRepairReport = z.object({
+  items: z.array(SkillRepairItem),
+  summary: z.object({
+    renamed: z.number().int().min(0),
+    merged: z.number().int().min(0),
+    notApplicable: z.number().int().min(0),
+    failed: z.number().int().min(0),
+  }),
+})
+export type SkillRepairReport = z.infer<typeof SkillRepairReport>
 
 // ---------------------------------------------------------------------------
 // 内置审查（DEV-0067）：SKILL.md 规范 + 泄漏面检查

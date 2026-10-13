@@ -25,7 +25,7 @@ export function TermsMdPreview(props: { termIds: string[]; orderBy: TermsOrderBy
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-ink-subtle">{zh.terms.selection.label(termIds.length)}</span>
+        <span className="tabular-nums text-xs text-ink-muted">{zh.terms.selection.label(termIds.length)}</span>
         <span className="ml-auto" />
         <button
           className={btnGhost}
@@ -43,10 +43,10 @@ export function TermsMdPreview(props: { termIds: string[]; orderBy: TermsOrderBy
           {zh.terms.preview.download}
         </button>
       </div>
-      {query.isError && <p className="text-sm text-danger-600">{query.error.message}</p>}
+      {query.isError && <p className="text-sm text-danger">{query.error.message}</p>}
       {query.isLoading && <p className="text-sm text-ink-faint">加载中…</p>}
       {content !== '' && (
-        <pre className="mono min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-fill-soft p-3 text-[12px] leading-relaxed text-ink">
+        <pre className="mono min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-panel-sunk p-3 text-[12px] leading-relaxed text-ink-body">
           {content}
         </pre>
       )}

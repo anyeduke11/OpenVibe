@@ -10,6 +10,7 @@ import {
   parseSkillFrontmatter,
   reviewSkill,
   SkillsRepo,
+  suggestSkillName,
   zcodePluginSkillRoots,
 } from './skills'
 import { newDb } from '../test-support/new-db'
@@ -486,5 +487,213 @@ describe('手动登记与扫描并入（m2 FR-2.2 / §7.4）', () => {
     } finally {
       handle.close()
     }
+  })
+})
+
+describe('整合与名称修复（DEV-0073）', () => {
+  let handle: ReturnType<typeof newDb>
+
+  beforeEach(() => {
+    handle = newDb()
+  })
+  afterEach(() => {
+    handle.close()
+  })
+
+  it('suggestSkillName：quoted 只剥引号；convention 规范化（中文走拼音、大写/下划线/点归一）', () => {
+    // quoted：原值保留（与新解析器对齐，重扫即并账）
+    expect(suggestSkillName('"PRD to Prototype"', 'quoted')).toBe('PRD to Prototype')
+    expect(suggestSkillName("'单引号'", 'quoted')).toBe('单引号')
+    expect(suggestSkillName('no-quotes', 'quoted')).toBeNull()
+    // convention：slug 化
+    expect(suggestSkillName('Code', 'convention')).toBe('code')
+    expect(suggestSkillName('_retired-bid-master', 'convention')).toBe('retired-bid-master')
+    expect(suggestSkillName('autoclaw-design-capability_noQA', 'convention')).toBe(
+      'autoclaw-design-capability-noqa',
+    )
+    expect(suggestSkillName('llm-wiki-2.0', 'convention')).toBe('llm-wiki-2-0')
+    expect(suggestSkillName('Self-Improving + Proactive Agent', 'convention')).toBe(
+      'self-improving-proactive-agent',
+    )
+    // 中文 → pinyin-pro 词组拼音（同花顺→tong-hua-shun，词组消歧）
+    expect(suggestSkillName('同花顺', 'convention')).toBe('tong-hua-shun')
+    // 引号+非法并存（quoted 优先档下）与全符号 → null
+    expect(suggestSkillName('###', 'convention')).toBeNull()
+  })
+
+  it('mergeSkills：版本搬移去重、空指纹丢弃、目标并集、目录继承、吸收者删除', () => {
+    const repo = new SkillsRepo(handle.db)
+    const dir = mkdtempSync(join(tmpdir(), 'ov-merge-'))
+    try {
+      // 真实成因的等价夹具：一个真实扫描条目（keep），两个"改名副本"——手动建账后
+      // 白盒把版本指纹设为与 keep 相同（同内容不同名的唯一稳定来源，见 duplicates 用例）
+      mkdirSync(join(dir, 'keep'))
+      writeFileSync(join(dir, 'keep', 'SKILL.md'), '---\nname: keep\n---\n内容一致的正文。')
+      repo.scan([dir])
+      const keep = repo.list()[0]
+      if (keep === undefined) throw new Error('夹具异常')
+      const keepHash = repo.versions(keep.id)[0]?.dirHash ?? ''
+      expect(keepHash).not.toBe('')
+
+      const mkCopy = (name: string, hash: string, targets: string[]) => {
+        const s = repo.create({ name, description: '', source: 'manual', installedTargets: targets })
+        handle.db
+          .prepare('UPDATE skill_versions SET dir_hash = ?, file_count = 1 WHERE skill_id = ?')
+          .run(hash, s.id)
+        return s
+      }
+      // copyA 与 keep 同指纹（同内容重复的本义）→ 整合时去重丢弃；
+      // copyB 指纹不同（组内条目另有演化版本）→ 整条版本线搬移
+      const copyA = mkCopy('copy-a', keepHash, [])
+      const copyB = mkCopy('copy-b', 'hash-evolved', ['cursor'])
+      const manualExtra = repo.create({
+        name: 'manual-extra',
+        description: '',
+        source: 'manual',
+        installedTargets: [],
+      }) // 空指纹 v1：验证丢弃
+      repo.update(keep.id, { installedTargets: ['claude-code'] })
+
+      const result = repo.mergeSkills(keep.id, [copyA.id, copyB.id, manualExtra.id])
+      expect(result).toMatchObject({ keptName: 'keep', absorbed: 3, versionsMoved: 1, versionsDropped: 2 })
+
+      const merged = repo.get(keep.id)
+      expect([...(merged?.installedTargets ?? [])].sort()).toEqual(['claude-code', 'cursor'])
+      expect(repo.list().map((s) => s.name)).toEqual(['keep'])
+      const versions = repo.versions(keep.id)
+      expect(versions).toHaveLength(2) // keep 自己的 1 + copyB 搬来的 1（copyA 同指纹、manual 空指纹丢弃）
+      expect(versions.map((v) => v.versionLabel).sort()).toEqual(['keep', 'v1'])
+      expect(repo.get(keep.id)?.skillDir).toBe(join(dir, 'keep'))
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('mergeSkills：保留项无目录时继承吸收者目录；不存在的 id → NOT_FOUND；吸收自己 → 422', () => {
+    const repo = new SkillsRepo(handle.db)
+    const dir = mkdtempSync(join(tmpdir(), 'ov-merge2-'))
+    try {
+      mkdirSync(join(dir, 'local-one'))
+      writeFileSync(join(dir, 'local-one', 'SKILL.md'), '---\nname: local-one\n---\n正文')
+      repo.scan([dir])
+      const local = repo.list()[0]
+      // 远程条目（无目录）做保留项，吸收本地条目 → 继承目录
+      repo.upsertRemote({
+        name: 'remote-keeper',
+        description: 'd',
+        source: 'github',
+        versionLabel: 'o/r@main',
+        dirHash: 'hash-remote',
+        fileCount: 1,
+        remoteRef: 'github:o/r@main',
+        remoteTreeHash: 't1',
+      })
+      const remote = repo.list().find((s) => s.name === 'remote-keeper')
+      if (remote === undefined || local === undefined) throw new Error('夹具异常')
+
+      repo.mergeSkills(remote.id, [local.id])
+      expect(repo.get(remote.id)?.skillDir).toBe(join(dir, 'local-one'))
+
+      expect(() => repo.mergeSkills('skl_ghost', [local.id])).toThrowError(/不存在/)
+      expect(() => repo.mergeSkills(remote.id, [remote.id])).toThrowError(/为空|absorbIds/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('repairName：quoted 去引号改名且不动源文件；convention 改名并重写 SKILL.md；撞名自动并入', () => {
+    const repo = new SkillsRepo(handle.db)
+    const dir = mkdtempSync(join(tmpdir(), 'ov-repair-'))
+    try {
+      // quoted 存量：手动造（新解析器已剥引号，磁盘文件保持带引号原样）
+      const quoted = repo.create({
+        name: '"gh-fix-ci"',
+        description: '',
+        source: 'manual',
+        installedTargets: [],
+      })
+      mkdirSync(join(dir, 'quoted'))
+      writeFileSync(join(dir, 'quoted', 'SKILL.md'), '---\nname: "gh-fix-ci"\ndescription: d\n---\nbody')
+      handle.db.prepare('UPDATE skills SET skill_dir = ?, source = ? WHERE id = ?').run(
+        join(dir, 'quoted'),
+        'local',
+        quoted.id,
+      )
+      const r1 = repo.repairName(quoted.id)
+      expect(r1.status).toBe('renamed')
+      expect(r1.newName).toBe('gh-fix-ci')
+      // quoted 档不重写源文件（新解析器剥引号后读出的就是建议名）
+      expect(readFileSync(join(dir, 'quoted', 'SKILL.md'), 'utf8')).toContain('name: "gh-fix-ci"')
+
+      // convention：本地目录 + frontmatter 重写（中文走拼音）
+      mkdirSync(join(dir, 'cn'))
+      writeFileSync(join(dir, 'cn', 'SKILL.md'), '---\nname: 同花顺\ndescription: d\n---\n正文')
+      repo.scan([dir])
+      const cn = repo.list().find((s) => s.name === '同花顺')
+      if (cn === undefined) throw new Error('夹具异常')
+      const r2 = repo.repairName(cn.id)
+      expect(r2).toMatchObject({ status: 'renamed', newName: 'tong-hua-shun' })
+      const after = readFileSync(join(dir, 'cn', 'SKILL.md'), 'utf8')
+      expect(after).toContain('name: tong-hua-shun')
+      expect(after).not.toContain('同花顺')
+      // 台账与文件对齐后，重扫同目录不再新建条目（按新名并账）
+      const before = repo.list().length
+      repo.scan([dir])
+      expect(repo.list().length).toBe(before)
+
+      // 撞名并入：再造一个 'Code'（convention，建议名 code），先建好目标 'code'
+      repo.create({ name: 'code', description: '既有', source: 'manual', installedTargets: [] })
+      mkdirSync(join(dir, 'code2'))
+      writeFileSync(join(dir, 'code2', 'SKILL.md'), '---\nname: Code\ndescription: d2\n---\n正文')
+      repo.scan([dir])
+      const codeEntry = repo.list().find((s) => s.name === 'Code')
+      if (codeEntry === undefined) throw new Error('夹具异常')
+      const r3 = repo.repairName(codeEntry.id)
+      expect(r3.status).toBe('merged')
+      expect(repo.list().find((s) => s.name === 'Code')).toBeUndefined()
+      expect(repo.list().find((s) => s.name === 'code')).toBeDefined()
+
+      // 合规名 → not-applicable
+      const okEntry = repo.list().find((s) => s.name === 'code')
+      expect(repo.repairName(okEntry?.id ?? '').status).toBe('not-applicable')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('repairName：convention 源文件不可写时失败且台账未动（原子性）', () => {
+    const repo = new SkillsRepo(handle.db)
+    const dir = mkdtempSync(join(tmpdir(), 'ov-repair-atomic-'))
+    try {
+      mkdirSync(join(dir, 'broken'))
+      // 目录存在但 SKILL.md 缺失 → 读失败 → failed，不改台账
+      const manual = repo.create({
+        name: 'Bad Name',
+        description: '',
+        source: 'manual',
+        installedTargets: [],
+      })
+      handle.db.prepare('UPDATE skills SET skill_dir = ?, source = ? WHERE id = ?').run(
+        join(dir, 'broken'),
+        'local',
+        manual.id,
+      )
+      const r = repo.repairName(manual.id)
+      expect(r.status).toBe('failed')
+      expect(repo.get(manual.id)?.name).toBe('Bad Name')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('duplicates 报告带建议名预览（quoted/convention/null 三态）', () => {
+    const repo = new SkillsRepo(handle.db)
+    repo.create({ name: '"q"', description: '', source: 'manual', installedTargets: [] })
+    repo.create({ name: 'Bad Name', description: '', source: 'manual', installedTargets: [] })
+    const anomalies = repo.duplicates().nameAnomalies
+    expect(anomalies.find((a) => a.name === '"q"')).toMatchObject({ suggestedName: 'q' })
+    expect(anomalies.find((a) => a.name === 'Bad Name')).toMatchObject({
+      suggestedName: 'bad-name',
+    })
   })
 })

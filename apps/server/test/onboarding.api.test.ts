@@ -115,7 +115,7 @@ describe('GET /api/settings（服务信息，C-56 遗留补齐）', () => {
     expect(anon.json.code).toBe('UNAUTHORIZED')
   })
 
-  it('IT-ONB-02: 播种后 seed 三项等于库内实际行数（阈值 100/3/20）', async () => {
+  it('IT-ONB-02: 播种后 seed 三项等于库内实际行数（阈值 100/7/21）', async () => {
     const h = await makeHarness()
     await api(h, 'POST', '/api/settings/reseed')
     const res = await api<SettingsOut>(h, 'GET', '/api/settings')
@@ -125,8 +125,8 @@ describe('GET /api/settings（服务信息，C-56 遗留补齐）', () => {
       prompts: count(h, 'SELECT COUNT(*) AS n FROM prompts'),
     })
     expect(res.json.seed.terms).toBeGreaterThanOrEqual(100)
-    expect(res.json.seed.flowTemplates).toBe(3)
-    expect(res.json.seed.prompts).toBeGreaterThanOrEqual(20)
+    expect(res.json.seed.flowTemplates).toBe(7)
+    expect(res.json.seed.prompts).toBeGreaterThanOrEqual(21)
   })
 })
 

@@ -47,7 +47,7 @@ export function ImportExportDialog(props: { open: boolean; onClose: () => void }
         }
       >
         <div className="space-y-4 text-sm">
-          <p className="text-xs leading-relaxed text-ink-subtle">{zh.importDialog.hint}</p>
+          <p className="text-xs leading-relaxed text-ink-muted">{zh.importDialog.hint}</p>
           <div className="flex items-center gap-3">
             <input
               ref={inputRef}
@@ -61,7 +61,7 @@ export function ImportExportDialog(props: { open: boolean; onClose: () => void }
               {zh.importDialog.pick}
             </button>
             {importPrompts.isPending && (
-              <span className="text-xs text-ink-subtle">{zh.importDialog.importing}</span>
+              <span className="text-xs text-ink-muted">{zh.importDialog.importing}</span>
             )}
           </div>
           {names.length > 0 && (
@@ -72,10 +72,10 @@ export function ImportExportDialog(props: { open: boolean; onClose: () => void }
             </ul>
           )}
           {report !== null && (
-            <div className="rounded-md border border-line bg-fill-soft p-3 text-xs">
+            <div className="rounded-md border border-line bg-panel-2 p-3 text-xs">
               <p>{zh.importDialog.report(report.created.length, report.skipped.length)}</p>
               {report.skipped.length > 0 && (
-                <ul className="mt-1 space-y-0.5 text-ink-subtle">
+                <ul className="mt-1 space-y-0.5 text-ink-muted">
                   <li className="font-medium text-ink-muted">{zh.importDialog.skippedList}</li>
                   {report.skipped.map((s, i) => (
                     <li key={`${s.title}-${String(i)}`}>
@@ -88,7 +88,7 @@ export function ImportExportDialog(props: { open: boolean; onClose: () => void }
           )}
 
           <div className="border-t border-line-hair pt-3">
-            <p className="mb-2 text-xs font-medium text-ink-subtle">
+            <p className="mb-2 text-xs font-medium text-ink-muted">
               {zh.library.exportJson} / {zh.library.exportMd}
             </p>
             <div className="flex gap-2">

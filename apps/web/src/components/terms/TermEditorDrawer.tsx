@@ -148,7 +148,7 @@ export function TermEditorDrawer(props: {
         footer={
           <>
             {term !== null && (
-              <span className="mr-auto flex items-center gap-2 text-xs text-ink-subtle">
+              <span className="mr-auto flex items-center gap-2 text-xs text-ink-muted">
                 <ReflowOriginLine assetId={term.id} />
                 {zh.terms.editor.sourceLabel}：
                 {term.source === 'openvibe-seed' ? zh.terms.source.seed : term.source}
@@ -226,7 +226,7 @@ export function TermEditorDrawer(props: {
                     onClick={() => toggleTag(tag)}
                     className={`rounded-full border px-2.5 py-0.5 text-xs ${
                       on
-                        ? 'border-brand bg-brand-soft text-brand'
+                        ? 'border-accent bg-accent-soft text-accent-deep'
                         : 'border-line bg-panel text-ink-muted hover:border-line-strong'
                     }`}
                   >
@@ -241,7 +241,7 @@ export function TermEditorDrawer(props: {
                 {form.tags
                   .filter((t) => !(CONTROLLED_TAG_VOCAB as readonly string[]).includes(t))
                   .map((t) => (
-                    <span key={t} className={`${chipCls} border-line bg-fill-soft text-ink-muted`}>
+                    <span key={t} className={`${chipCls} border-line bg-panel-2 text-ink-muted`}>
                       #{t}
                       <button className="ml-1 text-ink-faint hover:text-ink-body" onClick={() => toggleTag(t)}>
                         ✕
@@ -286,7 +286,7 @@ export function TermEditorDrawer(props: {
               {candidates.map((t) => (
                 <label
                   key={t.id}
-                  className="flex items-center gap-2 border-b border-line-hair px-3 py-1.5 text-xs last:border-0 hover:bg-fill-soft"
+                  className="flex items-center gap-2 border-b border-line-hair px-3 py-1.5 text-xs last:border-0 hover:bg-panel-2"
                 >
                   <input
                     type="checkbox"
@@ -300,7 +300,7 @@ export function TermEditorDrawer(props: {
                       )
                     }
                   />
-                  <span className="text-ink">{t.zh || t.en}</span>
+                  <span className="text-ink-body">{t.zh || t.en}</span>
                   <span className="text-ink-faint">{t.en || t.zh}</span>
                 </label>
               ))}
@@ -321,7 +321,7 @@ export function TermEditorDrawer(props: {
               </div>
             )}
             {shownRelated.length > 0 && (
-              <p className="mt-1.5 text-[11px] text-ink-subtle">
+              <p className="mt-1.5 text-[11px] text-ink-muted">
                 {zh.terms.editor.bidirectional}：{shownRelated.map(labelOf).join('、')}
               </p>
             )}

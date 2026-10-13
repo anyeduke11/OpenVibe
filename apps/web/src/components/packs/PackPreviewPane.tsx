@@ -24,7 +24,7 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
   return (
     <div className="flex min-h-0 flex-col gap-2 text-sm">
       <div className="flex items-center gap-3 text-xs">
-        <span className="text-ink-subtle">{zh.packs.preview.fingerprint}</span>
+        <span className="text-ink-muted">{zh.packs.preview.fingerprint}</span>
         <span className="mono text-ink-body">{preview.fingerprint}</span>
         {/* 验印章（DESIGN.md Components）：预览指纹 = 导出产物指纹，即「验」通过的时刻 */}
         <span className="seal-badge">
@@ -34,7 +34,7 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
       </div>
 
       {preview.coveredPlatforms.length > 0 && (
-        <p className="text-xs text-ink-subtle">
+        <p className="text-xs text-ink-muted">
           {zh.packs.preview.covered}
           {': '}
           <span className="text-ink-body">{preview.coveredPlatforms.join(' / ')}</span>
@@ -43,7 +43,7 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
 
       {preview.sizeEstimate !== undefined && preview.sizeEstimate.perTarget.length > 0 && (
         <div className="space-y-1">
-          <p className="text-xs text-ink-subtle">
+          <p className="text-xs text-ink-muted">
             {`${zh.packs.preview.perTargetTitle} · ${zh.packs.preview.sizeBasis}`}
           </p>
           <ul className="flex flex-wrap gap-2">
@@ -52,7 +52,7 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
                 key={p.adapter}
                 className={`rounded-md border px-2 py-1 text-xs ${
                   p.warn
-                    ? 'border-warn-300 bg-warn-50 text-warn-800'
+                    ? 'border-warn-line bg-warn-soft text-warn'
                     : 'border-line bg-panel text-ink-body'
                 }`}
               >
@@ -60,7 +60,7 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
               </li>
             ))}
           </ul>
-          <p className="text-xs text-ink-subtle">
+          <p className="text-xs text-ink-muted">
             {`${zh.packs.preview.footprintTitle} ≈${String(
               preview.sizeEstimate.footprint.approxTokens,
             )} · ${zh.packs.preview.fileCount(preview.sizeEstimate.footprint.files.length)}`}
@@ -68,7 +68,7 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
           {preview.sizeEstimate.perTarget
             .filter((p) => p.warn)
             .map((p) => (
-              <p key={`warn-${p.adapter}`} className="text-xs text-warn-700">
+              <p key={`warn-${p.adapter}`} className="text-xs text-warn">
                 {zh.packs.preview.overBudget(p.adapter, p.approxTokens)}
               </p>
             ))}
@@ -76,7 +76,7 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
       )}
 
       {preview.warnings.length > 0 ? (
-        <ul className="space-y-0.5 text-xs text-warn-700">
+        <ul className="space-y-0.5 text-xs text-warn">
           {preview.warnings.map((w) => (
             <li key={w}>· {w}</li>
           ))}
@@ -85,7 +85,7 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
         <p className="text-xs text-ink-faint">{zh.packs.preview.noWarnings}</p>
       )}
 
-      <p className="text-xs font-medium text-ink-subtle">
+      <p className="text-xs font-medium text-ink-muted">
         {`${zh.packs.preview.files}${
           preview.sizeEstimate !== undefined ? ` · ${zh.packs.preview.sizeBasis}` : ''
         }`}
@@ -97,8 +97,8 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
               <button
                 className={`block w-full px-3 py-1.5 text-left text-xs ${
                   i === Math.min(active, files.length - 1)
-                    ? 'bg-brand-soft font-medium text-brand'
-                    : 'text-ink-muted hover:bg-fill-soft'
+                    ? 'bg-accent-soft font-medium text-accent'
+                    : 'text-ink-muted hover:bg-panel-2'
                 }`}
                 onClick={() => setActive(i)}
               >
@@ -122,7 +122,7 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
               {`${current.path} · ${zh.packs.preview.sha256} ${current.sha256.slice(0, 12)}`}
             </p>
           )}
-          <pre className="mono min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-fill-soft p-3 text-[12px] leading-relaxed text-ink">
+          <pre className="mono min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border border-line bg-panel-2 p-3 text-[12px] leading-relaxed text-ink-body">
             {current?.content ?? ''}
           </pre>
         </div>

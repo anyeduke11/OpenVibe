@@ -40,6 +40,15 @@ interface StageDraft {
   name: string
   checklist: { id: string; text: string }[]
   artifacts: string[]
+  prompt: string
+}
+
+/** 提示词模板段的文案随组件走（组件在懒加载 chunk，文案不占入口体积） */
+const zhPrompt = {
+  field: '提示词模板（问答段，可选）',
+  badge: '问答段',
+  placeholder: '支持 {{变量}}，运行时同名变量跨段继承。',
+  hint: '填了会出现「问答运行」入口；留空=纯检查清单。',
 }
 
 let uidSeq = 0
@@ -49,11 +58,11 @@ const uid = (prefix: string): string => {
 }
 
 function toDraft(stage: Stage): StageDraft {
-  return { uid: uid('st'), name: stage.name, checklist: stage.checklist, artifacts: stage.artifacts }
+  return { uid: uid('st'), name: stage.name, checklist: stage.checklist, artifacts: stage.artifacts, prompt: stage.prompt ?? '' }
 }
 
 function blankStage(count: number): StageDraft {
-  return { uid: uid('st'), name: `阶段 ${String(count + 1)}`, checklist: [], artifacts: [] }
+  return { uid: uid('st'), name: `阶段 ${String(count + 1)}`, checklist: [], artifacts: [], prompt: '' }
 }
 
 /** 检查项 id 决定项目侧勾选记录的归属，必须稳定且唯一（m5 FR-3.2） */
@@ -75,7 +84,7 @@ function MoveButton(props: {
       title={props.label}
       aria-label={props.label}
       disabled={props.disabled}
-      className="rounded px-1 text-ink-faint hover:bg-fill hover:text-ink-body disabled:opacity-30"
+      className="rounded px-1 text-ink-faint hover:bg-panel-2 hover:text-ink-body disabled:opacity-30"
       onClick={props.onClick}
     >
       {props.glyph}
@@ -114,7 +123,7 @@ function StageRow(props: {
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-md border bg-panel p-3 ${isDragging ? 'border-brand shadow-md' : 'border-line'}`}
+      className={`rounded-md border bg-panel p-3 ${isDragging ? 'border-accent shadow-1' : 'border-line'}`}
     >
       <div className="flex items-center gap-2">
         <button
@@ -180,7 +189,7 @@ function StageRow(props: {
               />
               <button
                 type="button"
-                className="text-xs text-ink-faint hover:text-danger-600"
+                className="text-xs text-ink-faint hover:text-danger"
                 onClick={() =>
                   set(
                     'checklist',
@@ -218,6 +227,21 @@ function StageRow(props: {
             placeholder={zh.flows.editor.artifactsPlaceholder}
             onChange={(e) => set('artifacts', csv(e.target.value))}
           />
+        </div>
+        <div className="mt-2">
+          <label className={labelCls}>
+            {zhPrompt.field}
+            {stage.prompt.trim() !== '' && (
+              <span className="ml-2 text-[11px] text-accent">{zhPrompt.badge}</span>
+            )}
+          </label>
+          <textarea
+            className={`${inputCls} mono h-24 resize-y whitespace-pre-wrap`}
+            placeholder={zhPrompt.placeholder}
+            value={stage.prompt}
+            onChange={(e) => set('prompt', e.target.value)}
+          />
+          <p className="mt-1 text-[11px] text-ink-faint">{zhPrompt.hint}</p>
         </div>
       </div>
     </div>
@@ -271,6 +295,7 @@ export function FlowTemplateEditor(props: {
       name: s.name.trim(),
       checklist: s.checklist.map((c) => ({ id: c.id, text: c.text.trim() })),
       artifacts: s.artifacts,
+      prompt: s.prompt,
     }))
     const payload: FlowTemplateCreateInput = { name: name.trim(), kind, stages: payloadStages }
     const onError = (e: Error) => toast(e.message, 'error')
