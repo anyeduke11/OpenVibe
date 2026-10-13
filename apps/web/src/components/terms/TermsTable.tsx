@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { MatchRange, TermMatch, TermOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-import { btnGhost, chipCls } from '../ui/styles'
+import { btnGhost, chipTone, ledgerHeadCls } from '../ui/styles'
 
 export interface TermRowView {
   term: TermOut
@@ -9,8 +9,8 @@ export interface TermRowView {
 }
 
 const STATUS_STYLE: Record<TermOut['status'], string> = {
-  draft: 'border-line bg-panel-sunk text-ink-muted',
-  active: 'border-ok-line bg-ok-soft text-ok',
+  draft: chipTone('default'),
+  active: chipTone('ok'),
 }
 
 const STATUS_ICON: Record<TermOut['status'], ReactNode> = {
@@ -90,7 +90,7 @@ export function TermsTable(props: {
         )}
         {rows.length > 0 && (
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-panel text-left text-xs text-ink-muted">
+            <thead className={`sticky top-0 bg-panel text-left ${ledgerHeadCls}`}>
               <tr className="border-b border-line">
                 <th className="w-8 px-5 py-2" />
                 <th className="w-56 px-2 py-2">{zh.terms.columns.zh}</th>
@@ -142,7 +142,7 @@ export function TermsTable(props: {
                     {term.tags.length > 0 && (
                       <span className="mt-1 flex flex-wrap gap-1">
                         {term.tags.map((t) => (
-                          <span key={t} className={`${chipCls} border-line bg-panel-2 text-ink-muted`}>
+                          <span key={t} className={chipTone('default')}>
                             #{t}
                           </span>
                         ))}
@@ -151,11 +151,11 @@ export function TermsTable(props: {
                   </td>
                   <td className="px-2 py-2.5">
                     <div className="flex flex-wrap items-center gap-1">
-                      <span className={`${chipCls} gap-1 ${STATUS_STYLE[term.status]}`}>
+                      <span className={`${STATUS_STYLE[term.status]} gap-1`}>
                         {STATUS_ICON[term.status]}
                         {zh.terms.status[term.status]}
                       </span>
-                      <span className={`${chipCls} border-line bg-panel text-ink-muted`}>
+                      <span className={chipTone('default')}>
                         {term.source === 'openvibe-seed' ? zh.terms.source.seed : zh.terms.source.manual}
                       </span>
                       <button className={btnGhost} onClick={() => props.onEdit(term)}>

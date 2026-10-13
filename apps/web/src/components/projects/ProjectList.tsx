@@ -1,12 +1,19 @@
 import { Link } from 'react-router-dom'
 import type { ProjectView } from '../../hooks/useProjects'
 import { zh } from '../../i18n/zh'
-import { btnGhost, chipCls } from '../ui/styles'
+import {
+  btnGhost,
+  btnPrimary,
+  chipTone,
+  emptyHintCls,
+  ledgerHeadCls,
+} from '../ui/styles'
 
 /** 项目列表（m5 FR-1.1）：名称/状态/当前阶段 + 健康摘要三要素（未完项、最近日志、注入） */
 export function ProjectList(props: {
   items: ProjectView[]
   loading: boolean
+  onCreate: () => void
   onDelete: (project: ProjectView) => void
   injectionOf: (project: ProjectView) => string
 }) {
@@ -14,12 +21,20 @@ export function ProjectList(props: {
     return <p className="px-5 py-10 text-sm text-ink-faint">{zh.common.loading}</p>
   }
   if (props.items.length === 0) {
-    return <p className="px-5 py-10 text-sm text-ink-muted">{zh.projects.empty}</p>
+    // 空态的主因是「还没立项」，所以 CTA 是新建而不是「去别的页看看」
+    return (
+      <div className={`${emptyHintCls} m-5`}>
+        <p>{zh.projects.empty}</p>
+        <button className={btnPrimary} onClick={props.onCreate}>
+          {zh.projects.newProject}
+        </button>
+      </div>
+    )
   }
   return (
     <div className="min-h-0 flex-1 overflow-auto px-5">
       <table className="w-full border-collapse text-sm">
-        <thead className="sticky top-0 bg-panel text-left text-xs text-ink-muted">
+        <thead className={`sticky top-0 bg-panel text-left ${ledgerHeadCls}`}>
           <tr>
             <th className="border-b border-line-hair py-2 pr-3 font-medium">{zh.projects.wizard.name}</th>
             <th className="border-b border-line-hair py-2 pr-3 font-medium">
@@ -35,7 +50,7 @@ export function ProjectList(props: {
             <th className="border-b border-line-hair py-2 pr-3 font-medium">
               {zh.projects.labels.injection}
             </th>
-            <th className="border-b border-line-hair py-2 pr-3 font-medium">
+            <th className="border-b border-line-hair py-2 pr-3 text-right font-medium">
               {zh.projects.labels.updatedAt}
             </th>
             <th className="border-b border-line-hair py-2" />
@@ -54,11 +69,7 @@ export function ProjectList(props: {
                 </td>
                 <td className="border-b border-line-hair py-2 pr-3">
                   <span
-                    className={`${chipCls} ${
-                      p.status === 'active'
-                        ? 'border-accent-line bg-accent-soft text-accent-deep'
-                        : 'border-line bg-panel-2 text-ink-muted'
-                    }`}
+                    className={chipTone(p.status === 'active' ? 'accent' : 'default')}
                   >
                     {zh.projects.status[p.status]}
                   </span>

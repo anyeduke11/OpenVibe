@@ -11,7 +11,7 @@ import { zh } from '../../i18n/zh'
 import { ReflowOriginLine } from '../projects/ReflowActions'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
-import { btnGhost, btnPrimary, chipCls, inputCls, labelCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone, inputCls, labelCls } from '../ui/styles'
 
 interface FormState {
   zh: string
@@ -241,7 +241,7 @@ export function TermEditorDrawer(props: {
                 {form.tags
                   .filter((t) => !(CONTROLLED_TAG_VOCAB as readonly string[]).includes(t))
                   .map((t) => (
-                    <span key={t} className={`${chipCls} border-line bg-panel-2 text-ink-muted`}>
+                    <span key={t} className={chipTone('default')}>
                       #{t}
                       <button className="ml-1 text-ink-faint hover:text-ink-body" onClick={() => toggleTag(t)}>
                         ✕
@@ -308,7 +308,7 @@ export function TermEditorDrawer(props: {
             {form.relatedTermIds.length > 0 && (
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {form.relatedTermIds.map((id) => (
-                  <span key={id} className={`${chipCls} border-line bg-panel text-ink-muted`}>
+                  <span key={id} className={chipTone('default')}>
                     {labelOf(id)}
                     <button
                       className="ml-1 text-ink-faint hover:text-ink-body"

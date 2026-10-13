@@ -13,7 +13,20 @@ import { useSkillList } from '../../hooks/useSkills'
 import { useTermList } from '../../hooks/useTerms'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
-import { btnGhost, btnPrimary, chipCls, inputCls, labelCls } from '../ui/styles'
+import {
+  CHIP_TONES,
+  btnGhost,
+  btnPrimary,
+  chipCls,
+  chipPressed,
+  inputCls,
+  labelCls,
+} from '../ui/styles'
+
+// 关联标签是可按压的多选 chip：选中走 chipPressed，未选中走 default 形制。
+// 两者各自带 border/bg/text 三个色类，叠加只会让 Tailwind 任意挑一个（顺序不由源码决定），
+// 所以在形制层择一，三元不散进 JSX。
+const relatedChip = (on: boolean): string => `${chipCls} ${on ? chipPressed : CHIP_TONES.default}`
 
 /** 四段字节余量条：超限即红，提交按钮同步禁用（前端先拦一道，服务端仍是唯一权威） */
 function ByteMeter(props: { text: string; max: number }) {
@@ -116,9 +129,8 @@ function RelatedPicker(props: {
           return (
             <button
               key={o.id}
-              className={`${chipCls} ${
-                on ? 'border-accent bg-accent-soft text-accent-deep' : 'border-line text-ink-muted'
-              }`}
+              className={`${relatedChip(on)} cursor-pointer`}
+              aria-pressed={on}
               onClick={() => toggle(o.id)}
             >
               {o.label}

@@ -44,6 +44,7 @@ export function ProjectsPage() {
       <ProjectList
         items={items}
         loading={list.isLoading}
+        onCreate={() => setWizardOpen(true)}
         onDelete={setDeleting}
         injectionOf={(p) =>
           p.health.injection.version === null

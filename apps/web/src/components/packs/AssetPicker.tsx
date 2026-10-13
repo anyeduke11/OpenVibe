@@ -4,7 +4,7 @@ import { usePromptAggregates } from '../../hooks/usePrompts'
 import { useSkillList } from '../../hooks/useSkills'
 import { useTermList } from '../../hooks/useTerms'
 import { zh } from '../../i18n/zh'
-import { chipCls, inputCls } from '../ui/styles'
+import { chipTone, inputCls, noteCls } from '../ui/styles'
 
 /** 选集四栏的 id 集合；同一形状复用给 STALE_SELECTION 明细（字段名与 resolve.ts 的 StaleDetails 一致） */
 export interface AssetIds {
@@ -102,7 +102,7 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
                 <span className="min-w-0">
                   <span className="block truncate" title={props.label(row)}>
                     {props.label(row)}
-                    <span className={`${chipCls} ml-1.5 border-line bg-panel-2 text-ink-muted`}>
+                    <span className={`${chipTone('default')} ml-1.5`}>
                       {props.badge(row)}
                     </span>
                   </span>
@@ -135,7 +135,7 @@ export function AssetPicker(props: AssetPickerProps) {
     <div className="flex h-full min-h-0 flex-col gap-2">
       <p className="text-xs text-ink-muted">{zh.packs.wizard.assetsHint}</p>
       {staleAll.length > 0 && (
-        <p className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-xs text-danger">
+        <p className={`${noteCls('danger')} text-ink-body`}>
           {zh.packs.preview.stale(staleAll.join(', '))}
         </p>
       )}

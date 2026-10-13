@@ -7,7 +7,7 @@ import { useProjectMutations } from '../../hooks/useProjects'
 import { zh } from '../../i18n/zh'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
-import { btnGhost, btnPrimary, chipCls, inputCls, labelCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone, inputCls, labelCls } from '../ui/styles'
 
 const STEPS = [zh.projects.wizard.step1, zh.projects.wizard.step2, zh.projects.wizard.step3]
 
@@ -105,7 +105,7 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
       />
       <span className="min-w-0">
         <span className="font-medium">{t.name}</span>
-        <span className={`${chipCls} ml-2 border-line bg-panel-2 text-ink-muted`}>
+        <span className={`${chipTone('default')} ml-2`}>
           {t.builtin ? zh.flows.builtin : zh.flows.custom}
         </span>
         <span className="block truncate text-[11px] text-ink-muted">

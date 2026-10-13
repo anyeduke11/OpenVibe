@@ -15,7 +15,7 @@ import { zh } from '../i18n/zh'
 import { FlywheelCard } from '../components/onboarding/FlywheelCard'
 import { OnboardingBar } from '../components/onboarding/OnboardingBar'
 import { TelemetryAskCard } from '../components/onboarding/TelemetryAskCard'
-import { btnGhost, btnPrimary } from '../components/ui/styles'
+import { btnGhost, btnPrimary, emptyHintCls, rowCls } from '../components/ui/styles'
 import { toast } from '../components/ui/Toaster'
 
 /**
@@ -126,11 +126,13 @@ export function WorkbenchPage() {
             {projects.isLoading ? (
               <p className="px-4 py-6 text-sm text-ink-faint">{zh.common.loading}</p>
             ) : recent.length === 0 ? (
-              <div className="px-4 py-6 text-center">
-                <p className="text-[13px] text-ink-faint">{zh.workbench.projects.empty}</p>
-                <Link to="/projects" className={`${btnGhost} mt-3`}>
-                  {zh.workbench.projects.new}
-                </Link>
+              <div className="px-4 py-6">
+                <div className={emptyHintCls}>
+                  <p>{zh.workbench.projects.empty}</p>
+                  <Link to="/projects" className={btnGhost}>
+                    {zh.workbench.projects.new}
+                  </Link>
+                </div>
               </div>
             ) : (
               <ul className="flex flex-col">
@@ -138,7 +140,7 @@ export function WorkbenchPage() {
                   <li key={p.id}>
                     <Link
                       to={`/projects/${p.id}`}
-                      className="flex items-center gap-3 border-b border-line-hair px-4 py-2.5 transition-colors last:border-b-0 hover:bg-panel-2"
+                      className={`${rowCls} flex items-center gap-3 px-4 py-2.5 transition-colors last:border-b-0`}
                     >
                       <span className="min-w-0 grow">
                         <span className="block truncate text-sm font-medium text-ink">
@@ -215,7 +217,7 @@ function QuickRow(props: { to: string; label: string }) {
     <li className="border-b border-line-hair last:border-b-0">
       <Link
         to={props.to}
-        className="block px-4 py-2.5 text-sm text-ink-body transition-colors hover:bg-panel-2 hover:text-ink"
+        className={`${rowCls} block px-4 py-2.5 text-sm text-ink-body transition-colors hover:text-ink`}
       >
         {props.label}
         <span className="float-right text-ink-faint">›</span>
@@ -272,7 +274,7 @@ function LedgerBody(props: {
       {items.slice(0, 6).map((e) => (
         <li
           key={e.id}
-          className="flex items-center gap-2 border-b border-line-hair px-4 py-2 last:border-b-0"
+          className={`${rowCls} flex items-center gap-2 px-4 py-2 last:border-b-0`}
         >
           <span className="mono min-w-0 grow truncate text-[12px] text-ink-body">{e.name}</span>
           <span className="mono shrink-0 text-[11px] text-ink-faint">

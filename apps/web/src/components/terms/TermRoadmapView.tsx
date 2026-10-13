@@ -3,7 +3,13 @@ import { TERM_ROADMAP, type TermOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 import { useRoadmapOrder } from '../../hooks/useRoadmapOrder'
 import { useTermMutations } from '../../hooks/useTerms'
-import { chipCls } from '../ui/styles'
+import { CHIP_TONES, chipCls, chipPressed, chipTone } from '../ui/styles'
+
+// 可按压的 chip：选中与未选中在形制层择一。chipTone('default') 与 chipPressed 各自
+// 带 border/bg/text 三个色类，叠加只会让 Tailwind 任意挑一个生效（顺序不由源码决定），
+// 所以这里不叠加，三元也不散进 JSX。
+const toggleChip = (on: boolean): string =>
+  `${chipCls} ${on ? chipPressed : `${CHIP_TONES.default} hover:bg-panel`}`
 import { toast } from '../ui/Toaster'
 
 /** 文案随组件走（TermsPage 是懒加载 chunk） */
@@ -127,7 +133,7 @@ export function TermRoadmapView(props: {
         {stations.map((s) => (
           <button
             key={s.id}
-            className={`${chipCls} cursor-pointer border-line bg-panel text-ink-muted hover:border-line-strong`}
+            className={`${chipTone('default')} cursor-pointer hover:border-line-strong`}
             onClick={() => {
               document.getElementById(`roadmap-${s.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
               setOpenStations((prev) => new Set(prev).add(s.id))
@@ -138,14 +144,13 @@ export function TermRoadmapView(props: {
         ))}
         <span className="ml-auto flex items-center gap-1.5">
           {isCustom && !ordering && (
-            <button className={`${chipCls} cursor-pointer border-warn-line bg-warn-soft text-warn`} onClick={reset}>
+            <button className={`${chipTone('warn')} cursor-pointer`} onClick={reset}>
               {zhRoadmap.resetOrder}
             </button>
           )}
           <button
-            className={`${chipCls} cursor-pointer ${
-              ordering ? 'border-accent bg-accent-soft text-accent-deep' : 'border-line bg-panel text-ink-muted'
-            }`}
+            className={`${toggleChip(ordering)} cursor-pointer`}
+            aria-pressed={ordering}
             onClick={() => setOrdering((v) => !v)}
           >
             {ordering ? zhRoadmap.reordering : zhRoadmap.reorder}
@@ -178,13 +183,13 @@ export function TermRoadmapView(props: {
                   <span className="text-sm font-semibold text-ink-body">
                     {zhRoadmap.station(s.stationNo)} · {s.title}
                   </span>
-                  <span className={`${chipCls} border-line bg-panel-2 text-ink-muted`}>
+                  <span className={chipTone('default')}>
                     {zhRoadmap.count(s.total)}
                   </span>
                   {ordering && s.id !== '__loose' && (
                     <span className="ml-auto flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <button
-                        className={`${chipCls} cursor-pointer border-line bg-panel text-ink-muted`}
+                        className={`${chipTone('default')} cursor-pointer hover:bg-panel`}
                         disabled={s.stationNo <= 1}
                         onClick={() => move(s.id, -1)}
                         title={zhRoadmap.moveUp}
@@ -192,7 +197,7 @@ export function TermRoadmapView(props: {
                         ↑
                       </button>
                       <button
-                        className={`${chipCls} cursor-pointer border-line bg-panel text-ink-muted`}
+                        className={`${chipTone('default')} cursor-pointer hover:bg-panel`}
                         disabled={s.stationNo >= stations.length - 1}
                         onClick={() => move(s.id, 1)}
                         title={zhRoadmap.moveDown}

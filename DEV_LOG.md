@@ -2137,3 +2137,33 @@
   5. **侧栏从 DESIGN.md 的「四组八项」变九项**：多出的「成长与统计」暂挂「概览」组（上一轮留下），**本轮又加「技巧库」成十项**——两处偏离都**待 owner 定**（入册 DESIGN.md，还是并回工作台页）。
   6. **worker 越权检查**：本轮 M4 后端由 worker 承接，brief 末尾显式写了「❌ 不要 git commit / push」，事后 `git log` 复核确认**无自提交**。另 worker 主动登记了一处越界（一行 `tests/seed-check.test.ts` 的 `SEED_FILES` 数组加 `'playbooks.json'`）——该数组是沙箱基线，不加则必红，属最小必要，已复核未改其断言逻辑。
 - **owner 手上未收的**: ① `source` 闭集第三态的追认 ② 侧栏八/九/十项对 DESIGN.md 的偏离裁定 ③ spec §7.6 四条人工腿（截图归档）④ 推送授权（本笔只落本地 commit）
+
+## [DEV-0092] 组件形制采用轮（`[DEV-0090]` Phase B）：26 处手拼色调三件套归零 · 顺带修掉一个「chip 类从未被定义」的无样式缺陷
+
+- **时间**: 2026-10-13（本机 darwin；起手树 = `91cf653`）
+- **类型**: **C 级**（`apps/web/src/**` 调用点归一到既有原语；`components/ui/styles.ts` 本轮**冻结未改**、`index.css` 一个 token 未动）
+- **关联文件**: `apps/web/src/components/{ui/styles.ts(读),library,library/TagFilterBar,terms,terms/*,skills,skills/*,projects,projects/*,flows/*,packs/*,settings/*}`、`apps/web/src/pages/{LibraryPage,TermsPage,GrowthPage,PacksPage,FlowsPage}.tsx`、`apps/web/src/components/CommandPalette.tsx`
+- **问题描述**: `[DEV-0091]` 把 DESIGN.md Components 段的形制**定义**落进 `styles.ts`（六形制 chip / 四态 note / empty-hint / row / ledger），但**零采用**——`grep -rl chipCls apps/web/src` 命中 26 个文件，全站仍在手拼「soft 底 + 同色系 line + 同色系 solid 字」。这是「定义了不等于落地」的典型半成品：原语在那儿，规范没被执行，两者的差距只有 grep 才看得见。
+- **实现思路（设计→实现）**:
+  1. **归一的边界画死**：只有**色调三件套**归一到 `chipTone(…)`，布局类（`ml-2`/`cursor-pointer`/`mono`/`shrink-0`）留在原处——把布局一起归一进原语，等于把原语从「形制」膨胀成「排版」。
+  2. **组件内的 `STATUS_STYLE`/`LEVEL_CHIP` 局部记录改成映射到 `chipTone(…)`**，保住「按状态取形制」的语义，不把三元散进 JSX。
+  3. **`default` 形的三个现成底色不强行统一**：`bg-panel`/`bg-panel-2`/`bg-panel-sunk` 在现网各有用途（可点 / 普通 / 沉底）。**语义确实是「可点/可切」的保留可点性**，只用 `chipPressed` 接管选中态——为了统一而改掉可点性是本轮最容易犯的错。
+  4. **empty-hint 必须带真 CTA**：DESIGN.md 明写「不是『暂无数据』」。凡改成 `emptyHintCls` 的空态，都挂上该页面本来就有的创建动作（新建提示词 / 新建术语 / 新建项目…），不是换个框而已。
+  5. **三处主动回退，不硬套**：`<details>` 盒式折叠（不是行列表，`rowCls` 无内边距会压塌它）、台账表行（`rowCls` 是列表行形制，与 ledger-table 不是同一形）、一处「按检查清单人工执行即可」的说明 note（是解释不是告警，`warn` → `info`）。
+- **核心变更**:
+  - **归零判据达成**：手拼色调三件套 **31 → 0**（复算命令见「测试验证」）；`chipTone` 27 文件 / `noteCls` 6 / `emptyHintCls` 7 / `rowCls` 4 / `ledgerHeadCls` 5 / `ledgerNumCls` 2 / `chipPressed` 4 —— 六个原语全部有真实调用点，不是只定义。
+  - **顺带修掉一个真缺陷**：`GrowthPage`/`TagFilterBar`/`SkillScanReportView` 三处用的 `className="chip"` **在 `index.css` 里从未被定义**（复算 `grep -rn '\.chip\s*{' apps/web/src/index.css` → 0 命中），也就是说这三处 chip **今天是无样式裸渲染**。它不是形制不齐，是根本没生效——这类缺陷只有把原语真正接上才会暴露。
+  - **两支颜色断言未被改动即绿**：`PackPreviewPane.test.tsx` 要求恰好 2 处 `text-warn`、`PortsPanel.test.tsx` 要求 0 处——归一后仍成立，说明没有靠改断言过关。
+- **测试验证**: 全部 2026-10-13 本机复跑：
+  - `pnpm test` **63 文件 / 580 支全过**（支数不变：纯形制归一，未新增/删除用例）；
+  - `pnpm typecheck` rc=0 · `pnpm lint` rc=0 · `pnpm seed:check` rc=0；
+  - `npx vitest --project unit --run tests/design-tokens.test.ts` → **4 passed (4)**（调用点归一后四道治理闸仍全绿，是本轮最该盯的一道——归一动作本身最容易顺手引入字面色阶）；
+  - `pnpm bundle:check` 入口 **293.74 kB ≤ 300 kB** / 39 chunk / 最大 347.45 kB —— 与 `[DEV-0091]` **逐字节同值**，即形制归一的体积代价为零（原语是 Tailwind 类名，tree-shake 后不增 chunk）；
+  - **归零判据**：`grep -rhoE '\$\{chipCls\} [^`"]*' apps/web/src --include='*.tsx' | sed 's/\${chipCls} //' | grep -E 'border-'` → **空**。
+  - **真服务面复核**（不只跑闸）：起 `pnpm --filter @openvibe/server dev` 于 8787，`/api/nav-counts` 返回七格（含 `playbooks:13`）、`/api/playbooks` total 13、`/api/playbooks/search?q=等保` 命中 3 条带高亮区间；**两条负向腿实测 422**（`verified:true` + 空 evidence ⇒ `fieldErrors.verified`；`PATCH false→true` 不带 evidence ⇒ FR-4.2 拦截）；`render-playbooks-md` 输出五列表头「场景 | 问题 | 正确做法 | 反例 | 亲测有效」，**亲测有效是文字列不是颜色**。
+- **潜在风险**:
+  1. **`emptyHintCls` 的「CTA 必须真实」目前靠人读**：闸判不出「这个按钮点了有没有反应」。本轮 7 处都挂了页面既有的创建动作，但这是**人工判读**，不是可复算凭据。
+  2. **`.chip` 无样式缺陷的暴露面有限**：那三处今天能正常看，只因三件套里的颜色类**恰好也在别处被内联写过**，视觉退化不显眼。若将来删掉某支 token，这三处会突然裸奔——本笔已统一，登记在此是为了说明「它一直是这样」，不是本笔造成。
+  3. **`CHIP_TONES.default` 的底色由 `bg-panel` 收敛到 `bg-panel-sunk`**：语义更准（普通信息 chip = 沉底），但**视觉上比 `bg-panel` 深一档**。这是全站范围的观感变化，没有逐屏截图归档（spec §7.7「真实浏览器点击」那条未验证面在本轮同样成立）。
+  4. **未提交时的裸奔**：本笔 34 个文件在提交前经历了一段无 commit 窗口；共享工作树下若被并行会话 commit 覆盖，归因会串。
+- **owner 手上未收的**: ① `CHIP_TONES.default` 底色收敛带来的全站观感变化是否接受（要不要保留 `bg-panel`）② 侧栏十项对 DESIGN.md 的偏离裁定（承 `[DEV-0091]` 未清）③ spec §7.6 四条人工腿（截图归档）④ 推送授权

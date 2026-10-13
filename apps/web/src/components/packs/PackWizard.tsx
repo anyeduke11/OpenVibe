@@ -14,7 +14,7 @@ import { usePackExports, usePackList, usePackMutations, usePackPreview } from '.
 import { useFlowTemplates } from '../../hooks/useFlows'
 import { zh } from '../../i18n/zh'
 import { toast } from '../ui/Toaster'
-import { btnGhost, btnPrimary, chipCls, inputCls, labelCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone, inputCls, labelCls, noteCls } from '../ui/styles'
 import { AssetPicker, type AssetIds } from './AssetPicker'
 import { PackPreviewPane } from './PackPreviewPane'
 
@@ -293,7 +293,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
                 />
                 <span className="min-w-0">
                   <span className="font-medium">{t.name}</span>
-                  <span className={`${chipCls} ml-2 border-line bg-panel-2 text-ink-muted`}>
+                  <span className={`${chipTone('default')} ml-2`}>
                     {t.builtin ? zh.flows.builtin : zh.flows.custom}
                   </span>
                   <span className="block truncate text-[11px] text-ink-muted">
@@ -356,13 +356,13 @@ export function PackWizard(props: { initial: PackOut | null }) {
             {lastExport !== undefined &&
               preview.data !== undefined &&
               preview.data.fingerprint !== lastExport.fingerprint && (
-                <p className="rounded-md border border-warn-line bg-warn-soft px-3 py-2 text-xs text-warn">
+                <p className={`${noteCls('warn')} text-ink-body`}>
                   {zh.packs.preview.changedSince(lastExport.version)}
                 </p>
               )}
 
             {preview.isError && (
-              <div className="rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-xs text-danger">
+              <div className={`${noteCls('danger')} text-ink-body`}>
                 {(preview.error as Error).message}
                 {previewStale !== undefined && (
                   <button

@@ -4,7 +4,7 @@ import { PROJECT_STATUS } from '@openvibe/shared'
 import type { ProjectView } from '../../hooks/useProjects'
 import { zh } from '../../i18n/zh'
 import { toast } from '../ui/Toaster'
-import { chipCls, inputCls } from '../ui/styles'
+import { chipTone, inputCls } from '../ui/styles'
 
 function Row(props: { label: string; children: ReactNode }) {
   return (
@@ -49,7 +49,7 @@ export function ProjectDashboard(props: {
         <Row label={zh.projects.labels.path}>
           {project.localPath ?? zh.projects.noPath}
           {project.status === 'archived' && (
-            <span className={`${chipCls} ml-2 border-line bg-panel-2 text-ink-muted`}>
+            <span className={`${chipTone('default')} ml-2`}>
               {zh.projects.status.archived}
             </span>
           )}

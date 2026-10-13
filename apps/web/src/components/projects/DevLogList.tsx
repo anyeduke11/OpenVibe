@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { DevLogOut, DevLogType } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 import { MarkdownPreview } from '../library/MarkdownPreview'
-import { btnGhost, btnPrimary, chipCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone } from '../ui/styles'
 import { ReflowActions } from './ReflowActions'
 
 /** 日志列表（m5 FR-5.3）：时间倒序、类型过滤、单条展开渲染 Markdown + 回流入口 */
@@ -21,7 +21,7 @@ export function DevLogList(props: {
     <section className="rounded-lg border border-line bg-panel p-4">
       <header className="mb-2 flex items-center gap-2">
         <h2 className="text-sm font-semibold">{zh.projects.devlog.title}</h2>
-        <span className={`${chipCls} border-line bg-panel-2 text-ink-muted`}>
+        <span className={chipTone('default')}>
           {String(props.entries.length)}
         </span>
         <a
@@ -52,7 +52,7 @@ export function DevLogList(props: {
                 className="flex w-full items-center gap-2 text-left"
                 onClick={() => setOpen(expanded ? null : entry.id)}
               >
-                <span className={`${chipCls} border-accent-line bg-accent-soft font-medium text-accent`}>
+                <span className={`${chipTone('accent')} font-medium`}>
                   {entry.displayNo}
                 </span>
                 <span className="truncate text-sm text-ink-body">

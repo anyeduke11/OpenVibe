@@ -4,7 +4,7 @@ import type { SkillDuplicatesReport } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
 import { apiJson } from '../../api/client'
-import { btnDanger, btnGhost, chipCls } from '../ui/styles'
+import { btnDanger, btnGhost, chipTone, emptyHintCls } from '../ui/styles'
 import { useSkillDuplicates, useSkillMerge, useSkillRepair } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
 
@@ -170,7 +170,13 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
           {dup.isError && <p className="text-xs text-warn">{(dup.error as Error).message}</p>}
 
           {report !== undefined && !hasAnything && (
-            <p className="py-6 text-center text-sm text-ink-muted">{zh.skills.cleanupDialog.none}</p>
+            // 「没有重复项」是一份会过期的结论，下一步只能是重扫，所以 CTA 给重扫而不是关闭
+            <div className={emptyHintCls}>
+              <p>{zh.skills.cleanupDialog.none}</p>
+              <button className={btnGhost} disabled={dup.isPending} onClick={() => dup.mutate()}>
+                {zh.skills.cleanupDialog.refresh}
+              </button>
+            </div>
           )}
 
           {report !== undefined &&
@@ -253,7 +259,7 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
                   <span className="mono">{s.name}</span>
                   <span className="text-ink-faint">（{s.issue}）</span>
                   {s.suggestedName !== null ? (
-                    <span className={`${chipCls} border-line hover:bg-panel-2 text-ink-muted`}>
+                    <span className={`${chipTone('default')} hover:bg-panel`}>
                       → {s.suggestedName}
                     </span>
                   ) : (

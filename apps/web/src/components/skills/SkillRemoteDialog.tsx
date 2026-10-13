@@ -2,9 +2,14 @@ import { useState } from 'react'
 import type { SkillRemoteImportReport, SkillRemoteSearchItem } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
-import { btnGhost, btnPrimary, chipCls, inputCls, labelCls } from '../ui/styles'
+import { CHIP_TONES, btnGhost, btnPrimary, chipCls, chipPressed, inputCls, labelCls } from '../ui/styles'
 import { useSkillRemote } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
+
+// 选中与未选中是「择一」不是「相加」：chipTone('default') 与 chipPressed 都自带
+// border/bg/text 三个色类，叠加后 Tailwind 只认其中一个（顺序不由源码决定），
+// 所以这里在形制层择一，三元不散进 JSX。
+const sourceChip = (on: boolean): string => `${chipCls} ${on ? chipPressed : CHIP_TONES.default}`
 
 type RemoteSource = 'github' | 'skillhub'
 
@@ -67,11 +72,7 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
               {(['github', 'skillhub'] as const).map((s) => (
                 <button
                   key={s}
-                  className={`${chipCls} ${
-                    source === s
-                      ? 'border-accent-line bg-accent-soft text-accent-deep'
-                      : 'border-line bg-panel text-ink-muted'
-                  }`}
+                  className={`${sourceChip(source === s)} cursor-pointer`}
                   aria-pressed={source === s}
                   onClick={() => setSource(s)}
                 >

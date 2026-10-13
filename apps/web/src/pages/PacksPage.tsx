@@ -7,7 +7,7 @@ import { zh } from '../i18n/zh'
 import { PackDetailSheet } from '../components/packs/PackDetailSheet'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
 import { toast } from '../components/ui/Toaster'
-import { btnDanger, btnGhost, btnPrimary, chipCls } from '../components/ui/styles'
+import { btnDanger, btnGhost, btnPrimary, chipTone, emptyHintCls, ledgerHeadCls, ledgerNumCls } from '../components/ui/styles'
 
 /** /packs：列表 + 详情抽屉（导出历史 / 注入历史），组装与导出在向导里（m6a FR-1–FR-5） */
 export function PacksPage() {
@@ -40,16 +40,23 @@ export function PacksPage() {
           <p className="text-sm text-danger">{zh.common.failed((list.error as Error).message)}</p>
         )}
         {items.length === 0 && !list.isLoading && (
-          <p className="text-sm text-ink-muted">{zh.packs.empty}</p>
+          // 空态的因果写在文案里（「点右上角新建」），所以 CTA 必须真能新建，
+          // 不能只把那句话换个框
+          <div className={emptyHintCls}>
+            <p>{zh.packs.empty}</p>
+            <button className={btnPrimary} onClick={() => navigate('/packs/new')}>
+              {zh.packs.newPack}
+            </button>
+          </div>
         )}
         {items.length > 0 && (
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-panel text-left text-xs text-ink-muted">
+            <thead className={`sticky top-0 bg-panel text-left ${ledgerHeadCls}`}>
               <tr>
                 <th className="w-56 px-2 py-2">{zh.packs.columns.name}</th>
                 <th className="px-2 py-2">{zh.packs.columns.targets}</th>
                 <th className="px-2 py-2">{zh.packs.columns.assets}</th>
-                <th className="w-40 px-2 py-2">{zh.packs.columns.updated}</th>
+                <th className="w-40 px-2 py-2 text-right">{zh.packs.columns.updated}</th>
                 <th className="w-44 px-2 py-2" />
               </tr>
             </thead>
@@ -71,7 +78,7 @@ export function PacksPage() {
                       {pack.targets.map((t) => (
                         <span
                           key={t}
-                          className={`${chipCls} border-line bg-panel-2 text-ink-muted`}
+                          className={chipTone('default')}
                         >
                           {zh.packs.targetLabels[t] ?? t}
                         </span>
@@ -86,7 +93,9 @@ export function PacksPage() {
                     )}
                     <span className="block text-[11px] text-ink-faint">{flowName(pack)}</span>
                   </td>
-                  <td className="px-2 py-2 text-xs text-ink-muted tabular-nums">{pack.updatedAt}</td>
+                  <td className={`px-2 py-2 text-xs text-ink-muted ${ledgerNumCls}`}>
+                    {pack.updatedAt}
+                  </td>
                   <td className="px-2 py-2">
                     <span className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <button className={btnGhost} onClick={() => navigate(`/packs/${pack.id}/edit`)}>

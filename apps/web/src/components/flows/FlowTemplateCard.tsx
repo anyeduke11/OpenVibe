@@ -1,6 +1,6 @@
 import type { FlowTemplateOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-import { btnDanger, btnGhost, chipCls } from '../ui/styles'
+import { btnDanger, btnGhost, chipTone } from '../ui/styles'
 
 /** 模板卡（dev-plan §5.2）：阶段/检查项概览 + 问答运行/编辑/复制/删除入口 */
 export function FlowTemplateCard(props: {
@@ -19,11 +19,7 @@ export function FlowTemplateCard(props: {
       <header className="flex items-start gap-2">
         <h3 className="text-sm font-semibold">{template.name}</h3>
         <span
-          className={`${chipCls} ml-auto shrink-0 ${
-            template.builtin
-              ? 'border-accent-line bg-accent-soft text-accent'
-              : 'border-line bg-panel-2 text-ink-muted'
-          }`}
+          className={`${chipTone(template.builtin ? 'accent' : 'default')} ml-auto shrink-0`}
         >
           {template.builtin ? zh.flows.builtin : zh.flows.custom}
         </span>

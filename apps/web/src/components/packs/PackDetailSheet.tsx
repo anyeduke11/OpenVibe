@@ -3,7 +3,7 @@ import type { PackOut } from '@openvibe/shared'
 import { usePackExports, usePackInjections } from '../../hooks/usePacks'
 import { useFlowTemplates } from '../../hooks/useFlows'
 import { zh } from '../../i18n/zh'
-import { btnGhost, btnPrimary, chipCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone } from '../ui/styles'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { ExportHistoryPanel } from './ExportHistoryPanel'
 
@@ -48,7 +48,7 @@ export function PackDetailSheet(props: { pack: PackOut | null; onClose: () => vo
             <p className="text-ink-body">{pack.description === '' ? zh.common.none : pack.description}</p>
             <p className="mt-2 flex flex-wrap gap-1">
               {pack.targets.map((t) => (
-                <span key={t} className={`${chipCls} border-line bg-panel-2 text-ink-muted`}>
+                <span key={t} className={chipTone('default')}>
                   {zh.packs.targetLabels[t] ?? t}
                 </span>
               ))}

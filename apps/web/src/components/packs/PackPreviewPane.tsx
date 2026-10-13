@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { utf8ByteLength, type PreviewOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
+import { chipTone } from '../ui/styles'
 
 /**
  * 步骤 5 的预览面板（m6a FR-1.5）：左文件树 + 右等宽内容，字节来自服务端同一生成器，
@@ -50,11 +51,8 @@ export function PackPreviewPane(props: { preview: PreviewOut | undefined }) {
             {preview.sizeEstimate.perTarget.map((p) => (
               <li
                 key={p.adapter}
-                className={`rounded-md border px-2 py-1 text-xs ${
-                  p.warn
-                    ? 'border-warn-line bg-warn-soft text-warn'
-                    : 'border-line bg-panel text-ink-body'
-                }`}
+                // 超预算与否是一支 chip 形制，不另写三件套；tabular-nums 让同列 token 数对齐
+                className={`${chipTone(p.warn ? 'warn' : 'default')} tabular-nums`}
               >
                 {`${p.adapter} ≈${String(p.approxTokens)}`}
               </li>

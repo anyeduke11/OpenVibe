@@ -150,6 +150,7 @@ export function LibraryPage() {
           total={list.data?.total ?? 0}
           filters={filters}
           loading={list.isLoading}
+          onCreate={() => setEditor({ prompt: null })}
           onEdit={(p) => setEditor({ prompt: p })}
           onCopy={onCopy}
           onDelete={setDeleting}

@@ -19,7 +19,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { TASK_STATUS, type TaskOut, type TaskStatus } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-import { btnGhost, chipCls, inputCls } from '../ui/styles'
+import { btnGhost, chipTone, inputCls } from '../ui/styles'
 
 function isTaskStatus(value: string): value is TaskStatus {
   return (TASK_STATUS as readonly string[]).includes(value)
@@ -146,7 +146,7 @@ function TaskCard(props: CardProps) {
             </option>
           ))}
         </select>
-        <span className={`${chipCls} border-line-hair bg-panel-2 text-ink-faint`}>{String(index + 1)}</span>
+        <span className={chipTone('default')}>{String(index + 1)}</span>
       </div>
 
       <div className="mt-1 flex items-center gap-0.5 pl-5">

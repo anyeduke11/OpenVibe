@@ -1,16 +1,22 @@
 import { useEffect } from 'react'
 import type { SkillReviewItem } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
-import { chipCls } from '../ui/styles'
-import { btnGhost, btnPrimary } from '../ui/styles'
+import {
+  btnGhost,
+  btnPrimary,
+  chipTone,
+  emptyHintCls,
+  noteCls,
+} from '../ui/styles'
 import { useSkillReview } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
 
+// 四级结论各自落在四支形制色上：审查面本来就有图标 + 文字，颜色只是第三重信号
 const LEVEL_CHIP: Record<SkillReviewItem['level'], string> = {
-  ok: 'border-ok-line bg-ok-soft text-ok',
-  info: 'border-info-line bg-info-soft text-info',
-  warn: 'border-warn-line bg-warn-soft text-warn',
-  fail: 'border-danger-line bg-danger-soft text-danger',
+  ok: chipTone('ok'),
+  info: chipTone('info'),
+  warn: chipTone('warn'),
+  fail: chipTone('danger'),
 }
 
 const LEVEL_ICON: Record<SkillReviewItem['level'], React.ReactNode> = {
@@ -78,7 +84,7 @@ export function SkillReviewDialog(props: { open: boolean; onClose: () => void })
           {review.isError && <p className="text-xs text-warn">{(review.error as Error).message}</p>}
           {report !== undefined && (
             <>
-              <p className="rounded-md border border-line bg-panel-2 p-2 text-xs">
+              <p className={`${noteCls('info')} text-ink-body`}>
                 {zh.skills.reviewDialog.summary(
                   report.summary.ok,
                   report.summary.info,
@@ -87,13 +93,22 @@ export function SkillReviewDialog(props: { open: boolean; onClose: () => void })
                 )}
               </p>
               {problematic.length === 0 ? (
-                <p className="py-6 text-center text-sm text-ink-muted">{zh.skills.reviewDialog.allClear}</p>
+                <div className={emptyHintCls}>
+                  <p>{zh.skills.reviewDialog.allClear}</p>
+                  <button
+                    className={btnGhost}
+                    disabled={review.isPending}
+                    onClick={() => review.mutate({})}
+                  >
+                    {zh.skills.reviewDialog.rerun}
+                  </button>
+                </div>
               ) : (
                 <div className="max-h-80 space-y-2 overflow-auto">
                   {problematic.map((item) => (
                     <details key={item.skillId} className="rounded-md border border-line p-2">
                       <summary className="flex cursor-pointer items-center gap-2 text-xs">
-                        <span className={`${chipCls} ${LEVEL_CHIP[item.level]}`}>
+                        <span className={LEVEL_CHIP[item.level]}>
                           {LEVEL_ICON[item.level]}
                           {zh.skills.reviewDialog.levels[item.level]}
                         </span>

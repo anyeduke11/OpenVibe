@@ -1,6 +1,6 @@
 import type { SkillRow } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
-import { btnGhost, btnPrimary, chipCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone } from '../ui/styles'
 
 /** 台账列表（m2 FR-3.1）：来源 / 版本数 / 最近扫描时间 + 编辑与删除入口 */
 export function SkillList(props: {
@@ -43,11 +43,7 @@ export function SkillList(props: {
               </td>
               <td className="border-b border-line-hair py-2 pr-3">
                 <span
-                  className={`${chipCls} ${
-                    s.source === 'local'
-                      ? 'border-accent-line bg-accent-soft text-accent'
-                      : 'border-line bg-panel-2 text-ink-muted'
-                  }`}
+                  className={chipTone(s.source === 'local' ? 'accent' : 'default')}
                 >
                   {zh.skills.sources[s.source]}
                 </span>
@@ -61,7 +57,7 @@ export function SkillList(props: {
                     <span className="text-xs text-ink-faint">{zh.common.none}</span>
                   )}
                   {s.installedTargets.map((t) => (
-                    <span key={t} className={`${chipCls} mono border-line bg-panel text-ink-muted`}>
+                    <span key={t} className={`${chipTone('default')} mono`}>
                       {t}
                     </span>
                   ))}

@@ -9,7 +9,7 @@ import {
   useTelemetryToggle,
 } from '../../hooks/useSettings'
 import { zh } from '../../i18n/zh'
-import { btnGhost, btnPrimary, chipCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone } from '../ui/styles'
 import { toast } from '../ui/Toaster'
 
 const DEFAULT_PACK_NAME = 'default'
@@ -62,7 +62,7 @@ export function ReseedResult(props: { result: ReseedOut | null }) {
       <Row label={zh.settings.seed.title}>
         <span className="flex flex-wrap gap-1.5">
           {Object.entries(r.seed.bundles).map(([bundle, status]) => (
-            <span key={bundle} className={`${chipCls} border-line bg-panel text-ink-muted`}>
+            <span key={bundle} className={chipTone('default')}>
               {zh.settings.seed.bundles(bundle, status)}
             </span>
           ))}
@@ -204,7 +204,7 @@ export function TelemetrySection() {
               }
             />
             <span>{zh.settings.telemetry.enabled}</span>
-            <span className={`${chipCls} border-line bg-panel-2 text-ink-muted`}>
+            <span className={chipTone('default')}>
               {zh.settings.telemetry.state[data.askState]}
             </span>
           </label>

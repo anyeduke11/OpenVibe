@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiJson, qs } from '../api/client'
 import { zh } from '../i18n/zh'
-import { btnGhost } from './ui/styles'
+import { btnGhost, rowCls } from './ui/styles'
 
 /**
  * 命令面板（⌘K / Ctrl K）。
@@ -231,9 +231,7 @@ export function CommandPalette(props: { onClose: () => void }) {
                       close()
                       it.run()
                     }}
-                    className={`flex w-full items-baseline gap-2 px-3 py-1.5 text-left text-sm ${
-                      i === sel ? 'bg-accent-soft text-accent-deep' : 'text-ink-body'
-                    }`}
+                    className={`${rowCls} flex w-full items-baseline gap-2 px-3 py-1.5 text-left text-sm text-ink-body`}
                   >
                     <span className="min-w-0 grow truncate">{it.label}</span>
                     {it.hint && (

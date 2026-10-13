@@ -4,7 +4,7 @@ import { extractVariables, fillVariables, remainingVariables } from '@openvibe/s
 import { zh } from '../../i18n/zh'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
-import { btnGhost, btnPrimary, chipCls, inputCls, labelCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone, inputCls, labelCls, noteCls } from '../ui/styles'
 import { useFlowMutations } from '../../hooks/useFlows'
 
 /** 文案随组件走（不走中央 zh.ts）：本组件整体在懒加载 chunk，文案不占入口体积 */
@@ -118,13 +118,10 @@ export function FlowRunDialog(props: {
             {stages.map((s, i) => (
               <button
                 key={s.name}
-                className={`${chipCls} ${
-                  i === step
-                    ? 'border-accent-line bg-accent-soft text-accent-deep'
-                    : i < step
-                      ? 'border-line-strong bg-panel-2 text-ink-muted'
-                      : 'border-line bg-panel text-ink-faint'
-                }`}
+                // 阶段条只留两态：当前（accent 形制）与其余（default 形制）。
+                // 「已走过的阶段更实、未走的更虚」原本靠第三档灰阶区分，但那正是
+                // 颜色单义承载语义；进度另有右侧文案兜底，故并掉。
+                className={`${chipTone(i === step ? 'accent' : 'default')} cursor-pointer`}
                 onClick={() => setStep(i)}
               >
                 {String(i + 1)}. {s.name}
@@ -138,7 +135,7 @@ export function FlowRunDialog(props: {
           {stage !== undefined && (
             <>
               {stagePrompt.trim() === '' ? (
-                <p className="rounded-md border border-line bg-panel-2 p-3 text-xs text-ink-muted">
+                <p className={`${noteCls('info')} text-ink-body`}>
                   {zhRun.noPrompt}
                 </p>
               ) : (

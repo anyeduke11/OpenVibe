@@ -1,12 +1,14 @@
 import type { PlatformMark, PromptOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 import type { PromptFilters } from '../../hooks/usePrompts'
-import { btnGhost, chipCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone, emptyHintCls, rowCls } from '../ui/styles'
 
+// 状态 chip 归到六形制。废止态不再另配灰阶：删除线已经把「不可用」说尽了，
+// 颜色若再单独变弱就成了颜色单义承载语义（DESIGN.md chip 纪律 ①）。
 const STATUS_STYLE: Record<PromptOut['status'], string> = {
-  draft: 'border-line bg-panel-2 text-ink-muted',
-  active: 'border-ok-line bg-ok-soft text-ok',
-  deprecated: 'border-line-strong bg-panel text-ink-faint line-through',
+  draft: chipTone('default'),
+  active: chipTone('ok'),
+  deprecated: `${chipTone('default')} line-through`,
 }
 
 export function PromptList(props: {
@@ -14,6 +16,7 @@ export function PromptList(props: {
   total: number
   filters: PromptFilters
   loading: boolean
+  onCreate: () => void
   onEdit: (prompt: PromptOut) => void
   onCopy: (prompt: PromptOut) => void
   onDelete: (prompt: PromptOut) => void
@@ -27,7 +30,13 @@ export function PromptList(props: {
       <div className="flex-1 overflow-auto">
         {props.loading && <p className="p-6 text-sm text-ink-faint">加载中…</p>}
         {!props.loading && items.length === 0 && (
-          <p className="p-6 text-sm text-ink-faint">{zh.library.empty}</p>
+          // 空态给得出下一步就写下一步：库空的主因是「还没建提示词」，不是「暂无数据」
+          <div className={`${emptyHintCls} m-6`}>
+            <p>{zh.library.empty}</p>
+            <button className={btnPrimary} onClick={props.onCreate}>
+              {zh.library.newPrompt}
+            </button>
+          </div>
         )}
         <ul>
           {items.map((p) => (
@@ -38,7 +47,7 @@ export function PromptList(props: {
                 e.dataTransfer.setData('text/plain', p.id)
                 e.dataTransfer.effectAllowed = 'move'
               }}
-              className="border-b border-line-hair px-5 py-3 hover:bg-panel-2"
+              className={`${rowCls} px-5 py-3`}
             >
               <div className="flex items-start gap-3">
                 <div className="min-w-0 flex-1">
@@ -52,29 +61,24 @@ export function PromptList(props: {
                     <p className="mt-0.5 line-clamp-1 text-xs text-ink-muted">{p.description}</p>
                   )}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                    <span className={`${chipCls} ${STATUS_STYLE[p.status]}`}>
+                    <span className={STATUS_STYLE[p.status]}>
                       {zh.library.status[p.status]}
                     </span>
-                    <span className={`${chipCls} border-info-line bg-info-soft text-info`}>
+                    <span className={chipTone('info')}>
                       {zh.library.useAs[p.useAs]}
                     </span>
                     {p.platformMarks.map((m: PlatformMark) => (
-                      <span key={m} className={`${chipCls} border-line bg-panel text-ink-muted`}>
+                      <span key={m} className={chipTone('default')}>
                         {m}
                       </span>
                     ))}
                     {p.tags.map((t) => (
-                      <span
-                        key={t}
-                        className={`${chipCls} border-line bg-panel-2 text-ink-muted`}
-                      >
+                      <span key={t} className={chipTone('default')}>
                         #{t}
                       </span>
                     ))}
                     {p.variables.length > 0 && (
-                      <span
-                        className={`${chipCls} mono border-warn-line bg-warn-soft text-warn`}
-                      >
+                      <span className={`${chipTone('warn')} mono`}>
                         {`{{${p.variables.join(', ')}}}`}
                       </span>
                     )}

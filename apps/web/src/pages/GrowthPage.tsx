@@ -15,7 +15,7 @@ import {
   type Stage,
   type StageModule,
 } from '../growth/stage'
-import { btnGhost } from '../components/ui/styles'
+import { CHIP_TONES, btnGhost, chipCls, chipPressed, chipTone } from '../components/ui/styles'
 
 const MODULE_LABEL: Record<StageModule, string> = {
   prompts: zh.nav.library,
@@ -35,11 +35,20 @@ interface CliCommand {
   flags: { name: string; value: string; summary: string }[]
 }
 
+// 风险档位落三支形制色：只读=default、需决策=warn、破坏性=danger。
+// 原先这三格写的是 `chip` 类名，但该类在 index.css 里根本没有定义，
+// 于是只剩底色而丢了圆角 / 内边距 / 行高——形制单源化顺带把这个漏补上。
 const RISK_STYLE = {
-  readonly: 'chip border-line bg-panel-2 text-ink-muted',
-  decision: 'chip border-warn-line bg-warn-soft text-warn',
-  destructive: 'chip border-danger-line bg-danger-soft text-danger',
+  readonly: chipTone('default'),
+  decision: chipTone('warn'),
+  destructive: chipTone('danger'),
 } as const
+
+// 可按压的筛选 chip：选中走 chipPressed，未选中走 default 形制。两支形制各自带
+// border/bg/text 三个色类，叠加只会让 Tailwind 任意挑一个生效（顺序不由源码决定），
+// 所以在形制层择一，三元不散进 JSX。
+const filterChip = (on: boolean): string =>
+  `${chipCls} ${on ? chipPressed : `${CHIP_TONES.default} hover:bg-panel`}`
 
 /**
  * 成长与统计。
@@ -150,7 +159,7 @@ export function GrowthPage() {
                       type="button"
                       aria-pressed={isExpert(growth, m)}
                       onClick={() => toggleExpert(m)}
-                      className={`chip ${isExpert(growth, m) ? 'border-accent-line bg-accent-soft text-accent-deep' : 'border-line bg-panel-2 text-ink-muted'}`}
+                      className={filterChip(isExpert(growth, m))}
                     >
                       {isExpert(growth, m) ? zh.growth.vector.expertOn : zh.growth.vector.expertOff}
                     </button>
@@ -328,7 +337,7 @@ function LedgerPanel(props: { state: ReturnType<typeof useLedger> }) {
             type="button"
             aria-pressed={filter === ''}
             onClick={() => setFilter('')}
-            className={`chip ${filter === '' ? 'border-accent-line bg-accent-soft text-accent-deep' : 'border-line bg-panel-2 text-ink-muted'}`}
+            className={filterChip(filter === '')}
           >
             {zh.growth.ledger.all} {state.data.total}
           </button>
@@ -338,7 +347,7 @@ function LedgerPanel(props: { state: ReturnType<typeof useLedger> }) {
               type="button"
               aria-pressed={filter === k}
               onClick={() => setFilter(filter === k ? '' : k)}
-              className={`mono chip ${filter === k ? 'border-accent-line bg-accent-soft text-accent-deep' : 'border-line bg-panel-2 text-ink-muted'}`}
+              className={`${filterChip(filter === k)} mono`}
             >
               {k} {n}
             </button>

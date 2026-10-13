@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { MatchRange, PlaybookMatch, PlaybookOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-import { chipCls } from '../ui/styles'
+import { btnGhost, chipTone, ledgerHeadCls, noteCls, noteTitleCls } from '../ui/styles'
 
 export interface PlaybookRowView {
   playbook: PlaybookOut
@@ -9,8 +9,8 @@ export interface PlaybookRowView {
 }
 
 const STATUS_STYLE: Record<PlaybookOut['status'], string> = {
-  draft: 'border-line bg-panel-sunk text-ink-muted',
-  published: 'border-ok-line bg-ok-soft text-ok',
+  draft: chipTone('default'),
+  published: chipTone('ok'),
 }
 
 const STATUS_ICON: Record<PlaybookOut['status'], ReactNode> = {
@@ -93,13 +93,12 @@ export function PlaybooksTable(props: {
       <div className="min-h-0 flex-1 overflow-auto">
         {loading && <p className="p-6 text-sm text-ink-faint">{zh.common.loading}</p>}
         {!loading && error !== null && (
-          <div className="space-y-2 p-6 text-sm text-danger">
-            <p>{zh.common.failed(error)}</p>
+          // 错误态是 note 四态之一：成段说明 + 一个可执行的下一步（重试），
+          // 不是一行飘红的裸文字
+          <div className={`${noteCls('danger')} m-6 text-ink-body`}>
+            <strong className={`${noteTitleCls} text-danger`}>{zh.common.failed(error)}</strong>
             {props.onRetry && (
-              <button
-                className="rounded border border-danger-line px-2 py-1 text-xs text-danger"
-                onClick={props.onRetry}
-              >
+              <button className={btnGhost} onClick={props.onRetry}>
                 {zh.playbooks.retry}
               </button>
             )}
@@ -112,7 +111,7 @@ export function PlaybooksTable(props: {
         )}
         {rows.length > 0 && (
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-0 bg-panel text-left text-xs text-ink-muted">
+            <thead className={`sticky top-0 bg-panel text-left ${ledgerHeadCls}`}>
               <tr className="border-b border-line">
                 <th className="w-8 px-5 py-2" />
                 <th className="w-64 px-2 py-2">{zh.playbooks.columns.scenario}</th>
@@ -149,7 +148,7 @@ export function PlaybooksTable(props: {
                     {playbook.tags.length > 0 && (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {playbook.tags.map((t) => (
-                          <span key={t} className={`${chipCls} border-line bg-panel-sunk text-ink-muted`}>
+                          <span key={t} className={chipTone('default')}>
                             {t}
                           </span>
                         ))}
@@ -180,7 +179,7 @@ export function PlaybooksTable(props: {
                   <td className="px-2 py-2.5">
                     {/* 亲测有效用文字标注，不用颜色单义（m4 FR-4.3） */}
                     {playbook.verified ? (
-                      <span className={`${chipCls} border-ok-line bg-ok-soft text-ok`}>
+                      <span className={chipTone('ok')}>
                         {zh.playbooks.verifiedMark}
                       </span>
                     ) : (
@@ -188,7 +187,7 @@ export function PlaybooksTable(props: {
                     )}
                   </td>
                   <td className="px-2 py-2.5">
-                    <span className={`${chipCls} ${STATUS_STYLE[playbook.status]}`}>
+                    <span className={STATUS_STYLE[playbook.status]}>
                       {STATUS_ICON[playbook.status]}
                       {zh.playbooks.status[playbook.status]}
                     </span>

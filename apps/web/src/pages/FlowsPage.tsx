@@ -6,7 +6,7 @@ import { zh } from '../i18n/zh'
 import { FlowTemplateCard } from '../components/flows/FlowTemplateCard'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
 import { toast } from '../components/ui/Toaster'
-import { btnDanger, btnGhost, btnPrimary } from '../components/ui/styles'
+import { btnDanger, btnGhost, btnPrimary, emptyHintCls } from '../components/ui/styles'
 
 /** 两个重 UI 都懒加载（DEV-0074）：问答运行对话框 + 模板编辑器（含 dnd-kit）只在点开时
  *  加载，流程页的卡片列表保持入口纤瘦（bundle 门槛） */
@@ -80,7 +80,12 @@ export function FlowsPage() {
           <p className="text-sm text-danger">{zh.common.failed((list.error as Error).message)}</p>
         )}
         {items.length === 0 && !list.isLoading && (
-          <p className="text-sm text-ink-muted">{zh.flows.empty}</p>
+          <div className={emptyHintCls}>
+            <p>{zh.flows.empty}</p>
+            <button className={btnPrimary} onClick={() => setEditor({ template: null })}>
+              {zh.flows.newFlow}
+            </button>
+          </div>
         )}
         <div className="space-y-5">
           {builtins.length > 0 && section(zh.flows.builtin, builtins)}

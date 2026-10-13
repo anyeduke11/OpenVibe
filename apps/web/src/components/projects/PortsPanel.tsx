@@ -1,5 +1,6 @@
 import type { ProjectPortsOut, PortStatus } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
+import { ledgerHeadCls, ledgerNumCls } from '../ui/styles'
 
 /**
  * 端口与服务台账卡（m5 FR-8）：账本表形制（DESIGN.md ledger 美学——行 hairline、
@@ -43,9 +44,9 @@ export function PortsPanel(props: { data: ProjectPortsOut | undefined }) {
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
-            <thead className="text-left text-xs text-ink-muted">
-              <tr className="border-b border-line-strong">
-                <th className="px-2 py-2">{zh.projects.ports.colPort}</th>
+            <thead className={`text-left ${ledgerHeadCls}`}>
+              <tr className="border-b border-line">
+                <th className={`px-2 py-2 ${ledgerNumCls}`}>{zh.projects.ports.colPort}</th>
                 <th className="px-2 py-2">{zh.projects.ports.colService}</th>
                 <th className="px-2 py-2">{zh.projects.ports.colSource}</th>
                 <th className="px-2 py-2">{zh.projects.ports.colState}</th>
@@ -56,7 +57,7 @@ export function PortsPanel(props: { data: ProjectPortsOut | undefined }) {
             <tbody>
               {data.services.map((s) => (
                 <tr key={`${String(s.port)}-${s.service}`} className="border-b border-line-hair">
-                  <td className="mono px-2 py-2 text-ink">{String(s.port)}</td>
+                  <td className={`mono px-2 py-2 text-ink ${ledgerNumCls}`}>{String(s.port)}</td>
                   <td className="px-2 py-2 text-ink-body">{s.service}</td>
                   <td className="px-2 py-2 text-xs text-ink-muted">
                     {zh.projects.ports.sourceLabel[s.source]}{' '}

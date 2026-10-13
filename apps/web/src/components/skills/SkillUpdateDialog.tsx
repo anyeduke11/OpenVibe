@@ -3,15 +3,16 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { SkillUpdateCheckItem } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
-import { btnGhost, btnPrimary, chipCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone, noteCls, rowCls } from '../ui/styles'
 import { useSkillRemote, useSkillRetrack, useSkillUpdateCheck } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
 
+// 四种检查结论落四支形制色；每格都带图标 + 文字，颜色只是第三重信号
 const STATUS_CHIP: Record<SkillUpdateCheckItem['status'], string> = {
-  upToDate: 'border-ok-line bg-ok-soft text-ok',
-  remoteChanged: 'border-accent-line bg-accent-soft text-accent',
-  notTracked: 'border-warn-line bg-warn-soft text-warn',
-  checkFailed: 'border-danger-line bg-danger-soft text-danger',
+  upToDate: chipTone('ok'),
+  remoteChanged: chipTone('accent'),
+  notTracked: chipTone('warn'),
+  checkFailed: chipTone('danger'),
 }
 
 const STATUS_ICON: Record<SkillUpdateCheckItem['status'], React.ReactNode> = {
@@ -107,8 +108,8 @@ export function SkillUpdateDialog(props: { open: boolean; onClose: () => void })
   }
 
   const renderRow = (item: SkillUpdateCheckItem) => (
-    <div key={item.skillId} className="flex items-center gap-2 rounded p-1.5 text-xs hover:bg-panel-2">
-      <span className={`${chipCls} shrink-0 ${STATUS_CHIP[item.status]}`}>
+    <div key={item.skillId} className={`${rowCls} flex items-center gap-2 px-1.5 py-1.5 text-xs`}>
+      <span className={`${STATUS_CHIP[item.status]} shrink-0`}>
         {STATUS_ICON[item.status]}
         {zh.skills.updates.status[item.status]}
       </span>
@@ -160,7 +161,7 @@ export function SkillUpdateDialog(props: { open: boolean; onClose: () => void })
           {check.isPending && <p className="text-xs text-ink-muted">{zh.skills.updates.checking}</p>}
           {report !== undefined && (
             <>
-              <p className="rounded-md border border-line bg-panel-2 p-2 text-xs">
+              <p className={`${noteCls('info')} text-ink-body`}>
                 {changed.length === 0
                   ? zh.skills.updates.allUpToDate
                   : zh.skills.updates.changedCount(changed.length)}

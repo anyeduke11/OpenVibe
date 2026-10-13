@@ -5,7 +5,7 @@ import { useSkillMutations, useSkillVersions } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
-import { btnGhost, btnPrimary, chipCls, inputCls, labelCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone, inputCls, labelCls } from '../ui/styles'
 
 const csv = (value: string): string[] =>
   value
@@ -162,7 +162,7 @@ export function SkillEditorDrawer(props: {
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-ink-body">{v.versionLabel}</span>
                       {v.id === skill.latestVersionId && (
-                        <span className={`${chipCls} border-ok-line bg-ok-soft text-ok`}>
+                        <span className={chipTone('ok')}>
                           {zh.skills.versions.current}
                         </span>
                       )}

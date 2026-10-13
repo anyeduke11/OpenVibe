@@ -1,6 +1,6 @@
 import type { Stage } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-import { chipCls } from '../ui/styles'
+import { chipTone } from '../ui/styles'
 
 export interface OrphanStageState {
   stageName: string
@@ -52,7 +52,7 @@ export function ChecklistPanel(props: {
                   <span className={on ? 'text-ink-faint line-through' : 'text-ink-body'}>
                     {item.text}
                   </span>
-                  <span className={`${chipCls} ml-auto shrink-0 border-line-hair bg-panel-2 text-ink-faint`}>
+                  <span className={`${chipTone('default')} ml-auto shrink-0`}>
                     {item.id}
                   </span>
                 </label>
