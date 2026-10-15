@@ -9,16 +9,14 @@ import { dirname, join, resolve } from 'node:path'
 import { isCancel, select } from '@clack/prompts'
 import { ADAPTER_MAIN_PATH } from '@openvibe/adapters'
 import {
+  InjectError,
   PACK_BACKUP_REL,
   PACK_LOCK_REL,
-  applyDecisions,
   buildPackLock,
-  checkPackInjectable,
   packLockJson,
   parsePackLock,
-  planInjection,
+  planDecideApply,
   resolveWriteTarget,
-  strategyToDecisions,
   SYNC_LOCK_STALE_MS,
   tryAcquireSyncLock,
   writeReplacingLinks,
@@ -33,7 +31,6 @@ import {
   PACK_FILE_CHECKLIST,
   PACK_FILE_SKILLS,
   PACK_FILE_TERMS,
-  compareCodeUnit,
   type AdapterId,
   type PackLock,
 } from '@openvibe/shared'
@@ -58,16 +55,12 @@ import { ExitCode, type PlanItem } from '../output'
 
 const AUX_PRODUCT_PATHS = new Set([PACK_FILE_TERMS, PACK_FILE_CHECKLIST, PACK_FILE_SKILLS])
 
-export class SyncError extends Error {
-  readonly code: string
-  readonly details?: unknown
-  constructor(code: string, message: string, details?: unknown) {
-    super(message)
-    this.name = 'SyncError'
-    this.code = code
-    if (details !== undefined) this.details = details
-  }
-}
+/**
+ * 历史名。错误类已随「决策」规则下沉到 core（`injectService.InjectError`），
+ * 因为守决策规则的代码搬到了 core，错误留在 app 侧会迫使 core 反向依赖 app（破 R3）。
+ * 这里是**同一个类对象的别名**，故三个测试文件的 `toBeInstanceOf(SyncError)` 一字未改仍然绿。
+ */
+export { InjectError as SyncError }
 
 export interface SyncOptions {
   projectPath: string
@@ -136,10 +129,10 @@ function diskReader(projectPath: string): (relPath: string) => string | null {
     const abs = resolveWriteTarget(projectPath, relPath)
     if (abs === null || !existsSync(abs)) return null
     if (!statSync(abs).isFile()) {
-      throw new SyncError('NOT_A_FILE', `磁盘上的 ${relPath} 不是普通文件，拒绝写入`)
+      throw new InjectError('NOT_A_FILE', `磁盘上的 ${relPath} 不是普通文件，拒绝写入`)
     }
     const text = readText(abs)
-    if (text === null) throw new SyncError('READ_FAILED', `读取 ${abs} 失败，中止注入`)
+    if (text === null) throw new InjectError('READ_FAILED', `读取 ${abs} 失败，中止注入`)
     return text
   }
 }
@@ -159,13 +152,13 @@ export function uniqueBackupRoot(projectPath: string, stamp: string): string {
     const candidate = `${base}-${i}`
     if (!existsSync(candidate)) return candidate
   }
-  throw new SyncError('BACKUP_EXHAUSTED', `备份目录 ${base}-n 冲突过多`)
+  throw new InjectError('BACKUP_EXHAUSTED', `备份目录 ${base}-n 冲突过多`)
 }
 
 function assertProjectDir(projectPath: string): string {
   const abs = resolve(projectPath)
   if (!existsSync(abs) || !statSync(abs).isDirectory()) {
-    throw new SyncError('NOT_A_DIRECTORY', `项目路径不是目录：${abs}（先 mkdir 或检查拼写）`)
+    throw new InjectError('NOT_A_DIRECTORY', `项目路径不是目录：${abs}（先 mkdir 或检查拼写）`)
   }
   return abs
 }
@@ -213,7 +206,7 @@ async function loadSource(
 
   const client = deps.client
   if (!client) {
-    throw new SyncError(
+    throw new InjectError(
       'NO_SOURCE',
       '离线模式需要 --file 或 --dir；在线模式需要可用的令牌。' +
         '用法：openvibe sync <projectPath> [--pack name[@version] | --file bundle.json | --dir packDir]',
@@ -234,7 +227,7 @@ async function findRegisteredPackRef(
 ): Promise<{ name: string; version: string | null }> {
   const registered = await findRegisteredPack(client, projectPath)
   if (!registered) {
-    throw new SyncError(
+    throw new InjectError(
       'NO_REGISTERED_PACK',
       `项目 ${projectPath} 未登记标准包，请显式给 --pack/--file/--dir，或在 Web /projects 工作台绑定标准包`,
     )
@@ -299,12 +292,6 @@ export async function syncAction(
 ): Promise<SyncOutcome> {
   const projectPath = assertProjectDir(options.projectPath)
   const pack = await loadSource(options, deps, projectPath)
-  const contents: Record<string, string | undefined> = Object.fromEntries(
-    pack.files.map((f) => [f.path, f.content]),
-  )
-
-  // 整包安全防线：违规一律零写入（§6.1/§6.3，details 供逐条报告）
-  const safety = checkPackInjectable(projectPath, pack.files)
 
   const lockPath = join(projectPath, PACK_LOCK_REL)
   const lockText = readText(lockPath)
@@ -317,15 +304,31 @@ export async function syncAction(
   }
 
   const targets = resolveTargets(pack, options.targets, warningsOut)
-  const plan = planInjection({
+  const dryRun = options.dryRun === true
+
+  /**
+   * 「核验 → 计划 → 决策 → 应用」整体下沉到 core（service-layer.md FR-1 的 `injectService`）。
+   * 留在这里的**只有 I/O 副作用**：抢锁、备份、写文件、写 lock、释放信号监听、
+   * 以及把结果回报给用户——这些的呈现方式由 app 决定。
+   *
+   * 决策（会问用户的那一步）之所以能下沉，是因为终端交互经 `AskFn` 注入（FR-3.3）：
+   * `askWithClack` 仍留在本文件，core 只看见 `deps.ask` 这个函数。
+   */
+  const { plan, absPaths, writes, skipped } = await planDecideApply({
+    projectPath,
     files: pack.files,
     readDisk: diskReader(projectPath),
     lock: oldLock,
     targets,
+    decisions: {
+      yes: options.yes,
+      strategy: options.strategy,
+      dryRun,
+      isTTY: deps.isTTY,
+      ask: deps.ask,
+    },
+    warningsOut,
   })
-  const dryRun = options.dryRun === true
-  const decided = await decide(plan, options, deps, warningsOut, dryRun)
-  const applied = applyDecisions(plan, contents, decided)
 
   const outcome: SyncOutcome = {
     projectPath,
@@ -339,7 +342,7 @@ export async function syncAction(
     dryRun,
     counts: plan.counts,
     writes: [],
-    skipped: applied.skipped.map((s) => ({
+    skipped: skipped.map((s) => ({
       path: s.path,
       status: statusOf(plan, s.path),
       why: s.why,
@@ -355,7 +358,7 @@ export async function syncAction(
   }
 
   if (dryRun) {
-    outcome.writes = applied.writes.map((w) => ({
+    outcome.writes = writes.map((w) => ({
       path: w.path,
       status: statusOf(plan, w.path),
       backupPath: null,
@@ -367,7 +370,7 @@ export async function syncAction(
   // 真会写盘了才抢锁（m6b §6.9）：抢不到就一个字节都不动，也不在拒绝执行前留下 .openvibe/。
   // 位置在 decide 之后是有意的——交互确认可以慢慢想，不该占着锁；5 分钟陈旧窗口只为崩溃残留兜底。
   const lock = tryAcquireSyncLock(projectPath, 'sync')
-  if (!lock.acquired) throw new SyncError('SYNC_BUSY', busyMessage(lock.path, lock))
+  if (!lock.acquired) throw new InjectError('SYNC_BUSY', busyMessage(lock.path, lock))
   if (lock.tookOver !== null) {
     // 接管不是静默行为：上一把锁的主人要么是崩了的进程，要么卡过了 5 分钟，用户该知道
     const prev = lock.tookOver
@@ -383,10 +386,10 @@ export async function syncAction(
     /** 落盘前发现「目标还挂在别处」的条目——写成了新文件，链的另一侧原样保留 */
     const linkBroken: string[] = []
     let backupRoot: string | null = null
-    for (const write of applied.writes) {
-      const abs = safety.absPaths[write.path]
+    for (const write of writes) {
+      const abs = absPaths[write.path]
       if (abs === undefined) {
-        throw new SyncError('PATH_REJECTED', `${write.path} 未通过写入路径校验，整包中止`)
+        throw new InjectError('PATH_REJECTED', `${write.path} 未通过写入路径校验，整包中止`)
       }
       let backupPath: string | null = null
       if (write.backup && existsSync(abs)) {
@@ -404,9 +407,9 @@ export async function syncAction(
         if (brokeLink) linkBroken.push(write.path)
       } catch (e) {
         // §6.5：中止后续写入，已写文件保留（幂等重跑可收敛），并给手工回滚指引
-        throw new SyncError(
+        throw new InjectError(
           'WRITE_FAILED',
-          `写入 ${abs} 失败：${(e as Error).message}。已完成 ${written.length}/${applied.writes.length} 项` +
+          `写入 ${abs} 失败：${(e as Error).message}。已完成 ${written.length}/${writes.length} 项` +
             (backupRoot ? `；被覆盖的旧文件在 ${backupRoot}，可逐个复制回去` : ''),
           { done: written },
         )
@@ -463,38 +466,6 @@ export async function syncAction(
 function statusOf(plan: InjectPlan, path: string): InjectStatus {
   const file = plan.files.find((f) => f.path === path)
   return file ? file.status : 'NEW'
-}
-
-/** 决策收集：dry-run 用默认动作；--yes 按策略批量；否则逐项询问（非 TTY 拒绝执行） */
-async function decide(
-  plan: InjectPlan,
-  options: SyncOptions,
-  deps: SyncDeps,
-  warningsOut: string[],
-  dryRun: boolean,
-): Promise<Record<string, InjectDecision | undefined>> {
-  if (plan.pending.length === 0) return {}
-  if (dryRun) {
-    warningsOut.push(
-      `dry-run：${plan.pending.length} 项待决（CONFLICT/DRIFT），正式执行会按默认「以包为准」处理`,
-    )
-    return {}
-  }
-  if (options.yes) {
-    return options.strategy ? strategyToDecisions(plan, options.strategy) : {}
-  }
-  if (deps.isTTY !== true) {
-    throw new SyncError(
-      'NEED_TTY',
-      `${plan.pending.length} 个文件需要确认，但当前不是交互终端：加 --yes（默认以包为准）或 --yes --strategy skip|overwrite|keep-local`,
-      { pending: plan.pending.map((p) => p.path).sort(compareCodeUnit) },
-    )
-  }
-  const ask = deps.ask
-  if (!ask) throw new SyncError('NO_ASKER', '交互确认器未注入')
-  const decisions: Record<string, InjectDecision | undefined> = {}
-  for (const file of plan.pending) decisions[file.path] = await ask(file)
-  return decisions
 }
 
 const DECISION_LABEL: Record<InjectDecision, string> = {

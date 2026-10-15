@@ -34,6 +34,20 @@ const boundaryZones = [
     from: ['./packages/core'],
     message: 'R2: adapters 只依赖 packages/shared',
   },
+  {
+    // R5: 服务层在 repos/db **之上**（service-layer.md FR-4.1）。
+    //
+    // ⚠️ **spec 的 FR-4.1 把 target/from 写反了，本处按其 message 的语义纠正**。
+    // spec 原文：`{ target: './packages/core/src/services', from: ['./packages/core/src/repos', './packages/core/src/db'] }`，
+    // 但 `no-restricted-paths` 的语义是「target 里的文件不得 import from 里的路径」，
+    // 照抄实测会得到**恰好相反**的规则：禁止服务层 import repos（实测 lint 报 14 处错，全在这里）。
+    // 那会把服务层打死 —— 服务层的本职就是编排 repo。
+    // spec 自己写的 message「repos／db 是下层，禁止回调服务层」才是对的语义：**禁止下层回调上层**。
+    // 故 target = 下层（repos/db），from = 上层（services）。这正是 R1–R4 全部五条 zone 的同一形制。
+    target: ['./packages/core/src/repos', './packages/core/src/db'],
+    from: ['./packages/core/src/services'],
+    message: 'R5: repos／db 是下层，禁止回调服务层',
+  },
 ]
 
 const r4NoCrossApp = (others) => [
@@ -137,6 +151,45 @@ export default tseslint.config(
     // bootstrap 而非起子进程。全仓仅此文件被放行 import server；对 web 的禁令依旧（见 DEV-0018 C-40）。
     files: ['apps/cli/src/commands/serve.ts'],
     rules: { 'no-restricted-imports': r4NoCrossApp(['web']) },
+  },
+  {
+    // R5 · 传输无关（service-layer.md FR-4.2）。
+    //
+    // **为什么要单列一条 `no-restricted-imports` 而不是并进 R5 zone**：`no-restricted-paths`
+    // 的 zone 只描述**本地路径**之间的依赖，表达不了「不得 import fastify／@clack」——
+    // 这些是包名不是路径。分析文 §4.10 说「与现有 R1–R4 同法」是错的，本条已订正。
+    //
+    // **必须含子路径形式**（`@clack/*`、`fastify/*`），否则 `exports` 子路径导出会绕过它——
+    // 理由照 `:44` 的既有注释，`@clack/prompts/dist/x` 这类写法正是绕过面。
+    // `node:child_process` 不在 FR-4.2 原列表，但 FR-1.3 明写禁止：core 起子进程就破坏了
+    // 「core 可在无 app 环境下运行」的前提，故一并纳入。
+    files: ['packages/core/src/services/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                'fastify',
+                'fastify/*',
+                '@fastify/*',
+                'commander',
+                '@clack/*',
+                'node:http',
+                'node:https',
+                'node:net',
+                'node:readline',
+                'node:tty',
+                'node:child_process',
+              ],
+              message:
+                'R5: 服务层与传输无关，禁止 import 传输层／终端交互／子进程依赖（终端交互经 deps 注入）',
+            },
+          ],
+        },
+      ],
+    },
   },
   prettier,
 )

@@ -18,8 +18,23 @@ const SCRIPT = join(REPO_ROOT, 'scripts', 'seed-check.ts')
 const REAL_SEED_DIR = join(REPO_ROOT, 'content', 'seed')
 const SEED_FILES = ['terms.json', 'flow-templates.json', 'prompts.json', 'playbooks.json'] as const
 
-/** 篡改后必然一起被点到的兜底错误，用于确认「负向探针没被别的报错抢先掩盖」 */
+/**
+ * 篡改后必然一起被点到的兜底错误，用于确认「负向探针没被别的报错抢先掩盖」。
+ *
+ * ⚠️ **本文件每条 `it` 都要 spawn 1–3 次 `tsx` 子进程**（见 `runSeedCheck`），
+ * 串起来是十几次进程启动、每次都要重新加载 tsx。**vitest 的单测默认超时只有 5 秒**，
+ * 而每条用例里的 spawnSync 自身又给了 60 秒 —— 两个上限打架，在并行 worker 抢 CPU 时
+ * 会顶破**外层**那个 5 秒，报出来的是「test timed out」而不是任何断言失败。
+ *
+ * 2026-10-15 实测复现：并行测试总量约 607 支时，本文件间歇失败（4 轮里 2 轮挂 1 支）；
+ * 把新增测试移出、回到 580 支时连跑 3 轮全绿 ⇒ **不是断言错，是负载敏感**。
+ * 处置：给本文件每条 `it` 显式加 `TEST_TIMEOUT`，**断言一字未改** ——
+ * 加超时只是让外层上限不再比内层 60 秒先到，不是放宽判据。
+ */
 type Run = { status: number | null; out: string }
+
+/** 每条用例跑 1–3 次子进程，留足并行争用余量（内层 spawnSync 自身是 60 秒） */
+const TEST_TIMEOUT = 60_000
 
 function runSeedCheck(seedDir?: string): Run {
   const r = spawnSync(process.execPath, ['--import', 'tsx', SCRIPT], {
@@ -63,7 +78,7 @@ describe('SCRIPT-SEED-00 · 正向基线 + 覆盖口只读', () => {
     const run = runSeedCheck()
     expect(run.status, run.out).toBe(0)
     expect(run.out).toContain('[seed:check] 通过')
-  })
+  }, TEST_TIMEOUT)
 
   it('带 OPENVIBE_SEED_DIR 指向真种子的逐字节副本时同样通过，且脚本不改写副本', () => {
     const dir = mkdtempSync(join(tmpdir(), 'openvibe-seed-copy-'))
@@ -76,7 +91,7 @@ describe('SCRIPT-SEED-00 · 正向基线 + 覆盖口只读', () => {
     for (const [i, f] of SEED_FILES.entries()) {
       expect(readFileSync(join(dir, f)).equals(originals[i]!), `${f} 被脚本改写`).toBe(true)
     }
-  })
+  }, TEST_TIMEOUT)
 })
 
 describe('SCRIPT-SEED-01 · seed-content §7.1 词条数量门槛', () => {
@@ -94,7 +109,7 @@ describe('SCRIPT-SEED-01 · seed-content §7.1 词条数量门槛', () => {
     const run = runSeedCheck(dir)
     expect(run.status).not.toBe(0)
     expect(run.out).toContain(`terms.json · 数量 — ${String(dropTo)} 条 < 门槛 100 条`)
-  })
+  }, TEST_TIMEOUT)
 })
 
 describe('SCRIPT-SEED-02 · seed-content §7.3 模板 3/7/4 阶段逐字一致', () => {
@@ -114,7 +129,7 @@ describe('SCRIPT-SEED-02 · seed-content §7.3 模板 3/7/4 阶段逐字一致',
     const run = runSeedCheck(dir)
     expect(run.status).not.toBe(0)
     expect(run.out).toContain('flow-templates.json · 个人轻量流 — 阶段名需逐字一致，收到 启动 / 开发 / 回顾')
-  })
+  }, TEST_TIMEOUT)
 
   it('Spec 驱动流删掉一个阶段 → 非零并点名「阶段数期望 7，收到 6」', () => {
     const dir = sandbox()
@@ -132,5 +147,5 @@ describe('SCRIPT-SEED-02 · seed-content §7.3 模板 3/7/4 阶段逐字一致',
     const run = runSeedCheck(dir)
     expect(run.status).not.toBe(0)
     expect(run.out).toContain('Spec 驱动流 — 阶段数期望 7，收到 6')
-  })
+  }, TEST_TIMEOUT)
 })

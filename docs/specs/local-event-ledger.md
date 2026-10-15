@@ -5,9 +5,9 @@
 | 模块 | 横切能力（度量与隐私面，非 PRD 3.2 的资产模块）——沿用「横切能力用功能名」命名法（dev-plan §0.4 第 5 条） |
 | 优先级 | **RF1-5**（PRD §10.2 表 RF1 行；分析文 §7 Phase 1 表判级预判 **B**：新表 + 新端点，不动任何白名单）。PRD §10.2 明写 RF1 行「1-5 受 §10.4 第一组的 **J7 前置约束**」 |
 | 上游 | PRD **D29**（本地事件台账，owner 2026-10-02 裁）· §10.4.1（J7 逐表排除凭据，**本文件只引不复制**）· §10.5（隐私不变式）；分析文 §4.3（AD2）· §5.2（信号采集表）· §7 Phase 1 表 1-5 行（**出口判据单源在那里**）· §10-3（否证触发器） |
-| 下游设计 | design §5（数据模型）、§6（路由面）、§11.5（遥测三事件与白名单本体）；`packages/core/src/db/migrations/` 的 0006 号位 |
+| 下游设计 | design §5（数据模型）、§6（路由面）、§11.5（遥测三事件与白名单本体）；`packages/core/src/db/migrations/` 的 **0007 号位**（**2026-10-14 改**：`0006` 已被 `0006_playbooks.sql`（M4，DEV-0091）占用，见 §3-1） |
 | 关联任务 | **无**。PRD §10.4 第三组原文：「本轮**不建任务组**。RF0–RF5 各阶段开工前须先在 `docs/specs/` 补规格，任务组编号（T14 起）待规格落地后在 `tasks.md` 另起」 |
-| 版本 | **v0.9 草案（2026-10-03，纯新文件；本轮不改任何既有规格）**。按 dev-plan §0.4 第 1/3/4 条**不构成开工依据**：§8.2 四处待裁未闭合，其中待裁③（CLI 侧写入 vs dev-plan §1.2 末「serve 与 sync/scan 可并行」那条既有不变式）会决定本项的**实际范围**，不裁就先建表就是把范围写死 |
+| 版本 | **v1.0（2026-10-14，§8.2 四项待裁全部闭合）**。本 spec 现构成开工依据。<br>**上一版**：**v0.9 草案（2026-10-03，纯新文件；本轮不改任何既有规格）**＋ **行内订正（2026-10-14）**：owner 裁① 后本 spec 的迁移号位由 `0006` 改 `0007`，共六处（`:8`/`:26`/`:38`/`:54`/`:99`/`:105`）已同批回改；**本次只改号位断言，未动任何功能条款、判级或验收判据**，故版本号不变（行内订正不 bump 版本）。按 dev-plan §0.4 第 1/3/4 条**不构成开工依据**：§8.2 四处待裁未闭合，其中待裁③（CLI 侧写入 vs dev-plan §1.2 末「serve 与 sync/scan 可并行」那条既有不变式）会决定本项的**实际范围**，不裁就先建表就是把范围写死 |
 
 ---
 
@@ -23,7 +23,7 @@
 
 | In（本 spec 覆盖） | Out（明确不做，写明理由与去向） |
 |---|---|
-| 迁移 `0006_local_events.sql` + `core/repos/localEvents.ts` | 动 `TELEMETRY_EVENTS`（`packages/shared/src/constants.ts:73`）的任何一字——它是 D3 白名单本体，属 A/B 级隐私面，与本项正交 |
+| 迁移 **`0007_local_events.sql`**（2026-10-14 由 `0006` 改号） + `core/repos/localEvents.ts` | 动 `TELEMETRY_EVENTS`（`packages/shared/src/constants.ts:73`）的任何一字——它是 D3 白名单本体，属 A/B 级隐私面，与本项正交 |
 | `kind` 闭集写进 SQL 的 `CHECK`，且与 TS 常量有一致性测试（FR-1.4） | 把遥测三事件改名或复用（分析文 §4.3 第 2 条要求**严格不同名**，避免混淆） |
 | 写入点集中在服务层（一处） | 前端埋点框架／通用 event bus——本项只要 4 个具体发射点，不需要一套机制 |
 | `GET /api/local-events/summary` 按 kind/day 聚合 | 事件明细的对外 API（明细只在本机 DB 里；对外只给聚合，减少未来被当报表接口用的面） |
@@ -35,7 +35,7 @@
 
 | # | 量 | 现测值 | 复算命令 |
 |---|---|---|---|
-| 1 | 已用迁移号 | **0001–0005**，0006 空位 ⇒ 分析文建议的 `0006_local_events.sql` 号位可用 | `ls packages/core/src/db/migrations/` |
+| 1 | 已用迁移号 | **0001–0006**（`0006` = `0006_playbooks.sql`，M4 · DEV-0091）⇒ 本项取 **`0007_local_events.sql`** | `ls packages/core/src/db/migrations/` |
 | 2 | `local_events` 在代码里的命中 | **0**（表、repo、路由、页面全无） | `grep -rn 'local_events\|localEvents\|local-events' --include='*.ts' --include='*.tsx' apps packages \| grep -v dist \| wc -l` |
 | 3 | 遥测三事件（须严格不同名的对象） | `['pack_injected','flow_template_used','project_active']`（`packages/shared/src/constants.ts:73`），SQL 侧另有一份字面量（`0002_app_meta_telemetry.sql` 的 `CHECK (event IN (...))`） | `sed -n '73p' packages/shared/src/constants.ts`；`grep -n 'CHECK (event IN' packages/core/src/db/migrations/0002_app_meta_telemetry.sql` |
 | 4 | 「SQL 字面量 = TS 常量」是否已有测试守住 | **没有**。现存唯一读迁移的测试是 `packages/core/src/db/core-db.test.ts`，未比对枚举 | `grep -rln 'TELEMETRY_EVENTS' --include='*.test.ts' apps packages \| grep -v dist` → 空 |
@@ -51,7 +51,7 @@
 
 ## 4. 功能需求（FR）
 
-- **FR-1 迁移与表形**：`0006_local_events.sql`，列 `id INTEGER PRIMARY KEY AUTOINCREMENT / kind TEXT NOT NULL CHECK (kind IN (...)) / subject_type TEXT / subject_id TEXT / project_id TEXT / payload_json TEXT NOT NULL DEFAULT '{}' / created_at TEXT NOT NULL / day TEXT NOT NULL`。
+- **FR-1 迁移与表形**：**`0007_local_events.sql`**（2026-10-14 由 `0006` 改号，理由见 §3-1），列 `id INTEGER PRIMARY KEY AUTOINCREMENT / kind TEXT NOT NULL CHECK (kind IN (...)) / subject_type TEXT / subject_id TEXT / project_id TEXT / payload_json TEXT NOT NULL DEFAULT '{}' / created_at TEXT NOT NULL / day TEXT NOT NULL`。
   - FR-1.1 `subject_type`／`subject_id`／`project_id` **可空**（阶段视图切换无 subject），但 `kind`／`created_at`／`day` 必须 `NOT NULL`。
   - FR-1.2 索引两条：`(kind, day)`、`(created_at)`。**不建 FTS**（台账不做全文检索，别顺手加面）。
   - FR-1.3 `day` 落列不现算，照 `telemetry_events` 的先例（§3-10）；口径见 §8.2 待裁②。
@@ -96,13 +96,13 @@
 - **6.5 append-only 与「一键清空」的张力是设计选择不是缺陷**：清空后「走了几圈飞轮」「窗内使用次数」全部归零，且**不可恢复**。文案必须写出这一后果（FR-5.2），否则「可清空」会变成「用户以为自己可以撤销」。
 - **6.6 未来导出面**：一旦提供「导出本机统计」，`payload_json` 的内容就变成对外内容 ⇒ 这正是 FR-6.3 现在就限列的理由（不要等到有导出面时再洗历史数据）。
 - **6.7 与队列 ⑱ 的关系**：⑱ 裁的是「左半承认人工数」，本项是**新存储补源**，不是把 ⑱ 改判。写进 §7 的人工对读条目，防止实现者顺手把 ⑱ 改成「已机读」。
-- **6.8 迁移的向前兼容**：`0006` 只 CREATE，不 ALTER 既有表；老库升级即新增空表，统计从零开始属预期（**不得回填**：回填要把历史行为编成事件，那是造数据）。
+- **6.8 迁移的向前兼容**：`0007` 只 CREATE，不 ALTER 既有表；老库升级即新增空表，统计从零开始属预期（**不得回填**：回填要把历史行为编成事件，那是造数据）。
 
 ## 7. 验收标准（pass/fail）
 
 | # | 条目 | 判据 | 测试 ID |
 |---|---|---|---|
-| a | `0006_local_events.sql` 迁移可执行且幂等（新库与既有库两径） | `core-db.test.ts` 同族形态；两径建表后 `PRAGMA user_version`／迁移表一致 | `CORE-EVT-01` |
+| a | `0007_local_events.sql` 迁移可执行且幂等（新库与既有库两径） | `core-db.test.ts` 同族形态；两径建表后 `PRAGMA user_version`／迁移表一致 | `CORE-EVT-01` |
 | b | FR-1.4 双源一致：迁移 `CHECK` 字面量 ≡ `LOCAL_EVENT_KINDS` | 解析迁移文本比对；**变异腿**：临时给常量加一项 ⇒ 必判红 | `CORE-EVT-02` |
 | c | FR-2.2 与遥测三事件交集为空 | 断言 `∩ = ∅` | `CORE-EVT-03` |
 | d | 四个有写入点的 kind 各产生一条记录，字段齐备且 payload 无禁列 | 按 kind 断言 + 对 `payload_json` 做绝对路径／用户名模式扫描 | `CORE-EVT-04` |
@@ -121,11 +121,11 @@
 ## 8. 依赖
 
 - **8.1 上游依赖**：PRD D29（本项的授权来源）；`service-layer.md`（1-1，写入点唯一性）；`output-validation.md`（3-4，出参断言面）；下游消费方是 `growth-path.md`（2-1…2-7）与 `context-density.md`（3-1）与 M7 使用统计（队列 ㉓）。
-- **8.2 待裁清单**（owner 裁前，本文件不构成开工依据）：
+- **8.2 待裁清单**（✅ **2026-10-14 owner 授权逐条裁决，四项全部闭合，本 spec 升 v1.0 后构成开工依据**）：
 
 | # | 待裁项 | 候选与推荐 |
 |---|---|---|
-| ① | `kind` 闭集取十项还是十三项（FR-2） | (a) 采分析文的十项，成长判据降级到能表达的子集；(b) 采本 spec 的十三项（补齐 `asset_updated`／`asset_deleted`／`injection_failed`）。**推荐 (b)**——(a) 会让 2-1 的 F1 判据无源，届时又要改迁移；但 (b) 偏离了 owner 已读过的分析文原文，须他点头 |
-| ② | `day` 的时区口径：本机日还是 UTC 日 | (a) UTC（与 `utcStamp`、`telemetry_events.day` 同源，跨机一致）；(b) 本机日（用户看自己的「今天」更直观）。**推荐 (a)**，前提是设置页把窗口按本机日展示时明确标注换算 |
-| ③ | CLI 侧事件写不写？怎么写（§6.2 四选一） | **推荐 (d) 本项只收 web/server 侧**，理由见 §6.2（不损失 D15 左半的净解锁，且不破 dev-plan §1.2 末那条「不碰 DB 文件锁」不变式）。(a)(b)(c) 都要动既有不变式或新增写面，须先裁再动 |
-| ④ | 「是否记录本机事件」要不要做成开关 | **推荐不做**（FR-3.2）。若 owner 要，则 §7 的 e 条必须拆成两条分支断言，且 D29 的「唯一机读源」地位不再无条件成立 |
+| **①** | `kind` 闭集取十项还是十三项（FR-2） | **(b) 十三项** —— ✅ **本项已被 owner 2026-10-14 的 M8 裁①**（登记 PRD **D34** 同批）**事实上闭合**：那一裁要求台账 `kind` 由 **13 项扩至 18 项**（13 ＋ M8 五类），等于 **(b) 胜出**。⚠️ 本行**不是新裁定，是溯源**：spec §8.2 曾把它列作待裁，是因为它当时确未裁；后被另一笔裁带出结论。**已随 `0007_local_events_and_agent_bridge.sql` 落地**（实测 `LOCAL_EVENT_KINDS` 18 项，`LEDGER_EVENT_KINDS` 13 项，由 `packages/core/src/db/m8-ledger-schema.test.ts` 逐字比对守护） |
+| **②** | `day` 的时区口径：本机日还是 UTC 日 | **(a) UTC**。**证据（2026-10-14 实测）**：`packages/shared/src/utils.ts:36` 的日戳单源是 `at.toISOString().slice(0, 10)` —— **本仓现有唯一的「一天」定义就是 UTC 日**，选 (b) 会在同一仓里造出第二种 day 语义，让 `telemetry_events.day` 与 `local_events.day` 同名不同义（这正是 §7-7 ② 那条「事件量对 DB 体积影响未实测」的同类风险）。**代价已知并接受**：用户在设置页看「今天」时是本机日，**展示层必须标注换算**，否则用户会以为看到的窗口与写入的窗口不一致。**FR-1.3 相应收紧**：`day` **必须**由该单源派生，禁止在 repo 内另写 `new Date().toLocaleDateString()` 形态 |
+| **③** | CLI 侧事件写不写？怎么写（§6.2 四选一） | **(d) 本项只收 web/server 侧**。**证据（2026-10-14 实测）**：`grep -rln 'openDb\|better-sqlite3' apps/cli/src` → **空**，CLI 至今从不打开 DB。(a)(b)(c) 都要么动 `dev-plan §1.2` 末那条「sync/scan 不碰 DB 文件锁」不变式、要么新开一条写盘路径，代价高于收益。**代价已知并接受**：**「只用 CLI 的用户」这一人群在台账里事件覆盖为零**，§7-7 ① 的未验证面**不因此消解**，仍须在设置页如实说明「本机统计只覆盖工作台操作」 |
+| **④** | 「是否记录本机事件」要不要做成开关 | **不做**（即 FR-3.2 的原判）。台账是无条件本机写，用户可见的开关是「一键清空」而非「是否记录」。**理由**：做成开关会让 §7 的 e 条（遥测关闭时台账仍有事件）必须拆成两条分支断言，且 D29 的「永不出网」承诺会多出一个可被误读的状态（「关掉了是不是就不记了」）。**这条不是「暂缓」是「已裁」** |

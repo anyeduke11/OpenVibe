@@ -2107,63 +2107,190 @@
   6. **取号与撞号**：本号按 FR-1.2 取两树最大号 0089 + 1 = **0090**（自查 `grep -c '^## \[DEV-0090\]'`：工作树 1、提交树 0）；工作树另有 7 组已知撞号（0044/0045/0046/0074/0075/0076/0077，`docs/specs/docs-governance-check.md` FR-1.4 已登记为 error 级、「历史不豁免」），**不属本笔、本笔不改号不动它们**——原样落库 + 提交信息标注，最终处置见「owner 手上未收的」③。
 - **owner 手上未收的**: ① FR-5.1 形制细节（`shadow-1` / focus-visible 2px 环 / disabled 40%）待 UI 轮，前置是入口预算有着落；② 入口拆分三案在队列 ㉗；③ **7 组撞号的最终处置**——本笔选择原样落库并在提交信息标注（`docs-governance-check.md` FR-1.4 的登记形状就是「闸报出、不靠人记」，改号要逐处消歧 42 处引用且有至少 1 处歧义，风险高于收益），若 owner 要落库后改号是另一笔；④ README 三处数字口径不属本笔（「3 套流程模板」对提交树仍成立、`476 用例/55 文件` 是带 sha 的历史快照、`npx openvibe-cli` 待 D24/D25 发布笔）；⑤ 本笔随功能笔落库，未 push、未打 tag、无任何对外动作。
 
-## [DEV-0091] M4 技巧库落地 + V2 组件形制补齐：九件工作包全链打通 · FR-8 拆 playbookIds 闸（A 级，零回归凭据实测） · `[DEV-0090]` 风险① 结清
+## [DEV-0093] v0.2.1 迭代版开档：M8 Agent 接入层 Phase 0 文档链落地（新建计划 ＋ 四份文档升版 ＋ 队列 ㉞）· 附推翻既有纪律与两处自指口径缺陷的诚实登记
 
-- **时间**: 2026-10-13（本机 darwin；起手树 = `72ede49` 之上叠加并行会话未提交工作树；五闸复跑时点见「测试验证」）
-- **类型**: 混合轮，按 §0.3 拆开判——**M4 功能面判 C**（新增文件/端点/页面，不改既有契约形状）；**FR-8 拆 `PackSelection.playbookIds` 闸判 A**（动 design §7 冻结块边缘的选集契约，owner 已裁 D25 + standing 指令授权，零回归凭据见下）；**组件形制补齐判 C**（`apps/web/src/components/ui/styles.ts` 逐条对齐 DESIGN.md Components，不动 `index.css` 一个 token）
-- **关联文件**: `packages/core/src/db/migrations/0006_playbooks.sql`、`packages/core/src/repos/playbooks.ts`、`packages/shared/src/schemas/playbooks.ts`、`packages/shared/src/playbooks-md.ts`、`apps/server/src/routes/playbooks.ts`、`packages/core/src/pack/{resolve,composer}.ts`、`packages/shared/src/schemas/pack.ts`、`content/seed/playbooks.json`、`apps/web/src/{pages/PlaybooksPage.tsx,components/playbooks/*,hooks/usePlaybooks.ts}`、`docs/dev-plan.md §17`、`docs/specs/m4-playbook.md` v1.2、`docs/specs/m6-standard-pack.md` v1.6
-- **问题描述**: M4 技巧库自 2026-09-30 立规格、2026-10-01 七裁到账，但 `tasks.md` T12 一直停在「人日未估」，代码零行；owner 本轮指令「对于没有开发的 phase，本次制定开发计划一并实现」把三道前置全部解锁。**本笔的难点不在写功能，在三处「拆闸」与两处「文档谎报」**——都是只改代码会留下的、且很难被自己发现的债。
+- **时间**: 2026-10-14（本机 darwin；起手提交树 = `4b42642` = DEV-0092，2026-10-13 20:00 / 2026-10-14 09:39 / 2026-10-14 17:10 三次复采均未前进）
+- **类型**: **C 级（纯文档层，零实现面）**。改动只落在 `docs/` 六份文件与本日志，**未碰任何 `apps/` `packages/` `tests/` `content/` 文件**；⚠️ **本行是 owner 裁定前写的初稿口径，实际落地为 8 份**（另有 owner 裁 3/4 授权的 `docs/specs/m8-agent-panel.md` ＝新建、`docs/specs/local-event-ledger.md` ＝ 六处回改，另 `docs/dev-plan-v0.2.1.md` 亦含裁定 1 的产物），完整清单见「关联文件」行的订正；`tests/golden/` 与 `content/seed/` 零触碰（冻结凭据形态待随提交出齐后交 owner 复核：`git diff --name-only <BASE>..HEAD -- tests/golden/ content/seed/`）。
+- **关联文件**: 新建 `docs/dev-plan-v0.2.1.md`（v1.0）；改 `docs/dev-plan.md`（§16 开档边界第 1 条加推翻记录 ＋ 末尾新增 §18 指针段）、`docs/PRD.md`（新增第 11 章 ＋ 头部 版本 行叠加 ＋ 附录 D 新增 D34 ＋ 变更日志 v0.2.1 行）、`docs/PRD-M8-agent-bridge-v1.0-20261013.md`（v1.0 → **v1.1**）、`docs/specs/m8-agent-bridge.md`（v0.9 → **v1.0**）、`docs/decisions.md`（新立队列 **㉞** ＋ 净状态「可做待排 4→5」＋ 上界行 `①–㉝` → `①–㉞`）｜**⚠️ 订正（本条按「日志不回改」追加，实际落地为 9 份）**：另新建 **`docs/specs/m8-agent-panel.md`**（v1.0，owner 裁定 3「0-h 本轮补写」）、新建 **`docs/devlog-evidence/M8-probe/`**（探针 harness ＋ 逐步指南，owner 裁定「手把手教我真机跑」）、改 **`docs/specs/local-event-ledger.md`**（六处 `0006` → `0007`，owner 裁定 4「本轮同批回改」）
+- **问题描述**: owner 2026-10-14 裁三件与排期直接相关的事——① **v0.2.1 另立计划文件**（**推翻 `dev-plan.md` §16 开档边界第 1 条「不另立计划文件」**，适用范围仅限 v0.2.1，§16.2 的 27 个 RF 编号项一字不动）；② **三段式 Phase**（0 闸门 / 1 读写核心 / 2 接入面）；③ **不排工期**。同批十二项裁决全部闭合（M8 八项中 **owner 的选择五项与 agent 建议相反**：①并进台账迁移／②增新码 `IDEMPOTENCY_CONFLICT`／③总量 2 MB／④一并建 `requirements` 表／⑤推迟到台账之后；另六项三前置四项与建议一致）。**最重后果是①与⑤叠加**：M8 三表并进台账那次迁移 ＋ 埋点推迟到台账落地之后 ⇒ **台账（v0.2.0 的 RF1-5）不落地，M8 连表都建不了、Phase 1 第一步也动不了** ⇒ v0.2.1 与 v0.2.0 是**串行依赖不是版本接续**。
 - **实现思路（设计→实现）**:
-  1. **先计划后代码**：九个工作包（W1–W9）连级判定与三轨关键路径写进 `docs/dev-plan.md §17`，人日 **5.2**（关键路径轨道 1 = 2.3 天）单源在 §17.4，`tasks.md` T12 只回指不复制数字。
-  2. **FR-7.6 交叉引用行落点**：§8.2 ① 已裁「不新增第五节」，`PACK_SECTION_ORDER` 是四节冻结序 ⇒ 这一行只能挂进现有某节。取 **`PACK_SECTION_RULES`（「## 行为规则」）**——四节里唯一语义通用的一节（技巧是行为指引）；空选集时 `section()` 的 `blocks.length===0` 早返回 ⇒ 未选技巧时字节不变，§7.4 零回归闸仍成立。
-  3. **`ManifestPlaybook` 不进 `PackManifestSchema`**：进了就是每个包的 manifest 都多出 `"playbooks": []`，FR-8.4 零回归当场失效。技巧仍经 `files[]` + 指纹 + 正文引用行传递，不是静默吞。
-  4. **`ResolvedPack.playbooks` 设为选填**：改成必填会让 `tests/golden/fixtures.ts`（A 级冻结、硬闸禁止改动）构造的字面量过不了 typecheck；渲染侧按 `?? []` 兜。
-  5. **四处方言缺口登记不自裁**（`dev-plan §17.6`）：`source` 闭集多出 `openvibe-seed`（seed 可追溯，照 `TERM_SOURCE_RE` 形制，**落在 spec §3 字面之外，待 owner 追认**）· `sortForMd` 主键取 `scenario` + `id` 兜底、不引入 `orderBy` 枚举 · `renderMd` 空选集回 `EMPTY_SELECTION` · 交叉引用行落点（见上）。
-  6. **seed 内容零 verified**：worker 初稿给 2 条打了 `verified:true` 并附「演练报告 0 份」「改动 6 文件 180 行」等**无人执行过的证据**。按 FR-4.2 的反谎报原则（「静默把『没验过』写成『亲测有效』是资产库的信任事故」）**全部翻回 false 并清空 evidence**——宁可开箱 0 条亲测，也不让种子替用户宣称实测。
-- **核心变更**:
-  - **M4 全链**：迁移 + FTS 三触发器（同迁移，§6.7 分开发布=检索静默永空）· `PlaybooksRepo` 十方法 · 六端点 · `PLAYBOOKS.md` 渲染器（标题/引导/表头/分隔/转义全常量）· `resolve`/`composer`/`CONTEXT_AUX` 接入 · 侧栏角标由六格扩七格。
-  - **FR-8 拆闸（代码半 + 文档半同笔）**：`pack.ts` 的 `.refine` 删除、字段与改写后的注释保留；两处孤儿断言同批改判（`IT-ERR-04` 转 `STALE_SELECTION`、shared 侧「非空即拒」转「非空且有效 ⇒ 进产物」）；**文档三处**同批（`m6-standard-pack.md` v1.6 的 §3 / §6 第 3 条 / §7 验收第 7 条）+ `decisions.md` ⑫ 队列行补现状追记。
-  - **组件形制**：`btnPrimary` 补 `shadow-1` + focus-visible 2px `accent` outline/2px offset + disabled **40%**（原 50%）· 新增 `CHIP_TONES` 六形制 / `chipPressed` / `NOTE_TONES` 四态 / `emptyHintCls` / `rowCls` / `ledgerHeadCls`。**`[DEV-0090]` 风险① 至此结清**——它当时收回的理由是「入口预算只剩 0.02 kB，加上去就破闸」，本轮入口因三张常驻卡移出 AppShell 降到 **293.74 kB**（余 6.26 kB），形制补齐不再需要抬阈值。
-- **测试验证**: 全部 2026-10-13 本机复跑，支数随提交变动、以汇总行为准：
-  - `pnpm test` → **63 文件 / 580 支全过**（较 `[DEV-0090]` 的 58/545 增 5 文件 35 支：M4 三族 `UT-PB-*` 7 / `CORE-PB-*` 9 / `IT-PB-*` 7 + nav/cli-commands 两族）；
-  - `pnpm typecheck` rc=0 · `pnpm lint` rc=0 · `pnpm seed:check` rc=0（新增 `playbooks ≥10` 门槛，现 13 条；PLAYBOOKS.md 渲染 13 行表头/列数一致、反例覆盖 100%）· `pnpm bundle:check` 入口 **293.74 kB ≤ 300 kB** / 39 chunk / 最大 347.45 kB ≤ 500 kB；
-  - **FR-8.4 零回归硬闸（拆闸的全部凭据）**：`npx vitest --project unit --run tests/golden.test.ts` → **3 passed**（G1/G2/G3）；`git status --porcelain -- tests/golden/ content/seed/terms.json content/seed/flow-templates.json content/seed/prompts.json` → **0 行**；
-  - **FR-7.3 变异反证（推断转正）**：两包定义（其余四字段全同、仅差 1 条技巧）指纹 `be608b1f…` ≠ `fe6293e5…`，`files` 与 `lock.files` 各差一条 `PLAYBOOKS.md`，≈token 206 → 319 ⇒ **链路上无第二处硬编文件清单**，FR-8 得以开工。
+  1. **纪律前置的 git 归属核查**（开工前必做）：`git log --oneline -5` ×3 次复采确认 HEAD 未前进；逐文件核 `docs/` 与非 docs 侧的改动归属。
+  2. **号位冲突的处置——取 §18 不取 §17**：HEAD `4b42642` 的 `dev-plan.md` §17 是 **M4 技巧库开发计划**（`:1789`），而 2026-10-14 的**工作树**把该节整节删除（−103 行），同批 `docs/tasks.md` 的 T12 人日口径回退为「未估」、`docs/decisions.md` ⑫ 的状态回退为「已裁已落」——**该批回退属一个并行会话、未提交、非本轮所作**。若本迭代占 §17 而该会话恢复 M4 §17 即为两节同号（硬冲突）；取 §18 的最坏情况只是留下一个 §16 → §18 的可解释空洞。**空洞解释写死在 `dev-plan.md` §18.3**，不靠人记。
+  3. **双向指针对冲推翻代价**（§16 第 1 条被推翻的已知代价，不由自觉承担）：`dev-plan.md` §18 ⇄ `docs/dev-plan-v0.2.1.md` §9.1 三对互指指针；并在 §9.2 如实登记「这是已知可接受的代价，不是零成本，owner 可随时撤销（删文件 ＋ 内容并回 §16）」。
+  4. **0-d 探针（只读实测，未改任何文件）**——**结构半边完成、运行半边未做**：单一真源 `~/.agents/skills` **188** 条；Qoder `~/.qoder/skills` 76/29 symlink、CodeBuddy `~/.codebuddy/skills` 69/**69 全 symlink**、Trae `~/.trae/skills` 29/**29 全 symlink**、MiniMax Code `~/.minimax/skills` 11/2、OpenCode `~/.opencode/skills` 6/0、Claude `~/.claude/skills` 4/2 ⇒ **六平台全部支持 skill**；生态形态＝**单一真源 ＋ symlink 农场**，存在 `~/.agents/.skill-lock.json`（27 KB）与 `_agents.mount_config`；项目级 `.trae/skills/` 被 6 处真实项目使用（secnews、gstack、cherrystudio 等）；子目录惯例 `references/` 39 · `scripts/` 29 · `assets/` 18 ⇒ **M8 spec FR-1.1 的结构设计完全命中**；frontmatter 跨平台安全子集＝**`name` ＋ `description`**（Claude 多 `license`、Qoder 多 `metadata` 嵌套块），且 `description` 承载**触发条件而非简介** ⇒ 支持把「意图→命令」映射表放 SKILL.md 正文。**运行半边五问未做**（加载时机 · 项目级/用户级优先级 · skill 内脚本可执行性 · Trae/CodeBuddy 对 symlink 的限制 · `minicode` adapter 目标产品归属），须 owner 提供真机 GUI 环境 ⇒ **`m8-skill-bridge.md`（0-i）本轮不写**。
+  5. **探针产生的三个冲击点**（登记、不夹带修复）：① **§4.1 分布形态未定**（复制 vs symlink，走 symlink 则落入 m6b 已有测试覆盖的形态）；② **§4.2 双锁冲突**（`pack.lock.json` vs `~/.agents/.skill-lock.json`，且 D20 定的 `clean` 边界「只删未改动的受管文件」对第二把锁**不可逆**）⇒ 已在 PRD-M8 新增 **B3.1 / B3.2** 写死「写清前 M8-A 不可开工」；③ **M2 扫描根缺口**——`packages/core/src/repos/skills.ts:155` 的 `defaultScanRoots()` 不含 `~/.agents/skills`，致 188 个 skill 扫不到 ⇒ **登记为 M2 缺口，本轮不夹带**（PRD 第 11 章 §11.6 已写进不做清单）。
+- **测试验证**: 本笔无实现面，**不适用代码测试**；改跑文档一致性九项复核（全部本机实跑，取数命令写死在各文件内供 owner 重跑）：
+  - `grep -c '1-7' docs/dev-plan.md` → **0**（v0.2.1 未侵占 RF 编号空间）
+  - `grep -c 'dev-plan-v0.2.1.md' docs/dev-plan.md` → **8**（≥1 ✓）；`grep -c 'dev-plan.md' docs/dev-plan-v0.2.1.md` → **21**（≥1 ✓，双向指针成立）
+  - `grep -o '^### T[0-9]\+' docs/tasks.md | sort -u -V | tail -1` → `### T13`（T14 空号待 Phase 1 前置转绿后再申请）
+  - `grep -oE '\bD3[0-9]\b' docs/PRD.md | sort -u -V | tail -1` → `D34`
+  - `grep -c '^### 11\.' docs/PRD.md` → **7**（§11.0–§11.6 齐全）
+  - `grep -oE '^\| [①-⑳㉀-㉟]+ ' docs/decisions.md | tr -d '| ' | sort -u | tail -1` → `㉞`
+  - `ls packages/core/src/db/migrations/` → 0001–0006（**`0006` = `0006_playbooks.sql`，M4 已占** ⇒ 台账改取 `0007`）
+  - `sed -n '108,109p' packages/shared/src/constants.ts` → `singleFileMaxBytes: 512 * 1024` / `packTotalMaxBytes: 2 * 1024 * 1024`（裁决③前两值同族）
+  - `grep -rn 'ERROR_CODES\|ErrorCode' --include='*.test.ts' apps packages` → **0 命中**（生产侧仅 `packages/shared/src/errors.ts:2` 一处定义 ⇒ `ERROR_CODES` 闭集**零测试守护**，已写成 M8 spec FR-6.1.2 的增码同批硬要求）
 - **潜在风险**:
-  1. **`source` 闭集超出 spec §3 字面**：多出 `openvibe-seed` 一态（理由见「实现思路」5），落在 FR-1.3「只接受闭集字面量」的同类条款上，**待 owner 追认或改 spec**——实现已按 terms 同族形态落，改回的成本是 seed 行不可追溯。
-  2. **§7.4 那条孤儿文档闸的扫法有洞（本笔修口径，不是修判据）**：原命令 `grep … | grep -E '恒为|非空即|未上'` **在任何正确实现下都返 ≥1**——`m6-standard-pack.md` 头部 v1.4 版本行按「日志不回改」原样记着「改为非空即 422」，与被扫模式逐字相同。一条永远红的闸不是凭据，它训练人忽略它。修法是补 `grep -v '^11:'`（版本行），**`恒为`/`未上` 两词仍在扫，判据强度一字未减**。同批还补记第三处：`§7 验收第 7 条`（原「四种 4xx」）**不被原模式集扫到**（字面是「非空 \`playbookIds\` 四种 4xx」）——模式集按最初被引用的两处用词写，没覆盖第三处。凭据形态见 `m4-playbook.md` §7.4。
-  3. **FR-8.3 的同步落点指针指错了文件**：spec 原写「`docs/dev-plan.md` §15.2 裁 ⑫ 格指向处」，而 §15.2 根本没有 ⑫ 这一格（复算 `grep -n '⑫' docs/dev-plan.md` 只命中 §9 历史叙述与 §16.14 枚举口径）。⑫ 的真位置是 `docs/decisions.md` 队列表，已改判。**登记的理由**：这是 §16.12 那族缺陷的第四例——规格里的跨文件指针本身指错，照着做的人会去不存在的格子里「同步」，找不到就以为已经同步过了。
-  4. **未验证面一条不因本笔消解**（spec §7.7）：win32 的 FTS 三触发器与 `seedHash` 幂等**从未验证**（本仓无同类门控支，本机 darwin 绿不覆盖它）· 真实浏览器点击零凭据 · `PLAYBOOKS.md` 被六类工具读取后的效果属外部行为 · 多用户并发写属 M7。**spec §7.6 的四条人工腿（截图归档）本笔未做。**
-  5. **侧栏从 DESIGN.md 的「四组八项」变九项**：多出的「成长与统计」暂挂「概览」组（上一轮留下），**本轮又加「技巧库」成十项**——两处偏离都**待 owner 定**（入册 DESIGN.md，还是并回工作台页）。
-  6. **worker 越权检查**：本轮 M4 后端由 worker 承接，brief 末尾显式写了「❌ 不要 git commit / push」，事后 `git log` 复核确认**无自提交**。另 worker 主动登记了一处越界（一行 `tests/seed-check.test.ts` 的 `SEED_FILES` 数组加 `'playbooks.json'`）——该数组是沙箱基线，不加则必红，属最小必要，已复核未改其断言逻辑。
-- **owner 手上未收的**: ① `source` 闭集第三态的追认 ② 侧栏八/九/十项对 DESIGN.md 的偏离裁定 ③ spec §7.6 四条人工腿（截图归档）④ 推送授权（本笔只落本地 commit）
+  1. **推翻纪律的双源风险是真的**：两份计划文件并存，`dev-plan.md` §18 与 `docs/dev-plan-v0.2.1.md` §9.1 的双向指针对冲它，但**任一指针腐烂即成孤本**——这是已知的、可接受的代价，不是零成本（§9.2 已如实登记，owner 可随时撤销）。
+  2. **总闸未过**：**「Phase 0 已执行」≠「Phase 0 已通过」**。本笔交付的是**规格链**（0-a/0-b/0-c 三闸 ＋ 0-d 结构半边），它**不使 RF1-5 台账转绿** ⇒ **v0.2.1 当前不可开工**。0-e 服务层 / 0-f 台账 / 0-g `docs:check` 三闸均在 **v0.2.0 轨道内**，本迭代只依赖不重复建设；0-h `m8-agent-panel.md` 待建（不依赖探针，不被 M8-A 连坐）。**⚠️ 订正：owner 当日裁定「0-h 本轮补写」并已交付 v1.0**（`docs/specs/m8-agent-panel.md`，14 条验收 ＋ `WEB-M8E-*` 新族）——上一句「待建」是裁定前状态，按「日志不回改」留痕，现状见 `dev-plan-v0.2.1.md` §4.1 的 0-h 行。
+  3. **裁决②踩到一个既有缺口**：`ERROR_CODES` 闭集 11 → 12 项，而该闭集**当前零测试守护** ⇒ 若实施时不补守护测试，M8 将是本仓第一个让调用方依赖无守护码的模块。已写成 FR-6.1.2 硬要求。
+  4. **号位空洞**：`§16 → §18` 若最终维持（并行会话不回补 M4 §17），本文件会留下一个编号空洞；解释已写死在 `dev-plan.md` §18.3 与本笔「号位归属」待裁项。
+  5. **并行会话风险**：本仓工作树有 **50 个非本会话的 `docs/` 以外改动**（`git diff --name-only -- . ':!docs' ':!DEV_LOG.md'`）＋ 本批未提交的 §17 回退。**本笔全程未 commit**，每处改动前跑 `git log --oneline -5` 并逐文件 `git diff -U1` 核归属。
+  6. **两处自指/错报口径缺陷（本笔自曝自修）**：(a) **`0006` 过期断言实为 **6 处**（不是 PRD v1.0 记的「四处」）**——复算 `grep -c '0006' docs/specs/local-event-ledger.md` → **6**（`:8`/`:26`/`:38`/`:54`/`:99`/`:105`），**只有 `:38` 明说「号位可用」**，`:105` 在验收表里最易漏扫；PRD v1.0 就地订正记的「四处『0006 号位可用』断言」**本身即错报**（该字符串实为 0 命中，措辞各异）。按「日志不回改」，PRD-M8 上一行原样保留、订正记在 v1.1 行，本笔全部六份文件统一为 6 处口径。**本轮不代劳回改台账 spec**（台账轨道工作面），只登记。(b) **复核命令自指**——把 `grep -n '1-7' docs/dev-plan.md` 原样写进文档后，该命令会扫到自己那行、恒返回 1，口径自毁；已改写为字符组形式 `grep -n '1[-]7' …` 并在注里说明**此注刻意不复写那个裸串**。
+  7. **取号**：本号按「**两棵树同时扫**」成规取提交树最大号 DEV-0092 + 1 = **0093**（自查：工作树 `DEV_LOG.md` 最大为 DEV-0090、提交树为 DEV-0092，**差额 0091/0092 两条标题被那批未提交回退删掉**——取大不取小）。工作树另有 7 组已知撞号（0044–0047、0074–0077，`docs-governance-check.md` FR-1.4 已登记为 error 级），**不属本笔、本笔不改号不动它们**。
+- **owner 手上未收的**: ① **Phase 1/2 的工期与人日**——本迭代**不排工期**，启动时点由 v0.2.0 的 RF1-5 决定；② **`dev-plan.md` 的 §17/§18 号位最终归属**——取 §18 是本笔为规避同号硬冲突的处置，入库形态待裁；③ ~~**台账 spec 六处 `0006` 过期断言的回改**——本笔只登记不代劳~~ → **⚠️ 订正：owner 当日裁定「本轮同批回改」，已完成**——`local-event-ledger.md` 的 `:8`/`:26`/`:38`/`:54`/`:99`/`:105` 已由 `0006` 改为 `0007`；按「日志不回改」原句保留，现状见 `dev-plan-v0.2.1.md` §5.3-1 与 §4.1 待裁③；④ **0-d 探针运行半边五问**——须 owner 提供真机 GUI 环境；⑤ **本笔未 commit、未 push、未打 tag、无任何对外动作**（按纪律不自行提交）。
 
-## [DEV-0092] 组件形制采用轮（`[DEV-0090]` Phase B）：26 处手拼色调三件套归零 · 顺带修掉一个「chip 类从未被定义」的无样式缺陷
+## [DEV-0094] Phase 1 第一切片落地 ＋ 七项待裁闭合（B 级 · 0007 一次建四表 ＋ service-layer / local-event-ledger 升 v1.0）
 
-- **时间**: 2026-10-13（本机 darwin；起手树 = `91cf653`）
-- **类型**: **C 级**（`apps/web/src/**` 调用点归一到既有原语；`components/ui/styles.ts` 本轮**冻结未改**、`index.css` 一个 token 未动）
-- **关联文件**: `apps/web/src/components/{ui/styles.ts(读),library,library/TagFilterBar,terms,terms/*,skills,skills/*,projects,projects/*,flows/*,packs/*,settings/*}`、`apps/web/src/pages/{LibraryPage,TermsPage,GrowthPage,PacksPage,FlowsPage}.tsx`、`apps/web/src/components/CommandPalette.tsx`
-- **问题描述**: `[DEV-0091]` 把 DESIGN.md Components 段的形制**定义**落进 `styles.ts`（六形制 chip / 四态 note / empty-hint / row / ledger），但**零采用**——`grep -rl chipCls apps/web/src` 命中 26 个文件，全站仍在手拼「soft 底 + 同色系 line + 同色系 solid 字」。这是「定义了不等于落地」的典型半成品：原语在那儿，规范没被执行，两者的差距只有 grep 才看得见。
-- **实现思路（设计→实现）**:
-  1. **归一的边界画死**：只有**色调三件套**归一到 `chipTone(…)`，布局类（`ml-2`/`cursor-pointer`/`mono`/`shrink-0`）留在原处——把布局一起归一进原语，等于把原语从「形制」膨胀成「排版」。
-  2. **组件内的 `STATUS_STYLE`/`LEVEL_CHIP` 局部记录改成映射到 `chipTone(…)`**，保住「按状态取形制」的语义，不把三元散进 JSX。
-  3. **`default` 形的三个现成底色不强行统一**：`bg-panel`/`bg-panel-2`/`bg-panel-sunk` 在现网各有用途（可点 / 普通 / 沉底）。**语义确实是「可点/可切」的保留可点性**，只用 `chipPressed` 接管选中态——为了统一而改掉可点性是本轮最容易犯的错。
-  4. **empty-hint 必须带真 CTA**：DESIGN.md 明写「不是『暂无数据』」。凡改成 `emptyHintCls` 的空态，都挂上该页面本来就有的创建动作（新建提示词 / 新建术语 / 新建项目…），不是换个框而已。
-  5. **三处主动回退，不硬套**：`<details>` 盒式折叠（不是行列表，`rowCls` 无内边距会压塌它）、台账表行（`rowCls` 是列表行形制，与 ledger-table 不是同一形）、一处「按检查清单人工执行即可」的说明 note（是解释不是告警，`warn` → `info`）。
-- **核心变更**:
-  - **归零判据达成**：手拼色调三件套 **31 → 0**（复算命令见「测试验证」）；`chipTone` 27 文件 / `noteCls` 6 / `emptyHintCls` 7 / `rowCls` 4 / `ledgerHeadCls` 5 / `ledgerNumCls` 2 / `chipPressed` 4 —— 六个原语全部有真实调用点，不是只定义。
-  - **顺带修掉一个真缺陷**：`GrowthPage`/`TagFilterBar`/`SkillScanReportView` 三处用的 `className="chip"` **在 `index.css` 里从未被定义**（复算 `grep -rn '\.chip\s*{' apps/web/src/index.css` → 0 命中），也就是说这三处 chip **今天是无样式裸渲染**。它不是形制不齐，是根本没生效——这类缺陷只有把原语真正接上才会暴露。
-  - **两支颜色断言未被改动即绿**：`PackPreviewPane.test.tsx` 要求恰好 2 处 `text-warn`、`PortsPanel.test.tsx` 要求 0 处——归一后仍成立，说明没有靠改断言过关。
-- **测试验证**: 全部 2026-10-13 本机复跑：
-  - `pnpm test` **63 文件 / 580 支全过**（支数不变：纯形制归一，未新增/删除用例）；
+- **时间**: 2026-10-14（本机 darwin；起手提交树 = `4b42642`，未前进）
+- **类型**: **B 级**（判级依据：新增迁移与新表属 specs 的 FR 面；service-layer 因待裁②的可观察行为变化与待裁③的规则表改动整项由 C 改判 **B**）。**未 commit**。
+- **owner 授权面**: owner 2026-10-14 指令「进行 phase1 待办裁决」——本笔把 Phase 1 挡路的**七项**待裁逐条裁完并落进 spec，不是自行判断。
+- **关联文件**: 新建 `packages/core/src/db/migrations/0007_local_events_and_agent_bridge.sql`、`packages/core/src/db/m8-ledger-schema.test.ts`；改 `packages/shared/src/constants.ts`（新增 `LEDGER_EVENT_KINDS` / `AGENT_EVENT_KINDS` / `LOCAL_EVENT_KINDS` / `AGENT_INGEST_KINDS` / `AGENT_INGEST_STATUSES` / `REQUIREMENT_STATUSES` / `REQUIREMENT_PRIORITIES` / `AGENT_INGEST_LIMITS`）、`packages/core/src/db/core-db.test.ts`（迁移列表 6→7）、`docs/specs/service-layer.md`（v0.9→**v1.0**，§8.2 三项闭合 ＋ 判级 C→B ＋ 四服务改五服务）、`docs/specs/local-event-ledger.md`（v0.9→**v1.0**，§8.2 四项闭合）
+- **七项裁定逐条**（如实记录 owner 原建议与我的取舍；**全部采 spec 自带推荐，理由逐条写在 spec 内**）：
+
+  | spec | # | 裁定 | 依据 |
+  |---|---|---|---|
+  | service-layer | ① | 本轮落**三**服务（`pack`/`inject`/`agent`），`growth`/`stats` 不建 | (b)(c) 被否（假象 / 绕开 J7）。**修正了选项措辞**：选项写「只落两服务」是 2026-10-03 的三服务设想，owner 已另裁加 `agentService` 作第五个 |
+  | service-layer | ② | 沿用 `retirement.ts` 四态 | 实测 `retirement.ts:7` = `['IN_SYNC','DRIFT','ABSENT','FOREIGN']`；`FOREIGN`（`:53` 的 `!managed` 判定）表达 planner 侧没有的那一类。**判级由此从 C 升 B** |
+  | service-layer | ③ | **B** | 动的是 `dev-plan §1.1` 分层规则表本身 |
+  | ledger | ① | **(b) 十三项** —— **非新裁，是溯源** | owner 裁① 要求 `kind` 13→18，已把本项带出结论；spec 却仍列作待裁。**这类「被另一笔裁事实上闭合却没销账」的待裁最容易造成重复裁决，本笔一并销掉** |
+  | ledger | ② | **UTC 日** | 实测 `packages/shared/src/utils.ts:36` 的日戳单源 = `at.toISOString().slice(0,10)`；选本机日会在同仓造出第二种 day 语义 |
+  | ledger | ③ | **(d) 只收 web/server 侧** | 实测 `grep -rln 'openDb\|better-sqlite3' apps/cli/src` → 空，CLI 从不开 DB；(a)(b)(c) 要么破 §1.2 不变式、要么新开写盘路径 |
+  | ledger | ④ | **不做「是否记录」开关** | 做成开关会让 §7 的 e 条拆成两分支，D29「永不出网」多一个可被误读的状态 |
+
+- **本笔落地的实现面**:
+  - `0007_local_events_and_agent_bridge.sql` —— 裁决① 要求的「**一次建四表**」：`local_events`（`kind` **18** 项＝台账 13 ＋ M8 5，索引 `(kind,day)` 与 `(created_at)`，**不建 FTS**）、`agent_sessions`、`agent_ingests`（`status` **四态**闭集，`UNIQUE(idempotency_key)` 自带索引故不重复建）、`requirements`（与 `tasks` **无外键**，`source_session_id` 用 `ON DELETE SET NULL`）。**只 CREATE、不 ALTER、不 DROP**——老库升级即新增空表，历史无记录属预期，**不得回填**。
+  - **双源闸 + 三条变异腿**（FR-1.4 / FR-2.2 的硬要求）：`m8-ledger-schema.test.ts` 8 支，把迁移 CHECK 字面量与 TS 常量逐字逐序比对。**闸必须能红才算数**，实测：常量侧加一项 → FAIL；迁移侧加一项 → FAIL；`status` 加第五态 `expired` → FAIL；还原后 8 支全绿。**这仓已有先例**：遥测那份同样的双源 `grep --include='*.test.ts'` 是 0 命中。
+- **测试验证**（本机全跑，支数随提交变动、以汇总行为准）:
+  - `pnpm typecheck` rc=0 · `pnpm lint` rc=0；
+  - `pnpm test` **64 文件 / 588 支全过**（含新 `m8-ledger-schema.test.ts` 8 支、`core-db.test.ts` 5 支、`seed.test.ts` 5 支）；
+  - `pnpm seed:check` rc=0 · `pnpm bundle:check` **通过 — 入口 267.27kB ≤ 300kB / 41 chunk，最大 347.45kB ≤ 500kB**（余量**未减**）；
+  - 冻结面：`git status --short -- tests/golden/ content/seed/` → **空**（A 级凭据形态 `git diff --name-only <BASE>..HEAD -- …` 待入库后出齐）；
+  - R2 红线：`grep -rn '@openvibe/adapters' packages/core/src --include='*.ts' | grep -v test | wc -l` → **0**。
+- **潜在风险**:
+  1. **顶到一处既有断言，按 B 级流程处理而非偷偷改绿**：`core-db.test.ts` 把迁移列表逐字钉到 `0006` / count 6，新增迁移必然顶到。**先核实** runner 版本号取自文件名（`runner.ts:29-33` 的 `readdirSync().filter(.endsWith('.sql'))`）、**再核实**全仓只有这一处断言迁移列表（`grep -rn "'0006'" --include='*.ts'` 单命中），才改为含 `0007` / count 7，并在测试里写明理由。**不是「改断言让它变绿」，是迁移列表本就该随迁移增长。**
+  2. **Phase 1 未完成，剩下的被两道闸挡着**：① **服务层写入点**（RF1-1 本体尚未实现 —— 本笔只落了它的**判级与范围裁定**，没写 `services/` 下任何文件）；② **CLI 侧事件覆盖为零**（ledger 待裁③ 的代价，§7-7 ① 的未验证面**不因此消解**）。
+  3. **`day` 取 UTC 带来一个必须兑付的 UI 义务**：设置页按本机日展示窗口时**必须标注换算**，否则用户看到的「今天」与写入的 `day` 不一致。这条写进 ledger §8.2 待裁②，**实施轮不得忘**。
+  4. **两处 spec 的「未落地」表述现在过期**：`local-event-ledger.md` 全文仍按「本项未开工」写（§6.3、§7 等处），而迁移已落地 —— **按「日志不回改」不在正文回改，实施轮开工时须把 §3 的实测基线重采一次**（§3 采样时点是 2026-10-03，彼时 0006 才空位）。
+  5. **本轮仍无 commit**：全部改动在工作树，且工作树另有 **50 个非本会话的 `apps/` `packages/` 改动**（并行会话所为，归属未变）。入库前须逐文件 `git diff -U1` 核归属。
+- **owner 手上未收的**: ① **探针运行半边五问**仍未做（harness 已装，等 owner 在 Trae/CodeBuddy GUI 跑完 ⇒ 才能写 0-i `m8-skill-bridge.md`）；② **号位 §17/§18** 最终归属待入库时裁；③ **Phase 1/2 工期**不排；④ 本笔未 commit、未 push、无对外动作。
+
+## [DEV-0095] M8-B 回流写入面 ＋ 台账写入点实现（repo 层落地 ＋ 四条变异腿 ＋ 一处 flaky 根因处置）
+
+- **时间**: 2026-10-15（本机 darwin；起手提交树 = `4b42642`，未前进）
+- **类型**: **B 级**（新增 repo 与共享常量；不动 design §7 契约面 / §8 冻结面 / `schemaVersion` / golden）。
+- **owner 授权面**: owner 2026-10-15 指令「取消大量裁定，直接上手开发功能」——本笔**停止继续裁定**，直接写实现。
+- **关联文件**: 新建 `packages/core/src/repos/agentIngest.ts`（189 行）、`packages/core/src/repos/localEvents.ts`（90 行）、`packages/core/src/repos/agentIngest.test.ts`（208 行）、`packages/shared/src/errors.test.ts`（39 行）；改 `packages/shared/src/errors.ts`（增 `IDEMPOTENCY_CONFLICT`）、`packages/shared/src/constants.ts`（补 `agentSession`/`agentIngest`/`requirement` 三个 ID 前缀）、`tests/seed-check.test.ts`（5 条 `it` 加显式超时，见风险 2）
+- **实现要点**:
+  - **幂等三态**（`agentIngest.ts:ingest`）：同键同载荷 ⇒ `duplicate`；同键异载荷 ⇒ `conflict`（**先到者一个字节不改**）；键不存在 ⇒ `accepted` 一律落 `pending`。**载荷规范化后再比 sha**：键排序后序列化，否则 agent 重试时 `JSON.stringify` 键序不稳定，会把「同一份」误判成 conflict 而 agent 无从知道该换键。
+  - **冲突只给 sha 前 8 位**（FR-7.1）：回显完整载荷等于泄露另一个会话的内容。
+  - **台账写入点集中在 `localEvents.record` 一处**（ledger FR-3），不散落到各 repo；`day` 由 `toISOString().slice(0,10)` 派生（2026-10-14 裁定② 取 UTC），**repo 内禁止另写本机日形态**。
+  - **清空而非开关**（FR-3.2）：只提供 `clearAll()`，不提供「是否记录」开关。
+  - **`IDEMPOTENCY_CONFLICT` 取 422 不取 409**：本仓信封**有** 409 先例（`VERSION_IMMUTABLE`），但那是「资源状态不允许」，而幂等冲突是「你重放的不是同一件事」，正确处置是换键重试而非重新 GET。
+- **测试验证**（本机实跑，支数以汇总行为准）:
   - `pnpm typecheck` rc=0 · `pnpm lint` rc=0 · `pnpm seed:check` rc=0；
-  - `npx vitest --project unit --run tests/design-tokens.test.ts` → **4 passed (4)**（调用点归一后四道治理闸仍全绿，是本轮最该盯的一道——归一动作本身最容易顺手引入字面色阶）；
-  - `pnpm bundle:check` 入口 **293.74 kB ≤ 300 kB** / 39 chunk / 最大 347.45 kB —— 与 `[DEV-0091]` **逐字节同值**，即形制归一的体积代价为零（原语是 Tailwind 类名，tree-shake 后不增 chunk）；
-  - **归零判据**：`grep -rhoE '\$\{chipCls\} [^`"]*' apps/web/src --include='*.tsx' | sed 's/\${chipCls} //' | grep -E 'border-'` → **空**。
-  - **真服务面复核**（不只跑闸）：起 `pnpm --filter @openvibe/server dev` 于 8787，`/api/nav-counts` 返回七格（含 `playbooks:13`）、`/api/playbooks` total 13、`/api/playbooks/search?q=等保` 命中 3 条带高亮区间；**两条负向腿实测 422**（`verified:true` + 空 evidence ⇒ `fieldErrors.verified`；`PATCH false→true` 不带 evidence ⇒ FR-4.2 拦截）；`render-playbooks-md` 输出五列表头「场景 | 问题 | 正确做法 | 反例 | 亲测有效」，**亲测有效是文字列不是颜色**。
+  - `pnpm test` **66 文件 / 607 支全过**，且**连跑 4 轮全绿**（见风险 2 处置后的稳定性验证）；
+  - **四条变异腿**（闸必须能红才算数）：`digest` 不做键序归一 → FAIL；`dayOf` 改本机日 → FAIL；冲突时回显载荷而非 sha → FAIL；冲突时静默覆盖先到者 → FAIL；还原后全绿；
+  - 冻结面：`git status --short -- tests/golden/ content/seed/` → **空**；R2 红线 `core→adapters` 命中 **0**。
 - **潜在风险**:
-  1. **`emptyHintCls` 的「CTA 必须真实」目前靠人读**：闸判不出「这个按钮点了有没有反应」。本轮 7 处都挂了页面既有的创建动作，但这是**人工判读**，不是可复算凭据。
-  2. **`.chip` 无样式缺陷的暴露面有限**：那三处今天能正常看，只因三件套里的颜色类**恰好也在别处被内联写过**，视觉退化不显眼。若将来删掉某支 token，这三处会突然裸奔——本笔已统一，登记在此是为了说明「它一直是这样」，不是本笔造成。
-  3. **`CHIP_TONES.default` 的底色由 `bg-panel` 收敛到 `bg-panel-sunk`**：语义更准（普通信息 chip = 沉底），但**视觉上比 `bg-panel` 深一档**。这是全站范围的观感变化，没有逐屏截图归档（spec §7.7「真实浏览器点击」那条未验证面在本轮同样成立）。
-  4. **未提交时的裸奔**：本笔 34 个文件在提交前经历了一段无 commit 窗口；共享工作树下若被并行会话 commit 覆盖，归因会串。
-- **owner 手上未收的**: ① `CHIP_TONES.default` 底色收敛带来的全站观感变化是否接受（要不要保留 `bg-panel`）② 侧栏十项对 DESIGN.md 的偏离裁定（承 `[DEV-0091]` 未清）③ spec §7.6 四条人工腿（截图归档）④ 推送授权
+  1. **一处变异腿第一次没红，暴露了实现本身的缺陷**：初版把 `existingKeySha` 写成 `payloadDigest(...).slice(0,8)` —— 既**不满足 FR-7.1 要的 sha256**（那是截断的 JSON 文本），又让「不回显载荷」那条断言形同虚设（截断 8 字符当然不含机密内容，断言照样过）。**断言太弱与实现太弱是同一件事的两面**：改用真 `crypto` sha256，并把断言加严到 `^[0-9a-f]{8}$` 且断言两个 sha **不相等**，重测即红。
+  2. **新引入了一处 flaky，已定位并处置**：`tests/seed-check.test.ts` 的 `SCRIPT-SEED-01` 间歇超时。**根因**：该文件每条 `it` 要 spawn 1–3 次 `tsx` 子进程（`runSeedCheck` 的 `spawnSync`，内层已给 60 秒），而 **vitest 单测默认超时只有 5 秒** —— 两个上限打架，并行抢 CPU 时顶破的是**外层**那个 5 秒，报出来是「test timed out」而非任何断言失败。**证据链**：并行约 607 支时 4 轮挂 2 轮；把本轮新增的 3 份测试移出、回到 580 支时连跑 3 轮全绿 ⇒ **不是断言错，是负载敏感，且是本轮新增的测试量把它压出来的**。**处置**：给该文件 5 条 `it` 统一加显式 `TEST_TIMEOUT = 60_000`，**断言一字未改** —— 加超时只是让外层上限不再比内层先到，不是放宽判据。处置后连跑 4 轮 607/607 全绿。**诚实登记：底层脆弱性是既有的（这个测试天生吃 CPU），但本轮让它显形了。**
+  3. **`ORDER BY` 缺唯一键兜底，被仓库既有守卫抓到**：`tests/order-determinism.test.ts` 的 `UT-ORDER-01` 判红我写的两处 —— `agent_ingests` 的 `ORDER BY created_at DESC`、`local_events` 的 `ORDER BY day DESC, kind ASC`（末位须是 `id`/`rowid`/`entry_no`/`version_no`）。**同秒写入的两条会顺序抖动**，是真缺陷不是误报。已补 `, id ASC` 并在代码注释里写明「不是装饰」。
+  4. **本轮仍未 commit**，且工作树另有 50 个非本会话的 `apps/` `packages/` 改动（并行会话，归属未变）。入库前须逐文件 `git diff -U1` 核归属。
+- **owner 手上未收的**: ① **探针运行半边五问**仍未做（harness 已装，等 owner 在 Trae/CodeBuddy GUI 跑完 ⇒ 才能写 0-i `m8-skill-bridge.md`）；② **号位 §17/§18** 最终归属待入库时裁；③ **Phase 1/2 工期**不排；④ 本笔未 commit、未 push、无对外动作。
+
+## [DEV-0096] M8-B 服务层 ＋ 回流写入面路由（`agentService` 第五个服务 · 三层打通 ＋ 一处规格与传输层的实况落差）
+
+- **时间**: 2026-10-15 07:35（本机 darwin；起手提交树 = `4b42642`，未前进）
+- **类型**: **B 级**（新增服务层函数与 HTTP 端点；不动 design §7 契约面 / §8 冻结面 / golden）。owner 2026-10-15 指令「继续」——承接 DEV-0095。
+- **关联文件**: 新建 `packages/shared/src/schemas/agent.ts`、`packages/core/src/services/agentService.ts`、`packages/core/src/services/agentService.test.ts`、`apps/server/src/routes/agent.ts`、`apps/server/test/agent.api.test.ts`；改 `packages/core/src/index.ts`（出口面）、`packages/shared/src/index.ts`（schema 出口）、`apps/server/src/app.ts`（注册 `registerAgentRoutes`）
+- **打通的三层**：`schemas/agent.ts`（入参/出参 zod）→ `agentService.ts`（幂等裁决 ＋ 台账写入 ＋ 体量三值）→ `routes/agent.ts`（只做解析/调服务/序列化，**不碰 repo**）。台账写入点集中在 `agentService` 一处（ledger FR-3），路由层新增端点不会稀释它。
+- **新增端点**：`POST /api/agent/ingest` · `GET /api/projects/:id/agent-ingests` · `POST /api/agent/ingests/:id/review`
+- **测试验证**（本机实跑）:
+  - `pnpm typecheck` rc=0 · `pnpm lint` rc=0 · `pnpm seed:check` rc=0；
+  - `pnpm test` **68 文件 / 626 支全过**，**连跑 2 轮全绿**（DEV-0095 的 seed-check flaky 处置后稳定）；
+  - `pnpm bundle:check` 通过（入口 267.27kB ≤ 300kB，余量**未减**）；
+  - 红线：R2 `core→adapters` 命中 **0**；R4 `server→apps/cli` 命中 **0**；`tests/golden/` 与 `content/seed/` **零触碰**；
+  - **三条变异腿**：台账 payload 混入 `body` ⇒ FAIL；全条失败时抛 4xx（不再恒 200）⇒ FAIL；去掉总量上限判断 ⇒ FAIL（DEV-0096 补的服务层直测专为此设）。
+- **潜在风险**:
+  1. **⚠️ 规格数字与传输层现实对不上（本笔最实质的发现）**：`agentService` 声明的 **2 MB 总量上限经 HTTP 永远触达不到** —— `apps/server/src/app.ts` 用 `Fastify({ logger: false })`、**未设 `bodyLimit`**，Fastify 默认 **1 MB**，超大请求在到达服务层前就被 **413** 拒掉。处置：**不偷偷抬 `bodyLimit`**（那是全 server 面的改动，会让所有端点都接受更大请求体），改为 ① HTTP 侧测试**按实况断言 413** ② 新增 `agentService.test.ts` **绕开传输层直测**把三条上限逐条钉死。**代价已知**：域内 2 MB 规则目前只有 CLI/未来抬了 bodyLimit 才吃得到；**若 owner 要让 agent 真能推 >1 MB 载荷，需单独裁 `bodyLimit`**。
+  2. **一处把约束套错层的实现，已移除**：最初对 agent 上报的 `payload` 扫「台账禁列」（含 `body`/`cwd`），结果 `dev_log` 这类**正文本就该叫 body** 的 kind 被整条拒掉、五种 kind 全军覆没。**错在**：FR-5.1.2 的禁列约束的是**台账事件的 payload_json**（要聚合、长期留在本机库），不是 agent 上报给 `agent_ingests` 的载荷（后者本就是这功能要存的内容）。改为**台账侧白名单构造**（`LEDGER_PAYLOAD_KEYS` 显式列键 ＋ 测试断言 `Object.keys(...)` 恰为 `['kind','sourcePlatform']` 且不含 body/cwd），上报侧只管体量不管内容。
+  3. **冲突行原先从不转 `conflict` 态**：四态闭集里 `conflict` 的存在意义是让 Web 面板加重视觉权重（M8-E FR-5.1.1.2），但实现只在响应里返回 conflict、**没更新那一行的状态** ⇒ 待确认队列里只剩看不出异常的 pending。已补 `UPDATE ... SET status='conflict'`；**「先到者一个字节不改」指的是内容（payload/created_at），不是裁决状态** —— 状态不标人无从介入。这条区分已写进代码注释与测试名。
+  4. **本轮仍未 commit**，工作树另有并行会话的 `apps/` `packages/` 改动（`navCounts.ts`/`schemas/nav.ts` 等，非本会话）。入库前须逐文件 `git diff -U1` 核归属。
+- **owner 手上未收的**: ① **`bodyLimit` 是否抬到 ≥2 MB**（见风险 1，属全 server 面改动，需单独裁）；② **探针运行半边五问**仍未做（harness 已装，等 GUI 跑完才能写 0-i）；③ **号位 §17/§18** 最终归属待入库时裁；④ **M8-C（CLI 三命令）／M8-D（context 端点）** 未开工；⑤ 本笔未 commit、未 push、无对外动作。
+
+## [DEV-0097] M8-D 聚合查询面（`contextService` ＋ `GET /context` ＋ 一处方向 bug ＋ 一处测试自身的真空陷阱）
+
+- **时间**: 2026-10-15 11:27（本机 darwin；起手提交树 = `4b42642`，未前进）
+- **类型**: **B 级**（新增服务层与只读端点；不动 design §7 契约面 / §8 冻结面 / golden / `bodyLimit`）。承接 DEV-0096 的 owner 指令「继续 M8-D」。
+- **关联文件**: 新建 `packages/shared/src/schemas/context.ts`（159 行）、`packages/core/src/services/contextService.ts`（285 行）、`packages/core/src/services/contextService.test.ts`（262 行）；改 `apps/server/src/routes/agent.ts`（增 `GET /api/projects/:id/context`，共 73 行）
+- **实现要点**:
+  - **消费者是 agent 不是人**，三条取舍都由这一句推出：不返日志 `body`（FR-3.2.2，上下文体积敏感，正文另取）；预算裁剪顺序**写死** logs → assets → checklist（FR-3.4）——顺序决定 agent 看到什么，所以它是规格不是实现细节；**每次裁剪都进 `truncated`**，因为 agent 会把「被砍掉的检查项」当成「不存在」，那比报错更坏。**静默截断是这个面最严重的缺陷形态。**
+  - **`readLock` 注入而非直读文件系统**：让「读不到 lock」这条分支在测试里可控，否则该分支只能靠真实文件系统布局去凑。
+  - **checklist 勾选态按「行是否存在」判**：实测 `project_check_states` 取消勾选是 **`DELETE`** 而非置 null，写成 `checkedAt !== null` 会**永远为真**。
+  - **资产计数走 SQL `COUNT(*)`**，与 `routes/navCounts.ts` 同表同口径 —— 不另建计数来源，否则两处数字会漂。
+  - 预算低于结构下界（200 字符）**抛 422 而非返回一个残缺上下文** —— 后者更糟。
+
+- **测试验证**（本机实跑，支数以汇总行为准）:
+  - `pnpm typecheck` rc=0 · `pnpm lint` rc=0 · `pnpm seed:check` rc=0；
+  - `pnpm test` **69 文件 / 644 支全过**，**连跑 2 轮全绿**（较 DEV-0096 的 68/626 增 1 文件 18 支，对得上）；
+  - `pnpm bundle:check` 通过 —— **入口 267.27kB ≤ 300kB / 41 chunk，最大 347.45kB ≤ 500kB**（余量**未减**）；
+  - 红线：R2 `core→adapters` 命中 **0**；R4 `server→apps/cli` **真实 import 为 0**（`grep` 命中 5 条**全在注释里**，是记录 R4 规则本身的说明文字，非 import）；`tests/golden/` 与 `content/seed/` **零触碰**；
+  - **三条变异腿**（闸必须能红才算数，逐条实跑）：把第三刀（checklist）改成永不触发 ⇒ **恰 1 支红**（就是「砍 checklist 必须整段写明」那条，其余 17 支不受影响）；把 fixture 缩回 2 条 ⇒ **恰 1 支红**（守卫生效）；把 `shrinkLogs` 改回从后往前留 ⇒ **恰 1 支红**（「先砍 logs」那条）。三条还原后 18/18 全绿。
+
+- **潜在风险**:
+  1. **🔴 本笔抓到的真 bug：`shrinkLogs` 留的是最旧的日志，与注释声称的相反**。原实现从数组**末尾倒着**走以「保留下部」，而 `DevLogRepo.list()` 的 SQL 是 `ORDER BY created_at DESC, entry_no DESC` —— **最新在前**。于是「留最新的」这个意图在实现里变成了「留最旧的」，且**不报错、不留痕**，只是安静地给 agent 一堆过期日志。已改为从前往后留。**为什么这条值得单列**：它是**注释与实现方向相反**型缺陷，`grep` 查不出、类型检查查不出、代码审查时读起来还很顺，只有让判据真的跑一次反向变异才暴露。处置：代码注释里写明「依赖上游排序方向」，并补一条**钉死排序方向**的用例（断言 `['第 2 条','第 1 条','第 0 条']`）—— 上游若改成升序，这里会立刻红而不是静默劣化。
+  2. **⚠️ 一条测试自身的「真空陷阱」—— 断言看起来对，实际什么也没验**：「砍 checklist 必须整段写明」原本用默认 fixture（2 条短检查项），实测 `{logs,assets,checklist}` 序列化后 ≈ **183 字节**，而 `build` 的结构下界是 `MIN_BUDGET_CHARS = 200`。**于是任何合法 budget（≥200）都压不动它**，那条用例是红的、且红的原因与判据无关。更危险的是它日后只要被人把断言改松就变成**永真** —— 一条永不失败的测试比没有测试更坏，因为它占用「已覆盖」的假象。处置：① 换用真实体量的 fixture（6 条 · 长文案 ≈ 617 字节）让预算 220 真能逼出裁剪；② **在用例里先证明「不裁剪时确实超预算」**（`fullBytes > 220` ＋ `items.length === 6`），把「fixture 被改小 ⇒ 用例失效」也变成可红的判据。**教训：判据的强度取决于 fixture 的体量，而 fixture 体量必须 > 被测阈值 —— 这条约束没有任何编译器或 linter 会提醒你。**
+  3. **`bodyLimit` 落差延续自 DEV-0096，本笔未解**：`agentService` 的 2 MB 总量上限经 HTTP 仍**永远触达不到**（Fastify 默认 1 MB）。本笔**未偷抬** `bodyLimit`（属全 server 面改动，会让所有端点都接受更大请求体）。**若 owner 要让 agent 真能推 >1 MB 载荷，需单独裁。**
+  4. **RF1-1 服务层的 `packService` / `injectService` 尚未写**：`services/` 目录目前只有 `agentService` 与 `contextService`。且 `service-layer.md §6.6` 点名的三个搬迁对象（`settings.ts` / `packs.ts` / `sync.ts`）**都在并行会话那 50 个改动里**，动之前须逐文件核归属。
+  5. **本轮仍未 commit**，工作树另有并行会话的 `apps/` `packages/` 改动（`navCounts.ts`/`schemas/nav.ts` 等，非本会话）。入库前须逐文件 `git diff -U1` 核归属；冻结凭据用带 ref 的形态 `git diff --name-only <BASE>..HEAD -- tests/golden/ content/seed/`。
+
+- **owner 手上未收的**: ① **`bodyLimit` 是否抬到 ≥2 MB**（见风险 3，属全 server 面改动，需单独裁）；② **探针运行半边五问**仍未做（harness 已装，等 GUI 跑完才能写 0-i `m8-skill-bridge.md`）；③ **号位 §17/§18** 最终归属待入库时裁；④ **M8-C（CLI 三命令）／M8-E（Web 面板）** 未开工；⑤ 本笔未 commit、未 push、无对外动作。
+
+## [DEV-0098] 服务层落地（`packService` ＋ `injectService` ＋ R5 两条规则 ＋ 一处 spec 的 zone 方向反了）
+
+- **时间**: 2026-10-15 11:54（本机 darwin；起手提交树 = `4b42642`，未前进）
+- **类型**: **B 级**（新增两个服务与单测；改 eslint 规则表 ＋ 两处调用点；不动 design §7 契约面 / §8 冻结面 / golden）。承接 owner 2026-10-15「按照建议完成手上未收的任务」。
+- **关联文件**: 新建 `packages/core/src/services/packService.ts`、`packages/core/src/services/packService.test.ts`(7 支)、`packages/core/src/services/injectService.ts`、`packages/core/src/services/injectService.test.ts`(11 支)；改 `eslint.config.js`（R5 两条规则）、`packages/core/src/index.ts`（services 出口段）、`apps/server/src/routes/packs.ts`（导出编排改调服务层）、`apps/cli/src/commands/sync.ts`（决策规则改调服务层 ＋ `SyncError` 改为 core 的 `InjectError` 别名）、`packages/shared/src/constants.ts`（仅注释）、`docs/specs/{service-layer,m8-agent-bridge}.md`
+
+- **🔴 本笔最实质的发现：`service-layer.md` FR-4.1 的 zone 方向写反了，照抄会把服务层打死**
+  - spec 原文：`{ target: './packages/core/src/services', from: ['./packages/core/src/repos', './packages/core/src/db'] }`。
+  - 但 `import-x/no-restricted-paths` 的语义是「**target 里的文件不得 import from 里的路径**」⇒ 照抄得到的是**恰好相反**的规则。
+  - **实测证据**：首次实跑 `pnpm lint` 即报 **14 处错，全部落在 `services/` 内**（如 `contextService.ts:12` 引 `../repos/localEvents`）。那是把服务层的本职工作禁掉了 —— 服务层存在的意义就是编排 repo。
+  - spec 自己写的 message「repos／db 是下层，**禁止回调服务层**」才是对的语义。正确写法：`target: [repos, db]`、`from: [services]`，与 R1–R4 全部五条 zone 同一形制。
+  - **处置**：按 message 语义实现，spec 正文待改版时同步订正（已在 `service-layer.md §7.8` 留下勘误段）。
+  - **教训形态**：这类错误**编译不报错、类型不报错、读起来完全顺**。唯一暴露它的是「照字面写完立刻跑闸」——如果我当时直接写完就去改文档，R5 会带着反向语义进仓，而它**看起来**是条正经的架构规则。
+
+- **两条规则落地（FR-4）**
+  - **FR-4.1 R5 zone**：纯路径关系（下层禁止回调上层），`target: [repos, db]` / `from: [services]`。
+  - **FR-4.2 传输无关块**：`files: ['packages/core/src/services/**/*.ts']`，patterns 覆盖 `fastify` / `fastify/*` / `@fastify/*` / `commander` / `@clack/*` / `node:http` / `node:https` / `node:net` / `node:readline` / `node:tty` / `node:child_process`。**必须含子路径形式**（`@clack/*`）——理由照 `eslint.config.js:44` 的既有注释，`exports` 子路径导出会绕过裸包名。
+  - **`node:child_process` 不在 FR-4.2 原列表，但本轮纳入**：FR-1.3 明写禁止，且 core 起子进程会破坏「core 可在无 app 环境下运行」的前提（CLI 离线模式的前提条件）。这是**收紧** spec 而非放松，已在注释里写明理由。
+
+- **`packService`（组包 → 导出）**
+  - 把 `routes/packs.ts:76-121` 的导出编排整段迁入，入口 `exportPackWithRecord`（FR-1.1 点名的形态）。
+  - **`renderPack` / `packExportDir` / `writeDirectoryExport` 全部经 `deps` 注入，不是 import**：`pack-assemble.ts:1` 直连 adapters 包，core 若 import 即破 R2（FR-5.1），按 FR-5.2 的处方注入。**这不是权宜之计而是正解**——core 侧本来就只吃注入的 `AdapterBundle`，adapters 的 import 只该发生在最外层那一处。
+  - **本轮没搬 preview，已如实登记**：preview 走 `toPreviewOut` → `buildSizeEstimate`，后者直读 `ADAPTER_MAIN_PATH`（同在 adapters 上）。要搬得连它一起注入，是另一笔改动，**不夹带**。
+
+- **`injectService`（计划 → 决策 → 应用 → 核验）**
+  - **它要解决的问题是「编排被包边界劈开了」**：四步里三步的原件早在 core（`planInjection` / `applyDecisions` / `checkPackInjectable`），**唯独中间那步「决策」留在 CLI** —— 因为它要问用户，而「问用户」在 CLI 侧是 `@clack` 的 `select`。结果是：真正决定「这次注入会不会动我的文件」的那一步，恰好是唯一测不到传输无关形态的一步。
+  - 按 FR-3.3 把终端交互经 `AskFn` 注入，决策规则整体下沉；`askWithClack` 那一行**仍留在 CLI**。
+  - **`InjectError` 从 `sync.ts` 迁入 core**：它守的是决策规则，规则搬到 core 而错误留在 app 会迫使 core 反向依赖 app（破 R3）。CLI 侧 `export { InjectError as SyncError }` 是**同一个类对象的别名**，所以三个测试文件的 `toBeInstanceOf(SyncError)` **一字未改仍然绿**。
+  - **执行顺序照搬既有 `syncAction`（核验 → 计划 → 决策 → 应用），不是按 FR-1 的字面顺序** —— 安全防线必须在计划之前：整包一旦有违规路径就零写入，连「打算写什么」都不该对外可见。FR-1 那一串是能力清单，不是时序图。
+
+- **测试验证**（本机实跑，支数以汇总行为准）
+  - `pnpm typecheck` rc=0 · `pnpm lint` rc=0 · `pnpm seed:check` rc=0；
+  - `pnpm test` **71 文件 / 662 支全过**，**连跑 2 轮全绿**（较 DEV-0097 的 69/644 增 2 文件 18 支）；
+  - `pnpm bundle:check` 通过 —— 入口 267.27 kB ≤ 300 kB / 41 chunk，余量**未减**；
+  - 红线终检：`core→adapters` **0** · `services→传输层` **0** · `repos/db→services` **0**；`tests/golden/` 与 `content/seed/` **零触碰**；
+  - **既有测试零改动**（IT-SVC-01 / UT-SVC-04 实测）：`apps/server/test/packs.api.test.ts` **18/18 绿且 `git diff` 为空**；`apps/cli/test/` **全部零改动**，涉 sync 的 6 个文件 **99/99 绿**（含真子进程 CLI 契约测试）；
+  - **七条变异腿**（闸必须能红才算数，逐条实跑）：R5 zone（repos 回调 services）判红 / `@clack/prompts` 判红 / `@clack/prompts/dist/x` **绕过面**同样判红；`packService` 的 `deps.now()` 换成隐式 `nowIso()` 判红、跳过 `directoryFiles` 直接把 `rendered` 交给写盘判红；`injectService` 去掉 TTY 判断判红（**恰 2 支**：NEED_TTY 那条与「注入了 ask 也拒绝」那条）、dry-run 静默不留说明判红。全部还原后复跑判绿。
+
+- **潜在风险**
+  1. **FR-3.1 的收敛判据本轮未达成**：`apps/server/src/routes/` 的 `new [A-Z]*Repo(` ＋ `db.prepare(` 命中数仍为 **19**。已搬的只有 FR-3.2 点名的导出编排（`packs.ts`）与决策规则（`sync.ts`）；**`settings.ts` 的聚合 SQL 按 FR-3.2 指向 `statsService`，而该服务随 RF1-5 一起未开工**，故那一处不能夹带。**这是「没做完」，不是「已收敛」。**
+  2. **FR-2（`verifyAgainstLock` 合一）本轮未做**，`UT-SVC-03` 无对应测试。
+  3. **§7 m 条的「CI 支数逐字」已不成立**：它以 §3-9 的 58 文件/538 支为基线，而 M8 与本轮各自新增了测试。当前基线 **71 文件 / 662 支**，**该条须随 §3-9 重新采样后才可判**。不重采就判「通过」是自欺。
+  4. **一处自指差点污染红线闸**：`packService.ts` 的注释里写了 adapters 包名的字面量来解释「为什么不 import 它」，而 FR-5.1 的判据正是 `grep -rn "<该包名>" packages/core/src | grep -v test | wc -l` ⇒ **注释行把自己算成了命中**，红线由 0 变 1。已改写措辞（保留完整理由，去掉字面量）。**这是「文档里写复算命令要防自指」那条教训在代码注释上的同形复现** —— 判据扫全文，就必然扫到解释判据的那段文字。
+  5. **`bodyLimit` 落差已按建议处置为「不抬、改口径」**（DEV-0096 的欠账）：Fastify 默认 1 MB ⇒ FR-2.6 的 2 MB 是**域内**上限，经 HTTP 实际封顶在 1 MB 以下。已在 `m8-agent-bridge.md` 新增 **FR-2.6.2** 与 `constants.ts` 注释里把这条边界写死，并注明「该裁未做前不得宣称 agent 可推 2 MB」。**抬 `bodyLimit` 仍是待 owner 单独裁的项**（属全 server 面改动）。
+  6. **§6.6 警告的归属风险本轮实测为「无」**：`settings.ts` / `packs.ts` / `sync.ts` 三者**均不在工作树改动清单内**（并行会话动的 50 个文件是 `apps/web/*` 与 `navCounts.ts` / `schemas/nav.ts` 等），故本轮可安全动这三个干净文件。
+  7. **本轮仍未 commit。** 工作树另有并行会话的 `apps/web/*`（约 45 个）与 `navCounts.ts` / `schemas/nav.ts` / `demo/` / `redesign/` 改动，**不属本会话**。
+
+- **owner 手上未收的**: ① **抬 `bodyLimit` 是否做**（见风险 5，属全 server 面改动）；② **0-f 台账总闸**仍未验，M8 埋点欠账待其转绿后重跑；③ **探针运行半边五问**仍未做（harness 已装，等 GUI 跑完才能写 0-i）；④ **§3-9 基线重采样**（FR-6.1 的判据依赖它）；⑤ **FR-3.1 收敛 / FR-2 合一 / `statsService`·`growthService`** 均未完成；⑥ 本笔未 push、无对外动作。

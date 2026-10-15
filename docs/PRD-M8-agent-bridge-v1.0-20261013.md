@@ -1,0 +1,649 @@
+# PRD · M8 Agent 接入层（vibecoding 助手桥接）
+
+| 项 | 值 |
+|------|------|
+| 产品名 | **OpenVibe** / 灵典 |
+| 模块代号 | **M8 · Agent 接入层**（PRD 3.2 现为 M1–M7；M8 为本 PRD 新增的第 8 模块） |
+| 版本 | **v1.1（2026-10-14）**。v1.1 把 **§11 七项待裁中的六项**按 owner 2026-10-14 裁定回填，并同步 §3.1 分发形态、§3.3 优先级、§3.6 表形态、§4.1/§4.4 边界、§9 Phase 划分；**§11-待裁②（Trae/CodeBuddy skill 发现约定）仍未闭合** ⇒ M8-A 仍不可规格化，`docs/specs/m8-skill-bridge.md` 本轮不写。<br>上一版 **v1.0 草案（2026-10-13）**：初版，§11 列出 7 项待裁 |
+| 状态 | **规格链已闭合，唯 M8-A 待探针**——十二项裁决已入账（`docs/dev-plan-v0.2.1.md` §5）；**「Phase 0 已执行」≠「Phase 0 已通过」**：总闸 RF1-5 台账仍红，本迭代**不可开工** |
+| 上游 | `docs/PRD.md`（v0.2.0 全本，尤其 §0 决策记录、D2/D7/D19/D29）· `docs/specs/m2-skill-registry.md` · `m2-skill-distribution.md` · `m5-project-flow.md` · `m6-cli-injection.md` · `m6-standard-pack.md` · `local-event-ledger.md` · `service-layer.md` · `output-validation.md` |
+| 下游设计 | `docs/design.md`（§5 数据模型 / §6 路由面 / §7·§8 契约面）· `docs/tasks.md` · `docs/dev-plan.md` · `docs/decisions.md` |
+| 文档结构 | 标准 PRD 模板 11 章 + 2 附录；**埋点独立成第 6 章**（不塞进既有 `local-event-ledger.md`，理由见 §6.1） |
+| 命名 | `[类型]-[域]-[描述]-[版本]-[日期]` |
+
+---
+
+## 0. 需求澄清与待裁决策记录
+
+> owner 原始需求（2026-10-13，口语转述）：「完善 OpenVibe 的 vibecoding 助手能力，包括但不限于 openvibe skill 开发和其他如 trae 等国内主流 agent 调用 OpenVibe skill 抓取项目信息，同步项目信息到 OpenVibe（项目进展、会话主要信息、项目需求、项目状态、其他必要项目信息），同时支持调用 OpenVibe cli 获取指定项目信息（前端 web 调用后端能力执行），其他能够更便捷获取 vibe coding 项目进度和流程化、标准化开发优质项目的功能。」
+
+**一句话收束**：**让 AI 助手成为 OpenVibe 的读写两端，而不是只当被写入的靶子。**
+
+### 0.1 需求原文的消歧（本 PRD 作出的解释，须 owner 确认）
+
+| # | 原文歧义点 | 本 PRD 的解释 | 若判错的后果 |
+|---|---|---|---|
+| A1 | 「openvibe skill 开发」双义：① 开发**管理 skill 的能力** ② 开发**一个供 agent 调用的 OpenVibe 官方 skill** | 取②为主任务（M8-A）。①已存在（M2 扫描/登记/远程源/分发，见 §1.1-4），本 PRD 不重做 | 若取①，则整份 PRD 范围作废 |
+| A2 | 「前端 web 调用后端能力执行」的"调用 CLI"是否指后端 shell out 调 CLI | **否**。指 Web → HTTP API → 服务层，与 CLI 共用同一套业务能力（`service-layer.md` FR-1 的既定架构）。**后端不 fork 子进程跑 CLI**（理由见 §4.8） | 若确实要 shell out，则 §3.4 形态变、M8-E 范围翻倍 |
+| A3 | 「抓取项目信息同步到 OpenVibe」中"抓取"由谁执行 | **由 agent 侧执行、OpenVibe 侧只收**。OpenVibe 不做通用的源码语义解析（见 §3.3 非目标） | 若要 OpenVibe 主动解析源码，M8 范围需扩一个季度 |
+| A4 | 「项目需求」指 PRD 级需求条目还是一句话描述 | 取**结构化需求条目**（标题/状态/优先级/来源会话），与既有 `tasks` 表分离（理由见 §3.7） | 若取轻量文本，则 `requirements` 表可砍 |
+
+### 0.2 本 PRD 与既有裁定的接口（不改既有裁定）
+
+- **不推翻 D2/D7**：M8 不改七大模块的权重，也不新增 adapter（复用既有六个）。
+- **受 D19 约束**：M8 一切写盘行为仍走 `sync` 的三重保护与 `sync.lock` 互斥，M8 **不得**新开一条绕过 `inject/` 的写路径。
+- **受 D3 约束**：M8 新增事件**不进遥测白名单**，只进本机台账（§6.3）。
+- **受 D29 约束**：台账表仍不出网、不新增网络面。
+
+---
+
+## 1. 需求背景与目标
+
+### 1.1 现状实测基线（**首次采样 2026-10-13 工作树 `54789b8`；已就地订正于 2026-10-13 21:0x 复采 `4b42642`**，见每行「现测值」列；每条给复算命令）
+
+> **订正登记**：本表初稿采样于提交树 `54789b8`。一小时后复采发现 HEAD 已走到 `4b42642`（DEV-0090/0091/0092 三个提交落地 **M4 技巧库**），**第 5/6/7/8/11 行的值已变**，第 5/6/7/8 行就地改为复采值并标注。第 5/6 行的原值保留在括号内，因为「路由数从 10 涨到 13」本身是 M4 落地这件事的凭据。
+
+| # | 量 | 现测值 | 复算命令 |
+|---|---|---|---|
+| 1 | CLI 命令面 | **5 个**：`serve` / `sync` / `scan` / `diff` / `clean`（两采样未变） | `grep -c "\.command('" apps/cli/src/index.ts` |
+| 2 | CLI 中**读取项目信息**的命令数 | **0**。五个命令全是「写出去」（注入/退场/本地比对）或「常驻服务」 | `grep -n "\.command('" apps/cli/src/index.ts` |
+| 3 | 专用 adapter | **6 个**，`trae` 已在内 | `sed -n '9,16p' packages/shared/src/constants.ts` |
+| 4 | trae adapter 的产物形态 | **单个静态规则文件** `.trae/rules/openvibe.md` + frontmatter，**无任何可执行/可调用面** | `sed -n '18,30p' packages/adapters/src/trae.ts` |
+| 5 | server 路由数 | **13**（原 10；M4 落地新增 `cliCommands.ts` / `navCounts.ts` / `playbooks.ts`） | `ls apps/server/src/routes/ \| wc -l` |
+| 6 | core repo 文件数 | **18**（原 16，含 5 支 `*.test.ts` ⇒ 实现文件 13） | `ls packages/core/src/repos/ \| wc -l` |
+| 7 | 已用迁移号 | **0001–0006**，`0006_playbooks.sql` **已被 M4 占用**（原「0001–0005、0006 空位」）⇒ 下一空号 **0007** | `ls packages/core/src/db/migrations/` |
+| 8 | `0006` 号位的既有占位方 | **两方在争**：M4 已落地占位；`local-event-ledger.md` 仍有**四处**断言「0006 号位可用」（`:8` / `:26` / `:38` / `:54`），**该断言现已过期**（见 §11-待裁①）→ **⚠️ 本基线已被 v1.1 行订正并回改完毕：实为 6 处（多一个 `:105` 在验收表里），且 owner 裁定「本轮同批回改」已授权并执行完毕（`0006` → `0007`）。本行按基线快照原样保留。** | `grep -n '0006' docs/specs/local-event-ledger.md` |
+| 9 | 会话（session）相关存储 | **0 张表**。M5 的「AI 会话记录挂接」是 **P1 未实现**；`m5-project-flow.md` 第 28 行把它列为 P1 | `grep -rn 'CREATE TABLE' packages/core/src/db/migrations/*.sql \| grep -ci session` → 0 |
+| 10 | 回流链的读写面 | 读链已在（`GET /api/reflow-origin/:assetId`），**写链只有 link，无候选提取** | `grep -rn 'reflow' apps/server/src packages/shared/src/schemas` |
+| 11 | 遥测事件白名单 | 3 类：`pack_injected` / `flow_template_used` / `project_active`（复采样行号 `:75`，值未变） | `grep -n 'TELEMETRY_EVENTS' packages/shared/src/constants.ts` |
+| 12 | 本机台账 | **spec v0.9 草案，未开工**；命中 0（**且它声明要用的 `0006` 号位已被 M4 占用**）；web 侧发射点 0 | `grep -rn 'local_events' --include='*.ts' --include='*.sql' apps packages \| grep -v dist \| wc -l` |
+| 13 | 服务层 `core/src/services/` | **不存在** | `ls packages/core/src/services 2>&1` |
+| 14 | `projects` 表字段 | `name / local_path / flow_template_id / stages_snapshot / current_stage / status / standard_pack_id / standard_pack_version`；`status` 闭集 = `active\|paused\|archived` | `sed -n '85,98p' packages/core/src/db/migrations/0001_init.sql` |
+| 15 | `tasks` 表 | `title / stage_name / status`；`status` 闭集 = `todo\|doing\|done` | `sed -n '109,117p' packages/core/src/db/migrations/0001_init.sql` |
+| 16 | `dev_log_entries` 表 | `type` 闭集 = `DEV\|CHECK`，有 `entry_no` 唯一约束 | `sed -n '119,132p' packages/core/src/db/migrations/0001_init.sql` |
+| 17 | **CLI 命令元数据单源**（**初稿写作时尚不存在此文件**，21:0x 复采新增） | **`packages/shared/src/cli-commands.ts` 已落地**，五条命令快照齐全；`apps/server/test/cliCommands.api.test.ts` 断言其命令名集合**逐字等于** `apps/cli/src/index.ts` 的已注册名 ⇒ **新增 CLI 命令而不登记，本支测试当场变红** | `sed -n '99p' apps/server/test/cliCommands.api.test.ts` |
+| 18 | `ERROR_CODES` 闭集 | **11 项**，增删属 B 级且波及全部调用方；**但 CLI 层 `ApiError.code` 是自由字符串**（`apps/cli/src/client.ts`）⇒ 服务端闭集 / CLI 自由串**两层并存**是既有事实 | `sed -n '3,15p' packages/shared/src/errors.ts` |
+
+### 1.2 问题陈述（五个缺口，逐条有据）
+
+| # | 缺口 | 证据 | 用户可感知的症状 |
+|---|---|---|---|
+| **P1** | **OpenVibe 只会「写出去」，不会「读回来」** | 基线 1–2 | AI 助手干完活，项目进度、做了什么、卡在哪，全在聊天记录里；OpenVibe 工作台里的项目卡片永远停在用户最后一次手动录入的那天 |
+| **P2** | **trae 等平台拿到的只是「死规则」** | 基线 3–4 | `.trae/rules/openvibe.md` 告诉 agent「你要遵守什么」，但**没告诉它「你能反过来问 OpenVibe 什么」**。六大平台里没有一个具备回读能力 |
+| **P3** | **会话是项目上下文里最大的信息黑洞，却被判为 P1 未做** | 基线 9 | 「这个需求昨天讨论到哪了」——答案在某个 agent 的会话历史里，人找不动，OpenVibe 也没存 |
+| **P4** | **Web 与 CLI 两条路的能力不对等** | 基线 5 + `service-layer.md` §6.2（待裁①） | 一个动作要么只能 Web 点，要么只能终端敲；用户被迫记住命令 |
+| **P5** | **流程标准化止步于「文件注入」** | `m5-project-flow.md` 全篇 | 检查清单、打卡状态、任务板状态全是 Web 里的孤岛，agent 看不见、也不上报——「标准化开发」只有模板，没有闭环 |
+
+### 1.3 核心目标
+
+| # | 目标 | 衡量方式 |
+|---|---|---|
+| **G1** | **助手可读**：agent 能一条命令/一次调用拿到指定项目的结构化进度快照 | `agent_context_served` 计数；README 中「助手读项目」成为首屏卖点之一 |
+| **G2** | **信息可回**：项目进展、会话摘要、需求条目由 agent 自动回流，人只需确认 | `agent_ingest_accepted / rejected` 比值；回流条目中「人工二次编辑」占比 |
+| **G3** | **流程可闭环**：agent 看得见检查清单与任务状态，并能把状态变更回报进来，Web 侧即时反映 | 一次「派单 → agent 干活 → 回报 → Web 看板更新」的端到端跑通率 |
+| **G4** | **入口不对等消除**：Web 面板与 CLI 调同一套服务层能力，行为零差异 | Web 动作与 CLI 动作的同源断言（同一 service 入口） |
+
+**权重裁定（待 owner 确认）**：G2 为主——**没有回流，前面三个都是空转**；G1 是回流的前提；G3/G4 是复利项。
+
+### 1.4 成功指标（M8 上线后 8 周）
+
+> **诚实登记**：M8 依赖本机台账（§6），而台账 spec 仍是 v0.9 草案未开工。**若台账先行落地**，以下为可机读口径；**若台账仍未落地**，五类 kind **只声明不写入**——⚠️ 本句初稿写的是「退化为人工数」，那是 owner 裁⑤**否掉的备选案**；现按裁定⑤（推迟 M8 到台账落地之后）执行，「人工数」兜底不存在。
+
+- **回流侧**：至少 1 个真实项目出现「agent 自主回流 ≥5 次/天」且「rejected 率 < 10%」；
+- **读取侧**：`agent_context_served` 周活项目 ≥ 5；至少 2 个用户在 Trae/CodeBuddy 中实际使用过官方 skill；
+- **闭环侧**：≥50% 的活跃项目，其 `current_stage` 与最近一条 agent 回流时间差 < 24h（即看板不是死的）；
+- **生态层**：官方 skill 包被 ≥3 个外部项目通过 `openvibe sync --target <adapter>` 安装。
+
+### 1.5 非目标（本 PRD 明确不做）
+
+1. **不做通用的源码语义解析器**（不扫代码推断进度）——那是 IDE 插件的活，且与本地优先冲突。
+2. **不做多人实时协作/云端中继**——M7 范围，且队列 ㉓ 阻着。
+3. **不做 agent 的编排引擎**（不替用户决定 agent 干什么）——只提供信息面与上报面。
+4. **不做跨机同步**——台账与项目库均本机。
+5. **不新增 adapter**——复用既有六个（基线 3），P1 三个（windsurf/gemini/copilot）本轮仍不实现。
+6. **不改遥测白名单**——D3 隐私面，正交（§6.3）。
+
+---
+
+## 2. 用户与场景
+
+### 2.1 角色画像
+
+| 画像 | 描述 | 与 M8 的关系 | 优先级 |
+|---|---|---|---|
+| **R1 · 多助手 vibe coder** | 同时用 Trae + CodeBuddy + MiniCode + Cursor 管 3–8 个项目，每天在它们之间切换 | **主用户**：既要被读（问进度），也要能写（回报进展） | P0 |
+| **R2 · 团队 Tech Lead** | 1–10 人团队负责人，规范要落到每个人的 agent 里 | 规范下发靠既有 `sync`；M8 给的是**回收** everyone's 进展 | P1 |
+| **R3 · OpenVibe 维护者** | 本仓库的 owner/贡献者 | skill 包本身要可维护、可版本化 | P1 |
+| **R4 · 首次安装者** | 刚 `npx openvibe-cli serve` | 不知道有 agent 桥接这回事 | P2（先不做 onboarding，后置） |
+
+### 2.2 核心用户故事
+
+| ID | 作为 | 我希望 | 以便 | 对应 FR |
+|---|---|---|---|---|
+| **US-01** | R1 | 在 Trae 里问一句「我现在这个项目到哪一步了」，它直接给我阶段、剩余检查项、进行中任务 | 不用切终端、不用回忆上次干到哪 | FR-1.2 / FR-2.2 |
+| **US-02** | R1 | agent 每完成一个动作，自动把「改了什么、验证结果、卡点」回传给 OpenVibe | 我下班后不用补录日志 | FR-3 全条 |
+| **US-03** | R1 | 我给 agent 派活时，它能把需求拆成任务并写进我的看板 | 看板不再只有我自己手动加的两条 | FR-4 |
+| **US-04** | R1 | 终端里敲 `openvibe status .` 拿到和 Web 上一模一样的数据 | 脚本化、可管道 | FR-2.1 |
+| **US-05** | R1 | 在 Web 面板上点一下就能让 OpenVibe 去扫/问/登记，不碰终端 | 不会命令也能用满 M8 | FR-5 |
+| **US-06** | R2 | 每周打开 Web 就看到全项目本周进展（来自各人 agent 的回流） | 不用挨个问进度 | FR-3 + §3.2 聚合视图 |
+| **US-07** | R3 | 官方 skill 包本身走 OpenVibe 自己的标准包体系，能版本、能 diff、能回滚 | 桥接能力可维护 | FR-1.1 |
+| **US-08** | R1 | agent 回流错项目了/乱传一气，我能一眼看出并否掉 | 台账不变成垃圾堆 | FR-3.4 人工确认门 |
+
+### 2.3 关键场景剧本 A（主路径 · R1 + Trae）
+
+```
+① 首次：R1 在 OpenVibe 建项目 openvibe，登记 local_path=~/dev/OpenVibe，选「Spec 驱动流」
+② 装桥接：openvibe sync ~/dev/OpenVibe --target trae
+        → 项目内出现 .trae/rules/openvibe.md（既有产物）
+        → 项目内新增 .trae/skills/openvibe-bridge/（M8-A 新增产物，SKILL.md + scripts/）
+③ 干活：R1 在 Trae 里说「按 FR-3 加个回流端点」
+④ 读取：Trae 的 agent 识别到 openvibe-bridge skill，执行
+        → openvibe ask context --project openvibe
+        → 拿到：当前阶段/未完成检查项/进行中任务/最近 5 条 DEV 日志/绑定的标准包版本
+⑤ 执行：agent 改代码、跑测试
+⑥ 回流：agent 执行 openvibe session log --project openvibe --type DEV \
+              --title "FR-3 回流端点" --evidence "vitest 42 passed"
+        → CLI → POST /api/agent/ingest → 服务层 → 落 dev_log_entries + local_events
+⑦ 看板：R1 切到 Web，项目卡片显示「3 分钟前由 trae 回流」，勾选了一个检查项
+⑧ 关环：R1 下次问「上次那个验证怎么跑的」，agent 用同样机制读回 evidence 字段
+```
+
+**这个剧本里每一步都必须是机器可核验的**——剧本本身即 §8 验收用例 (a)。
+
+### 2.4 关键场景剧本 B（异常路径 · R1 + 错项目）
+
+```
+R1 在项目 A 干活，但 agent 误把工作目录认成项目 B
+→ openvibe ask context --project B 正常返回（读侧不设障）
+→ openvibe session log --project B ... 
+→ 服务层校验：local_path 与 agent 上报 cwd 不一致 ⇒ 标 conflict，不静默写入
+→ Web 侧「待确认」区高亮该条，用户点「否」→ 不入库，台账记 rejected
+```
+
+### 2.5 使用频率预估
+
+| 频率 | 动作 | 主导角色 |
+|---|---|---|
+| 每天 5–20 次 | agent 侧 `ask context` + `session log` | R1（经 agent） |
+| 每天 | Web 侧「待确认回流」清空 | R1 |
+| 每周 | Tech Lead 看聚合进展；维护者更新官方 skill 包 | R2 / R3 |
+| 事件驱动 | 新项目建桥接、标准包升级后 skill 同步 | R1 / R3 |
+
+---
+
+## 3. 功能描述
+
+### 3.0 模块总览与依赖
+
+```
+┌─────────────────────── M8 Agent 接入层 ───────────────────────┐
+│ M8-A  官方 Skill 包   ── 一个 openvibe-bridge skill，随标准包分发  │
+│ M8-B  回流写入面      ── POST /api/agent/ingest（幂等 + 人工确认） │
+│ M8-C  CLI 读取/回流面  ── ask / status / session / requirement      │
+│ M8-D  聚合查询面      ── GET /api/projects/:id/context（agent 读）  │
+│ M8-E  Web 直调面板    ── 与 CLI 同源的 Web 入口                    │
+└───────────────────────────────────────────────────────────────────┘
+        ↑ 依赖：service-layer.md（服务层，未开工）· m2 分发 · m6 注入/锁
+        ↓ 供给：m5 项目流程（状态/清单/日志）· local-event-ledger（埋点）
+```
+
+**依赖顺序（不可换）**：服务层 → 台账 → M8-D → M8-B → M8-C → M8-A → M8-E。
+理由：M8-B/C/E 都要求「route 薄、逻辑在服务层」（`service-layer.md` FR-3），服务层未落地就先写 route，等于把待收敛的代码再写一遍。
+
+### 3.1 M8-A · 官方 Skill 包
+
+| 功能 | 说明 | 优先级 |
+|---|---|---|
+| **FR-1.1 skill 本体** | 一个 `openvibe-bridge` skill：`SKILL.md`（意图→命令映射表）+ `scripts/openvibe-bridge.{sh,ps1}` + `references/api.md`。**脚本零依赖**（bash/PS 双形态，照 m6b 三平台硬要求 D5） | P0 |
+| **FR-1.2 走两通道分发**（**owner 2026-10-14 裁，随标准包 ＋ 独立 npm 包两者都发**） | **通道一**：作为**标准包内的一个 bundle** 存在，由既有 `openvibe sync --target trae|codebuddy|minicode|...` 落到各平台既有目录（trae = `.trae/skills/openvibe-bridge/`）。**通道二**：独立 npm 包，供已在用其他 skill 管理器的用户。**两通道均不新增 adapter** | P0 |
+| **FR-1.2.1 通道二的形态未定** | 独立包名、是否复用既有包、以及两通道版本如何对齐（**必须能回答「用户装的是哪一路」**，否则 `diff`/回滚会出现两个真源）——归入 `m8-skill-bridge.md`，**本轮不裁** | P1 |
+| **FR-1.3 只读默认** | skill 默认只允许 `ask` / `status`；写操作（`session log` / `requirement add`）需用户在 skill 配置里显式开启 | P0 |
+| **FR-1.4 版本可溯** | skill 随标准包版本走，`diff` 能看出 skill 变了；版本号写进 SKILL.md frontmatter | P1 |
+| **FR-1.5 失败可诊断** | 脚本在 `openvibe` 不在 PATH、serve 未起、token 缺失三种情况各有**一句可执行的下一步**（照 `m6b` §7-8/e 的「给可执行提示，不给空列表算成功」纪律） | P0 |
+
+**skill 的能力边界（写死，防膨胀）**：
+
+| 允许 | 禁止 |
+|---|---|
+| 读项目上下文 / 查资产 / 查术语技巧 / 查标准包 | 让 agent 代替用户改 OpenVibe 内部配置 |
+| 写 DEV/CHECK 日志、写需求条目、更新任务状态（需显式开启） | 任何删除类动作 |
+| 触发 `scan`（扫规则文件进库） | 触发 `clean`（退场删盘上文件）——**agent 不得拥有删权**（§4.9） |
+
+> **刻意不做**：不做「agent 自动执行 `sync`」。注入是**人的决定**，agent 只能建议、不能执行（理由见 §4.9）。
+
+### 3.2 M8-B · 回流写入面（agent → OpenVibe）
+
+| 功能 | 说明 | 优先级 |
+|---|---|---|
+| **FR-2.1 单一端点** | `POST /api/agent/ingest`，`kind` 闭集：`dev_log` / `session` / `requirement` / `task_status` / `check_state`。**不按类型开五个端点** | P0 |
+| **FR-2.2 幂等** | 请求必带 `idempotency_key`（建议 `sha256(project_id + kind + 源会话 id + 本地序号)`）。同 key 同 payload ⇒ 返回 `status:'duplicate'`，**不重复落库** | P0 |
+| **FR-2.3 校验** | 全部入参走 zod（照 `validate.ts` 既有形制）；`kind` 闭集由 SQL `CHECK` + TS 常量双写并有**一致性测试**（照 `local-event-ledger.md` FR-1.4 的纪律） | P0 |
+| **FR-2.4 人工确认门** | 回流**一律先进「待确认」**（`status='pending'`），用户在 Web 确认后才 `published`。理由：沿用 `m4-playbook.md` FR-5「人工确认是唯一入库路径」的既有纪律；agent 的判断不可作为事实源 | P0 |
+| **FR-2.5 冲突识别** | 上报 `cwd` 与 `projects.local_path` 不一致 ⇒ 标 `conflict` 并在 Web 高亮，不静默写入（§2.4 剧本 B） | P0 |
+| **FR-2.6 体量上限**（**owner 2026-10-14 裁③已定，三值**） | 单条 `payload_json` 序列化后 ≤ **512 KB**、单次请求 ≤ **20 条**、**总量 ≤ 2 MB** | P0 |
+| **FR-2.7 部分成功** | 20 条里 3 条校验失败 ⇒ **返回逐条结果**（`accepted` / `duplicate` / `rejected` + 原因），不整包回滚（agent 需要知道哪条要重试） | P0 |
+
+### 3.3 M8-C · CLI 读取与回流面
+
+> 沿用既有 CLI 契约：`--json` 下 stdout **只有一个 JSON 对象**；退出码沿用 `ExitCode` 既有语义；错误经 `AppError` 的既有 code 集合表达。
+
+| 命令 | 形态 | 说明 | 优先级 |
+|---|---|---|---|
+| **FR-3.1 `openvibe ask`** | `openvibe ask <question> [--project <id>] [--json]` | 统一查询入口。**问题集用闭集关键词**（`status` / `next` / `checklist` / `assets` / `terms` / `logs`），不接 LLM——本地优先，且随机性会让 agent 无法解析 | P0 |
+| **FR-3.2 `openvibe status`** | `openvibe status [<dir>] [--json]` | 单项目进度快照：阶段、阶段完成度、未完检查项、任务分布、最近日志、绑定包版本与漂移态 | P0 |
+| **FR-3.3 `openvibe session`** | `openvibe session log --project <id> --type DEV\|CHECK [--title] [--body] [--evidence] [--related <path>]` | 回流一条日志。**只经 HTTP 写服务端**（不开 DB，见 §4.5） | P0 |
+| **FR-3.4 `openvibe requirement`** | `openvibe requirement add --project <id> --title <t> [--priority P0\|P1\|P2] [--source-session <id>]` | 记一条需求条目。**owner 2026-10-14 裁④：本轮一并建 `requirements` 表**，故由原 P1 **提为 P0**（原 P1 的理由是「PRD 把它定在 M8-P5 增强，与 B/C/D 不同批」，该理由已被裁决推翻） | P0 |
+| **FR-3.5 全局旗标** | 复用既有 `--server` / `--token` / `--json`；新增 **`--agent <id>`**（标识来源平台，写入台账，不外发） | — | P0 |
+
+**`ask` 的闭集问题与返回字段对照**：
+
+| 关键词 | 返回 | 消费方 |
+|---|---|---|
+| `status` | 阶段/状态/最近更新/绑定包 | 人与 agent 都用 |
+| `next` | 下一步建议（首个未完成检查项 + 首个 `doing` 任务） | agent 自主续跑 |
+| `checklist` | 当前阶段全部检查项及勾选态 | agent 自检 |
+| `assets` | 本项目标准包内的提示词/skill/术语清单 | agent 取素材 |
+| `terms` / `playbook` | 术语/技巧命中项 | agent 查规范 |
+| `logs` | 最近 N 条 DEV/CHECK（含 evidence） | agent 查历史 |
+
+### 3.4 M8-D · 聚合查询面（agent 侧只读）
+
+| 功能 | 说明 | 优先级 |
+|---|---|---|
+| **FR-4.1 `GET /api/projects/:id/context`** | **一站式上下文包**：项目基本信息 + 阶段 + 清单 + 任务 + 最近日志 + 绑定包 + 资产清单。支持 `?fields=` 裁剪与 `?budget=<chars>` **token 预算裁剪**（超预算按优先级砍日志条数，**先砍日志后砍资产**，并在响应里明写被砍了什么） | P0 |
+| **FR-4.2 只读** | 该面**只有 GET**。任何 agent 侧写操作都必须走 M8-B 的 `POST /api/agent/ingest`（理由：写面单一，可审计） | P0 |
+| **FR-4.3 鉴权同构** | 走既有 token + `Host`/`Origin` 双闸（`http-guard.ts`），**不新增免 token 通道**（承 `local-event-ledger.md` FR-4.1 同纪律） | P0 |
+| **FR-4.4 出参注册** | `ProjectContextOut` 进 `packages/shared`，按 `output-validation.md` FR-2 注册出参断言面 | P0 |
+| **FR-4.5 预算裁剪必须可见** | 响应带 `truncated: [{ section, dropped, reason }]`。**禁止静默截断**——agent 会把「被砍掉的检查项」当成「不存在」 | P0 |
+
+### 3.5 M8-E · Web 直调面板
+
+| 功能 | 说明 | 优先级 |
+|---|---|---|
+| **FR-5.1 助手桥接面板** | 项目详情页新增一区：①「待确认回流」列表（含 conflict 高亮）②「本项目上下文」预览（与 `context` 端点同源同渲染）③「让 agent 接入」一键生成安装指令 | P0 |
+| **FR-5.2 同源断言** | Web 的每个动作与对应 CLI 命令**调同一个 service 入口**（`service-layer.md` FR-1 的形制）；由一条测试断言「同输入两路出参逐字相同」 | P0 |
+| **FR-5.3 不 fork CLI** | Web 动作**不经子进程**。后端调服务层，CLI 也调服务层（§0.1-A2） | P0 |
+| **FR-5.4 空态三态** | `empty`（无回流记录，CTA「让 agent 接入」）/ `no-result`（筛选无结果，CTA「清除筛选」）/ `error`（加载失败，CTA「重试」）——沿用既有 EmptyState 纪律 | P0 |
+| **FR-5.5 沿用设置页第 7 区** | 桥接相关的隐私开关并入既有「可读性与设计系统」同级的遥测/台账两节（`local-event-ledger.md` FR-5.1），**不新开第三节** | P0 |
+
+### 3.6 数据模型（新增表与字段）
+
+> **⚠️ 迁移归属已裁定（owner 2026-10-14，裁①）：三张 M8 表与台账表在同一次迁移里建，即「一次建四表」。** `0006` 已被 `0006_playbooks.sql`（M4，DEV-0091）占用 ⇒ 台账表取 **`0007`**，M8 三表并进该次迁移。
+> **⇒ 最重后果：台账（v0.2.0 的 RF1-5）不落地，M8 连表都建不了。** 台账 `kind` 闭集由 13 项扩至 **18 项**（＋M8 五类）。台账 spec 的 `0006` 过期断言**共 6 处**（`:8`/`:26`/`:38`/`:54`/`:99`/`:105`，措辞各异，**只有 `:38` 是明说「可用」的那条**；`:105` 在验收表里最易漏扫），✅ **owner 2026-10-14 裁定「本轮同批回改六处」，已完成**（六处由 `0006` 改 `0007`），两份 spec 号位口径至此一致。详见 `docs/dev-plan-v0.2.1.md` §5.3-1。
+
+| 表 | 用途 | 关键列 | 依赖 |
+|---|---|---|---|
+| `agent_sessions` | 会话主信息（US-02 的落点） | `id / project_id / platform(agent_id) / external_session_id / title / summary / started_at / ended_at / created_at`，`UNIQUE(project_id, platform, external_session_id)` | — |
+| `agent_ingests` | 回流待确认队列（FR-2.4） | `id / project_id / kind / idempotency_key UNIQUE / payload_json / source_platform / status(pending\|published\|rejected\|conflict) / reject_reason / created_at / reviewed_at` | — |
+| `requirements` | 需求条目（US-03）。**owner 裁④：本轮建**（原 M8-P5 增强已提为 Phase 1 内容） | `id / project_id / title / detail / priority(P0\|P1\|P2) / status(draft\|confirmed\|done\|dropped) / source_session_id / created_at` | `agent_sessions` |
+
+**`requirements` 与 `tasks` 的关系（owner 裁④的连带修正）**：**两表独立、无外键**。理由：加 `tasks.requirement_id` 需 `ALTER` `0001_init.sql` 的既有表，而既有 spec 明确禁止就地扩列（见下段）。⇒ **`tasks.requirement_id` 是禁区**，需求与任务之间靠 `project_id` ＋ 语义关联，不靠外键。
+
+**不新增的**：不改 `projects` / `tasks` / `dev_log_entries` 既有列（它们的闭集与语义已被既有 spec 钉住，`0001_init.sql` 的 CHECK 不得就地扩——照 m6b「lock 语义不因一次 sync 而变」的同型纪律）。
+
+### 3.7 API 契约（增量面）
+
+| 方法 | 路径 | 用途 | 鉴权 |
+|---|---|---|---|
+| `GET` | `/api/projects/:id/context` | FR-4.1 上下文包 | 既有 token + 双闸 |
+| `POST` | `/api/agent/ingest` | FR-2.1 回流入口 | 同上 |
+| `GET` | `/api/agent/ingests?projectId=&status=` | 待确认列表 | 同上 |
+| `POST` | `/api/agent/ingests/:id/publish` | 确认入库 | 同上 |
+| `POST` | `/api/agent/ingests/:id/reject` | 否决（可带 reason） | 同上 |
+| `GET` | `/api/agent/sessions?projectId=` | 会话列表 | 同上 |
+
+**出参形状全部进 `packages/shared/src/schemas/`，并注册到 `output-validation.md` 的断言面**（照 FR-4.4）。
+
+### 3.8 Skill 包产物结构
+
+```
+<项目>/.trae/skills/openvibe-bridge/
+├── SKILL.md                    # 意图→命令映射 + 失败排查
+├── scripts/
+│   ├── openvibe-bridge.sh      # macOS / Linux
+│   └── openvibe-bridge.ps1     # Windows（D5 三平台硬要求）
+└── references/
+    └── api.md                  # 端点速查（供 agent 自行扩展）
+```
+
+> 路径形态随 adapter 变（trae = `.trae/skills/`、codebuddy/minicode 走各自既有目录，**由既有 adapter 提供，skill 包不自造路径**）。
+
+---
+
+## 4. 边界条件
+
+> 本章每条都写「**为什么**」，避免后来者把它当口味偏好删掉。
+
+### 4.1 平台与形态边界
+
+| # | 边界 | 理由 |
+|---|---|---|
+| B1 | **只支持既有六个 adapter**；windsurf/gemini/copilot（P1）本轮不支持，skill 装不上时给出「该平台暂无 adapter，用 `generic-agents` 的 `AGENTS.md` 兜底」 | 基线 3；新增 adapter 要动 `design §8` 冻结契约，属 B 级 |
+| B2 | **单用户单机**：不做多用户、不做跨机合并 | M7 范围，队列 ㉓ 阻 |
+| B3 | **本地优先，agent 只能连本机 127.0.0.1**；不提供任何公网中继 | D3 + `http-guard.ts` 既有闸 |
+| **B3.1** | **skill 的落盘形态未定：复制 vs symlink**（**2026-10-14 探针新增 · owner 未裁**） | 探针实测生态形态 = **单一真源 `~/.agents/skills`（188 条）＋ symlink 农场**：Trae **29/29**、CodeBuddy **69/69** 全是 symlink。若 M8 跟随生态走 symlink ⇒ 落入 m6b 已有测试覆盖的形态（`pack.lock.json` 既有语义）；若走复制 ⇒ 与生态不一致、用户要自己维护两处。**本 PRD 不预设**，归入 `m8-skill-bridge.md` |
+| **B3.2** | **第二把锁的 `clean` 边界不可逆**（**2026-10-14 探针新增 · 随 B3.1 联动**） | 探针实测 `~/.agents/.skill-lock.json`（27 KB）与 `_agents.mount_config` 存在。D20 定的 `clean` 边界是「只删未改动的受管文件」，**对这把锁没有既定语义** ⇒ 在 `m8-skill-bridge.md` 写清归属与删除边界之前，**M8-A 不可开工** |
+
+### 4.2 数据边界
+
+| # | 边界 | 理由 |
+|---|---|---|
+| B4 | **会话正文不入台账**。台账 `payload_json` 只放 id 与枚举（承 `local-event-ledger.md` FR-6.3） | 台账永不出网也不代表内容可随意放——未来一旦有导出面就晚了 |
+| B5 | **`absolute path` 不进台账、不进 `agent_ingests.payload_json` 的可上报字段**；项目定位一律用 `project_id` | 同上 |
+| B6 | 单条回流 ≤**512 KB**、批量 ≤**20 条**、总量 ≤**2 MB**（owner 裁③） | 防 agent 把整个仓库 dump 进来；第三值取 2 MB 是为使「20 × 512 KB」的理论上限不可能突破整包预算（`constants.ts:108-109` 同族） |
+| B7 | `kind` / `priority` / `status` 全部闭集，SQL `CHECK` + TS 常量**双写且有测试比对** | `local-event-ledger.md` §3-4 实证：遥测那份双源**当前无人守**，M8 不得再落一个 |
+| B8 | **`requirements` 与 `tasks` 分表不合并** | 语义不同：需求是「要什么」，任务是「现在做什么」。合并会让 `tasks.status` 的三值闭集承载不了需求生命周期 |
+
+### 4.3 鉴权与安全边界
+
+| # | 边界 | 理由 |
+|---|---|---|
+| B9 | agent 侧请求**必须带 token**；不新增免 token 通道、不新增内网放行 | 承 `local-event-ledger.md` FR-4.1；本机回环不等于可信 |
+| B10 | **`local_path` 一律经既有路径校验**：拒绝绝对路径、`..`、反斜杠、解析后逃逸项目根 | 照 `checkWritePath` / `ESCAPE` 既有语义（m6b §6.1），M8 的 `session log --related` 同受 |
+| B11 | **`agent_id` 是自报的，不可信**：只作展示与统计维度，**不作为权限依据** | 自报字段不能当凭证 |
+
+### 4.4 并发与一致性边界
+
+| # | 边界 | 理由 |
+|---|---|---|
+| B12 | agent 回流**不参与 `sync.lock` 互斥**：回流只写 DB 不碰目标项目目录，两条路径无交集 | 承 `dev-plan.md` §1.2 末「sync/scan 不碰 DB 文件锁」那条既有不变式的同型推理 |
+| B13 | 「同一 `idempotency_key` + 不同 payload」⇒ 判 `conflict`，**不覆盖先到者**，写方须显式改 key | 覆盖 = 静默丢数据。**owner 2026-10-14 裁②**：该冲突使用**新增错误码 `IDEMPOTENCY_CONFLICT`**（B 级），不用 `STALE_SELECTION`／`NAME_CONFLICT` 任一既有码 ⇒ `ERROR_CODES` 闭集 11 → **12** 项 |
+| B14 | 两个 agent 同时对同一项目回流 ⇒ 允许并发，落库按 `created_at` 排序 | **`UNIQUE(idempotency_key)` 是唯一仲裁者，不做应用层锁**（SQLite 单写者已提供该保证，再加锁是第二套并发模型）。**owner 2026-10-14 裁⑥：看板的合并策略「交给用户在 Web 裁决」** ⇒ M8-B/C 只保证数据可得、不做自动合并；合并 UI 归 **M8-E**（`m8-agent-panel.md`）。原 §11-待裁④ 的「(a) 按时间序平铺起步」已被此裁定取代 |
+| **B14.1** | **回流体量上限三值已定**（owner 裁③） | 单条 **512 KB** / **20 条** / 总量 **2 MB**。前两值与 `packages/shared/src/constants.ts:108-109`（`singleFileMaxBytes` / `packTotalMaxBytes`）同族；第三值取 2 MB 是为使单次回流**不可能突破整包预算**（原建议的 512 KB 总量经连带修正为本值） |
+
+### 4.5 运行期边界
+
+| # | 边界 | 理由 |
+|---|---|---|
+| B15 | **serve 未启动**时：`ask`/`status` 走 `--file/--dir` 离线包时可用；`session log` **不可用**（无服务端可写），必须报错并给出 `npx openvibe-cli serve` 提示，**不静默本地攒着** | 静默攒着会产生「以为记上了其实没有」 |
+| B16 | CLI **从不直接打开 DB**（现状即如此，基线 12 同型）；M8 的 CLI 命令全部经 HTTP | 破这条要动 `dev-plan.md` §1.2 既有不变式 |
+
+### 4.6 兼容与降级边界
+
+| # | 边界 | 理由 |
+|---|---|---|
+| B17 | 老版本 skill 包（无 `scripts/`、只有规则文件）⇒ 检测到即提示升级，**不报错中断** | 分发面不可控，不能因为用户没升级就全挂 |
+| B18 | 老版本 OpenVibe（无 M8 端点）⇒ skill 侧收到 404，打印一句「该 OpenVibe 版本不支持桥接，请升级」，退出码 1 | 版本不兼容要**早失败、说人话** |
+| B19 | 三平台（macOS/Linux/Windows）**同等支持**，脚本零外部依赖 | D5 硬要求 |
+
+### 4.7 产品边界（不做什么）
+
+| # | 边界 | 理由 |
+|---|---|---|
+| B20 | **agent 无删权**：不得触发 `clean`、不得删资产、不得删日志 | 误删不可逆 |
+| B21 | **agent 无配置权**：不得改标准包、不得改 OpenVibe 设置 | 配置是人的决定 |
+| B22 | **不注入项目源代码到 OpenVibe 存储** | 越权读取用户代码是隐私红线 |
+
+---
+
+## 5. 异常流程
+
+> 每条给「触发 → 表现 → 恢复」，并标注**退出码/状态码**（沿用既有 `ExitCode` 语义）。
+
+### 5.1 CLI 侧
+
+| # | 触发 | 表现 | 恢复 | 退出码 |
+|---|---|---|---|---|
+| E1 | `openvibe` 不在 PATH（skill 脚本被直接执行） | 一行提示含安装命令 | 用户装 CLI | 127（沿用 shell 惯例） |
+| E2 | serve 未启动 + 需要服务端 | `SERVER_UNREACHABLE` + 「先跑 `openvibe serve`」 | 起 serve 重试 | 1 |
+| E3 | token 缺失/过期 | `UNAUTHORIZED` + 「令牌在 `~/.openvibe/config.json`，或用 `openvibe serve` 重取」 | 重取 token | 1 |
+| E4 | 项目 id / 路径不存在 | `PROJECT_NOT_FOUND` + 列出候选项目名（≤5 条） | 用 `--project` 明确指定 | 1 |
+| E5 | 项目 `local_path` 为空（只登记了名字没登记路径） | `PROJECT_PATH_UNBOUND` + 「该项目未绑定本地路径，先在 Web 项目设置里填」 | Web 补路径 | 1 |
+| E6 | `ask` 关键词不在闭集 | `UNKNOWN_QUERY` + **列出全部合法关键词** | 改关键词 | 1 |
+| E7 | `--related` 路径逃逸项目根 | `PATH_ESCAPE` + 点名该路径，**零写入** | 改相对路径 | 1 |
+| E8 | 同一 `idempotency_key` 不同 payload | `KEY_CONFLICT` + 双方 payload 的 sha 前 8 位 | 改 key | 1 |
+| E9 | 部分条目校验失败 | **逐条结果表**（accepted/duplicate/rejected + reason），成功的照落 | 按 reason 修 | 0（有 accepted 时）／1（全失败） |
+| E10 | 目标项目正在被 `sync` 占用 | 若本命令需读 lock（`status` 带漂移态）⇒ 只读 lock 不加锁，**不阻塞**；若需写盘 ⇒ `SYNC_BUSY` 复用既有 code | 等持锁者收工 | 0 / 1 |
+
+### 5.2 Web 侧
+
+| # | 触发 | 表现 | 恢复 |
+|---|---|---|---|
+| E11 | `context` 端点超时 | 该区显示 error 态 + 「重试」，**不影响页面其他模块** | 点重试 |
+| E12 | 待确认列表拉取失败 | 空态走 `error` 变体 + 重试按钮（**不得显示成「暂无回流记录」**——那会把失败说成没有） | 点重试 |
+| E13 | 发布单条回流失败 | 该行就地报错 + 重试，**其余行不受影响** | 重试 |
+| E14 | 冲突条目（cwd 不符） | 高亮 + 显示两个路径 + 「接受/改绑/否决」三选项 | 用户裁决 |
+| E15 | 官方 skill 包在 npm/仓库不可达 | 安装指令区显示失败 + 重试，不影响面板其余部分 | 重试 |
+
+### 5.3 数据与迁移侧
+
+| # | 触发 | 表现 | 恢复 |
+|---|---|---|---|
+| E16 | 老库升级，`agent_*` 表首次创建 | 表为空属预期，**不回填**（回填 = 把历史行为编成数据） | 正常 |
+| E17 | 老库升级后既有项目**没有任何 agent 记录** | 项目卡片「助手桥接」区显示未接入态 | 装 skill |
+| E18 | DB 文件锁被别进程占（如另一个 serve） | `DB_BUSY` + 点名占用 pid | 关掉另一实例 |
+| E19 | 磁盘写入中途满 | **中止腿**：已写的留在事务内回滚，报「已中止，未部分入库」 | 清盘重试 |
+| E20 | `0006` 号位被两方同时占用 | 启动即 `MIGRATION_CONFLICT` + 指出冲突文件名 | 人工定号 |
+
+### 5.4 降级策略（诚实登记）
+
+| 依赖未落地 | M8 的降级形态 | 损失 |
+|---|---|---|
+| 服务层（`service-layer.md`）未落地 | route 直连 repo | 后续收敛要重写一遍，**但功能不缺** |
+| 本机台账（`local-event-ledger.md`）未落地 | M8 事件暂不写入，§1.4 全部退化为人工数 | 指标不可机读（已在 §1.4 登记） |
+| 输出校验（`output-validation.md`）未落地 | 出参断言面手工补 | 回归风险上升 |
+| M8-E 未做 | 用 CLI + Web 现有能力顶 | 入口不对等（B4 缺口中的 P4 仍在） |
+
+---
+
+## 6. 数据埋点
+
+### 6.1 本章为什么独立
+
+`local-event-ledger.md` 是**一张表 + 一个聚合端点 + 设置页两节**的规格（横切能力）；M8 是**一个业务模块**。两者的 owner 变更节奏不同（台账可能先于或后于 M8 落地）。⇒ 埋点在本 PRD 内**只做声明与判据**，**不复制台账的表设计、不重复定义隐私不变式**（承 FR-6.3「单源在台账 spec，本文件只引不复制」）。
+
+### 6.2 三层口径（M8 的事件落在哪一层）
+
+| 层 | 含义 | M8 的位置 |
+|---|---|---|
+| **L1 遥测（可上报，默认关）** | 三类白名单 `pack_injected` / `flow_template_used` / `project_active` | **M8 一条都不加**（D3 白名单是隐私面，不因新模块扩容） |
+| **L2 本机台账（永不出网，默认开）** | `local_events` 表 | **M8 的全部埋点落这里** |
+| **L3 产品内统计（用户可见）** | 工作台卡片 | 「助手桥接」区新增 2 个数字（见 §6.5） |
+
+### 6.3 M8 提案的 `kind`（并入台账 `LOCAL_EVENT_KINDS`）
+
+> 与既有 13 项提案的关系：**新增 5 项**，其余沿用。**须与遥测三事件严格不同名**，由 `LOCAL_EVENT_KINDS ∩ TELEMETRY_EVENTS === ∅` 断言守。
+
+| kind | 触发点 | `payload_json` 允许键 | 判级 |
+|---|---|---|---|
+| `agent_ingest_accepted` | 回流条目进 `pending` | `kind` / `source_platform` | 新增 kind ⇒ **B 级（改迁移）** |
+| `agent_ingest_rejected` | 条目被用户否决或校验拒 | `kind` / `reason_code`（枚举，非自由文本） | 同上 |
+| `agent_context_served` | `/context` 返回 200 | `fields_count` / `truncated`(bool) / `platform` | 同上 |
+| `cli_agent_command_run` | M8 的 CLI 子命令执行完毕 | `command`(枚举：`ask`/`status`/`session`/`requirement`) / `exit_code` / `agent` | 同上 |
+| `agent_bridge_installed` | 检测到项目内存在 skill 目录 | `adapter` / `pack_version` | 同上 |
+
+**禁列（写进规格，不靠自觉）**：`payload_json` **不得**出现绝对路径、项目名、用户名、会话正文、`body` 任何片段。
+
+### 6.4 去重键（防虚高）
+
+承 `local-event-ledger.md` §6.4：React 重渲染 / query 重取会重复触发。
+
+| 发射点 | 去重口径 |
+|---|---|
+| `agent_context_served` | **服务端计数**，同请求只记一次（不依赖前端） |
+| `cli_agent_command_run` | CLI 进程生命周期内一次 |
+| `agent_ingest_accepted` | 按 `idempotency_key` 天然去重 |
+| `agent_bridge_installed` | 按 `(project_id, adapter, pack_version)` 去重，重复检测不重复记 |
+
+### 6.5 产品内可见数字（L3）
+
+| 数字 | 口径 | 落在哪 |
+|---|---|---|
+| 本项目最近回流时间 + 来源平台 | `agent_ingests` 最新一条 `created_at` | 项目卡片 |
+| 待确认条数 / 本周已确认条数 | `status='pending'` 计数 / 近 7 天 `published` 计数 | 桥接面板 |
+
+### 6.6 隐私断言（M8 侧，逐条可测）
+
+| # | 断言 | 测法 |
+|---|---|---|
+| P-1 | 遥测关闭时 M8 零网络调用（**既有断言逐字保留**），且台账仍在写 | 承 `local-event-ledger.md` FR-6.1 |
+| P-2 | `telemetry-flush.ts` 读取面不含任何 `agent_*` 表 | `grep -c 'agent_' apps/server/src/lib/telemetry-flush.ts` → 0 |
+| P-3 | 五类 `payload_json` 对绝对路径/项目名模式扫描 0 命中 | 单测正则扫描 |
+| P-4 | `LOCAL_EVENT_KINDS ∩ TELEMETRY_EVENTS === ∅` | 断言 |
+| P-5 | M8 事件的 `day` 列口径与台账一致（不另立时区口径） | 同源常量比对 |
+
+---
+
+## 7. 非功能需求
+
+| 维度 | 要求 | 判据 |
+|---|---|---|
+| **性能** | `/context` P95 < 120ms（本地，10 个任务 + 200 条日志规模）；台账写入不使既有路由 P95 劣化 >5% | 基准测试 |
+| **体积** | Web 入口不超既有 `bundle:check` 余量（承 `entry-budget.md`） | 现有闸不放松 |
+| **兼容** | macOS / Linux / Windows 三平台 CI 矩阵全绿（D5） | CI |
+| **依赖** | skill 脚本**零第三方依赖**（bash/PS 原生） | 脚本审读 |
+| **可访问性/视觉** | 新增面板的对比度与色板走既有 token，**不引入字面色阶** | 承 `DESIGN.md` + `theme.md` 的闸 |
+| **可观测性** | 全部端点/命令的错误经既有 `AppError` code 集合表达，**code 集合增删须 owner 裁** | 承 `service-layer.md` §6.5 |
+
+---
+
+## 8. 验收标准（pass/fail）
+
+| # | 条目 | 判据 |
+|---|---|---|
+| a | **端到端剧本（§2.3）八步全通** | 真机：Trae 项目 + skill 分发 + 读 + 回流 + Web 看板更新，屏摄归档 |
+| b | `openvibe status` 与 `GET /context` 对同一项目返回**同一阶段/清单/任务集合** | 同源断言（FR-5.2） |
+| c | 同一 `idempotency_key` 重放 3 次 ⇒ 台账恰 1 条 | `SELECT COUNT(*)` |
+| d | 同 key 不同 payload ⇒ `KEY_CONFLICT`，先到者**内容未被改写** | 内容 sha 比对 |
+| e | 20 条批量里 3 条非法 ⇒ 17 条落库、响应逐条给结果、**无整包回滚** | 计数断言 |
+| f | `--related ../evil.txt` ⇒ `PATH_ESCAPE` + 零写入 | 同 m6b §7-5 形状 |
+| g | serve 未启动时 `session log` ⇒ `SERVER_UNREACHABLE` + 可执行提示，**不本地攒** | 退出码 + 提示文案 |
+| h | 遥测关闭 ⇒ 零网络调用（既有断言逐字保留）+ 台账仍有 M8 事件 | 承 P-1 |
+| i | `telemetry-flush.ts` 对 `agent_*` 命中 0 | `grep` 断言 |
+| j | 台账五类 `payload_json` 无禁列 | 正则扫描 |
+| k | Windows runner 上 `openvibe-bridge.ps1` 能跑通 read-only 两只命令 | 三平台 CI |
+| l | 老 OpenVibe（无 M8 端点）⇒ skill 侧一句人话 + 退出码 1，**不静默失败** | 版本夹具 |
+| m | `bundle:check` 入口余量不减；`tests/golden/` 零 diff | 两条外部凭据 |
+| n | 人工验收腿：README 能不加解释讲清「agent 能读能写什么、不能做什么」 | 屏摄（照 `local-event-ledger.md` §7-j 同型） |
+
+**未验证面（负向登记，不得读成已通过）**：① Trae/CodeBuddy 的 skill 发现机制是否真按 `.trae/skills/` 加载——**未经真机核验**，须 §11-待裁② 闭合后才算；② Windows 权限位与 junction 语义（承 m6b §7-11 的既有未验证面）；③ 事件量对 DB 体积与聚合耗时的影响，无实测。
+
+---
+
+## 9. 里程碑与优先级（**owner 2026-10-14 裁三段式**，取代原 P0–P5 五段）
+
+> **口径变更**：原 P0–P5 五段已被 owner 的**三段式 Phase** 取代。数字不搬运，按「日志不回改」原样留在上文；现行口径以下表为准。
+
+| Phase | 范围 | 出口判据 | 开工前置 |
+|---|---|---|---|
+| **Phase 0 · 闸门** | 六处文档 ＋ 十二项裁决回填 ＋ 六平台探针 ＋ 三份 spec | 规格链闭合（**≠ 可开工**） | — |
+| **Phase 1 · 读写核心** | M8-B ＋ M8-C ＋ M8-D ＋ **`requirements` 表**（裁④提级）＋ 台账迁移（**一次建四表**） | `docs/specs/m8-agent-bridge.md` §7 二十四条 pass/fail 全绿 | **RF1-1 服务层 ＋ RF1-5 台账同时转绿** |
+| **Phase 2 · 接入面** | M8-A（skill 包 · 两通道）＋ M8-E（Web 面板） | `m8-skill-bridge.md` 与 `m8-agent-panel.md` 各自验收条目全绿 | Phase 1 全绿 ＋ **探针运行半边闭合** |
+
+### 9.1 Phase 1 的前置是硬的，不是建议
+
+owner 裁①「M8 三表并进台账那次迁移」＋ 裁⑤「M8 埋点推迟到台账落地之后」两项叠加：
+
+```
+RF1-1 服务层（v0.2.0，未落地）
+      ↓
+RF1-5 本地事件台账（v0.2.0，未落地）
+      ↓
+Phase 1（M8 读写核心）
+      ↓
+Phase 2（M8 接入面）
+```
+
+**⇒ 台账不落地，M8 连表都建不了、Phase 1 第一步也动不了。v0.2.1 与 v0.2.0 是串行依赖，不是版本接续。**
+
+### 9.2 不排工期
+
+**v0.2.1 的启动时点由 v0.2.0 的 RF1-5 决定**，本 PRD **不预设人日与工期**（照 `dev-plan.md` §16.6 约束 2 的先例）。排期待 owner 在 RF1-5 转绿后另裁。
+
+---
+
+## 10. 风险与缓解
+
+| # | 风险 | 影响 | 缓解 |
+|---|---|---|---|
+| R1 | **Skill 包不被 agent 发现**（路径约定错/平台机制不同） | M8-A 整块作废 | 待裁② 要求**先真机验证再做包**；B17/B18 保证失败可诊断 |
+| R2 | **前置（服务层/台账）迟迟不落地** | M8 无法开工 | §9 把前置单列为 P0 且**不与 M8 混排**；不绕过前置直接写 route |
+| R3 | **回流变成垃圾堆**（agent 乱传） | 台账污染，用户弃用 | FR-2.4 人工确认门 + FR-2.5 冲突识别 + 体量上限 |
+| R4 | **隐私质疑**（「会话正文去哪了」） | 社区否决 | B4/B22 写死 + P-3 正则断言 + 设置页文案（承 `local-event-ledger.md` §6.1 否证触发器） |
+| R5 | **两方抢 `0006` 迁移号** | 启动即 `MIGRATION_CONFLICT` | 待裁①；M8 让位取 0007+ |
+| R6 | **与既有裁定冲突**（如破 D3/D19） | 治理返工 | §0.2 逐条声明接口，M8 不得新开绕过 `inject/` 的写路径 |
+
+---
+
+## 11. 待裁清单（owner 裁决；任一未闭合不构成开工依据）
+
+> **2026-10-14 状态：七项中六项已闭合**（owner 亲裁，逐条回填见各行）。**唯 ② 仍开放** ⇒ M8-A 仍不可规格化，`docs/specs/m8-skill-bridge.md` 本轮不写。**如实登记：①–⑥ 中 owner 有五项的选择与本文建议相反**（①③⑤⑥ ＋ ② 的方向），下表「本文原建议」列逐条留痕，不改判、不美化。
+
+| # | 待裁 | 选项 | **裁定（2026-10-14）** | 本文原建议 |
+|---|---|---|---|---|
+| **①** | 新表迁移号位 | (a) M8 取 `0007+`，台账顺延；(b) **合并进台账那次迁移**；(c) 台账让位 | **(b)**——台账 `0006` 号位已被 `0006_playbooks.sql`（M4）占用，台账改取 `0007`，**M8 三表与台账表在同一次迁移里建（一次建四表）**。`local_events.kind` 闭集 13 → **18** 项。⚠️ 台账 spec 的 `0006` 过期断言**共 6 处**（`:8`/`:26`/`:38`/`:54`/`:99`/`:105`，措辞各异，**只有 `:38` 明说「可用」**；`:105` 在验收表里最易漏扫）——✅ **owner 裁定「本轮同批回改」，已完成**。**代价见 §9.1：台账不落地则 M8 连表都建不了** | **(a)**——两份 spec 生命周期不同，合并不利于任一方独立回滚 |
+| **②** | **Trae/CodeBuddy 的 skill 发现约定**（目录/格式） | (a) 先真机核验再定包；(b) 按社区惯例先做后调 | **🟡 未闭合（唯一开放项）**。(a) 的方向已被 owner 认可；**结构半边实测已完成**（见下），**运行半边五问未做**（加载时机 · 项目级与用户级优先级 · skill 内脚本可执行性 · Trae/CodeBuddy 对 symlink 的限制 · `minicode` adapter 目标产品归属），须 owner 提供真机 GUI 环境。**此项未闭合 ⇒ M8-A 不可规格化** ⇒ spec `m8-agent-bridge.md` 已把 M8-A 拆出（该 spec §2 Out / §8.3） | **(a)**——这是 R1 的唯一解，不核验就开工等于赌 |
+| **③** | 回流体量上限 | 照 m6b 512KB 同档 / **降一档** / 再降 | **512 KB（单条）/ 20 条 / 总量 2 MB**。⚠️ **本 PRD 的原建议**三值是「单条 32 KB / 20 条 / 256 KB」（见本行末列），owner 采「照 m6b 同档」方向 ⇒ **单条与条数被抬到 512 KB / 20 条**；而**总量**按本 PRD 建议的 256 KB 会使「20 × 512 KB」的理论上限远超整包预算，**经连带修正为 2 MB**（与 `constants.ts:108-109` 同族）。⇒ **三值里只有「总量」是经修正的，单条与条数是 owner 直接改的方向、不是修正**。与 `constants.ts:108-109` 同族 | **降一档**（32 KB / 20 条 / 256 KB）——agent 常整段贴代码 |
+| **④** | 并发回流的看板合并策略 | (a) 按时间序平铺；(b) 同源合并；(c) **交给用户在 Web 裁决**) | **(c)**——合并 UI 归 **M8-E**；M8-B/C 只保证数据可得、不做自动合并。**已在 B14 落** | **(a)** 起步——合并策略等产品有真实数据再裁 |
+| **⑤** | 若台账未先落地，M8 的埋点怎么办 | (a) M8 自建临时表；(b) 降级人工数；(c) **推迟 M8** | **(c)**——M8 五类埋点**只声明不写入**，推迟到台账落地之后。与①叠加 ⇒ **D9**：本迭代被台账物理阻塞 | **(b)**——不重复造表，也不让埋点绑死 M8 上线 |
+| **⑥** | 官方 skill 的分发形态 | (a) 随标准包走；(b) 独立 npm 包；(c) **两者都发** | **(c)**——**已在 FR-1.2 落**（两通道均不新增 adapter）。连带新增 **FR-1.2.1**：独立包名与**两通道版本如何对齐**尚未裁，归 `m8-skill-bridge.md`。**多一条通道要维护** | **(a)** 起步——复用 `sync` 与 lock 体系，零新通道 |
+| **⑦** | **新增 CLI 命令的元数据登记** | — | ✅ **硬约束（非选择题）**：三只新命令必须登记进 `packages/shared/src/cli-commands.ts`，否则 `apps/server/test/cliCommands.api.test.ts:99` 逐字比对命令名集合时**当场变红**。已写成 spec 的 FR-4.3 | 同 |
+
+---
+
+## 附录 A · 需求原文到 FR 的覆盖对照
+
+| 原文需求点 | 落在 | 状态 |
+|---|---|---|
+| openvibe skill 开发 | FR-1.1 ~ FR-1.5（M8-A） | 本 PRD 新建 |
+| trae 等国内主流 agent 调用 | FR-1.2 复用六 adapter + B1 | 部分复用（adapter 已有） |
+| 抓取项目信息 | FR-3.1/3.2（M8-C）+ FR-4.1（M8-D） | 本 PRD 新建 |
+| 同步项目信息到 OpenVibe | FR-2.x（M8-B） | 本 PRD 新建 |
+| —— 项目进展 | FR-3.3 DEV 日志 + FR-2.4 | 新建 |
+| —— 项目会话主要信息 | §3.6 `agent_sessions` 表 + FR-2.1 `kind=session` | 新建（**M5 P1 提级为 P0**） |
+| —— 项目需求 | §3.6 `requirements` 表 + FR-3.4 | 新建（P1） |
+| —— 项目状态 | 复用 `projects.current_stage/status` + FR-2.1 `kind=task_status/check_state` | **复用，不改既有列** |
+| —— 其他必要项目信息 | FR-4.1 context 包（包版本/漂移/资产清单） | 新建 |
+| 调用 OpenVibe CLI 获取指定项目信息 | FR-3.1/3.2 + §3.8 契约 | 本 PRD 新建 |
+| 前端 Web 调用后端能力执行 | FR-5.x（M8-E）+ FR-5.3 不 fork | 新建（同源） |
+| 更便捷获取项目进度 | §2.3 剧本 + L3 数字（§6.5） | 新建 |
+| 流程化、标准化开发优质项目 | G3 闭环目标 + FR-2.1 `kind=check_state/task_status` | 新建（**闭环腿**） |
+
+## 附录 B · 复算命令（本文全部现状数字）
+
+```bash
+cd /Users/duke/Documents/OpenVibe
+# 基线 1-2：CLI 命令面（两采样均 5 条）
+grep -n "\.command('" apps/cli/src/index.ts
+# 基线 3：六个 adapter
+sed -n '9,16p' packages/shared/src/constants.ts
+# 基线 4：trae 产物形态
+sed -n '18,30p' packages/adapters/src/trae.ts
+# 基线 5-6：路由与 repo 文件数（**复采 13 / 18，原 10 / 16**）
+ls apps/server/src/routes/ | wc -l
+ls packages/core/src/repos/ | wc -l
+# 基线 7-8：迁移号位（**复采：0006 已被 0006_playbooks.sql 占用**）
+ls packages/core/src/db/migrations/
+# ⚠️ 下列注释为回改**前**的状态；owner 裁 4 已授权同批回改，六处均已改毕：
+grep -c '0006' docs/specs/local-event-ledger.md      # → 4（仅剩解释性提及「0006 已被 playbooks 占用」，无「号位可用」断言）
+grep -c '0007' docs/specs/local-event-ledger.md      # → 6（六处回改落点）
+# 回改**前**的六处须带 ref 取：git show 4b42642:docs/specs/local-event-ledger.md | grep -c '0006'   # → 6
+# 基线 9：会话表为 0
+grep -rn 'CREATE TABLE' packages/core/src/db/migrations/*.sql | grep -ci session   # 0
+# 基线 11：遥测白名单（复采样行号 :75）
+grep -n 'TELEMETRY_EVENTS' packages/shared/src/constants.ts
+# 基线 12：台账未落地
+grep -rn 'local_events' --include='*.ts' --include='*.sql' apps packages | grep -v dist | wc -l
+# 基线 13：服务层未落地（**这条预期非零退出**，报 No such file 即为「不存在」的证据本身）
+ls packages/core/src/services 2>&1
+# 基线 17：CLI 命令漂移闸（新增 CLI 命令不登记即红）
+sed -n '99p' apps/server/test/cliCommands.api.test.ts
+# 基线 18：ERROR_CODES 闭集 11 项
+sed -n '3,15p' packages/shared/src/errors.ts
+# 基线 14-16：三张既有表结构
+sed -n '85,98p'  packages/core/src/db/migrations/0001_init.sql   # projects
+sed -n '109,117p' packages/core/src/db/migrations/0001_init.sql   # tasks
+sed -n '119,132p' packages/core/src/db/migrations/0001_init.sql   # dev_log_entries
+```
+
+> 首次采样于 **2026-10-13**（树 `54789b8`），复采于同日 21:0x（树 `4b42642`）。两次取数差异见 §1.1 订正登记。
+
+---
+
+**变更日志**
+
+| 版本 | 日期 | 变更 |
+|---|---|---|
+| v1.0 | 2026-10-13 | 初版。owner 口语需求 → 11 章标准 PRD；六项待裁待裁决。 |
+| v1.0（就地订正 1） | 2026-10-13 21:0x | 复采发现 HEAD 已走到 `4b42642`（M4 技巧库落地）：**§1.1 基线 5/6/7/8 就地改为复采值并保留原值**（路由 10→13、repo 16→18、0006 空位→被占用、行号 73→75）；**新增基线 17/18**（`CLI_COMMANDS` 单源与漂移闸、`ERROR_CODES` 11 项闭集）；**待裁①形态变更**（两 spec 争号 + 台账四处断言过期）；**新增待裁⑦**（CLI 元数据登记是硬约束，不是选择题）。规格见 `docs/specs/m8-agent-bridge.md`。 |
+| **v1.1** | **2026-10-14** | **十二项裁决入账，本 PRD 七项待裁中六项闭合**。逐笔：①迁移号位＝**三表并进台账那次迁移（一次建四表）**，台账 `kind` 闭集 13 → **18** 项（⇒ 落入 §9.1 的硬链「台账不落地则 M8 连表都建不了」）；③体量上限＝**单条 512 KB / 20 条 / 总量 2 MB**（第三值经连带修正：原建议 512 KB 与前两值的理论上限不相容）；④并发合并＝**交给用户在 Web 裁决**，合并 UI 归 M8-E（落 B14）；⑤埋点＝**推迟到台账落地之后**，M8 只声明不写入；⑥分发＝**随标准包 ＋ 独立 npm 两者都发**（落 FR-1.2，连带新增 FR-1.2.1「两通道版本如何对齐」待裁）；⑦CLI 元数据登记＝**硬约束非选择题**（`cliCommands.api.test.ts:99` 漂移闸）。**②Trae/CodeBuddy skill 发现约定仍未闭合**——结构半边探针已完成（生态形态＝单一真源 `~/.agents/skills` 188 条 ＋ symlink 农场，Trae 29/29、CodeBuddy 69/69 全 symlink；子目录惯例 `references/` 39·`scripts/` 29·`assets/` 18 与 FR-1.1 设计完全命中；frontmatter 跨平台安全子集＝`name`+`description`，且 `description` 承载**触发条件**而非简介⇒ 支持把意图→命令映射表放 SKILL.md 正文），**运行半边五问未做**（须 owner 真机 GUI 环境）⇒ `m8-skill-bridge.md` 本轮不写。**连带改动**：§3.3 FR-3.4 由 P1 **提为 P0**（裁④建表）；§3.6 加「`requirements` 与 `tasks` 两表独立无外键、`tasks.requirement_id` 是禁区」；§4.1 新增 **B3.1**（复制 vs symlink 形态未定）与 **B3.2**（第二把锁 `.skill-lock.json` 的 `clean` 边界不可逆，**写清前 M8-A 不可开工**）；§4.4 B13 落裁②的 **`IDEMPOTENCY_CONFLICT` 新错误码（`ERROR_CODES` 11 → 12 项）**、B14 落裁⑥、新增 B14.1 记裁③三值；§9 由 P0–P5 五段**改三段式 Phase**（原五段按「日志不回改」留在正文不作废，注于 §9 表头）。**如实登记：①③④⑤⑥ 五项 owner 的选择与本文建议相反**，§11 逐条留「本文原建议」列。**另订正一处旧错报**：v1.0 就地订正记「台账**四处**『0006 号位可用』断言」，复算 `grep -c '0006' docs/specs/local-event-ledger.md` 实为 **6 处**（`:8`/`:26`/`:38`/`:54`/`:99`/`:105`，措辞各异，**只有 `:38` 明说「可用」**；**`:105` 是验收条目 a、只扫「可用」类关键词必漏**）——按「日志不回改」，上一行原样保留，订正记在本行。 |

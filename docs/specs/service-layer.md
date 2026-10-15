@@ -7,7 +7,7 @@
 | 上游 | PRD 第 10 章 §10.2/§10.3；分析文 §4.10（D9 薄服务层）· §7 · Phase 1 表 1-1 行（**出口判据的单源在那里，本文件不复制**）· §7.2 反例 5（服务层收益为负） |
 | 下游设计 | design §1.1 与 dev-plan §1.1 的分层规则 R1–R4；`eslint.config.js` 的 `boundaryZones`（`:11-37`）与 `r4NoCrossApp`（`:39-54`）；`packages/adapters/src/index.ts:2-4` 的 R2 自陈 |
 | 关联任务 | **无**。PRD §10.4 第三组原文：「本轮**不建任务组**。RF0–RF5 各阶段开工前须先在 `docs/specs/` 补规格，任务组编号（T14 起）待规格落地后在 `tasks.md` 另起」 |
-| 版本 | **v0.9 草案（2026-10-03，纯新文件；本轮不改任何既有规格）**。按 dev-plan §0.4 第 1/3/4 条**不构成开工依据**：§8.2 三处待裁未闭合，且 §6.3 登记了「两个服务此刻没有可实现内容」这一硬事实。**判级预判 C，但附一条上行条件**：只要实现过程动了 dev-plan §1.1 的 R1–R4 规则表（新增 R5 即是），本轮判级即按 §0.3「拿不准往高级别归」升 **B**——见 §8.2 待裁③ |
+| 版本 | **v1.0（2026-10-14，§8.2 三项待裁全部闭合 · 判级由 C 改判 B）**。本 spec 现构成开工依据。**三项连带修正**：① **判级 C → B**（判级取最高一档 —— 待裁② 的「planner 侧新增非受管判定」是可观察行为变化、待裁③ 的 R5 规则表改动是文档层；逐条理由见 §8.2）；② **服务数由四服务改五服务**，本轮落**三个**（`packService` / `injectService` / `agentService`），`growthService` 与 `statsService` 随 RF1-5／RF2-1 同批 —— owner 2026-10-14 已另裁「FR-1 增列 `agentService` 作第五个服务」；③ **本轮判级不是「附条件升 B」而是「已定 B」**。<br>**上一版**：**v0.9 草案（2026-10-03，纯新文件；本轮不改任何既有规格）**。按 dev-plan §0.4 第 1/3/4 条**不构成开工依据**：§8.2 三处待裁未闭合，且 §6.3 登记了「两个服务此刻没有可实现内容」这一硬事实。**判级预判 C，但附一条上行条件**：只要实现过程动了 dev-plan §1.1 的 R1–R4 规则表（新增 R5 即是），本轮判级即按 §0.3「拿不准往高级别归」升 **B**——见 §8.2 待裁③ |
 
 ---
 
@@ -117,15 +117,42 @@
 
 - **7.7 未验证面**（负向登记，不得读成已通过）：① Windows 终端下服务层与 `@clack` 的边界是否真能隔离（本轮只静态读代码，未在三平台跑过交互）；② 多一层函数调用的性能影响（未测，预判可忽略但不构成结论）；③ FR-4 两条规则在 CI 三平台的实际执行位置与耗时（未测）；④ `statsService`／`growthService` 的有效实现（阻于 §6.3，本轮无法验收）。
 
+### 7.8 验收条目的实测状态（2026-10-15 实跑，DEV-0098）
+
+| # | 实测 | 证据 |
+|---|---|---|
+| a | ✅ | `services/` 下 4 支单测共 **36 支**：`packService.test.ts` 7 · `injectService.test.ts` 11 · `agentService.test.ts` 8 · `contextService.test.ts` 18。**都不 import fastify／commander／@clack**（这是 R5 新规则正在守的东西） |
+| b | ✅ | 全部在 `packages/core` 内跑，不起 server、不起子进程 |
+| c/d/e | ✅ | **三条变异腿逐条实跑**，各命中 FR-4.1 的 zone message 与 FR-4.2 的 `no-restricted-imports`；子路径绕过面（`@clack/prompts/dist/x`）同样判红；撤销后判绿 |
+| f | ❌ **未做** | FR-2 的 `verifyAgainstLock` 合一本轮未做，`UT-SVC-03` 无对应测试 |
+| g | ✅ | `apps/server/test/packs.api.test.ts` **18/18 逐字绿**，`git diff` 为空 |
+| h | ✅ | `apps/cli/test/` **全部零改动**；涉 sync 的 6 个文件 **99/99 逐字绿**（含真子进程 CLI 契约测试） |
+| i | ✅ | `git status --short -- tests/golden/ content/seed/` → 空 |
+| j | ✅ | 入口 267.27 kB ≤ 300 kB，余量**未减** |
+| k | ✅ | R1–R4 既有 zone 与三个 `r4NoCrossApp` 块**一字未改**（`eslint.config.js` diff 只含新增）；`core→adapters` 命中 **0** |
+| l | ❌ **未达成** | FR-3.1 收敛判据**本轮未达成**：`apps/server/src/routes/` 的 `new [A-Z]*Repo(` ＋ `db.prepare(` 命中数仍为 **19**。已搬的只有 FR-3.2 点名的导出编排（`packs.ts`）与决策规则（`sync.ts`）；**`settings.ts` 的聚合 SQL 指向 `statsService`，而该服务随 RF1-5 一起未开工**，故那一处不能夹带 |
+| m | 🟡 **部分** | 四条凭据里 ①②④ 齐备（golden 零 diff、bundle 不减余量、CLI 断言未改），**①「CI 支数逐字」这一条已不成立**——它以 §3-9 的 58 文件/538 支为基线，而 M8 与本轮各自新增了测试。当前基线为 **71 文件 / 662 支**。该条须随 §3-9 基线**重新采样**后才可判 |
+
+> **⚠️ FR-4.1 的 zone 方向勘误（2026-10-15 实测发现，spec 原文有误）**
+>
+> FR-4.1 写的是 `{ target: './packages/core/src/services', from: ['./packages/core/src/repos', './packages/core/src/db'] }`。
+> 但 `import-x/no-restricted-paths` 的语义是「**target 里的文件不得 import from 里的路径**」——
+> 照抄实测会得到**恰好相反**的规则：禁止服务层 import repos（首次实跑即报 **14 处错**，全部在 `services/` 内）。
+> 那会把服务层打死，因为服务层的本职就是编排 repo。
+>
+> spec 自己写的 message「repos／db 是下层，禁止回调服务层」才是对的语义：**禁止下层回调上层**。
+> 故正确写法是 `target: [repos, db]`、`from: [services]`，与 R1–R4 全部五条 zone 同一形制。
+> **已按 message 语义实现**，spec 正文的字面配置待下次改版时同步订正。
+
 ## 8. 依赖
 
 - **8.1 与既有文档的关系**：本项是 `design §1.1`／`dev-plan §1.1` 分层规则的**增补**（新增 R5），不是替代。落地时须同步：dev-plan §1.1 规则表加一行、`eslint.config.js:6-10` 的 R1–R4 注释头补 R5。**这两处一动，本项判级按 §0.3 升 B**（见 §8.2 待裁③）。
-- **8.2 待裁清单**（owner 裁前，本文件不构成开工依据）：
+- **8.2 待裁清单**（✅ **2026-10-14 owner 授权逐条裁决，三项全部闭合，本 spec 升 v1.0 后构成开工依据**）：
 
 | # | 待裁项 | 候选与推荐 |
 |---|---|---|
-| ① | `growthService` 与 `statsService` 本轮建不建？它们的落点（1-5 台账、2-1 阶段机）都未开工 | (a) 本轮只落 `pack`＋`inject` 两服务，growth/stats 随 1-5／2-1 同批建；(b) 四文件签名全建、实现留空并在文件头注明「空签名不是落地」；(c) 四文件全建、把 1-5 的统计聚合提前。**推荐 (a)**：(b) 会留下「四服务已建」的假象，(c) 会把 1-5 的 J7 前置约束绕过去 |
-| ② | 三套状态词收成哪一套（FR-2.3） | (a) 沿用 `retirement.ts` 的 `ABSENT／FOREIGN／IN_SYNC／DRIFT` 四态——它是 `planner.ts` 二态（drifted/missing）的超集，且 `FOREIGN` 表达了 planner 没表达的那一类；(b) 另起一套中性词。**推荐 (a)**，但 (a) 要求 planner 侧新增「非受管」判定，属可观察行为变化 ⇒ 须按 §0.3 复核是否仍是 C |
-| ③ | 新增 R5 进 dev-plan §1.1 规则表的判级 | 推荐 **B**（动的是分层规则表本身，不是实现）；若 owner 判 C，则本项整体维持 C，判级理由须就地登记而不是事后补 |
+| **①** | `growthService` 与 `statsService` 本轮建不建？它们的落点（1-5 台账、2-1 阶段机）都未开工 | **(a) 本轮不建这两个服务**——但**不是「只落两服务」，是「落三服务」**：(b) 与 (c) 同样被否（(b) 留下「四服务已建」的假象，(c) 把 1-5 的 J7 前置绕过去）。**⚠️ 修正了选项本身的措辞**：本项原写「本轮只落 `pack`＋`inject` 两服务」，那是 2026-10-03 写 spec 时的三服务设想；**owner 2026-10-14 已另裁「FR-1 增列 `agentService` 作第五个服务」**（登记 PRD **D34** 同批、`dev-plan-v0.2.1.md` §5.2 前置 A）。⇒ **本轮实际落三个服务：`packService` / `injectService` / `agentService`**；`growthService` 与 `statsService` **本轮不建**，随 RF1-5／RF2-1 同批。`agentService` 之所以不属「无内容可实现」那类：它的落点是 M8 三张表，而那三张表**已在 `0007` 落地**（实测 `0007_local_events_and_agent_bridge.sql` 四表齐） |
+| **②** | 三套状态词收成哪一套（FR-2.3） | **(a) 沿用 `retirement.ts` 的四态**（`ABSENT`／`FOREIGN`／`IN_SYNC`／`DRIFT`，实测 `retirement.ts:7` 的 `RETIREMENT_STATES` 就是这四个）。**理由**：`FOREIGN`（`retirement.ts:53` —「`!managed` 或 `isOpenVibeInternal`」时命中）表达了 planner 侧没表达的那一类「这个文件在盘上，但不是我们管的」；另起一套中性词会让四态与二态并存却互不相认。**判级复核结论：本项判 B，不是 C** —— (a) 要求 planner 侧新增「非受管」判定，属 `dev-plan §0.3` 定义的**可观察行为变化**（planner 的输出多一态、既有断言要跟着动），不能按「纯内部重构」留在 C。**代价已知**：B 级意味着要 DEV_LOG 登记 ＋ spec 版本行，且 planner 的既有测试不能「一字不改」 |
+| **③** | 新增 R5 进 dev-plan §1.1 规则表的判级 | **B**。理由：动的是**分层规则表本身**（`dev-plan §1.1` 的 ASCII 依赖图 ＋ `eslint.config.js:6-10` 的 R1–R4 注释头），不是实现细节。**连带结论：本 spec 整体判 B** —— 判级由**最高的那一档**取，不是逐条取；即便 ① 与 FR-1～FR-5 本身多为 C 级实现面，② 的可观察行为变化与本条的规则表改动已把整项抬到 B |
 
 - **8.3 与其他 RF 项的依赖**：本项是 1-2（写盘自证）、1-3（sync 起始核验）、1-5（本机台账）的**写入点前置**——分析文 §5「写入点集中在服务层（D9）而非散落各处，这正好是 D9 的第一个收益」。反向依赖：`entry-budget.md` FR-7 的状态词合一是本项服务签名的输入，若同批做须先合状态词。

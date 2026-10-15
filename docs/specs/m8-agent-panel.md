@@ -1,0 +1,228 @@
+# SPEC · M8 Agent 面板（M8-E Web 直调面板 · 待确认回流 ＋ 上下文预览 ＋ 接入指引）
+
+| 项 | 值 |
+|------|------|
+| 模块 | **M8-E · Web 直调面板**（PRD-M8 §3.5）。本 spec 覆盖 PRD-M8 §3.1–§3.4 之外**唯一不依赖探针**的子面，是 M8-A 被探针阻塞时的解耦件 |
+| 优先级 | **C 级**（纯 UI，不动契约面、不动既有表的列、不新增迁移）。逐项判级见 §4 各 FR 末尾 |
+| 上游 | `docs/PRD-M8-agent-bridge-v1.0-20261013.md`（M8 全模块 v1.1，§3.5 / §4.7 / §9）· `docs/specs/m8-agent-bridge.md`（M8-B/C/D v1.0，**本 spec 的数据源与同源对象**）· `service-layer.md`（服务层，未落地 · 同源断言的落点）· `local-event-ledger.md`（台账，未落地）· `docs/dev-plan-v0.2.1.md` §4.1 闸 **0-h** |
+| 下游设计 | `docs/design.md` **§3 Monorepo 结构**（`:66` 依赖方向 `apps/* → packages/{core,adapters,shared}`、`core → shared`、**core 不依赖 server**——「`apps/web` 只做交互与序列化」的真正出处）＋ `docs/dev-plan.md` **§1.1**；另 §10 Web 信息架构（本项落点页）、§11.5 遥测白名单（本项**不触碰**）。视觉按 `DESIGN.md` 与 `theme.md` 现行 token，**不得出现字面色阶** |
+| 关联任务 | **无**。No-spec-no-task（`dev-plan.md` §0.4 第 4 条）。下一空号 **T14** 须待 Phase 1 开工前置（RF1-1 服务层 ＋ RF1-5 台账）转绿后再申请 |
+| 版本 | **v1.0（2026-10-14）**。§8.2 三项待裁已全部闭合（owner 亲裁，见各行）。⚠️ **「待裁闭合」≠「可以开工」**——本项依赖 M8-C（CLI 面）落地，理由见 FR-5.2 与 §6.1 |
+| 采样 | 2026-10-14 工作树；引用提交树 **`4b42642`**（DEV-0092） |
+
+---
+
+## 1. 目标与用户价值
+
+**一句话**：让「装了 OpenVibe 的 agent 能做什么、它回传了什么、我怎么接上」这三件事在**项目详情页一屏内**看得见、点得动，不必打开终端。
+
+本子面解决的**不是**「agent 能不能读写数据」（那是 B/C/D 的事），而是三件 UI 侧的断点：
+
+1. **回流记录无处可看**——agent 写进来的东西若只在库里，用户不知道自己错过了什么，也无从确认或否决。
+2. **上下文预览与 CLI 结果可能不一致**——同一问题，Web 看到的和 agent 看到的若不同源，用户排查时无法判断该信哪个。
+3. **接入是手抄命令**——`openvibe sync --target trae` 要用户自己在终端拼、还要自己知道目标平台目录在哪。
+
+**用户价值判据**（可测）：一个从没用过 M8 的用户，在项目详情页上**不查任何外部文档**，能说出「agent 现在能读什么、能写什么、我装到哪了」。
+
+---
+
+## 2. 范围
+
+| **In** | **Out（明确不做，写明理由与去向）** |
+|---|---|
+| **FR-5.1 助手桥接面板**：项目详情页新增一区，含三个子块——①「待确认回流」列表（`conflict` 高亮）②「本项目上下文」预览 ③「让 agent 接入」一键生成安装指令 | **M8-A 官方 skill 包**（`m8-skill-bridge.md`）——本 spec 的 ③ 区**只生成安装指令文本**，不实现 skill 本身。理由：M8-A 阻塞于探针运行半边（PRD-M8 §11-待裁②），且属 A 级（动 adapter 产物集合） |
+| **FR-5.2 同源断言**：Web 每个动作与对应 CLI 命令**调同一个 service 入口**，由测试断言「同输入两路出参逐字相同」 | **新增端点**——本 spec **不新增任何 HTTP 端点**。上下文预览复用 `m8-agent-bridge.md` 的 `GET /api/projects/:id/context`；确认/否决动作复用 `POST /api/agent/ingest` 的既有语义 |
+| **FR-5.3 不 fork CLI**：Web 动作不经子进程 | **让 Web 走 service 层之外的捷径**（直连 DB、直调 repo）——会让 FR-5.2 的同源断言失效，属自毁 |
+| **FR-5.4 三态空态**：新建 `EmptyState` 组件，落 `empty` / `no-result` / `error` 三态 | **新造错误态文案**——错误态沿用既有 `laneEngineering.state.retryHint` ＋ `retry`（§3-3 实测存在，见 FR-5.4.3） |
+| **FR-5.5 设置并入第 7 区同级**：桥接隐私开关并入既有「可读性与设计系统」同级的遥测/台账两节 | **新开第三节设置**——PRD-M8 FR-5.5 明写不新开；既有第 7 区锚点见 §3-4 |
+| **裁决⑥ 的并发合并 UI**（owner 2026-10-14 裁「交给用户在 Web 裁决」）——本 spec 承接 | **自动合并策略**——裁决⑥ 明确**不做自动合并**；本 spec 只提供人工裁决入口（FR-5.6） |
+
+---
+
+## 3. 现状与实测基线（采样 2026-10-14 工作树 · 引用提交树 `4b42642`）
+
+### 3-1 `EmptyState` 组件**不存在** —— **本 spec 发现的一处假引用**
+
+`grep -rln 'EmptyState' apps/web/src --include='*.tsx'` → **0 命中**。
+
+⇒ **PRD-M8 FR-5.4 写的「沿用既有 EmptyState 纪律」是假事实**：它引用了一个在本仓不存在的组件。**本 spec 据此改判**：FR-5.4 从「沿用」改为「**新建组件并落三态**」。这是 C 级就地修规格，不改 PRD 裁定（PRD 的三态要求本身是对的，错的是「沿用既有」这个前提）。
+
+现有空态是**直接写在组件里的文案**，无复用组件：`PortsPanel.test.tsx:120` 的用例名即写着「只有 empty 文案、没有表」。
+
+### 3-2 错误态与重试的**真**既有形制（这是 §3-1 那条假引用之外的可用件）
+
+| 事实 | 证据 |
+|---|---|
+| 错误态文案单源存在 | `apps/web/src/i18n/lane-engineering.ts:79` → `retryHint: '读本地库失败，通常是后台进程刚重启——重试即可。'`（消费点：`ProjectDetailPage.tsx:215`、`ProjectList.tsx:69`、`DevLogList.tsx:64`） |
+| 重试按钮已有形制 | 三处现成用法，**但绑定方式不同**：`ProjectDetailPage.tsx:217` 绑 `project.refetch()`；`components/projects/ProjectList.tsx:70` 与 `components/projects/DevLogList.tsx:65` 绑 `props.onRetry`（子组件收回调） |
+| 错误块样式已有形制 | `ProjectDetailPage.tsx:211` 用 `noteCls('danger')` ＋ `noteTitleCls`（`retryHint` 在 `:215`，重试按钮在 `:217`） |
+
+⇒ **FR-5.4 的 `error` 态直接复用这三样，不新造**。
+
+### 3-3 详情页的既有取数模式
+
+`ProjectDetailPage.tsx:49-58` 用一组 hook 取数：`useProject` / `useCheckStates` / `useInjectionStatus` / `useProjectPorts` / `useTasks` / `useFlowTemplates`。⇒ 本区**照同一形制**新增 `useAgentIngests(id)` ＋ `useProjectContext(id, fields?)`，**不得**在组件里裸写 `fetch`。
+
+### 3-4 设置页第 7 区确实存在
+
+`SettingsSections.tsx:614` → `/* ---------- 第 7 区：可读性与设计系统（theme.md FR-3.6 / DESIGN.md Readability Contract） ---------- */`
+
+⇒ FR-5.5 的「同级」有确定落点：与第 7 区并列，**不是第 7 区的子项、也不新开第 8 区**。
+
+### 3-5 `m8-agent-bridge.md` v1.0 的出参契约（本 spec 的同源对象）
+
+- 上下文面：`GET /api/projects/:id/context`，**字段裁剪由该 spec FR-3.3 钉死**（合法段名闭集 = `stage/checklist/tasks/logs/pack/assets`），**预算裁剪顺序与「每次裁剪必须进 `truncated`」由 FR-3.4 钉死**；
+- 回流面：`POST /api/agent/ingest`，`status` 四态 `pending|published|rejected|conflict`（该 spec FR-1.2.3，`CHECK` 约束，**第四态即本 spec 的高亮对象**）；
+- 错误码：服务端闭集 **12 项**（该 spec FR-6.1，含新增 `IDEMPOTENCY_CONFLICT`）。
+
+### 3-6 三处必须登记的未验证面（**不得读成已通过**）
+
+1. **`useAgentIngests` / `useProjectContext` 两个 hook 尚不存在**——FR-5.3 只定形制，落点在实施轮。
+2. **M8-C 未落地** ⇒ FR-5.2 的同源断言**当前无对象可同源**（详见 §6.1）。
+3. **本 spec 未核验 `docs/design.md` §11.5 之外是否需要为本区新增遥测**——结论按 B/C/D 的既有裁定：**一条都不加**（M8 五类 kind 走台账，`TELEMETRY_EVENTS` 零改动）。
+
+---
+
+## 4. 功能需求（FR）
+
+### FR-5.1 助手桥接面板（**C 级**：纯 UI）
+
+- **FR-5.1.1 落点唯一**：项目详情页内新增**一**个区，**不新开页面、不进侧边栏**（理由：M8 的使用场景是「干活时顺手看」，跳页会打断 agent–人协作的上下文）。
+  - FR-5.1.1.1 三子块的顺序固定为 ② 上下文预览 → ① 待确认回流 → ③ 接入指引。**顺序即使用顺序**：先看 agent 能拿到什么，再看它回传了什么，最后才是怎么接上。
+  - FR-5.1.1.2 `conflict` 行的视觉权重高于 `pending`：`pending` 是常态（FR-5.2 人工确认门规定一律先落 pending），`conflict` 是**需要人介入**的状态（同键异载荷，见 `m8-agent-bridge.md` FR-2.2）。常态与异常不分权重 = 异常被淹没。
+- **FR-5.1.2 待确认回流列表**：字段 = 时间 / `kind` / 来源平台 / 摘要 / `status`。**摘要一行截断规则写死**：取 `payload_json` 的首个字符串字段，超 80 字符截断并加省略号，**不解析富文本、不渲染 HTML**（回流内容来自 agent，是**不可信输入**）。
+  - FR-5.1.2.1 **不可信输入的渲染红线**：回流正文与摘要**一律按纯文本渲染**，不得 `dangerouslySetInnerHTML`、不得 `markdown` 直渲。理由：`payload_json` 由调用方自报（B22 的同型推理：越权读取/注入是隐私红线）。
+- **FR-5.1.3 上下文预览**：与 `GET /api/projects/:id/context` 同源同渲染。字段选择器覆盖该 spec **FR-3.3 的六个合法 `fields` 段**：`stage` / `checklist` / `tasks` / `logs` / `pack` / `assets`。⚠️ **本行初稿写成 `status`/`next`/`terms`，那三个是 CLI `ask` 的问句关键词（PRD-M8 §3.3），不是端点的字段段名——两套词表同名不同义，已订正。**
+  - FR-5.1.3.1 **`truncated` 必须可见**：该端点返回 `truncated=true` 时，预览区顶部挂一条说明条，**不得静默截断**（承 `m8-agent-bridge.md` FR-3.4 的同型纪律：agent 无法解析静默截断，人也不能）。
+- **FR-5.1.4 「让 agent 接入」**：只**生成安装指令文本**（可复制到剪贴板），**不代执行**。理由与 PRD-M8 §3.1 技能边界表一致——注入是**人的决定**，agent 与面板都不能替他按下那个键（B21）。
+  - FR-5.1.4.1 指令模板按已注册的六个 adapter 生成，**不在前端硬编码平台清单**——平台清单单源在既有 adapter 注册处（`design.md` §8 冻结面），前端复制一份即第二真源。
+
+### FR-5.2 同源断言（**C 级，但本 spec 最硬的一条**）
+
+- **FR-5.2.1 同一 service 入口**：Web 的每个动作与对应 CLI 命令调**同一个** service 函数（`service-layer.md` FR-1 的形制）。**断言「同输入两路出参逐字相同」**，由一条测试守。
+- **FR-5.2.2 同源断言的边界**：只断言**出参逐字相同**，**不断言实现共享**（Web 与 CLI 各自的序列化层可以不同——CLI 要 `--json`，Web 要 DOM）。⇒ 断言点在 service 返回值，不在最终渲染结果。
+- **FR-5.2.3 本 FR 是 M8-E 存在的理由**：若同源不成立，Web 与 agent 看到的是两个不同的事实源，用户无法判断该信哪个 ⇒ 本区不如不做。
+
+### FR-5.3 不 fork CLI（**C 级**）
+
+- **FR-5.3.1 零子进程**：Web 动作不经子进程。判据形态同 `m8-agent-bridge.md` FR-8.4 的带 ref 锚风格：`grep -rn 'child_process\|execFile\|spawn' apps/web/src` → **0 命中**。
+- **FR-5.3.2 前端 hook 形制**：照 §3-3 的既有 hook 形制新增取数，不裸写 `fetch`。
+
+### FR-5.4 三态空态（**C 级**：**新建组件，非「沿用」**）
+
+- **FR-5.4.1 组件是新建的**（§3-1 实测 `EmptyState` 0 命中）。本 spec 提供它，**三态缺一不可**：
+
+  | 态 | 语义 | CTA |
+  |---|---|---|
+  | `empty` | 该项目从未有回流记录 | 「让 agent 接入」（滚动到 FR-5.1.1 第三子块） |
+  | `no-result` | 当前筛选/分页无结果 | 「清除筛选」 |
+  | `error` | 取数失败 | 「重试」（复用 §3-2 的 `retry` ＋ `retryHint`） |
+
+  - FR-5.4.1.1 **三态不可合并成两句文案**：`empty` 与 `no-result` 合并 = 用户分不清「它还没接」与「我筛没了」，这是**引导缺失**不是措辞问题；`error` 合并 = 网络抖动直接 0 信息，用户以为真的没数据。
+- **FR-5.4.2 `empty` 的 CTA 必须是动作不是文案**：纯文案空态在本仓已有先例且被判为缺陷（§3-1 的 PortsPanel 用例名即证据）。
+- **FR-5.4.3 `error` 态不新造文案**：直接复用 `laneEngineering.state.retryHint` ＋ `retry`，**理由是它已经写对了**（「通常是后台进程刚重启——重试即可」是本仓的真实故障画像）。⚠️ 精确边界：`theme.md` 只在 `:142` 提到 `apps/web/src/components/ui/styles.ts`（类组合单出处的语境），**它不治理整个 `components/ui/` 目录**——本 FR 的理由是「本组件是业务件、`ui/` 是 V2 形制件的既有落点」，不是「theme.md 管着 ui/」。
+- **FR-5.4.4 组件归属**：新建 `apps/web/src/components/agent/EmptyState.tsx`（新建 `agent/` 目录，与既有 `projects/` 平级）。**不得**塞进 `components/ui/` —— 那是 V2 组件形制目录（`theme.md` 管的东西），本组件是业务件不是形制件。
+
+### FR-5.5 设置并入第 7 区同级（**C 级**）
+
+- **FR-5.5.1 落点**：与 `SettingsSections.tsx:614` 的第 7 区**并列**成为新一区，**不新开第三个隐私分区**（PRD-M8 FR-5.5 明写）。
+- **FR-5.5.2 开关有哪些**：只放**真正属于 M8 的**开关。台账总开关与遥测总开关**不在此处重复**（它们已属既有两节）⇒ 重复开关会导致两处状态不一致，且用户改了一处发现另一处没变。
+  - FR-5.5.2.1 M8 侧唯一新增开关 = **「允许 agent 写入（回流）」**，默认**关**。理由：FR-5.2 的人工确认门是**读侧**防线；写侧还需要一个总闸，否则一次误配就让 agent 开始往库里写。
+  - FR-5.5.2.2 默认关 ⇒ **与 PRD-M8 技能边界表「只读默认」一致**（PRD-M8 FR-1.3）。
+
+### FR-5.6 并发冲突的人工裁决入口（**C 级**：承接 owner 裁决⑥）
+
+- **FR-5.6.1 只给入口不给策略**：owner 裁⑥「交给用户在 Web 裁决」⇒ 本 spec 提供 `conflict` 行的**查看详情 + 二选一处置**（保留先到者 / 接受本条并改幂等键重试），**不实现任何自动合并**。
+- **FR-5.6.2 处置动作复用既有端点**：确认/否决走既有 `/api/agent/ingest` 语义，**不新增「合并」端点**。理由同 FR-5.2.3——新端点就是新的第二真源。
+- **FR-5.6.3 先到者一个字节不改**（承 `m8-agent-bridge.md` FR-7.2）：UI 不得提供「用新的覆盖旧的」按钮——那正是幂等被破坏的地方。
+
+---
+
+## 5. 输入 / 输出
+
+| 方向 | 内容 | 契约来源 |
+|---|---|---|
+| 输入 | `GET /api/projects/:id/context`（`?fields=` 裁剪见该 spec **FR-3.3**，`?budget=` 预算裁剪见 **FR-3.4**） | `m8-agent-bridge.md` FR-3.3 / FR-3.4 |
+| 输入 | 待确认回流列表（读 `agent_ingests` 的 `pending` ＋ `conflict`） | 该 spec FR-1.2 的四态闭集 |
+| 输出 | 确认/否决动作（转 `published` / `rejected`，写 `reviewed_at`） | 该 spec FR-1.2.3 ＋ FR-2.5 |
+| 设置 | 「允许 agent 写入」开关，**默认关** | 本 spec FR-5.5.2.1 |
+| **不做输入** | 任何**会改动目标项目目录**的操作 | **B20 agent 无删权**（PRD-M8 §4.7）——本区**不得**出现触发 `clean` / 删资产 / 删日志的按钮 |
+
+---
+
+## 6. 边界与异常
+
+- **6.1 同源断言当前无对象**：FR-5.2 要求 Web 与 CLI 同源，但 M8-C（CLI 面）未落地 ⇒ **本 spec 的 FR-5.2 在 M8-C 落地前无法验证**。这不是缺陷登记，是**顺序事实**：本 spec 的多数 FR 可先做，**FR-5.2 必须等 M8-C**。⇒ 出口判据把 FR-5.2 单列（§7-c）。
+- **6.2 回流内容是不可信输入**：`payload_json` 由调用方自报。本 spec 的应对是 FR-5.1.2.1（纯文本渲染，无 HTML/富文本）。**本 spec 不做内容净化**——净化是写入面的责任（服务端 `payload_json` 存原文是刻意的，见 `m8-agent-bridge.md` FR-1.2.2），渲染面按不可信处理即可。
+- **6.3 `conflict` 的诊断信息是截断的**：`m8-agent-bridge.md` FR-7.1 规定冲突响应只给双方 `payload_json` 的 sha 前 8 位，**不回显完整载荷**（回显等于泄露另一个会话的内容）⇒ 本区**不得**为「方便对比」而请求完整载荷。UI 只能显示两个短 hash ＋ 两行摘要。
+- **6.4 空态组件由本 spec 新建 ⇒ 会被别的页面误用**：这是本 spec 唯一的**外溢风险**。缓解：组件放在 `components/agent/`（业务域内），**不进 `components/ui/`**（FR-5.4.4）；且本轮**不主动推广**到其他页面——推广是另一笔，届时应先看三态在别的页面有没有被误用（例如把 `error` 写成 `empty`）。
+- **6.5 「允许 agent 写入」默认关 ⇒ 开了才有冲突可裁决**：FR-5.5.2.1 关闭时，回流端点应直接拒绝写入，面板显示 `empty` 态而非错误态（**拒绝是预期行为不是故障**）。这条容易写反。
+- **6.6 本区不碰遥测白名单**：M8 五类 kind 走台账，`TELEMETRY_EVENTS` 零改动（D3 白名单本体）。**面板自身不新增任何前端遥测事件。**
+- **6.7 未排工期**：本区属 Phase 2，开工须待 Phase 1 全绿 ＋ 0-d 运行半边闭合（`dev-plan-v0.2.1.md` §4.3）。
+
+---
+
+## 7. 验收标准（pass/fail）
+
+> **测试 ID 不复用既有族**（既有含 `m8-agent-bridge.md` 的 `CORE-M8-*` / `SRV-M8-*` / `IT-M8-*` / `CLI-M8-*` / `GOLD-M8-*` / `MANUAL-M8-*`）。**本 spec 独占 `WEB-M8E-*`**（该族此前为空，见 `m8-agent-bridge.md` §7 登记表 `UT-WEB-M8-*` 为「本 spec 无 web 面，留空登记」——本 spec 用**不同的前缀**避免撞族）。
+
+| # | 条目 | 判据 | 测试 ID |
+|---|---|---|---|
+| a | FR-5.4 三态可区分：同一列表组件在三种数据下渲染三种**互不相同**的 CTA | 三态各有断言；**变异腿**：把 `error` 的 CTA 换成 `empty` 的 ⇒ 必判红 | `WEB-M8E-01` |
+| b | FR-5.4 `empty` 态有**可点的** CTA（不是纯文案） | 断言按钮存在且可触发滚动 | `WEB-M8E-02` |
+| c | **FR-5.2 同源断言**（**须待 M8-C 落地后才可验**） | 同输入经 Web 路径与 CLI 路径，service 返回值逐字相同 | `WEB-M8E-03` |
+| d | FR-5.3 零子进程：`grep -rn 'child_process\|execFile\|spawn' apps/web/src` → 空 | 带 ref 锚形态随提交出齐 | `WEB-M8E-04` |
+| e | FR-5.1.2.1 回流摘要按纯文本渲染 | 构造含 `<script>` 的 `payload_json` ⇒ 断言 DOM 中**无**该标签节点 | `WEB-M8E-05` |
+| f | FR-5.1.2 摘要 80 字符截断且有省略号 | 边界值 79/80/81 三行 | `WEB-M8E-06` |
+| g | FR-5.1.3.1 `truncated=true` ⇒ 顶部有说明条 | 断言存在；无 truncated 时**不出现**（不得常驻） | `WEB-M8E-07` |
+| h | FR-6.3 冲突详情只显示两个短 hash，**不请求也不显示完整载荷** | 断言请求体不含「取完整载荷」参数；DOM 无完整载荷文本 | `WEB-M8E-08` |
+| i | FR-5.6.3 **不存在**「用新的覆盖旧的」按钮 | 断言该文案零出现 | `WEB-M8E-09` |
+| j | FR-5.5.2.1 「允许 agent 写入」默认**关** | 默认值断言 | `WEB-M8E-10` |
+| k | §6.5 写开关关闭时，回流写入被拒且面板显示 `empty` 而非 `error` | 表驱动两态 | `WEB-M8E-11` |
+| l | FR-5.5.2 不重复既有遥测/台账开关 | 断言本区开关集合不含那两个既有开关的 label | `WEB-M8E-12` |
+| m | FR-5.1.4.1 安装指令的平台清单不在前端硬编码 | 断言前端无平台名数组字面量；清单随 adapter 注册变化 | `WEB-M8E-13` |
+| n | **人工验收腿**：一个没用过 M8 的用户，在项目详情页**不查外部文档**能说出「agent 能读什么、能写什么、装到哪」 | 屏摄归档；判不过须回报 owner 而非改文案了事 | `MANUAL-M8E-01` |
+
+- **7.1 未验证面（负向登记，不得读成已通过）**：
+  1. **FR-5.2 当前无对象可同源**（§6.1）——c 项须待 M8-C 落地；
+  2. **`useAgentIngests` / `useProjectContext` 尚不存在**（§3-6-1）——本 spec 只定形制；
+  3. **M8-A 未落地 ⇒ FR-5.1.4 的安装指令目标 skill 还不存在**，③ 区生成的是「将来会有」的指令；
+  4. **未核验 `docs/design.md` 是否需要为本区新增组件形制**——本 spec 的判据是「不进 `components/ui/` 即不触发形制治理」（FR-5.4.4）；
+  5. **`EmptyState` 的三态在别的页面推广后会否被误用**（§6-4）——本轮不推广，风险未消。
+- **7.2 不抄支数**：本节不写「N 支测试」。复算命令：`grep -rhoE 'WEB-M8E-[0-9]+' apps/web/src | sort -u | wc -l`（实施轮才存在）。
+
+---
+
+## 8. 依赖
+
+### 8.1 依赖
+
+| 依赖 | 性质 | 阻塞什么 |
+|---|---|---|
+| `m8-agent-bridge.md` v1.0 的 `GET /api/projects/:id/context` ＋ 四态闭集 ＋ 12 项错误码 | **硬**（数据源） | ①② 子块全部 |
+| `service-layer.md`（未落地）＋ **FR-1 增列 `agentService` 作第五个服务**（owner 2026-10-14 三前置之一） | **硬**（同源落点） | **FR-5.2 全部** |
+| M8-C（CLI 面）落地 | **硬**（同源断言的对照物） | **仅 FR-5.2** |
+| `local-event-ledger.md`（未落地） | 间接 | FR-5.5.2 的隐私开关语义（台账总开关在既有节） |
+| RF1-5 台账（v0.2.0） | **总闸** | Phase 1 全部 ⇒ 本 spec 属 Phase 2，**排在更后** |
+
+### 8.2 待裁（owner 裁决）——**三项已闭合**
+
+| # | 待裁 | **裁定（2026-10-14）** | 落点 |
+|---|---|---|---|
+| **①** | 「沿用既有 EmptyState 纪律」的前提是否成立 | **前提不成立**——实测 `EmptyState` 组件 0 命中（§3-1）⇒ 改判为**本 spec 新建组件并落三态**。**PRD 的三态要求不变**，改的只是「沿用」这个事实断言 | FR-5.4 ＋ FR-5.4.4 |
+| **②** | 并发冲突的合并 UI 归属 | **归本 spec**（owner 裁⑥「交给用户在 Web 裁决」的必然落点）⇒ FR-5.6，**只给人工入口不给自动策略** | FR-5.6 |
+| **③** | 「允许 agent 写入」开关的默认值 | **默认关**，与 PRD-M8 FR-1.3「只读默认」一致 | FR-5.5.2.1 ＋ 验收 j |
+
+### 8.3 本 spec 之后的 spec 拆分（**不在本件**）
+
+| 待立 spec | 覆盖 | 可规格化的前置 |
+|---|---|---|
+| `m8-skill-bridge.md` | M8-A 官方 skill 包、两通道分发、意图→命令映射表 | **探针运行半边五问**（`dev-plan-v0.2.1.md` §6.3）。**与本 spec 无依赖关系**——本 spec 已在 FR-5.1.4 把它的指令生成做成纯文本输出 |
+
+---
+
+**变更日志**
+
+| 版本 | 日期 | 变更 |
+|---|---|---|
+| **v1.0** | **2026-10-14** | **初版，闸 0-h 交付**。owner 2026-10-14 裁「本轮补写」（Phase 0 的自办闸之一，不依赖探针，故不被 M8-A 连坐）。覆盖 M8-E 单子面：FR-5.1 面板三子块 / FR-5.2 同源断言 / FR-5.3 不 fork / FR-5.4 三态空态 / FR-5.5 设置并入第 7 区同级 / FR-5.6 并发冲突人工裁决（承接裁决⑥）。验收 14 条 ＋ `WEB-M8E-*` 新族。**本 spec 查出一处假引用并就地改判**：PRD-M8 FR-5.4 的「沿用既有 EmptyState 纪律」**前提不成立**——`grep -rln 'EmptyState' apps/web/src --include='*.tsx'` → **0 命中**，该组件在本仓不存在 ⇒ FR-5.4 改判为「**新建组件并落三态**」，组件落 `components/agent/EmptyState.tsx`（**不进 `components/ui/`**，那是 V2 形制目录）。**三态的 `error` 态不新造文案**，复用实测存在的 `laneEngineering.state.retryHint`（`i18n/lane-engineering.ts:79`）＋ `retry` ＋ `noteCls('danger')` 三件套（`ProjectList.tsx:71` / `DevLogList.tsx:64` / `ProjectDetailPage.tsx:217` 三处现成用法）。**⚠️「待裁闭合」≠「可以开工」**：FR-5.2 同源断言须待 M8-C 落地才有对照物（§6.1），本 spec 整体属 Phase 2、排在 Phase 1 之后 |

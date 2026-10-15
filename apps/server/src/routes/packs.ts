@@ -7,15 +7,12 @@ import {
   PackCreateInput,
   PackUpdateInput,
   SEMVER_RE,
-  compareSemver,
-  type ExportOut,
   type PackOut,
 } from '@openvibe/shared'
 import {
   PacksRepo,
   bundleFileName,
-  bundleJson,
-  directoryFiles,
+  createPackService,
   nowIso,
   type SqliteDatabase,
 } from '@openvibe/core'
@@ -36,6 +33,21 @@ const PreviewBody = z.object({ version: z.string().regex(SEMVER_RE).default('1.0
 /** dev-plan §3.8 + bundle 下载通道（owner 裁定 2026-09-21） */
 export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): void {
   const packs = new PacksRepo(deps.db)
+
+  /**
+   * 导出编排已迁入 `packService`（service-layer.md FR-3.2）。
+   *
+   * `renderPack` / `packExportDir` / `writeDirectoryExport` 以**注入**传入而非服务层 import：
+   * `pack-assemble.ts:1` 直连 `@openvibe/adapters`，core 若 import 即破 R2（FR-5.1），
+   * 故按 FR-5.2 走 deps 注入 —— 最外层这一处是 adapters 的唯一合法 import 点。
+   */
+  const packService = createPackService({
+    db: deps.db,
+    now: nowIso,
+    renderPack: (pack, version, exportedAt) => renderPack(deps.db, pack, version, exportedAt),
+    packExportDir,
+    writeDirectoryExport,
+  })
 
   const needPack = (id: string): PackOut => {
     const pack = packs.get(id)
@@ -75,49 +87,8 @@ export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): v
 
   app.post('/api/packs/:id/export', async (req) => {
     const { id } = req.params as { id: string }
-    const pack = needPack(id)
     const { version, channel } = parseOrThrow(ExportInput, req.body)
-
-    const latest = packs.latestExport(id)
-    if (latest && compareSemver(version, latest.version) < 0) {
-      throw new AppError('VALIDATION_ERROR', `新导出版本必须 ≥ ${latest.version}（m6a FR-4.1）`, {
-        fieldErrors: { version: [`需 ≥ ${latest.version}，当前 ${version}`] },
-      })
-    }
-
-    // exportedAt 真实时间只进 manifest.pack，不进正文与指纹（design §7.3 零时间戳）
-    const rendered = renderPack(deps.db, pack, version, nowIso())
-    const directoryPath = channel === 'directory' ? packExportDir(pack.name, version) : null
-    if (directoryPath) writeDirectoryExport(directoryPath, directoryFiles(rendered))
-
-    const record = packs.recordExport({
-      packId: id,
-      version,
-      fingerprint: rendered.fingerprint,
-      manifestJson: rendered.manifestJson,
-      bundleJson: bundleJson(rendered),
-      channel,
-    })
-    // 幂等重导回既有记录（同 pack 同版本只有一行，UNIQUE(pack_id, version)）
-    const row = packs.exportByVersion(id, version)
-    if (!row) throw new AppError('INTERNAL', '导出记录写入后读取失败')
-
-    const result: ExportOut = {
-      status: record.status,
-      export: {
-        id: row.id,
-        packId: row.packId,
-        version: row.version,
-        fingerprint: row.fingerprint,
-        channel: row.channel,
-        exportedAt: row.exportedAt,
-      },
-      directoryPath,
-      bundlePath: `/api/packs/${id}/exports/${row.id}/bundle`,
-      fingerprint: row.fingerprint,
-      warnings: rendered.warnings,
-    }
-    return result
+    return packService.exportPackWithRecord({ packId: id, version, channel })
   })
 
   app.get('/api/packs/:id/exports', async (req) => {

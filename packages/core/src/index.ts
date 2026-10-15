@@ -52,6 +52,25 @@ export {
   isRuleFile,
   type ImportFile,
 } from './importers'
+export { AgentIngestRepo, type AgentIngest, type IngestInput, type IngestOutcome } from './repos/agentIngest'
+export { LocalEventsRepo, dayOf, type LocalEventInput, type LocalEventSummary } from './repos/localEvents'
+/* --- 服务层（service-layer.md 第五个服务；写入点集中在此，不散落 route）--- */
+export { createAgentService, AGENT_BATCH_LIMITS, type AgentServiceDeps, type IngestBatchResult } from './services/agentService'
+export { createContextService, type ContextServiceDeps } from './services/contextService'
+export {
+  createPackService,
+  type PackServiceDeps,
+  type ExportWithRecordInput,
+} from './services/packService'
+export {
+  decideInjections,
+  planDecideApply,
+  InjectError,
+  type AskFn as InjectAskFn,
+  type DecideOptions,
+  type PlanDecideApplyInput,
+  type PlanDecideApplyResult,
+} from './services/injectService'
 export { sha256Hex, stableJson } from './repos/util'
 export {
   composePack,

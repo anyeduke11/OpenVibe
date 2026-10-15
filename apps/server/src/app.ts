@@ -4,6 +4,7 @@ import { APP_NAME, SCHEMA_VERSION } from '@openvibe/shared'
 import { openDatabase, type SqliteDatabase } from '@openvibe/core'
 import { registerAuth } from './plugins/auth'
 import { registerErrors } from './plugins/errors'
+import { registerAgentRoutes } from './routes/agent'
 import { registerCliCommandRoutes } from './routes/cliCommands'
 import { registerDevLogRoutes } from './routes/devlog'
 import { registerFlowTemplateRoutes } from './routes/flowTemplates'
@@ -65,6 +66,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerAuth(app, { token })
 
   const deps: PromptRouteDeps = { db }
+  registerAgentRoutes(app, deps)
   registerPromptRoutes(app, deps)
   registerTermRoutes(app, deps)
   registerPlaybookRoutes(app, deps)
