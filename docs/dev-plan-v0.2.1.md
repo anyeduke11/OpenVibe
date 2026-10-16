@@ -122,7 +122,7 @@ M8 接入面（本迭代 Phase 2 · A + E）
 | **0-c** | M8 spec §8.2 五处待裁逐条落 FR | ⚠️ **同上，已回填** | M8 spec v1.0 |
 | **0-d** | 六平台 skill 发现约定探针 | 🟡 **结构半边完成；运行半边 harness 与逐步指南已交付，待 owner 在 GUI 跑** | 本文 §6 ＋ `docs/devlog-evidence/M8-probe/` |
 | **0-e** | RF1-1 服务层落地 | ✅ **已落地**（2026-10-16 订正：本行原记「❌ 不存在」，是采样早于 DEV-0098 所致） | `service-layer.md` · DEV-0098 `packService` 7 支 ＋ `injectService` 11 支 |
-| **0-f** | **RF1-5 台账落地（总闸）** | 🟡 **被验收物已落地，§7 十条通过、三条待办**（2026-10-16 订正：本行原记「❌ 不存在」，是采样早于 DEV-0101 所致。**总闸未转绿**，故 Phase 1 的「0-e 与 0-f 同时转绿」前置至今未满足） | `local-event-ledger.md` §7：余 d／j／k／l 四条（d、l 需裁定，j 是屏摄，k 是时间断言） |
+| **0-f** | **RF1-5 台账落地（总闸）** | 🟡 **被验收物已落地，§7 十一条通过、两条待办**（2026-10-16 订正：本行原记「❌ 不存在」，是采样早于 DEV-0101 所致。**总闸未转绿**，故 Phase 1 的「0-e 与 0-f 同时转绿」前置至今未满足） | `local-event-ledger.md` §7：余 d／j／k／l 四条（d、l 需裁定，j 是屏摄，k 是时间断言） |
 | **0-g** | RF0-4 `docs:check` | 🟡 **首版已落地**（2026-10-16，owner 指令越过 §8.2 待裁与时间闸）。七条判据 ＋ 基线机制 ＋ 30 支变异样本判据测试；已作**第六道闸**进 CI（只增 7 行、零删除）。**未达规格 §7.1a「0 违规」** —— 未闭合项登记在 `docs/docs-check-baseline.json`（FR-1 十六个真空断号、FR-4.2 两份禁区 spec 的版本行列数、FR-5 全系待裁③、FR-6 触发不可靠）。**人测耗时闸至今未测**，故本闸不得被引用来声称任何「治理成本次线性」结论 | `scripts/docs-check.ts` ＋ `tests/docs-check.test.ts` ＋ `docs/docs-check-baseline.json` |
 | **0-h** | `m8-agent-panel.md` | ✅ **v1.0 已交付**（2026-10-14，14 条验收 ＋ `WEB-M8E-*` 新族）。**顺带查出一处假引用并就地改判**：PRD-M8 FR-5.4 的「沿用既有 EmptyState 纪律」前提不成立——`grep -rln 'EmptyState' apps/web/src --include='*.tsx'` → **0 命中**，该组件在本仓不存在 ⇒ FR-5.4 改判为「**新建组件并落三态**」 |
 | **0-i** | `m8-skill-bridge.md` | ⏸ **owner 裁定本轮豁免**（2026-10-14：「手把手教我真机跑」）——探针 harness 与逐步指南已交付（`docs/devlog-evidence/M8-probe/`），**等 owner 跑完运行半边五问后另起**。**豁免不等于通过** |

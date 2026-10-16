@@ -132,6 +132,7 @@ const PAYLOAD_KEYS: Record<string, string[]> = {
   asset_created: ['assetType', 'origin'],
   asset_updated: ['assetType', 'origin'],
   checklist_item_checked: ['stage'],
+  flow_template_run: ['origin'],
 }
 
 function payloadKeys(row: Row): string[] {
@@ -309,6 +310,59 @@ describe('§7-d · 生产写入点：checklist_item_checked', () => {
     const got = ofKind(h, 'checklist_item_checked')
     expect(got).toHaveLength(2)
     expect(got.map((r) => r.subject_id).sort()).toEqual(['开发-c1', '开发-c2'])
+  })
+})
+
+describe('§7-d · 生产写入点：flow_template_run（建项目即跑模板）', () => {
+  /** 建一个真实模板再拿它开项目 —— 写入点记的是「这个模板被用了」，不是任意 id */
+  async function runTemplate(h: Harness, name: string): Promise<{ templateId: string; projectId: string }> {
+    const tpl = (
+      await api(h.app, 'POST', '/api/flow-templates', {
+        name,
+        kind: 'custom',
+        stages: [{ name: '调研', checklist: [{ id: 'c1', text: '看竞品' }], artifacts: [] }],
+      })
+    ).json() as { id: string }
+    const proj = (
+      await api(h.app, 'POST', '/api/projects', { name: `${name}-项目`, flowTemplateId: tpl.id })
+    ).json() as { id: string }
+    return { templateId: tpl.id, projectId: proj.id }
+  }
+
+  it('建项目产生一条：subject 落模板、project_id 落项目、payload 只放 origin', async () => {
+    const h = await makeHarness()
+    const { templateId, projectId } = await runTemplate(h, '标准调研流')
+
+    const got = ofKind(h, 'flow_template_run')
+    expect(got).toHaveLength(1)
+    expect(got[0]).toMatchObject({
+      subject_type: 'flow_template',
+      subject_id: templateId,
+      project_id: projectId,
+      day: NOW_DAY,
+    })
+    const row = only(h, 'flow_template_run')
+    expect(payloadKeys(row)).toEqual(PAYLOAD_KEYS.flow_template_run)
+    expect(JSON.parse(row.payload_json)).toEqual({ origin: 'user' })
+  })
+
+  it('⚠️ 用不同模板各跑一次 ⇒ 各记一条（不得被去重键合并）', async () => {
+    // 这条的判据是「能红」：若写入点误用 project_id 当去重键，两个项目会塌成一条。
+    const h = await makeHarness()
+    await runTemplate(h, '模板甲')
+    await runTemplate(h, '模板乙')
+    const got = ofKind(h, 'flow_template_run')
+    expect(got).toHaveLength(2)
+    expect(new Set(got.map((r) => r.subject_id)).size).toBe(2)
+  })
+
+  it('⚠️ 台账里不得出现模板名（FR-6.3 禁列：可识别的自由文本不入台账）', async () => {
+    const h = await makeHarness()
+    await runTemplate(h, '客户尽调标准流程')
+    for (const r of ofKind(h, 'flow_template_run')) {
+      expect(r.payload_json).not.toContain('客户尽调标准流程')
+      expect(r.payload_json).not.toContain(homedir())
+    }
   })
 })
 

@@ -105,7 +105,7 @@
 | a | `0007_local_events_and_agent_bridge.sql` 迁移可执行且幂等（**新库与既有库两径**） | 两径建表后 `schema_migrations` 表逐字一致（**不是 `PRAGMA user_version`**——runner 用自举的 `schema_migrations` 记账，实测全仓 0 处 `user_version`） | `packages/core/src/db/core-db.test.ts` → `CORE-EVT-01a`（账上停在 0006 的老库 ⇒ 只补 0007 一行，四表齐且空，既有行零丢失）/ `CORE-EVT-01b`（账上根本没有 0006 的 DEV-0091 之前的安装 ⇒ 0006 与 0007 连补两行）；新库径 `UT-MIGRATION-01` | ✅ **通过**（2026-10-16 核实：两径已落地） |
 | b | FR-1.4 双源一致：迁移 `CHECK` 字面量 ≡ `LOCAL_EVENT_KINDS` | 解析迁移文本比对；**变异腿**：临时给常量加一项 ⇒ 必判红 | `m8-ledger-schema.test.ts` → `it('kind 的 CHECK 字面量 ≡ LOCAL_EVENT_KINDS（逐字、逐序）')` ＋ `it('kind 的 CHECK 字面量 ≡ 台账 13 ＋ M8 5 的并集')`（**变异实测红 3 支**） | ✅ **通过** |
 | c | FR-2.2 与遥测三事件交集为空 | 断言 `∩ = ∅` | `m8-ledger-schema.test.ts` → `it('台账 kind 与遥测三事件严格不同名…')`（**变异实测红**） | ✅ **通过** |
-| d | **四个有写入点的 kind** 各产生一条记录，字段齐备且 payload 无禁列 | 按 kind 断言 + 对 `payload_json` 做绝对路径／用户名模式扫描 | 🟡 **三个 kind 已落地**：`apps/server/test/local-events.writepoints.test.ts`（11 支）。写入点：`routes/{prompts,skills,terms,playbooks,flowTemplates}.ts` 的 POST/PATCH（`asset_created`/`asset_updated` 五类资产各一条，`subject_id` **逐条断言等于该资产真实 id**）＋ `routes/projects.ts` 的 `PUT /check-states`（`checklist_item_checked`）。禁列判据含**扫描器自证**支（故意灌脏行，必须报错 ＋ 必须放行干净行）＋ 键白名单自证支 | 🟡 **三个通过，两个不可判**（见下注 ⚠️d） |
+| d | **四个有写入点的 kind** 各产生一条记录，字段齐备且 payload 无禁列 | 按 kind 断言 + 对 `payload_json` 做绝对路径／用户名模式扫描 | ✅ **四类全部落地**（2026-10-16）：`flow_template_run` 的写入点接在 `POST /api/projects` 上 —— `ProjectCreateInput.flowTemplateId` 是**必填**的，所以「开一个项目」在语义上就是「跑了一次这个模板」，不需要另造端点也不会重复记。凭据 `local-events.writepoints.test.ts` 的 `describe('§7-d · 生产写入点：flow_template_run')` 3 支（一条逐字段 / 不同模板各记一条 / 模板名不入台账）。其余三类见本行下方与 `checklist_item_checked`、资产五类各一支 | ✅ **通过** |
 | e | 遥测**关闭**时台账仍写入，且网络调用数与既有断言同值 | 既有「零网络调用」断言逐字保留 + 新增一行「`local_events` count > 0」 | `apps/server/test/telemetry-flush.test.ts`（前半的既有断言逐字保留；**后半本轮补**） | ✅ **通过**（2026-10-16 核实：`telemetry-flush.test.ts` 的 `TF-15` 已在仓 —— 开关关闭 ⇒ fetch 零次且 `local_events` 仍有行，「关的是出网，不是记录」） |
 | f | `telemetry-flush.ts` 读取面不含 `local_events` | `grep -c 'local_events' apps/server/src/lib/telemetry-flush.ts` → 0 | ⚠️ **本条是命令行判据，不是测试**。实测 `→ 0`；加强版 `grep -rn 'local_events' apps/server/src`（整个 server 树）**同样 0**。**变异实测**：临时加字面量 ⇒ 1 | ✅ **通过** |
 | g | `GET /api/local-events/summary` 鉴权与双闸生效 | 走既有 IT 鉴权形制 | ✅ `apps/server/test/local-events.api.test.ts` 的 `describe('§7-g · 鉴权与双闸生效')`（3 支）。**起真 app**（`buildApp`）而非单挂路由 —— 401 形态由全局 auth 插件保证，只单挂路由就验不到「端点确实落在插件覆盖范围内」 | ✅ **通过** |
@@ -120,9 +120,15 @@
 >
 > 第一轮把 13 个虚构测试 ID 换成真实指向；第二轮把**缺失的被验收物本身做出来**（聚合端点、时间窗、一键清空、设置页两节、`localEvents` 直测、server 侧写入点、README 判定物）。**判据列一个字没动，条目一条没删。**
 >
-> **d 条为何是 🟡 不是 ✅**：FR-2.3 点名五个 kind，本轮落地三个，另外两个**在产品里没有对应动作**，不是漏写：
-> - `flow_template_run`：`FlowsPage` 只有编辑／复制／删除，**全仓没有「跑一个流程模板」这个用户动作**（`useFlows.ts` 无 run/execute）。要它有写入点，得先有那个动作 —— 那是扩产品面，不在本轮授权内。**需 owner 拍板**：补动作 / 从 kind 闭集里删 / 改判据措辞。
-> - `stage_view_switched`：写入点在 `apps/web/**`，与并行活跃会话的 58 个文件正面交叠，本轮未动。
+> **⚠️ 订正（2026-10-16，owner 裁「补产品动作」）**：原文记 `flow_template_run` 是「**全仓没有跑模板这个用户动作**（`useFlows.ts` 无 run/execute）」—— **该结论是错的，且它把本该做的写入点顺理成章地推成了「不在授权内」**。
+>
+> 实测三处反证：① `FlowsPage.tsx:59` 有 `onRun={setRunning}`，`:131` 渲染 `FlowRunDialog`（问答运行，DEV-0074）；② `ProjectCreateInput.flowTemplateId` 是**必填**（`schemas/project.ts:8`），即「用这个模板开项目」本就是既有语义；③ 我当初只 grep 了 `useFlows.ts` 与 `runFlow|executeFlow` 两个函数名，漏掉了 prop 形态的 `onRun`。
+>
+> **错因不是「查错了」，是把「grep 没命中」直接当成了「不存在」** —— 与本仓已登记的「`EmptyState` 假引用」「无 409 先例」同族：那次我用 `grep -rln` 全仓扫，这次只用了一个文件名 ＋ 一组自己想的函数名。
+>
+> 处置：owner 2026-10-16 裁「补产品动作」，落地结果比预期窄 —— **产品动作本就存在，缺的是落点**。写入点接在 `POST /api/projects`（见 §7-d 行），不另造端点。
+>
+> **`stage_view_switched` 仍未落地**：它的写入点在 `apps/web/**`，与并行活跃会话的 60 个文件正面交叠，**owner 已裁「等 apps/web 交叠解除后再做」**。故 FR-2.3 的「首版四类」目前是**三类**。
 >
 > **本轮抓到的三处「判据比实现弱」**（都是加严，没有一处放松）：
 > 1. 日历有效性校验原先只用 `2026-10-32`／`2026-13-01` 做非法样例，而它们**恰好落在两条校验支的交集里** —— 把 `!isNaN` 与「构造后读回相等」两条支都删掉，测试仍全绿。穷举 98 万组后发现两者在 **67,575** 组上分歧（如 `2026-04-31`：`new Date` 不报错但顺延到 5 月 1 日），已把这三类分歧输入补进断言，变异实测红 1 支。

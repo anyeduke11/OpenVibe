@@ -2709,3 +2709,60 @@
   FR-6（触发不可靠）。处置按规格写死的方式：**登记未闭合项，不把闸调松**。
 - **§7.5 的 MT4 覆盖比与 MT6 漂移数**首版只输出**规则级计数**，逐条明细未做 —— 规格 FR-8.3
   明写「本闸不逐条修存量，先建校验再修存量」，故首版只保证「能报数」。
+
+---
+
+## [DEV-0105] 2026-10-16 · Phase 0 四项裁决落地 · `flow_template_run` 写入点接上
+
+- **owner 裁决**（本轮沟通，四项）：① 条 d 补产品动作、`stage_view_switched` 等 apps/web 交叠解除；
+  ② 设置页并行会话结束后**删掉旧区块**，只留真台账区块；③ 两份 spec 版本行转义暂按推荐默认
+  （等并行会话结束后由我做）；④ **先跑探针五问**，本笔给指南与前置核验。
+
+### ① `flow_template_run` 的写入点（DEV-0104 之后接上）
+
+- **落点**：`POST /api/projects`。`ProjectCreateInput.flowTemplateId` 是**必填**的
+  （`packages/shared/src/schemas/project.ts:8`），所以「开一个项目」在语义上**已经**是
+  「跑了一次这个模板」—— 不必另造端点，也不存在「同一次运行记两行」的第二个入口。
+- **测试**：`local-events.writepoints.test.ts` 新增 `describe('§7-d · 生产写入点：flow_template_run')` 3 支
+  （逐字段齐备 / 不同模板各记一条且去重键不得塌成一条 / **模板名不得进台账**），并把
+  `flow_template_run: ['origin']` 加进 payload 键白名单（白名单自证支随之覆盖该 kind）。
+
+### 一处**被证伪的规格事实**（本笔最要紧的部分）
+
+台账 §7-d 原注记 `flow_template_run` 缺写入点的原因是「**全仓没有跑模板这个用户动作**
+（`useFlows.ts` 无 run/execute）」。**这句话是错的**，三处反证：
+
+1. `apps/web/src/pages/FlowsPage.tsx:59` 有 `onRun={setRunning}`，`:131` 渲染 `FlowRunDialog`
+   （问答运行，DEV-0074）—— 运行入口一直都在；
+2. `ProjectCreateInput.flowTemplateId` 必填 —— 「用这个模板开项目」本就是既有语义；
+3. 我当初**只 grep 了 `useFlows.ts` 一个文件 ＋ `runFlow|executeFlow` 两个自己想的函数名**，
+   漏掉了 prop 形态的 `onRun`。
+
+**为什么这句错话能一直存活**：它把一个**本该做的**写入点，顺理成章地写成了「那是扩产品面，
+不在本轮授权内」—— 一个假事实比一个缺口更有害，因为它让缺口看起来是**决定**而不是**遗漏**。
+
+**错因归类**：与本仓已登记的三次同族（`EmptyState` 假引用、「本仓无 409 先例」、`*/` 提前闭合注释）
+同型 —— 都是**把自己没找到的东西当成了不存在**。那次我用 `grep -rln` 全仓扫，这次只用了一个
+文件名 ＋ 一组自己想的函数名，检索面比那次更窄。
+
+### ② `stage_view_switched` 仍未落地（如实登记）
+
+owner 裁「等 apps/web 交叠解除后再做」。该 kind 的写入点在 `apps/web/**`，而该目录当前有 **60 个
+未提交文件**属并行会话。⇒ FR-2.3 要求的「首版四类」目前是**三类**；§7 条 d 记 ✅ 是因为它测的是
+「**有写入点的 kind**」，而 `stage_view_switched` 属「声明了但暂不写入」，按 FR-2.3 原文那是**允许的**。
+
+### ③ 设置页旧区块：裁定已下，执行时点未到
+
+owner 裁「并行会话结束后删掉 `LedgerSection`，只留 `LocalLedgerSection`」。
+`SettingsSections.tsx` 属并行会话（该文件含其 795 行改动），**本轮不动**。
+待 apps/web 交叠解除后执行；本条已登记在案，届时不需要重新决策。
+
+### ④ 探针五问：前置已核，引导已交付
+
+- **前置实测**：`~/.agents/skills/openvibe-probe/`（`SKILL.md` ＋ `scripts/` ＋ `references/`）
+  与 `~/.trae/skills/openvibe-probe`、`~/.codebuddy/skills/openvibe-probe` **两条软链**均在，
+  指向 `../../.agents/skills/openvibe-probe`。**无需重跑安装脚本。**
+- **引导已在** `docs/devlog-evidence/M8-probe/README.md`（158 行「手把手版」）。
+- ⚠️ **本轮可测的是四问不是五问**：Q2「项目级/用户级优先级」需要两处同名 skill，
+  而 owner 2026-10-14 裁「只测一个真实 skill」时把第 4 步（造项目级副本）去掉了 ⇒ Q2 本轮作废。
+  这不是漏测，是上轮裁定的直接后果，**复测 Q2 需要恢复那一步**。

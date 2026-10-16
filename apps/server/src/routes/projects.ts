@@ -68,6 +68,23 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
     const input = parseOrThrow(ProjectCreateInput, req.body)
     assertLocalPath(input.localPath)
     const project = projects.create(input)
+    // `flow_template_run` 的写入点（local-event-ledger FR-2.3 列的四类之一）。
+    //
+    // **为什么落在这里而不是新造一个「运行模板」端点**：`ProjectCreateInput.flowTemplateId`
+    // 是**必填**的（project.ts:8），所以「开一个项目」在语义上已经就是「跑了一次这个模板」。
+    // 台账 spec 曾把该 kind 记成「全仓没有跑模板的用户动作」—— 那是错的：前端 `FlowsPage`
+    // 有 `onRun` 入口（问答运行对话框），而项目创建本身要求指定模板。真正缺的不是产品动作，
+    // 是这个既成事实**在台账里没有落点**，于是模板被使用的频次一直不可见。
+    //
+    // 另建端点会造出第二次「同一次运行记两行」的入口，且与项目创建语义重复。
+    ledger({
+      kind: 'flow_template_run',
+      subjectType: 'flow_template',
+      subjectId: input.flowTemplateId,
+      projectId: project.id,
+      // payload 只放枚举（FR-6.3）：模板名与项目名同属可识别的自由文本，不入台账
+      payload: { origin: 'user' },
+    })
     const check = checkLocalPath(project.localPath)
     return reply
       .code(201)
