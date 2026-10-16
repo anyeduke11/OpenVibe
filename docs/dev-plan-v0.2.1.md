@@ -185,6 +185,32 @@ M8 接入面（本迭代 Phase 2 · A + E）
 >
 > **四闸**：typecheck 0 · lint 0 · 全量 **85 文件 / 934 支**全绿（较上轮 +19）· docs:check **error 0 · warning 132**（与本轮改动前同数）· spec-claims 10 支。
 
+> **DEV-0109（2026-10-17）· §7 条 u 的「五类」补成真的五类（Phase 1 欠账）**
+>
+> owner 指令「Phase 1 未完成任务进行开发」。先把真实欠账找出来：**8 个范围项全部已落地，出口判据 23/24 且余下那条是 owner 屏摄** —— 台账上没有可开发的项。但逐条核验 §7 凭据后发现一处**判据声称的覆盖远大于实际**：
+>
+> **条 u 的判据原文是「扫描五类事件」，而实测只有一类有守卫**：
+> - `cli_agent_command_run` —— 键闭集 ＋ 禁列扫描（有）
+> - `agent_ingest_accepted` —— 键断言**硬编码字面量**，禁列只有两个 `not.toContain` 点断言，**扫描器无自证**
+> - `agent_ingest_rejected` —— **键断言与禁列都零覆盖**
+> - `agent_context_served` —— 键断言**硬编码**，无禁列
+> - `agent_bridge_installed` —— 声明态，写入点属 M8-A（Phase 2）
+>
+> 且那两处硬编码意味着：**改规格不会红、改表也不会红** ⇒ 两边可以静默分叉。
+>
+> **本轮做完的五件事**：
+> 1. **单一出处 `AGENT_PAYLOAD_KEYS`**（`packages/shared/src/constants.ts`，五类含声明态）。原先三处各写各的，`agentService.LEDGER_PAYLOAD_KEYS` 甚至 `export` 了却**零消费者**。
+> 2. **三处硬编码键断言改引单一出处**；顺带修掉一个既有潜在缺陷：`commandRun.api.test.ts` 把**已排序**的 `payloadKeys` 与**声明顺序**的闭集表直接比，只因表恰好写成字母序才过 —— 那是运气不是判据。
+> 3. **补 `agent_ingest_rejected` 的键闭集断言 ＋ `reasonCode` 必须是枚举**（此前零覆盖）。
+> 4. **禁列扫描器抽成单点实现** `packages/core/src/test-support/forbidden-scan.ts`。FR-6.3 与 FR-5.1.2 原先**各有一份**，两份都是否定式判据 ⇒ 一旦漂移**没有任何一侧会红**。经 `./test-support` barrel 导出，既有导入全部不变。
+> 5. **新增 `agentPayload.test.ts` 10 支**：四类键闭集 ＋ 四类禁列零命中 ＋ 扫描器自证（嵌套两层必抓、干净行必放、**坏 JSON 不得被当成干净**）＋ 单一出处与规格 FR-5.1.1 原文**逐字比对**（防规格漂移）。
+>
+> **⚠️ 顺带证明 DEV-0107 那条闸当场生效**：更新条 u 的凭据后 `spec-claims` 立刻报两个新文件「不存在」 —— 因为它们**尚未入库**。判据查的是版本库而非磁盘，这正是它该有的行为。
+>
+> **⚠️ 登记一处契约分歧（未擅自改）**：FR-5.1.1 原文写 `agent_context_served` 的 `truncated` 是 **bool**，实现写的是 `truncated.length`（**数字**）。**键名两侧一致**，故键闭集判据不受影响，分歧只在**值类型**。已登记为待裁（三种处置见 spec 该行），**等 owner 裁定** —— agent 可直接读到该值，bool 与 number 对它的用法不同，不该由实现侧单方面定。
+>
+> **四闸**：typecheck 0 · lint 0 · 全量 **86 文件 / 947 支**全绿（较上轮 +1 文件 +13 支）· docs:check error 0 warning 132 · spec-claims 10 支（入库后）。
+
 ### §4.3 Phase 2 · 接入面（M8-A ＋ M8-E）
 
 **出口判据**：`m8-skill-bridge.md` 与 `m8-agent-panel.md` 各自的验收条目全绿。

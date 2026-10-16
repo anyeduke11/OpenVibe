@@ -5,7 +5,7 @@ import { ProjectsRepo } from '../repos/projects'
 import { TasksRepo } from '../repos/tasks'
 import { DevLogRepo } from '../repos/devlog'
 import { createContextService } from './contextService'
-import { parseContextFields, CONTEXT_FIELDS } from '@openvibe/shared'
+import { parseContextFields, CONTEXT_FIELDS, AGENT_PAYLOAD_KEYS } from '@openvibe/shared'
 
 /**
  * M8 · 聚合查询面（M8-D · FR-3）。
@@ -256,7 +256,9 @@ describe('FR-3.4 · 预算裁剪：顺序固定 ＋ 每次必留痕', () => {
     const row = h.db
       .prepare("SELECT payload_json FROM local_events WHERE kind = 'agent_context_served'")
       .get() as { payload_json: string }
-    expect(Object.keys(JSON.parse(row.payload_json)).sort()).toEqual(['fieldsCount', 'platform', 'truncated'])
+    expect(Object.keys(JSON.parse(row.payload_json)).sort()).toEqual(
+      [...AGENT_PAYLOAD_KEYS.agent_context_served].sort(),
+    )
     h.close()
   })
 })

@@ -2,7 +2,7 @@ import { describe, expect, it, afterEach } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { FlowTemplatesRepo, ProjectsRepo, TasksRepo } from '@openvibe/core'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
-import { AGENT_INGEST_LIMITS, TASK_STATUS } from '@openvibe/shared'
+import { AGENT_INGEST_LIMITS, AGENT_PAYLOAD_KEYS, TASK_STATUS } from '@openvibe/shared'
 import { buildApp } from '../src/app'
 import { AGENT_INGEST_BODY_LIMIT } from '../src/routes/agent'
 
@@ -234,7 +234,7 @@ describe('IT-M8 · POST /api/agent/ingest', () => {
       .prepare("SELECT payload_json FROM local_events WHERE kind = 'agent_ingest_accepted'")
       .get() as { payload_json: string }
     const keys = Object.keys(JSON.parse(row.payload_json)).sort()
-    expect(keys).toEqual(['kind', 'sourcePlatform'])
+    expect(keys).toEqual([...AGENT_PAYLOAD_KEYS.agent_ingest_accepted].sort())
     expect(row.payload_json).not.toContain('机密正文')
     expect(row.payload_json).not.toContain('/Users/me/secret')
     closeAll(app)

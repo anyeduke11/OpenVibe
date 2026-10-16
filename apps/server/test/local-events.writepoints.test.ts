@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { userInfo, homedir } from 'node:os'
+import { homedir } from 'node:os'
 import type { FastifyInstance } from 'fastify'
-import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
+import { newDb, scanForbidden, payloadKeys, type TestDbHandle } from '@openvibe/core/test-support'
 import { LocalEventsRepo, type SqliteDatabase } from '@openvibe/core'
 import { buildApp } from '../src/app'
 
@@ -98,35 +98,6 @@ function only(h: Harness, kind: string): Row {
  * 禁列扫描（FR-6.3）
  * ------------------------------------------------------------------------- */
 
-const USER = userInfo().username
-
-/** 递归展开所有字符串值 —— 只扫顶层是这类检查最常见的失效方式（payload 嵌对象就漏） */
-function stringValues(v: unknown, out: string[] = []): string[] {
-  if (typeof v === 'string') out.push(v)
-  else if (Array.isArray(v)) for (const x of v) stringValues(x, out)
-  else if (v && typeof v === 'object') for (const x of Object.values(v)) stringValues(x, out)
-  return out
-}
-
-const FORBIDDEN: { label: string; re: RegExp }[] = [
-  { label: 'Unix 绝对路径', re: /(^|[\s"'(=:,[])\/(?:Users|home|tmp|var|etc|opt|private|Applications)\// },
-  { label: '任意根目录绝对路径', re: /(^|[\s"'(=:,[])\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/ },
-  { label: 'Windows 绝对路径', re: /[A-Za-z]:\\|\\\\/ },
-  { label: '本机用户名', re: new RegExp(`\\b${USER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i') },
-  { label: 'home 目录片段', re: new RegExp(homedir().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
-]
-
-/** 返回命中的禁列标签列表（空数组 = 干净） */
-function scanForbidden(row: Row): string[] {
-  const payload = JSON.parse(row.payload_json) as unknown
-  const haystack = [
-    ...stringValues(payload),
-    row.subject_type ?? '',
-    row.subject_id ?? '',
-  ]
-  return FORBIDDEN.filter((f) => haystack.some((s) => f.re.test(s))).map((f) => f.label)
-}
-
 /** payload 键白名单：FR-6.3「只放 id 与枚举值」的白名单形态 */
 const PAYLOAD_KEYS: Record<string, string[]> = {
   asset_created: ['assetType', 'origin'],
@@ -135,9 +106,6 @@ const PAYLOAD_KEYS: Record<string, string[]> = {
   flow_template_run: ['origin'],
 }
 
-function payloadKeys(row: Row): string[] {
-  return Object.keys(JSON.parse(row.payload_json) as Record<string, unknown>).sort()
-}
 
 /* ------------------------------------------------------------------------- */
 

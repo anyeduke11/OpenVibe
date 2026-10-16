@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { homedir, userInfo } from 'node:os'
+import { userInfo } from 'node:os'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type { FastifyInstance } from 'fastify'
-import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
+import { newDb, scanForbidden, payloadKeys, type TestDbHandle } from '@openvibe/core/test-support'
 import { CLI_COMMAND_RUN_COMMANDS, CLI_COMMAND_RUN_PAYLOAD_KEYS, type SqliteDatabase } from '@openvibe/core'
 import { buildApp } from '../src/app'
 
@@ -88,9 +88,6 @@ function ofKind(h: Harness, kind: string): Row[] {
   return rows(h).filter((r) => r.kind === kind)
 }
 
-function payloadKeys(row: Row): string[] {
-  return Object.keys(JSON.parse(row.payload_json) as Record<string, unknown>).sort()
-}
 
 /* ---------------------------------------------------------------------------
  * 禁列扫描（FR-5.1.2 / FR-5.1.3）
@@ -98,28 +95,6 @@ function payloadKeys(row: Row): string[] {
 
 const USER = userInfo().username
 
-/** 递归展开所有字符串值 —— 只扫顶层是这类检查最常见的失效方式（payload 嵌对象就漏） */
-function stringValues(v: unknown, out: string[] = []): string[] {
-  if (typeof v === 'string') out.push(v)
-  else if (Array.isArray(v)) for (const x of v) stringValues(x, out)
-  else if (v && typeof v === 'object') for (const x of Object.values(v)) stringValues(x, out)
-  return out
-}
-
-const FORBIDDEN: { label: string; re: RegExp }[] = [
-  { label: 'Unix 绝对路径', re: /(^|[\s"'(=:,[])\/(?:Users|home|tmp|var|etc|opt|private|Applications)\// },
-  { label: '任意根目录绝对路径', re: /(^|[\s"'(=:,[])\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/ },
-  { label: 'Windows 绝对路径', re: /[A-Za-z]:\\|\\\\/ },
-  { label: '本机用户名', re: new RegExp(`\\b${USER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i') },
-  { label: 'home 目录片段', re: new RegExp(homedir().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
-]
-
-/** 返回命中的禁列标签列表（空数组 = 干净） */
-function scanForbidden(row: Row): string[] {
-  const payload = JSON.parse(row.payload_json) as unknown
-  const haystack = [...stringValues(payload), row.subject_type ?? '', row.subject_id ?? '']
-  return FORBIDDEN.filter((f) => haystack.some((s) => f.re.test(s))).map((f) => f.label)
-}
 
 /* ------------------------------------------------------------------------- */
 
@@ -205,12 +180,20 @@ describe('FR-5 · 写入点：合法入参恰好新增一行', () => {
   })
 })
 
+/**
+ * ⚠️ **两侧都排序**（2026-10-17 修）：`payloadKeys` 返回的是**已排序**的键，
+ * 而闭集表是**声明顺序**。原先直接比，只因为表恰好写成字母序才过 ——
+ * 那是运气不是判据：任何人调整表内顺序（哪怕只是让代码读起来更顺）都会当场假红。
+ * 比的是**集合**，故两侧统一排序。
+ */
+const SORTED_KEYS = [...CLI_COMMAND_RUN_PAYLOAD_KEYS].sort()
+
 describe('FR-5.1.1 · payload 键闭集（多一个键就红）', () => {
   it('真实写入行的键**逐字等于**闭集三键', async () => {
     const h = await makeHarness()
     await post(h.app, { command: 'ask', exitCode: 0, agent: 'codebuddy' })
     const row = ofKind(h, 'cli_agent_command_run')[0]!
-    expect(payloadKeys(row)).toEqual([...CLI_COMMAND_RUN_PAYLOAD_KEYS])
+    expect(payloadKeys(row)).toEqual(SORTED_KEYS)
   })
 
   it('**闭集自证**：往 payload 多塞一个键 ⇒ 断言必须判红', async () => {
@@ -222,9 +205,9 @@ describe('FR-5.1.1 · payload 键闭集（多一个键就红）', () => {
     const leakedRow: Row = { ...row, payload_json: JSON.stringify(leaked) }
 
     // 真实写入点干净
-    expect(payloadKeys(row)).toEqual([...CLI_COMMAND_RUN_PAYLOAD_KEYS])
+    expect(payloadKeys(row)).toEqual(SORTED_KEYS)
     // 多一个键就不再等于闭集 —— 少了这一段，无法区分「闭集生效」与「闭集恒等于真值」
-    expect(payloadKeys(leakedRow)).not.toEqual([...CLI_COMMAND_RUN_PAYLOAD_KEYS])
+    expect(payloadKeys(leakedRow)).not.toEqual(SORTED_KEYS)
     expect(payloadKeys(leakedRow)).toContain('cwd')
     // 且禁列扫描同时兜住它（cwd 属 FR-5.1.2 禁列）
     expect(scanForbidden(leakedRow)).toContain('任意根目录绝对路径')
@@ -285,15 +268,17 @@ describe('FR-5.1.2 · 禁列扫描（否定式判据 ⇒ 必须自带自证）',
     // 顶层
     expect(
       scanForbidden({
-        kind: 'k', subject_type: null, subject_id: null, project_id: null,
-        day: NOW_DAY, payload_json: JSON.stringify({ ...payload, agent: dirty }),
+        subject_type: null,
+        subject_id: null,
+        payload_json: JSON.stringify({ ...payload, agent: dirty }),
       }),
     ).toContain('Unix 绝对路径')
     // 二层嵌套
     expect(
       scanForbidden({
-        kind: 'k', subject_type: null, subject_id: null, project_id: null,
-        day: NOW_DAY, payload_json: JSON.stringify({ ...payload, extra: { a: { b: [dirty] } } }),
+        subject_type: null,
+        subject_id: null,
+        payload_json: JSON.stringify({ ...payload, extra: { a: { b: [dirty] } } }),
       }),
     ).toContain('Unix 绝对路径')
   })

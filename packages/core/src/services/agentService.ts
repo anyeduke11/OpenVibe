@@ -12,6 +12,7 @@ import {
   type DevLogType,
   type LocalEventKind,
   type TaskStatus,
+  AGENT_PAYLOAD_KEYS,
 } from '@openvibe/shared'
 import type { SqliteDatabase } from '../db'
 import { AgentIngestRepo, type AgentIngest } from '../repos/agentIngest'
@@ -75,11 +76,17 @@ function payloadBytes(payload: unknown): number {
  * 而不是靠黑名单扫描业务载荷。上报侧只管体量，不管内容。
  */
 
-/** 台账事件 payload 的允许键闭集（FR-5.1.1）—— 白名单构造，不是黑名单过滤 */
+/**
+ * 台账事件 payload 的允许键闭集（FR-5.1.1）—— 白名单构造，不是黑名单过滤。
+ *
+ * ⚠️ **这张表现在从 `AGENT_PAYLOAD_KEYS` 派生**（单一出处在 `@openvibe/shared`）。
+ *   原先它是本文件里的字面量，且 `export` 了却**零消费者** —— 改它没有任何测试会红，
+ *   而三处测试各自硬编码键名，于是规格与实现能静默分叉。
+ */
 export const LEDGER_PAYLOAD_KEYS = {
-  agent_ingest_accepted: ['kind', 'sourcePlatform'] as const,
-  agent_ingest_rejected: ['kind', 'reasonCode'] as const,
-}
+  agent_ingest_accepted: AGENT_PAYLOAD_KEYS.agent_ingest_accepted,
+  agent_ingest_rejected: AGENT_PAYLOAD_KEYS.agent_ingest_rejected,
+} as const
 
 export function createAgentService(deps: AgentServiceDeps) {
   const ingests = new AgentIngestRepo(deps.db)

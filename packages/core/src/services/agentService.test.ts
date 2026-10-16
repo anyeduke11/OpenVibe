@@ -4,7 +4,7 @@ import { FlowTemplatesRepo } from '../repos/flows'
 import { ProjectsRepo } from '../repos/projects'
 import { TasksRepo } from '../repos/tasks'
 import { createAgentService, AGENT_BATCH_LIMITS } from './agentService'
-import { TASK_STATUS, type AgentIngestKind, type AgentIngestOne } from '@openvibe/shared'
+import { AGENT_PAYLOAD_KEYS, TASK_STATUS, type AgentIngestKind, type AgentIngestOne } from '@openvibe/shared'
 
 /**
  * M8 回流写入面 · **服务层直测**（不经 HTTP）。
@@ -125,9 +125,39 @@ describe('逐条成败互不影响（FR-2.7）', () => {
     const row = h.db
       .prepare("SELECT payload_json FROM local_events WHERE kind = 'agent_ingest_accepted'")
       .get() as { payload_json: string }
-    expect(Object.keys(JSON.parse(row.payload_json)).sort()).toEqual(['kind', 'sourcePlatform'])
+    // ⚠️ 引用**单一出处**而非字面量：原先这里硬编码，改规格或改表都不会红
+    expect(Object.keys(JSON.parse(row.payload_json)).sort()).toEqual(
+      [...AGENT_PAYLOAD_KEYS.agent_ingest_accepted].sort(),
+    )
     expect(row.payload_json).not.toContain('机密')
     expect(row.payload_json).not.toContain('/Users/me')
+    h.close()
+  })
+
+  it('⚠️ 补覆盖：rejected 事件的键闭集此前**零断言**（spec 条 u 判据写「扫描五类事件」）', () => {
+    const { svc, projectId, h } = fixture()
+    // 超单条上限 ⇒ 走拒收分支
+    svc.ingestBatch({ projectId, items: [item('r1', 600_000)] })
+    const row = h.db
+      .prepare("SELECT payload_json FROM local_events WHERE kind = 'agent_ingest_rejected'")
+      .get() as { payload_json: string }
+    expect(row).toBeDefined()
+    expect(Object.keys(JSON.parse(row.payload_json)).sort()).toEqual(
+      [...AGENT_PAYLOAD_KEYS.agent_ingest_rejected].sort(),
+    )
+    h.close()
+  })
+
+  it('⚠️ rejected 的 reasonCode 必须是**枚举**而非自由文本（FR-5.1.1），且值不得是那句中文原因', () => {
+    const { svc, projectId, h } = fixture()
+    svc.ingestBatch({ projectId, items: [item('r2', 600_000)] })
+    const row = h.db
+      .prepare("SELECT payload_json FROM local_events WHERE kind = 'agent_ingest_rejected'")
+      .get() as { payload_json: string }
+    const payload = JSON.parse(row.payload_json) as { reasonCode: string }
+    expect(['oversize', 'invalid']).toContain(payload.reasonCode)
+    // 自由文本会把「超了多少字节」「项目不存在」这类细节带进永存本机库的台账
+    expect(payload.reasonCode).not.toContain('超')
     h.close()
   })
 })

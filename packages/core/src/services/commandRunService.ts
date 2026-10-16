@@ -1,4 +1,4 @@
-import { AppError } from '@openvibe/shared'
+import { AppError, AGENT_PAYLOAD_KEYS } from '@openvibe/shared'
 import type { SqliteDatabase } from '../db'
 import { LocalEventsRepo } from '../repos/localEvents'
 
@@ -39,13 +39,16 @@ export type CliCommandRunCommand = (typeof CLI_COMMAND_RUN_COMMANDS)[number]
 /**
  * 台账 `payload_json` 的允许键闭集（FR-5.1.1），**导出给测试断言用**。
  *
- * ⚠️ **命名口径说明（本轮 parent 裁定，实现侧遵此）**：spec FR-5.1.1 原文写的是
+ * ⚠️ **命名口径说明（2026-10-15 parent 裁定，实现侧遵此）**：spec FR-5.1.1 原文写的是
  * snake_case（`exit_code` / `source_platform` / `reason_code`），但**仓内既有实现是 camelCase**
  * ——`agentService` 用 `reasonCode` / `sourcePlatform`，`contextService` 用 `fieldsCount`，
  * 台账既有 kind 用 `assetType` / `origin`。仓内惯例是 camelCase ⇒
  * 本类按 `exitCode` 实现（spec 文本由 parent 负责对齐实现，本文件不改 spec）。
+ *
+ * ⚠️ **2026-10-17 起改为从 `AGENT_PAYLOAD_KEYS` 派生**（单一出处在 `@openvibe/shared`），
+ *   五类同表，避免本类与另两处各写各的、规格改键时谁都不红。
  */
-export const CLI_COMMAND_RUN_PAYLOAD_KEYS = ['agent', 'command', 'exitCode'] as const
+export const CLI_COMMAND_RUN_PAYLOAD_KEYS = AGENT_PAYLOAD_KEYS.cli_agent_command_run
 
 /** 入参原始形状：`unknown` 是有意的 —— 校验在本服务内做（见 `recordCommandRun` 注释） */
 export interface CommandRunInput {

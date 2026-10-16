@@ -120,6 +120,40 @@ export const AGENT_EVENT_KINDS = [
 export const LOCAL_EVENT_KINDS = [...LEDGER_EVENT_KINDS, ...AGENT_EVENT_KINDS] as const
 export type LocalEventKind = (typeof LOCAL_EVENT_KINDS)[number]
 
+/**
+ * 台账事件的 `payload_json` **允许键闭集**（`m8-agent-bridge.md` FR-5.1.1）。
+ *
+ * ## 为什么收在这里，而不是跟着各自的 service 走
+ *
+ * 2026-10-17 实测：这三张表原先散在三个地方 —— `agentService` 一张（**且零消费者**）、
+ * `commandRunService` 一张、`contextService` 根本没有。而三处测试各自**硬编码**键名，
+ * 于是「规格说五类、代码只验一类」这件事能长期绿着：改规格不会红，改代码也不会红。
+ *
+ * 故本表是唯一出处，service 与测试都引它。⚠️ **键名按仓内 camelCase 惯例**，
+ * `m8-agent-bridge.md` FR-5.1.1 原文写的是 snake_case，那是规格文本侧的待对齐项，
+ * 不是实现侧的偏差（实现侧的 camelCase 与台账既有 `assetType`／`origin` 一致）。
+ *
+ * ## 「闭集」是等式不是包含
+ *
+ * 写入点按白名单构造、不 spread 入参 ⇒ 实际键集**恰好等于**表内那一组。
+ * 故测试断言用 `toEqual` 而非 `toContain`：写成包含关系时，多出一个键仍会绿，
+ * 而多出的键正是 `payload` 里混进业务数据的入口。
+ *
+ * ⚠️ `agent_bridge_installed` 属**声明态** —— 写入点在 M8-A（Phase 2），
+ *   其 spec `m8-skill-bridge.md` 尚未写。故此处登记键集，但当前**无生产写入点**。
+ */
+export const AGENT_PAYLOAD_KEYS = {
+  agent_ingest_accepted: ['kind', 'sourcePlatform'],
+  agent_ingest_rejected: ['kind', 'reasonCode'],
+  agent_context_served: ['fieldsCount', 'truncated', 'platform'],
+  cli_agent_command_run: ['command', 'exitCode', 'agent'],
+  /** 声明态：写入点属 M8-A（Phase 2），本轮无生产写入点 */
+  agent_bridge_installed: ['adapter', 'packVersion'],
+} as const satisfies Record<string, readonly string[]>
+
+export type AgentPayloadKind = keyof typeof AGENT_PAYLOAD_KEYS
+
+
 /** `kind` 与 `day` 的联合索引口径（FR-1.2）；day 落列不现算，照 telemetry_events 先例 */
 export const LOCAL_EVENT_INDEXES = ['idx_local_events_kind_day', 'idx_local_events_created_at'] as const
 
