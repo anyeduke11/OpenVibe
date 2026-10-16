@@ -14,7 +14,7 @@
  * 对每条命令都生效，故**不在**各命令的 flags 里重复列出，只在本文件登记一次。
  */
 
-import { ADAPTER_IDS, DEFAULT_PORT } from './constants'
+import { ADAPTER_IDS, DEFAULT_PORT, DEVLOG_TYPES, REQUIREMENT_PRIORITIES } from './constants'
 
 /** 风险三档（闭集，勿扩）：
  * - readonly  零写入：只读本地文件/只发 GET，不改任何持久状态
@@ -61,7 +61,7 @@ const flag = (name: string, value: string, summary: string): CliCommandFlag => (
 })
 
 /**
- * 五条已注册命令的快照（apps/cli/src/index.ts:451/460/484/497/505）。
+ * 九条已注册命令的快照（apps/cli/src/index.ts 的注册处，顺序与注册处一致）。
  * risk 依据：
  * - serve  = decision     ：mkdirSync 建 ~/.openvibe 三目录 + writeConfigFile 落令牌（serve.ts:89,105），
  *                           起监听服务且 --open 会拉系统浏览器（serve.ts:115-116）；不碰用户项目树、不删任何文件
@@ -71,6 +71,23 @@ const flag = (name: string, value: string, summary: string): CliCommandFlag => (
  *                           /api/prompts/import 改服务端 DB（scan.ts:158,193）且无确认闸 ⇒ 归中间档
  * - diff   = readonly     ：只 readFileSync/statSync（diff.ts:1）+ 一次 GET 探测（diff.ts:96），零写入
  * - clean  = destructive  ：unlinkSync 删受管文件与 pack.lock.json（clean.ts:372,395）
+ * - ask    = readonly     ：只 GET /api/projects（含 :id/context）。零 POST（埋点那一次除外，见下），
+ *                           且三只命令都不 import node:fs，路径解析是纯字符串比较（status.ts:63）
+ * - status = readonly     ：同上，只 GET（status.ts:statusAction 只调 getJson）
+ * - session= decision     ：POST /api/projects/:id/devlog 改服务端 DB 且无确认闸，与 scan 同档同因
+ *                           （FR-4.3.2）。本机零写入：不 import node:fs、不建文件
+ * - requirement=decision  ：POST /api/agent/ingest 改服务端 DB（agent_ingests 一条 pending 行）且 CLI 侧
+ *                           无确认闸，与 session/scan 同档同因（FR-4.3.2）。本机零写入：不 import node:fs、
+ *                           不建文件；只 import node:crypto 算幂等键（requirement.ts）
+ *
+ * ⚠️ `ask` / `status` / `session` / `requirement` 结束时各 POST 一次 `/api/agent/command-run`
+ * 埋点（FR-5.1.1 的 `cli_agent_command_run`）。它只写台账、不改项目状态、失败静默收敛，
+ * 故不改变本表的 risk 判定；实现见 `commands/status.ts:reportCommandRun`。
+ *
+ * ⚠️ `requirement` 是 2026-10-16 由 owner 拍板扩进埋点闭集的（B 级改契约授权）。
+ * 此前服务端 `commandRunService.CLI_COMMAND_RUN_COMMANDS` 只有 `ask|status|session` 三值，
+ * CLI 侧因此如实输出 `{sent:false, reason:'unreported'}`，**没有拿 `session` 顶替** ——
+ * 顶替会让台账里出现与真实执行不符的记录。扩闭集后四只命令的埋点形状已完全一致。
  */
 export const CLI_COMMANDS: readonly CliCommandMeta[] = [
   {
@@ -135,6 +152,50 @@ export const CLI_COMMANDS: readonly CliCommandMeta[] = [
     ],
     risk: 'destructive',
     writesDisk: true,
+  },
+  {
+    name: 'ask',
+    usage: 'openvibe ask <question> [flags]',
+    summary: '按闭集关键词问项目上下文（只读服务端，不接 LLM）',
+    flags: [flag('--project', '<id>', '目标项目 id（缺省按当前工作目录解析）')],
+    risk: 'readonly',
+    writesDisk: false,
+  },
+  {
+    name: 'status',
+    usage: 'openvibe status [dir] [flags]',
+    summary: '单项目进度快照：阶段/完成度/未完检查项/任务/最近日志/包漂移（只读）',
+    flags: [],
+    risk: 'readonly',
+    writesDisk: false,
+  },
+  {
+    name: 'requirement',
+    usage: 'openvibe requirement add --project <id> --title <text> [flags]',
+    summary: 'agent 侧需求动作（当前只有 add：把一条需求送进服务端待确认队列）',
+    flags: [
+      flag('--project', '<id>', '目标项目 id'),
+      flag('--title', '<text>', '需求标题（必填，不得只有空白）'),
+      flag('--detail', '<text>', '补充说明（缺省空串）'),
+      flag('--priority', '<P0|P1|P2>', `优先级：${REQUIREMENT_PRIORITIES.join(' | ')}（缺省 P2）`),
+    ],
+    risk: 'decision',
+    writesDisk: false,
+  },
+  {
+    name: 'session',
+    usage: 'openvibe session log --project <id> --type <DEV|CHECK> [flags]',
+    summary: 'agent 会话侧动作（当前只有 log：把一条开发日志回流到服务端）',
+    flags: [
+      flag('--project', '<id>', '目标项目 id'),
+      flag('--type', '<DEV|CHECK>', `日志类型：${DEVLOG_TYPES.join(' | ')}`),
+      flag('--title', '<text>', '标题（缺省空串）'),
+      flag('--body', '<text>', '正文（缺省空串）'),
+      flag('--evidence', '<text>', '证据摘要（落到 DevLogEvidence.resultSummary）'),
+      flag('--related', '<path>', '相关文件（可重复，保序去重）'),
+    ],
+    risk: 'decision',
+    writesDisk: false,
   },
 ] as const
 

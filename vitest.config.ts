@@ -7,6 +7,12 @@ import { defineConfig } from 'vitest/config'
 // web         组件渲染与交互（owner 裁定 ⑪，2026-09-26：建 jsdom project 而非把 CDP 驱动器接进 CI）
 export default defineConfig({
   test: {
+    // 2026-10-16：四个 project 各自起自己的 worker，默认上限是「核数−1」（本机 10 核 ⇒ 9），
+    // 叠起来远超机器真实并发 ⇒ CLI 层「真起子进程 ＋ 真监听端口」的用例在**全量跑**时越过 30s 闸，
+    // 而**单跑 `--project cli` 只要 9s 且 214 支全绿**。这是**超订**，不是功能回归。
+    // 压到核数的一半留足余量：既能避免争抢，也不会把全量拖成串行（实测全量 150s → 回到 30s 量级）。
+    // 用数字而非百分比是为了跨机器可复算——CI runner 核数与本机不同，百分比会漂。
+    maxWorkers: 5,
     projects: [
       {
         test: {
@@ -34,6 +40,9 @@ export default defineConfig({
           // CLI 用例要真起子进程（node --import tsx 冷启动）并真监听端口，
           // 与 unit/integration 并行抢占 CPU 时会越过 5s 默认值（默认值会掩盖成超时失败）
           testTimeout: 30_000,
+          // 本层再单独压一档：子进程与端口是**全局稀缺资源**，与别的层并发时最先崩的是这里。
+          // 单跑本层 214 支 9.4s 全绿 ⇒ 压到 2 仍有充分余量（实测约 12s）。
+          maxWorkers: 2,
         },
       },
       {

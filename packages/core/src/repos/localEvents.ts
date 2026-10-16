@@ -1,5 +1,5 @@
 import type { SqliteDatabase } from '../db'
-import type { LocalEventKind } from '@openvibe/shared'
+import { AppError, type LocalEventKind } from '@openvibe/shared'
 
 /**
  * 本机事件台账（local-event-ledger.md FR-1 / FR-3）。
@@ -58,18 +58,68 @@ export class LocalEventsRepo {
     return Number(info.lastInsertRowid)
   }
 
-  /** 按 kind × day 的计数矩阵（FR-4 聚合端点的数据源） */
+  /**
+   * 按 kind × day 的计数矩阵（近 N 天，`days` 夹逼到 ≥1）。
+   *
+   * ⚠️ 本方法**当前零生产调用方**（实测），保留是因为它是既有导出面、删它属 B 级。
+   * 端点走的是 `summaryInWindow`（FR-7 的 from/to 口径）。
+   */
   summary(days: number): LocalEventSummary[] {
+    const n = Math.max(1, Math.floor(days))
     const rows = this.db
       .prepare(
         `SELECT kind, day, COUNT(*) AS count
            FROM local_events
           WHERE day >= date('now', ?)
           GROUP BY kind, day
-          ORDER BY day DESC, kind ASC, id ASC`,
+          ORDER BY day DESC, kind ASC`,
       )
-      .all(`-${Math.max(1, Math.floor(days))} days`) as LocalEventSummary[]
+      .all(`-${n} days`) as LocalEventSummary[]
     return rows.map((r) => ({ kind: r.kind as LocalEventKind, day: r.day, count: Number(r.count) }))
+  }
+
+  /**
+   * 时间窗聚合（FR-7）：**`[from, to)` 含头不含尾**。
+   *
+   * ⚠️ **边界口径只此一处**：整个仓库存取窗一律走这里，禁止在别处再写一遍
+   * `day >= ? AND day < ?` —— 两处边界写法必然会漂，而漂了没人看得出。
+   *
+   * `day` 列已是 `YYYY-MM-DD` 的 UTC 日戳，故可直接按**字符串**比较；
+   * 不取 `created_at` 参与比较（那会把毫秒级时区差引进来，跨时区时窗会错位）。
+   *
+   * @param from 含头，`YYYY-MM-DD`
+   * @param to   **不含尾**，`YYYY-MM-DD`
+   */
+  summaryInWindow(from: string, to: string): LocalEventSummary[] {
+    if (from > to) throw new AppError('VALIDATION_ERROR', `时间窗 from 晚于 to：${from} > ${to}`)
+    const rows = this.db
+      .prepare(
+        `SELECT kind, day, COUNT(*) AS count
+           FROM local_events
+          WHERE day >= ? AND day < ?
+          GROUP BY kind, day
+          ORDER BY day DESC, kind ASC`,
+      )
+      .all(from, to) as LocalEventSummary[]
+    return rows.map((r) => ({ kind: r.kind as LocalEventKind, day: r.day, count: Number(r.count) }))
+  }
+
+  /**
+   * 累计计数（**不受时间窗限制**）—— FR-7 要求「窗内计数与累计计数可区分」。
+   *
+   * 两者同时出现在响应里，用户才知道「这段时间有 3 次」是全部还是只是一段。
+   * 只给窗内计数的话，一个只用过两天的用户会误以为本机一直这么安静。
+   */
+  cumulativeByKind(): { kind: LocalEventKind; count: number }[] {
+    const rows = this.db
+      .prepare(
+        `SELECT kind, COUNT(*) AS count
+           FROM local_events
+          GROUP BY kind
+          ORDER BY kind ASC`,
+      )
+      .all() as { kind: string; count: number }[]
+    return rows.map((r) => ({ kind: r.kind as LocalEventKind, count: Number(r.count) }))
   }
 
   /** 「一键清空」（FR-3.2 给用户的那个唯一开关） */

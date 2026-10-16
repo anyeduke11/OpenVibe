@@ -8,8 +8,9 @@ import {
 import { PlaybooksRepo, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
 import { referencedPackNames } from '../lib/refs'
+import { assetEventInput, resolveLedger, type LedgerDeps } from '../lib/ledger'
 
-export interface PlaybookRouteDeps {
+export interface PlaybookRouteDeps extends LedgerDeps {
   db: SqliteDatabase
 }
 
@@ -21,6 +22,7 @@ const RenderMdBody = z.object({
 /** m4 FR-3.1：六端点，命名与动词律逐条对齐 routes/terms.ts */
 export function registerPlaybookRoutes(app: FastifyInstance, deps: PlaybookRouteDeps): void {
   const playbooks = new PlaybooksRepo(deps.db)
+  const ledger = resolveLedger(deps)
 
   app.get('/api/playbooks', async () => {
     const items = playbooks.list()
@@ -29,7 +31,9 @@ export function registerPlaybookRoutes(app: FastifyInstance, deps: PlaybookRoute
 
   app.post('/api/playbooks', async (req, reply) => {
     const input = parseOrThrow(PlaybookCreateInput, req.body)
-    return reply.code(201).send(playbooks.create(input))
+    const created = playbooks.create(input)
+    ledger(assetEventInput('asset_created', 'playbook', created.id))
+    return reply.code(201).send(created)
   })
 
   // 静态段先于 :id 匹配（find-my-way 优先级）
@@ -51,7 +55,9 @@ export function registerPlaybookRoutes(app: FastifyInstance, deps: PlaybookRoute
   app.patch('/api/playbooks/:id', async (req) => {
     const { id } = req.params as { id: string }
     const patch = parseOrThrow(PlaybookUpdateInput, req.body)
-    return playbooks.update(id, patch)
+    const updated = playbooks.update(id, patch)
+    ledger(assetEventInput('asset_updated', 'playbook', id))
+    return updated
   })
 
   app.delete('/api/playbooks/:id', async (req, reply) => {

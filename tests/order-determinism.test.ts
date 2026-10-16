@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { newDb } from '../packages/core/src/test-support/new-db'
@@ -45,14 +45,47 @@ function tsFilesUnder(dir: string): string[] {
 
 /** 取 ORDER BY 子句（截到 LIMIT 或语句结束）的最后一个排序键名 */
 function lastSortKey(orderClause: string): string {
-  const tail = orderClause.split(',').at(-1)?.trim() ?? ''
-  return tail
-    .replace(/\b(ASC|DESC)\b/gi, '')
-    .trim()
-    .split('.')
-    .at(-1)!
-    .replace(/\(.*\)/, '')
-    .trim()
+  return normalizeKeys(orderClause).at(-1) ?? ''
+}
+
+/** 拆排序/分组键：去 ASC|DESC、去表前缀、去函数括号，统一小写 */
+function normalizeKeys(clause: string): string[] {
+  return clause
+    .split(',')
+    .map((part) =>
+      part
+        .trim()
+        .replace(/\b(ASC|DESC)\b/gi, '')
+        .trim()
+        .split('.')
+        .at(-1)!
+        .replace(/\(.*\)/, '')
+        .trim()
+        .toLowerCase(),
+    )
+    .filter((k) => k !== '')
+}
+
+/**
+ * 聚合查询豁免（2026-10-15 补）。
+ *
+ * 原守卫只看 `ORDER BY` 末键是否唯一键，纯文本匹配 ⇒ 误伤 `GROUP BY kind, day … ORDER BY day DESC, kind ASC`
+ * 这类**排序键恰好就是分组键**的聚合：分组键本身已使结果行唯一，平局在结构上不可能发生，
+ * 而 SQLite 里给聚合加裸 `id` 反而是取组内任意值的坏 SQL（这正是本轮一度真写出来的形态）。
+ *
+ * ⚠️ 豁免条件是**集合包含**，不是「有 GROUP BY 就放行」：
+ *   `GROUP BY kind, day` + `ORDER BY updated_at DESC` 仍必须红（排序键没盖住分组键）。
+ *   变异腿 `tests/order-determinism` 的两条反向用例就钉这一条。
+ */
+function groupCoversOrder(sql: string, orderClause: string): boolean {
+  const groups = [...sql.matchAll(/\bGROUP\s+BY\s+([\s\S]+?)(?:\bHAVING\b|\bORDER\b|\bLIMIT\b|$)/gi)]
+  if (groups.length === 0) return false
+  const wanted = new Set(normalizeKeys(orderClause))
+  return groups.some((g) => {
+    const keys = normalizeKeys(g[1] ?? '')
+    // 分组键覆盖全部排序键 ⇒ 排序结果确定
+    return wanted.size > 0 && [...wanted].every((k) => keys.includes(k))
+  })
 }
 
 function clausesMissingTailKey(): string[] {
@@ -62,9 +95,9 @@ function clausesMissingTailKey(): string[] {
       for (const match of sql.matchAll(/ORDER BY\s+([\s\S]+?)(?:\bLIMIT\b|$)/gi)) {
         const clause = (match[1] ?? '').trim()
         if (!clause) continue
-        if (!DETERMINISTIC_TAIL.has(lastSortKey(clause))) {
-          offenders.push(`${file.replace(`${SRC_ROOT}/`, '')} — ORDER BY ${clause.replace(/\s+/g, ' ')}`)
-        }
+        if (DETERMINISTIC_TAIL.has(lastSortKey(clause))) continue
+        if (groupCoversOrder(sql, clause)) continue
+        offenders.push(`${file.replace(`${SRC_ROOT}/`, '')} — ORDER BY ${clause.replace(/\s+/g, ' ')}`)
       }
     }
   }
@@ -91,6 +124,50 @@ describe('UT-ORDER-01 · 静态守卫：列表 SQL 必须有唯一键兜底', ()
     // 先确认扫描真的抓到了语句（防止路径写错导致空集假绿）
     expect(tsFilesUnder(SRC_ROOT).length).toBeGreaterThan(10)
     expect(offenders.join('\n')).toBe('')
+  })
+})
+
+/**
+ * 聚合豁免的变异腿。
+ *
+ * 豁免逻辑本身是个分支，分支不做变异就等于没测：这里三条把「放行」与「仍红」两侧都钉死，
+ * 特别盯住**排序键没盖住分组键**那一侧 —— 那正是原判据要拦的平局歧义，豁免绝不能吃掉它。
+ */
+describe('UT-ORDER-01a · 聚合豁免：只在排序键被分组键覆盖时成立', () => {
+  const sql = (group: string, order: string) =>
+    `SELECT kind, day, COUNT(*) AS count FROM local_events ${group} ${order}`
+
+  it('正例：排序键 ⊆ 分组键 ⇒ 放行（本轮 local_events 聚合的真实形态）', () => {
+    expect(groupCoversOrder(sql('GROUP BY kind, day', 'ORDER BY day DESC, kind ASC'), 'day DESC, kind ASC')).toBe(true)
+    expect(groupCoversOrder(sql('GROUP BY kind', 'ORDER BY kind ASC'), 'kind ASC')).toBe(true)
+  })
+
+  it('反例：排序键含分组键之外的列 ⇒ 仍红（原判据要拦的就是这种平局）', () => {
+    expect(groupCoversOrder(sql('GROUP BY kind, day', 'ORDER BY updated_at DESC'), 'updated_at DESC')).toBe(false)
+    expect(groupCoversOrder(sql('GROUP BY kind, day', 'ORDER BY kind ASC, updated_at DESC'), 'kind ASC, updated_at DESC')).toBe(false)
+  })
+
+  it('反例：无 GROUP BY 一律不放行（纯列表路径不能借聚合豁免脱身）', () => {
+    expect(groupCoversOrder('SELECT * FROM t WHERE a=1 ORDER BY updated_at DESC', 'updated_at DESC')).toBe(false)
+  })
+
+  it('反例：别名不同不算覆盖（`day` 与 `d` 不等价）', () => {
+    expect(groupCoversOrder('SELECT kind AS k, day AS d, COUNT(*) FROM t GROUP BY k, d ORDER BY k ASC, d ASC', 'k ASC, d ASC')).toBe(true)
+    expect(groupCoversOrder('SELECT kind, day, COUNT(*) FROM t GROUP BY kind ORDER BY day ASC', 'day ASC')).toBe(false)
+  })
+
+  it('整守卫行为：把 real repo 的 SQL 换成「排序键未覆盖分组键」形态 ⇒ 整仓扫描必须报错', () => {
+    // 直接在真实文件上做一次可复算的变异：把 summaryInWindow 的排序改成未覆盖分组键的形态
+    const target = join(SRC_ROOT, 'repos', 'localEvents.ts')
+    const original = readFileSync(target, 'utf8')
+    const mutated = original.replaceAll('ORDER BY day DESC, kind ASC', 'ORDER BY updated_at DESC')
+    expect(mutated, '变异锚点未命中，守卫变异腿会变成永真').not.toBe(original)
+    try {
+      writeFileSync(target, mutated)
+      expect(clausesMissingTailKey().join('\n')).toContain('localEvents.ts')
+    } finally {
+      writeFileSync(target, original)
+    }
   })
 })
 

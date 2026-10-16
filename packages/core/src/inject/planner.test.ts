@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { fileSha256 } from '../pack/fingerprint'
-import { applyDecisions, diffPackLock, planInjection, strategyToDecisions } from './planner'
+import {
+  applyDecisions,
+  diffPackLock,
+  planInjection,
+  strategyToDecisions,
+  summarizeDiff,
+} from './planner'
 import type { PackLock } from '@openvibe/shared'
 import type { PackFileWithHash, PlanInput } from './planner'
 
@@ -263,27 +269,68 @@ describe('UT-INJECT-PLAN-04 · diff 的磁盘比对（m6b FR-5.2）', () => {
       lock,
       diskOf({ 'CLAUDE.md': CLAUDE_INJECTED, 'TERMS.md': TERMS_BODY, 'SKILLS.md': SKILLS_PACK }),
     )
-    expect(out).toMatchObject({ clean: true, drifted: [], missing: [] })
+    expect(out.clean).toBe(true)
+    expect(summarizeDiff(out)).toEqual({ clean: true, drifted: [], missing: [], foreign: [] })
   })
 
   it('手改 + 删除分别归入 drifted / missing', () => {
     const out = diffPackLock(lock, diskOf({ 'CLAUDE.md': B('# 我手改了'), 'TERMS.md': TERMS_BODY }))
     expect(out.clean).toBe(false)
-    expect(out.drifted).toEqual([
-      {
-        path: 'CLAUDE.md',
-        expected: fileSha256(CLAUDE_INJECTED),
-        actual: fileSha256(B('# 我手改了')),
-      },
-    ])
-    expect(out.missing).toEqual(['SKILLS.md'])
+    expect(summarizeDiff(out)).toMatchObject({
+      clean: false,
+      drifted: [
+        {
+          path: 'CLAUDE.md',
+          expected: fileSha256(CLAUDE_INJECTED),
+          actual: fileSha256(B('# 我手改了')),
+        },
+      ],
+      missing: ['SKILLS.md'],
+    })
   })
 
-  it('未受管项（managed=false）同样比对——lock 里登记了期望哈希', () => {
+  /**
+   * ⚠️ 本条断言在本轮**被 owner 授权改判**（FR-2.3「授权 planner 直接输出四态」）。
+   *
+   * 原断言写的是「未受管项同样比对 ⇒ 落进 `drifted`」。改判后的口径是：
+   * 未受管条目**照样参与比对**（lock 既已登记期望哈希，盘上现状与它不符就是不符，
+   * **不许因为「不受管」就不报**），但它**不再叫「漂移」**——它是 `FOREIGN`，
+   * 与「受管产物漂移」分列。
+   *
+   * **没变的**：信息仍然报出来，`clean` 仍然为 false ⇒ CLI 仍退 2。
+   * **变了的**：从 `drifted` 列挪到 `foreign` 列，用户终于分得出这两种改动。
+   */
+  it('未受管项（managed=false）照样比对，但归入 foreign 而非 drifted', () => {
     const out = diffPackLock(
       { ...lock, files: [{ path: 'X.md', sha256: fileSha256('a'), managed: false }] },
       diskOf({ 'X.md': 'b' }),
     )
-    expect(out.drifted[0]?.path).toBe('X.md')
+    const sum = summarizeDiff(out)
+    // 照样比对：差异一条不少
+    expect(sum.foreign).toEqual([{ path: 'X.md', actual: fileSha256('b') }])
+    // 但不再冒充「受管产物漂移」
+    expect(sum.drifted).toEqual([])
+    // 且仍然不算 clean —— 「不受管」不是「没问题」
+    expect(sum.clean).toBe(false)
+  })
+
+  /**
+   * ⚠️ 本条是**防收紧**的：未受管条目若内容**恰好一致**，必须仍然算 clean。
+   *
+   * 曾把 `clean` 写成「全部 IN_SYNC」，但 `verifyAgainstLock` 的判据顺序是
+   * ABSENT → FOREIGN → IN_SYNC/DRIFT，未受管条目**在哈希比对之前**就被判成 FOREIGN
+   * ⇒ 「未受管但内容一致」被误判成不干净。症状：`apps/cli/test/security.test.ts`
+   * 的 CLI-SEC-03（同步收敛后 `diff.clean` 应为 true）挂了。
+   * 这条用例钉死「口径必须与改判前逐字一致」，防止有人再收严一次。
+   */
+  it('未受管项但内容恰好一致 ⇒ 仍然算 clean（不许借改判之名收紧语义）', () => {
+    const out = diffPackLock(
+      { ...lock, files: [{ path: 'X.md', sha256: fileSha256('a'), managed: false }] },
+      diskOf({ 'X.md': 'a' }),
+    )
+    const sum = summarizeDiff(out)
+    // 落 FOREIGN 列（它确实不受管），但不算「有问题」
+    expect(sum.foreign).toEqual([{ path: 'X.md', actual: fileSha256('a') }])
+    expect(sum.clean).toBe(true)
   })
 })

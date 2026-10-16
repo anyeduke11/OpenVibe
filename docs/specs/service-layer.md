@@ -40,7 +40,85 @@
 | 6 | TTY 耦合位置（**与直觉不同**） | `commander` **只出现在 `apps/cli/src/index.ts`**，五个命令文件都不 import 它；真正把终端拽进编排函数的是 `sync.ts:9` 的 `@clack/prompts`（`isCancel`／`select`） | `grep -rln 'commander' apps/cli/src`；`grep -rln '@clack' apps/cli/src/commands` |
 | 7 | app 侧 import `@openvibe/adapters` 的非测试点 | **2 处**：`apps/server/src/lib/pack-assemble.ts:1`、`apps/cli/src/commands/sync.ts:10`（另 5 个测试文件） | `grep -rn '@openvibe/adapters' --include='*.ts' apps \\| grep -v test` |
 | 8 | 同一规则两处实现 + 三套状态词 | `planner.ts:215-226` 用 `{clean, drifted, missing}`；`retirement.ts:40-60` 用 `ABSENT／FOREIGN／IN_SYNC／DRIFT`；`pack-source.ts:169-170` 用 `modified[]` | `sed -n '215,226p' packages/core/src/inject/planner.ts` |
-| 9 | 行为零变化的对照基线 | **文档所载**：`Test Files 58`；ubuntu／macOS `538 passed`；win32 `530 passed + 8 skipped` | 见 `DEV_LOG.md` 最新一笔 ⑦ 行（`grep -n 'Test Files 58' DEV_LOG.md`）。**本轮纯文档，未重跑测试，此数不记作本轮实测** |
+| 9 | 行为零变化的对照基线 | **文档所载（旧值，已被取代，保留见下）**：`Test Files 58`；ubuntu／macOS `538 passed`；win32 `530 passed + 8 skipped` | 见 `DEV_LOG.md` 最新一笔 ⑦ 行（`grep -n 'Test Files 58' DEV_LOG.md`）。**本轮纯文档，未重跑测试，此数不记作本轮实测** |
+
+## 3-9b. 行为零变化的对照基线 · **2026-10-15 重采样（取代 §3-9 第 9 行的 58／538）**
+
+**为什么必须重采样**：FR-6.1 要求 CI 三侧支数与 §3-9 基线**逐字相同**，而 §3-9 记的 58／538 是
+2026-10-03 的文档值。此后 M8（agent 回流面）与本轮服务层各自新增了测试，
+**旧基线早已过期**——不重采就判「支数逐字」通过是自欺。
+
+### 采样环境（可复算）
+
+| 项 | 值 |
+|---|---|
+| 采样时刻 | **2026-10-15 12:10 CST** |
+| 提交树 sha | **`c2122c2`**（`git rev-parse --short HEAD`；完整 `c2122c286348977ac18872f898b631c248f74aec`） |
+| 工作树 | **脏**（`git status --porcelain \| wc -l` = 79，含并行会话产物）——见下方「这条基线的边界」 |
+| 工具链 | vitest **3.2.7**，node **v26.4.0**，darwin-arm64 |
+| 平台 | **仅 macOS/darwin 一侧**；ubuntu 与 win32 **本轮未采**（见「未验面」） |
+
+### 命令原文与实测值
+
+**扫描根**：仓库根 `/Users/duke/Documents/OpenVibe`，扫描范围由根 `vitest.config.ts` 的
+**四个 project** 决定（`unit` / `integration` / `cli` / `web`），各自 `include` 根见该文件。
+**未指定任何目录参数**——即不缩到某个子目录跑。
+
+总数（**连跑 5 轮，5 轮全同**）：
+
+```
+pnpm test
+# 第 1..5 轮，每轮逐字相同：
+#   Test Files  72 passed (72)
+#        Tests  673 passed (673)
+```
+
+分侧（**逐 project 单跑**）：
+
+```
+npx vitest run --project=unit          #  Test Files  36 passed (36)   Tests  326 passed (326)
+npx vitest run --project=integration   #  Test Files  17 passed (17)   Tests  172 passed (172)
+npx vitest run --project=cli           #  Test Files  15 passed (15)   Tests  156 passed (156)
+npx vitest run --project=web           #  Test Files   4 passed (4)    Tests   19 passed (19)
+```
+
+**两个总数对得上**（这就是本次采样的自洽判据，不靠印象）：
+文件 `36 + 17 + 15 + 4 = 72` ＝ 总数的 72；
+测试 `326 + 172 + 156 + 19 = 673` ＝ 总数的 673。**两式均逐字相符**。
+
+### 新基线（FR-6.1 引用这一组数）
+
+| 侧 | Test Files | Tests |
+|---|---|---|
+| `unit` | 36 | 326 |
+| `integration` | 17 | 172 |
+| `cli` | 15 | 156 |
+| `web` | 4 | 19 |
+| **合计（`pnpm test` 实测）** | **72** | **673** |
+
+### 旧基线的处置（**不回改，留档**）
+
+- **旧值 58 文件／538 支（win32 记 530+8 skipped）** 仍留在 §3-9 第 9 行，标注为「已被取代」。
+  按本仓库「日志不回改」纪律**保留原样，不删除、不改写**。
+- **取代关系**：旧值采样于 **2026-10-03**（提交树 `54789b8` 之后的改动面），**于 2026-10-15 12:10 CST
+  在提交树 `c2122c2` 上被本节取代**。取代原因是 M8 与服务层两轮各自新增测试，使 58／538 失去判据效力。
+- **取代的净变化**：58 → 72 文件（**+14**）；538 → 673 支（**+135**）。
+  其中本轮（bodyLimit 按端点放宽）净增 **+3 支**（`agent.api.test.ts`：11 → 14）。
+- ⚠️ **旧值与新值不可直接相比**：旧值是 **58／538** 且带 win32 分叉（530+8 skipped），
+  新值是 **72／673** 且**只采了 macOS 一侧**。FR-6.1 说「CI 三侧」——
+  **本次只落实了其中一侧，另两侧的支数未采**（见「未验面」）。
+
+### 这条基线的边界（必须对读者讲清，否则会被当成「已完全落实 FR-6.1」）
+
+1. ⚠️ **基线采在脏工作树上**，且其中含**并行会话的未跟踪文件**
+   （`git status` 里的 `?? packages/core/src/inject/consistency.ts` 与 `consistency.test.ts` 等）。
+   换言之 **673 里有相当一部分不来自提交树 `c2122c2`**。
+   **本轮实测到一个直接证据**：采样途中 `consistency.test.ts`（并行会话在写）被改动过一次，
+   总数当轮就从 **665 变到 673**（`71 → 72` 文件），且该文件一度出现
+   **隔离跑时 2–5 支判红、其后连跑 5 次全绿**的不稳定态。
+   ⇒ **在并行会话合流、文件入库之前，本基线只能作为「当前工作树」的对照数，不能作为 CI 的门禁数。**
+2. **未删任何用例**：本轮只**新增**测试，未删改既有断言（FR-6.1「只许移动位置，不许增删改断言」在本轮**未被违反**，
+   但 `consistency.test.ts` 等文件由并行会话增删，不在本轮可核范围）。
 
 **三个术语在本文件里的定义**（避免「服务层」被读成任意一种分层）：
 
@@ -73,7 +151,8 @@
   - FR-5.2 需要平台产物路径时（§3-7 的 `ADAPTER_MAIN_PATH`）经 `deps` 注入，形制照 `pack-assemble.ts:39`。既有 zone（`eslint.config.js:22-26`，message 原文「R2: core 只依赖 packages/shared（编排发生在 apps/server）」）一字不改。
   - FR-5.3 若实现中发现「非破 R2 不可」⇒ **停手并回报**，这正好命中分析文 §7.2 反例 5，按 §6.1 的处置走。
 - **FR-6 「行为零变化」的判定口径**（不是主观陈述；四条外部凭据缺一不判过）：
-  - FR-6.1 CI 三侧 `Test Files`／`Tests` 支数与 §3-9 基线**逐字相同**（58；538／538；530+8）。用例只许移动位置，不许增删改断言。
+  - FR-6.1 CI 三侧 `Test Files`／`Tests` 支数与 §3-9 基线**逐字相同**。**基线已于 2026-10-15 重采样，见 §3-9b：72 文件 / 673 支（macOS 一侧实测）**，取代 §3-9 的旧值 58／538。用例只许移动位置，不许增删改断言。
+    - ⚠️ **本条尚未完全闭合**：§3-9b 只采了 macOS 一侧，**ubuntu 与 win32 两侧支数未采**；且基线采在含并行会话未跟踪文件的脏工作树上。「CI 三侧逐字」因此**仍是未验面**，不是已通过。
   - FR-6.2 `tests/golden/` 零 diff（本项不产新字节；若 diff 非零即为实现出错，不是「更新基线」）。
   - FR-6.3 `bundle:check` 入口不减余量（现基线见 `entry-budget.md` §3）。
   - FR-6.4 CLI 输出既有断言（`apps/cli/test/*`）逐字绿。
@@ -131,7 +210,7 @@
 | j | ✅ | 入口 267.27 kB ≤ 300 kB，余量**未减** |
 | k | ✅ | R1–R4 既有 zone 与三个 `r4NoCrossApp` 块**一字未改**（`eslint.config.js` diff 只含新增）；`core→adapters` 命中 **0** |
 | l | ❌ **未达成** | FR-3.1 收敛判据**本轮未达成**：`apps/server/src/routes/` 的 `new [A-Z]*Repo(` ＋ `db.prepare(` 命中数仍为 **19**。已搬的只有 FR-3.2 点名的导出编排（`packs.ts`）与决策规则（`sync.ts`）；**`settings.ts` 的聚合 SQL 指向 `statsService`，而该服务随 RF1-5 一起未开工**，故那一处不能夹带 |
-| m | 🟡 **部分** | 四条凭据里 ①②④ 齐备（golden 零 diff、bundle 不减余量、CLI 断言未改），**①「CI 支数逐字」这一条已不成立**——它以 §3-9 的 58 文件/538 支为基线，而 M8 与本轮各自新增了测试。当前基线为 **71 文件 / 662 支**。该条须随 §3-9 基线**重新采样**后才可判 |
+| m | 🟡 **部分** | 四条凭据里 ①②④ 齐备（golden 零 diff、bundle 不减余量、CLI 断言未改）。**①「CI 支数逐字」的基线已于 2026-10-15 重采样（§3-9b：72 文件 / 673 支，分侧 36/17/15/4 与 326/172/156/19，两式均与总数逐字相符，连跑 5 轮稳定）**，取代旧的 58／538。**但本条仍未闭合**：只采了 macOS 一侧，ubuntu／win32 两侧未采；且基线采在含并行会话未跟踪文件的脏工作树上 |
 
 > **⚠️ FR-4.1 的 zone 方向勘误（2026-10-15 实测发现，spec 原文有误）**
 >

@@ -4,8 +4,9 @@ import { AppError, TERMS_ORDER_BY, TermCreateInput, TermUpdateInput } from '@ope
 import { TermsRepo, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
 import { referencedPackNames } from '../lib/refs'
+import { assetEventInput, resolveLedger, type LedgerDeps } from '../lib/ledger'
 
-export interface TermRouteDeps {
+export interface TermRouteDeps extends LedgerDeps {
   db: SqliteDatabase
 }
 
@@ -18,6 +19,7 @@ const RenderMdBody = z.object({
 /** dev-plan §3.3 五端点 + render-terms-md */
 export function registerTermRoutes(app: FastifyInstance, deps: TermRouteDeps): void {
   const terms = new TermsRepo(deps.db)
+  const ledger = resolveLedger(deps)
 
   app.get('/api/terms', async () => {
     const items = terms.list()
@@ -26,7 +28,9 @@ export function registerTermRoutes(app: FastifyInstance, deps: TermRouteDeps): v
 
   app.post('/api/terms', async (req, reply) => {
     const input = parseOrThrow(TermCreateInput, req.body)
-    return reply.code(201).send(terms.create(input))
+    const created = terms.create(input)
+    ledger(assetEventInput('asset_created', 'term', created.id))
+    return reply.code(201).send(created)
   })
 
   // 静态段先于 :id 匹配（find-my-way 优先级）
@@ -48,7 +52,9 @@ export function registerTermRoutes(app: FastifyInstance, deps: TermRouteDeps): v
   app.patch('/api/terms/:id', async (req) => {
     const { id } = req.params as { id: string }
     const patch = parseOrThrow(TermUpdateInput, req.body)
-    return terms.update(id, patch)
+    const updated = terms.update(id, patch)
+    ledger(assetEventInput('asset_updated', 'term', id))
+    return updated
   })
 
   app.delete('/api/terms/:id', async (req, reply) => {

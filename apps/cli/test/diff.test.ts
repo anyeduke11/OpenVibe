@@ -144,6 +144,62 @@ describe('diff 的磁盘比对（FR-5.1/5.2）', () => {
     expect((badPath as DiffError).code).toBe('LOCK_INVALID')
   })
 
+  /**
+   * 🔴 FR-2.3 改判（owner 2026-10-15 授权「planner 直接输出四态」）后的**新行为**。
+   *
+   * 未受管条目（lock 里 `managed=false`，或路径在 `.openvibe/` 下）被改时：
+   * - 此前：落进 `drifted`，与「受管产物漂移」**长得一样，用户分不出**；
+   * - 现在：单列 `foreign`，而 `drifted` 保持为空。
+   *
+   * **没变的**：信息照样报出来、`clean` 仍为 false、**退出码仍退 2**。
+   * 这三条是本改判的底线 —— 只挪列，不许丢信息、不许改契约口径。
+   */
+  it('CLI-DIFF-02: 未受管条目被改 → 单列 foreign，drifted 留空，但仍退 2', async () => {
+    const { project } = await injectedProject()
+    const lockPath = join(project, PACK_LOCK_REL)
+    const lock = JSON.parse(readFileSync(lockPath, 'utf8')) as {
+      files: { path: string; sha256: string; managed?: boolean }[]
+    }
+    // 把已注入的 TERMS.md 改记为「不受管」，再手改它
+    const terms = lock.files.find((f) => f.path === 'TERMS.md')
+    if (!terms) throw new Error('夹具里没有 TERMS.md，用例前提不成立')
+    terms.managed = false
+    writeFileSync(lockPath, JSON.stringify(lock), 'utf8')
+    writeFileSync(join(project, 'TERMS.md'), '# 我手改了但这条不受管', 'utf8')
+
+    const out = await diffAction({ projectPath: project }, {})
+    expect(out.clean).toBe(false)
+    // 关键：它**不在** drifted 里
+    expect(out.drifted).toEqual([])
+    // 但也没被静默省略 —— 单列报出来
+    expect(out.foreign.map((f) => f.path)).toEqual(['TERMS.md'])
+    expect(out.foreign[0]!.actual).toBe(createHash('sha256').update('# 我手改了但这条不受管').digest('hex'))
+    // 退出码口径不变：非 clean ⇒ 2
+    expect(out.exitCode).toBe(2)
+    // 且 hints 里点明这是「未受管」，不是普通漂移
+    expect(out.hints.join()).toMatch(/未受管/)
+  })
+
+  it('CLI-DIFF-03: `.openvibe/` 下的条目即便 managed=true 也算 FOREIGN（lock 可被手改，这条不能靠 lock 的自觉）', async () => {
+    const { project } = await injectedProject()
+    const lockPath = join(project, PACK_LOCK_REL)
+    const lock = JSON.parse(readFileSync(lockPath, 'utf8')) as {
+      files: { path: string; sha256: string; managed?: boolean }[]
+    }
+    const internalPath = '.openvibe/backup/x.md'
+    mkdirSync(join(project, '.openvibe', 'backup'), { recursive: true })
+    writeFileSync(join(project, internalPath), '磁盘上的内容', 'utf8')
+    // ⚠️ 这里写 managed=true：判据必须**不依赖 lock 的自觉**
+    lock.files.push({ path: internalPath, sha256: createHash('sha256').update('包里的内容').digest('hex'), managed: true })
+    writeFileSync(lockPath, JSON.stringify(lock), 'utf8')
+
+    const out = await diffAction({ projectPath: project }, {})
+    expect(out.foreign.map((f) => f.path)).toEqual([internalPath])
+    expect(out.drifted).toEqual([])
+    expect(out.clean).toBe(false)
+    expect(out.exitCode).toBe(2)
+  })
+
   it('项目路径不是目录 → PROJECT_NOT_DIR', async () => {
     const root = tempDir('ov-diff-file-')
     const file = join(root, 'lock.json')

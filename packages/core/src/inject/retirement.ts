@@ -1,11 +1,22 @@
 // packages/core/src/inject/retirement.ts —— clean 的三态分类器（m6b FR-6.3）。
 // 纯函数：判据与 sync 的规划器同一条（磁盘 sha256 vs lock 期望哈希），不另造第二套词——
 // 两套分类器必然在边界处分叉。删除动作留给 CLI，这里只出「谁可以删」。
-import { compareCodeUnit, type PackLock } from '@openvibe/shared'
-import { fileSha256 } from '../pack/fingerprint'
+//
+// ⚠️ 比对规则本体已按 service-layer.md FR-2 搬到 `./consistency`（三处合一）。
+// 本文件保留的是**退场自己的形态**：四态原样、action 映射原样、counts 键序原样。
+import type { PackLock } from '@openvibe/shared'
+import {
+  CONSISTENCY_STATES,
+  verifyAgainstLock,
+  type ConsistencyState,
+} from './consistency'
 
-export const RETIREMENT_STATES = ['IN_SYNC', 'DRIFT', 'ABSENT', 'FOREIGN'] as const
-export type RetirementState = (typeof RETIREMENT_STATES)[number]
+/**
+ * 状态词表随合一的那一处走（FR-2.3 → §8.2 待裁②(a)），但**导出名一字不改**：
+ * 全仓既有引用（`retirement.test.ts`、`inject/index.ts`、`core/index.ts`、CLI 报告渲染）都指着它。
+ */
+export const RETIREMENT_STATES = CONSISTENCY_STATES
+export type RetirementState = ConsistencyState
 
 /** delete=备份后删除；keep=DRIFT 被保留（--force 会变成 delete）；none=不动盘 */
 export type RetirementAction = 'delete' | 'keep' | 'none'
@@ -33,30 +44,29 @@ export interface RetirementInput {
   force?: boolean
 }
 
-/** 项目根下第一段是 .openvibe 即非包产物：lock 可被手改，这条不能依赖 lock 的自觉 */
-function isOpenVibeInternal(relPath: string): boolean {
-  const [first] = relPath.split(/[\\/]+/)
-  return first === '.openvibe'
-}
-
 export function planRetirement(input: RetirementInput): RetirementPlan {
   const force = input.force === true
-  const files: RetirementFile[] = [...input.lock.files]
-    .sort((a, b) => compareCodeUnit(a.path, b.path))
-    .map((entry) => {
-      const managed = entry.managed === true
-      const content = input.readDisk(entry.path)
-      const diskSha256 = content === null ? null : fileSha256(content)
-
-      let state: RetirementState
-      if (content === null) state = 'ABSENT'
-      else if (!managed || isOpenVibeInternal(entry.path)) state = 'FOREIGN'
-      else state = diskSha256 === entry.sha256 ? 'IN_SYNC' : 'DRIFT'
-
-      const action: RetirementAction =
-        state === 'IN_SYNC' ? 'delete' : state === 'DRIFT' ? (force ? 'delete' : 'keep') : 'none'
-      return { path: entry.path, state, action, lockSha256: entry.sha256, diskSha256, managed }
-    })
+  // 退场态就是合一后的单一词表，映射是恒等的：唯一属于本文件的是 state → action。
+  const files: RetirementFile[] = verifyAgainstLock(
+    input.lock.files.map((entry) => ({
+      path: entry.path,
+      sha256: entry.sha256,
+      // 缺 managed 字段（被手删）按未受管处理，安全侧：判据是 `=== true` 而不是「不是 false」
+      managed: entry.managed === true,
+    })),
+    input.readDisk,
+  ).map((row) => {
+    const action: RetirementAction =
+      row.state === 'IN_SYNC' ? 'delete' : row.state === 'DRIFT' ? (force ? 'delete' : 'keep') : 'none'
+    return {
+      path: row.path,
+      state: row.state,
+      action,
+      lockSha256: row.declaredSha256,
+      diskSha256: row.diskSha256,
+      managed: row.managed,
+    }
+  })
 
   const counts = Object.fromEntries(RETIREMENT_STATES.map((s) => [s, 0])) as Record<
     RetirementState,

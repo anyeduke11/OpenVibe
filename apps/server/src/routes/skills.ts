@@ -24,8 +24,9 @@ import {
   retrackRemoteSkills,
   searchSkillhub,
 } from '../lib/skill-remote'
+import { assetEventInput, resolveLedger, type LedgerDeps } from '../lib/ledger'
 
-export interface SkillRouteDeps {
+export interface SkillRouteDeps extends LedgerDeps {
   db: SqliteDatabase
   /** 远程取数实现注入点（测试 mock 上游；缺省全局 fetch，出站走 http-guard 守卫） */
   fetchImpl?: typeof fetch
@@ -39,6 +40,7 @@ function matchQuery(query: string, text: string): boolean {
 /** dev-plan §3.2 五端点 + 扫描（Web 按钮与 CLI `scan --skills` 打同一入口，m2 §5） */
 export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps): void {
   const skills = new SkillsRepo(deps.db)
+  const ledger = resolveLedger(deps)
 
   app.get('/api/skills', async (req) => {
     const { q } = req.query as { q?: unknown }
@@ -53,7 +55,9 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
 
   app.post('/api/skills', async (req, reply) => {
     const input = parseOrThrow(SkillCreateInput, req.body)
-    return reply.code(201).send(skills.create(input))
+    const created = skills.create(input)
+    ledger(assetEventInput('asset_created', 'skill', created.id))
+    return reply.code(201).send(created)
   })
 
   // 静态段先于 :id 匹配（find-my-way 优先级）
@@ -199,7 +203,9 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   app.patch('/api/skills/:id', async (req) => {
     const { id } = req.params as { id: string }
     const patch = parseOrThrow(SkillUpdateInput, req.body)
-    return skills.update(id, patch)
+    const updated = skills.update(id, patch)
+    ledger(assetEventInput('asset_updated', 'skill', id))
+    return updated
   })
 
   app.delete('/api/skills/:id', async (req, reply) => {

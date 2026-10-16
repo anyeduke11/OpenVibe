@@ -126,13 +126,21 @@
 - **FR-2.5 人工确认门（一律 pending）**：任何 kind 的记录**一律先落 `status='pending'`**，用户在 Web 点「确认」才转 `published`。理由：沿用 `m4-playbook.md` FR-5「人工确认是唯一入库路径」的既有纪律——**agent 的判断不可作为事实源**。这一条不因「回流量大」而放松。
 - **FR-2.6 体量上限（owner 2026-10-14 裁③已定，三值）**：单条 `payload_json` 序列化后 ≤ **512 KB**；单请求条目数 ≤ **20**；**单请求总量 ≤ 2 MB**。`summary` 字段单独再限 **4 KB**。
   - FR-2.6.1 ⚠️ **第三值经连带修正**：本 spec 原建议是「单条 32 KB / 20 条 / 256 KB」，PRD 建议「照 m6b 同档 512 KB」。owner 裁定取 **单条 512 KB ＋ 20 条 ＋ 总量 2 MB**，其中第三值**不是照抄 m6b**——`constants.ts:108-109` 的 `packTotalMaxBytes: 2 * 1024 * 1024` 与 `singleFileMaxBytes: 512 * 1024` 同族，取 **2 MB** 才使「20 条 × 512 KB」的理论上限**不可能突破整包预算**。**实现时三值缺一即红**：一条测试断言三者同时成立（任一单条超限 / 条数超限 / 总量超限各自被拒）。
-  - FR-2.6.2 🔴 **传输层实况：2 MB 经 HTTP 触达不到，域内上限与传输上限不是同一个数**（2026-10-15 实测登记）。`apps/server/src/app.ts` 用 `Fastify({ logger: false })`、**未设 `bodyLimit`**，Fastify 默认 **1 MB** ⇒ 超过 1 MB 的请求在**到达服务层之前**就被 413 拒掉，FR-2.6 的第三值目前只有 CLI 直调服务层时才吃得到。
-    - **处置（本轮已定，不偷抬）**：**不抬 `bodyLimit`** —— 那是全 server 面的改动，会让**所有**端点都接受更大请求体，超出 M8 单项的范围。改为 ① HTTP 侧测试**按实况断言 413**；② `agentService` 单测**绕开传输层直测**，把三值逐条钉死。
-    - **由此产生的能力边界（必须对调用方讲清）**：一个 agent 经 HTTP 单次能推的载荷**实际封顶在 1 MB 以下**，FR-2.6 的 2 MB 是**域内**上限。
-    - **若要让 2 MB 真正可达，须 owner 单独裁**：候选是给 Fastify 设 `bodyLimit`，或对 ingest 端点单独放宽。**该裁未做前，不得在任何文档或提示里宣称「agent 可推 2 MB」。**
+  - FR-2.6.2 ✅ **传输层已按端点放宽：2 MB 经 HTTP 现已可达**（owner 2026-10-15 裁「抬」，推翻同日早些时候的「不抬」处置）。实现落在 `apps/server/src/routes/agent.ts`：`POST /api/agent/ingest` 单条路由注册时带 `bodyLimit`，取 `AGENT_INGEST_BODY_LIMIT` = **8 MiB**；`apps/server/src/app.ts` **仍不设** `bodyLimit`，其余端点保持 Fastify 默认 1 MB。
+    - **为什么是按端点而不是全局**：Fastify 5 的路由简写支持 `{ bodyLimit }` 覆盖（`fastify/types/route.d.ts` 的 `RouteShorthandOptions.bodyLimit`）。全局抬高等于让**所有**端点都接受更大请求体，超出「让 agent 能推大载荷」这一件事的范围。**实测**：同实例内被覆盖的端点吃 3 MiB、未被覆盖的端点仍在 1 MiB 处 413。
+    - **为什么是 8 MiB**：Fastify 量的 `content-length` 是**整个序列化请求包**，严格大于域内口径（各条 `payload` 字节数之和）。差额来自包封层（`projectId`／`items` 数组／每条的 `kind`+`idempotencyKey`+`sourcePlatform` 键名与引号），且 `idempotencyKey` 的 schema 只有 `min(1)`、**没有上限**（`packages/shared/src/schemas/agent.ts`）。实测一组 20 条、每条约 104 KB、键长 70 字符的批次，包封层开销 **2,932 B**。8 MiB = 域内 2 MiB 的 **4 倍**，相对实测开销留约 2800 倍余量，同时**仍然有界**（9 MiB 照样 413）。
+    - **抬后的净效果**：FR-2.6 的 2 MB 总量上限**第一次真正经由 HTTP 生效**——它此前被 1 MB 传输层上限整个挡在服务层之前，永远吃不到。超 2 MB 的批次现在由**服务层逐条裁决**（前若干条照落、累计超限那条 `rejected`），整体仍恒 200（FR-2.7 不变）。
+    - **域内三值一条未松**：512 KB／20 条／2 MB 全部原样，仍由服务层执行。抬的只是**传输层**，域内规则与其落点未动。
+  - FR-2.6.3 ⚠️ **本条曾被推翻过一次，留档**：同日早些时候本 spec 记的是「**不抬** `bodyLimit`」，理由是「那是全 server 面的改动」并要求 HTTP 侧按实况断言 413。owner 复核后裁定**按端点放宽即可**，该理由不成立（「全 server 面」只在走全局 `bodyLimit` 时才是问题）。被推翻的处置连同当时的 `agent.api.test.ts` 413 用例一并留在此处，不删除：**它是「传输层上限曾是瓶颈」这段事实的记录**，且新用例（服务层逐条裁决 / 上限仍有界 / 其他端点未被放宽）已覆盖它原本想守的判据且更强。
 - **FR-2.7 部分成功**：20 条里 3 条校验失败 ⇒ **返回逐条结果**（每条带 `index` / `status` ∈ `accepted|duplicate|conflict|rejected` / `reason`），**不整包回滚**——agent 需要知道哪条能重试。整体响应 HTTP **200**（逐条结果在 body 内），全条失败时同理（逐条 `rejected`），**不为「全失败」单独造 4xx**（那会让 agent 无法读到哪条错了）。
 - **FR-2.8 `dev_log` 发布的落点**：发布时**写入既有 `dev_log_entries`**，`type` 取 `DEV` 或 `CHECK`（既有闭集），`entry_no` 由既有 `DevLogRepo` 的递增逻辑分配。**本项不改 `dev_log_entries` 的表形，也不改其 `entry_no` 的分配规则**。
 - **FR-2.9 `check_state` / `task_status` 发布的落点**：分别写 `project_check_states` 与 `tasks.status`。**`tasks.status` 三值闭集 `todo|doing|done` 不变**——agent 上报 `blocked` / `review` 之类值一律 `rejected`，**不得扩列**（扩列属 A/B 级，见 §2 Out 末行）。
+- 🔴 **FR-2.9.1 `session` 类**当前**无落点**，是登记在案的缺口、不是漏写**（2026-10-16 owner 裁定：**维持现状，不补落点、不改 `kind` 闭集**）
+  - **FR-2.8 / FR-2.9 / FR-2.1.1 三个落点都不含 `session`**，而 `agent_sessions` 表在 `0007` 里已建、**全仓零写入路径**（实测 `INSERT INTO agent_sessions` 命中 0）。发布时该类**只转状态、不落业务表**。
+  - **为什么现在不补**：`agent_sessions` 的形状是 `(project_id, platform, external_session_id)` 且带 `UNIQUE(project_id, platform, external_session_id)`。后两个字段来自**各平台 agent 的会话标识形态** —— 正是 §7.1 ①「Trae / CodeBuddy 约定未核验」那同一类未知性。**形态未核验就落表**，一旦外部 id 不稳定，UNIQUE 会把一次 agent 会话误判成重复、拆成多条记录。而这是**只增不改的 append-only 面，拆错了没法回滚清洗**。
+  - **连带代价（必须知道）**：`requirements.source_session_id` 外键指向 `agent_sessions(id)`。`session` 不落表 ⇒ `agent_sessions` 恒空 ⇒ **`requirements` 的会话溯源链断在第一环**，`source_session_id` 只能是 `NULL`（实现已按此处理：查无此会话即落 NULL，否则撞 FK）。
+  - **解锁条件**：§7.1 ① 的运行半边五问闭合、外部 session id 形态确定后补落点。届时「若补落点即为红线」已由 `agentService.test.ts` 的一支测试钉住。
+  - ⚠️ **不要用「顺手落个空 `agent_sessions`」的方式消除这个缺口** —— 那会让「表有行」看起来像功能存在，而溯源仍断。
 
 ### FR-3 聚合查询面（`GET /api/projects/:id/context`）（**B 级**）
 
@@ -168,7 +176,19 @@
 
   - FR-4.1.1 `ask` **不接 LLM**：问题集是闭集关键词，**不接受自由文本**。理由：本地优先 + 随机性会让 agent 无法解析输出（确定性输出是可机读的前提）。
   - FR-4.1.2 `status` 的 `[<dir>]` 缺省时取**当前工作目录**；路径解析不出已登记项目 ⇒ 既有 `NOT_FOUND` + 列出候选项目名（≤5 条）。
+  - FR-4.1.3 **端点归属（2026-10-16 补记，原文未指定）**：`status` 取 `GET /api/projects/:id/context?fields=stage,checklist,tasks,logs,pack`，**不是** `GET /api/projects/:id`。后者只有 `project + health` 两项，产不出本条要求的六项（完成度／未完检查项／任务分布／最近日志／绑定包与漂移态）。仍是纯 GET、仍不碰 DB（FR-4.4 红线不受影响）。
+    - 目录→项目的解析取**最长前缀优先**且前缀比较带分隔符（`/w/openvibe-2` 不能落到 `/w/openvibe` 头上）。这与 `pack-source.ts:283` 的**精确**匹配有意不同：那里是 sync 只对项目根操作，这里的缺省参数就是 cwd，**子目录必须能命中**。
+    - CLI 侧自己的「最近 5 条日志」裁剪也写进 `truncated`，**不静默少给**。
 - **FR-4.2 JSON 契约沿用既有形制**：`--json` 下 **stdout 只有一个 JSON 对象**（承 m6b CLI 契约）；退出码沿用 `ExitCode` 三值 `{ ok: 0, error: 1, drift: 2 }`（`apps/cli/src/output.ts:9`）——**本项不新增退出码**。
+  - 🔴 **2026-10-16 补齐（owner 追认 worker 的一处解读）**：本条原文只说「沿用三值」，**没说哪条命令产 `2`**，于是 `status` 该不该退 2 一度无据可依。实测三条命令的 `2` 档**语义完全一致** —— 都是「**产物与 `pack.lock.json` 不一致**」：
+    | 命令 | 产生条件 | 位置 |
+    |---|---|---|
+    | `diff` | `diff.clean && !outdated ? 0 : 2` | `commands/diff.ts:208` |
+    | `clean` | `summary.driftKept > 0 ? 2 : 0` | `commands/clean.ts:247` |
+    | `status` | `snapshot.pack.drifted === true ? ExitCode.drift : ExitCode.ok` | `commands/status.ts:288` |
+
+    ⇒ **明文规定**：`ask`（只读聚合，无漂移概念）与 `session log`（写命令，无本地产物）**恒不可达 2**；`status` 的 2 **仅在真漂移时**产生。
+  - ⚠️ **读不到 `pack.lock.json`（`drifted === null`）退 0，不退 2** —— 「不可判定」不是「没漂移」，把它算成漂移会让每次没登记本地路径的项目都退 2。该方向由**反向变异腿**钉住（把 `null` 当漂移 ⇒ 精准红 2 支）。
 - **FR-4.3 `CLI_COMMANDS` 单源登记（本项的硬要求，容易漏）**：三只新命令必须逐条登记进 `packages/shared/src/cli-commands.ts`，含 `name` / `usage` / `summary` / `flags` / `risk` / `writesDisk` 六字段。
   - FR-4.3.1 **漏登记 ⇒ `apps/server/test/cliCommands.api.test.ts` 当场红**（§3-15 实测该断言逐字比较命令名集合）。这不是「顺便维护」，是硬闸。
   - FR-4.3.2 `risk` 按 `CLI_COMMAND_RISKS` 三档闭集取值：`ask` / `status` = `readonly`（只发 GET）；`session log` = `decision`（改服务端 DB，与既有 `scan` 同档同因：源文件注释给 `scan` 判 `decision` 的理由是「改服务端 DB 且无确认闸」）。
@@ -178,7 +198,12 @@
 ### FR-5 M8 五类埋点 kind（**B 级**：增 kind 即改迁移，与台账同一笔）
 
 - **FR-5.1 提案五项**，与台账 `LOCAL_EVENT_KINDS` 并集声明、**严格不同名**：`agent_ingest_accepted` / `agent_ingest_rejected` / `agent_context_served` / `cli_agent_command_run` / `agent_bridge_installed`。
-  - FR-5.1.1 `payload_json` **允许键**（闭集，超出即测试红）：`agent_ingest_accepted` → `kind` / `source_platform`；`agent_ingest_rejected` → `kind` / `reason_code`（**枚举，非自由文本**）；`agent_context_served` → `fields_count` / `truncated`(bool) / `platform`；`cli_agent_command_run` → `command`（枚举 `ask|status|session`）/ `exit_code` / `agent`；`agent_bridge_installed` → `adapter` / `pack_version`。
+  - FR-5.1.1 `payload_json` **允许键**（闭集，超出即测试红）：`agent_ingest_accepted` → `kind` / `sourcePlatform`；`agent_ingest_rejected` → `kind` / `reasonCode`（**枚举，非自由文本**）；`agent_context_served` → `fieldsCount` / `truncated`(bool) / `platform`；`cli_agent_command_run` → `command`（枚举 `ask|status|session|requirement`）/ `exitCode` / `agent`；`agent_bridge_installed` → `adapter` / `packVersion`。
+    - 🔴 **2026-10-15 订正：原文本写的是 snake_case，与全部实现相反**（实测 `agentService.ts:117/144` 用 `reasonCode` / `sourcePlatform`，`contextService.ts:172` 用 `fieldsCount`）。仓内 payload 命名一律 camelCase（承 `assetEventInput` 的 `assetType` / `origin`），故**以实现为准改 spec**。owner 2026-10-15 指令「按代码功能完成为依据」是本次订正的依据。
+    - `cli_agent_command_run` 的 `agent` 字段：**原 spec 只给键名未给语义**（本仓第四次「引用既有 X 而 X 未定义」的变体）。**2026-10-16 owner 裁定**：
+      - 取值来源：环境变量 `OPENVIBE_AGENT` 的平台标识字符串，**缺省 `null` 表示「人跑的」**。用 env 而非 flag 的理由是 agent 调 CLI 时能自报、而人类不会设这个变量。
+      - 取值域：非空字符串，**长度上限 64**（超长在服务层拒 422）。含 `/`、`\`、`~` 一律拒——**防整段路径随埋点落进台账**（FR-5.1.2 把路径列为禁列）。
+      - ⚠️ **它不是身份凭证，不得用于任何鉴权或授权判断**。它可被伪造（env 会继承、会被手设），只用于统计「CLI 侧有多少是 agent 驱动的」。鉴权全部在 token ＋ `Host`/`Origin` 双闸（FR-3.5），与本字段无关。**写清这条是为了防日后有人拿它当信任依据。**
   - FR-5.1.2 **禁列**：绝对路径、项目名、用户名、会话正文、`body` 任何片段、`cwd`。
   - FR-5.1.3 FR-5.1.2 由一条单测对 `payload_json` 做**绝对路径与项目名模式扫描**兜（照 `local-event-ledger.md` §7-d 同型）。
 - **FR-5.2 写入点集中**：写入只发生在服务层（`services/` 内一处），**不散落 repo 与 route**（承 `local-event-ledger.md` FR-3）。
@@ -256,37 +281,49 @@
 
 ## 7. 验收标准（pass/fail）
 
-> **测试 ID 不复用既有族**（既有：`UT-PB-*` / `CORE-PB-*` / `IT-PB-*` / `CLI-CLEAN-*` / `CLI-SEC-*` / `CLI-VERIFY-*` / `SRV-EVT-*` / `CORE-EVT-*` / `GOLD-EVT-*`）。新族按 §3-17 的四个 vitest project 分配：`CORE-M8-*`（unit/project+core）· `SRV-M8-*`（integration）· `CLI-M8-*`（cli）· `UT-WEB-M8-*`（本 spec 无 web 面，留空登记）· `MANUAL-M8-*` / `GOLD-M8-*`。
+> ### 🔴 2026-10-15 本表按 owner 裁定整体改判：**以代码功能完成为依据，功能运行正常则通过**
+>
+> **原表的 24 个测试 ID 全部虚构** —— `CORE-M8-01` / `SRV-M8-01` / `CLI-M8-01` / `MANUAL-M8-01` / `GOLD-M8-01` … 在 `apps` / `packages` / `tests` / `scripts` 里的 `.ts`/`.tsx`/`.sql` 中 **0 命中**（用 §7.2 自己给的复算命令实测）。**本仓第四次栽在「引用既有 X 而 X 不存在」**（前三次：台账 spec 的 13 个 ID、跨项目的 `EmptyState`、「本仓无 409 先例」）。
+>
+> **为什么当初写得出来**：那张表与台账 spec §7 是同一类错误——把「真测试 ID」「grep 命令行判据」「外部命令凭据」塞进同一列，看起来像有 24 条测试在守着，实际一条也没有。**人工复查抓不住**：那张表读过三遍，每遍都「看起来有凭据」。
+>
+> **这次改了什么**：① 24 个虚构 ID 逐条换成**真实可定位的指向**（文件 + `it()` 原文，或标出它本就是命令行判据）；② 状态按**实质行为**判定——owner 裁定「功能运行正常则通过」，故判据列的口径从「有没有一支叫这个名字的测试」改为「这条要求的行为是否真的成立并有东西守着」；③ **判据列的实质要求一条没松、条目一条没删**，「不通过」仍是「不通过」。
+>
+> **防复发**：新增 `tests/spec-claims.test.ts` —— 扫所有 spec 的验收表，**只断状态为 ✅ 的行**：其引用的路径/文件名必须在磁盘存在，其引用的测试 ID 必须在代码树被真实引用。这道闸配了四条变异腿（其中一条把台账那 13 个假 ID 逐个喂进去要求全部被抓出；开发过程中它真的抓出过一处**自指**：那 13 个 ID 逐字写在闸自己的源码里，于是 `includes` 全部为真）。
+>
+> **一条容易被忽略的观察**：「那 13 个 ID 全部虚构」这个断言**本身也会随代码演进而腐烂**——其中 `CORE-EVT-01` / `CORE-EVT-05` / `SRV-EVT-01` 在 DEV-0100 补测时被 worker 真的复用了（`packages/core/src/db/core-db.test.ts:223` 的 describe 名）。**所以新闸不去维护「哪些 ID 是假的」清单**，只断「声称存在的必须此刻可定位」——前者会腐烂，腐烂的那份比没有更危险。
+>
+> **原表头（保留留痕）**：测试 ID 不复用既有族（既有：`UT-PB-*` / `CORE-PB-*` / `IT-PB-*` / `CLI-CLEAN-*` / `CLI-SEC-*` / `CLI-VERIFY-*` / `SRV-EVT-*` / `CORE-EVT-*` / `GOLD-EVT-*`）。新族按 §3-17 的四个 vitest project 分配：`CORE-M8-*`（unit/project+core）· `SRV-M8-*`（integration）· `CLI-M8-*`（cli）· `UT-WEB-M8-*`（本 spec 无 web 面，留空登记）· `MANUAL-M8-*` / `GOLD-M8-*`。
 
-| # | 条目 | 判据 | 测试 ID |
-|---|---|---|---|
-| a | FR-1.5 迁移可执行且幂等（新库与既有库两径） | `core-db.test.ts` 同族形态；两径建表后 `PRAGMA user_version` 一致 | `CORE-M8-01` |
-| b | FR-1.4 双源一致：`kind` / `status` 的 `CHECK` 字面量 ≡ TS 常量 | 解析迁移文本比对；**变异腿**：临时给常量加一项 ⇒ 必判红 | `CORE-M8-02` |
-| c | FR-5.3 M8 kind 与遥测三事件交集为空 | 断言 `∩ = ∅` | `CORE-M8-03` |
-| d | 三态幂等：同键同载荷重放 3 次 ⇒ 恰 1 条；同键异载荷 ⇒ 先到者内容 sha 逐字未变 | `SELECT COUNT(*)` + 内容 sha 比对 | `SRV-M8-01` |
-| e | FR-7.1 冲突响应含双方 keySha 且**不返回完整载荷** | 断言 `details` 有前 8 位、无完整 `payload_json` | `SRV-M8-02` |
-| f | FR-2.7 部分成功：20 条中 3 条非法 ⇒ 17 条落库、逐条结果齐、HTTP 200 | 计数 + 逐条 status 断言 | `SRV-M8-03` |
-| g | FR-2.6 体量上限：超限条目 `rejected` 且**其余照落** | 边界值 ±1 两行 | `SRV-M8-04` |
-| h | FR-2.5 一律 pending：任何 kind 落库后 `status` 均为 `pending`，`reviewed_at` 为 null | 断言 | `SRV-M8-05` |
-| i | FR-2.8 `dev_log` 发布后落既有 `dev_log_entries` 且 `entry_no` 不冲突 | 断言递增 | `SRV-M8-06` |
-| j | FR-2.9 `tasks.status` 只接受三值，`blocked` 判 `rejected` | 表驱动含 4 个值 | `SRV-M8-07` |
-| k | FR-3.5 鉴权双闸：无 token ⇒ 既有 401/403 形制 | 走既有 IT 鉴权形制 | `IT-M8-01` |
-| l | FR-3.3 `fields` 非法值 ⇒ 422 且响应列出合法值（不静默忽略） | 断言消息含六个合法段名 | `SRV-M8-08` |
-| m | FR-3.4 预算裁剪顺序（logs → assets → checklist）**且**每次裁剪都进 `truncated` | 构造三个阈值各判一次；断言**无静默截断** | `SRV-M8-09` |
-| n | FR-3.2.1 读不到 `pack.lock.json` 时 `drifted` 为 null 且 `truncated` 有说明 | 无 lock 夹具 | `SRV-M8-10` |
-| o | FR-4.3.1 `CLI_COMMANDS` 漂移闸：加命令不登记 ⇒ `cliCommands.api.test.ts` 变红 | **变异腿**（本项的判据是「能红」） | `IT-M8-02` |
-| p | FR-4.2 `--json` 输出可被 `jq` 解析、`summary.ok` 与退出码一致 | 表驱动含 ok/error/drift 三值 | `CLI-M8-01` |
-| q | `ask` 关键词非闭集 ⇒ `UNKNOWN_QUERY` + **列出全部合法关键词** | 断言消息含七词 | `CLI-M8-02` |
-| r | `session log` 在 serve 未启动 ⇒ 自由 code + 可执行提示，**不本地攒** | 退出码 + 提示文案 + 无落盘 | `CLI-M8-03` |
-| s | FR-4.4 CLI 侧不开 DB | `grep -rln 'openDb\|better-sqlite3' apps/cli/src` → 空 | `GOLD-M8-01` |
-| t | FR-8.1 core 对 adapters 的 import 保持 0 | `grep` 断言 | `GOLD-M8-02` |
-| u | FR-5.1.2 `payload_json` 无禁列（绝对路径 / 项目名 / 正文片段） | 正则扫描五类事件 | `CORE-M8-04` |
-| v | 遥测**关闭**时 M8 零网络调用（既有断言**逐字保留**），且台账仍有 M8 事件 | 承 `local-event-ledger.md` §7-e | `SRV-M8-11` |
-| w | FR-8.4 带 ref 锚的 golden / seed 零触碰 | `git diff --name-only <BASE>..HEAD -- tests/golden/ content/seed/` → 0 行 | `GOLD-M8-03` |
-| x | **人工验收腿**：README 能不加解释讲清「agent 能读什么、能写什么、不能做什么」 | 屏摄归档；判不过须回报 owner 而非改文案了事 | `MANUAL-M8-01` |
+| # | 条目 | 判据 | **真实凭据（可定位）** | 状态 |
+|---|---|---|---|---|
+| a | FR-1.5 迁移可执行且幂等（新库与既有库两径） | 两径建表后记账表逐字一致（**不是 `PRAGMA user_version`** —— runner 用自举的 `schema_migrations`，实测全仓 0 处 `user_version`；本条原文写的是 user_version，属同类假引用） | `packages/core/src/db/core-db.test.ts` → `CORE-EVT-01a`（账上停在 0006 的老库）/ `CORE-EVT-01b`（账上根本没有 0006，DEV-0091 之前的安装）；新库径 `UT-MIGRATION-01` | ✅ 通过 |
+| b | FR-1.4 双源一致：`kind` / `status` 的 `CHECK` 字面量 ≡ TS 常量 | 解析迁移文本比对（逐字、逐序）；**变异腿**：临时给常量加一项 ⇒ 必判红 | `packages/core/src/db/m8-ledger-schema.test.ts` 8 支（含「kind 的 CHECK 字面量 ≡ LOCAL_EVENT_KINDS」「≡ 台账 13 ＋ M8 5 的并集」）；**变异实测红 3 支** | ✅ 通过 |
+| c | FR-5.3 M8 kind 与遥测三事件交集为空 | 断言 `∩ = ∅` | `m8-ledger-schema.test.ts` → 「M8 kind 与遥测三事件严格不同名…」；**变异实测红** | ✅ 通过 |
+| d | 三态幂等：同键同载荷重放 3 次 ⇒ 恰 1 条；同键异载荷 ⇒ 先到者内容 sha 逐字未变 | `SELECT COUNT(*)` + 内容 sha 比对 | `packages/core/src/repos/agentIngest.test.ts:51`（重放 3 次恰 1 条）/`:63`（**键序不同但内容相同也算 duplicate** —— agent 重试时 `JSON.stringify` 键序不保证稳定）/`:71`（先到者逐字未变）；HTTP 层 `apps/server/test/agent.api.test.ts:49` | ✅ 通过 |
+| e | FR-7.1 冲突响应含双方 keySha 且**不返回完整载荷** | 断言 `details` 有前 8 位、无完整 `payload_json` | `agentIngest.test.ts:89`（「冲突响应只给双方 sha 前 8 位，**不回显完整载荷** —— 回显等于泄露另一个会话的内容」）；HTTP 层 `agent.api.test.ts:200` | ✅ 通过 |
+| f | FR-2.7 部分成功：20 条中 3 条非法 ⇒ 17 条落库、逐条结果齐、HTTP 200 | 计数 + 逐条 status 断言 | `agent.api.test.ts:84`（整体 200）；`agentService.test.ts:93`（「超限那条拒掉，其余照落，返回逐条 index 与 status」） | ✅ 通过 |
+| g | FR-2.6 体量上限：单条 512 KB / 20 条 / 总量 2 MB，**且**超限条目 `rejected` 而其余照落 | 边界值 ±1；**三值缺一即红** | `agentService.test.ts:47`（三值与 spec 一致）/`:53`（512 KB ±1B）/`:63`（总量越线后条拒前条照落，**自带变异腿**）/`:82`（20 放行 21 整批 422）；传输层另有 `agent.api.test.ts` 四支（2 MB 首次经 HTTP 可达 / 仍有界 / **按端点**放宽） | ✅ 通过 |
+| h | FR-2.5 一律 pending：任何 kind 落库后 `status` 均为 `pending`，`reviewed_at` 为 null | 断言 | `agent.api.test.ts:64`；`agentIngest.test.ts:41` | ✅ 通过 |
+| i | FR-2.8 `dev_log` 发布后落既有 `dev_log_entries` 且 `entry_no` 不冲突 | 断言递增 | ✅ **本轮才实现**（此前**从未有过任何实现与凭据**）：`agentService.ts` 的 `publishDevLog` 走既有 `DevLogRepo.create`（`entry_no` 由既有事务分配，本项不改表形也不改分配规则）；凭据 `agent.api.test.ts` 的 `i · 确认一条 dev_log ⇒ dev_log_entries 真多出一行`。`agentService.test.ts` 另有 4 支 | ✅ 通过 |
+| j | FR-2.9 `tasks.status` 只接受三值，`blocked` 判 `rejected` | 表驱动含 4 个值 | ✅ **本轮才实现**：`agentService.ts` 的 `publishTaskStatus` 先过 `isTaskStatus`（`TASK_STATUS` 三项），不过即整条 `rejected`、**不扩列、业务表零写入**；凭据 `agent.api.test.ts` 的 `j · …blocked…整条 rejected…闭集仍是三项`，`agentService.test.ts` 另有 `it.each` 4 支 + 跨项目/任务不存在各 1 支 | ✅ 通过 |
+| k | FR-3.5 鉴权双闸：无 token ⇒ 既有 401/403 形制 | 走既有 IT 鉴权形制 | `agent.api.test.ts:243`；聚合读面另有 `apps/server/test/context.api.test.ts` 的「无 token ⇒ 既有 401」 | ✅ 通过 |
+| l | FR-3.3 `fields` 非法值 ⇒ 422 且响应列出合法值（不静默忽略） | 断言消息含**六个**合法段名 | 服务层 `contextService.test.ts:71`；**HTTP 层此前无凭据，本轮补** `apps/server/test/context.api.test.ts` 的 `§7-l` 5 支（422 而非 500 / 消息列全六段 / **空串非法而非「全选」** / 合法子集不误伤 / 项目不存在走 NOT_FOUND） | ✅ 通过 |
+| m | FR-3.4 预算裁剪顺序（logs → assets → checklist）**且**每次裁剪都进 `truncated` | 构造三个阈值各判一次；断言**无静默截断** | `contextService.test.ts:189`（先砍 logs）/`:203`（砍 checklist 必须整段写明）/`:225`（裁剪顺序固定）/`:237`（低于结构下界 ⇒ 422）/`:244`（**钉死上游排序方向**：`DevLogRepo.list` 必须最新在前，否则裁剪会静默变成「留最旧的」）。⚠️ 2026-10-15 曾修掉一个真 bug：`shrinkLogs` 原本从数组末尾倒走，实际留下最旧的 | ✅ 通过 |
+| n | FR-3.2.1 读不到 `pack.lock.json` 时 `drifted` 为 null 且 `truncated` 有说明 | 无 lock 夹具 | 服务层 `contextService.test.ts:107`；**HTTP 层本轮补** `context.api.test.ts` 的 `§7-n`（`drifted`/`outdated` 恒 **null** 而非 `false` ——「不可判定」不是「没漂移」）。**变异实测**：把无 lock 分支的 `drifted` 写成 `false` ⇒ 精准红 1 支 | ✅ 通过 |
+| o | FR-4.3.1 `CLI_COMMANDS` 漂移闸：加命令不登记 ⇒ `cliCommands.api.test.ts` 变红 | **变异腿**（本项的判据是「能红」） | `apps/server/test/cliCommands.api.test.ts:96`（「shared 的命令名集合 == apps/cli 的真实注册名集合」，**逐字比较**）。登记已从 5 条扩至 **9 条**（＋`ask`/`status`/`session`/`requirement`） | ✅ 通过 |
+| p | FR-4.2 `--json` 输出可被 `jq` 解析、`summary.ok` 与退出码一致 | 表驱动含 ok/error/drift 三值 | 既有 `apps/cli/test/output.test.ts` 的 `CLI-JSON-01`（stdout 恰好一个可 jq 解析的对象）/`:115`（fail 下仍是单对象）/`:133`（退出码常量冻结）。⚠️ **既有套件只覆盖 0 与 2，error 档（1）无断言**；本轮由新命令补齐：`ask.test.ts:252/283/343`（ok/error/**drift 在本命令不可达且明写理由**）与 `status.test.ts:249`（**三值齐全**：干净退 0 / 漂移退 2 / 解析不出退 1，`summary.ok` 逐档一致）。第四只命令 `requirement add` 另有 `apps/cli/test/requirement-add.test.ts` 20 支：ok/error 两档可达，**drift 档照既有形制明写不可达 ＋ 为什么**（纯写命令，本仓漂移的唯一语义是「项目树 vs `pack.lock.json`」，回流响应里无此概念），**未为凑三值造假的用例** | ✅ 通过 |
+| q | `ask` 关键词非闭集 ⇒ `UNKNOWN_QUERY` + **列出全部合法关键词** | 断言消息含七词 | `apps/cli/test/ask.test.ts:100`（`CLI-ASK-01`，且**零请求**）/`:117`（闭集恰好七项，逐项可解析，**不接受任何自由文本**）/`:147`（表驱动：每个词只向服务端要它那一段） | ✅ 通过 |
+| r | `session log` 在 serve 未启动 ⇒ 自由 code + 可执行提示，**不本地攒** | 退出码 + 提示文案 + 无落盘 | `apps/cli/test/session-log.test.ts:208`（`CLI-SESSION-08`：serve 没起 ⇒ 退 1 + 自由 code + 「先跑 openvibe serve」＋**临时 HOME 零文件**） | ✅ 通过 |
+| s | FR-4.4 CLI 侧不开 DB | `grep -rln 'openDb\|better-sqlite3' apps/cli/src` → 空 | ⚠️ **本条是命令行判据，不是测试**。实测 → 0；本轮另有**测试化**的一支 `session-log.test.ts:137`（`CLI-SESSION-05`：三个命令模块零禁列命中 —— `node:fs` / 写类 API / DB 驱动）。**变异实测**：临时加字面量 ⇒ 1 | ✅ 通过 |
+| t | FR-8.1 core 对 adapters 的 import 保持 0 | `grep` 断言 | ⚠️ **本条是命令行判据**。实测 `grep -rn "@openvibe/adapters" packages/core/src --include='*.ts' \| grep -v test \| wc -l` → **0** | ✅ 通过 |
+| u | FR-5.1.2 `payload_json` 无禁列（绝对路径 / 项目名 / 用户名 / 会话正文 / `cwd`） | 扫描五类事件 | `apps/server/test/commandRun.api.test.ts` 20 支（`cli_agent_command_run` 的键闭集 ＋ 递归值扫描 ＋ **扫描器自证**：嵌套两层的路径必须被抓、干净行必须放行）；台账侧另有 `apps/server/test/local-events.writepoints.test.ts` 的禁列自证。**变异实测**：去掉扫描器的递归 ⇒ 红 3 支 | ✅ 通过 |
+| v | 遥测**关闭**时 M8 零网络调用（既有断言**逐字保留**），且台账仍有 M8 事件 | 承 `local-event-ledger.md` §7-e | `apps/server/test/telemetry-flush.test.ts:514`（`TF-15`：开关关闭 ⇒ fetch 零次，且 `local_events` 仍有行，「**关的是出网，不是记录**」）；既有零网络断言逐字保留 | ✅ 通过 |
+| w | FR-8.4 带 ref 锚的 golden / seed 零触碰 | `git diff --name-only <BASE>..HEAD -- tests/golden/ content/seed/` → 0 行 | ⚠️ **本条是外部命令凭据，不是测试**。实测两条都为空：`git status --porcelain -- tests/golden/ content/seed/` → 空；`git diff --name-only 4b42642..HEAD -- tests/golden/ content/seed/` → 空。另 `pnpm seed:check` rc=0、`pnpm bundle:check` 入口 267.27 kB ≤ 300 kB | ✅ 通过 |
+| x | **人工验收腿**：README 能不加解释讲清「agent 能读什么、能写什么、不能做什么」 | 屏摄归档；判不过须回报 owner 而非改文案了事 | 🟡 **判定物本轮才存在**：`README.md`「让 agent 接进来（M8）」一节，分「能读 / 能写 / **不能做**」三段，后者含「不能删 / 不能自己裁决幂等冲突 / 不能扩充既有闭集」三条。**屏摄归档仍缺** | 🟡 **待 owner 屏摄签收**（属 owner 腿，agent 不代判） |
 
 - **7.1 未验证面（负向登记，不得读成已通过）**：
-  ① **Trae / CodeBuddy 的 skill 发现约定未核验**（§2 Out 第二行）——本 spec 已把 M8-A 排除在外，故本 spec 不受此影响；但**这是 M8 全模块的最大未验证面**，它挡住的是 §2 的拆分后件，不是本件；
+  ① **Trae / CodeBuddy 的 skill 发现约定未核验**（§2 Out 第二行）——本 spec 已把 M8-A 排除在外，故本 spec **的读写面**不受此影响；但**这是 M8 全模块的最大未验证面**，它挡住两件事：② §2 的拆分后件（M8-A skill 包），**以及 FR-2.9.1 的 `session` 落点**——`agent_sessions` 需要 `external_session_id` 与 `platform`，而这两个值的形态恰好是同一种未知性（2026-10-16 补记：此前只写了「挡住拆分后件」，漏了 session 落点这一处连带）；
   ② **FR-2.6 三个体量数值未实测**（§6.3）；
   ③ **§8.2 五处待裁未闭合**，任一未裁即本 spec 不构成开工依据；
   ④ **`requirements` 的最终形态未定**（§6.4），`requirement` kind 在裁前只能丢弃；

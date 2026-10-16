@@ -16,12 +16,21 @@ export {
   type SecurityDeps,
 } from './security'
 export {
+  // 三处 sha 比对合一后的唯一规则（service-layer.md FR-2）
+  CONSISTENCY_STATES,
+  verifyAgainstLock,
+  type ConsistencyFile,
+  type ConsistencyState,
+  type DeclaredFile,
+} from './consistency'
+export {
   INJECT_STATUSES,
   INJECT_DECISIONS,
   planInjection,
   applyDecisions,
   strategyToDecisions,
   diffPackLock,
+  summarizeDiff,
   type ApplyResult,
   type DiffResult,
   type InjectAction,

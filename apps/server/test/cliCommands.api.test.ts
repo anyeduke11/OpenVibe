@@ -58,21 +58,52 @@ const api = async (h: Harness, url: string): Promise<{ statusCode: number; json:
   return { statusCode: res.statusCode, json: res.json() }
 }
 
-/** apps/cli/src/index.ts 里真正注册进 program 的子命令名 */
-function registeredCommandNames(): string[] {
+/**
+ * apps/cli/src/index.ts 里真正注册进 program 的子命令，以及它的 `.description()`。
+ *
+ * 带 **接收者**（receiver）是必须的：`session` 是命令组，`log` 注册在它自己身上
+ * （`sessionCmd.command('log')`），而 shared 的 name 记的是**顶层命令名**。
+ * 只按 `.command('…')` 取名字会把子命令 `log` 当成顶层命令，于是漂移闸要么误报、
+ * 要么逼着 shared 多登记一条叫 `log` 的命令（那会让 usage 前缀断言 IT-CLI-CMD-01 必红）。
+ */
+interface RegisteredCommand {
+  /** 命令名 */
+  name: string
+  /** 注册挂在谁身上：`program` 是顶层命令，其余是子命令 */
+  receiver: string
+  /** 同名注册紧跟其后的 `.description('…')` 原文；取不到就是 null */
+  summary: string | null
+}
+
+function registeredCommands(): RegisteredCommand[] {
   const src = readFileSync(CLI_INDEX, 'utf8')
-  return [...src.matchAll(/\.command\('([a-z][a-z-]*)'\)/g)].map((m) => m[1] as string)
+  const hits = [...src.matchAll(/(\w+)\s*\.command\('([a-z][a-z-]*)'\)/g)]
+  return hits.map((hit, i) => {
+    const from = (hit.index ?? 0) + hit[0].length
+    const to = hits[i + 1]?.index ?? src.length
+    const desc = src.slice(from, to).match(/\.description\(\s*'((?:[^'\\]|\\.)*)'\s*\)/)
+    return {
+      name: hit[2] as string,
+      receiver: hit[1] as string,
+      summary: desc ? (desc[1] as string) : null,
+    }
+  })
+}
+
+/** 顶层命令：挂在 program 上的那些 */
+function topLevelCommands(): RegisteredCommand[] {
+  return registeredCommands().filter((c) => c.receiver === 'program')
 }
 
 describe('GET /api/cli/commands（CLI 命令参考）', () => {
-  it('IT-CLI-CMD-01: 200 + 五条命令，字段齐全且 risk 落在闭集内', async () => {
+  it('IT-CLI-CMD-01: 200 + 九条命令（既有五条 + M8 四条），字段齐全且 risk 落在闭集内', async () => {
     const h = await makeHarness()
     const res = await api(h, '/api/cli/commands')
     expect(res.statusCode).toBe(200)
 
     const body = res.json as CliCommandsOut
     expect(Object.keys(body)).toEqual(['items'])
-    expect(body.items).toHaveLength(5)
+    expect(body.items).toHaveLength(9)
     for (const item of body.items) {
       expect(Object.keys(item).sort()).toEqual([
         'flags',
@@ -93,10 +124,28 @@ describe('GET /api/cli/commands（CLI 命令参考）', () => {
     }
   })
 
-  it('IT-CLI-CMD-02: 漂移闸——shared 的命令名集合 == apps/cli 的真实注册名集合', async () => {
-    const registered = registeredCommandNames().sort()
-    expect(registered.length).toBeGreaterThan(0)
-    expect([...CLI_COMMANDS].map((c) => c.name).sort()).toEqual(registered)
+  it('IT-CLI-CMD-02: 漂移闸——shared 的顶层命令名集合 == apps/cli 的真实注册名集合', () => {
+    const top = topLevelCommands()
+    expect(top.length).toBeGreaterThan(0)
+    expect(top.map((c) => c.name).sort()).toEqual([...CLI_COMMANDS].map((c) => c.name).sort())
+    // 子命令闭集：挂在别的命令对象上的注册。改动它必须同时改 shared 的 usage，
+    // 否则漂移闸看不见这条命令 ⇒ 这里钉成闭集，多一条少一条都红。
+    //
+    // ⚠️ 逐字序而非排序序：`requirement add` 的注册刻意排在 `session log` **之前**
+    // （apps/cli/src/index.ts 的 buildProgram 里有注释说明），故源码序恰等于码点序
+    // （'add' < 'log'）。顺序因此仍是契约——**不是**为了省事才这么排；
+    // 若日后挪动注册顺序，必须改成排序比较并在测试里说明放弃了顺序校验。
+    expect(registeredCommands().filter((c) => c.receiver !== 'program').map((c) => c.name)).toEqual([
+      'add',
+      'log',
+    ])
+  })
+
+  it('IT-CLI-CMD-05: summary 逐字等于注册处的 .description()（FR-4.3.3）', () => {
+    const descriptions = new Map(topLevelCommands().map((c) => [c.name, c.summary]))
+    for (const meta of CLI_COMMANDS) {
+      expect(descriptions.get(meta.name) ?? null, `apps/cli 未注册 ${meta.name}`).toBe(meta.summary)
+    }
   })
 
   it('IT-CLI-CMD-03: risk 三档按真实行为落位（clean 删文件=destructive；diff 零写入=readonly）', async () => {
@@ -120,6 +169,18 @@ describe('GET /api/cli/commands（CLI 命令参考）', () => {
     // serve 建 ~/.openvibe 并落 config.json（serve.ts:89,105）
     expect(byName.get('serve')?.risk).toBe('decision')
     expect(byName.get('serve')?.writesDisk).toBe(true)
+    // ask / status 只发 GET（FR-4.4），三只都不碰本机磁盘
+    expect(byName.get('ask')?.risk).toBe('readonly')
+    expect(byName.get('ask')?.writesDisk).toBe(false)
+    expect(byName.get('status')?.risk).toBe('readonly')
+    expect(byName.get('status')?.writesDisk).toBe(false)
+    // session log 改服务端 DB 且无确认闸 ⇒ 与 scan 同档同因（FR-4.3.2）
+    expect(byName.get('session')?.risk).toBe('decision')
+    expect(byName.get('session')?.writesDisk).toBe(false)
+    // requirement add 同样只发一次 POST /api/agent/ingest 改服务端 DB（落一条 pending 记录），
+    // CLI 侧无确认闸 ⇒ 同一档；本机零落盘 ⇒ writesDisk 仍为 false
+    expect(byName.get('requirement')?.risk).toBe('decision')
+    expect(byName.get('requirement')?.writesDisk).toBe(false)
   })
 
   it('IT-CLI-CMD-04: 缺令牌 401', async () => {

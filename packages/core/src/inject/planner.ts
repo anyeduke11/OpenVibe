@@ -3,6 +3,7 @@
 // 不是靠调用方记得加分支（design §9 薄客户端原则：状态机在 core，CLI 只做交互与落盘）。
 import { AppError, compareCodeUnit, type PackLock } from '@openvibe/shared'
 import { fileSha256 } from '../pack/fingerprint'
+import { verifyAgainstLock, type ConsistencyFile } from './consistency'
 
 /** bundle/目录导出的一种形态：路径 + 内容 + 期望哈希（三者由 CLI 在解析源时对齐，FR-2.1） */
 export interface PackFileWithHash {
@@ -200,27 +201,68 @@ function skipReason(status: InjectStatus, decision: InjectDecision): string {
   return '本地文件与包冲突，选择跳过'
 }
 
+/** diff 的磁盘比对（m6b FR-5.2）：lock 里的每一项都算，managed=false 也留痕 */
+/**
+ * 比对结果：**四态全集**（owner 2026-10-15 裁「授权 planner 直接输出四态」）。
+ *
+ * 此前本接口自己维护 `drifted` / `missing` 两列，把未受管条目并进 `drifted`，
+ * 导致「受管产物被改」与「未受管条目被改」在输出里**长得一样**，用户无从分辨。
+ * 现在四态直接透出，派生分桶交给 `summarizeDiff` —— **信息不丢，只是分得更清**。
+ */
 export interface DiffResult {
+  clean: boolean
+  /** 全部登记条目，按路径码点序；每条带自己的 state */
+  files: ConsistencyFile[]
+}
+
+/**
+ * 把四态分桶，供 CLI 与测试消费。**派生，不是第二份真相** —— 真相只有 `files`。
+ *
+ * ⚠️ **FOREIGN 单列是一处可观察的行为变化**（owner 已授权）：未受管条目此前落进 `drifted`，
+ * 现在落进 `foreign`。退出码口径**不变**（FOREIGN 存在 ⇒ `clean=false` ⇒ 退 2），
+ * 变的只是「报在哪一列」，信息一条不少。
+ */
+export function summarizeDiff(result: DiffResult): {
   clean: boolean
   drifted: { path: string; expected: string; actual: string }[]
   missing: string[]
+  foreign: { path: string; actual: string }[]
+} {
+  const drifted: { path: string; expected: string; actual: string }[] = []
+  const missing: string[] = []
+  const foreign: { path: string; actual: string }[] = []
+  for (const row of result.files) {
+    if (row.state === 'ABSENT') missing.push(row.path)
+    else if (row.state === 'DRIFT')
+      drifted.push({ path: row.path, expected: row.declaredSha256, actual: row.diskSha256 })
+    else if (row.state === 'FOREIGN') foreign.push({ path: row.path, actual: row.diskSha256 })
+  }
+  return { clean: result.clean, drifted, missing, foreign }
 }
 
-/** diff 的磁盘比对（m6b FR-5.2）：lock 里的每一项都算，managed=false 也留痕 */
 export function diffPackLock(
   lock: PackLock,
   readDisk: (relPath: string) => string | null,
 ): DiffResult {
-  const drifted: DiffResult['drifted'] = []
-  const missing: string[] = []
-  for (const entry of [...lock.files].sort((a, b) => compareCodeUnit(a.path, b.path))) {
-    const content = readDisk(entry.path)
-    if (content === null) {
-      missing.push(entry.path)
-      continue
-    }
-    const actual = fileSha256(content)
-    if (actual !== entry.sha256) drifted.push({ path: entry.path, expected: entry.sha256, actual })
-  }
-  return { clean: drifted.length === 0 && missing.length === 0, drifted, missing }
+  const files = verifyAgainstLock(
+    lock.files.map((entry) => ({
+      path: entry.path,
+      sha256: entry.sha256,
+      managed: entry.managed === true,
+    })),
+    readDisk,
+  )
+  // `clean` 的口径**必须与改判前逐字一致**，否则是一次静默的语义收紧。
+  //
+  // ⚠️ 这里踩过一个坑：曾写成「全部 IN_SYNC 才算 clean」。但 `verifyAgainstLock` 的判据顺序是
+  // ABSENT → FOREIGN → IN_SYNC/DRIFT，**未受管条目在哈希比对之前就被判成 FOREIGN**，
+  // 于是「未受管但内容恰好一致」的文件会把 `clean` 拽成 false —— 而改判前它不算问题。
+  // 症状是 `apps/cli/test/security.test.ts` 的 CLI-SEC-03 挂了（同步收敛后 diff 不再 clean）。
+  //
+  // 正确口径（与旧实现等价）：**既不缺、也没有一处哈希对不上**。
+  // 未受管且内容一致 ⇒ 仍然算干净；未受管且内容不一致 ⇒ 不是干净，且落 `foreign` 列。
+  const clean = files.every(
+    (row) => row.state === 'IN_SYNC' || (row.state === 'FOREIGN' && row.diskSha256 === row.declaredSha256),
+  )
+  return { clean, files }
 }

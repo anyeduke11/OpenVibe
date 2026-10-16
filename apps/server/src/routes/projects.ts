@@ -17,8 +17,9 @@ import {
   type SqliteDatabase,
 } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { resolveLedger, type LedgerDeps } from '../lib/ledger'
 
-export interface ProjectRouteDeps {
+export interface ProjectRouteDeps extends LedgerDeps {
   db: SqliteDatabase
 }
 
@@ -45,6 +46,7 @@ const CheckStateBody = z.object({
 /** dev-plan §3.5 六端点 + 健康摘要内联（列表/详情都带，删除确认框据此显示「将删除 N 条日志」） */
 export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDeps): void {
   const projects = new ProjectsRepo(deps.db)
+  const ledger = resolveLedger(deps)
 
   app.get('/api/projects', async (req) => {
     const { status } = req.query as { status?: unknown }
@@ -104,7 +106,16 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
     return { ...project, health: projects.healthSummary(id) }
   })
 
-  /** 清单勾选持久化（m5 FR-3.2 / §7.4）：PUT 幂等，取消即删除登记行 */
+  /**
+   * 清单勾选持久化（m5 FR-3.2 / §7.4）：PUT 幂等，取消即删除登记行。
+   *
+   * ⚠️ **幂等与「一次勾选记一条」会打架**：这个端点是 PUT，前端可重复调。
+   * 直接在 handler 里记事件 ⇒ 用户把同一条勾了又取消再勾上，台账就多两条，
+   * 而 §6.4 明确要求每个发射点自带去重说明。⇒ **只在状态真正翻转时记一条**。
+   *
+   * 取消勾选（`checked: false`）**不记**：`checklist_item_checked` 的语义是「已勾选」，
+   * 记一条「取消」既不是这个 kind，也没法在读侧还原成同一件事。
+   */
   app.get('/api/projects/:id/check-states', async (req) => {
     const { id } = req.params as { id: string }
     if (!projects.get(id)) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
@@ -122,7 +133,20 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
     if (!stage.checklist.some((item) => item.id === itemId)) {
       throw new AppError('VALIDATION_ERROR', `检查项不存在于该阶段: ${itemId}`)
     }
+    const wasChecked = projects
+      .listCheckStates(id)
+      .some((c) => c.stageName === stageName && c.itemId === itemId)
     projects.checkState(id, stageName, itemId, checked)
+    if (checked && !wasChecked) {
+      // payload 只放枚举值（FR-6.3）：stageName 取自该项目的 stagesSnapshot，是阶段枚举不是项目名
+      ledger({
+        kind: 'checklist_item_checked',
+        subjectType: 'checklist_item',
+        subjectId: itemId,
+        projectId: id,
+        payload: { stage: stageName },
+      })
+    }
     return { checkStates: projects.listCheckStates(id), health: projects.healthSummary(id) }
   })
 

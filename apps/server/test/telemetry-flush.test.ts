@@ -5,6 +5,12 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { APP_META_KEYS, AppMetaRepo, TelemetryRepo, type SqliteDatabase } from '@openvibe/core'
+import {
+  createContextService,
+  FlowTemplatesRepo,
+  LocalEventsRepo,
+  ProjectsRepo,
+} from '@openvibe/core'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
 import { TELEMETRY_FLUSH_INTERVAL_MS, TelemetryBatch, type TelemetryEvent } from '@openvibe/shared'
 import { bootstrap, type BootstrapResult } from '../src/bootstrap'
@@ -479,5 +485,56 @@ describe('bootstrap 接线 + 真接收端端到端', () => {
     )
     // 次数而非「至少一次」：这道修复的正确形状是每条拒签出路收一次孩子，收两次说明有别处在抢
     expect(kill).toHaveBeenCalledTimes(1)
+  })
+})
+
+/**
+ * 台账写入与遥测开关解耦（local-event-ledger §7-e / SRV-EVT-01）。
+ *
+ * 用户可见的开关是「一键清空」，不是「是否记录」——做成开关会让隐私断言变成两条分支，
+ * 也会让「永不出网」的承诺多一个可被误读的状态。所以这条要证的是：**关闭 ⇒ 零外联，
+ * 而本机台账照写**。既有的零网络断言逐字保留（TF-02 的形制），这里只在其后补一行台账计数。
+ */
+describe('台账写入不读遥测开关（local-event-ledger §7-e）', () => {
+  /** 台账写入点在服务层（FR-3）⇒ 走真服务，不直接调 repo——否则测不到「写入点被开关门控」那类回归 */
+  function seedProject(db: SqliteDatabase): string {
+    const template = new FlowTemplatesRepo(db).create({
+      name: '台账解耦验证流',
+      kind: 'light',
+      stages: [
+        { name: '启动', checklist: [{ id: 'c1', text: '确认边界与验收' }], artifacts: [], prompt: '' },
+      ],
+    })
+    return new ProjectsRepo(db).create({
+      name: '台账解耦验证项目',
+      flowTemplateId: template.id,
+    }).id
+  }
+
+  it('TF-15: 开关关闭 ⇒ fetch 零次，且 local_events 仍有行（关的是出网，不是记录）', async () => {
+    const h = harness()
+    const projectId = seedProject(h.db)
+    // 队列里确有东西，否则「没发请求」可能只是队列本就空
+    enqueue(h, 3)
+    const spy = fetchStub(h)
+
+    // 前置坐实：开关确实是关的（TF-02 的前提，这里写出来免得读的人靠推断）
+    expect(new AppMetaRepo(h.db).read(APP_META_KEYS.telemetryEnabled, null)).toBeNull()
+
+    // 既有「零网络调用」断言：形制与 TF-02 逐字一致
+    expect(await flush(h, { fetchImpl: spy })).toEqual({ sent: 0, reason: 'disabled', kept: 3 })
+    expect(spy).not.toHaveBeenCalled()
+    expect(h.calls).toHaveLength(0)
+    expect(new TelemetryRepo(h.db).pendingCount()).toBe(3)
+
+    // 关闭状态下走一次真服务：台账照写，且外联仍然为零
+    createContextService({ db: h.db, readLock: () => null }).build(projectId)
+
+    expect(new LocalEventsRepo(h.db).countAll()).toBeGreaterThan(0)
+    expect(h.db.prepare('SELECT kind FROM local_events ORDER BY id ASC').all()).toEqual([
+      { kind: 'agent_context_served' },
+    ])
+    expect(spy).not.toHaveBeenCalled()
+    expect(h.calls).toHaveLength(0)
   })
 })

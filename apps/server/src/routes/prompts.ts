@@ -12,8 +12,9 @@ import {
 import { parseImportFiles, PromptsRepo, type ImportFile, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
 import { referencedPackNames } from '../lib/refs'
+import { assetEventInput, resolveLedger, type LedgerDeps } from '../lib/ledger'
 
-export interface PromptRouteDeps {
+export interface PromptRouteDeps extends LedgerDeps {
   db: SqliteDatabase
 }
 
@@ -46,6 +47,7 @@ export function renderPromptsMarkdown(items: PromptOut[]): string {
 /** dev-plan §3.1 八端点（import/export 计入第九、十条通道） */
 export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps): void {
   const prompts = new PromptsRepo(deps.db)
+  const ledger = resolveLedger(deps)
 
   app.get('/api/prompts', async (req) => {
     const query = parseOrThrow(PromptQuery, req.query)
@@ -55,6 +57,7 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
   app.post('/api/prompts', async (req, reply) => {
     const input = parseOrThrow(PromptCreateInput, req.body)
     const { prompt, warnings } = prompts.create(input)
+    ledger(assetEventInput('asset_created', 'prompt', prompt.id))
     return reply.code(201).send({ ...prompt, warnings })
   })
 
@@ -99,7 +102,9 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
   app.patch('/api/prompts/:id', async (req) => {
     const { id } = req.params as { id: string }
     const patch = parseOrThrow(PromptUpdateInput, req.body)
-    return prompts.update(id, patch)
+    const updated = prompts.update(id, patch)
+    ledger(assetEventInput('asset_updated', 'prompt', id))
+    return updated
   })
 
   app.delete('/api/prompts/:id', async (req, reply) => {

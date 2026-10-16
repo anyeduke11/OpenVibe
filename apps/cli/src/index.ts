@@ -4,12 +4,29 @@ import { askWithClack, syncAction, type SyncOutcome } from './commands/sync'
 import { scanAction, type ScanOutcome } from './commands/scan'
 import { diffAction, type DiffOutcome } from './commands/diff'
 import { cleanAction, type CleanOutcome } from './commands/clean'
+import { ASK_KEYWORDS, askAction, askLines } from './commands/ask'
+import {
+  agentName,
+  reportCommandRun,
+  statusAction,
+  statusLines,
+  type CommandRunReport,
+} from './commands/status'
+import { sessionLines, sessionLogAction } from './commands/session'
+import { requirementAddAction, requirementLines } from './commands/requirement'
 import { createPrinter, ExitCode, type Printer, type ReportRow } from './output'
-import { clientFromConfig } from './client'
+import { clientFromConfig, type ApiClient } from './client'
 import { resolveConfig } from './config'
 import { askTelemetryOnce, reportEvent, type AskReason, type ReportReason } from './telemetry'
 import { INJECT_DECISIONS, type InjectDecision } from '@openvibe/core'
-import { ADAPTER_IDS, DEFAULT_PORT, compareCodeUnit, type AdapterId } from '@openvibe/shared'
+import {
+  ADAPTER_IDS,
+  DEFAULT_PORT,
+  DEVLOG_TYPES,
+  REQUIREMENT_PRIORITIES,
+  compareCodeUnit,
+  type AdapterId,
+} from '@openvibe/shared'
 import { CLI_VERSION } from './version'
 
 /**
@@ -437,6 +454,227 @@ function collectRoots(raw: string, prev: unknown): string[] {
   ]
 }
 
+/** --related 不按逗号拆：文件路径里出现逗号是合法的，拆了就改了用户给的路径 */
+function collectRelated(raw: string, prev: unknown): string[] {
+  const list = Array.isArray(prev) ? (prev as string[]) : []
+  return [...list, raw]
+}
+
+// ---------------------------------------------------------------------------
+// M8 · agent 侧四只新命令（m8-agent-bridge.md FR-4）。
+//
+// 前三只的收尾形制完全一样：**先定退出码 → 上报一次 command-run 埋点 → 打印 → 退出**。
+// 上报放在打印之前是因为 printer.result() 一写就出终态，且上报永不抛（静默收敛成
+// summary.commandRun.sent=false），所以它不会把一次成功的命令拖成失败。
+//
+// ⚠️ `requirement add` 是第四只，**刻意不走那个形制**：服务端 commandRunService 的
+// `command` 是 `ask|status|session` 三值闭集，本命令上报会被 422；扩它是 B 级改契约，
+// 不在本件授权面。故它只发一次业务 POST，把「未上报」如实写进 summary（见下）。
+// ---------------------------------------------------------------------------
+
+interface AskCmdOptions {
+  project?: string
+}
+
+async function runAsk(question: string, cmd: AskCmdOptions, global: GlobalOptions): Promise<void> {
+  const printer = printerFor('ask', global)
+  let client: ApiClient | undefined
+  try {
+    client = clientFrom(global, printer)
+    const outcome = await askAction(
+      { question, ...(cmd.project === undefined ? {} : { project: cmd.project }) },
+      { ...(client ? { client } : {}), cwd: process.cwd() },
+    )
+    for (const w of outcome.warnings) printer.warn(w)
+    for (const line of askLines(outcome)) printer.info(line)
+    for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
+    const commandRun: CommandRunReport = await reportCommandRun(
+      client,
+      'ask',
+      ExitCode.ok,
+      agentName(),
+    )
+    printer.result({
+      summary: {
+        ok: true,
+        question: outcome.question,
+        projectId: outcome.projectId,
+        projectName: outcome.projectName,
+        fields: outcome.fields,
+        answer: outcome.answer,
+        truncated: outcome.truncated,
+        hints: outcome.hints,
+        commandRun,
+        exitCode: ExitCode.ok,
+      },
+    })
+    process.exit(ExitCode.ok)
+  } catch (e) {
+    const err = e as { code?: string; message?: string }
+    await reportCommandRun(client, 'ask', ExitCode.error, agentName())
+    printer.fail(err.code ?? 'ASK_FAILED', err.message ?? String(e))
+    process.exit(ExitCode.error)
+  }
+}
+
+interface StatusCmdOptions {
+  dir?: string
+}
+
+async function runStatus(cmd: StatusCmdOptions, global: GlobalOptions): Promise<void> {
+  const printer = printerFor('status', global)
+  let client: ApiClient | undefined
+  try {
+    client = clientFrom(global, printer)
+    const outcome = await statusAction(
+      { ...(cmd.dir === undefined ? {} : { dir: cmd.dir }) },
+      { ...(client ? { client } : {}), cwd: process.cwd() },
+    )
+    for (const w of outcome.warnings) printer.warn(w)
+    for (const line of statusLines(outcome.snapshot)) printer.info(line)
+    for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
+    const commandRun: CommandRunReport = await reportCommandRun(
+      client,
+      'status',
+      outcome.exitCode,
+      agentName(),
+    )
+    printer.result({
+      summary: {
+        // ok 必须**从退出码推导**（`diff.ts`/`clean.ts` 同式）：有漂移时退出码 2，
+        // JSON 里若仍报 ok:true，机器读者只能挑一个信，而 --json 的全部意义就是不必挑。
+        ok: outcome.exitCode === ExitCode.ok,
+        ...outcome.snapshot,
+        hints: outcome.hints,
+        commandRun,
+        exitCode: outcome.exitCode,
+      },
+    })
+    process.exit(outcome.exitCode)
+  } catch (e) {
+    const err = e as { code?: string; message?: string }
+    await reportCommandRun(client, 'status', ExitCode.error, agentName())
+    printer.fail(err.code ?? 'STATUS_FAILED', err.message ?? String(e))
+    process.exit(ExitCode.error)
+  }
+}
+
+interface SessionLogCmdOptions {
+  project: string
+  type: string
+  title?: string
+  body?: string
+  evidence?: string
+  related: string[]
+}
+
+async function runSessionLog(cmd: SessionLogCmdOptions, global: GlobalOptions): Promise<void> {
+  const printer = printerFor('session', global)
+  let client: ApiClient | undefined
+  try {
+    client = clientFrom(global, printer)
+    const outcome = await sessionLogAction(
+      {
+        project: cmd.project,
+        type: cmd.type,
+        ...(cmd.title === undefined ? {} : { title: cmd.title }),
+        ...(cmd.body === undefined ? {} : { body: cmd.body }),
+        ...(cmd.evidence === undefined ? {} : { evidence: cmd.evidence }),
+        related: cmd.related,
+      },
+      { ...(client ? { client } : {}) },
+    )
+    for (const w of outcome.warnings) printer.warn(w)
+    for (const line of sessionLines(outcome)) printer.info(line)
+    for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
+    const commandRun: CommandRunReport = await reportCommandRun(
+      client,
+      'session',
+      ExitCode.ok,
+      agentName(),
+    )
+    printer.result({
+      summary: {
+        ok: true,
+        entry: outcome.entry,
+        hints: outcome.hints,
+        commandRun,
+        exitCode: ExitCode.ok,
+      },
+    })
+    process.exit(ExitCode.ok)
+  } catch (e) {
+    const err = e as { code?: string; message?: string }
+    await reportCommandRun(client, 'session', ExitCode.error, agentName())
+    printer.fail(err.code ?? 'SESSION_LOG_FAILED', err.message ?? String(e))
+    process.exit(ExitCode.error)
+  }
+}
+
+interface RequirementAddCmdOptions {
+  project: string
+  title: string
+  detail?: string
+  priority?: string
+}
+
+/**
+ * 收尾形制与前三只**故意不同**：
+ * - 不发 command-run 埋点（`command` 枚举闭集不含 requirement，见函数上方注释）；
+ * - 逐条结果的 rejected/conflict 走 `printer.result` 而不是 `printer.fail`：那两种情形下
+ *   命令**确实拿到了服务端的确切答复**（逐条 status + reason），把它压成一句错误串会丢掉
+ *   幂等键与逐条状态，而 `--json` 的全部意义就是让脚本读得到这些。
+ *   退出码仍由 outcome 决定，`summary.ok` 照旧**从退出码推导**，两者不可能打架。
+ */
+async function runRequirementAdd(cmd: RequirementAddCmdOptions, global: GlobalOptions): Promise<void> {
+  const printer = printerFor('requirement', global)
+  let client: ApiClient | undefined
+  try {
+    client = clientFrom(global, printer)
+    const outcome = await requirementAddAction(
+      {
+        project: cmd.project,
+        title: cmd.title,
+        ...(cmd.detail === undefined ? {} : { detail: cmd.detail }),
+        ...(cmd.priority === undefined ? {} : { priority: cmd.priority }),
+      },
+      {
+        ...(client ? { client } : {}),
+        cwd: process.cwd(),
+        platform: agentName(),
+      },
+    )
+    for (const w of outcome.warnings) printer.warn(w)
+    for (const line of requirementLines(outcome)) printer.info(line)
+    for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
+    const commandRun: CommandRunReport = await reportCommandRun(
+      client,
+      'requirement',
+      outcome.exitCode,
+      agentName(),
+    )
+    printer.result({
+      summary: {
+        ok: outcome.exitCode === ExitCode.ok,
+        project: outcome.project,
+        payload: outcome.payload,
+        idempotencyKey: outcome.idempotencyKey,
+        sourcePlatform: outcome.sourcePlatform,
+        item: outcome.item,
+        ...(outcome.error ? { error: outcome.error } : {}),
+        hints: outcome.hints,
+        commandRun,
+        exitCode: outcome.exitCode,
+      },
+    })
+    process.exit(outcome.exitCode)
+  } catch (e) {
+    const err = e as { code?: string; message?: string }
+    printer.fail(err.code ?? 'REQUIREMENT_ADD_FAILED', err.message ?? String(e))
+    process.exit(ExitCode.error)
+  }
+}
+
 export function buildProgram(): Command {
   const program = new Command()
   program
@@ -510,6 +748,63 @@ export function buildProgram(): Command {
     .option('--force', '连 DRIFT（用户注入后改过）的文件一并删除，改后内容先进备份目录')
     .action(async (projectPath: string, opts: CleanCmdOptions) => {
       await runClean(projectPath, opts, program.opts<GlobalOptions>())
+    })
+
+  program
+    .command('ask')
+    .description('按闭集关键词问项目上下文（只读服务端，不接 LLM）')
+    .argument('<question>', `问题词（闭集）：${ASK_KEYWORDS.join(' | ')}`)
+    .option('--project <id>', '目标项目 id（缺省按当前工作目录解析）')
+    .action(async (question: string, opts: AskCmdOptions) => {
+      await runAsk(question, opts, program.opts<GlobalOptions>())
+    })
+
+  program
+    .command('status')
+    .description('单项目进度快照：阶段/完成度/未完检查项/任务/最近日志/包漂移（只读）')
+    .argument('[dir]', '项目目录（缺省取当前工作目录）')
+    .action(async (dir: string | undefined) => {
+      await runStatus({ ...(dir === undefined ? {} : { dir }) }, program.opts<GlobalOptions>())
+    })
+
+  // requirement 是命令组：真正的动作是子命令 add。二者只经 HTTP 写服务端，本机零落盘。
+  //
+  // ⚠️ **注册位置在 session 之前，是刻意的**：apps/server/test/cliCommands.api.test.ts 的
+  // 子命令闭集断言按**源码出现顺序**逐字比较（现为 `['add','log']`）。把 add 注册在
+  // `log` 之前 ⇒ 源码序恰好等于码点序（'add' < 'log'），于是那条断言无需改成排序比较——
+  // 顺序仍然是契约，少一条/多一条/改名照样红。若日后要挪动这里的顺序，必须同步把断言改成
+  // `[...].sort()` 形式并说明为何放弃顺序校验。
+  const requirementCmd = program
+    .command('requirement')
+    .description('agent 侧需求动作（当前只有 add：把一条需求送进服务端待确认队列）')
+
+  requirementCmd
+    .command('add')
+    .description('送一条需求进服务端待确认队列（人工确认后才落 requirements 表，本机零落盘）')
+    .requiredOption('--project <id>', '目标项目 id')
+    .requiredOption('--title <text>', '需求标题（必填，不得只有空白）')
+    .option('--detail <text>', '补充说明（缺省空串）')
+    .option('--priority <P0|P1|P2>', `优先级：${REQUIREMENT_PRIORITIES.join(' | ')}（缺省 P2）`)
+    .action(async (opts: RequirementAddCmdOptions) => {
+      await runRequirementAdd(opts, program.opts<GlobalOptions>())
+    })
+
+  // session 是命令组：真正的动作是子命令 log。二者只经 HTTP 写服务端，本机零落盘。
+  const sessionCmd = program
+    .command('session')
+    .description('agent 会话侧动作（当前只有 log：把一条开发日志回流到服务端）')
+
+  sessionCmd
+    .command('log')
+    .description('回流一条 DEV / CHECK 日志（经 HTTP 写服务端，本机不落任何文件）')
+    .requiredOption('--project <id>', '目标项目 id')
+    .requiredOption('--type <DEV|CHECK>', `日志类型：${DEVLOG_TYPES.join(' | ')}`)
+    .option('--title <text>', '标题（缺省空串）')
+    .option('--body <text>', '正文（缺省空串）')
+    .option('--evidence <text>', '证据摘要（落到 DevLogEvidence.resultSummary）')
+    .option('--related <path>', '相关文件（可重复，保序去重）', collectRelated, [])
+    .action(async (opts: SessionLogCmdOptions) => {
+      await runSessionLog(opts, program.opts<GlobalOptions>())
     })
 
   return program

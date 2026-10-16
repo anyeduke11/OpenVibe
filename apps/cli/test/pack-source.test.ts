@@ -2,7 +2,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
+import { fileSha256, fingerprintOf, verifyAgainstLock } from '@openvibe/core'
 import type { PackExportOut } from '@openvibe/shared'
+import type { PackBundle, PackManifest, PlannedFileOut } from '@openvibe/shared'
 import { ApiError } from '../src/client'
 import { SyncError, syncAction } from '../src/commands/sync'
 import {
@@ -401,5 +403,80 @@ describe('--target 子集路径集（m6b FR-2.7）', () => {
       'CHECKLIST.md',
     ])
     expect(targetPathsFor(paths, new Set(), new Set())).toEqual([])
+  })
+})
+
+// `isValidPackRelativePath`（packages/shared/src/utils.ts）只禁绝对路径、反斜杠与
+// `.`／`..` 段，**不拦 `.openvibe/` 前缀** ⇒ 比对规则里那条 FOREIGN 分支
+// （packages/core/src/inject/consistency.ts 的 `isOpenVibeInternal`）在验签路径上
+// **真实可达**，不是死代码。验签这一处刻意不给它豁免（pack-source.ts 的
+// 「FOREIGN 在验签这里不豁免」注释）：manifest 声明的哈希对每个路径都权威，
+// 漏比一个路径等于给整包验签开一个口子。这条用例把那半句钉住。
+const INTERNAL_PATH = '.openvibe/state/lock.json'
+const INTERNAL_CONTENT = '{"schemaVersion":1,"projectId":"prj_huayin","packId":"pk_fixture"}\n'
+const TAMPERED_CONTENT = '{"schemaVersion":1,"projectId":"prj_evil","packId":"pk_attacker"}\n'
+
+/**
+ * 在真夹具包里加一支 `.openvibe/` 下的文件。真 adapter 不会产出这条路径
+ * （demoPack 用的是 planMainFiles，见 helpers/pack-fixture.ts），所以 manifest 的
+ * 文件表与指纹都得按 core 的规则重算——手填一个假 manifest 会让这条用例
+ * 在契约校验那一关就红掉，测不到验签。
+ */
+function packWithInternalFile(): PackBundle {
+  const base = demoPack()
+  const files: PlannedFileOut[] = [
+    ...base.files,
+    { path: INTERNAL_PATH, content: INTERNAL_CONTENT, sha256: fileSha256(INTERNAL_CONTENT) },
+  ]
+  const manifest: PackManifest = {
+    ...base.manifest,
+    files: files.map((f) => ({ path: f.path, sha256: f.sha256 })),
+    fingerprint: fingerprintOf(files),
+  }
+  return {
+    bundleSchemaVersion: 1,
+    manifest,
+    files: files.map((f) => ({ path: f.path, content: f.content })),
+  }
+}
+
+describe('.openvibe/ 路径在验签处不豁免（pack-source.ts · 比对规则的 FOREIGN 分支）', () => {
+  it('SOURCE-15: `.openvibe/` 下文件的内容被改 ⇒ 整包 CONTENT_MODIFIED 拒绝', () => {
+    const good = packWithInternalFile()
+
+    // 对照腿：这条路径本身合法（isValidPackRelativePath 不拦它），未篡改时照常验签通过。
+    // 没有这一腿，下面那条拒签就分不清是「内容对不上」还是「路径非法」。
+    const loaded = loadBundleJson(good, 'internal.json')
+    expect(loaded.manifest.files.map((f) => f.path)).toContain(INTERNAL_PATH)
+    expect(loaded.files.find((f) => f.path === INTERNAL_PATH)?.content).toBe(INTERNAL_CONTENT)
+
+    // 机制腿：这条路径当前落在 FOREIGN 分支（未受管 或 `.openvibe/` 前缀）。
+    // ⚠️ 它钉的是**机制**不是不变量——拒签真正靠的是下面那条与 state 无关的哈希比对，
+    // 所以即便日后 FOREIGN 判据变了，SOURCE-15 的主断言依然成立。
+    expect(
+      verifyAgainstLock(
+        [{ path: INTERNAL_PATH, sha256: fileSha256(INTERNAL_CONTENT), managed: true }],
+        () => INTERNAL_CONTENT,
+      ).map((r) => r.state),
+    ).toEqual(['FOREIGN'])
+
+    // 篡改腿：只换 `.openvibe/` 那一个文件的内容，路径集与 manifest 里的声明哈希
+    // 都保持原样 ⇒ 唯一能拒掉它的就是「逐文件哈希全比」。
+    // （实测：即便给 FOREIGN 开豁免，这一步会退化成 FINGERPRINT_MISMATCH 而非放行——
+    //   整包指纹那道闸兜着底。故本条钉的是**第一道闸与其错误码**，不是「唯一防线」。）
+    const tampered: PackBundle = {
+      ...good,
+      files: good.files.map((f) =>
+        f.path === INTERNAL_PATH ? { ...f, content: TAMPERED_CONTENT } : { ...f },
+      ),
+    }
+    try {
+      loadBundleJson(tampered, 'internal.json')
+      expect.unreachable('应当抛出 CONTENT_MODIFIED')
+    } catch (e) {
+      const err = e as SourceError
+      expect(err.code).toBe('CONTENT_MODIFIED')
+      expect(err.details).toMatchObject({ modified: [INTERNAL_PATH] })
+    }
   })
 })

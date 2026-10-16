@@ -57,6 +57,7 @@ export { LocalEventsRepo, dayOf, type LocalEventInput, type LocalEventSummary } 
 /* --- 服务层（service-layer.md 第五个服务；写入点集中在此，不散落 route）--- */
 export { createAgentService, AGENT_BATCH_LIMITS, type AgentServiceDeps, type IngestBatchResult } from './services/agentService'
 export { createContextService, type ContextServiceDeps } from './services/contextService'
+export { createCommandRunService, CLI_COMMAND_RUN_COMMANDS, CLI_COMMAND_RUN_PAYLOAD_KEYS, type CliCommandRunCommand, type CommandRunInput, type CommandRunServiceDeps } from './services/commandRunService'
 export {
   createPackService,
   type PackServiceDeps,
@@ -103,6 +104,7 @@ export {
   applyDecisions,
   strategyToDecisions,
   diffPackLock,
+  summarizeDiff,
   buildPackLock,
   packLockJson,
   parsePackLock,
@@ -114,6 +116,12 @@ export {
   type RetirementInput,
   type RetirementPlan,
   type RetirementState,
+  // 一致性比对的单一规则与单一状态词表（service-layer.md FR-2）
+  CONSISTENCY_STATES,
+  verifyAgainstLock,
+  type ConsistencyFile,
+  type ConsistencyState,
+  type DeclaredFile,
   INJECT_STATUSES,
   INJECT_DECISIONS,
   type InjectPackFile,

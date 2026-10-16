@@ -1,6 +1,12 @@
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { PACK_LOCK_REL, diffPackLock, parsePackLock, resolveWriteTarget } from '@openvibe/core'
+import {
+  PACK_LOCK_REL,
+  diffPackLock,
+  parsePackLock,
+  resolveWriteTarget,
+  summarizeDiff,
+} from '@openvibe/core'
 import { compareSemver, type PackExportOut, type PackLock } from '@openvibe/shared'
 import { ServerUnreachable, type ApiClient } from '../client'
 import { pickExport } from '../pack-source'
@@ -45,6 +51,15 @@ export interface DiffOutcome {
   clean: boolean
   drifted: { path: string; expected: string; actual: string }[]
   missing: string[]
+  /**
+   * **新增列**（owner 2026-10-15 授权，FR-2.3）：lock 里 `managed=false` 或落在 `.openvibe/`
+   * 下的条目，盘上被改过时会落在这里，**不再混进 `drifted`**。
+   *
+   * ⚠️ 这是可观察的输出变化，但**信息一条没少**、**退出码口径未变**
+   * （foreign 非空 ⇒ `clean=false` ⇒ 仍退 2）。变的只是「报在哪一列」：
+   * 此前用户分不出「受管产物漂移」与「未受管条目被改」，现在分得出了。
+   */
+  foreign: { path: string; actual: string }[]
   outdated: PackOutdated | null
   /** 是否真的调过服务端（离线/无令牌时 false） */
   probedOnline: boolean
@@ -147,6 +162,7 @@ export async function diffAction(options: DiffOptions, deps: DiffDeps = {}): Pro
   }
 
   const diff = diffPackLock(lock, diskReader(projectPath))
+  const buckets = summarizeDiff(diff)
   const warnings: string[] = []
   const hints: string[] = []
   let outdated: PackOutdated | null = null
@@ -160,10 +176,18 @@ export async function diffAction(options: DiffOptions, deps: DiffDeps = {}): Pro
     hints.push('离线：未探测服务端是否有更新导出版本')
   }
 
-  if (diff.drifted.length > 0)
-    hints.push(`漂移 ${diff.drifted.length} 项：${diff.drifted.map((d) => d.path).join('、')}`)
-  if (diff.missing.length > 0)
-    hints.push(`缺失 ${diff.missing.length} 项：${diff.missing.join('、')}`)
+  if (buckets.drifted.length > 0)
+    hints.push(
+      `漂移 ${buckets.drifted.length} 项：${buckets.drifted.map((d) => d.path).join('、')}`,
+    )
+  if (buckets.missing.length > 0)
+    hints.push(`缺失 ${buckets.missing.length} 项：${buckets.missing.join('、')}`)
+  // 未受管 / .openvibe 下被改：单列，且**不静默省略** —— 此前它混进「漂移」，用户看不出区别
+  if (buckets.foreign.length > 0)
+    hints.push(
+      `未受管条目被改 ${buckets.foreign.length} 项：${buckets.foreign.map((d) => d.path).join('、')}` +
+        `（lock 标记为不受管，或位于 .openvibe/ 下；这些不参与同步覆盖）`,
+    )
   if (outdated) hints.push(`pack-outdated(${outdated.from} → ${outdated.to})`)
   if (diff.clean && !outdated) hints.push('clean：磁盘与 lock 一致，且没有更新的导出版本')
 
@@ -174,8 +198,9 @@ export async function diffAction(options: DiffOptions, deps: DiffDeps = {}): Pro
     injectedAt: lock.injectedAt,
     tracked: lock.files.length,
     clean: diff.clean,
-    drifted: diff.drifted,
-    missing: diff.missing,
+    drifted: buckets.drifted,
+    missing: buckets.missing,
+    foreign: buckets.foreign,
     outdated,
     probedOnline,
     warnings,

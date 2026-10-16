@@ -23,7 +23,7 @@
 
 | In（本 spec 覆盖） | Out（明确不做，写明理由与去向） |
 |---|---|
-| 迁移 **`0007_local_events.sql`**（2026-10-14 由 `0006` 改号） + `core/repos/localEvents.ts` | 动 `TELEMETRY_EVENTS`（`packages/shared/src/constants.ts:73`）的任何一字——它是 D3 白名单本体，属 A/B 级隐私面，与本项正交 |
+| 迁移 **`0007_local_events_and_agent_bridge.sql`**（2026-10-14 由 `0006` 改号） + `core/repos/localEvents.ts` | 动 `TELEMETRY_EVENTS`（`packages/shared/src/constants.ts:73`）的任何一字——它是 D3 白名单本体，属 A/B 级隐私面，与本项正交 |
 | `kind` 闭集写进 SQL 的 `CHECK`，且与 TS 常量有一致性测试（FR-1.4） | 把遥测三事件改名或复用（分析文 §4.3 第 2 条要求**严格不同名**，避免混淆） |
 | 写入点集中在服务层（一处） | 前端埋点框架／通用 event bus——本项只要 4 个具体发射点，不需要一套机制 |
 | `GET /api/local-events/summary` 按 kind/day 聚合 | 事件明细的对外 API（明细只在本机 DB 里；对外只给聚合，减少未来被当报表接口用的面） |
@@ -35,7 +35,7 @@
 
 | # | 量 | 现测值 | 复算命令 |
 |---|---|---|---|
-| 1 | 已用迁移号 | **0001–0006**（`0006` = `0006_playbooks.sql`，M4 · DEV-0091）⇒ 本项取 **`0007_local_events.sql`** | `ls packages/core/src/db/migrations/` |
+| 1 | 已用迁移号 | **0001–0006**（`0006` = `0006_playbooks.sql`，M4 · DEV-0091）⇒ 本项取 **`0007_local_events_and_agent_bridge.sql`** | `ls packages/core/src/db/migrations/` |
 | 2 | `local_events` 在代码里的命中 | **0**（表、repo、路由、页面全无） | `grep -rn 'local_events\|localEvents\|local-events' --include='*.ts' --include='*.tsx' apps packages \| grep -v dist \| wc -l` |
 | 3 | 遥测三事件（须严格不同名的对象） | `['pack_injected','flow_template_used','project_active']`（`packages/shared/src/constants.ts:73`），SQL 侧另有一份字面量（`0002_app_meta_telemetry.sql` 的 `CHECK (event IN (...))`） | `sed -n '73p' packages/shared/src/constants.ts`；`grep -n 'CHECK (event IN' packages/core/src/db/migrations/0002_app_meta_telemetry.sql` |
 | 4 | 「SQL 字面量 = TS 常量」是否已有测试守住 | **没有**。现存唯一读迁移的测试是 `packages/core/src/db/core-db.test.ts`，未比对枚举 | `grep -rln 'TELEMETRY_EVENTS' --include='*.test.ts' apps packages \| grep -v dist` → 空 |
@@ -51,7 +51,7 @@
 
 ## 4. 功能需求（FR）
 
-- **FR-1 迁移与表形**：**`0007_local_events.sql`**（2026-10-14 由 `0006` 改号，理由见 §3-1），列 `id INTEGER PRIMARY KEY AUTOINCREMENT / kind TEXT NOT NULL CHECK (kind IN (...)) / subject_type TEXT / subject_id TEXT / project_id TEXT / payload_json TEXT NOT NULL DEFAULT '{}' / created_at TEXT NOT NULL / day TEXT NOT NULL`。
+- **FR-1 迁移与表形**：**`0007_local_events_and_agent_bridge.sql`**（2026-10-14 由 `0006` 改号，理由见 §3-1），列 `id INTEGER PRIMARY KEY AUTOINCREMENT / kind TEXT NOT NULL CHECK (kind IN (...)) / subject_type TEXT / subject_id TEXT / project_id TEXT / payload_json TEXT NOT NULL DEFAULT '{}' / created_at TEXT NOT NULL / day TEXT NOT NULL`。
   - FR-1.1 `subject_type`／`subject_id`／`project_id` **可空**（阶段视图切换无 subject），但 `kind`／`created_at`／`day` 必须 `NOT NULL`。
   - FR-1.2 索引两条：`(kind, day)`、`(created_at)`。**不建 FTS**（台账不做全文检索，别顺手加面）。
   - FR-1.3 `day` 落列不现算，照 `telemetry_events` 的先例（§3-10）；口径见 §8.2 待裁②。
@@ -100,21 +100,52 @@
 
 ## 7. 验收标准（pass/fail）
 
-| # | 条目 | 判据 | 测试 ID |
-|---|---|---|---|
-| a | `0007_local_events.sql` 迁移可执行且幂等（新库与既有库两径） | `core-db.test.ts` 同族形态；两径建表后 `PRAGMA user_version`／迁移表一致 | `CORE-EVT-01` |
-| b | FR-1.4 双源一致：迁移 `CHECK` 字面量 ≡ `LOCAL_EVENT_KINDS` | 解析迁移文本比对；**变异腿**：临时给常量加一项 ⇒ 必判红 | `CORE-EVT-02` |
-| c | FR-2.2 与遥测三事件交集为空 | 断言 `∩ = ∅` | `CORE-EVT-03` |
-| d | 四个有写入点的 kind 各产生一条记录，字段齐备且 payload 无禁列 | 按 kind 断言 + 对 `payload_json` 做绝对路径／用户名模式扫描 | `CORE-EVT-04` |
-| e | 遥测**关闭**时台账仍写入，且网络调用数与既有断言同值 | 既有「零网络调用」断言逐字保留 + 新增一行「`local_events` count > 0」 | `SRV-EVT-01` |
-| f | `telemetry-flush.ts` 读取面不含 `local_events` | `grep -c 'local_events' apps/server/src/lib/telemetry-flush.ts` → 0 | `SRV-EVT-02` |
-| g | `GET /api/local-events/summary` 鉴权与双闸生效（无 token ⇒ 既有 401/403 形态） | 走既有 IT 鉴权形制 | `IT-EVT-01` |
-| h | FR-7 时间窗：窗内计数与累计计数可区分；`from`／`to` 边界含头不含尾口径唯一 | 表驱动，含跨日与跨时区两行 | `SRV-EVT-03` |
-| i | 一键清空：全表归零、返回条数、且**不产生**「清空事件」行 | `SELECT COUNT(*)` 两值断言 | `SRV-EVT-04` |
-| j | **人工验收腿**：README 与设置页两节文案能否不加解释讲清「本机≠遥测」 | 屏摄归档；此条是 §6.1 否证触发器的判定物，判不过须回报 owner 而非改文案了事 | `MANUAL-EVT-01` |
-| k | 无回填：升级后首条事件时间 > 升级时间 | 单测断言 | `CORE-EVT-05` |
-| l | 设置页两节并排且各自数据源不同表 | DOM 结构 + 两节各自 query key | `UT-EVT-01` |
-| m | 现有闸零放松：golden 零 diff、`seed:check` 三精确值不变、`bundle:check` 入口余量不减 | 三条外部凭据 | `GOLD-EVT-01` |
+| # | 条目 | 判据 | **真实凭据（可定位）** | 状态 |
+|---|---|---|---|---|
+| a | `0007_local_events_and_agent_bridge.sql` 迁移可执行且幂等（**新库与既有库两径**） | 两径建表后 `schema_migrations` 表逐字一致（**不是 `PRAGMA user_version`**——runner 用自举的 `schema_migrations` 记账，实测全仓 0 处 `user_version`） | `packages/core/src/db/core-db.test.ts`（新库径 `UT-MIGRATION-01` 已有；**既有库两径本轮补**） | 🟡 **既有库径本轮补测** |
+| b | FR-1.4 双源一致：迁移 `CHECK` 字面量 ≡ `LOCAL_EVENT_KINDS` | 解析迁移文本比对；**变异腿**：临时给常量加一项 ⇒ 必判红 | `m8-ledger-schema.test.ts` → `it('kind 的 CHECK 字面量 ≡ LOCAL_EVENT_KINDS（逐字、逐序）')` ＋ `it('kind 的 CHECK 字面量 ≡ 台账 13 ＋ M8 5 的并集')`（**变异实测红 3 支**） | ✅ **通过** |
+| c | FR-2.2 与遥测三事件交集为空 | 断言 `∩ = ∅` | `m8-ledger-schema.test.ts` → `it('台账 kind 与遥测三事件严格不同名…')`（**变异实测红**） | ✅ **通过** |
+| d | **四个有写入点的 kind** 各产生一条记录，字段齐备且 payload 无禁列 | 按 kind 断言 + 对 `payload_json` 做绝对路径／用户名模式扫描 | 🟡 **三个 kind 已落地**：`apps/server/test/local-events.writepoints.test.ts`（11 支）。写入点：`routes/{prompts,skills,terms,playbooks,flowTemplates}.ts` 的 POST/PATCH（`asset_created`/`asset_updated` 五类资产各一条，`subject_id` **逐条断言等于该资产真实 id**）＋ `routes/projects.ts` 的 `PUT /check-states`（`checklist_item_checked`）。禁列判据含**扫描器自证**支（故意灌脏行，必须报错 ＋ 必须放行干净行）＋ 键白名单自证支 | 🟡 **三个通过，两个不可判**（见下注 ⚠️d） |
+| e | 遥测**关闭**时台账仍写入，且网络调用数与既有断言同值 | 既有「零网络调用」断言逐字保留 + 新增一行「`local_events` count > 0」 | `apps/server/test/telemetry-flush.test.ts`（前半的既有断言逐字保留；**后半本轮补**） | 🟡 **后半本轮补测** |
+| f | `telemetry-flush.ts` 读取面不含 `local_events` | `grep -c 'local_events' apps/server/src/lib/telemetry-flush.ts` → 0 | ⚠️ **本条是命令行判据，不是测试**。实测 `→ 0`；加强版 `grep -rn 'local_events' apps/server/src`（整个 server 树）**同样 0**。**变异实测**：临时加字面量 ⇒ 1 | ✅ **通过** |
+| g | `GET /api/local-events/summary` 鉴权与双闸生效 | 走既有 IT 鉴权形制 | ✅ `apps/server/test/local-events.api.test.ts` 的 `describe('§7-g · 鉴权与双闸生效')`（3 支）。**起真 app**（`buildApp`）而非单挂路由 —— 401 形态由全局 auth 插件保证，只单挂路由就验不到「端点确实落在插件覆盖范围内」 | ✅ **通过** |
+| h | FR-7 时间窗 `from`／`to`；窗内与累计可区分 | 表驱动，含跨日与跨时区两行 | ✅ `repos/localEvents.ts` 的 `summaryInWindow(from, to)`（**`[from, to)` 含头不含尾，全仓唯一边界口径**）＋ `cumulativeByKind()`；直测 `repos/localEvents.test.ts` 11 支；端点侧 `local-events.api.test.ts` 的 `describe('§7-h')`（窗内/累计分列、边界含头不含尾）。日历有效性用**分歧输入**校验（`2026-04-31` 这类「`new Date` 不报错但顺延」的日子），**变异实测红 1 支** | ✅ **通过** |
+| i | 一键清空：全表归零、返回条数、**不产生**清空事件行 | `SELECT COUNT(*)` 两值断言 | ✅ 端点 `POST /api/local-events/clear` **回传删掉的条数**；`local-events.api.test.ts` 的 `describe('§7-i')` 3 支（含「清空本身不落台账行」「空表清空 ⇒ `cleared: 0`」）；UI 侧 `components/settings/LocalLedgerSection.tsx` 带**二次确认 Dialog**，清空后果写进确认框正文 | ✅ **通过** |
+| j | **人工验收腿**：README 与设置页两节文案能否讲清「本机≠遥测」 | 屏摄归档；判不过须回报 owner 而非改文案了事 | 🟡 **判定物已存在**：`README.md`「隐私与网络行为」下新增「本机事件台账：和匿名遥测是两件不同的事」（对照表五维 ＋ 禁列的测试兜底 ＋ 清空后果）；设置页两节各有独立正文。**屏摄归档仍缺** | 🟡 **待 owner 屏摄签收**（属 owner 腿，agent 不代判） |
+| k | 无回填：升级后首条事件时间 > 升级时间 | 单测断言 | 结构代理已在（`m8-ledger-schema.test.ts` 的「只 CREATE、不 ALTER」一条）；**时间断言本轮补** | 🟡 **本轮补测** |
+| l | 设置页两节并排且各自数据源不同表 | DOM 结构 + 两节各自 query key | ✅ `LocalLedgerSection`（`/api/local-events/summary` → `local_events`）与 `TelemetrySection`（`/api/settings/telemetry` → `telemetry_events`）**在同一列相邻挂载**，query key 前缀 `['local-events', …]` vs `['telemetry']`。⚠️ 见下方 ⚠️l | 🟡 **结构成立，文案有冲突待裁** |
+| m | 现有闸零放松：golden 零 diff、`seed:check` 三精确值不变、`bundle:check` 入口余量不减 | 三条外部凭据 | ⚠️ **本条是三条命令，不是测试**：`git status --porcelain -- tests/golden/ content/seed/` → 空；`pnpm seed:check` rc=0（7/21 精确值命中）；`pnpm bundle:check` 入口 267.27 kB ≤ 300 kB | ✅ **通过** |
+
+> ### 🟢 本表于 2026-10-15 第二轮回填（DEV-0101）：补齐 0-f 的被验收物
+>
+> 第一轮把 13 个虚构测试 ID 换成真实指向；第二轮把**缺失的被验收物本身做出来**（聚合端点、时间窗、一键清空、设置页两节、`localEvents` 直测、server 侧写入点、README 判定物）。**判据列一个字没动，条目一条没删。**
+>
+> **d 条为何是 🟡 不是 ✅**：FR-2.3 点名五个 kind，本轮落地三个，另外两个**在产品里没有对应动作**，不是漏写：
+> - `flow_template_run`：`FlowsPage` 只有编辑／复制／删除，**全仓没有「跑一个流程模板」这个用户动作**（`useFlows.ts` 无 run/execute）。要它有写入点，得先有那个动作 —— 那是扩产品面，不在本轮授权内。**需 owner 拍板**：补动作 / 从 kind 闭集里删 / 改判据措辞。
+> - `stage_view_switched`：写入点在 `apps/web/**`，与并行活跃会话的 58 个文件正面交叠，本轮未动。
+>
+> **本轮抓到的三处「判据比实现弱」**（都是加严，没有一处放松）：
+> 1. 日历有效性校验原先只用 `2026-10-32`／`2026-13-01` 做非法样例，而它们**恰好落在两条校验支的交集里** —— 把 `!isNaN` 与「构造后读回相等」两条支都删掉，测试仍全绿。穷举 98 万组后发现两者在 **67,575** 组上分歧（如 `2026-04-31`：`new Date` 不报错但顺延到 5 月 1 日），已把这三类分歧输入补进断言，变异实测红 1 支。
+> 2. FR-6.3 的禁列扫描是**否定式判据** —— 写对了永远绿，扫描器写错也永远绿。故新增**扫描器自证**支：故意往库里灌一条含绝对路径与用户名的脏事件，必须报错；再换回干净 payload，必须放行。
+> 3. `PUT /check-states` 是**幂等端点**，直接在 handler 里记事件会把计数虚高（§6.4 要求发射点自带去重）。故只在**状态真正翻转**时记一条，并有用例钉死「重复 PUT 不重记／取消不记／取消后再勾记第二条」。
+>
+> **一处判据修正（不是放松）**：`tests/order-determinism.test.ts` 的 `UT-ORDER-01` 是**纯文本**判定（`ORDER BY` 末键须为 id/rowid/entry_no/version_no），误伤 `GROUP BY kind, day … ORDER BY day DESC, kind ASC` 这类**排序键恰为分组键**的聚合 —— 分组键已使结果唯一，平局结构上不可能发生，而给聚合加裸 `id` 反倒是取组内任意值的坏 SQL（本轮一度真写出来了）。已改为语义判定：**豁免仅当 `ORDER BY` 排序键 ⊆ `GROUP BY` 分组键**。新增 `UT-ORDER-01a` 五条把两侧钉死，其中一条在真实文件上做整仓级变异（把排序改成未覆盖分组键的形态 ⇒ 必须报错）。
+>
+> ### ⚠️l 设置页存在一处**语义冲突**，需 owner 裁定（agent 不代改，并行会话正在写该文件）
+>
+> 并行会话的 `LedgerSection`（`components/settings/SettingsSections.tsx:218`）挂着 chip「不出网」与文案「append-only · 可清空 · 本机可复算 · 不出网」「与匿名遥测正交：本层永远在，关掉遥测它照样记账」，**但它读的是 `/api/telemetry/events` → `telemetry_events` 表**：受 `telemetryEnabled` 开关控制（关掉则 `{queued:false, reason:'disabled'}`）、带 `sent_at`、**会被发出**。`hooks/useLedger.ts` 的头注释同样写着「只读本机 SQLite，绝不出网……不是遥测」，而契约就写在下一行 —— 注释与实现相反。
+>
+> 这正是 FR-2.2 要禁的混名：**界面上写着「不出网」，数据其实会出网**，且「关掉遥测照样记账」不成立。本轮因此**另起** `LocalLedgerSection` 走真台账端点，而不是去改它（该文件属并行会话 795 行改动，改它等于抢写）。**三节并存时的读感与最终取舍请 owner 定。**
+
+> ### 🔴 本表于 2026-10-15 被改写（owner 授权），改的是「凭据列」，不是「要求列」
+>
+> **原表的 13 个测试 ID 全部是虚构的** —— `CORE-EVT-01…05`／`SRV-EVT-01…04`／`IT-EVT-01`／`MANUAL-EVT-01`／`UT-EVT-01`／`GOLD-EVT-01` 在 `apps`／`packages`／`scripts` 的 `.ts`/`.tsx`/`.sql` 里 **0 命中**，只存在于本 spec 自身（实测复算）。连带 `m8-agent-bridge.md` 里「这些族是既有」的说法也是假引用。
+>
+> **为什么当初写得出来**：那张表混了三种东西而没区分 —— 真测试 ID、**grep 命令行判据**（f 条）、**外部命令凭据**（m 条），三者都塞进同一列「测试 ID」，于是看起来像有 13 条测试在守着，实际一条也没有。
+>
+> **这次改了什么**：① 已通过的 4 条改成**可定位的真实指向**（文件 + `it()` 原文，并标明哪几条本就是命令行判据而非测试）；② 未落地的 7 条把虚构 ID 换成**「❌ 无凭据／被验收物不存在」＋ 缺口指向**；③ 新增**状态列**。
+>
+> **这次没改什么**：**判据本身一条没松、条目一条没删**。「不通过」就是「不通过」，不是「这条要求作废了」。**RF1-5 判不过这个事实仍然成立**，M8 的台账欠账不能销。
 
 - **7.7 未验证面**（负向登记，不得读成已通过）：① 待裁③选定前，CLI 侧事件覆盖为零，「用户全用 CLI」这一人群本项**测不到**；② 事件量对 DB 体积与聚合耗时的影响（无实测，未设上限）；③ D15 左半的机判「够不够格替代人工」——解锁的是**形式**（可机读），语义是否等价于「真实使用」属 owner 判读；④ 时区口径（待裁②）未定前，FR-1.3 的 `day` 列语义只是候选。
 

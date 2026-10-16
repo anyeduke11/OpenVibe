@@ -2294,3 +2294,319 @@
   7. **本轮仍未 commit。** 工作树另有并行会话的 `apps/web/*`（约 45 个）与 `navCounts.ts` / `schemas/nav.ts` / `demo/` / `redesign/` 改动，**不属本会话**。
 
 - **owner 手上未收的**: ① **抬 `bodyLimit` 是否做**（见风险 5，属全 server 面改动）；② **0-f 台账总闸**仍未验，M8 埋点欠账待其转绿后重跑；③ **探针运行半边五问**仍未做（harness 已装，等 GUI 跑完才能写 0-i）；④ **§3-9 基线重采样**（FR-6.1 的判据依赖它）；⑤ **FR-3.1 收敛 / FR-2 合一 / `statsService`·`growthService`** 均未完成；⑥ 本笔未 push、无对外动作。
+
+## [DEV-0099] 三件并行：bodyLimit 按端点放宽 ＋ FR-2 比对合一 ＋ 0-f 台账总闸独立核验（**0-f 判不过**）
+
+- **时间**: 2026-10-15 12:14（本机 darwin；提交树 = `c2122c2`，未再前进）
+- **类型**: **B 级**（传输层配置口径 ＋ 内部函数抽并 ＋ 规格勘误）。由 owner 2026-10-15「使用独立 worker 执行」指令派出三个子 agent，文件所有权互不重叠，**均未 commit**（由 parent 决定时机）。
+- **⚠️ 本笔的元教训**：**派 brief 时不能把规格原文当事实转述给 worker**。本轮两个 worker 各纠正了我 brief 里一处从 spec 抄来的错误（详见风险 4、5），而我 brief 的错误又来自**我没有复核 spec 原文**。子 agent 是第二双眼睛，但前提是**简报本身不该是二手转述**。
+
+- **交付一：bodyLimit 按端点放宽（owner 裁「抬」，推翻同日早些时候的「不抬」）**
+  - 落点 `apps/server/src/routes/agent.ts`：`POST /api/agent/ingest` 单条路由带 `bodyLimit = AGENT_INGEST_BODY_LIMIT`（**8 MiB**）；`apps/server/src/app.ts` **一个字节未改**，其余端点保持 Fastify 默认 1 MB。
+  - **为什么按端点而非全局**：`RouteShorthandOptions.bodyLimit`（`fastify/types/route.d.ts`，实测 Fastify **5.12.5**）。全局抬高等于让所有端点都接受更大请求体。**实测**：同实例内被覆盖端点吃 3 MiB 返 200、未被覆盖端点同载荷仍 413。
+  - **为什么是 8 MiB**：Fastify 量 `content-length`（整个序列化包），域内 `requestTotalMaxBytes` 量**各条 payload 之和**，两者不是同一个数；且 `idempotencyKey` 的 schema 只有 `min(1)`、**无上限**。实测一组 20 条 ×104 KB、键长 70 字符的批次，**包封层开销 2,932 B**。8 MiB = 域内 2 MiB 的 4 倍，相对实测开销留约 2800 倍余量，**同时仍然有界**。
+  - **净效果**：FR-2.6 的 2 MB 总量上限**第一次真正经由 HTTP 生效**（此前被 1 MB 传输层整个挡在服务层之前）。域内三值 512 KB/20 条/2 MB **一条未松**，仍由服务层执行。
+  - **旧 413 用例不是删掉，是加强后重建**：原用例前提被 owner 直接推翻，留着就是**故意为假的测试**。它想守的「传输层有个上限」这条判据，被三条更强的判据取代 —— ① 超 2 MB 现在能穿过传输层由服务层逐条裁决 ② 超过放宽值**仍是** 413（有界，不是「不再有 413」的永真）③ **devlog 端点仍在 1 MB 处 413**（防实现偷懒走全局）。**删 1 增 4，净 +3**。核实：`git diff` 无任何 `expect(` 行被删或改。
+  - 三条变异腿：改成全局 ⇒ 红「按端点」那条；撤掉覆盖 ⇒ 红「2 MB 可达」那条；值设 1 MiB ⇒ 红 2 条。全部还原确认绿。
+
+- **交付二：FR-2 一致性比对合一（`verifyAgainstLock`）**
+  - 新增 `packages/core/src/inject/consistency.ts`（108 行）＋ `consistency.test.ts`（197 行）。三处调用点各自映射回旧形态；barrel **只增出口**。
+  - **放 `inject/` 而非 `services/`**：`services/` 在 `inject/` **之上**，而 R5 zone 只禁 `repos`/`db` → `services`，**不覆盖** `inject` → `services` ⇒ 放 services 等于新开一条**没闸的上行边**。这是实现轮自己发现的，不是 brief 指定的。
+  - **`managed` 必填、刻意不给默认值**：`retirement.test.ts:96` 的 RT-07 断「lock 缺 managed 按未受管处理」，给默认 `true` 会把这个安全侧口径翻掉。
+  - 判据顺序固定 **ABSENT → FOREIGN → IN_SYNC/DRIFT**，且 `managed` 判定**在哈希之前**（未受管条目不算 DRIFT）。
+  - 七条变异腿，其中 M6/M7 **拿既有测试当闸**（`UT-INJECT-PLAN-04`、`SOURCE-05` 判红）⇒ 证明它们不是空闸。既有测试 `git diff --stat` **零改动**。
+
+- **交付三：0-f 台账总闸独立核验 —— 🔴 VERDICT: FAIL（4/13 通过）**
+  - 逐条判定：**通过 4**（b 双源一致 / c 与遥测交集为空 / f 隐私红线 / m 现有闸零放松）· **不通过 7**（a d g h i j l）· **无覆盖 2**（e k）。
+  - **最刺眼的一条：台账 spec §7 的 13 个测试 ID 全是虚构的** —— `CORE-EVT-01…` / `SRV-EVT-01…` / `IT-EVT-01` / `MANUAL-EVT-01` / `UT-EVT-01` / `GOLD-EVT-01` 在 `apps`/`packages`/`scripts` 的 `.ts`/`.tsx`/`.sql` 里 **0 命中**（parent 独立复算确认）。连带 `m8-agent-bridge.md:259` 称这些族「既有」的**假引用**暴露 —— **本仓第三次「引用既有 X 而 X 不存在」**。
+  - **7 条不通过里 5 条是「被验收物压根不存在」**：`/api/local-events` 端点全树 0 命中；设置页两节、一键清空、`from`/`to` 时间窗（实现是 `summary(days)`）、人工腿判定物（README 无「本机统计」「永不出网」）均不存在。**0-f 判的不是「台账写得对不对」，是「台账这个功能做完没有」—— 而它没做完。**
+  - **已落地部分经得起变异检验**：写入点唯一性（全仓生产 `record(` 就 3 处）、双源一致性（能被变异打红）、隐私红线（**整个 `apps/server/src` 零命中**，不只是 `telemetry-flush.ts`）、`day` 的 UTC 单源派生。三处变异分别打红 3/1/1 支，全部 md5 逐字节还原。
+  - **结论对 M8 的意义**：M8 的三处埋点**不是**建立在没过总闸的台账上，而是建在**地基扎实但房子没盖完**的台账上。**欠的是产品面与判据面，不是那三处埋点的安全性。但欠账按原义成立，0-f 不能销。**
+  - ⚠️ **且不该硬销**：把 0-f 推绿等于给假凭据发通行证。
+
+- **测试验证**（parent 本机重跑，非转述 worker 报告）
+  - `pnpm typecheck` rc=0 · `pnpm lint` rc=0；
+  - `pnpm test` **72 文件 / 673 支全过，连跑 2 轮同值**（较 `c2122c2` 的 71/662 增 1 文件 11 支）；
+  - `pnpm bundle:check` 通过 —— 入口 **267.27 kB ≤ 300 kB** / 41 chunk，余量**未减**；`pnpm seed:check` rc=0；
+  - 红线三条全 **0**：`core→adapters` · `services→传输层` · `repos/db→services`；
+  - 冻结面：`git diff --name-only 4b42642..HEAD -- tests/golden/ content/seed/` → **空**；
+  - 既有测试零改动：`git diff --stat -- apps/cli/test/ planner.test.ts retirement.test.ts` → **空**。
+
+- **潜在风险**
+  1. **§3-9 基线采在脏工作树上**。新基线 72/673 含并行会话未跟踪的 `consistency.{ts,test.ts}`，采样途中该文件被改动过、总数当轮从 **665 跳到 673**。⇒ **只能当「当前工作树」的对照数，并行会话合流前不能当 CI 门禁数**。已把这条边界写进 `service-layer.md §3-9b`。旧基线 58/538 **不删不改**，标注取代关系。
+  2. **FR-2.3 词表有一处未闭合**：裁定② 取 (a)（沿用 `retirement.ts` 四态），但按 (a) 字面落地，planner 侧要新增「非受管」态 ⇒ planner 输出多一态 ⇒ `planner.test.ts:282` 断言必须改 ⇒ 与 FR-2.2（app 侧可见输出不变）、FR-6.1（不许改断言）撞车。实现的折中是**内部函数按裁定返四态、三个调用点各自映射回旧形态**（FR-2 正文原话）。**二选一待 owner 裁**。
+  3. **`verifyPack` 的 FOREIGN 接线无入库测试**：实测 `isValidPackRelativePath`（`packages/shared/src/utils.ts:43`）只禁绝对路径/反斜杠/`..`，**不拦 `.openvibe/`** ⇒ 该分支在验签路径上**真实可达**；实现侧用一次性探针跑通，但**仓库里没有测试守着它**。补测需动 `apps/cli/test/`。
+  4. **我 brief 里把 spec 的过期采样当事实转述给了 worker**：① 我说「第三处是 `planInjection`」，实际是 `diffPackLock`（`planner.ts:211`），`planInjection`(:78) 是**第四处**独立比对（声明侧是包 bundle 而非 lock，五态且 `NEW` 无对应物）；② 我说「`pack-source.ts` 那处需对齐排序口径」，实际 `:150-151` **早就在用 `compareCodeUnit`**，那是 spec FR-2.1 里 **2026-10-03 的过期采样**。两处 worker 均已纠正且 parent 复算确认。**教训：brief 里凡是「引用 X 说过 Y」的句式，一律先 grep 再写。**
+  5. **一个 worker 的归因是错的**：它把基线那 2 支红的来源写成「并行会话改了 `agent.api.test.ts`」，实际那是**同批另一个 worker**（bodyLimit 那个）写的。「不是我弄坏的」这个结论对，锅甩错了对象 —— 且它据此得出的「72/673 全绿」是**移动靶**（采样时 bodyLimit 那个 worker 尚未落完 `app.ts`）。parent 已重跑定基线。
+  6. **一处 413 响应形状的既有坑**：实测 413 的 `code` 是 `VALIDATION_ERROR` 而非 `FST_ERR_CTP_BODY_TOO_LARGE` —— `apps/server/src/plugins/errors.ts:33-39` 把非 AppError 的 4xx 统一归一化。**既有行为，非本轮引入**，故断言改用 `message`，未越界改错误插件。
+  7. **未验面**：FR-6.1 的「CI 三侧」只采了 macOS 一侧，**ubuntu / win32 未采**（故该条在文档中标为「尚未完全闭合」而非通过）；8 MiB 的**对抗性未验**（超长 `idempotencyKey` 构造包封层未压测）；抬高后单请求峰值内存未压测；未跑三平台 CI。
+  8. **并行会话的 M4 文档回退仍在工作树**（`docs/tasks.md` / `specs/m4-playbook.md` / `specs/m6-standard-pack.md` ＋ 混了的 `dev-plan.md` / `decisions.md`），本轮**未触碰、未提交**。
+
+- **owner 手上未收的**: ① **FR-2.3 词表二选一**（接受折中 / 授权 planner 多一态并改既有断言）；② **要不要补 `verifyPack` 的 FOREIGN 入库测试**（需开 `apps/cli/test/` 写权）；③ **0-f 的 ①②④**：修 13 个虚构测试 ID、修 FR-1 迁移文件名与 §7-a 的 `PRAGMA user_version` 器具、补 e/k 两条凭据（成本极低、防回归价值最高）；④ **⑤⑥**（d 条取舍 / a 条「既有库两径」—— 老用户升级路径目前零凭据，是 0-f 唯一结构上有真实风险的缺失）；⑤ **0-f 的 ⑦**（聚合端点 + 设置页两节 + 一键清空 + 时间窗，依赖 0-e 剩余服务）；⑥ **并行会话 M4 文档回退**需 owner 与之对齐；⑦ **③ 探针运行半边五问**需 owner 在 GUI 真机跑；⑦ 本笔未 commit、未 push、无对外动作。
+
+## [DEV-0100] 四项裁定落地：FR-2.3 词表真统一 ＋ FOREIGN 分列入库 ＋ 0-f 判据面修成可对账（含一处**我的**回归被抓出）
+
+- **时间**: 2026-10-15 15:04（本机 darwin；提交树 = `c2122c2`，未再前进）
+- **类型**: **B 级**（可观察的 CLI 输出面变化 ＋ 新增测试 ＋ 规格判据面改写）。四项裁定由 owner 于本轮逐项拍定，非自裁。
+- **四项裁定与落点**
+
+| 裁定 | 落点 |
+|---|---|
+| ① **FR-2.3 授权 planner 直接输出四态**（改断言与消费方） | `DiffResult` 由 `{clean, drifted[], missing[]}` 改为 `{clean, files: ConsistencyFile[]}`；新增 `summarizeDiff()` 派生分桶；`diff.ts` 消费方改接；`planner.test.ts` / `consistency.test.ts` 随之改判 |
+| ② **补 `verifyPack` 的 `.openvibe/` FOREIGN 入库测试**（开 `apps/cli/test/` 写权） | `pack-source.test.ts` 新增 `SOURCE-15`（对照腿／机制腿／篡改腿三条） |
+| ③ **0-f 的 ①②④ 全做，① 改成真实可定位的指向** | §7 验收表整体改写；FR-1 迁移文件名四处改真名；§7-a 判据器具由 `PRAGMA user_version` 改为 `schema_migrations`；§7-e / §7-k 凭据补测 |
+| ④ **0-f 的 a 条「既有库两径」两条都补** | `core-db.test.ts` 新增 `CORE-EVT-01a`（账上停在 0006）与 `CORE-EVT-01b`（**账上根本没有 0006**，即 DEV-0091 之前安装的真实用户）；另补 `CORE-EVT-05`（无回填时间断言） |
+
+- **FR-2.3 改判的净效果**
+  - 未受管条目（`managed=false` 或落在 `.openvibe/` 下）被改时，此前落进 `drifted`、与「受管产物漂移」**长得一样**；现在单列 `foreign`。
+  - **退出码契约未变**（foreign 非空 ⇒ `clean=false` ⇒ 仍退 2），变的只是「报在哪一列」。**信息一条不少**——这正是本仓最忌的「静默截断」的反面。
+  - **CLI 的 13 支既有测试一字未改全绿**：`clean`／`drifted`／`missing` 仍由 `summarizeDiff` 派生，只是**多了一个 `foreign`**。另新增 2 支钉新行为（`CLI-DIFF-02` / `CLI-DIFF-03`）。
+  - 三条变异腿：① `summarizeDiff` 把 FOREIGN 并回 DRIFT ⇒ 红 3 支；② `isOpenVibeInternal` 恒 false ⇒ 红 3 支（`CS-01` / `CS-08` / `CLI-DIFF-03`）；③ `clean` 口径放松（foreign 也算干净）⇒ 红 2 支。
+
+- **🔴 本笔抓到一处**我自己的**回归，且子 agent 的归因是错的**
+  - `apps/cli/test/security.test.ts` 的 `CLI-SEC-03` 挂：同步收敛后 `diff.clean` 应为 true 却是 false。
+  - 子 agent 报「那 1 支红不是我的，理由是与我的文件零交集」。**「零文件交集」≠「零耦合」** —— 该文件正是通过 import `commands/diff.ts` 受我改动影响。**没有接受其归因、自己去跑了那支测试**才抓出来。
+  - **根因**：我把 `clean` 写成「全部 IN_SYNC 才算干净」，但 `verifyAgainstLock` 的判据顺序是 **ABSENT → FOREIGN → IN_SYNC/DRIFT** —— 未受管条目**在哈希比对之前**就被判成 FOREIGN，于是「未受管但内容恰好一致」被误判成不干净。**这是借改判之名做了一次静默的语义收紧。**
+  - **修复**：`clean` 恢复为与改判前逐字等价（「既不缺、也没有一处哈希对不上」），并补一条**防收紧用例**钉死「未受管但内容一致 ⇒ 仍算 clean」。
+  - **教训**：口径型改动（`clean` / 退出码 / 长度阈值）**不是纯重构**。它改的是可观察行为，而「可观察行为变了」这件事往往**不在被改的那个文件里显形** —— 它在**下游消费方的既有测试**里显形。
+
+- **0-f 的判据面已修成可对账（①）**
+  - 原表 13 个测试 ID **全部虚构**（`apps`/`packages`/`scripts` 的 `.ts`/`.tsx`/`.sql` 里 **0 命中**）。**根因**：那张表把「真测试 ID」「grep 命令行判据」「外部命令凭据」三种东西塞进同一列，看起来像有 13 条测试在守着，实际一条也没有。
+  - 现表：已通过的 4 条改成**可定位的真实指向**（文件 + `it()` 原文，并标明 f／m 两条本就是命令行判据而非测试）；未落地的 7 条换成「❌ 无凭据／被验收物不存在」＋ 缺口指向；新增**状态列**。
+  - **判据一条没松、条目一条没删。「不通过」就是「不通过」，不是「这条要求作废」。**
+
+- **子 agent 的实测修正（brief 与代码不符，均以代码为准）**
+  1. **`verifyPack` 自己没有 `.openvibe/` FOREIGN 分支** —— FOREIGN 判定在 `consistency.ts` 的 `verifyAgainstLock`；`verifyPack` 对每个 manifest 条目强制 `managed: true` 后做**与 state 无关**的哈希比对。
+  2. **`pack-source.ts` 那句「漏比一个路径等于给整包验签开一个口子」不准确**：变异实测，给 FOREIGN 开豁免后整包**仍被拒**，只是错误码退化成 `FINGERPRINT_MISMATCH`（整包指纹那道闸兜底）。准确说法是「错误码降级」。该文件不在其写权内，只把实测结论写进测试注释。
+  3. **台账 18 个 kind 里只有 3 个有生产写入点**（`contextService.ts` 1 个 ＋ `agentService.ts` 2 个）；**其余 13 个台账 kind 全仓无任何生产写入点**。这直接解释 §7-d 为何过不了。
+  4. brief 里「停在 0006 的库 → 只新增 0006/0007 对应行」自相矛盾（账上已停在 0006 只可能新增 0007 一行），已拆成 01a／01b 两种真实形态。
+
+- **测试验证**（parent 本机重跑，非转述）
+  - `pnpm typecheck` rc=0 · `pnpm lint` rc=0 · `pnpm seed:check` rc=0；
+  - `pnpm test` **72 文件 / 681 支全过，连跑 2 轮同值**；
+  - `pnpm bundle:check` 通过 —— 入口 **267.27 kB ≤ 300 kB** / 41 chunk，余量**未减**；
+  - 红线三条全 **0**；冻结面 `git status --porcelain -- tests/golden/ content/seed/` → **空**；
+  - 既有断言零削弱：`git diff -U0 -- telemetry-flush.test.ts pack-source.test.ts | grep -E "^-" | grep -v "^--"` → **0 行**；`core-db.test.ts` 的 `-expect` 为 **0**（唯二删除行是两行 import 的扩容，原符号全保留）；
+  - 子 agent 的六条变异全部「红 → 还原 → 绿」；核验其还原：`0007...sql` 与 `runner.ts` 的 `git diff` 均为**空**、`DELETE FROM projects` 与 `2020-01-01` 残留计数 **0**、`contextService.ts` pristine。
+  - **一条有说服力的变异**：给 0007 临时加 `DELETE FROM projects`（毁数据迁移）⇒ **恰好新增的 3 条红、既有 5 条全绿**。**既有套件完全抓不到「升级毁数据」，只有新用例抓得到。**
+
+- **潜在风险**
+  1. **`foreign` 是 CLI 的新增输出列**，对消费 `openvibe diff --json` 的下游脚本是新字段（**纯新增，不改既有字段**，故不构成破坏）。已在 `diff.ts` 的类型与 hint 文案上写明。
+  2. **0-f 仍判不过**：13 条里通过 4、不通过 7、无覆盖 2 —— 判据面本轮修好了，但**被验收物（聚合端点／设置页两节／一键清空／时间窗／人工腿）仍不存在**。**欠账不能销。**
+  3. **`packages/core/src/repos/localEvents.test.ts` 未创建**：`record` / `summary` / `clearAll` / `dayOf` 目前仍无直测（归 §7-d／§7-i，不在本轮范围）。
+  4. **子 agent 中途把迁移 SQL 与 runner 临时写坏过**（`DELETE FROM projects`、回填 INSERT、账本判据反转），已逐字节还原并核验 pristine；**风险窗口在那一刻**，若当时有人在提交应按 `git diff` 复核。
+  5. **基线仍采自脏工作树**：现为 72 文件 / 681 支，含并行会话未跟踪文件，**不能当 CI 门禁数**。
+  6. **未验**：SQLite 在 `DROP TABLE` + FK 关闭下的跨版本行为（只在本机 better-sqlite3 跑过）；§7-e 只证明**服务层写入点**不被开关门控，route 层未来若加闸这条抓不到；`SOURCE-15` 的机制腿钉的是实现细节而非不变量（注释已写明）。
+  7. **并行会话的 M4 文档回退仍在工作树**（5 个文件），本轮**未触碰、未提交**。
+
+- **owner 手上未收的**: ① **0-f 的 ⑤⑥⑦**：d 条取舍（补写入点 or 改判据）／§7-g/h/i/j/l 的产品面（依赖 0-e 剩余服务）；② **`localEvents` 直测是否单开**（风险 3）；③ **并行会话 M4 文档回退**需 owner 与之对齐；④ **③ 探针运行半边五问**需 owner 在 GUI 真机跑；⑤ 本笔未 commit、未 push、无对外动作。
+
+## [DEV-0101] 0-f 被验收物补齐：聚合端点／时间窗／一键清空／设置页两节／README 判定物／三类 server 写入点（含三处「判据比实现弱」的加严）
+
+- **时间**: 2026-10-15 16:50（本机 darwin；提交树 = `c2122c2`，全程未再前进，**未 commit**）
+- **类型**: **B 级**（新增两个端点 ＋ 三个 kind 的生产写入点 ＋ 设置页新节 ＋ README 隐私段落 ＋ 一处既有闸的语义修正）。owner 裁定「直接做完整终极版，一步到位」。
+
+- **本轮补齐的 0-f 被验收物**
+  1. `LocalEventsRepo.summaryInWindow(from, to)`（**`[from, to)` 含头不含尾，全仓唯一边界口径**）＋ `cumulativeByKind()`；顺手删掉 `summary()` 里 `ORDER BY ... id ASC` 这个**看似无意义、实为 `UT-ORDER-01` 要求的兜底键**（见下方变异②，本轮一度把它删了又以更对的方式修回）。
+  2. `packages/shared/src/schemas/localEvents.ts`：`LocalEventsQuery` / `SummaryOut` / `ClearOut`。出参**同时含 `windowTotal` 与 `cumulativeTotal`**（FR-7 要求两者可区分）。
+  3. 两个端点：`GET /api/local-events/summary` ＋ `POST /api/local-events/clear`（清空**回传删掉的条数** —— 「清了 0 条」和「清了 128 条」对用户是两件事）。
+  4. **三个 server 侧 kind 的生产写入点**：`asset_created` / `asset_updated`（`routes/{prompts,skills,terms,playbooks,flowTemplates}.ts` 的 POST/PATCH，五类资产各一条）＋ `checklist_item_checked`（`routes/projects.ts` 的 `PUT /check-states`）。统一走新文件 `apps/server/src/lib/ledger.ts`，**那里没有一行 INSERT**（写入处仍是 `LocalEventsRepo.record` 一处）。
+  5. `localEvents` 直测 11 支 ＋ 端点集成测试 9 支（**起真 app** 以实证鉴权双闸）＋ 写入点测试 11 支。
+  6. 设置页新节 `LocalLedgerSection.tsx`（窗预设／窗内-累计双列／kind 表／**二次确认清空**）＋ `useLocalEvents.ts` ＋ i18n 文案；README 隐私段落新增「本机事件台账：和匿名遥测是两件不同的事」对照表（**j 条的判定物**）。
+
+- **🔴 变异腿②未红的根因：判据落在两条校验支的**交集**里**（本会话第三次「闸测不出东西」）
+  - 现象：把日历有效性校验从「`!isNaN` **且** 构造后 `toISOString()` 读回相等」弱化成只判 `!isNaN`，**9 支测试全绿**。
+  - 先查「变异有没有打上」—— 确认打上了（打印锚点行）。故不是打偏，是**判据太弱**。
+  - 穷举 98 万组 `YYYY-MM-DD` 后发现：两支判定在 **67,575 组上有分歧**，分歧全在「看着像真日期、日历上不存在」那一类（`2026-04-31` / `2026-11-31` / 非闰年 `2026-02-29`）。**`new Date('2026-04-31T00:00:00Z')` 在 V8 里不报错，它把 4 月 31 日顺延成 5 月 1 日** —— 只有「读回相等」那支拦得住。
+  - 我原先用的 `2026-10-32`／`2026-13-01` **恰好落在两支都拒绝的交集里**，所以整条校验删掉测试也不红。已补三条分歧输入 ＋ 一条反向样本（闰年 `2024-02-29` 必须放行，防过度拒绝），**变异实测精准红 1 支**。
+
+- **另两处加严（FR-6.3 禁列 ＋ 幂等端点）**
+  - **禁列扫描是否定式判据**：写对了永远绿，**扫描器写错也永远绿**。故加**扫描器自证**支：故意往库里灌一条含嵌套绝对路径与用户名的脏事件必须报错，再把 payload 换回干净形态必须放行（少了对照组就分不清「抓到了脏行」与「对一切非空 payload 都报错」）；另加**键白名单自证**支，让新增泄漏列不可能悄悄通过。
+  - `PUT /check-states` 是**幂等端点**，直接在 handler 记事件会把计数虚高（§6.4 要求发射点自带去重）。故**只在状态真正翻转时记**，并钉死「重复 PUT 不重记／取消不记／取消后再勾记第二条／不同检查项各记一条」。
+  - 五条变异腿全部精准红：去重 1 支、取消也记 1 支、`app.ts` 不透传 `now` 2 支、payload 混绝对路径 4 支、漏记一个 `asset_updated` 1 支。
+
+- **一处既有闸的语义修正（不是放松）**：`tests/order-determinism.test.ts` 的 `UT-ORDER-01`
+  - 它是**纯文本**判定（`ORDER BY` 末键须为 `id`/`rowid`/`entry_no`/`version_no`），**误伤聚合查询**：`GROUP BY kind, day … ORDER BY day DESC, kind ASC` 里排序键**恰为分组键**，分组已使结果唯一，平局结构上不可能发生；而给聚合加裸 `id` 反倒是取组内任意值的**坏 SQL**（本轮一度真写出来了）。
+  - 改为语义判定：**豁免仅当 `ORDER BY` 排序键 ⊆ `GROUP BY` 分组键**。新增 `UT-ORDER-01a` 五条把两侧钉死，其中一条**在真实文件上做整仓级变异**（把排序改成未覆盖分组键的形态 ⇒ 必须报错）。
+  - 这正是「零文件交集 ≠ 零耦合」的另一面：改 SQL 会**在另一个包的既有闸里显形**。
+
+- **本轮我自己造成并已修复的一处事故**
+  - 跑完变异腿用 `git checkout -- apps/server/src/routes/prompts.ts` 还原，**把本会话在该文件的 4 处写入点改动一并丢弃**（`checkout --` 的语义就是恢复到 HEAD，不管谁的）。靠「还原后基线 5 failed」发现，已逐字补回并复验 11/11 绿。
+  - **已记入 memory**：变异腿的还原一律走备份文件，且**「基线回到 N 绿」是该腿的退出条件**而非可选项。
+
+- **测试验证**（parent 本机重跑）
+  - `pnpm typecheck` rc=0 · `pnpm lint` rc=0；
+  - `pnpm test` **75 文件 / 717 支全过**（本轮新增 31 支；中途 `UT-ORDER-01` 曾红 1 支，即上述回归，已修）；
+  - `pnpm seed:check` rc=0 · `pnpm bundle:check` 通过 —— **入口 267.27 kB ≤ 300 kB（与上轮同值，新节未进入口 chunk）** / 41 chunk；
+  - 冻结面 `git status --porcelain -- tests/golden/ content/seed/` → **空**。
+
+- **d 条为何仍是 🟡 而不是 ✅（需 owner 拍板，不是漏写）**
+  - `flow_template_run`：**产品里没有「跑一个流程模板」这个动作** —— `FlowsPage` 只有编辑／复制／删除，`useFlows.ts` 无 run/execute。要它有写入点得先有那个动作，那是**扩产品面**，不在本轮授权内。需裁定：补动作／从 kind 闭集删／改判据措辞。
+  - `stage_view_switched`：写入点在 `apps/web/**`，与并行活跃会话正面交叠，本轮未动。
+
+- **⚠️ 发现一处产品级语义冲突（已登记进 spec §7 的 ⚠️l，未擅自改）**
+  - 并行会话的 `LedgerSection`（`SettingsSections.tsx:218`）挂 chip「不出网」、文案「与匿名遥测正交：本层永远在，关掉遥测它照样记账」，**但它读的是 `/api/telemetry/events` → `telemetry_events` 表**：受 `telemetryEnabled` 开关控制（关掉则 `{queued:false, reason:'disabled'}`）、带 `sent_at`、**会被发出**。`hooks/useLedger.ts` 头注释写「绝不出网……不是遥测」，契约就写在下一行。
+  - 即**界面写着「不出网」，数据其实会出网**，且「关掉遥测照样记账」不成立 —— 正是 FR-2.2 要禁的混名。本轮**另起** `LocalLedgerSection` 走真台账端点而不去改它（该文件属并行会话 795 行改动）。**三节并存的读感与最终取舍请 owner 定。**
+
+- **owner 手上未收的**: ① **d 条两个 kind 的取舍**（`flow_template_run` 补动作 or 删闭集、`stage_view_switched` 撞并行会话）；② **`LedgerSection` 语义冲突**的处置；③ **j 条屏摄签收**（判定物已就位，屏摄属 owner 腿，agent 不代判）；④ **并行会话的 M4 文档回退 5 件**仍未处置（`dev-plan` / `decisions` / `tasks` / `m4-playbook` / `m6-standard-pack`），本轮仍未触碰；⑤ **探针五问**的运行时半边需 owner 在 GUI 真机跑；⑥ 本笔未 commit、未 push、无对外动作。
+
+## [DEV-0102] Phase 1 收口：M8 spec §7 二十四条按「功能完成为依据」改判 ＋ CLI 三只新命令 ＋ `cli_agent_command_run` 埋点 ＋ 发布分发补齐（本仓第五次「假引用」与一道新守卫）
+
+- **时间**: 2026-10-15 19:20（本机 darwin；提交树 = `c2122c2`，**未 commit**）
+- **类型**: **B 级**（新增三只 CLI 命令 ＋ 新增端点 ＋ 发布分发补实现 ＋ §7 判据面改写 ＋ 新增一道静态守卫）。owner 三条指令：①「按照代码功能完成为依据，功能运行正常则通过」；②「phase1 完成，并将 cli_agent_command_run 埋点和 §7 的 q/r 两条一起完成」；③「回填更新数据，以后要保持上下文一致」。
+
+- **🔴 本轮最重的发现：§7 的 24 个测试 ID 全部虚构，且其中两条的实质功能也从未实现**
+  - 用 spec **自己 §7.2 给的复算命令**实测：`grep -rhoE '(CORE|SRV|IT|CLI|MANUAL|GOLD)-M8-[0-9]+[a-z]?' apps packages tests | sort -u | wc -l` → **0**。**本仓第五次栽在「引用既有 X 而 X 不存在」**（前四次：台账 spec 的 13 个 ID、跨项目的 `EmptyState`、「本仓无 409 先例」、以及台账那 13 个里的 4 个）。
+  - **更重的是**：把 ID 换成实质行为去核之后，**i 条（FR-2.8 `dev_log` 发布落 `dev_log_entries`）与 j 条（FR-2.9 `task_status` 三值 + 落 `tasks.status`）此前根本没有任何实现**。`AgentIngestRepo.review`（`agentIngest.ts:163`）**只改 `agent_ingests.status` 与 `reviewed_at`，不往任何业务表落一行**。后果：agent 推的 `dev_log` 被人工确认后状态转 published，`dev_log_entries` 里空无一物。
+  - **为什么没被发现**：判据列写的是虚构 ID，而那张表**读过三遍，每遍都「看起来有凭据」**。人眼对「一列整齐的 ID」有天然的信任，而那 24 个 ID 里没有一个对得上代码。
+
+- **三条 owner 指令的落点**
+  1. **§7 二十四条按「功能运行正常则通过」改判**：24 个虚构 ID 逐条换成**真实可定位的指向**（文件 ＋ `it()` 原文），并标明哪几条本就是命令行判据（s/t/w）而非测试。**判据列的实质要求一条没松、条目一条没删**。
+  2. **CLI 三只新命令 ＋ `cli_agent_command_run` ＋ q/r**：`ask` / `status` / `session log` 已落地并登记进 `CLI_COMMANDS`（5 → **8** 条）；`POST /api/agent/command-run` 端点 + `commandRunService.ts` 写入点。**M8 五类埋点从 3/5 变为 4/5**（`agent_bridge_installed` 仍 0，它属 Phase 2 的 M8-A skill bridge，本轮 owner 裁豁免）。
+  3. **一致性机制**：新增 `tests/spec-claims.test.ts`（见下），并把 `dev-plan-v0.2.1 §4.2` 整表重采（上一版把已落地的 `packService`/`injectService` 误记为「未开工」）。
+
+- **新守卫 `tests/spec-claims.test.ts`：把「假引用」变成机检**
+  - 扫所有 spec 的验收表，**只断状态为 ✅ 的行**：其引用的路径/文件名必须在磁盘存在，其引用的测试 ID 必须在代码树被真实引用。
+  - **刻意不断什么**：不扫 spec 正文（欠账行本来就该缺凭据，断它等于逼人编凭据）；不维护「哪些 ID 是假的」清单（**那份清单本身会腐烂**——见下）。
+  - **四道变异腿**，其中三道在开发过程中**真的红过**：
+    | 红过的缺陷 | 怎么发现的 |
+    |---|---|
+    | **自指**：13 个假 ID 逐字写在闸自己的源码里，于是 `codeText.includes` 全部为真 | 变异腿要求 13 个全被抓出，实际抓到 0 个 |
+    | **路径正则把纯文件名当路径** | 落盘即 1 支红（`m8-ledger-schema.test.ts` 之类被判「不存在」） |
+    | **`fs.globSync` 的选项名是 `exclude` 不是 `ignore`** | **worker B 跑 typecheck 时替我发现的**：它报的 rc=2 里有两条在**我的**文件上。`ignore` 会被**静默忽略**——测试照跑、类型却红，`node_modules` 里 3 个副本混进 `codeText`（实测 344 vs 341） |
+  - **一处我自己的误判，已留痕**：曾把「3 个 ID 漏网」诊断成「子串匹配假阳性（`CORE-EVT-01a` 含 `CORE-EVT-01`）」，随后 `grep -w` 逐个复查发现那 3 个**是真的存在**（DEV-0100 补测时 worker 真的复用了这些 ID）。诊断是错的，词边界写法保留仅因它不更差。
+
+- **一条值得单独记的观察：「那 13 个 ID 全部虚构」这个断言本身也会腐烂**
+  - `CORE-EVT-01` / `CORE-EVT-05` / `SRV-EVT-01` 现在**真的存在**（`packages/core/src/db/core-db.test.ts:223` 的 describe 名等）——DEV-0100 补测时 worker 复用了它们。
+  - 即「某条断言为假」这件事会随代码演进而变真。**所以新闸不去维护「哪些 ID 是假的」清单，只断「声称存在的必须此刻可定位」**——前者会腐烂，而**腐烂的那份比没有更危险**。
+
+- **本轮同时修掉的两处既有偏差**
+  1. **FR-5.1.1 的 payload 键名写反了**：spec 写 snake_case（`exit_code` / `source_platform` / `fields_count`），实现全是 camelCase（`agentService.ts:117/144`、`contextService.ts:172`）。**以实现为准改 spec**。
+  2. **`agent` 字段只有键名没有语义**（spec 变体）。本轮实现选定：取自环境变量 `OPENVIBE_AGENT` 的平台标识，缺省 `null` 表示「人跑的」。**登记为待 owner 确认**。
+
+- **parent 亲自补的两处凭据（无人认领的缺口）**
+  - `apps/server/test/context.api.test.ts` 8 支：补 **l 条与 n 条的 HTTP 层**。两条判据的服务层凭据都在，**HTTP 层一支都没有**——而这两条的实质都在「端点那一跳」（非法 `?fields=` 必须在路由就 422，不能拖成 500；无 lock 的形状要真在响应体里）。
+  - README 补「让 agent 接进来（M8）」一节（**x 条的判定物，此前完全不存在**）：分「能读 / 能写 / **不能做**」三段，后者含「不能删 / 不能自己裁决幂等冲突 / 不能扩充既有闭集」。
+
+- **变异腿汇总（parent 独立复核，非转述）**
+  | 面 | 变异 | 精准红 |
+  |---|---|---|
+  | `cli_agent_command_run`（6 条，worker B） | command 枚举守卫失效 / agent 路径守卫删 / payload 多 `cwd` 键 / 写入点空转 / **扫描器去掉递归（复刻本仓踩过的坑）** / 时钟不注入 | 2 / 1 / 4 / 10 / **3** / 1 |
+  | 发布分发（6 条，worker C） | 分发函数直接 return / 失败分支翻成 published / 去掉 `pending` 守卫 / `requirements` 照搬载荷 status / 忽略 `payload.type` / 去掉 itemId 校验 | **22** / 10 / 2 / 4 / 2 / 1 |
+  | `n 条` 无 lock（parent） | 把无 lock 分支的 `drifted` 写成 `false` | **1**（`expected false to be null`） |
+  | `o 条` 漂移闸（parent 亲自验） | 把 `CLI_COMMANDS` 里的 `ask` 改名 | **3 处同时报警**（未注册 / 集合不等 / summary 逐字检查） |
+  | `spec-claims` 守卫（4 条，parent） | 13 个假 ID 喂进去 / 虚构路径文件名 / shell 片段 / 真实凭据放行 | 逐条按预期红 / 红 / 放行 / 放行 |
+
+  ⚠️ **`n 条` 那条变异我打偏了两次**：先改了 `l.drifted ?? null`（锁存在但字段缺失那条路径，**我的测试根本不走**），再改了 78 行的 `pack` 初值（**无 lock 时不走那儿**）。第三次才打在 252 行的 `empty` 上。**「变异没红」的头两个猜测都是错的答案**，正确答案是「我的测试走的是第三条路径」。
+
+- **测试验证（parent 本机重跑，非转述）**
+  - `pnpm typecheck` rc=0 · `pnpm lint` rc=0（两处 worker 各自修掉自己那处，parent 未代改）；
+  - `pnpm test` **81 文件 / 814 支全过**（本轮开始时 75/717 ⇒ **新增 6 文件 / 97 支**）；
+  - `pnpm seed:check` rc=0 · `pnpm bundle:check` 通过 —— **入口 267.27 kB ≤ 300 kB（未涨）** / 41 chunk；
+  - 冻结面两条都为空（`git status --porcelain -- tests/golden/ content/seed/` 与带 ref 锚的 `git diff`）；
+  - **新守卫 `tests/spec-claims.test.ts` 8 支全绿** —— 改判后的 §7 表**被它机检验证过**：24 条 ✅ 行的凭据全部真实可定位。
+
+- **红线复核**：CLI 侧 `openDb|better-sqlite3|openDatabase` 命中 **0**；三只命令模块 `node:fs` 与写类 API 命中均为 **0**（`CLI-SESSION-05` 已把这道线测试化）；`apps/web/**` 仍 60 个文件**未被任何 worker 触碰**。
+
+- **owner 手上未收的**
+  1. **`agent` 字段语义**：spec 只有键名没有定义，本轮实现选定「取自 `OPENVIBE_AGENT`，缺省 `null` = 人跑的」，**待 owner 确认**。
+  2. **`exitCode` 接受任意有限整数**（不止 `ExitCode` 三值）：worker B 的判断是「观测端点对意外退出码返 422 等于把观测整个丢掉，比记一个怪数字更糟」。这是设计取舍，**待 owner 确认**。
+  3. **`session` kind 无落点**：`agent_sessions` 表在 0007 建了但**全仓无任何写入路径**（实测 `INSERT INTO agent_sessions` 命中 0），而 FR-2.8/2.9/2.1.1 三个落点都不含它。本轮该 kind 发布**只转状态、不落业务表**，已用一支测试把「若日后补落点即为红线」钉住。**需 owner 裁定**：补落点 / 改 kind 闭集。
+  4. **`requirements` 落库走的是 service 内直写 SQL**（无既有 repo，新建 repo 超出文件所有权），若 owner 认为该有独立 repo，下轮补。
+  5. **`requirement add` CLI 命令未做**：spec §2 把它列为 In（owner 裁④后由 Out 转 In），而 FR-4.1 又写「随 §2 Out 第一行延后」——**spec 自相矛盾**。本轮按 owner 指令只做三只。
+  6. **x 条屏摄签收**（README 判定物已就位）。
+  7. **`LedgerSection` 语义冲突**（上轮登记，仍未处置）：它读 `/api/telemetry/events` 却挂「不出网」chip。
+  8. **本笔未 commit、未 push、无对外动作**。
+
+- **worker A 收尾（CLI 三命令）· 14 条变异腿，还原后 `shasum` 与变异前逐字节一致**
+  | # | 变异 | 精准红 |
+  |---|---|---|
+  | M1 | ask 非法词只报收到的词、不列七词 | 2 |
+  | M2 | `ASK_FIELDS.next` 改成只取 `stage` | 2 |
+  | M3 | `next` 答案不过滤（返全部检查项/任务） | 1 |
+  | M4 | 目录解析改先到先得（去掉最长前缀） | 4 |
+  | M5 | 候选项目名不封顶 | 1 |
+  | M6 | CLI 日志裁剪不留痕（note 恒 null） | 1 |
+  | M7 | 漂移恒退 0 | 3 |
+  | M8 | **反向错**：把 `drifted === null`（读不到 lock）当漂移 | 2 |
+  | M9 | `status` 的 `summary.ok` 写死 true | 2 |
+  | M10 | `evidence.command` 填空串 | 1 |
+  | M11 | 埋点失败改为上抛（非阻断失效） | 2 |
+  | M12 | **从 `cli-commands.ts` 删掉 `ask` 登记** | 3（parent 另独立复验同一条，红 3 处报警） |
+  | M13 | `summary` 与 `.description()` 对不上 | 1（新闸 `IT-CLI-CMD-05`） |
+  | M14 | 给 `session.ts` 加一行写盘 import | 1（禁列扫描） |
+
+- **`cliCommands.api.test.ts` 的三处改动逐条说明（有一处是**加强**，两处是必改）**
+  1. `toHaveLength(5) → 8`：**必改**（原 5 ＋ 新 3），不是放宽。
+  2. `registeredCommandNames()` → `registeredCommands()` 正则加**接收者捕获**：`session log` 是两级命令，`sessionCmd.command('log')` 会被旧正则误当成顶层命令 `log`，逼着 shared 多登记一条假的。**顶层集合判据一条未放松**（今天五条一个不少地被比），另**新增**子命令名集合闭集断言 `=== ['log']`（多一条少一条都红）。
+  3. **新增 `IT-CLI-CMD-05`**：`summary` 逐字等于注册处 `.description()`。这是**加强** —— 原测试只比 `name`，而 spec FR-4.3.3 承诺的「summary 漂移由该测试同批兜」**此前无任何测试兑现**，本轮兑现（M13 变异实测红 1 支）。
+
+- **本轮三个 worker 的共同点与一处差异**
+  - 共同：全部**未 commit**，还原一律走 `cp` 备份（无一例用 `git checkout --`），每条变异都报「还原后基线回 N 绿」。
+  - 差异：worker B/C 的 typecheck 报错各在自己文件外，**都是我在并行时段留下的**（`spec-claims.test.ts` 的 glob 选项、`ask.ts` 的 readonly 数组），它们各自修掉自己那处，**没有代我改** —— 这与「并行文件归属」纪律一致。
+
+- **最终验证（parent 本机重跑）**：`pnpm typecheck` rc=0 · `pnpm lint` rc=0 · `pnpm test` **81 文件 / 814 支全过**（A 收尾后复跑同值）· `pnpm seed:check` rc=0 · `pnpm bundle:check` 入口 267.27 kB ≤ 300 kB · 冻结面两条皆空。
+
+- **owner 手上未收的（增补第 5 条）**
+  5. **`status` 的 `drift = 2` 是 worker 新增的行为**：spec 只说「沿用 `ExitCode` 三值退出码」，**没说哪条命令产 2**。它与既有 `diff`/`clean` 同口径，且「读不到 lock（`drifted === null`）不算漂移、退 0」有专门判据（M8 反向变异红 2 支）。**待 owner 确认这个归属**。
+  6. **`status` 走 `GET /api/projects/:id/context` 而非 `GET /api/projects/:id`**：后者只有 `project + health`，产不出 spec 要求的六项（完成度/未完检查项/任务分布/最近日志/包漂移）。仍是纯 GET、仍不碰 DB。
+  7. **`--related` 原样透传**，不转项目相对路径、不做逃逸校验（devlog 端点对 `relatedFiles` 无路径校验）。若 owner 要求 CLI 侧规范化，需新增行为与测试。
+
+- **📌 2026-10-16 owner 拍板四条（本笔的四项裁定与落笔）**
+
+  | # | 议题 | 裁定 | 落点 |
+  |---|---|---|---|
+  | ① | `status` 的 `drift = 2` 是 worker 新增行为（spec 只说「沿用三值」，没说哪条命令产 2） | **追认**，并把「哪些命令产 2」升为 spec 明文 | `m8-agent-bridge.md` FR-4.2 新增小节：三命令的 2 档对照表＋**明文规定 `ask`/`session log` 恒不可达 2** |
+  | ② | `agent` 字段只有键名没有语义 | **保留 env 方案**，补取值域与一条防误用声明 | FR-5.1.1：取值源 `OPENVIBE_AGENT`／缺省 `null`＝人跑的／上限 64／含 `/\~\` 拒（防路径随埋点落台账）／**⚠️ 它不是身份凭证，不得用于鉴权或授权判断** |
+  | ③ | `session` kind 无落点 | **维持现状**：不补落点、不改 `kind` 闭集，改为**登记在案** | 新增 **FR-2.9.1**：为什么不补（`external_session_id` 形态未核验 ⇒ UNIQUE 会把一次会话拆成多条，而 append-only 面拆错无法回滚清洗）／**连带代价**（`requirements.source_session_id` 恒 NULL，溯源链断在第一环）／解锁条件／「不要用顺手落空行消除缺口」 |
+  | ④ | `requirement add`（spec §2 写 In、FR-4.1 写延后，自相矛盾） | **补做** | 已派 worker；延后理由（「随 `requirements` 表由 Out 转 In」）**已失效**——表已建、发布分发已实现，缺的只是 CLI 包装 |
+
+  - **①的判据是实测的**：三条命令的 `2` 产生条件逐条查过源码（`diff.ts:208` / `clean.ts:247` / `status.ts:288`），语义**完全一致**（都是「产物与 `pack.lock.json` 不一致」）。追认不是让步，是把既成事实写成条款。
+  - **③的论证链（本轮最有价值的一条）**：`session` 不落表 ⇒ `agent_sessions` 恒空 ⇒ `requirements.source_session_id` 只能是 `NULL`。**这是同一条链上的两处**，而 spec 原文只登记了前者。
+  - **④的关键设计判断已写进 worker brief**：必须走 `POST /api/agent/ingest`（`kind:'requirement'`）**走人工确认门**，**禁止**新建直接写 `requirements` 的端点 —— 那会绕过 FR-2.5「agent 的判断不可作为事实源」。服务端落表那一半已由 DEV-0102 的发布分发实现。
+  - **一处需要 owner 后续裁的连带**：`cli_agent_command_run` 的 `command` 枚举是闭集 `ask|status|session`（FR-5.1.1 ＋ `commandRunService.ts` 会拒其它值）。`requirement add` 若要上报埋点，要么扩枚举（属 B 级改契约），要么暂不上报。已在 worker brief 里要求它**先报告再决定，不得擅自扩契约**。
+  - **交叉引用补了一处漏**：`§7.1 ①` 原文只写「Trae/CodeBuddy 未核验挡住 M8-A 拆分后件」，**漏了它同时挡着 `session` 落点**。已补。
+
+- **`requirement add`（owner 裁④补做，DEV-0102 收尾件）**
+  - **形态**：`openvibe requirement add --project <id> --title <text> [--detail <text>] [--priority P0|P1|P2]`；risk `decision` / `writesDisk: false`（与 `session log` 同档同因）。
+  - **走 `POST /api/agent/ingest`（`kind:'requirement'`），不新建端点。** 这是本件最容易做错的一点：新端点直写 `requirements` 表会**绕过 FR-2.5 的人工确认门**，而 FR-2.5 的理由是「**agent 的判断不可作为事实源**」。服务端落表那一半（DEV-0102 的 `publishRequirement`）已就绪，缺的只是 CLI 这一层包装。
+  - **幂等键没照抄 spec 的推荐式**（`sha256(project+kind+external_session_id+本地序号)`）：那两个字段**当前都拿不到** —— `agent_sessions` 全仓零写入路径，且 CLI 是一次性进程没有跨调用计数。**编一个 uuid 会让重试变成新条目，正是 FR-2.3 要防的那件事。** 改取内容寻址 `cli-requirement-<sha256(project\nkind\ntitle\ndetail\npriority)>`（字段间用 `\n` 分隔防拼接歧义）。代价已写进代码注释与用户可见 hint：**两条逐字相同的需求送不进去**（第二条恒 `duplicate`），用 `--detail` 区分。副产物：`conflict` 从本命令**构造上不可达**（载荷是键的函数）。
+  - **测试抓到一个真实缺陷并已修**：`cwd` 缺省时若照发空串，会被服务端 `z.string().min(1)` 整条 422；现改为**空则不给该键**。
+  - **13 条变异腿**，备份→变异→还原，**13/13 `sha` 逐字节还原 OK**，收尾基线 25 绿（20 ＋ 5）。
+
+- **🔴 今天第三次「变异腿打偏」，且这次是 worker 自己抓的**
+  - **M2（幂等键掺 `Date.now()`）第一次只红 2 支**，`CLI-REQ-10` 没红。worker 查出的原因：两次进程内调用**落在同一毫秒**，`Date.now()` 碰巧相同 ⇒ 那条腿变永真。
+  - 处置：把测试改成**跨毫秒**（5 ms 间隔）后重跑 M2，确认红 3 支。
+  - **「变异没红」的三种真因本轮各出现过一次**：`n 条` 两次是「我的测试不走那条路径」，这次是「时间源在同一毫秒碰撞」。**默认猜「变异没打上」是对的，但三次里错了两次半** —— 每次都必须去查是哪一种。
+
+- **⚠️ 环境噪音登记：`apps/cli` 套件在并行下会超时**（worker 与 parent 各撞一次）
+  - 现象：全量跑批时 `apps/cli` 出现 9 条失败，全为加载导致的超时（`Test timed out in 30000ms`、`-1` = 子进程被 SIGKILL），**无一条涉及改动**；parent 侧同期还看到一次「2 errors ＋ 耗时 197 秒（平时 30 秒）」。
+  - 根因：CLI 测试要**起真子进程 ＋ 进程内假服务端**，而 `spawnSync` 会阻塞 stub server 的事件循环（`helpers/cli-run.ts:10` 注释已记）。并行时 CPU 被抢，子进程启动与应答都变慢。
+  - 判据：**串行重跑 35/35 全绿**。故这是**环境/并发问题，不是功能回归** —— 但它让「跑全量」这个动作本身变得不可靠。
+  - **待办（未修）**：给 `apps/cli` 的 vitest project 降并行或加长超时。当前缓解手段是父级跑全量时加 `--fileParallelism=false`。
+
+- **§7 表更新**：`o` 条登记条数 5 → **9**（＋`ask`/`status`/`session`/`requirement`）；`p` 条的三值覆盖新增 `requirement add`（**drift 档照既有形制明写不可达 ＋ 为什么**，未为凑三值造假用例）。
+- **欠账（需 owner 授权，B 级）**：`cli_agent_command_run` 的 `command` 枚举仍是 `ask|status|session` 闭集，`requirement add` **暂不上报埋点**。实现如实写进输出（`summary.commandRun = {sent:false, reason:'unreported', detail:'扩它是 B 级改契约，待授权后补'}`），**没有用 `'session'` 顶替**（那会往台账写一条假记录）。授权后改两处即可：`commandRunService.ts` 的命令闭集 ＋ `status.ts` 的 `CommandRunName`。
+
+---
+
+## [DEV-0103] 2026-10-16 · M8 埋点闭集扩 `requirement`（owner 授权 B 级改契约）
+
+- **owner 拍板**：授权把 `cli_agent_command_run` 的 `command` 闭集由 `ask|status|session` 扩为**四值**，
+  补上 `requirement`。上一笔登记的欠账（见下 ⚠️ 订正）就此清账。
+- **改动面（四处，逐条对齐）**：
+  1. `packages/core/src/services/commandRunService.ts` — `CLI_COMMAND_RUN_COMMANDS` 加 `requirement`；
+  2. `apps/cli/src/commands/status.ts` — `CommandRunName` 同步加 `requirement`（该类型与服务端闭集逐字对齐）；
+  3. `apps/cli/src/commands/requirement.ts` — **删除**专用形状 `RequirementCommandRunReport` 与
+     `REQUIREMENT_COMMAND_RUN_UNREPORTED`，改用与其他三条命令同一个 `reportCommandRun` 出口；
+  4. `apps/cli/src/index.ts` — 接线；失败腿也照报，且 `exitCode` 如实传 `outcome.exitCode`。
+  另同步 `packages/shared/src/cli-commands.ts` 的注释与 spec `m8-agent-bridge.md` FR-5.1.1 的枚举。
+- **关键判据不是「发了两次请求」，是第二次的内容**：断言逐字比对 `command === 'requirement'`。
+  此前那批测试断的是「恰好 1 次、埋点不上报」，那是旧契约的形状；扩契约后桩服务里
+  「埋点端点故意返 404」的守卫也已**翻面**为正常登记 —— 钉的是「该报的要报，不该报的一个都不许多」。
+- **失败腿的 exitCode 必须为 1**：若把失败记成 0，台账会显示这条命令成功了，那等于把观测面做坏。
+  这条单独用断言钉住，不靠「整体退出码对」顺带覆盖。
+- **⚠️ 订正上一笔（DEV-0102）的欠账条目**：原文记「枚举仍是三值闭集、`requirement add` 暂不上报埋点」。
+  该状态已随本笔失效 —— 历史陈述按「日志不回改」保留，故在此追加订正而非改原文。
+  当初「没有用 `'session'` 顶替」的处理**是对的**：顶替会往台账写一条与真实执行不符的记录，
+  比不记更坏 —— 台账一旦不可信，就没人再拿它做判断了。这条处置已在本笔的守卫方向上延续。

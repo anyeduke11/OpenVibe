@@ -160,12 +160,21 @@ export const AGENT_INGEST_LIMITS = {
   maxEntries: 20,
   /**
    * 单请求总量上限。取 2 MB 是为使「20 × 512 KB」的理论上限**不可能突破整包预算**
-   * （packTotalMaxBytes 同值）——不是照抄，是上面两值的相容性约束。
+   * （packTotalMaxBytes 同值）——不是照抄，是上面两值的相乘约束。
    *
-   * ⚠️ **这是「域内」上限，不是「传输层」上限**（m8-agent-bridge.md FR-2.6.2）。
-   * server 侧 Fastify 未设 `bodyLimit`，默认 1 MB ⇒ 经 HTTP 的请求在到达服务层前就被 413 拒掉，
-   * **本值目前只有绕开传输层（CLI 直调 / 服务层单测）时才吃得到**。
-   * 要让 2 MB 真正可达须先裁 `bodyLimit`，见 FR-2.6.2 的处置条。
+   * ⚠️ **这是「域内」口径，与传输层口径不是同一个数**（m8-agent-bridge.md FR-2.6.2）。
+   * 传输层量的是整个序列化请求包的 `content-length`，本值量的是**各条 payload 字节数之和**，
+   * 差额来自包封层（`projectId` / `items` 数组 / 每条的 `kind`+`idempotencyKey`+`sourcePlatform`
+   * 键名与引号），且 `idempotencyKey` 的 schema 只有 `min(1)`、**无上限**
+   * （`schemas/agent.ts`），键可以任意长。
+   *
+   * **2026-10-15 更新**：本值此前经 HTTP **永远触达不到** —— `app.ts` 不设 `bodyLimit`，
+   * Fastify 默认 1 MB，请求在到达服务层前就被 413 拒掉。owner 已裁「抬」，现按**端点**放宽：
+   * `POST /api/agent/ingest` 单条路由带 `bodyLimit = 8 MiB`（域内 2 MiB 的 4 倍，
+   * 覆盖实测的包封层开销），**其余端点仍保持 1 MB**。⇒ 本值**第一次真正经由 HTTP 生效**。
+   *
+   * ⛔ **不要据此认为「agent 可以推 2 MB」**：8 MiB 是**传输层**余量，本值才是**域内**规则，
+   * 超本值的批次由服务层逐条裁决（见 FR-2.6.2 与 FR-2.7）。
    */
   requestTotalMaxBytes: 2 * 1024 * 1024,
 } as const

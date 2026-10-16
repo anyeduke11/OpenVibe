@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { fileSha256, fingerprintOf, type PackFileWithHash } from '@openvibe/core'
+import { fingerprintOf, verifyAgainstLock, type PackFileWithHash } from '@openvibe/core'
 import {
   PACK_FILE_MANIFEST,
   PACK_FILES_SUBDIR,
@@ -161,14 +161,31 @@ export function verifyPack(
 
   const modified: string[] = []
   const files: PackFileWithHash[] = []
-  for (const path of wanted) {
-    const content = contents[path]
-    if (content === undefined) {
-      throw new SourceError('MANIFEST_MISMATCH', `${origin} 缺少文件内容：${path}`, { path })
+  // 逐文件哈希改走 core 的唯一比对规则（service-layer.md FR-2）。
+  // 「缺失判定」仍是本函数自己的：上面的清单核对（missing/extra）负责，那是 bundle
+  // 自洽性，不是一个文件一条的磁盘比对——两条判据的粒度不同，混在一起会改掉错误码。
+  for (const row of verifyAgainstLock(
+    manifest.files.map((f) => ({
+      path: f.path,
+      sha256: f.sha256,
+      // manifest 没有 managed 这个概念：它声明的哈希就是权威期望值，故一律受管。
+      managed: true,
+    })),
+    (path) => contents[path] ?? null,
+  )) {
+    const content = contents[row.path]
+    // 走不到（清单核对已先拦下 missing），保留是为了「内容与声明对不上」时仍整包拒绝，
+    // 而不是把 undefined 写进文件——与既有分支同一 code / 同一文案。
+    if (row.state === 'ABSENT' || content === undefined) {
+      throw new SourceError('MANIFEST_MISMATCH', `${origin} 缺少文件内容：${row.path}`, {
+        path: row.path,
+      })
     }
-    const actual = fileSha256(content)
-    if (actual !== declaredSha(manifest, path)) modified.push(path)
-    files.push({ path, content, sha256: actual })
+    // files[] 登的是**实算**哈希（不是 manifest 声明值），已由比对规则算过一次，不再重算
+    files.push({ path: row.path, content, sha256: row.diskSha256 })
+    // FOREIGN（`.openvibe/` 前缀）在验签这里不豁免：manifest 声明的哈希对每个路径都权威，
+    // 漏比一个路径等于给整包验签开一个口子——与既有「逐文件哈希全比」逐字一致。
+    if (row.diskSha256 !== row.declaredSha256) modified.push(row.path)
   }
   if (modified.length > 0) {
     throw new SourceError(
@@ -187,11 +204,6 @@ export function verifyPack(
     )
   }
   return { manifest, files, fingerprint, origin }
-}
-
-function declaredSha(manifest: PackManifest, path: string): string {
-  const entry = manifest.files.find((f) => f.path === path)
-  return entry ? entry.sha256 : ''
 }
 
 /** --file / API 返回的单文件 bundle */
