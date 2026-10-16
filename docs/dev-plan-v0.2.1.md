@@ -139,7 +139,7 @@ M8 接入面（本迭代 Phase 2 · A + E）
 - M8 五类埋点的**声明与判据**（写入点随台账同批落地）
 - `IDEMPOTENCY_CONFLICT` 新错误码（B 级）
 
-**落地进度（2026-10-15 19:00 实测重采，采样工作树 · 提交树仍 `c2122c2` 未前进）**
+**落地进度（2026-10-16 10:00 实测重采 · 提交树已推进至 `a4d7677`，本节各行凭据均可在该提交树上复算）**
 
 > **本表在 2026-10-15 18:31 按 owner 指令整体重采**。上一版（11:27 采样 · 引用 `4b42642`）有两处明确错误已纠正：`packService`/`injectService` 标着「未开工」而实际 DEV-0098 已落地；出口判据那一行只写了「CLI 侧零覆盖」而没说出真实原因——**那 24 个测试 ID 全部虚构**。**「登记为未完成」与「登记为已完成」同样要付核实成本**，故本表每行的状态列都带凭据指向。
 
@@ -150,10 +150,10 @@ M8 接入面（本迭代 Phase 2 · A + E）
 | `POST /api/agent/ingest` | ✅ 已落地 | DEV-0095/0096 · `agentIngest.ts` · `agentService.ts` 8 支 |
 | `GET /api/projects/:id/context` | ✅ 已落地 | DEV-0097 · `contextService.ts` · `contextService.test.ts` 18 支 |
 | `packService` / `injectService`（RF1-1 本体） | ✅ **已落地**（上一版误记为未开工） | DEV-0098 · `packService.ts` 7 支 ＋ `injectService.ts` 11 支 |
-| **CLI 三只新命令（`ask`/`status`/`session log`）** | 🟡 **本轮开工中** | DEV-0102 · `apps/cli/src/commands/` · `cli-commands.ts` 登记 |
-| **`cli_agent_command_run` 埋点**（五类里唯一无写入点的一类） | 🟡 **本轮开工中** | DEV-0102 · FR-4.4 红线要求经 HTTP 上报，FR-5.2 要求写入点在 `services/` |
-| **发布时的 kind 分发（FR-2.8 / FR-2.9 / FR-2.1.1）** | 🔴 **本轮新发现：此前从未实现** | `AgentIngestRepo.review`（`agentIngest.ts:163`）**只改 `agent_ingests.status` 与 `reviewed_at`**，不往 `dev_log_entries` / `project_check_states` / `tasks` / `requirements` 落任何行。后果：agent 推的 `dev_log` 被人工确认后状态转 published，业务表里空无一物。**这条从未有过任何测试**——因为 §7 的凭据列写的是虚构 ID |
-| **出口判据「M8 spec §7 二十四条全绿」** | 🔴 **原判据不可判定** | spec §7.2 的复算命令实测 `→ 0`：**24 个测试 ID 全部虚构**。owner 2026-10-15 裁定「**按代码功能完成为依据，功能运行正常则通过**」⇒ §7 已按实质行为改判，虚构 ID 一律换成真实指向 |
+| **CLI 四只新命令（`ask`/`status`/`session log`/`requirement add`）** | ✅ **已落地** | DEV-0102/0103 · `apps/cli/src/commands/{ask,status,session,requirement}.ts` · `cli-commands.ts` 登记 5 → **9 条** |
+| **`cli_agent_command_run` 埋点**（五类里唯一无写入点的一类） | ✅ **已落地** | DEV-0102/0103 · `POST /api/agent/command-run` + `packages/core/src/services/commandRunService.ts`（写入点在 `services/` 内一处）；`command` 闭集四值，`commandRun.api.test.ts` 20 支 |
+| **发布时的 kind 分发（FR-2.8 / FR-2.9 / FR-2.1.1）** | ✅ **已落地** | **此前从未有过任何实现**：`AgentIngestRepo.review` 只改 `agent_ingests.status` 与 `reviewed_at`，不往 `dev_log_entries` / `project_check_states` / `tasks` / `requirements` 落行。现由 `agentService.ts` 的 `publishDevLog` / `publishTaskStatus` 补齐（后者先过三值闭集，不过即整条 `rejected`、不扩列、业务表零写入）；凭据 `agent.api.test.ts` 的 `i ·` 与 `j ·` 两支 ＋ `agentService.test.ts` 4 支 |
+| **出口判据「M8 spec §7 二十四条全绿」** | 🟡 **23/24 已绿，余 1 条待 owner** | 2026-10-16 实测：§7 表 24 个数据行中 **23 条 ✅、1 条 🟡**，余下的是条 `x`（README 人工验收腿，**屏摄归档属 owner 腿**）。⚠️ 该表本轮之前不可判定 —— 24 个测试 ID 全部虚构（§7.2 复算 `→ 0`）；owner 2026-10-15 裁定「按代码功能完成为依据」后已按实质行为改判，并配 `tests/spec-claims.test.ts` 防复发（8 支，只断声称存在的必须此刻可定位） |
 
 > **⚠️ 如实登记一处偏差：本节的「开工前置：0-e 与 0-f 同时转绿」并未满足，Phase 1 仍开工了。** §4.1 记 0-e/0-f 为「❌ 不存在（v0.2.0 轨道内，本迭代只依赖）」，而 owner 2026-10-15 指令「取消大量裁定，直接上手开发功能」⇒ 以 owner 授权越过该前置。**代价是明确的**：0-f 是本迭代总闸，它仍红，意味着**台账自身的总闸判据未被验过**，M8 的埋点建立在未过总闸的台账上。这不是「豁免即通过」，是**欠账**，兑付点在 0-f 转绿后重跑 M8 埋点判据。
 
