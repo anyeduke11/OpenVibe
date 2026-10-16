@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { existsSync, globSync, readFileSync, readdirSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { existsSync, globSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 
 /**
  * 验收表凭据可定位性守卫（2026-10-15 · owner「以后要保持上下文一致」）。
@@ -20,8 +21,19 @@ import { existsSync, globSync, readFileSync, readdirSync } from 'node:fs'
  * ## 这道闸断的是什么
  *
  * 只断**验收表里状态为 ✅ 的行**，断两件事：
- * 1. 行内形如路径或文件名的片段 —— **必须在磁盘上真的存在**；
+ * 1. 行内形如路径或文件名的片段 —— **必须在版本库里真的存在**（不只是磁盘上有）；
  * 2. 行内形如 `XXX-YYY-NN` 的测试 ID —— **必须在代码树里真的被引用**。
+ *
+ * ## ⚠️ 「在版本库里」与「在磁盘上」的区别，是本闸第五次栽坑的地方（2026-10-17）
+ *
+ * 本闸原先对路径走 `globSync` 查**文件系统**，于是**一个从未 commit 的文件也能让一条 ✅ 通过**。
+ * 实测抓到 1 处：台账 spec §7-i 拿设置页区块的二次确认 Dialog 当凭据，而那个文件
+ * **从未进过任何一次提交**（状态为未跟踪）。⚠️ 这不是「引用了不存在的东西」，是更隐蔽的一层 ——
+ * **引用了真实存在、却只在开发者本机上的东西**。文件系统态冒充版本库态。
+ *
+ * 故凭据判据一律要求命中 `git ls-files`（受版本控制，含已暂存）。⚠️ 选 `ls-files` 而非
+ * `ls-tree HEAD`：后者会把「写好 spec、尚未 commit」的正常开发顺序判红，而前者只要 `git add` 过即通过 ——
+ * 判据要卡的是**从未纳管**，不是**尚未提交**。下面变异腿里有一支专门造真实的未跟踪文件证明它会红。
  *
  * ## 这道闸刻意不断什么
  *
@@ -133,6 +145,14 @@ function fileExistsSomewhere(name: string): boolean {
 }
 
 /**
+ * 光文件名（`x.test.ts` 无目录）走**版本库视图** —— 与路径判据同一条纪律。
+ * ⚠️ 原先用 `fileExistsSomewhere`（磁盘视图），未跟踪文件同样能满足 ✅ 行的凭据。
+ */
+function claimNameExists(name: string): boolean {
+  return allSourceFiles.some((f) => basename(f) === name && TRACKED.has(f))
+}
+
+/**
  * 测试 ID 是否真在代码里被引用。用词边界而非 `includes`。
  *
  * 这条注释本身是**一次自我纠正的留痕**（2026-10-17）：我最初以为闸漏网
@@ -147,21 +167,39 @@ function idExistsInCode(id: string): boolean {
 }
 
 /**
+ * 受版本控制的文件全集（`git ls-files`，含索引里已暂存但未提交者）。
+ *
+ * ⚠️ 与 `allSourceFiles` **故意不同源**：那份是磁盘视图（含未跟踪文件），
+ *   用来检索测试 ID；这份是版本库视图，用来判「凭据是否已落地」。
+ *   两者混用就是 2026-10-17 那个缺陷本身 —— 未跟踪文件长得和已入库文件毫无二致。
+ */
+const TRACKED = new Set(
+  execFileSync('git', ['ls-files', '-z'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    maxBuffer: 1 << 28,
+  })
+    .split('\0')
+    .filter(Boolean),
+)
+
+/**
  * 片段解析三态：
- * - 以顶层目录开头 ⇒ 相对 ROOT 的完整路径，`existsSync` 判定
- * - 含斜杠但无顶层目录（`repos/localEvents.ts`）⇒ 当作尾部片段，在源码树下找
+ * - 以顶层目录开头 ⇒ 相对 ROOT 的完整路径，查 `TRACKED`
+ * - 含斜杠但无顶层目录（`repos/localEvents.ts`）⇒ 当作尾部片段，在源码树下 glob 后逐个查 `TRACKED`
  * - 其余由调用方当纯文件名处理
  *
  * ⚠️ 不能对所有含扩展名的片段一律 `existsSync(join(ROOT, p))`：
  *   `grep -c 'local_events' apps/server/src/lib/telemetry-flush.ts` 整条是**命令**不是路径。
  *   这也是落盘时变异腿抓到的第一个缺陷（当时纯文件名被当路径判 → 全部误报）。
+ *
+ * ⚠️ 查 `TRACKED` 而不是 `existsSync`：`existsSync` 只知道「磁盘上有没有」，
+ *   未跟踪文件照样通过 ⇒ 一条 ✅ 可以靠从未入库的文件成立（实测抓到 1 处）。
  */
 function claimTargetExists(fragment: string): boolean {
-  if (TOP_DIR_RE.test(fragment)) return existsSync(join(ROOT, fragment))
+  if (TOP_DIR_RE.test(fragment)) return TRACKED.has(fragment)
   if (!fragment.includes('/')) return fileExistsSomewhere(fragment)
-  return (
-    globSync(`**/${fragment}`, { cwd: ROOT, exclude: EXCLUDE }).length > 0
-  )
+  return globSync(`**/${fragment}`, { cwd: ROOT, exclude: EXCLUDE }).some((p) => TRACKED.has(p))
 }
 
 function verdictFor(claims: Claim[]): string[] {
@@ -172,7 +210,7 @@ function verdictFor(claims: Claim[]): string[] {
       if (SHELL_PREFIX.test(p)) continue
       if (!claimTargetExists(p)) bad.push(p)
     }
-    for (const n of c.names) if (!fileExistsSomewhere(n)) bad.push(n)
+    for (const n of c.names) if (!claimNameExists(n)) bad.push(n)
     for (const id of c.ids) if (!idExistsInCode(id)) bad.push(id)
   }
   return bad
@@ -198,11 +236,11 @@ describe('验收表凭据守卫 · ✅ 行的凭据必须真的可定位', () =>
     expect(missing.join('\n')).toBe('')
   })
 
-  it('✅ 行引用的文件名必须存在', () => {
+  it('✅ 行引用的文件名必须存在（且在版本库里，不只是磁盘上有）', () => {
     const missing: string[] = []
     for (const c of claims) {
       for (const n of c.names) {
-        if (!fileExistsSomewhere(n)) missing.push(`${c.file} → ${n}`)
+        if (!claimNameExists(n)) missing.push(`${c.file} → ${n}`)
       }
     }
     expect(missing.join('\\n')).toBe('')
@@ -297,4 +335,63 @@ describe('变异腿 · 这道闸抓得住「虚构 ID / 虚构路径 / 坏掉的
     ])
     expect(caught).toEqual([])
   })
+
+  /**
+   * 变异腿：证明「凭据必须在版本库里」这条收紧**抓得住它自己修的那个缺陷**。
+   *
+   * 为什么要专门造文件而不是喂个虚构路径：虚构路径在**磁盘视图**下也是不存在的，
+   * 旧闸照样能抓 ⇒ 那种腿证明不了任何收紧。必须造一个**磁盘上真的存在、只是没入库**的文件，
+   * 才能分辨两道闸：旧闸（`existsSync`/`globSync`）放行，新闸（`TRACKED`）判红。
+   *
+   * 两条分支各造一个，因为 `claimTargetExists` 有两个判定口：
+   * 顶层目录开头走 `TRACKED.has`，尾部片段走 glob 后逐个 `TRACKED.has`。
+   * 只造其一时，另一支的收紧等于没被验过。
+   */
+  it('磁盘上存在但**未入库**的文件不得满足凭据判据（两条判定口各造一个）', () => {
+    // 顶层目录开头分支：片段自带 apps/ 前缀
+    const topRel = 'tests/tmp-untracked-claim/top.ts'
+    // 尾部片段分支：片段不带顶层目录，靠 glob 在树里找
+    const tailRel = 'tests/tmp-untracked-claim/tail.ts'
+    mkdirSync(join(ROOT, 'tests', 'tmp-untracked-claim'), { recursive: true })
+    writeFileSync(join(ROOT, topRel), 'export const top = 1\n')
+    writeFileSync(join(ROOT, tailRel), 'export const tail = 1\n')
+    try {
+      // 前置自证：两个文件**确实在磁盘上**，且**确实不在版本库里**
+      expect(existsSync(join(ROOT, topRel))).toBe(true)
+      expect(existsSync(join(ROOT, tailRel))).toBe(true)
+      expect(TRACKED.has(topRel)).toBe(false)
+      expect(TRACKED.has(tailRel)).toBe(false)
+
+      const caught = verdictFor([
+        {
+          file: 'x.md',
+          row: '',
+          ids: [],
+          paths: [topRel, 'tmp-untracked-claim/tail.ts'],
+          names: [],
+        },
+      ])
+      expect(caught).toEqual([topRel, 'tmp-untracked-claim/tail.ts'])
+    } finally {
+      rmSync(join(ROOT, 'tests', 'tmp-untracked-claim'), { recursive: true, force: true })
+    }
+  })
+
+  it('版本库索引本身非空且含本文件（防止 TRACKED 建失败后全判红／全判绿）', () => {
+    expect(TRACKED.size).toBeGreaterThan(50)
+    expect(TRACKED.has('tests/spec-claims.test.ts')).toBe(true)
+  })
+
+  /**
+   * ⚠️ **已知缺口（登记，不假装覆盖）**：`claimNameExists`（光文件名那条）本轮**没有**独立变异腿。
+   *
+   * 构造不了的原因：它依赖 `allSourceFiles`，而那份索引在**模块 import 时**就冻结了；
+   * 测试运行中新建的文件根本不在里面 ⇒ 造不出「磁盘有、版本库无」的样本来喂它。
+   * 硬要用当前工作树里恰好未跟踪的文件（如 `icons.tsx`）当样本，会得到一支
+   * **随并行会话提交而变红**的用例 —— 这正是本文件上方注释里警告的「腐烂的断言比没有更危险」。
+   *
+   * 故：路径两条判定口已验，光文件名这条**靠与路径共用 `TRACKED` 同一数据源**来保证，
+   * 其收紧未获独立变异验证。若日后要补，须改成「在 import 前造样本」或改写 `allSourceFiles`
+   * 为惰性求值，二者都会动到本文件的核心索引，属独立一轮工作。
+   */
 })

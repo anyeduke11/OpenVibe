@@ -110,7 +110,7 @@
 | f | `telemetry-flush.ts` 读取面不含 `local_events` | `grep -c 'local_events' apps/server/src/lib/telemetry-flush.ts` → 0 | ⚠️ **本条是命令行判据，不是测试**。实测 `→ 0`；加强版 `grep -rn 'local_events' apps/server/src`（整个 server 树）**同样 0**。**变异实测**：临时加字面量 ⇒ 1 | ✅ **通过** |
 | g | `GET /api/local-events/summary` 鉴权与双闸生效 | 走既有 IT 鉴权形制 | ✅ `apps/server/test/local-events.api.test.ts` 的 `describe('§7-g · 鉴权与双闸生效')`（3 支）。**起真 app**（`buildApp`）而非单挂路由 —— 401 形态由全局 auth 插件保证，只单挂路由就验不到「端点确实落在插件覆盖范围内」 | ✅ **通过** |
 | h | FR-7 时间窗 `from`／`to`；窗内与累计可区分 | 表驱动，含跨日与跨时区两行 | ✅ `repos/localEvents.ts` 的 `summaryInWindow(from, to)`（**`[from, to)` 含头不含尾，全仓唯一边界口径**）＋ `cumulativeByKind()`；直测 `repos/localEvents.test.ts` 11 支；端点侧 `local-events.api.test.ts` 的 `describe('§7-h')`（窗内/累计分列、边界含头不含尾）。日历有效性用**分歧输入**校验（`2026-04-31` 这类「`new Date` 不报错但顺延」的日子），**变异实测红 1 支** | ✅ **通过** |
-| i | 一键清空：全表归零、返回条数、**不产生**清空事件行 | `SELECT COUNT(*)` 两值断言 | ✅ 端点 `POST /api/local-events/clear` **回传删掉的条数**；`local-events.api.test.ts` 的 `describe('§7-i')` 3 支（含「清空本身不落台账行」「空表清空 ⇒ `cleared: 0`」）；UI 侧 `components/settings/LocalLedgerSection.tsx` 带**二次确认 Dialog**，清空后果写进确认框正文 | ✅ **通过** |
+| i | 一键清空：全表归零、返回条数、**不产生**清空事件行 | `SELECT COUNT(*)` 两值断言 | ✅ 端点 `POST /api/local-events/clear` **回传删掉的条数**；`local-events.api.test.ts` 的 `describe('§7-i')` 3 支（含「清空本身不落台账行」「空表清空 ⇒ `cleared: 0`」）。**UI 侧二次确认 Dialog 尚未入库，见下方 ⚠️i** | ✅ **通过**（判据是服务端行为，已交付且在库内） |
 | j | **人工验收腿**：README 与设置页两节文案能否讲清「本机≠遥测」 | 屏摄归档；判不过须回报 owner 而非改文案了事 | 🟡 **判定物已存在**：`README.md`「隐私与网络行为」下新增「本机事件台账：和匿名遥测是两件不同的事」（对照表五维 ＋ 禁列的测试兜底 ＋ 清空后果）；设置页两节各有独立正文。**屏摄归档仍缺** | 🟡 **待 owner 屏摄签收**（属 owner 腿，agent 不代判） |
 | k | 无回填：升级后首条事件时间 > 升级时间 | 单测断言 | ✅ **通过**（`core-db.test.ts` 的 `CORE-EVT-05`：「存量库升级后写下的首条事件，时间晚于升级动作本身」—— 表里**只有这一条**（迁移没偷偷回填历史行）＋ `created_at` **严格大于**升级时刻 ＋ `day` 与事件时间一致 ＋ 存量行未变。⚠️ 断言刻意把事件推进至少 1ms：毫秒精度下若两者同刻，「>」会因分辨率而非因语义成立）。另有结构代理在 `m8-ledger-schema.test.ts` 的「迁移只 CREATE、不 ALTER 既有表」一条 | ✅ **通过** |
 | l | 设置页两节并排且各自数据源不同表 | DOM 结构 + 两节各自 query key | ✅ `LocalLedgerSection`（`/api/local-events/summary` → `local_events`）与 `TelemetrySection`（`/api/settings/telemetry` → `telemetry_events`）**在同一列相邻挂载**，query key 前缀 `['local-events', …]` vs `['telemetry']`。⚠️ 见下方 ⚠️l | 🟡 **结构成立，文案有冲突待裁** |
@@ -142,6 +142,22 @@
 > 并行会话的 `LedgerSection`（`components/settings/SettingsSections.tsx:218`）挂着 chip「不出网」与文案「append-only · 可清空 · 本机可复算 · 不出网」「与匿名遥测正交：本层永远在，关掉遥测它照样记账」，**但它读的是 `/api/telemetry/events` → `telemetry_events` 表**：受 `telemetryEnabled` 开关控制（关掉则 `{queued:false, reason:'disabled'}`）、带 `sent_at`、**会被发出**。`hooks/useLedger.ts` 的头注释同样写着「只读本机 SQLite，绝不出网……不是遥测」，而契约就写在下一行 —— 注释与实现相反。
 >
 > 这正是 FR-2.2 要禁的混名：**界面上写着「不出网」，数据其实会出网**，且「关掉遥测照样记账」不成立。本轮因此**另起** `LocalLedgerSection` 走真台账端点，而不是去改它（该文件属并行会话 795 行改动，改它等于抢写）。**三节并存时的读感与最终取舍请 owner 定。**
+
+> ### 🔴 ⚠️i 设置页台账区块的交付物**从未入库**，§7-i 的 ✅ 原先靠它成立（2026-10-17 订正）
+>
+> 提交前核查发现：§7-i 原先在 ✅ 行里引 `apps/web/src/components/settings/LocalLedgerSection.tsx` 的二次确认 Dialog 当凭据，而**该文件从未进过任何一次提交**（`git cat-file -e HEAD:<path>` 不存在，状态为未跟踪）。已把该引用移出 ✅ 行 —— 本条的判据是**服务端行为**（全表归零／回传条数／不产生清空事件行），那三项确实在库内且有测试，✅ 成立；UI 侧是**补充说明**，不该混进判据凭据。
+>
+> **它当前无法单独入库**，缺 5 处依赖，其中 **4 处属并行活跃会话**：
+> 1. `apps/web/src/i18n/lane-system.ts`（`sys`）—— 未跟踪，并行会话产物，HEAD 无此文件；
+> 2. `apps/web/src/components/ui/icons.tsx`（`Icon`）—— 未跟踪，并行会话产物，HEAD 无此文件；
+> 3. `apps/web/src/components/settings/SettingsSections.tsx` 的 `Section` —— HEAD 版是 `function Section`（**未导出**），只有工作树的已改版才有 `export function Section`；
+> 4. `apps/web/src/components/ui/styles.ts` 的 `proseCls`／`skelCls` —— HEAD 版无此二符号，工作树已改版才有。
+>
+> 第 5 处 `apps/web/src/hooks/useLocalEvents.ts`（同批交付物）**依赖已全部在 HEAD**（`apiJson`／`qs` 在 `api/client.ts`，两个类型经 `shared` 出口 `export *` 可达，`@tanstack/react-query` 在 `apps/web/package.json`）⇒ 它**可独立入库**，但在 HEAD 里没有任何消费者，只有上面那个区块组件会 import 它。
+>
+> **错因（本仓第五次「假引用」，形态是新的）**：不是「引用了不存在的东西」，而是**引用了真实存在、却只在开发者本机上的东西** —— 文件系统态冒充版本库态。`tests/spec-claims.test.ts` 的凭据判据原先走 `globSync` 查**磁盘**（其契约原文即「必须在磁盘上真的存在」），未跟踪文件照样满足它。已把该判据收紧为「必须在版本库里」（`git ls-files`），并补变异腿造真实未跟踪文件证明能红。**收紧后全仓只红这一条** —— 即本行。
+>
+> ⚠️ 连带影响：§7-l 说「两节在同一列相邻挂载」，那也是**工作树形态**、同样未入库，故该行状态本就是 🟡 而非 ✅，无需改动，但其成立同样要等并行会话落地。
 
 > ### 🔴 本表于 2026-10-15 被改写（owner 授权），改的是「凭据列」，不是「要求列」
 >
