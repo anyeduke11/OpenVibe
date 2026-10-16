@@ -10,9 +10,12 @@
 export { newDb, type TestDbHandle } from './new-db'
 export {
   FORBIDDEN,
+  FORBIDDEN_COVERAGE,
   payloadKeys,
   scanForbidden,
   selfProofRows,
   stringValues,
+  type ForbiddenCoverage,
+  type ForbiddenMechanism,
   type ForbiddenRow,
 } from './forbidden-scan'

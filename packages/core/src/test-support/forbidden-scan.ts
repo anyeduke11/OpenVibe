@@ -51,6 +51,81 @@ export const FORBIDDEN: { label: string; re: RegExp }[] = [
   { label: 'home 目录片段', re: new RegExp(homedir().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
 ]
 
+/**
+ * 规格禁列清单 → 守卫机制的对照表。
+ *
+ * ## 为什么要它（2026-10-17 实测）
+ *
+ * 规格禁列的是**四类内容**，而 `FORBIDDEN` 只有五条路径/身份规则 ⇒
+ * **「项目名」与「资产正文 / 会话正文」扫描器根本没有规则**。它们靠的是
+ * 写入点**按白名单构造 payload**，而不是事后过滤。
+ *
+ * 这个事实此前只存在于我的判断里，**没有任何机器能核**。于是：
+ * - 有人删掉某处白名单构造、把入参 spread 进 payload ⇒ 只要那处的键闭集断言
+ *   也恰好一起被删了，就**不会有任何东西变红**；
+ * - 「扫描器漏了哪几项」永远要靠人记得。
+ *
+ * 故登记成表，并配测试：每个禁列项必须能指认机制，且机制为 `scanner` 的项
+ * 必须真的在 `FORBIDDEN` 里有一条对应规则。**表里不许出现「只靠人记得」。**
+ */
+export type ForbiddenMechanism = 'scanner' | 'writepoint'
+
+export interface ForbiddenCoverage {
+  item: string
+  /** 规格原文出处，便于人工回查 */
+  specRef: string
+  mechanism: ForbiddenMechanism
+  /** mechanism 为 scanner 时，对应 `FORBIDDEN` 里的标签；writepoint 时说明由谁保证 */
+  guard: string
+  /**
+   * mechanism 为 writepoint 时：**为什么正则兜不住**。
+   * 「项目名」「资产正文」都是**任意自由文本** —— 正则无法可靠识别「这段文字算不算项目名」，
+   * 硬写一条正则只会制造误报与漏报并存。故只能靠写入点不把自由文本放进 payload。
+   */
+  whyNotRegex?: string
+}
+
+export const FORBIDDEN_COVERAGE: ForbiddenCoverage[] = [
+  {
+    item: '绝对路径',
+    specRef: 'local-event-ledger.md FR-6.3 ＋ m8-agent-bridge.md FR-5.1.2',
+    mechanism: 'scanner',
+    guard: 'Unix 绝对路径',
+  },
+  {
+    item: 'Windows 绝对路径',
+    specRef: 'local-event-ledger.md FR-6.3（跨机种同项）',
+    mechanism: 'scanner',
+    guard: 'Windows 绝对路径',
+  },
+  {
+    item: '用户名',
+    specRef: 'local-event-ledger.md FR-6.3 ＋ m8-agent-bridge.md FR-5.1.2',
+    mechanism: 'scanner',
+    guard: '本机用户名',
+  },
+  {
+    item: '本机 home 目录片段',
+    specRef: 'm8-agent-bridge.md FR-5.1.2 的 `cwd`',
+    mechanism: 'scanner',
+    guard: 'home 目录片段',
+  },
+  {
+    item: '项目名',
+    specRef: 'local-event-ledger.md FR-6.3 ＋ m8-agent-bridge.md FR-5.1.2',
+    mechanism: 'writepoint',
+    guard: '写入点按白名单构造 payload（各 kind 的 AGENT_PAYLOAD_KEYS / PAYLOAD_KEYS）',
+    whyNotRegex: '项目名是任意自由文本，正则无法可靠判断「这串字是不是某个项目的名字」',
+  },
+  {
+    item: '资产正文 / 会话正文 / body 片段',
+    specRef: 'local-event-ledger.md FR-6.3「资产正文」＋ m8-agent-bridge.md FR-5.1.2「会话正文／body」',
+    mechanism: 'writepoint',
+    guard: '同上：白名单构造，业务正文根本不会进入台账 payload',
+    whyNotRegex: '正文是任意长自由文本；正则只能覆盖「恰好长得像路径」的子集，其余静默漏过',
+  },
+]
+
 /** 返回命中的禁列标签列表（空数组 = 干净） */
 export function scanForbidden(row: ForbiddenRow): string[] {
   let payload: unknown

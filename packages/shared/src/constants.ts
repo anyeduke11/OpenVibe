@@ -121,37 +121,60 @@ export const LOCAL_EVENT_KINDS = [...LEDGER_EVENT_KINDS, ...AGENT_EVENT_KINDS] a
 export type LocalEventKind = (typeof LOCAL_EVENT_KINDS)[number]
 
 /**
- * 台账事件的 `payload_json` **允许键闭集**（`m8-agent-bridge.md` FR-5.1.1）。
+ * 台账事件的 `payload_json` **形状**（`m8-agent-bridge.md` FR-5.1.1）。
  *
- * ## 为什么收在这里，而不是跟着各自的 service 走
+ * **这是键与类型的唯一出处** —— 键集由它派生（`AGENT_PAYLOAD_KEYS`），类型也由它给出。
+ * ⚠️ 刻意**不做成两张表**：键与类型同属一份契约，分成两张就等于把「改了键忘了改类型」
+ * 重新变成一种可能 —— 而值类型恰恰是键名判据**看不见**的那一半（2026-10-17 实测：
+ * `agent_context_served.truncated` 规格写 bool、实现写数字，键名一致 ⇒ 所有既有守卫全绿）。
+ */
+const AGENT_PAYLOAD_SHAPE = {
+  agent_ingest_accepted: { kind: 'string', sourcePlatform: 'string' },
+  agent_ingest_rejected: { kind: 'string', reasonCode: 'string' },
+  /** ⚠️ `truncated` 是**计数**（`TruncationNote[]` 的 `.length`），不是 bool —— owner 2026-10-17 裁定 */
+  agent_context_served: { fieldsCount: 'number', truncated: 'number', platform: 'string' },
+  cli_agent_command_run: { command: 'string', exitCode: 'number', agent: 'string' },
+  /** 声明态：写入点属 M8-A（Phase 2），本轮无生产写入点 */
+  agent_bridge_installed: { adapter: 'string', packVersion: 'string' },
+} as const
+
+/** 台账 payload 允许的值类型 */
+export type AgentPayloadValueType = 'string' | 'number' | 'boolean'
+
+export const AGENT_PAYLOAD_TYPES = AGENT_PAYLOAD_SHAPE as unknown as Record<
+  string,
+  Record<string, AgentPayloadValueType>
+>
+
+/** 台账事件的 `payload_json` **允许键闭集**（由上面的形状派生） */
+export const AGENT_PAYLOAD_KEYS = Object.fromEntries(
+  Object.entries(AGENT_PAYLOAD_SHAPE).map(([k, v]) => [k, Object.keys(v).sort()]),
+) as unknown as { readonly [K in keyof typeof AGENT_PAYLOAD_SHAPE]: readonly string[] }
+
+/**
+ * 2026-10-17 实测的三个结构问题，此处逐一登记（理由详见 dev-plan §4.2 的 DEV-0109）：
  *
- * 2026-10-17 实测：这三张表原先散在三个地方 —— `agentService` 一张（**且零消费者**）、
- * `commandRunService` 一张、`contextService` 根本没有。而三处测试各自**硬编码**键名，
- * 于是「规格说五类、代码只验一类」这件事能长期绿着：改规格不会红，改代码也不会红。
+ * ## 1. 为什么收在这里，而不是跟着各自的 service 走
  *
- * 故本表是唯一出处，service 与测试都引它。⚠️ **键名按仓内 camelCase 惯例**，
- * `m8-agent-bridge.md` FR-5.1.1 原文写的是 snake_case，那是规格文本侧的待对齐项，
- * 不是实现侧的偏差（实现侧的 camelCase 与台账既有 `assetType`／`origin` 一致）。
+ * 此前这三张表散在三个地方 —— `agentService` 一张（**且零消费者**）、`commandRunService`
+ * 一张、`contextService` 根本没有。而三处测试各自**硬编码**键名，于是「规格说五类、
+ * 代码只验一类」能长期绿着。改规格不会红、改代码也不会红。
  *
- * ## 「闭集」是等式不是包含
+ * ## 2. 「闭集」是等式不是包含
  *
  * 写入点按白名单构造、不 spread 入参 ⇒ 实际键集**恰好等于**表内那一组。
  * 故测试断言用 `toEqual` 而非 `toContain`：写成包含关系时，多出一个键仍会绿，
  * 而多出的键正是 `payload` 里混进业务数据的入口。
  *
+ * ## 3. ⚠️ 键名按仓内 camelCase 惯例
+ *
+ * `m8-agent-bridge.md` FR-5.1.1 原文写的是 snake_case（`exit_code` / `source_platform` /
+ * `reason_code`），那是规格文本侧的待对齐项，不是实现侧的偏差。
+ *
  * ⚠️ `agent_bridge_installed` 属**声明态** —— 写入点在 M8-A（Phase 2），
- *   其 spec `m8-skill-bridge.md` 尚未写。故此处登记键集，但当前**无生产写入点**。
+ *   其 spec `m8-skill-bridge.md` 尚未写。故此处登记形状，但当前**无生产写入点**。
  */
-export const AGENT_PAYLOAD_KEYS = {
-  agent_ingest_accepted: ['kind', 'sourcePlatform'],
-  agent_ingest_rejected: ['kind', 'reasonCode'],
-  agent_context_served: ['fieldsCount', 'truncated', 'platform'],
-  cli_agent_command_run: ['command', 'exitCode', 'agent'],
-  /** 声明态：写入点属 M8-A（Phase 2），本轮无生产写入点 */
-  agent_bridge_installed: ['adapter', 'packVersion'],
-} as const satisfies Record<string, readonly string[]>
-
-export type AgentPayloadKind = keyof typeof AGENT_PAYLOAD_KEYS
+export type AgentPayloadKind = keyof typeof AGENT_PAYLOAD_SHAPE
 
 
 /** `kind` 与 `day` 的联合索引口径（FR-1.2）；day 落列不现算，照 telemetry_events 先例 */

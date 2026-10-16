@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { newDb, payloadKeys, scanForbidden, selfProofRows } from '../test-support'
+import { FORBIDDEN, FORBIDDEN_COVERAGE, newDb, payloadKeys, scanForbidden, selfProofRows } from '../test-support'
 import { FlowTemplatesRepo } from '../repos/flows'
 import { ProjectsRepo } from '../repos/projects'
 import { createAgentService } from './agentService'
 import { createContextService } from './contextService'
 import { createCommandRunService } from './commandRunService'
-import { AGENT_PAYLOAD_KEYS, AGENT_EVENT_KINDS } from '@openvibe/shared'
+import { AGENT_PAYLOAD_KEYS, AGENT_PAYLOAD_TYPES, AGENT_EVENT_KINDS } from '@openvibe/shared'
 
 /**
  * M8 台账 payload 的**统一守卫**（`m8-agent-bridge.md` FR-5.1.1 键闭集 ＋ FR-5.1.2 禁列）。
@@ -31,7 +31,9 @@ import { AGENT_PAYLOAD_KEYS, AGENT_EVENT_KINDS } from '@openvibe/shared'
  */
 
 // 本文件在 `packages/core/src/services/` ⇒ 退 4 级到仓根（services → src → core → packages → 根）
-const SPEC_PATH = join(import.meta.dirname, '..', '..', '..', '..', 'docs', 'specs', 'm8-agent-bridge.md')
+const SPECS_DIR = join(import.meta.dirname, '..', '..', '..', '..', 'docs', 'specs')
+const SPEC_PATH = join(SPECS_DIR, 'm8-agent-bridge.md')
+const LEDGER_SPEC_PATH = join(SPECS_DIR, 'local-event-ledger.md')
 
 /** 四类**已有生产写入点**的 kind（第五类属 Phase 2，见文首） */
 const WRITTEN = ['agent_ingest_accepted', 'agent_ingest_rejected', 'agent_context_served', 'cli_agent_command_run'] as const
@@ -126,6 +128,40 @@ describe('FR-5.1.1 · 五类 payload 键闭集（单一出处 ＋ 逐字对齐�
   })
 })
 
+describe('FR-5.1.1 · 值类型（键判据看不见的那一半）', () => {
+  it('四类已写入 kind 的每个键，其值 `typeof` **逐键等于**形状表', () => {
+    // 为什么单独立一组：键闭集只比**键名**。键名一致时，值类型分歧对所有键判据隐形 ——
+    // `agent_context_served.truncated` 就这么潜伏过（规格写 bool、实现写数字）。
+    const f = fixture()
+    for (const { kind, row } of allRowsWritten(f.h, f)) {
+      const actual = JSON.parse(row.payload_json) as Record<string, unknown>
+      // 索引在 noUncheckedIndexedAccess 下是 `| undefined`；kind 来自形状表的键集，非空是构造保证
+      const expected = AGENT_PAYLOAD_TYPES[kind]!
+      for (const [key, want] of Object.entries(expected)) {
+        expect(typeof actual[key], `${kind}.${key}`).toBe(want)
+      }
+    }
+    f.h.close()
+  })
+
+  it('⚠️ 变异腿：把 `truncated` 写成布尔值 ⇒ 类型断言当场红（否则它可能恒真）', () => {
+    // 这是本轮那条分歧的**反向复现**：规格当初写的就是 bool，
+    // 若判据只看键名，改成 bool 不会有任何东西变红。
+    const wrong = { fieldsCount: 3, truncated: true, platform: 'server' }
+    const expected = AGENT_PAYLOAD_TYPES.agent_context_served!
+    expect(typeof wrong.fieldsCount).toBe(expected.fieldsCount)
+    expect(typeof wrong.truncated).not.toBe(expected.truncated)
+  })
+
+  it('⚠️ 形状表与键表必须同源 —— 键集恰是形状表的键集（防两张表分叉）', () => {
+    for (const kind of Object.keys(AGENT_PAYLOAD_TYPES)) {
+      expect([...AGENT_PAYLOAD_KEYS[kind as keyof typeof AGENT_PAYLOAD_KEYS]].sort()).toEqual(
+        Object.keys(AGENT_PAYLOAD_TYPES[kind]!).sort(),
+      )
+    }
+  })
+})
+
 describe('FR-5.1.2 · 四类 payload 禁列（绝对路径 / 用户名 / 正文）', () => {
   it('四类已写入 kind 的真实行**零禁列命中**', () => {
     const f = fixture()
@@ -157,5 +193,53 @@ describe('FR-5.1.2 · 四类 payload 禁列（绝对路径 / 用户名 / 正文�
   it('⚠️ payload_json 不可解析时按禁列报，不得当成「干净」放行', () => {
     // 解析失败被 `catch` 吞成空数组的话，一行坏数据就能静默过关
     expect(scanForbidden({ payload_json: '{ 坏掉的 JSON' }).length).toBeGreaterThan(0)
+  })
+})
+
+describe('FR-6.3 覆盖差 · 禁列清单每一项都得能指认守卫', () => {
+  it('每个禁列项都必须有机制，且 scanner 项在 FORBIDDEN 里真有对应规则', () => {
+    for (const c of FORBIDDEN_COVERAGE) {
+      expect(['scanner', 'writepoint'], c.item).toContain(c.mechanism)
+      expect(c.guard.length, c.item).toBeGreaterThan(0)
+      if (c.mechanism === 'scanner') {
+        expect(FORBIDDEN.map((f) => f.label), c.item).toContain(c.guard)
+      } else {
+        // 靠写入点的项必须**写明为什么正则兜不住**，否则等于默默放弃
+        expect(c.whyNotRegex?.length ?? 0, c.item).toBeGreaterThan(5)
+      }
+    }
+  })
+
+  it('⚠️ 规格禁列清单的每一项都已在对照表里 —— 不许出现「只靠人记得」的项', () => {
+    const spec = readFileSync(LEDGER_SPEC_PATH, 'utf8')
+    const line = spec.split('\n').find((l) => l.includes('FR-6.3') && l.includes('payload_json'))
+    expect(line, '规格里找不到 FR-6.3 那行').toBeDefined()
+    // 规格原文四项：绝对路径 / 项目名 / 用户名 / 资产正文
+    for (const word of ['绝对路径', '项目名', '用户名', '资产正文']) {
+      expect(line, `规格 FR-6.3 提到「${word}」，对照表里却没有`).toContain(word)
+      expect(
+        FORBIDDEN_COVERAGE.some((c) => c.item.includes(word) || (c.item.includes('绝对路径') && word === '绝对路径')),
+        `对照表缺「${word}」`,
+      ).toBe(true)
+    }
+  })
+
+  it('⚠️ 变异腿：写入点若改成 spread 入参（去掉白名单构造），两条判据都必须抓到', () => {
+    // 「项目名」「正文」靠的正是白名单构造。这条腿证明那个保证是**真的**，
+    // 而不是一句「我们记得不 spread」。入参形状照 `AgentIngestOne` 的真实字段造。
+    const spread = {
+      kind: 'dev_log',
+      sourcePlatform: 'trae',
+      body: '客户名：招商银行股份有限公司 · 会议正文',
+      cwd: `${process.env.HOME ?? '/tmp'}/work`,
+    }
+    // ① 键闭集抓到多出来的键
+    expect(Object.keys(spread).sort()).not.toEqual([...AGENT_PAYLOAD_KEYS.agent_ingest_accepted].sort())
+    // ② 禁列扫到路径与 home 片段
+    const labels = scanForbidden({ payload_json: JSON.stringify(spread) })
+    expect(labels.length).toBeGreaterThan(0)
+    // ③ **但项目名与正文扫不出来** —— 这正是它们只能靠写入点的原因，
+    //    故对照表里必须写明 whyNotRegex，而不能假装扫描器管得了。
+    expect(labels).not.toContain('项目名')
   })
 })

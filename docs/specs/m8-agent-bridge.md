@@ -198,14 +198,14 @@
 ### FR-5 M8 五类埋点 kind（**B 级**：增 kind 即改迁移，与台账同一笔）
 
 - **FR-5.1 提案五项**，与台账 `LOCAL_EVENT_KINDS` 并集声明、**严格不同名**：`agent_ingest_accepted` / `agent_ingest_rejected` / `agent_context_served` / `cli_agent_command_run` / `agent_bridge_installed`。
-  - FR-5.1.1 `payload_json` **允许键**（闭集，超出即测试红）：`agent_ingest_accepted` → `kind` / `sourcePlatform`；`agent_ingest_rejected` → `kind` / `reasonCode`（**枚举，非自由文本**）；`agent_context_served` → `fieldsCount` / `truncated`(bool) / `platform`；`cli_agent_command_run` → `command`（枚举 `ask|status|session|requirement`）/ `exitCode` / `agent`；`agent_bridge_installed` → `adapter` / `packVersion`。
+  - FR-5.1.1 `payload_json` **允许键**（闭集，超出即测试红）：`agent_ingest_accepted` → `kind` / `sourcePlatform`；`agent_ingest_rejected` → `kind` / `reasonCode`（**枚举，非自由文本**）；`agent_context_served` → `fieldsCount` / `truncated`(**number**) / `platform`；`cli_agent_command_run` → `command`（枚举 `ask|status|session|requirement`）/ `exitCode` / `agent`；`agent_bridge_installed` → `adapter` / `packVersion`。
     - 🔴 **2026-10-15 订正：原文本写的是 snake_case，与全部实现相反**（实测 `agentService.ts:117/144` 用 `reasonCode` / `sourcePlatform`，`contextService.ts:172` 用 `fieldsCount`）。仓内 payload 命名一律 camelCase（承 `assetEventInput` 的 `assetType` / `origin`），故**以实现为准改 spec**。owner 2026-10-15 指令「按代码功能完成为依据」是本次订正的依据。
     - `cli_agent_command_run` 的 `agent` 字段：**原 spec 只给键名未给语义**（本仓第四次「引用既有 X 而 X 未定义」的变体）。**2026-10-16 owner 裁定**：
       - 取值来源：环境变量 `OPENVIBE_AGENT` 的平台标识字符串，**缺省 `null` 表示「人跑的」**。用 env 而非 flag 的理由是 agent 调 CLI 时能自报、而人类不会设这个变量。
       - 取值域：非空字符串，**长度上限 64**（超长在服务层拒 422）。含 `/`、`\`、`~` 一律拒——**防整段路径随埋点落进台账**（FR-5.1.2 把路径列为禁列）。
       - ⚠️ **它不是身份凭证，不得用于任何鉴权或授权判断**。它可被伪造（env 会继承、会被手设），只用于统计「CLI 侧有多少是 agent 驱动的」。鉴权全部在 token ＋ `Host`/`Origin` 双闸（FR-3.5），与本字段无关。**写清这条是为了防日后有人拿它当信任依据。**
   - FR-5.1.2 **禁列**：绝对路径、项目名、用户名、会话正文、`body` 任何片段、`cwd`。
-    - ⚠️ **待裁（2026-10-17 实测发现，本轮未擅自改契约）**：FR-5.1.1 原文写 `agent_context_served` 的 `truncated` 是 **bool**，而 `contextService.ts` 实写的是 `truncated: truncated.length` —— **数字**。 内部量本就是 `TruncationNote[]`（每次裁剪一条说明），取 `.length` 是最自然的标量， 且与同键的 `fieldsCount`（同为计数）一致；改成 bool 会丢掉「裁了几处」这个本机台账正需要的量。 **但这是契约，不该由实现侧单方面定**：处置 (a) 改实现为 bool、(b) 改本行为 number、 (c) 登记待裁。**agent 可直接读到该值，两种选择对它的用法不同**（bool 用于「有没有被裁」，number 用于「裁得狠不狠」）。⚠️ 键名两侧一致（都是 `truncated`）， 故 §7 条 u 的**键闭集判据不受影响** —— 这条分歧只在**值类型**上，判据暂未覆盖。
+    - ⚠️ **owner 2026-10-17 裁定（本条原为待裁）**：FR-5.1.1 原文写 `truncated` 是 **bool**，而 `contextService.ts` 实写的是 `truncated: truncated.length` —— **数字**。**裁 (b)：以实现为准，规格改 number。**理由：内部量本就是 `TruncationNote[]`（每次裁剪一条说明），取 `.length` 是最自然的标量；且与同键的 `fieldsCount`（同为计数）一致；改成 bool 会丢掉「裁了几处」这个本机台账正需要的量。**同时补判据**：键闭集只比键集合，**看不见值类型** —— 故 `AGENT_PAYLOAD_TYPES` 与 `AGENT_PAYLOAD_KEYS` 由同一张形状表派生，并有测试断实际写入值的 `typeof`。没有这一步，本条会长期潜伏：键名一致 ⇒ 键判据绿 ⇒ 类型分歧对所有闸隐形。
   - FR-5.1.3 FR-5.1.2 由一条单测对 `payload_json` 做**绝对路径与项目名模式扫描**兜（照 `local-event-ledger.md` §7-d 同型）。
 - **FR-5.2 写入点集中**：写入只发生在服务层（`services/` 内一处），**不散落 repo 与 route**（承 `local-event-ledger.md` FR-3）。
 - **FR-5.3 遥测白名单零改动**：M8 **一条都不加进 `TELEMETRY_EVENTS`**（D3 白名单是 A/B 级隐私面，§3-11 三类不变）。由断言守：`AGENT_EVENT_KINDS ∩ TELEMETRY_EVENTS === ∅`。
