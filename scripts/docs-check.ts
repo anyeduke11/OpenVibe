@@ -7,17 +7,35 @@
  * （计数错报、断号、版本行形状走形）。可机判的那几类，正确处置不是逐条修存量，
  * 而是**建校验**，让它们不再发生。
  *
- * ## 七条能红能绿的独立判据（dev-plan §16.10 的计数口径：FR-7／FR-8 是输出面，不计入）
+ * ## 八条能红能绿的独立判据（dev-plan §16.10 的计数口径：输出面不计入）
  *
  * | 判据 | 管什么 |
  * |---|---|
  * | FR-1 | DEV 登记号段连续且唯一（「同号＋补记」是合法形态） |
  * | FR-2 | 队列行状态枚举合法 ＋ 净状态计数自洽 |
- * | FR-3.4 | 相对链接的目标必须真实存在（本 FR 里唯一纯可判定的一条） |
+ * | FR-3.4 | 相对链接的目标必须真实存在（FR-3 里唯一纯可判定的一条） |
  * | FR-4 | spec 版本行存在（分式断言）＋ 列数与表头一致 ＋ 版本链单调 |
  * | FR-5 | 登记五段齐备 ＋「测试验证」段含可复算命令 |
  * | FR-6 | 触 A 契约的改动须有独立复核记录段 |
  * | FR-9 | 冻结面零 diff（`tests/golden/` **与** `content/seed/` 两面） |
+ * | FR-11 | 否定式全局断言必须自带可复算凭据 |
+ *
+ * **8 ＝ 触发线**，超限即触发复审，处置是**撤回而非调松**（dev-plan §16.10）。
+ * 撤回要撤具体某一条 ⇒ 候补清单预先登记在基线文件里，触线时闸直接把它打出来，
+ * 见 `checkRuleBudget`。
+ *
+ * ## 四块只报数、不判红绿的面（**按 §16.10 原文不计入判据数**）
+ *
+ * | 面 | 报什么 |
+ * |---|---|
+ * | FR-7 | MT4 验收覆盖比 |
+ * | FR-8 | MT6 可机判漂移数 |
+ * | `claimSample` | 否定断言的凭据命令**抽样实跑**，核对「文档说的数」与「真跑出的数」 |
+ * | `probe` | 探针五问的实机跑结果文件是否存在、五问是否都有结论 |
+ *
+ * ⚠️ 后两块是 2026-10-17 加的，**刻意做成报告面而非判据**：它们要解决的是
+ * 「欠账可见」与「抽查能抓到漂移」，不是「保证零漂移」；做成判据会把判据数推过线。
+ * 代价是它们**不会让 CI 红** —— 这是有意的取舍，不是遗漏。
  *
  * ## 为什么本闸有「基线」机制，而不给历史开豁免名单
  *
@@ -493,6 +511,11 @@ export interface Baseline {
    * 理由写在值里；等它被判红时，把通配换成逐条精确登记即可。
    */
   known: Record<string, string>
+  /**
+   * **候补撤回清单**（2026-10-17）：判据数触线时照单撤，不临时吵。
+   * 顺序即撤回优先级；闸只负责「按顺序输出前 N 条」，不自己挑。
+   */
+  withdrawalCandidates?: WithdrawalCandidate[]
 }
 
 const BASELINE_PATH = 'docs/docs-check-baseline.json'
@@ -534,9 +557,13 @@ export interface Metrics {
   mt4: { numerator: number; denominator: number; ratio: string }
   /** FR-8：本轮可机判漂移数，按四类分开 */
   mt6: Record<string, number>
+  /** 否定断言的凭据命令抽样实跑结果（不判红绿） */
+  claimSample: ClaimSample
+  /** 探针五问结果文件的存在性与填写度（不判红绿） */
+  probe: { file: string | null; missing: string[]; unfilled: string[] }
 }
 
-export function collectMetrics(repoRoot: string): Metrics {
+export function collectMetrics(repoRoot: string): Pick<Metrics, 'mt4' | 'mt6'> {
   const specs = readdirSync(join(repoRoot, 'docs/specs')).filter((f) => f.endsWith('.md'))
   let denominator = 0
   let numerator = 0
@@ -559,6 +586,273 @@ export function collectMetrics(repoRoot: string): Metrics {
       契约串vs实现: 0,
     },
   }
+}
+
+/* ════════════════════════════════════════════════════════ 判据预算（元判据） */
+
+/**
+ * 能红能绿的独立判据登记表 —— **计数口径的单源**（dev-plan §16.10）。
+ *
+ * ⚠️ **本表刻意不含「输出面」**：FR-7／FR-8 与本轮新增的 `claimSample`／`probe`
+ * 各产一个数、不判红绿，按 §16.10 原文**不计入**。
+ *
+ * ⚠️ **本表也刻意不含 `checkRuleBudget` 自己**。它判的是「判据集」而非文档，
+ * 若把自己算进去，则它的存在本身就把计数推到上限以上 ⇒ **永远触发**。
+ * 这属**结构性自指**（判据按构造必然包含自己），处置是显式登记豁免，不是调松判据。
+ */
+export const JUDGMENT_RULES: { id: string; checks: string }[] = [
+  { id: 'FR-1', checks: 'DEV 登记号段连续且唯一（「同号＋补记」是合法形态）' },
+  { id: 'FR-2', checks: '队列行状态枚举合法 ＋ 净状态计数自洽' },
+  { id: 'FR-3.4', checks: '相对链接的目标必须真实存在（FR-3 里唯一纯可判定的一条）' },
+  { id: 'FR-4', checks: 'spec 版本行存在（分式断言）＋ 列数一致 ＋ 版本链单调' },
+  { id: 'FR-5', checks: '登记五段齐备 ＋「测试验证」段含可复算命令' },
+  { id: 'FR-6', checks: '触 A 契约的改动须有独立复核记录段' },
+  { id: 'FR-9', checks: '冻结面零 diff（tests/golden/ 与 content/seed/ 两面）' },
+  { id: 'FR-11', checks: '否定式全局断言必须自带可复算凭据' },
+]
+
+/** dev-plan §16.10 的触发线：「规则条数 > 8 即触发复审」 */
+export const RULE_BUDGET_LIMIT = 8
+
+export interface WithdrawalCandidate {
+  /** 被撤对象，如 `FR-5` */
+  id: string
+  /** 撤什么，一句话 */
+  what: string
+  /** 为什么它是这个顺位的被撤对象 */
+  why: string
+}
+
+/**
+ * 判据预算检查：条数超限时，**直接把该撤哪几条连同理由打出来**。
+ *
+ * **为什么要它**：触线处置是「撤回而非调松」，而撤回要撤具体某一条。
+ * 没有预登记清单时，下一轮会被迫在「临时吵」与「随手调松阈值」之间二选一 ——
+ * 后者正是 dev-plan §16.10 要防的漂移方向。故把取舍**提前**做成清单，触发时照单执行。
+ *
+ * **它按登记顺序输出前 N 条**（N ＝ 超出量），不自己挑：挑选权在人，清单只负责排序。
+ */
+export function checkRuleBudget(
+  baseline: Baseline,
+  rules: { id: string; checks: string }[] = JUDGMENT_RULES,
+  limit = RULE_BUDGET_LIMIT,
+): Finding[] {
+  const over = rules.length - limit
+  if (over <= 0) return []
+  const cands = baseline.withdrawalCandidates ?? []
+  if (cands.length === 0) {
+    return [
+      {
+        rule: 'RULE-BUDGET',
+        level: 'error',
+        message: `判据数 ${rules.length} > 上限 ${limit}，而基线未登记任何候补撤回项 —— 按 dev-plan §16.10，触线的处置是撤回而非调松，需先补清单`,
+        evidence: BASELINE_PATH,
+      },
+    ]
+  }
+  return cands.slice(0, over).map((c, i) => ({
+    rule: 'RULE-BUDGET',
+    level: 'error' as Level,
+    message: `判据数 ${rules.length} > 上限 ${limit} ⇒ 建议按清单撤回第 ${i + 1} 项：${c.id}（${c.what}）。理由：${c.why}`,
+    evidence: `${BASELINE_PATH} → withdrawalCandidates[${i}]`,
+  }))
+}
+
+/* ════════════════════════════════════════════════════════ 输出面 A · 凭据抽样实跑 */
+
+/** 一条待核的凭据命令：文档说它输出多少，我们真去跑一遍看是多少 */
+export interface GrepClaim {
+  path: string
+  line: number
+  command: string
+  /** 文档声称的数值；`空` 视作 0 */
+  claimed: number
+}
+
+const SHELL_METACHARS = /[;&|`$><]/
+
+/**
+ * 把凭据里的 grep 命令拆成 argv。
+ *
+ * ⚠️ **绝不走 shell**。凭据来自仓库文档，是不可信输入；一旦交给 shell，
+ * 一个文档行就能让 `docs:check` 执行任意命令。故只认「首个 token 是 grep/rg」的数组形式，
+ * 且任何 shell 元字符一律拒绝 —— 宁可漏抽样，不可执行面放宽。
+ *
+ * 末尾的 `| wc -l`／`| head -N` 先剥掉：我们自己数行数，不需要管道。
+ *
+ * ⚠️ **含省略号（`…`／`...`）的命令一律拒掉**。正文里为了行文顺畅常写
+ * `grep … → 0` 这种缩写，它**不是凭据**—— 本轮实测差点因此把「跑不通（退出码 2）」
+ * 报成一条凭据失效，而真实原因只是文档没写全。区分「凭据失效」与「这里根本没写凭据」
+ * 很重要：前者要修文档，后者要改文档的**写法规范**，混起来会让前者显得更频繁。
+ */
+export function parseGrepCommand(cmd: string): { argv: string[]; mode: 'lines' | 'count' } | null {
+  if (/…|\.\.\./.test(cmd)) return null
+  const stripped = cmd.replace(/\|\s*(?:wc\s+-l|head|head\s+-\S+|tail|tail\s+-\S+)\s*$/, '')
+  if (SHELL_METACHARS.test(stripped)) return null
+  const tokens = stripped.match(/"[^"]*"|'[^']*'|\S+/g)
+  if (!tokens || tokens.length < 2) return null
+  const argv = tokens.map((t) =>
+    t.length > 1 && (t.startsWith('"') || t.startsWith("'")) ? t.slice(1, -1) : t,
+  )
+  if (argv[0] !== 'grep' && argv[0] !== 'rg') return null
+  const mode = argv.some((a) => a === '-c' || /^-[a-zA-Z]*c[a-zA-Z]*$/.test(a)) ? 'count' : 'lines'
+  return { argv, mode }
+}
+
+/** 从 FR-11 命中行的三行窗口里，抽出「命令 + 声称值」 */
+export function extractGrepClaims(files: { path: string; lines: string[] }[]): GrepClaim[] {
+  const out: GrepClaim[] = []
+  for (const f of files) {
+    f.lines.forEach((line, i) => {
+      if (!NEGATIVE_CLAIM_PATTERNS.some((p) => p.re.test(line))) return
+      const window = `${line}\n${f.lines[i + 1] ?? ''}\n${f.lines[i + 2] ?? ''}`
+      const claimedMatch = window.match(/→\s*(\d+)/) ?? window.match(/同样\s*(\d+)/)
+      if (!claimedMatch) return
+      for (const m of window.matchAll(/`([^`]+)`/g)) {
+        const cmd = (m[1] ?? '').trim()
+        if (!/^(grep|rg)\b/.test(cmd)) continue
+        out.push({ path: f.path, line: i + 1, command: cmd, claimed: Number(claimedMatch[1]) })
+      }
+    })
+  }
+  return out
+}
+
+export interface ClaimSample {
+  /** 抽了几条 / 一共几条（治理成本必须可见） */
+  sampled: number
+  total: number
+  /** 形态不在白名单、没跑的条数 —— 单独报出，否则「没抓到」会被读成「全对」 */
+  skipped: number
+  /**
+   * ⚠️ 窗口里有凭据命令、但**没能解析出声称值**的条数。
+   *
+   * **为什么必须单独报**：认不出来的那条会**悄悄从清单里消失**，
+   * 于是本轮可能跑成 `0/0 条已跑｜不符 0 条` —— 看着全绿，实则一条都没验。
+   * 本轮实测就踩到：把凭据写成 `→ **3**`（数字加了粗），`→ N` 的正则就匹配不上，
+   * 抓过一条真错事实的面瞬间退化成空转。
+   */
+  unparsed: number
+  mismatches: { claim: GrepClaim; actual: number | null; note: string }[]
+}
+
+/**
+ * 抽样实跑否定断言的凭据命令，核对「文档说的数」与「真跑出来的数」。
+ *
+ * **FR-11 只断「有没有凭据」，凭据本身对不对没人验** —— 一句 `grep … → 0` 能过审，
+ * 但没人真跑过它。这与本仓登记过的「24 个虚构测试 ID」是同一层：**凭据存在 ≠ 凭据为真**。
+ *
+ * ⚠️ **只报不判，且限抽样**：全量实跑的成本随文档增长，而这条面要解决的是
+ * 「抽查能不能抓到漂移」，不是「保证零漂移」。所以抽样量固定并**把比例打出来** ——
+ * 治理成本不可见的自动化等于没有成本约束。
+ */
+export function sampleClaimCredentials(
+  repoRoot: string,
+  files: { path: string; lines: string[] }[],
+  limit = 6,
+  run: (argv: string[], root: string) => { rc: number | null; stdout: string } = (argv, root) => {
+    const [bin, ...rest] = argv
+    // `noUncheckedIndexedAccess` 下首元素是 `string | undefined`；解析器已保证它必是 grep/rg，
+    // 这里只是把类型收干净，真走到 undefined 就当作「没有可执行体」。
+    if (bin === undefined) return { rc: null, stdout: '' }
+    const r = spawnSync(bin, rest, { cwd: root, encoding: 'utf8', timeout: 5000 })
+    return { rc: r.status, stdout: r.stdout ?? '' }
+  },
+): ClaimSample {
+  const claims = extractGrepClaims(files)
+  const parsed = claims.map((c) => ({ c, p: parseGrepCommand(c.command) }))
+  const skipped = parsed.filter((x) => x.p === null).length
+  const runnable = parsed.filter((x) => x.p !== null).slice(0, limit)
+  const mismatches: ClaimSample['mismatches'] = []
+  for (const { c, p } of runnable) {
+    if (p === null) continue
+    const { rc, stdout } = run(p.argv, repoRoot)
+    if (rc !== 0) {
+      mismatches.push({ claim: c, actual: null, note: `命令跑不通（退出码 ${rc}）—— 凭据可能已失效或路径已不存在` })
+      continue
+    }
+    const lines = stdout.split('\n').filter((l) => l !== '')
+    const actual =
+      p.mode === 'count'
+        ? lines.reduce((sum, l) => {
+            const n = Number(l.slice(l.lastIndexOf(':') + 1))
+            return sum + (Number.isFinite(n) ? n : 0)
+          }, 0)
+        : lines.length
+    if (actual !== c.claimed) {
+      mismatches.push({ claim: c, actual, note: `文档称 ${c.claimed}，实跑 ${actual}` })
+    }
+  }
+  const unparsed = countUnparsedClaimWindows(files)
+  return { sampled: runnable.length, total: claims.length, skipped, unparsed, mismatches }
+}
+
+/**
+ * 数一数：有多少否定断言的窗口里**摆着凭据命令，却没给出可比的声称值**。
+ *
+ * ⚠️ 与 `extractGrepClaims` 是**两个不同的问题**：那条只收「命令 ＋ 声称值」都齐的，
+ * 这里数的是**命令在、值认不出**的。两者不分开报，就会出现「跑成 0/0 却显示全绿」。
+ */
+function countUnparsedClaimWindows(files: { path: string; lines: string[] }[]): number {
+  let n = 0
+  for (const f of files) {
+    f.lines.forEach((line, i) => {
+      if (!NEGATIVE_CLAIM_PATTERNS.some((p) => p.re.test(line))) return
+      const window = `${line}\n${f.lines[i + 1] ?? ''}\n${f.lines[i + 2] ?? ''}`
+      const hasGrep = [...window.matchAll(/`([^`]+)`/g)].some((m) => /^(grep|rg)\b/.test((m[1] ?? '').trim()))
+      if (!hasGrep) return
+      const hasClaim = /→\s*\d+/.test(window) || /同样\s*\d+/.test(window)
+      if (!hasClaim) n++
+    })
+  }
+  return n
+}
+
+/* ════════════════════════════════════════════════════════ 输出面 B · 探针五问结果 */
+
+/** 探针五问的题号（dev-plan §6.3）。Q2 本轮作废，但仍占一格 —— 作废是结论，不是删题 */
+export const PROBE_QUESTIONS = ['Q1', 'Q2', 'Q3', 'Q4', 'Q5'] as const
+
+const PROBE_DIR = 'docs/devlog-evidence/M8-probe'
+const FILLED_PLACEHOLDERS = /^(（?\s*(待填|待补|未填|todo|tbd|—|-)\s*）?)$/i
+
+/**
+ * 探针五问的实机跑结论必须落成机器可读的**结果文件**，且五问都要有结论。
+ *
+ * **为何要有这道面**：owner 在 GUI 跑完的结论若只贴进聊天，dev-plan §6.3 的表格不会被更新，
+ * 下一轮又有人以为没跑过 —— 「跑过」这件事本身开始腐烂。
+ *
+ * ⚠️ **只报不判**：四问要 owner 上机才跑得到，脚本代不了；这条面的作用是**让欠账可见**，
+ *   不是逼人编答案。
+ */
+export function checkProbeResults(repoRoot: string): {
+  file: string | null
+  missing: string[]
+  unfilled: string[]
+} {
+  const dir = join(repoRoot, PROBE_DIR)
+  if (!existsSync(dir)) return { file: null, missing: [...PROBE_QUESTIONS], unfilled: [] }
+  const results = readdirSync(dir)
+    .filter((f) => f.startsWith('results-') && f.endsWith('.md'))
+    .sort()
+  if (results.length === 0) return { file: null, missing: [...PROBE_QUESTIONS], unfilled: [] }
+  const file = `${PROBE_DIR}/${results[results.length - 1]}`
+  const text = readFileSync(join(repoRoot, file), 'utf8')
+  const missing: string[] = []
+  const unfilled: string[] = []
+  for (const q of PROBE_QUESTIONS) {
+    const row = text.split('\n').find((l) => new RegExp(`^\\|\\s*\\*\\*${q}\\*\\*`).test(l))
+    if (!row) {
+      missing.push(q)
+      continue
+    }
+    // ⚠️ 下标是 **2** 不是 1：按 `|` 切开后第 0 段是行首竖线前的空串，
+    // 第 1 段是**题列**（` **Q1** 加载时机…`），结论在第 2 段。
+    // 取成 1 会把题列当结论 —— 而题列永远不是占位符，于是「留空」这一支**恒不触发**。
+    const conclusion = (row.split('|')[2] ?? '').replace(/\*\*/g, '').trim()
+    if (conclusion === '' || FILLED_PLACEHOLDERS.test(conclusion)) unfilled.push(q)
+  }
+  return { file, missing, unfilled }
 }
 
 /* ════════════════════════════════════════════════════════ 装配与 CLI */
@@ -627,6 +921,10 @@ export function runAll(repoRoot: string): { findings: Finding[]; metrics: Metric
     .filter((rel) => !rel.includes(ARCHIVE_PREFIX))
     .map((rel) => ({ path: rel, lines: readFileSync(join(repoRoot, rel), 'utf8').split('\n') }))
 
+  const baseline: Baseline = existsSync(join(repoRoot, BASELINE_PATH))
+    ? (JSON.parse(readFileSync(join(repoRoot, BASELINE_PATH), 'utf8')) as Baseline)
+    : { note: '（基线文件不存在：所有问题一律按 error 计）', known: {} }
+
   const findings: Finding[] = [
     ...checkDevNumbering(log),
     ...checkQueue(decisions),
@@ -636,14 +934,21 @@ export function runAll(repoRoot: string): { findings: Finding[]; metrics: Metric
     ...checkReviewRecord(log),
     ...checkNegativeClaims(docFiles),
     ...checkFrozenSurface(repoRoot),
+    // ⚠️ 必须在 applyBaseline **之前**入列：基线的通配登记是按 `规则|*` 压命中项的，
+    // 若先过基线，这条「判据集」层面的检查会被任何一条无关规则的通配压掉。
+    ...checkRuleBudget(baseline),
   ]
 
-  const baseline: Baseline = existsSync(join(repoRoot, BASELINE_PATH))
-    ? (JSON.parse(readFileSync(join(repoRoot, BASELINE_PATH), 'utf8')) as Baseline)
-    : { note: '（基线文件不存在：所有问题一律按 error 计）', known: {} }
   const applied = applyBaseline(findings, baseline)
 
-  return { findings: applied.findings, metrics: collectMetrics(repoRoot) }
+  return {
+    findings: applied.findings,
+    metrics: {
+      ...collectMetrics(repoRoot),
+      claimSample: sampleClaimCredentials(repoRoot, docFiles),
+      probe: checkProbeResults(repoRoot),
+    },
+  }
 }
 
 export function render(result: { findings: Finding[]; metrics: Metrics }): string {
@@ -669,6 +974,25 @@ export function render(result: { findings: Finding[]; metrics: Metrics }): strin
   out.push(`── MT4 验证覆盖比：${result.metrics.mt4.ratio}（不判红绿，只报数）`)
   out.push('── MT6 可机判漂移数（不判红绿，只报数）')
   for (const [k, v] of Object.entries(result.metrics.mt6)) out.push(`   · ${k}：${v}`)
+
+  const cs = result.metrics.claimSample
+  out.push(
+    `── 否定断言凭据抽样实跑：${cs.sampled}/${cs.total} 条已跑（上限 ${cs.sampled}，另 ${cs.skipped} 条形态不合规/已省略未跑、${cs.unparsed} 条窗口内认不出声称值）｜不符 ${cs.mismatches.length} 条（不判红绿，只报数）`,
+  )
+  for (const m of cs.mismatches) {
+    out.push(`   · ${m.claim.path}:${m.claim.line} —— ${m.note}`)
+    out.push(`       \`${m.claim.command}\``)
+  }
+
+  const pr = result.metrics.probe
+  const probeState = [
+    pr.file === null ? '结果文件缺失' : `结果文件 ${pr.file}`,
+    pr.missing.length > 0 ? `缺题 ${pr.missing.join('/')}` : null,
+    pr.unfilled.length > 0 ? `留空 ${pr.unfilled.join('/')}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+  out.push(`── 探针五问结果（不判红绿，只报数）：${probeState || '五问齐备'}`)
   return out.join('\n')
 }
 

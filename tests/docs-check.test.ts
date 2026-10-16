@@ -1,17 +1,35 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, afterEach } from 'vitest'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   applyBaseline,
   checkDevNumbering,
   checkEntrySections,
   checkFrozenSurface,
+  checkProbeResults,
   checkQueue,
   checkRelativeLinks,
   checkNegativeClaims,
+  checkRuleBudget,
   checkSpecVersions,
+  extractGrepClaims,
+  JUDGMENT_RULES,
   NEGATIVE_CLAIM_PATTERNS,
+  parseGrepCommand,
+  PROBE_QUESTIONS,
+  RULE_BUDGET_LIMIT,
+  sampleClaimCredentials,
   type Baseline,
   type Finding,
 } from '../scripts/docs-check'
+
+/** 本仓根：几支腿要读真实基线文件与真实探针结果文件 */
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+/** 造一份「文档路径 + 按行切开的正文」；FR-11 与抽样面吃的就是这个形状 */
+const asDocFiles = (content: string) => [{ path: 'docs/specs/x.md', lines: content.split('\n') }]
 
 /**
  * `scripts/docs-check.ts` 的判据测试（2026-10-16，docs-governance-check.md §7.2）。
@@ -367,5 +385,228 @@ describe('docs-check · FR-11 变异样本（否定式全局断言须附凭据�
     for (const phrase of ['该组件不存在', '零命中', '没有任何一列的损坏率数据', '全仓搜索过一次']) {
       expect(NEGATIVE_CLAIM_PATTERNS.some((p) => p.re.test(phrase)), phrase).toBe(false)
     }
+  })
+})
+
+/* ════════════════════════════════════════════════════════ 判据预算（元判据） */
+
+/** 造 n 条占位判据，用来把计数推过线 */
+function plusFakeRules(base: { id: string; checks: string }[], n: number) {
+  return [...base, ...Array.from({ length: n }, (_, i) => ({ id: `FR-X${i}`, checks: '填充项' }))]
+}
+
+describe('docs-check · 判据预算变异样本（2026-10-17 owner 指令）', () => {
+  const CANDIDATES = [
+    { id: 'FR-A', what: '第一条候选', why: '甲理由' },
+    { id: 'FR-B', what: '第二条候选', why: '乙理由' },
+  ]
+  const withCandidates = { note: '', known: {}, withdrawalCandidates: CANDIDATES }
+
+  it('判据数恰好等于上限 ⇒ 不得有任何输出（现测 8 条，正好压线不触发）', () => {
+    expect(RULE_BUDGET_LIMIT).toBe(8)
+    expect(JUDGMENT_RULES).toHaveLength(RULE_BUDGET_LIMIT)
+    expect(checkRuleBudget({ note: '', known: {} }, JUDGMENT_RULES)).toEqual([])
+  })
+
+  it('⚠️ 变异样本：加到第 9 条 ⇒ 必须打出**建议撤回项与理由**，且按清单顺序', () => {
+    const out = checkRuleBudget(withCandidates, plusFakeRules(JUDGMENT_RULES, 1))
+    expect(out).toHaveLength(1)
+    expect(out[0]?.level).toBe('error')
+    expect(out[0]?.message).toContain('9 > 上限 8')
+    expect(out[0]?.message).toContain('FR-A')
+    expect(out[0]?.message).toContain('甲理由')
+  })
+
+  it('⚠️ 超限两条 ⇒ 一次给出**两项**建议，不是一轮只吐一项', () => {
+    const out = checkRuleBudget(withCandidates, plusFakeRules(JUDGMENT_RULES, 2))
+    expect(out).toHaveLength(2)
+    expect(out.map((f) => f.message)).toEqual([
+      expect.stringContaining('第 1 项：FR-A'),
+      expect.stringContaining('第 2 项：FR-B'),
+    ])
+  })
+
+  it('⚠️ 触线却**没有**登记撤回清单 ⇒ 必须报「需先补清单」，不得静默放行', () => {
+    // 最容易出的事故：有人加了第 9 条却没登记候补，闸若默认放行等于没设防。
+    const out = checkRuleBudget({ note: '', known: {} }, plusFakeRules(JUDGMENT_RULES, 1))
+    expect(out).toHaveLength(1)
+    expect(out[0]?.message).toContain('未登记任何候补撤回项')
+  })
+
+  it('⚠️ 登记表**不得**把自己算进去（否则本判据的存在本身就把计数推过线 ⇒ 永远触发）', () => {
+    expect(JUDGMENT_RULES.some((r) => r.id.includes('BUDGET'))).toBe(false)
+    expect(JUDGMENT_RULES).toHaveLength(RULE_BUDGET_LIMIT)
+  })
+
+  it('真实基线文件里的候补撤回清单必须非空且逐项带理由（不得是空壳）', () => {
+    const b = JSON.parse(readFileSync(join(REPO_ROOT, 'docs', 'docs-check-baseline.json'), 'utf8')) as Baseline
+    expect(Array.isArray(b.withdrawalCandidates)).toBe(true)
+    expect(b.withdrawalCandidates?.length ?? 0).toBeGreaterThanOrEqual(2)
+    for (const c of b.withdrawalCandidates ?? []) {
+      expect(c.id.length, c.id).toBeGreaterThan(0)
+      expect(c.what.length, c.id).toBeGreaterThan(0)
+      expect(c.why.length, c.id).toBeGreaterThan(10)
+    }
+  })
+})
+
+/* ════════════════════════════════════════════════════════ 输出面 A · 凭据抽样实跑 */
+
+describe('docs-check · 否定断言凭据抽样实跑（2026-10-17 owner 指令）', () => {
+  /** 造一份「否定断言 + 一条声称值的 grep 凭据」的文档 */
+  const claimDoc = (cmd: string, said: number) =>
+    asDocFiles(['实测「全仓没有那个符号」。', `\`${cmd}\` → ${said}`, ''].join('\n'))
+
+  it('⚠️ 变异样本：凭据实跑返回非 0 ⇒ 必须被抓出（文档称 0，实跑 1）', () => {
+    // 这正是 owner 验收标准那句「凭据存在 ≠ 凭据为真」：闸放得过审，但没人真跑过它。
+    const r = sampleClaimCredentials('/nonexistent', claimDoc('grep -rn GhostSym apps packages', 0), 6, () => ({
+      rc: 0,
+      stdout: 'apps/web/src/x.ts:12: const GhostSym = 1\n',
+    }))
+    expect(r.mismatches).toHaveLength(1)
+    expect(r.mismatches[0]?.claim.claimed).toBe(0)
+    expect(r.mismatches[0]?.actual).toBe(1)
+    expect(r.mismatches[0]?.note).toContain('实跑 1')
+  })
+
+  it('⚠️ 变异样本：命令跑不通（退出码非 0）⇒ 必须报「凭据可能已失效」，不得静默跳过', () => {
+    const r = sampleClaimCredentials('/nonexistent', claimDoc('grep -rn Gone apps packages', 0), 6, () => ({
+      rc: 2,
+      stdout: '',
+    }))
+    expect(r.mismatches).toHaveLength(1)
+    expect(r.mismatches[0]?.actual).toBeNull()
+    expect(r.mismatches[0]?.note).toContain('跑不通')
+  })
+
+  it('文档说的数与实跑一致 ⇒ 不得误报（否则这条面会被当噪音忽略）', () => {
+    const r = sampleClaimCredentials('/nonexistent', claimDoc('grep -rn GhostSym apps packages', 0), 6, () => ({
+      rc: 0,
+      stdout: '',
+    }))
+    expect(r.mismatches).toEqual([])
+    expect(r.sampled).toBe(1)
+    expect(r.total).toBe(1)
+  })
+
+  it('⚠️ 抽样比例必须可见：超限没跑的那些要**单独报数**，否则「没抓到」会被读成「全对」', () => {
+    // 每条否定断言各占两行（断言行 + 凭据行），凭据必须落在 FR-11 的三行窗口内才进抽样清单。
+    // ⚠️ 早先把这 10 条全堆在一段里，结果它们挤在同一个三行窗口内 —— 抽出来只有 1 条，
+    // 差点被当成「抽样上限生效了」。窗口是判据的一部分，造样本也得守它。
+    const lines: string[] = []
+    for (let i = 0; i < 10; i++) {
+      lines.push(`实测「全仓没有符号 ${i}」。`)
+      lines.push(`\`grep -rn Sym${i} apps packages\` → 0`)
+    }
+    const r = sampleClaimCredentials('/nonexistent', asDocFiles(lines.join('\n')), 3, () => ({
+      rc: 0,
+      stdout: '',
+    }))
+    expect(r.total).toBe(10)
+    expect(r.sampled).toBe(3)
+    expect(r.skipped).toBe(0)
+  })
+
+  it('⚠️ 走 shell 的形态一律不抽样（凭据是文档里的不可信输入，不得因此执行任意命令）', () => {
+    for (const bad of [
+      'grep -rn X apps; rm -rf /',
+      'grep -rn X apps | sh',
+      'grep -rn X apps > out.txt',
+      'grep -rn $(whoami) apps',
+      'cat /etc/passwd',
+    ]) {
+      expect(parseGrepCommand(bad), bad).toBeNull()
+    }
+  })
+
+  it('⚠️ 省略号命令不是凭据 ⇒ 必须拒掉，不得报成「凭据失效」', () => {
+    // 本轮实测踩到：正文里顺手写了个缩写 `grep … → 0`，抽出来真去跑 ⇒ 退出码 2，
+    // 被报成「凭据可能已失效」。而真相是**这里压根没写凭据**。两者混起来，
+    // 会让真正的凭据失效显得比实际更频繁。
+    for (const elided of ['grep … → 0', 'grep -rn ... apps', 'rg ...']) {
+      expect(parseGrepCommand(elided), elided).toBeNull()
+    }
+  })
+
+  it('末尾的计数管道必须能被剥掉（那是本仓凭据的常见形态，不剥就一条都跑不了）', () => {
+    const p = parseGrepCommand("grep -c 'local_events' apps/server/src | wc -l")
+    expect(p).not.toBeNull()
+    expect(p?.argv).toEqual(['grep', '-c', 'local_events', 'apps/server/src'])
+    expect(p?.mode).toBe('count')
+  })
+
+  it('抽取必须以「有声称值」为前提 —— 没有可比对的值就不该进抽样清单', () => {
+    const noNumber = asDocFiles(['实测「全仓没有那个符号」。', '`grep -rn GhostSym apps` 是复算入口。', ''].join('\n'))
+    expect(extractGrepClaims(noNumber)).toEqual([])
+    expect(extractGrepClaims(claimDoc('grep -rn GhostSym apps', 0))).toHaveLength(1)
+  })
+
+  it('⚠️ 命令在、值认不出 ⇒ 必须**单独报数**，不得让这一面静默退化成 0/0 全绿', () => {
+    // 本轮实测踩到：凭据写成 `→ **3**`（数字加粗），`→ N` 的正则匹配不上，
+    // 刚抓过一条真错事实的面瞬间变成「0/0 条已跑｜不符 0 条」—— 看着全绿，实则一条没验。
+    const bolded = asDocFiles(
+      ['实测「全仓没有那个符号」。', '`grep -rn GhostSym apps` → **0**（数字被加粗了）。', ''].join('\n'),
+    )
+    expect(extractGrepClaims(bolded)).toEqual([])
+    const r = sampleClaimCredentials('/nonexistent', bolded, 6, () => ({ rc: 0, stdout: '' }))
+    expect(r.total).toBe(0)
+    expect(r.unparsed).toBe(1)
+  })
+})
+
+/* ════════════════════════════════════════════════════════ 输出面 B · 探针五问结果 */
+
+describe('docs-check · 探针五问结果文件（2026-10-17 owner 指令）', () => {
+  const tmpRoots: string[] = []
+
+  /** 造一个只含探针结果文件的假仓根；`null` 表示不放任何文件 */
+  const fakeRepo = (contents: string | null): string => {
+    const root = mkdtempSync(join(tmpdir(), 'docs-check-probe-'))
+    tmpRoots.push(root)
+    if (contents !== null) {
+      const dir = join(root, 'docs', 'devlog-evidence', 'M8-probe')
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(join(dir, 'results-20261016.md'), contents, 'utf8')
+    }
+    return root
+  }
+
+  const row = (q: string, conclusion: string) => `| **${q}** 题目文字 | ${conclusion} | 跑的人 | 时间 | 依据 |`
+
+  afterEach(() => {
+    for (const d of tmpRoots.splice(0)) rmSync(d, { recursive: true, force: true })
+  })
+
+  it('⚠️ 变异样本：结果文件缺失 ⇒ 五问全部点名报出', () => {
+    const r = checkProbeResults(fakeRepo(null))
+    expect(r.file).toBeNull()
+    expect(r.missing).toEqual([...PROBE_QUESTIONS])
+  })
+
+  it('⚠️ 变异样本：某问留空（待填）⇒ 只报那一问，其余不算缺', () => {
+    const text = PROBE_QUESTIONS.map((q) => row(q, q === 'Q3' ? '（待填）' : '实测结论')).join('\n')
+    const r = checkProbeResults(fakeRepo(`# 探针五问\n\n${text}\n`))
+    expect(r.missing).toEqual([])
+    expect(r.unfilled).toEqual(['Q3'])
+  })
+
+  it('五问都有结论 ⇒ 既不缺也不留空（正向对照，防止闸严到没有实用价值）', () => {
+    const text = PROBE_QUESTIONS.map((q) => row(q, '实测结论')).join('\n')
+    const r = checkProbeResults(fakeRepo(`# 探针五问\n\n${text}\n`))
+    expect(r.missing).toEqual([])
+    expect(r.unfilled).toEqual([])
+  })
+
+  it('⚠️ 缺题与留空是两件事：整行缺失记 missing，有行但答「—」记 unfilled', () => {
+    const text = [row('Q1', '实测结论'), row('Q2', '本轮作废'), row('Q4', '实测结论'), row('Q5', '—')].join('\n')
+    const r = checkProbeResults(fakeRepo(`# 探针五问\n\n${text}\n`))
+    expect(r.missing).toEqual(['Q3'])
+    expect(r.unfilled).toEqual(['Q5'])
+  })
+
+  it('本仓真实结果文件必须存在且五问都有行（否则这条面在本仓是永不生效的装饰）', () => {
+    const r = checkProbeResults(REPO_ROOT)
+    expect(r.file).not.toBeNull()
+    expect(r.missing).toEqual([])
   })
 })
