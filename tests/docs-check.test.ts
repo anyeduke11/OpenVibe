@@ -6,7 +6,9 @@ import {
   checkFrozenSurface,
   checkQueue,
   checkRelativeLinks,
+  checkNegativeClaims,
   checkSpecVersions,
+  NEGATIVE_CLAIM_PATTERNS,
   type Baseline,
   type Finding,
 } from '../scripts/docs-check'
@@ -311,5 +313,59 @@ describe('docs-check · 基线机制', () => {
   it('⚠️ 通配登记在某规则彻底不再命中时，同样要报过期', () => {
     const r = applyBaseline([fs[1]!], { note: '', known: { 'FR-5.2|*': '旧' } })
     expect(r.findings.some((f) => f.rule === 'BASELINE')).toBe(true)
+  })
+})
+
+/* ------------------------------------------------------------------ FR-11 */
+
+describe('docs-check · FR-11 变异样本（否定式全局断言须附凭据）', () => {
+  const asFiles = (content: string) => [{ path: 'docs/specs/x.md', lines: content.split('\n') }]
+
+  it('带凭据的命令 ⇒ 不报', () => {
+    const ok = ['# SPEC', '', '- 全仓没有 X。复算：`grep -rn X apps packages | wc -l` → 0', ''].join('\n')
+    expect(checkNegativeClaims(asFiles(ok))).toEqual([])
+  })
+
+  it('⚠️ 变异样本：同句去掉命令 ⇒ 必须报出', () => {
+    const bad = ['# SPEC', '', '- 全仓没有 X。', ''].join('\n')
+    const fs = checkNegativeClaims(asFiles(bad))
+    expect(errorsOf(fs)).toHaveLength(1)
+    expect(fs[0]!.rule).toBe('FR-11.1')
+  })
+
+  it('⚠️ 变异样本：把否定改成肯定（不再宣称穷尽）⇒ 不报', () => {
+    // 这是本判据的**另一半**：它只管「宣称穷尽的句子」，不管事实真假。
+    // 断言一旦改成「在该处查无」这类有界观察，本判据即放手 —— 那是 FR-3/人工核对的事。
+    const scoped = ['# SPEC', '', '- `useFlows.ts` 里没有 run/execute（单点检索）。', ''].join('\n')
+    expect(checkNegativeClaims(asFiles(scoped))).toEqual([])
+  })
+
+  it('⚠️ 自指：引用错话并当场纠正的段落必须放行（凭据可折到后两行）', () => {
+    // 纠正段必须原样引出被纠正的那句话，否则就不是纠正而是含糊其辞。
+    // 若凭据窗口只有一行，本用例会红 —— 那正是自指误报。
+    const correction = [
+      '# SPEC',
+      '',
+      '> 原文记「**全仓没有**跑模板这个用户动作」—— 该结论是错的。',
+      '>',
+      '> 实测三处反证：`FlowsPage.tsx:59` 有 `onRun`。',
+      '',
+    ].join('\n')
+    expect(checkNegativeClaims(asFiles(correction))).toEqual([])
+  })
+
+  it('⚠️ 凭据落在本行也认（不必折行）', () => {
+    const inline = ['- 实测全仓零命中：含 `matchMedia` 亦零命中 → 见 §6.7', ''].join('\n')
+    expect(checkNegativeClaims(asFiles(inline))).toEqual([])
+  })
+
+  it('⚠️ 措辞表本身要窄：泛指的「不存在」不在表内', () => {
+    // 收窄是刻意的：泛指形态实测 135 处，全收就刷屏，而刷屏的闸会被当噪音忽略。
+    for (const phrase of ['全仓没有', '全仓零命中', '在仓内查无', '整个仓库无']) {
+      expect(NEGATIVE_CLAIM_PATTERNS.some((p) => p.re.test(phrase)), phrase).toBe(true)
+    }
+    for (const phrase of ['该组件不存在', '零命中', '没有任何一列的损坏率数据', '全仓搜索过一次']) {
+      expect(NEGATIVE_CLAIM_PATTERNS.some((p) => p.re.test(phrase)), phrase).toBe(false)
+    }
   })
 })

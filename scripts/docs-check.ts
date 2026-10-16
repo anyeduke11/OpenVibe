@@ -411,6 +411,67 @@ export function checkReviewRecord(log: string): Finding[] {
   return out
 }
 
+/* ════════════════════════════════════════════════════════ FR-11 */
+
+/**
+ * 否定式**全局**断言的措辞表。
+ *
+ * **为什么只收「全局」不收泛指的「不存在」**：泛指的「不存在」多半是**观察**
+ * （「`grep -rln 'EmptyState' apps/web/src` → 0 命中」），它诚实地限定了一个检索面。
+ * 宣称穷尽的才危险 ——「全仓没有 X」「在仓内不存在 X」把**一个检索面**的结论
+ * 写成了**整个仓库**的结论。本仓已为这种句式付出过两次代价：
+ * ① 「`EmptyState` 沿用既有」—— 实为该组件根本不存在；② 「`flow_template_run` 全仓没有
+ * 跑模板动作」—— 实为 `FlowsPage` 一直有 `onRun`，而我当初只 grep 了一个文件 ＋
+ * 两个自己想的函数名。两次的成因相同：**检索面比句子小**。
+ *
+ * 措辞表刻意**窄**。实测全仓这类句子只有十来处，而泛指形态（不含「全仓/仓内/整个仓库」
+ * 限定词的「不存在」「零命中」）有 135 处 —— 全收就是刷屏，而刷屏的闸会被当成噪音忽略。
+ */
+export const NEGATIVE_CLAIM_PATTERNS: { re: RegExp; label: string }[] = [
+  // 刻意**不含「搜／搜索」**：「全仓搜索过一次」是在描述一个动作，不是在宣称某物不存在。
+  // 收录它会把每条「我在全仓搜过…」的过程叙述都变成待判项 —— 首版收了它，
+  // 于是 decisions.md 那条「全仓搜」被扫进来，它其实说的是 git 全仓搜索、与代码存在性无关。
+  // 那次是被凭据窗口**碰巧**滤掉的，不是被措辞表滤掉的 ⇒ 措辞表必须自己站得住。
+  { re: /全仓(没有|无|零|0)/, label: '全仓级' },
+  { re: /在仓内(查无|不存在|没有)/, label: '仓内级' },
+  { re: /整个仓库(没有|无)/, label: '全仓级' },
+  { re: /仓内(查无|不存在)/, label: '仓内级' },
+]
+
+/** 凭据判据沿用 FR-5.2 的「可复算命令」口径，另接受显式的「实测」自陈 */
+const EVIDENCE_HINT = new RegExp(RECOMPUTE_HINT.source + '|实测|现测|现查')
+
+/**
+ * FR-11 · 否定式全局断言必须自带可复算凭据。
+ *
+ * **本判据只断「有没有凭据」，不判断言本身真假** —— 判真假要真去跑一遍每条命令，
+ * 那是另一件事（规格 FR-8 的 MT6 面）。它要挡的是**一个连复算入口都没留下的句子**：
+ * 那种句子一旦腐烂，下一轮没人能发现。
+ *
+ * **先断「全局」再断凭据，不是反过来**：先判真假会把这条判据变成「一个必然过期的数字清单」。
+ */
+export function checkNegativeClaims(files: { path: string; lines: string[] }[]): Finding[] {
+  const out: Finding[] = []
+  for (const f of files) {
+    f.lines.forEach((line, i) => {
+      const hit = NEGATIVE_CLAIM_PATTERNS.find((p) => p.re.test(line))
+      if (!hit) return
+      // 凭据看**本行及其后两行**。为什么是三行窗口：本仓的否定断言多写在 Markdown 块引用里，
+      // 而证据（命令或「实测」自陈）习惯折到下一两行 —— 一行窗口会把「引用了错话并当场纠正」
+      // 的段落判成无凭据，那是**自指误报**：纠正段必须原样引出被纠正的那句话。
+      const window = `${line}\n${f.lines[i + 1] ?? ''}\n${f.lines[i + 2] ?? ''}`
+      if (EVIDENCE_HINT.test(window)) return
+      out.push({
+        rule: 'FR-11.1',
+        level: 'error',
+        message: `${hit.label}否定断言未附可复算凭据：「${line.trim().slice(0, 46)}」`,
+        evidence: `${f.path}:${i + 1}`,
+      })
+    })
+  }
+  return out
+}
+
 /* ════════════════════════════════════════════════════════ 基线 */
 
 /**
@@ -547,6 +608,25 @@ export function runAll(repoRoot: string): { findings: Finding[]; metrics: Metric
     { path: join(repoRoot, 'docs/specs/docs-governance-check.md'), content: readFileSync(join(specDir, 'docs-governance-check.md'), 'utf8') },
   ]
 
+  // FR-11 的扫描面：docs/ 与 docs/specs/ 下的全部 md（含 PRD 与计划文）。
+  // 刻意**不扫** scripts/ 与 tests/ —— 本闸自己的判据实现与夹具按构造必然含这些措辞，
+  // 那属结构性自指（见 SELF_QUOTING 的同型处置），不是文档腐烂。
+  // 扫描面 = `docs/` 顶层 ＋ `docs/specs/`，**排除归档目录**。
+  // `docs/devlog-evidence/` 是历次复审的**存档**：它记录「当时为真」，不是活断言。
+  // 把「现状断言须附复算凭据」这条判据套到存档上，等于要求三年前的复审记录补今天的命令 ——
+  // 那不是防腐烂，是给历史制造噪声。
+  const ARCHIVE_PREFIX = 'devlog-evidence/'
+  const docFiles = [
+    ...readdirSync(join(repoRoot, 'docs'))
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => `docs/${f}`),
+    ...readdirSync(join(repoRoot, 'docs/specs'))
+      .filter((f) => f.endsWith('.md'))
+      .map((f) => `docs/specs/${f}`),
+  ]
+    .filter((rel) => !rel.includes(ARCHIVE_PREFIX))
+    .map((rel) => ({ path: rel, lines: readFileSync(join(repoRoot, rel), 'utf8').split('\n') }))
+
   const findings: Finding[] = [
     ...checkDevNumbering(log),
     ...checkQueue(decisions),
@@ -554,6 +634,7 @@ export function runAll(repoRoot: string): { findings: Finding[]; metrics: Metric
     ...checkSpecVersions(specs),
     ...checkEntrySections(log),
     ...checkReviewRecord(log),
+    ...checkNegativeClaims(docFiles),
     ...checkFrozenSurface(repoRoot),
   ]
 
