@@ -43,6 +43,13 @@ jobs:
       - name: Bundle check
         run: pnpm bundle:check
 
+      # 第六道闸（FR-9.3）：只**追加**，既有五闸的作业定义一字未改。
+      # 文档治理校验 —— DEV 编号、队列计数自洽、相对链接目标存在、spec 版本行形状、
+      # 冻结面零 diff。当前仓库的未闭合项登记在 docs/docs-check-baseline.json，
+      # 退出码只对基线外的违规为 1。
+      - name: Docs check
+        run: pnpm docs:check
+
       # 队列 ⑧（owner 2026-09-27 裁「只接可机判腿 + SKIP 数入断言」）：三条冒烟进常驻闸。
       # 只跑无头形态——SM-1/SM-2 的系统剪贴板腿在无头结构上不可判，驱动器把它们记成 SKIP
       # 而不是 PASS；EXPECT_SKIP=2 让「skip 条数」本身成为断言，多一条 skip 即红，

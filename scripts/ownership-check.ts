@@ -218,9 +218,10 @@ export const OWNED: Rule[] = [
   { label: '本会话·服务端', reason: 'M8 端点、台账写入点与其测试', pattern: /^apps\/server\/(src|test)\// },
   { label: '本会话·核心', reason: '0-f 台账 repo、agentService、commandRunService、inject', pattern: /^packages\/core\/src\// },
   { label: '本会话·shared', reason: 'shared schema、CLI 命令登记与常量', pattern: /^packages\/shared\/src\// },
-  { label: '本会话·闸与脚本', reason: '变异腿执行器与归属核验工具及其判据测试', pattern: /^(scripts\/(mutation-run|ownership-check)\.ts|tests\/)/ },
+  { label: '本会话·闸与脚本', reason: '变异腿执行器、归属核验工具、文档治理闸及其判据测试', pattern: /^(scripts\/(mutation-run|ownership-check|docs-check)\.ts|tests\/)/ },
   { label: '本会话·配置', reason: 'vitest 并发上限与 package.json 脚本登记', pattern: /^(vitest\.config\.ts|package\.json)$/ },
-  { label: '本会话·文档', reason: 'M8/台账/服务层规格、README、DEV_LOG 与输出规范', pattern: /^(README\.md|DEV_LOG\.md|CLAUDE\.md|docs\/dev-plan-v0\.2\.1\.md|docs\/specs\/)/ },
+  { label: '本会话·文档', reason: 'M8/台账/服务层规格、README、DEV_LOG、治理闸基线与输出规范', pattern: /^(README\.md|DEV_LOG\.md|CLAUDE\.md|docs\/dev-plan-v0\.2\.1\.md|docs\/specs\/|docs\/docs-check-baseline\.json)/ },
+  { label: '本会话·CI', reason: '第六道闸 docs:check 的追加（只增不改既有五闸）', pattern: /^\.github\/workflows\/ci\.yml$/ },
 ]
 
 export const FORBIDDEN: Rule[] = [
@@ -253,7 +254,18 @@ export const DEFAULT_MARKERS: RegExp[] = [
  * 否则「标志能抓到真实回退」这条判据就测不到。豁免是**显式登记**的，不是自动推断的 ——
  * 自动推断（例如「含 describe/it 就豁免」）会让判据可被绕过。
  */
-export const SELF_QUOTING: RegExp[] = [/^tests\/ownership-check\.test\.ts$/]
+export const SELF_QUOTING: RegExp[] = [
+  /^tests\/ownership-check\.test\.ts$/,
+  // docs-check 的判据测试按构造要引用队列状态字面量（「已裁已落」等），
+  // 否则造不出 FR-2 的样本。**豁免是登记出来的，不是自动推断的** ——
+  // 自动推断（如「凡是测试文件就放过」）会让判据可被绕过。
+  /^tests\/docs-check\.test\.ts$/,
+  // 两个治理脚本自身：它们**按构造就必须包含**所校验的字面量 ——
+  // `QUEUE_STATES` 里就有「已裁已落」，判据不看这些字面量就没法校验它们。
+  // 这是**结构性的自指**，不是绕过：判据实现与被判字面量住在同一个文件里。
+  /^scripts\/ownership-check\.ts$/,
+  /^scripts\/docs-check\.ts$/,
+]
 
 export function renderReport(r: OwnershipReport): string {
   const out: string[] = []
