@@ -81,6 +81,28 @@ function allRowsWritten(h: ReturnType<typeof newDb>, f: ReturnType<typeof fixtur
   return WRITTEN.map((k) => ({ kind: k, row: oneRow(h, k) }))
 }
 
+/**
+ * 从规格 FR-5.1.1 那一行里抽出**规格声明的 payload 键集合**。
+ *
+ * ⚠️ **靠 `→` 切分而不是靠正则猜**：那行的形状是
+ * `\`事件名\` → \`键1\` / \`键2\``，箭头**左侧是事件名、右侧才是 payload 键**。
+ * 先试过「把所有反引号词收进来再排除 kind 名」，结果把列名 `payload_json`
+ * 也当成键收了进来 —— 靠排除法维护这个集合，每多一个同形的词就得再补一条排除，
+ * 而漏补的那一条会静默变成假红或假绿。结构化切分没有这个问题。
+ */
+function specPayloadKeys(line: string): Set<string> {
+  const out = new Set<string>()
+  // 先按分号切成「一个事件一组」，再在组内取箭头右侧。
+  // ⚠️ 只按 `→` 切是不够的：那行用 `；` 连接，形态是
+  // `事件A` → `键`；`事件B` → `键` ⇒ 直接切 `→` 会把**下一个事件名**留在同一段里。
+  for (const group of line.split(/[；;]/)) {
+    if (!group.includes('→')) continue
+    const rhs = group.split('→').slice(1).join('→')
+    for (const m of rhs.matchAll(/`([A-Za-z][A-Za-z0-9_]*)`/g)) out.add(m[1]!)
+  }
+  return out
+}
+
 describe('FR-5.1.1 · 五类 payload 键闭集（单一出处 ＋ 逐字对齐规格）', () => {
   it('四类已写入 kind 的实际键**逐字等于**闭集（两侧都排序，比的是集合）', () => {
     const f = fixture()
@@ -104,16 +126,39 @@ describe('FR-5.1.1 · 五类 payload 键闭集（单一出处 ＋ 逐字对齐�
     expect(Object.keys(AGENT_PAYLOAD_KEYS).sort()).toEqual([...AGENT_EVENT_KINDS].sort())
   })
 
-  it('⚠️ 单一出处的键集必须与规格 FR-5.1.1 原文**逐字一致**（防规格漂移）', () => {
+  it('⚠️ 单一出处的键集必须与规格 FR-5.1.1 原文**逐字一致**（双向，防规格漂移）', () => {
     // 没有这一条，改规格不改表（或反之）不会有任何东西变红 —— 两边可以静默分叉。
+    //
+    // ⚠️ **必须是双向**，不能只断「实现 ⊆ 规格」：只断单向的话，规格里**多写**一个键、
+    // 或者改回 snake_case（旧称），测试照样绿 —— 而那正是「规格漂移」未被真正堵住的地方。
     const spec = readFileSync(SPEC_PATH, 'utf8')
     const line = spec.split('\n').find((l) => l.includes('FR-5.1.1') && l.includes('允许键'))
     expect(line, '规格里找不到 FR-5.1.1 允许键那一行 —— 规格被改写了，本判据需同步').toBeDefined()
+
+    // 正向：实现的每个键都要在规格那行出现
     for (const kind of Object.keys(AGENT_PAYLOAD_KEYS)) {
       for (const key of AGENT_PAYLOAD_KEYS[kind as keyof typeof AGENT_PAYLOAD_KEYS]) {
-        expect(line, `规格 FR-5.1.1 未提及 ${kind} 的键 ${key}`).toContain(key)
+        expect(line!, `规格 FR-5.1.1 未提及 ${kind} 的键 ${key}`).toContain(key)
       }
     }
+    // 反向：规格那行声明的每个键都必须在形状表里 —— 抓「规格多写 / 改回 snake_case」
+    const specKeys = specPayloadKeys(line!)
+    const implKeys = new Set(Object.values(AGENT_PAYLOAD_TYPES).flatMap((v) => Object.keys(v!)))
+    const orphans = [...specKeys].filter((k) => !implKeys.has(k))
+    expect(orphans, `规格 FR-5.1.1 出现但形状表没有的键：${orphans.join(', ')}`).toEqual([])
+    // 正向与反向必须**同时**成立：集合相等，不是包含
+    expect([...implKeys].filter((k) => !specKeys.has(k))).toEqual([])
+  })
+
+  it('⚠️ 变异腿：规格多写一个键 ⇒ 双向判据必须判红（否则反向那一半可能恒真）', () => {
+    const specLine =
+      '`agent_ingest_accepted` → `kind` / `sourcePlatform`；`agent_ingest_rejected` → `kind` / `reasonCode`；`agent_context_served` → `fieldsCount` / `truncated` / `platform`；`cli_agent_command_run` → `command` / `exitCode` / `agent`；`agent_bridge_installed` → `adapter` / `packVersion` / `legacyFlag`'
+    const specKeys = specPayloadKeys(specLine)
+    const implKeys = new Set(Object.values(AGENT_PAYLOAD_TYPES).flatMap((v) => Object.keys(v!)))
+    // 规格多出的 legacyFlag ⇒ 必须被抓
+    expect([...specKeys].filter((k) => !implKeys.has(k))).toContain('legacyFlag')
+    // 反证：去掉它就抓不到，说明这条腿不是恒真
+    expect([...specKeys].filter((k) => !implKeys.has(k) && k !== 'legacyFlag')).toEqual([])
   })
 
   it('⚠️ 声明态那一类不得被悄悄写成「已写入」—— 它属 Phase 2', () => {

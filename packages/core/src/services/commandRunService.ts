@@ -39,13 +39,14 @@ export type CliCommandRunCommand = (typeof CLI_COMMAND_RUN_COMMANDS)[number]
 /**
  * 台账 `payload_json` 的允许键闭集（FR-5.1.1），**导出给测试断言用**。
  *
- * ⚠️ **命名口径说明（2026-10-15 parent 裁定，实现侧遵此）**：spec FR-5.1.1 原文写的是
- * snake_case（`exit_code` / `source_platform` / `reason_code`），但**仓内既有实现是 camelCase**
- * ——`agentService` 用 `reasonCode` / `sourcePlatform`，`contextService` 用 `fieldsCount`，
- * 台账既有 kind 用 `assetType` / `origin`。仓内惯例是 camelCase ⇒
- * 本类按 `exitCode` 实现（spec 文本由 parent 负责对齐实现，本文件不改 spec）。
+ * ⚠️ **命名口径（已对齐，勿再当新债）**：FR-5.1.1 初版原文写的是 snake_case
+ * （`exit_code` / `source_platform` / `reason_code`），但**仓内既有实现全是 camelCase** ——
+ * `agentService` 用 `reasonCode` / `sourcePlatform`，`contextService` 用 `fieldsCount`，
+ * 台账既有 kind 用 `assetType` / `origin`。**2026-10-15 已以实现为准把 spec 改成 camelCase。**
+ * ⚠️ 若日后在别处看到「spec 仍写 snake_case、待对齐」的说法，那是陈述性腐烂 —— 以
+ * `AGENT_PAYLOAD_SHAPE` 为准。
  *
- * ⚠️ **2026-10-17 起改为从 `AGENT_PAYLOAD_KEYS` 派生**（单一出处在 `@openvibe/shared`），
+ * ⚠️ **2026-10-17 起改为从 `AGENT_PAYLOAD_SHAPE` 派生**（单一出处在 `@openvibe/shared`），
  *   五类同表，避免本类与另两处各写各的、规格改键时谁都不红。
  */
 export const CLI_COMMAND_RUN_PAYLOAD_KEYS = AGENT_PAYLOAD_KEYS.cli_agent_command_run

@@ -226,6 +226,22 @@ M8 接入面（本迭代 Phase 2 · A + E）
 >
 > **四闸**：typecheck 0 · lint 0 · 全量 **86 文件 / 953 支**全绿（较 DEV-0109 初版 +6 支）· docs:check error 0 warning 132。
 
+> **DEV-0110（2026-10-17）· 独立复核推翻一条「假未决」，并补两处缺陷**
+>
+> owner 指令「独立 worker 复核六项遗留，需要裁决的进行沟通」。verifier 逐项核完，**其中一条结论与我上一轮的登记相反**：
+>
+> **⚠️ 订正：FR-5.1.1 的 snake_case ↔ camelCase 分歧其实早已归零。** 我上一轮把它列为「规格文本侧的债，需 owner 决定改哪边」—— **错的**。实测规格 FR-5.1.1 那行的 11 个键与 `AGENT_PAYLOAD_SHAPE` **逐字一致**，规格早在 **2026-10-15** 就以实现为准改成 camelCase（同文件 `:202` 有订正记录）。**错因**：我只读了 `commandRunService.ts` 里那句「spec 原文写的是 snake_case」的注释，没有回查规格本身 —— 又一次「拿注释当前提」。这正是本会话反复登记的那一类：**注释会腐烂，而腐烂的注释比没有更危险**。
+>
+> 真正的残留是三处**别处**的陈述性腐烂，本轮已处理第一类：
+> 1. ✅ **两处代码注释仍声称「spec 写 snake_case、待对齐」**（`shared/constants.ts` 与 `commandRunService.ts`）。规格早已改完 ⇒ 该说法是**假的**。已改写为「口径已对齐，勿再当新债；若再看到这种说法，那是陈述性腐烂，以 `AGENT_PAYLOAD_SHAPE` 为准」。
+> 2. 🟡 **PRD 仍是 snake_case**（`docs/PRD-M8-agent-bridge-v1.0-20261013.md`），与已订正的 spec 矛盾。**需 owner 裁定**以哪份为准。
+> 3. 🟡 **spec `:258` 的 FR-2.1 请求体字段是 snake_case**（`idempotency_key` / `source_platform` / `source_session_id`），而实现 zod 入参是 camelCase。⚠️ 这属**请求体契约**、不是 `payload_json` 键，且 agent 照规格发请求会被拒 —— **是真分歧，需 owner 裁定**。
+>
+> **另修一处我上一轮交付的判据缺陷**：`agentPayload.test.ts` 的规格一致性守卫原先只断「实现 ⊆ 规格」，**单向**。规格若多写一个键、或改回 snake_case，测试照样绿 —— 而那正是「规格漂移」未被堵住的地方。已改为**双向集合相等**，并补变异腿（规格多出 `legacyFlag` ⇒ 必须判红，删掉它 ⇒ 抓不到 ⇒ 证明这条腿非恒真）。
+> ⚠️ 抽取规格键的实现**两次踩坑**，值得记：先按「收全部反引号词再排除 kind 名」⇒ 把列名 `payload_json` 当成键；改按 `→` 切分 ⇒ 因那行用 `；` 连接，**下一个事件名**留在同一段里。最终按**分号分组 → 组内取箭头右侧**。⚠️ 教训：靠排除法维护解析集合，每多一个同形词就得再补一条排除，漏补的那条会静默变成假红或假绿。
+>
+> **复核确认的四闸**：typecheck 0 · lint 0 · test 86 文件 / 954 支全绿 · docs:check rc=0。并行会话 8 小时**零推进**（HEAD 仍 `ea77e68`，70 脏文件 100% 属禁区，stash 与暂存皆空）。
+
 ### §4.3 Phase 2 · 接入面（M8-A ＋ M8-E）
 
 **出口判据**：`m8-skill-bridge.md` 与 `m8-agent-panel.md` 各自的验收条目全绿。

@@ -166,10 +166,12 @@ export const AGENT_PAYLOAD_KEYS = Object.fromEntries(
  * 故测试断言用 `toEqual` 而非 `toContain`：写成包含关系时，多出一个键仍会绿，
  * 而多出的键正是 `payload` 里混进业务数据的入口。
  *
- * ## 3. ⚠️ 键名按仓内 camelCase 惯例
+ * ## 3. 键名一律 camelCase（口径已对齐）
  *
- * `m8-agent-bridge.md` FR-5.1.1 原文写的是 snake_case（`exit_code` / `source_platform` /
- * `reason_code`），那是规格文本侧的待对齐项，不是实现侧的偏差。
+ * 历史：FR-5.1.1 初版原文写的是 snake_case（`exit_code` / `source_platform` /
+ * `reason_code`），与仓内全部实现相反。**2026-10-15 已以实现为准把 spec 改成 camelCase**，
+ * 故此处不再有「规格待对齐」这回事 —— ⚠️ 下一轮若再看到有注释声称「spec 仍写 snake_case、
+ * 待对齐」，那是**陈述性腐烂**，不是新的债：以本表为准。
  *
  * ⚠️ `agent_bridge_installed` 属**声明态** —— 写入点在 M8-A（Phase 2），
  *   其 spec `m8-skill-bridge.md` 尚未写。故此处登记形状，但当前**无生产写入点**。
