@@ -231,6 +231,75 @@ M8 接入面（本迭代 Phase 2 · A + E）
 >
 > **五闸**：typecheck 0 · lint 0 · test **89 文件 / 1012 支**全绿（较 DEV-0113 +2 文件 +32 支）·
 > docs:check rc=0（error 0 warning 132）· spec-claims 10 支。
+>
+> **DEV-0119（2026-10-17）· `/library` 文件夹树改横向筛选条**
+>
+> owner 指令「优化相关前端展示，放在提示词库下方横向做筛选」，并在页面上标了 `<aside>` 节点。
+> 改的是 **呈现形态**，`m1-prompt-library.md` FR-3.2 那句「侧栏树形导航」被本轮**事实上推翻**
+> （规格原文未改 —— `docs/specs/**` 的措辞修订属 owner 裁的事，此处只登记现状与代价）。
+>
+> **新建 `components/library/FolderFilterBar.tsx`**，`FolderTree.tsx` 经 `mavis-trash` 可恢复删除
+> （全仓已无代码引用，仅余测试与注释里的提及）。三条取舍：
+> ① **扁平 chip 而非缩进** —— 横排轨道没有可对照的纵向轴，缩进量全凭读者猜；改为 chip 文案
+>    自带完整路径（`投研/尽调`），归属一眼可辨；
+> ② **超量折叠**（默认 `limit=8`）与 `TagFilterBar` 同口径，选中项永远补在末尾；
+> ③ **根目录 chip 常显** —— `paths` 只含已有提示词的路径，全部不在根时它本不该出现，
+>    但它同时是「移回根目录」的唯一落点。
+> 过滤语义**未变**：仍是 `folder_path` 精确匹配（选父目录不含子目录）。
+>
+> **⚠️ 文案零新增键**：`全部` 复用 `zh.library.filters.all`，`更多`/`收起` 复用 `lane.row`。
+> 理由是 `i18n/zh.ts` 正被并行会话重构（+66/−91），往里加键必然混稿；这两处已有同义键。
+>
+> **⚠️ 连带修掉一处挡路的既有缺陷（不修则 owner 的指令无法达成）**：
+> `AssetFilterBar` 轨道里两个 `<select>` 写着 `${inputCls} w-auto`，而 `inputCls` 自带 `w-full`，
+> Tailwind v4 生成的 CSS 里 **`.w-full` 排在 `.w-auto` 之后**（实测偏移 12397 vs 12353），
+> 同权重 ⇒ `w-full` 恒胜。实测轨道 `scrollWidth` **3272px vs clientWidth 1336px**、
+> 两个 select **各占 1336px**，把后面所有 chip 推出可视区 —— 页面上只看得到「全部·状态」。
+> 修法是给调用点加 `!`（`w-auto!`）提升权重，**不改共享 `inputCls`**（另有 7 处调用点）。
+> ⚠️ **同类写法全仓还有 7 处同样失效**（`TermsPage` ×2 / `PlaybooksPage` /
+> `KanbanBoard` / `TermRoadmapView` / `PlaybookEditorDrawer` / `PackDryRunPanel`），本轮**未动**。
+>
+> **两支判据首版是永真的，变异腿抓出来后重写**（这是本轮最值得记的一条）：
+> ① 「父先子后」：实测 `localeCompare` 对每一对父子路径都返回正数（`/尽调` vs `/尽调/b`、
+>    `/c` vs `/c/B/a/A`、`/报告` vs `/报告/2024` 逐对验过），⇒ 该断言恒真。**我把它注释里
+>    声称的理由也一并订正**：深度比较真正买到的不是父先子后，而是**同层连片** ——
+>    纯 `localeCompare` 会排出 `/尽调`、`/尽调/b`、`/审查`、`/审查/尽调/审查`、`/b` 这样
+>    长短交替，横向轨道里读不出「这一段是第几层」。换成实测可区分的夹具 + 前置自证。
+> ② 「选中项不被折叠藏起来」：夹具选了 `/d11`，而它按名序落在**下标 3**、本就在可见的前 8 个里
+>    ⇒ 删掉补位逻辑的变异照样绿。改选 `/d9`（下标 11，真在折叠线外）并加前置自证。
+> ⇒ **两条都在首版变异腿里被抓住**，改完重跑：变异 A（排序改回 `localeCompare`）、
+> 变异 B（删补位逻辑）、变异 C（drop 空载荷也照发请求）**各自精准红 1 支、其余 16 支不误伤**，
+> `cp` 备份/回写 ＋ `shasum` 逐字节校验，还原后 17 绿。
+>
+> **验收覆盖**：`FolderFilterBar.test.tsx` **17 支**。⚠️ 其中判「`FolderTree.tsx` 已从磁盘移除」
+> 的一支量的是**文件系统态** —— 若那文件日后被加回来会红，而那正是要抓的（留一份含 DnD 落点的
+> 死组件，下一个人会误以为它是现行实现）。
+>
+> **真机验证**（服务 `127.0.0.1:8787`，headless Chrome 1600px）：
+> ✅ 横排条完整可见（状态·平台 ｜ 文件夹 全部/根目录/精选 ＋ 拖拽提示 ｜ 标签）；
+> ✅ 无障碍树 group「文件夹」下三 chip，「全部」`pressed: true`；
+> ✅ 点「精选」后出现「清除筛选（已筛 1 项）」且列表收敛到 `/精选`。
+> 屏摄：`docs/devlog-evidence/dev-0119-library-folderbar.png`（页头段，3200×282 @2x）。
+>
+> **⚠️ 真机验证途中撞见的既有环境坑（非本轮引入，已记未修）**：
+> ① **重建 Web 产物后必须重启服务**：`plugins/static.ts` 用 `fastifyStatic` 且 `wildcard:false`
+>    ⇒ 路由在**注册期**枚举，重建后新 chunk 未注册，请求落到 SPA 回退返回 `text/html`，
+>    浏览器报 `Failed to load module script: Expected a JavaScript-or-Wasm module script`，
+>    表现为**整页空白且控制台零报错**。实测 chunk 在磁盘上却 `content_type: text/html`。
+> ② **`head-typecheck` 当前红，且与本轮无关**：`i18n/lane-engineering.ts` 在磁盘上但**未入库**，
+>    11 个文件 import 它（含 DEV-0118 已入库的 `agent/EmptyState.tsx`）
+>    ⇒ HEAD 编译不过。**这是 DEV-0118 就存在的缺口，不是本轮引入**。
+>
+> **⚠️ 入库情况（与 DEV-0118 同一形态的混合文件问题）**：
+> 本轮**只入库两个新建文件**（`FolderFilterBar.tsx` ＋ `.test.tsx`）。
+> ⚠️ **`LibraryPage.tsx` 未入库** —— 该文件的未提交改动**含并行会话的整块重构**
+> （引入 `AssetPageHead` / `lane` / `lane-assets` / `AssetStates` 等一批未入库的新文件），
+> 我的改动与他们的**同处一个 hunk**（去 aside ＋ 插横排条）⇒ 混稿，按纪律放弃暂存。
+> ⚠️ **`FolderTree.tsx` 的删除也未入库** —— 同一文件内的删除与并行会话的改动相邻，
+> 单独提交删除会让 HEAD 上 `LibraryPage.tsx` 引用一个已不存在的模块（HEAD 编译直接断）。
+> ⇒ **后果：新组件已入库但无消费方，用户页面上仍是旧的竖排树**；
+> 两处挂载（`LibraryPage` 接线 ＋ `FolderTree` 删除）留在工作树，等并行会话提交后单独入库。
+> **连带修的 `w-auto!` 同理未入库**，所以真机验证是在**工作树**上做的（`pnpm build` ＋ 重启服务）。
 
 ### §4.2 Phase 1 · 读写核心（M8-B ＋ C ＋ D ＋ `requirements`）
 
