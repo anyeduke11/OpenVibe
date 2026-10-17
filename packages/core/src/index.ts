@@ -1,7 +1,7 @@
 // packages/core —— 领域核心：db / repos / search（R3：禁止依赖任何 app）
 export { openDatabase, defaultDbPath, openvibeHome, type SqliteDatabase } from './db'
 export { migrate, nowIso } from './db/runner'
-export { runSeed, type SeedBundleResult } from './db/seed'
+export { runSeed, applyTermAnnotations, type SeedBundleResult } from './db/seed'
 export {
   searchPromptRowids,
   searchTermRowids,

@@ -57,6 +57,9 @@ describe('UT-SEED-01 · 种子幂等与升级（夹具 bundle）', () => {
       'imported',
       'imported',
       'imported',
+      // 第 5 项是 term-annotations：学习化标注回填（m3-terms-learning FR-2.3/FR-3.2）。
+      // 本夹具目录只放了四个 bundle 的文件、没放两个标注文件 ⇒ 与 bundle 同口径报 error。
+      'error',
     ])
     expect(first[0]?.created).toBe(2)
     // 第四条 bundle 也进幂等腿（m4 FR-9.2），否则「技巧不重复装载」无人可证
@@ -70,7 +73,9 @@ describe('UT-SEED-01 · 种子幂等与升级（夹具 bundle）', () => {
     ).toBe(1)
 
     const second = runSeed(h.db, h.dir)
-    expect(second.every((r) => r.status === 'skipped')).toBe(true)
+    // 幂等只对四个真 bundle 断言；标注回填在本夹具里恒为 error（文件不存在），与幂等无关。
+    // 它的幂等由 term-annotations.test.ts 用真实标注文件单独守。
+    expect(second.filter((r) => r.bundle !== 'term-annotations').every((r) => r.status === 'skipped')).toBe(true)
     expect(count()).toBe(afterFirst)
     expect(
       (h.db.prepare('SELECT COUNT(*) AS c FROM playbooks').get() as { c: number }).c,
@@ -139,6 +144,9 @@ describe('UT-SEED-02 · 真实 content/seed 首启计数', () => {
       'imported',
       'imported',
       'imported',
+      // 第 5 项是 term-annotations：学习化标注回填（m3-terms-learning FR-2.3/FR-3.2），
+      // 不受 contentHash 跳过控制（332 条 vibe-hub 词条是脚本导入的，晚于 runSeed）
+      'imported',
     ])
     const counts = (table: string): number =>
       (h.db.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get() as { c: number }).c
@@ -152,8 +160,11 @@ describe('UT-SEED-02 · 真实 content/seed 首启计数', () => {
         .c,
     ).toBe(counts('playbooks'))
 
-    // 空库首启：全部应为新增，不允许 updated/skipped，也不允许逐条 warning
-    for (const r of results) {
+    // 空库首启：全部应为新增，不允许 updated/skipped，也不允许逐条 warning。
+    // 只扫四个真 bundle —— `term-annotations` 是学习化标注回填（m3-terms-learning FR-2.3），
+    // 它的 created/skipped 语义与 bundle 不同（未跑 import-vibehub 时恒有 332 条未命中），
+    // 由 UT-TERM-ANN-* 单独守卫，见 packages/core/src/db/term-annotations.test.ts。
+    for (const r of results.filter((x) => x.bundle !== 'term-annotations')) {
       expect(r.updated).toBe(0)
       expect(r.skipped).toBe(0)
       expect(r.warnings).toEqual([])

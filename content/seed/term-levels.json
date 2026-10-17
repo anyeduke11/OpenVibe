@@ -1,0 +1,2651 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "zh": "按钮",
+      "en": "Button",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "按下",
+      "en": "Active",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "包豪斯",
+      "en": "Bauhaus",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "报错与调用栈",
+      "en": "Stack Trace",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "背压",
+      "en": "Backpressure",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "编码代理",
+      "en": "coding agent",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "扁平化",
+      "en": "Flat Design",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "变量占位符",
+      "en": "variable placeholder",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "标签",
+      "en": "Tag",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "标签页",
+      "en": "Tabs",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "标志",
+      "en": "Logo",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "标准包",
+      "en": "standard pack",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "表单",
+      "en": "Form",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "表单标签",
+      "en": "Label",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "表格",
+      "en": "Table",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "玻璃拟态",
+      "en": "Glassmorphism",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "不可变版本",
+      "en": "immutable version",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "不稳定测试",
+      "en": "flaky test",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "步骤条",
+      "en": "Steps",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "部署上线",
+      "en": "Deployment",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "材料设计",
+      "en": "Material Design",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "测试分层",
+      "en": "test pyramid",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "测试覆盖率",
+      "en": "Test Coverage",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "测试数据与 Fixture",
+      "en": "Test Data and Fixture",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "测试替身",
+      "en": "Test Double",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "测试用例",
+      "en": "Test Case",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "层级",
+      "en": "Z-Index",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "插件",
+      "en": "Plugin",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "差异对比",
+      "en": "Diff",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "产品待办列表",
+      "en": "Product Backlog",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "产品发现",
+      "en": "Product Discovery",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "产品路线图",
+      "en": "Product Roadmap",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "超时",
+      "en": "Timeout",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "撤销",
+      "en": "Undo",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "衬线与非衬线",
+      "en": "Serif & Sans",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "持续集成",
+      "en": "CI",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "持续交付 / 持续部署",
+      "en": "CD",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "抽屉",
+      "en": "Drawer",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "词元",
+      "en": "token",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "大语言模型",
+      "en": "large language model",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "代码冲突",
+      "en": "Merge Conflict",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "代码规范检查",
+      "en": "Lint",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "代码审查",
+      "en": "code review",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "单实例部署",
+      "en": "Single-Instance Deployment",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "单选框",
+      "en": "Radio",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "单页滚动布局",
+      "en": "Single Page",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "单一数据源",
+      "en": "single source of truth",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "单元测试",
+      "en": "Unit Test",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "弹窗",
+      "en": "Modal",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "弹性",
+      "en": "Spring",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "弹性布局",
+      "en": "Flex",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "导航菜单",
+      "en": "Menu",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "导入导出",
+      "en": "Import & Export",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "第一性原理",
+      "en": "first principles",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "顶部导航布局",
+      "en": "Top Nav",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "顶部导航栏",
+      "en": "Navbar",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "定价区",
+      "en": "Pricing",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "定位",
+      "en": "Position",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "动画",
+      "en": "Animation",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "端到端测试",
+      "en": "End-to-End Test",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "端口",
+      "en": "Port",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "对比度",
+      "en": "Contrast",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "对话历史",
+      "en": "Conversation History",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "对象存储",
+      "en": "Object Storage",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "多模态",
+      "en": "Multimodal AI",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "多实例部署",
+      "en": "Multi-Instance Deployment",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "多行文本框",
+      "en": "Textarea",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "发布形态走查",
+      "en": "published-shape walk",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "反思回流",
+      "en": "reflow",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "反向导入",
+      "en": "reverse import",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "范围蔓延",
+      "en": "Scope Creep",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "飞轮",
+      "en": "flywheel",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "分布式系统",
+      "en": "Distributed System",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "分段控件",
+      "en": "Segmented",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "分而治之",
+      "en": "decompose first",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "分割线",
+      "en": "Divider",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "分屏布局",
+      "en": "Split-screen",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "分页",
+      "en": "Pagination",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "分支",
+      "en": "Branch",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "氛围编程",
+      "en": "vibe coding",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "服务端日志",
+      "en": "Server Logs",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "服务基准地址",
+      "en": "Base URL",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "负载测试",
+      "en": "Load Testing",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "复盘",
+      "en": "retrospective",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "复选框",
+      "en": "Checkbox",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "副作用",
+      "en": "Side Effect",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "覆盖前备份",
+      "en": "pre-write backup",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "甘特图",
+      "en": "Gantt Chart",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "干跑",
+      "en": "dry run",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "工具调用",
+      "en": "tool use",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "工具过载",
+      "en": "tool overload",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "工作树",
+      "en": "Worktree",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "功能开关",
+      "en": "Feature Flag",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "钩子",
+      "en": "hook",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "构建",
+      "en": "Build",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "骨架屏",
+      "en": "Skeleton",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "关键帧",
+      "en": "Keyframe",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "归档包",
+      "en": "bundle",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "规范网址",
+      "en": "Canonical URL",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "规格驱动开发",
+      "en": "spec-driven development",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "规则段落",
+      "en": "rule section",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "规则漂移",
+      "en": "rule drift",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "规则文件",
+      "en": "rules file",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "规则文件契约",
+      "en": "pack file contract",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "规则优先级",
+      "en": "rule precedence",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "过度授权",
+      "en": "over-permissioning",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "过渡",
+      "en": "Transition",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "哈希",
+      "en": "Hash",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "合并",
+      "en": "Merge",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "合并请求",
+      "en": "Pull Request",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "盒模型",
+      "en": "Box Model",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "后端",
+      "en": "Backend",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "后端框架",
+      "en": "Backend Framework",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "忽略文件",
+      "en": ".gitignore",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "滑块",
+      "en": "Slider",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "缓存",
+      "en": "Cache",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "缓动",
+      "en": "Easing",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "幻觉",
+      "en": "hallucination",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "黄金快照",
+      "en": "golden snapshot",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "徽标",
+      "en": "Badge",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "回到顶部",
+      "en": "Back to Top Button",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "回归测试",
+      "en": "regression test",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "回滚",
+      "en": "Rollback",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "回流资产",
+      "en": "reflowed asset",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "会话",
+      "en": "Session",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "级联选择器",
+      "en": "Cascader",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "集成测试",
+      "en": "Integration Test",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "记忆",
+      "en": "Agent Memory",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "技能",
+      "en": "skill",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "技术债",
+      "en": "Technical Debt",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "技术栈",
+      "en": "Tech Stack",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "夹具",
+      "en": "test fixture",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "间距",
+      "en": "Space",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "兼容矩阵",
+      "en": "compatibility matrix",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "监控",
+      "en": "Monitoring",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "减少动效",
+      "en": "Prefers Reduced Motion",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "检查点",
+      "en": "checkpoint",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "检查清单",
+      "en": "checklist",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "检索增强生成",
+      "en": "RAG",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "渐变",
+      "en": "Gradient",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "渐进式披露",
+      "en": "progressive disclosure",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "渐入渐出",
+      "en": "Fade In / Out",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "角色设定",
+      "en": "role prompting",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "阶段快照",
+      "en": "stage snapshot",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "结构化输出",
+      "en": "Structured Output",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "结果页",
+      "en": "Result",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "金丝雀发布",
+      "en": "Canary Release",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "进程",
+      "en": "Process",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "进度条",
+      "en": "Progress",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "禁用",
+      "en": "Disabled",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "警告提示",
+      "en": "Alert",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "竞态条件",
+      "en": "Race Condition",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "静默失败",
+      "en": "silent failure",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "镜像注册表",
+      "en": "registry mirror",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "居中",
+      "en": "Centering",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "居中窄栏布局",
+      "en": "Centered Column",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "聚焦",
+      "en": "Focus",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "卡片",
+      "en": "Card",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "卡片网格布局",
+      "en": "Card Grid",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "开发日志",
+      "en": "DEV_LOG",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "开关",
+      "en": "Switch",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "可点击原型",
+      "en": "Prototype",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "克隆",
+      "en": "Clone",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "空状态",
+      "en": "Empty",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "拉取",
+      "en": "Pull",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "蓝绿部署",
+      "en": "Blue-Green Deployment",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "冷启动死",
+      "en": "cold-start death",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "链接",
+      "en": "Link",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "聊天界面",
+      "en": "Chat UI",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "列表",
+      "en": "List",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "令牌预算",
+      "en": "token budget",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "浏览器存储",
+      "en": "Browser Storage",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "浏览器开发者工具",
+      "en": "Browser DevTools",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "流式响应",
+      "en": "Streaming Response",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "路由与端点",
+      "en": "Route & Endpoint",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "埋点",
+      "en": "Event Tracking",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "毛玻璃",
+      "en": "Backdrop Blur",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "锚点",
+      "en": "Anchor",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "冒烟测试",
+      "en": "smoke test",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "孟菲斯",
+      "en": "Memphis",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "幂等",
+      "en": "idempotency",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "面包屑",
+      "en": "Breadcrumb",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "描述列表",
+      "en": "Descriptions",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "模型上下文协议",
+      "en": "Model Context Protocol",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "模型提供方",
+      "en": "Provider",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "内边距",
+      "en": "Padding",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "内容溢出",
+      "en": "Overflow",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "内容指纹",
+      "en": "content fingerprint",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "拟物化",
+      "en": "Skeuomorphism",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "匿名统计",
+      "en": "anonymous telemetry",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "排版",
+      "en": "Typography",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "排序",
+      "en": "Sort",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "配置档案",
+      "en": "Profile",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "配置文件",
+      "en": "Configuration File",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "漂移检测",
+      "en": "drift detection",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "评分",
+      "en": "Rate",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "苹果风",
+      "en": "Apple HIG",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "瀑布流",
+      "en": "Masonry",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "启发式评估",
+      "en": "Heuristic Evaluation",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "气泡卡片",
+      "en": "Popover",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "气泡确认框",
+      "en": "Popconfirm",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "契约测试",
+      "en": "Contract Testing",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "前端",
+      "en": "Frontend",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "嵌入",
+      "en": "embedding",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "轻提示",
+      "en": "Toast",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "清单归一化",
+      "en": "manifest normalization",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "情绪板",
+      "en": "Moodboard",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "趣味插画",
+      "en": "Playful Illustration",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "全文检索",
+      "en": "full-text search",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "权限控制",
+      "en": "Authorization",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "权限模式",
+      "en": "Permission Mode",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "确定性",
+      "en": "determinism",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "人类在环",
+      "en": "human in the loop",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "人在回路",
+      "en": "Human-in-the-loop",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "日期选择器",
+      "en": "Date Picker",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "日式侘寂",
+      "en": "Wabi-sabi",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "熔断器",
+      "en": "Circuit Breaker",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "瑞士排版",
+      "en": "Swiss Style",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "三维审查",
+      "en": "three-dimension review",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "三元分词",
+      "en": "trigram tokenizer",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "扫描根",
+      "en": "scan root",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "沙箱",
+      "en": "sandbox",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "筛选",
+      "en": "Filter",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "上传",
+      "en": "Upload",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "上下文窗口",
+      "en": "context window",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "上下文工程",
+      "en": "context engineering",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "上下文污染",
+      "en": "context pollution",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "上下文压缩",
+      "en": "context compaction",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "少样本示例",
+      "en": "few-shot prompting",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "设计令牌",
+      "en": "Design Token",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "社会证明",
+      "en": "Social Proof",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "身份认证",
+      "en": "Authentication",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "深色界面",
+      "en": "Dark UI",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "深色模式",
+      "en": "Dark Mode",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "审计日志",
+      "en": "Audit Log",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "时间选择器",
+      "en": "Time Picker",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "时间轴",
+      "en": "Timeline",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "事务",
+      "en": "Transaction",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "视觉层级",
+      "en": "Visual Hierarchy",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "视频",
+      "en": "Video",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "适配器",
+      "en": "adapter",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "首屏",
+      "en": "Hero",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "首启向导",
+      "en": "first-run wizard",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "受控词表",
+      "en": "controlled vocabulary",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "输出契约",
+      "en": "output contract",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "输出约束",
+      "en": "output constraint",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "输入框",
+      "en": "Input",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "鼠标指针",
+      "en": "Cursor",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "术语表",
+      "en": "TERMS.md",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "树形控件",
+      "en": "Tree",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "树选择",
+      "en": "Tree Select",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "数据库",
+      "en": "Database",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "数据库迁移",
+      "en": "Database Migration",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "数据类型",
+      "en": "Data Type",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "数据目录",
+      "en": "data directory",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "数据迁移",
+      "en": "migration",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "数据校验",
+      "en": "Validation",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "数字输入框",
+      "en": "Number Input",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "瞬时用户激活",
+      "en": "transient user activation",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "思维链",
+      "en": "chain of thought",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "搜索",
+      "en": "Search",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "速率限制",
+      "en": "Rate Limit",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "锁",
+      "en": "Lock",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "锁文件",
+      "en": "pack lock file",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "台账",
+      "en": "registry",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "提交",
+      "en": "Commit",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "提示词",
+      "en": "prompt",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "提示词版本",
+      "en": "prompt version",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "提示词库",
+      "en": "prompt library",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "提示词膨胀",
+      "en": "prompt bloat",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "提示缓存",
+      "en": "prompt caching",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "提示加固",
+      "en": "prompt hardening",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "提示注入",
+      "en": "prompt injection",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "跳过导航链接",
+      "en": "Skip Link",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "通知",
+      "en": "Notification",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "统计数值",
+      "en": "Statistic",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "头像",
+      "en": "Avatar",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "透明度",
+      "en": "Opacity",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "图标",
+      "en": "Icon",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "图表",
+      "en": "Chart",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "图片",
+      "en": "Image",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "推理模型",
+      "en": "reasoning model",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "推送",
+      "en": "Push",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "拖拽",
+      "en": "Drag",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "外边距",
+      "en": "Margin",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "网格布局",
+      "en": "Grid",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "网站图标",
+      "en": "Favicon",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "网站托管",
+      "en": "Web Hosting",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "微调",
+      "en": "Fine-tuning",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "温度",
+      "en": "temperature",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "文本截断",
+      "en": "Text Truncate",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "文档对象模型",
+      "en": "DOM",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "文档三栏布局",
+      "en": "Doc Layout",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "文件项",
+      "en": "File",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "文字提示",
+      "en": "Tooltip",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "无障碍",
+      "en": "Accessibility",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "无状态请求",
+      "en": "Stateless Request",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "吸顶",
+      "en": "Sticky",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "系统提示",
+      "en": "system prompt",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "下拉菜单",
+      "en": "Dropdown",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "现代简约",
+      "en": "Minimalism",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "线程",
+      "en": "Thread",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "线框图",
+      "en": "Wireframe",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "响应式设计",
+      "en": "Responsive Design",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "向量数据库",
+      "en": "vector database",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "项目规则",
+      "en": "Project Rules",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "消费者（消息队列）",
+      "en": "Message Consumer",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "消息队列",
+      "en": "Message Queue",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "协程",
+      "en": "Coroutine",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "写入数据库",
+      "en": "Database Write",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "新粗野",
+      "en": "Neo-Brutalism",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "新拟态",
+      "en": "Neumorphism",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "行内补全",
+      "en": "inline completion",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "悬停",
+      "en": "Hover",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "旋转加载指示器",
+      "en": "Spinner",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "选择器",
+      "en": "Select",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "选中高亮",
+      "en": "Selection",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "颜色选择器",
+      "en": "Color Picker",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "验收标准",
+      "en": "acceptance criteria",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "页脚",
+      "en": "Footer",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "页面标题",
+      "en": "Title Tag",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "页面元数据",
+      "en": "Page Metadata",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "页头",
+      "en": "Header",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "依赖",
+      "en": "Dependency",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "意图先行",
+      "en": "intent-first",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "阴影",
+      "en": "Shadow",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "引用",
+      "en": "Quote",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "应用图标",
+      "en": "App Icon",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "用户故事",
+      "en": "User Story",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "用户画像",
+      "en": "Persona",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "用户流程",
+      "en": "User Flow",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "用户旅程",
+      "en": "User Journey",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "用户用例",
+      "en": "Use Case",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "用户原声",
+      "en": "Customer Testimonial",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "有机设计",
+      "en": "Organic Design",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "语义化版本",
+      "en": "semantic versioning",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "语义化标签与标题层级",
+      "en": "Semantic HTML",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "预编译包回退",
+      "en": "prebuilt binary fallback",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "预发布环境",
+      "en": "Staging",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "域名",
+      "en": "Domain",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "原子性",
+      "en": "Atomicity",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "圆角",
+      "en": "Border Radius",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "圆角的气质",
+      "en": "Corner Feel",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "远程仓库",
+      "en": "Remote Repository",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "杂志编辑风",
+      "en": "Editorial",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "增量提交",
+      "en": "incremental commit",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "增删改查",
+      "en": "CRUD",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "占位文字",
+      "en": "Placeholder",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "长会话退化",
+      "en": "long-session degradation",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "找不到页面",
+      "en": "Not Found Page",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "折叠面板",
+      "en": "Collapse",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "正则表达式",
+      "en": "Regex",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "证据留存",
+      "en": "reproducible evidence",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "指令冲突",
+      "en": "instruction conflict",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "指针",
+      "en": "Pointer",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "质量门禁",
+      "en": "Quality Gate",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "智能体循环",
+      "en": "agent loop",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "终端代理",
+      "en": "terminal agent",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "终端极客风",
+      "en": "Terminal Aesthetic",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "终端命令行",
+      "en": "Terminal",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "种子升级",
+      "en": "seed upgrade",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "重定向",
+      "en": "Redirect",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "重置与回退提交",
+      "en": "Reset & Revert",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "主键",
+      "en": "Primary Key",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "注入",
+      "en": "injection",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "贮藏",
+      "en": "Stash",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "转化漏斗",
+      "en": "Conversion Funnel",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "装饰艺术",
+      "en": "Art Deco",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "状态",
+      "en": "State",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "子智能体",
+      "en": "subagent",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "字段",
+      "en": "Field",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "自动完成",
+      "en": "Autocomplete",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "走马灯",
+      "en": "Carousel",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "租约",
+      "en": "Lease",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "组件",
+      "en": "Component",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "最小复现",
+      "en": "minimal reproducible example",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "最小权限",
+      "en": "least privilege",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "左侧栏布局",
+      "en": "Sidebar",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "A/B 测试",
+      "en": "A/B Test",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Agent 运行框架工程",
+      "en": "Harness Engineering",
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "AI 代码债",
+      "en": "AI code debt",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "AI 幻觉",
+      "en": "AI Hallucination",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "AI 应用基础",
+      "en": "AI Application Basics",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "AI Agent",
+      "en": null,
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "API",
+      "en": null,
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "API 代理 / 中转站",
+      "en": "API Proxy",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "API 密钥",
+      "en": "API Key",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "B2B 企业官网",
+      "en": "B2B Corporate Site",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Bento 便当格",
+      "en": "Bento Grid",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "CDN",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Cookie",
+      "en": null,
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "CORS",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "CSS",
+      "en": null,
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "CTA",
+      "en": null,
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "DNS",
+      "en": null,
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "DTC 品牌电商",
+      "en": "DTC E-commerce",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "FAQ",
+      "en": null,
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "Git",
+      "en": null,
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "HTML",
+      "en": null,
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "HTTP",
+      "en": null,
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "HTTP 方法",
+      "en": "HTTP Methods",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "HTTP 状态码",
+      "en": "HTTP Status Code",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "HTTPS",
+      "en": null,
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "IP 地址",
+      "en": "IP Address",
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "JavaScript",
+      "en": null,
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "JSON",
+      "en": null,
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "Markdown",
+      "en": null,
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "MVP",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Next.js",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Node.js",
+      "en": null,
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "Notion 风",
+      "en": "Notion Style",
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "npm",
+      "en": null,
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "OAuth 第三方登录",
+      "en": "OAuth",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Open Graph",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "OpenAI 兼容 API",
+      "en": "OpenAI-Compatible API",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "PostgreSQL",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "PRD",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Python",
+      "en": null,
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "RAG",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "React",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Robots.txt",
+      "en": null,
+      "level": "L1",
+      "starter": false
+    },
+    {
+      "zh": "SaaS 产品官网",
+      "en": "SaaS Marketing Site",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "SEO",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Serverless",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "shadcn/ui",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Skill",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "SQL",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Sub-agent",
+      "en": null,
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "Tailwind CSS",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Token",
+      "en": null,
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "Token 用量与成本",
+      "en": "Token Usage & Cost",
+      "level": "L2",
+      "starter": true
+    },
+    {
+      "zh": "TTFT / TPS",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "TypeScript",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "URL",
+      "en": null,
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "Vibe Coding",
+      "en": null,
+      "level": "L1",
+      "starter": true
+    },
+    {
+      "zh": "Vue",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Web 应用清单",
+      "en": "Web App Manifest",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Webhook",
+      "en": null,
+      "level": "L3",
+      "starter": false
+    },
+    {
+      "zh": "WebSocket",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "XML 站点地图",
+      "en": "XML Sitemap",
+      "level": "L2",
+      "starter": false
+    },
+    {
+      "zh": "Y2K",
+      "en": null,
+      "level": "L2",
+      "starter": false
+    }
+  ]
+}

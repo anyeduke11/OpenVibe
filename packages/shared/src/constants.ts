@@ -52,6 +52,20 @@ export type UseAs = (typeof USE_AS)[number]
 
 export const PROMPT_STATUS = ['draft', 'active', 'deprecated'] as const
 export const TERM_STATUS = ['draft', 'active'] as const
+/**
+ * 术语难度（m3-terms-learning FR-1.2）：L1 入门 / L2 进阶 / L3 深入。
+ * ⚠️ 本数组的三个字面量必须与 `packages/core/src/db/migrations/0008_terms_learning.sql`
+ * 里 `level` 的 CHECK 字面量**逐字相同**，由 core-db 同族测试解析该文件比对。
+ */
+export const TERM_LEVELS = ['L1', 'L2', 'L3'] as const
+export type TermLevel = (typeof TERM_LEVELS)[number]
+/**
+ * 术语领域（FR-3.1）：**直接复用 vibe-hub 既成的 tags[0] 词表，不新造** ——
+ * 造两套的结果就是两套都对不上。用于筛选条与卡片的枚举，不是 DB 约束：
+ * `terms.domain` 列刻意不设 CHECK（理由见 0008 迁移注释），口径靠写入边界的 Zod 收口。
+ */
+export const TERM_DOMAINS = ['前端', '后端', 'AI', '产品', '测试', '技术栈', 'Git', '设计风格'] as const
+export type TermDomain = (typeof TERM_DOMAINS)[number]
 /** m4 §3：published 才是可进包口径（FR-6.2 只渲染 published） */
 export const PLAYBOOK_STATUS = ['draft', 'published'] as const
 /** TERMS.md 排序口径（m3 FR-4.2）：默认英文 alpha，可选拼音（词典）与手动（选集顺序） */

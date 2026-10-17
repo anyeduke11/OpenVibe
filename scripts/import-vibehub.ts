@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  applyTermAnnotations,
   openDatabase,
   TermsRepo,
   type SqliteDatabase,
@@ -322,6 +323,14 @@ async function main() {
       links += 1
     }
   }
+
+  // 学习化标注回填：这 332 条刚写库，runSeed 那轮它们还不存在 ⇒ 难度/领域在这里补一次。
+  // 幂等，重跑无副作用；顺带把上一次导入漏掉的旧词条一并对齐。
+  const ann = applyTermAnnotations(db, join(process.cwd(), 'content', 'seed'))
+  console.log(
+    `学习化标注：回填 ${String(ann.updated)} 次 · 未命中/未归类 ${String(ann.skipped)} 条`
+      + (ann.warnings.length > 0 ? ` · ⚠ ${String(ann.warnings.length)} 条告警（前 3 条：${ann.warnings.slice(0, 3).join('；')}）` : ''),
+  )
 
   console.log(
     `完成：新建 ${String(created)} 词条（source=vibe-hub, status=active）· 双向关联 ${String(links)} 条 · 去重跳过 ${String(dupCount)} · 拉取失败 ${String(failed.length)}`,

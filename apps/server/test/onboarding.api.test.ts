@@ -286,8 +286,9 @@ describe('POST /api/settings/reseed + 预置 default 包（FR-1，D-3）', () =>
     const h = await makeHarness(join(sandbox, 'missing'))
     const res = await api<ReseedOut>(h, 'POST', '/api/settings/reseed')
     expect(res.statusCode).toBe(200)
-    // 四条 bundle（terms / flow-templates / prompts / playbooks，m4 FR-9.2 加了第四条）
-    expect(Object.values(res.json.seed.bundles)).toEqual(['error', 'error', 'error', 'error'])
+    // 五条：四个 bundle（terms / flow-templates / prompts / playbooks，m4 FR-9.2 加了第四条）
+    // ＋ term-annotations 学习化标注回填（目录整个缺失时它同样读不到文件，口径一致报 error）
+    expect(Object.values(res.json.seed.bundles)).toEqual(['error', 'error', 'error', 'error', 'error'])
     expect(res.json.seed.warnings.join(' ')).toContain('种子文件处理失败')
     expect(res.json.defaultPack).toMatchObject({
       status: 'failed',

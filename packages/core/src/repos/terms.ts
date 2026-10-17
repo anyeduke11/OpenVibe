@@ -31,6 +31,9 @@ type TermRow = {
   tags: string
   status: string
   seed_hash: string | null
+  level: string
+  starter: number
+  domain: string | null
   created_at: string
   updated_at: string
 }
@@ -47,6 +50,12 @@ function rowToTerm(row: TermRow): TermOut {
     source: row.source,
     tags: parseJsonColumn<string[]>(row.tags, []),
     status: row.status as TermOut['status'],
+    // FR-1.4：DB 的 0/1 在 repo 边界转 boolean，不让 0/1 泄漏到 API 与前端。
+    // 用 `=== 1` 而不是 `Boolean(...)`：后者会把任何非 1 的脏值（如 2）当成真，
+    // 而这一列上挂着 CHECK，唯一的真值就是 0 与 1。
+    level: row.level as TermOut['level'],
+    starter: row.starter === 1,
+    domain: row.domain ?? null,
     seedHash: row.seed_hash,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -125,8 +134,8 @@ export class TermsRepo {
     this.db
       .prepare(
         `INSERT INTO terms (id, zh, en, aliases, definition, example, related_term_ids,
-           source, tags, status, seed_hash, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?)`,
+           source, tags, status, seed_hash, level, starter, domain, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -139,6 +148,9 @@ export class TermsRepo {
         input.source ?? 'manual',
         JSON.stringify(input.tags ?? []),
         input.status ?? 'draft',
+        input.level ?? 'L2',
+        input.starter === true ? 1 : 0,
+        input.domain ?? null,
         ts,
         ts,
       )
@@ -164,7 +176,7 @@ export class TermsRepo {
     this.db
       .prepare(
         `UPDATE terms SET zh=?, en=?, aliases=?, definition=?, example=?, related_term_ids=?,
-           tags=?, status=?, seed_hash=NULL, updated_at=? WHERE id=?`,
+           tags=?, status=?, level=?, starter=?, domain=?, seed_hash=NULL, updated_at=? WHERE id=?`,
       )
       .run(
         zh ?? null,
@@ -175,6 +187,9 @@ export class TermsRepo {
         JSON.stringify(relatedTermIds),
         JSON.stringify(patch.tags ?? before.tags),
         patch.status ?? before.status,
+        patch.level ?? before.level,
+        patch.starter === undefined ? (before.starter ? 1 : 0) : patch.starter ? 1 : 0,
+        patch.domain === undefined ? before.domain : patch.domain,
         nowIso(),
         id,
       )
@@ -256,12 +271,64 @@ export class TermsRepo {
     this.db.prepare('UPDATE terms SET seed_hash = ? WHERE id = ?').run(seedHash, id)
   }
 
-  /** seed 通道：按 zh+en 定位（bundle 无 id） */
-  findByNaturalKey(zh?: string, en?: string): TermOut | null {
+  /**
+   * seed 通道：回填学习化三列（level / starter / domain）。
+   *
+   * ⚠️ **刻意不走 `update()`**：那条路径会写 `seed_hash = NULL`，而 seed_hash 为 NULL 的
+   * 语义是「用户改过这条词条」⇒ 下次 `terms.json` 升级时这条会被整条跳过并 warning。
+   * 难度标注是**派生数据**，不是用户编辑；用它把 441 条标成「已改」等于一次性冻结整个
+   * 词库的种子升级通道，且不留任何痕迹。同理不碰 `updated_at` —— 回填不该把词条顶到
+   * 列表最前面（`list()` 按 updated_at DESC 排序）。
+   *
+   * 只写传了的字段（`undefined` 表示不改），所以 level/starter 与 domain 可以分两次回填。
+   * 返回 false 表示 id 不存在，调用方负责计数与告警。
+   */
+  setLearning(
+    id: string,
+    meta: { level?: TermOut['level']; starter?: boolean; domain?: string | null },
+  ): boolean {
+    const sets: string[] = []
+    const params: (string | number | null)[] = []
+    if (meta.level !== undefined) {
+      sets.push('level = ?')
+      params.push(meta.level)
+    }
+    if (meta.starter !== undefined) {
+      sets.push('starter = ?')
+      params.push(meta.starter ? 1 : 0)
+    }
+    if (meta.domain !== undefined) {
+      sets.push('domain = ?')
+      params.push(meta.domain)
+    }
+    if (sets.length === 0) return false
+    const info = this.db
+      .prepare(`UPDATE terms SET ${sets.join(', ')} WHERE id = ?`)
+      .run(...params, id)
+    return info.changes > 0
+  }
+
+  /** seed 通道：按 zh+en 定位（bundle 无 id）。`WHERE zh IS ?` 形参，正确命中 en 为 NULL 的词条 */
+  findByNaturalKey(zh?: string | null, en?: string | null): TermOut | null {
     const row = this.db
       .prepare('SELECT * FROM terms WHERE zh IS ? AND en IS ?')
       .get(zh ?? null, en ?? null) as TermRow | undefined
     return row ? rowToTerm(row) : null
+  }
+
+  /**
+   * seed 通道：按 zh+en 定位并返回**全部**命中。
+   *
+   * ⚠️ 存在的理由：`findByNaturalKey` 用 `.get()`，多行命中时静默只取第一行。当前 441 条
+   * 实测自然键唯一（`COUNT(DISTINCT quote(zh)||char(31)||quote(en))` = 441），所以那条路径够用；
+   * 但 vibe-hub 是外部来源，若将来上游送来一条与既有词条同名的词，回填会**静默少写一条**。
+   * 回填是「宁可吵闹也不静默」的通道，故只此路径用多行版并把多命中交调用方告警。
+   */
+  findAllByNaturalKey(zh?: string | null, en?: string | null): TermOut[] {
+    const rows = this.db
+      .prepare('SELECT * FROM terms WHERE zh IS ? AND en IS ?')
+      .all(zh ?? null, en ?? null) as TermRow[]
+    return rows.map(rowToTerm)
   }
 
   seedItemHash(item: { zh?: string; en?: string; aliases: string[]; definition: string; example: string }): string {

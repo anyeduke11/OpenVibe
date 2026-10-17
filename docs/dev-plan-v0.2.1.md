@@ -301,6 +301,63 @@ M8 接入面（本迭代 Phase 2 · A + E）
 > 两处挂载（`LibraryPage` 接线 ＋ `FolderTree` 删除）留在工作树，等并行会话提交后单独入库。
 > **连带修的 `w-auto!` 同理未入库**，所以真机验证是在**工作树**上做的（`pnpm build` ＋ 重启服务）。
 
+> **DEV-0123（2026-10-18）· 术语库学习化 P1 落地（三列 ＋ 441 条标注 ＋ 回填通道）**
+>
+> owner 批准 `docs/specs/m3-terms-learning.md` 并令开工。**P1＝FR-1 三列 ＋ FR-2 难度/必需度
+> ＋ FR-3 领域映射 ＋ 回填 441 条**，P2 起（呈现 / 推荐 / AI）未动。
+>
+> **⚠️ 开工前的勘察推翻了三处规格写法，spec 已升 v0.4**（这三条都不是新增范围，是把写规格时
+> 想漏的地方补上）：
+> ① **FR-2.3 的键由 `trm_xxx` 改为 `zh`+`en`** —— `terms.id` 是 `newId('term')` **运行时生成**的，
+>    换机重装种子会重新生成全部 441 个 id ⇒ 以 id 为键的映射在首次导入时**全部落空**，且落空
+>    方式是「静默不匹配」，不报错。改用 seed 通道既有的 `findByNaturalKey(zh, en)`
+>    （`WHERE zh IS ? AND en IS ?`，`IS` 形参能正确命中 `en` 为 NULL 的词条）。
+>    实测 441 个自然键**全部唯一**（口径见下）；⚠️ 复算必须用 `COUNT(DISTINCT quote(zh)||char(31)||quote(en))`，
+>    **裸 `||` 拼接遇 NULL 结果即 NULL**，会把 43 条没有 `en` 的纯缩写词条（API / CDN / CORS…）
+>    静默漏掉 —— 与本仓已登记的「导出坑」同族。
+> ② **FR-1 由「新增两列」补为「新增三列」** —— FR-3 立了「领域」维度却无列可存，
+>    `term-domain-map.json` 只是 tag→领域的映射表、落不到词条上。**owner 当场裁定加可空的
+>    `domain`**，理由与 FR-3.2 同源：`tags[0]` 是用户可增删的自由标签，删一次标签领域就跟着变。
+> ③ **迁移号位由「P5 用 0008」改为 P1=0008 / P5=0009** —— 原写法与 FR-1.1 撞号。
+>
+> **`domain` 刻意不加 DB CHECK（新增 FR-1.5）**：`level`/`starter` 的词表本仓自产，加 CHECK 廉价；
+> `domain` 的词表来自 vibe-hub 上游的 `tags[0]`，是**外部可漂移**数据，而 SQLite 不能 `ALTER`
+> 一个 CHECK 约束 ⇒ 加 CHECK 等于把「上游加一个领域」变成「本仓重建表复制数据换名」。
+> 改在 **API 写入边界**由 Zod 的 `z.enum(TERM_DOMAINS)` 收口，读侧 `TermOut.domain` 宽容返回原值。
+> ⇒ **读写两侧刻意不对称，这条不对称本身就是契约，已被判据钉住**。
+>
+> **⚠️ 回填绝不走 `update()`**：那条路径写 `seed_hash = NULL`，而 NULL 的语义是「用户改过这条词条」
+> ⇒ 下次 `terms.json` 升级时会被整条跳过并 warning。用它给 441 条落标等于**一次性冻结整个词库的
+> 种子升级通道且不留痕迹**。故另开 `TermsRepo.setLearning()`，它也**不碰 `updated_at`**
+> （`list()` 按 `updated_at DESC` 排序，回填会把 441 条顶到最前面）。
+>
+> **回填每轮无条件跑，不受 contentHash 跳过控制**：332 条 vibe-hub 词条由
+> `scripts/import-vibehub.ts` 单独导入、发生在 `runSeed` 之后 ⇒ 那轮 runSeed 会因
+> `terms.json` 未变而全 skipped，标注跟着跳过就永远落不进去。导入脚本尾部也接了一次。
+> **幂等靠「只写真正变了的行」兑现** —— SQLite 的 `changes` 统计的是被 UPDATE **命中**的行数，
+> 值没变也算命中；照直调会让每次启动都报 `updated>0`，「二次启动全 skipped」这条既有可观察契约
+> （IT-SEED-REAL-01）就静默失效了。
+>
+> **⚠️ 未命中条目只计数、不逐条告警**：未跑过 import-vibehub 的安装恒有 332 条未命中，那是**正常
+> 初态**不是配错；逐条告警等于每次首启刷 332 行，只会训练人忽略告警。
+>
+> **验收覆盖**：`term-annotations.test.ts` **23 支**。**四条变异腿各自精准变红、互不误伤**：
+> M1 让 `setLearning` 顺手置 `seed_hash=NULL`（红 2 支）· M2 去掉幂等守卫（红 1）·
+> M3 擅自给 `TERM_LEVELS` 加一档、迁移 CHECK 未同步（红 1）· M4 定位键写反 zh↔en（红 1）。
+> `cp` 备份/回写 ＋ `shasum` 逐字节校验，还原后 23 绿。
+>
+> **⚠️⚠️ 连带修掉一处 HEAD 既有的全仓破损（本轮最大意外，必须单记）**：
+> `packages/shared/src/schemas/term.ts` 写着 `TermOut = TermCreateInput.extend({...})`，
+> 而 `TermCreateInput` 尾部有 `.refine` ⇒ **Zod v4 的 `.extend` 直接抛
+> `Cannot overwrite keys on object schemas containing refinements`**。那不是类型错误而是
+> **导入期就抛的运行时错误**：整个模块连同所有 import 它的测试与路由一起起不来。
+> 实测基线（`git worktree` 独立跑 HEAD）：**79 个测试文件收集失败、仅 171 支通过**。
+> 修法取**拆基座**而非 `safeExtend` —— 把字段体提成裸 `termFields`，入参在其上 `.refine`、
+> 出参从裸基座 `.extend`，结构上不可能再踩同一个坑（`safeExtend` 能跑通但类型签名会把覆写键
+> 推成 `never`，`tsc` 当场红）。⚠️ 拆基座后 `TermOut` 的 refine 会丢，**必须显式补回** ——
+> 否则「zh 与 en 同时为空」的出参静默放行，且没有任何用例会红（已用一条用例钉住）。
+> 修后：**90 文件 / 1029 支全绿**，加本轮判据为 **91 文件 / 1052 支**。
+
 ### §4.2 Phase 1 · 读写核心（M8-B ＋ C ＋ D ＋ `requirements`）
 
 **出口判据**：M8 spec v1.0 的 §7 二十四条 pass/fail 全绿。**开工前置**：0-e 与 0-f 同时转绿。

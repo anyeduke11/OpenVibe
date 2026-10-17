@@ -3,11 +3,11 @@
 | 项 | 值 |
 |---|---|
 | 模块 | **M3-T · 术语库学习化**（M3 的呈现面改造，不改 M3 导出契约） |
-| 优先级 | **B 级**（新增两列 ＋ 改 `/terms` 呈现；`TERMS.md` 契约一字不动）。逐项判级见 §4 各 FR 末尾 |
+| 优先级 | **B 级**（新增三列 ＋ 改 `/terms` 呈现；`TERMS.md` 契约一字不动）。逐项判级见 §4 各 FR 末尾 |
 | 上游 | `docs/specs/m3-glossary.md`（M3 v1.1，本文**不改它的任何 FR**，只在 §3.2 登记被本 spec 推翻的表述）· owner 2026-10-17 裁定（UI 指令 ＋ 方案确认三问 ＋ **v0.2 追加裁定：AI 能力用 pi.dev 二次开发、配置开关做在设置页**）· `docs/specs/m8-agent-bridge.md` / `m8-agent-panel.md`（**AI 面的既有落点，本文复用而非重造**） |
 | 下游设计 | `DESIGN.md`（暖纸 V2 token，**不得出现字面色阶**）· `docs/design.md` §10（`/terms` 与 `/settings` 落点） |
 | 关联任务 | **无**。No-spec-no-task（`dev-plan.md` §0.4 第 4 条）。下一空号 **T14** 仍待 Phase 1 前置转绿 |
-| 版本 | **v0.3 草案（2026-10-18）· 待 owner 确认**。v0.2 → v0.3：owner 令「把未考虑的 3 点补进方案」⇒ **新增 FR-9（AI 调用留痕，让不可复算的东西可追责）**、**FR-10（Pi 版本与能力闸）**、**§10（与 M8-A 的关系：先对照不先动手）** ＋ 判据 §7.2（AI-M3T-10~15 ＋ SCOPE-M3T-01）＋ 风险 4 项 ＋ 待裁 +1。v0.1 → v0.2：owner 追加裁定「AI 能力用 pi.dev 二次开发 ＋ 配置开关做在设置页」⇒ **FR-6 重写为双层**、**新增 FR-8**、**撤销 v0.1 的那条 Out**。⚠️ 本文件**仍未获批准**，不得据此开工 |
+| 版本 | **v0.4（2026-10-18）· 已批准并已开工（P1 落地）**。v0.3 → v0.4：owner 批准方案并令开工 ⇒ **订正三处规格缺陷**：① **FR-1 由「新增两列」补为「新增三列」** —— FR-3 立了「领域」维度却无列可存，owner 裁定加可空的 `domain`（新增 FR-1.5 记录「domain 刻意不加 CHECK」的取舍）；② **FR-2.3 的键由 `trm_xxx` 改为 `zh`+`en` 自然键** —— `terms.id` 是 `newId('term')` 运行时生成的，换机重装即全变，441 条映射会在首次导入时全部静默落空；③ **迁移号位由「P5 用 0008」改为 P1=0008 / P5=0009**（原写法与 FR-1.1 撞号）。v0.2 → v0.3：owner 令「把未考虑的 3 点补进方案」⇒ **新增 FR-9（AI 调用留痕，让不可复算的东西可追责）**、**FR-10（Pi 版本与能力闸）**、**§10（与 M8-A 的关系：先对照不先动手）** ＋ 判据 §7.2（AI-M3T-10~15 ＋ SCOPE-M3T-01）＋ 风险 4 项 ＋ 待裁 +1。v0.1 → v0.2：owner 追加裁定「AI 能力用 pi.dev 二次开发 ＋ 配置开关做在设置页」⇒ **FR-6 重写为双层**、**新增 FR-8**、**撤销 v0.1 的那条 Out**。⚠️ P1 已落地（迁移 0008 ＋ 两个标注文件 ＋ 回填通道 ＋ 23 支专项判据），P2 起仍待裁项见 §8 |
 | 采样 | 2026-10-17 工作树；数据实测自 `~/.openvibe/data/openvibe.db`；Pi 事实核自 pi.dev 官网 ＋ `github.com/earendil-works/pi`（一手，见 §2.4）；台账 CHECK 约束核自 `0007_local_events_and_agent_bridge.sql:14-24` |
 
 ---
@@ -100,8 +100,8 @@ owner 裁定「AI 能力使用 pi.dev 进行二次开发实现」。**下面是�
 
 | # | 项 | 判级 |
 |---|---|---|
-| 1 | `terms` 表新增两列 `level`（难度）与 `starter`（入门必需） | B 级（加列，不改既有列语义） |
-| 2 | 441 条全部补齐两个维度 | 数据动作，非契约变更 |
+| 1 | `terms` 表新增三列 `level`（难度）、`starter`（入门必需）、`domain`（领域） | B 级（加列，不改既有列语义） |
+| 2 | 441 条全部补齐三个维度 | 数据动作，非契约变更 |
 | 3 | 领域归一：自建那批的 8 个粗粒度 tag 映射到 vibe-hub 那套领域词表 | 数据动作 |
 | 4 | `/terms` 页由纯表格改为**领域分区 ＋ 卡片**，并保留表格视图 | C 级（呈现） |
 | 5 | 难度筛选 ＋ 领域筛选 ＋ 「只看完懂」开关 | C 级 |
@@ -129,21 +129,36 @@ owner 裁定「AI 能力使用 pi.dev 进行二次开发实现」。**下面是�
 
 > 标签：创建/合并/删除；删除标签即从所有提示词移除该标签。
 
-以及 §2 的「In（MVP）」把「词条 CRUD」列为唯一形态。本 spec 保留该 FR 一字不动，但需 owner 知悉：新增的两个维度**不是标签**（它们是受控词表的枚举，不是自由文本），若将来做「创建/合并/删除」界面，须明确这两个维度**不可被 tag 机制覆盖**。登记在此，**不改 m3 原文**。
+以及 §2 的「In（MVP）」把「词条 CRUD」列为唯一形态。本 spec 保留该 FR 一字不动，但需 owner 知悉：新增的三个维度**不是标签**（它们是受控词表的枚举，不是自由文本），若将来做「创建/合并/删除」界面，须明确这三个维度**不可被 tag 机制覆盖**。登记在此，**不改 m3 原文**。
 
 ---
 
 ## 4. 功能需求（FR）
 
-### FR-1 数据模型：新增两列
+### FR-1 数据模型：新增三列
 
 **FR-1.1** `terms` 表新增：
 
 ```sql
 -- 0008_terms_learning.sql
-ALTER TABLE terms ADD COLUMN level TEXT NOT NULL DEFAULT 'L2';
-ALTER TABLE terms ADD COLUMN starter INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE terms ADD COLUMN level TEXT NOT NULL DEFAULT 'L2' CHECK (level IN ('L1','L2','L3'));
+ALTER TABLE terms ADD COLUMN starter INTEGER NOT NULL DEFAULT 0 CHECK (starter IN (0,1));
+ALTER TABLE terms ADD COLUMN domain TEXT;   -- 刻意可空且**不加 CHECK**，见 FR-1.5
 ```
+
+⚠️ **`domain` 是本轮补上的第三列**，v0.3 的「两列」是写规格时漏掉的一列：FR-3 立了「领域」这个
+维度并要求前端显示领域 chip，但表里没有列能存它，`term-domain-map.json` 也只是 tag→领域的
+映射表、落不到词条上。owner 2026-10-18 裁定：**加第三列 `domain`（可空）**。理由与 FR-3.2
+同源 —— `tags[0]` 是用户可增删的自由标签，删一次标签领域就跟着变，按领域做的筛选与分区将
+不可复现；把三维都落成列，筛选才有稳定谓词。
+
+**FR-1.5** ⚠️ **`level`/`starter` 带 CHECK，`domain` 刻意不带** —— 这是有代价的取舍：
+`level`/`starter` 的词表由本仓自产（`content/seed/term-levels.json`），写入前已收敛，CHECK 是
+廉价护栏；`domain` 的词表来自 vibe-hub 上游的 `tags[0]`，是**外部可漂移**的数据，而 SQLite
+**不能 `ALTER` 一个 CHECK 约束**，给它加 CHECK 等于把「上游加一个领域」变成「本仓重建表复制
+数据换名」（FR-9.2 扩 `kind` 付的正是这份代价）。改为在 **API 写入边界**由 Zod 的
+`z.enum(TERM_DOMAINS)` 收口，读侧 `TermOut.domain` 宽容返回原字符串、界面归入「未归类」；
+未归类是合法状态（用户自建词条、上游新领域），故**可空且无默认值**。
 
 **FR-1.2** 取值闭集，**必须是 Zod enum + 常量单一出处**（`packages/shared/src/constants.ts`）：
 
@@ -156,7 +171,11 @@ TERM_LEVELS = ['L1', 'L2', 'L3'] as const
 
 **FR-1.3** ⚠️ **默认值给 `L2` / `0`，不是「空」**。理由：库里有用户自建词条（`source='manual'`），它们没有分类依据；给 `L2`/`0` 意味着「按中位处理」，而给 `NULL` 会让每个读取点都要写一遍 `?? 兜底` —— 而**默认值写进 DDL** 只需一处。（这一条是刻意的取舍，不是遗漏。）
 
-**FR-1.4** `TermOut` 增加 `level: 'L1'|'L2'|'L3'` 与 `starter: boolean`（**DB 的 0/1 在 repo 边界转成 boolean**，不让 `0/1` 泄漏到 API 与前端）。
+**FR-1.4** `TermOut` 增加 `level: 'L1'|'L2'|'L3'`、`starter: boolean`（**DB 的 0/1 在 repo 边界转成 boolean**，不让 `0/1` 泄漏到 API 与前端）与 `domain: string | null`。
+
+⚠️ 读写两侧**刻意不对称**：写入侧 `TermCreateInput.domain` 是 `z.enum(TERM_DOMAINS)`（收口），
+读出侧 `TermOut.domain` 是 `z.string().nullable()`（宽容）。理由见 FR-1.5 —— 列上没有 DB CHECK，
+读到词表外的值就原样返回，**不得在这里抛**，否则上游新增一个领域会让整个词库列表 500。
 
 **判级**：**B 级**（响应形状 additive 变化，与 m3 v1.1 加 `pinyin` 同级）。
 
@@ -193,7 +212,33 @@ TERM_LEVELS = ['L1', 'L2', 'L3'] as const
 ⚠️ **判定过程中抓到的一个坑（写在这里防复发）**：首轮分类只覆盖了 **289/332** 条，43 条漏判。根因不在判定，在**导出**——`sqlite3` 直接导出时 `definition` 字段里的换行把一条记录拆成多行，那 43 条被拆散后混在空行里。子 agent 如实报告了「输入 332 行、实际 289 条」，**但没有把「少 43 条」与「输入文件有问题」关联起来**。
 ⇒ 通法：导出时 `replace(definition, char(10), ' ')`，且**导出后必须用 `SELECT id` 与判定产物做 `diff`**（§9 有现成命令）。**只核对行数会漏掉这一类** —— 行数是对的（332），错的是行与条目的对应关系。
 
-**FR-2.3** 判定产物落 `content/seed/term-levels.json`（441 条 `id → {level, starter}`），**不进 seed 主体**。理由：seed 主体是词条内容，难度是派生标注；分开落盘后词条更新不动标注。
+**FR-2.3** 判定产物落 `content/seed/term-levels.json`，**不进 seed 主体**。理由：seed 主体是词条内容，难度是派生标注；分开落盘后词条更新不动标注。
+
+⚠️⚠️ **v0.3 原文写的键是 `trm_xxx`，那是错的，本版订正。** `terms.id` 由 DB 侧的 `newId('term')`
+**运行时生成**（`packages/core/src/repos/terms.ts` 的 `create()`），换机器重装种子会重新生成
+全部 441 个 id ⇒ 以 id 为键的映射在首次导入时**全部落空**，且落空方式是「静默不匹配」，不报错。
+改用 **`zh` ＋ `en` 自然键**，它正是 seed 通道既有的定位方式（`findByNaturalKey(zh, en)` 用
+`WHERE zh IS ? AND en IS ?`，`IS` 形参可正确命中 `en` 为 NULL 的词条）。
+
+实测口径（**用 `quote()` 而非裸 `||` 拼接** —— `zh || char(31) || en` 遇 NULL 结果即 NULL，
+`COUNT(DISTINCT)` 会把 43 条静默漏掉，这正是 v0.3 §2 记的那个「导出坑」的同族）：
+
+```
+SELECT COUNT(*) 总数, COUNT(DISTINCT quote(zh)||char(31)||quote(en)) 唯一自然键 FROM terms;
+→ 441 | 441   ⇒ 441 个自然键全部唯一，回填不会一条顶掉另一条
+```
+
+⚠️ **43 条 vibe-hub 词条的 `en` 是 NULL**（API、CDN、CORS 这类纯缩写词条），故数据文件里
+`en` 字段**必须允许 `null`**，不能用「缺字段即空串」代替 —— 两者在 `WHERE en IS ?` 下不等价。
+
+⚠️ 落盘形状与既有四个 seed bundle 一致：`{schemaVersion: 1, items: [{zh, en, level, starter}]}`。
+**不用「拼一个分隔符当键」的对象形状** —— zh/en 里出现分隔符就会静默错配，且这种错配在
+`diff` 行数上完全看不出来。
+
+⚠️ **回填不走 `update()`**：那条路径写 `seed_hash = NULL`，而 NULL 的语义是「用户改过这条词条」
+⇒ 下次 `terms.json` 升级时这条会被整条跳过并 warning。用它给 441 条落标，等于一次性冻结整个
+词库的种子升级通道且不留痕迹。故另开 `TermsRepo.setLearning()`，它也**不碰 `updated_at`**
+（回填不该把词条顶到 `list()` 的最前面）。
 
 **判级**：C 级（纯数据）。
 
@@ -436,7 +481,7 @@ owner v0.2 裁定「AI 能力使用 pi.dev 进行二次开发实现」，落在�
 - `local_events.kind` 有 **SQLite `CHECK (kind IN (...))`** 硬约束；
 - 该文件注释明写「**必须与 `packages/shared/src/constants.ts` 的 `LOCAL_EVENT_KINDS` 逐字相同**，由 core-db 同族测试解析本文件比对」。
 
-⇒ **三处必须同改，且缺一处就有测试红**：`LOCAL_EVENT_KINDS`（18 → 19）＋ `AGENT_PAYLOAD_SHAPE` 新条目 ＋ **新迁移 `0008`** 重建表（⚠️ SQLite **不能 `ALTER` 一个 CHECK 约束**，必须建新表复制数据再换名）。
+⇒ **三处必须同改，且缺一处就有测试红**：`LOCAL_EVENT_KINDS`（18 → 19）＋ `AGENT_PAYLOAD_SHAPE` 新条目 ＋ **新迁移 `0009`** 重建表（⚠️ SQLite **不能 `ALTER` 一个 CHECK 约束**，必须建新表复制数据再换名）。
 ⇒ 本条判级因此**从 C 级升到 B 级**，不再按「纯埋点」处理。
 
 **FR-9.3 ⚠️ 留痕不等于把内容存下来**。`payload_json` **只存指纹与计数，不存项目画像原文、更不存 checklist 文本**。
@@ -497,13 +542,15 @@ owner v0.2 裁定「AI 能力使用 pi.dev 进行二次开发实现」，落在�
 | **P2 呈现** | FR-4 卡片分区 ＋ FR-5 场景句搜索（**场景句先人工写 134 条**） | 真机看效果 |
 | **P3 推荐基线** | FR-6.1–6.2 ＋ FR-7 边界（**不依赖 Pi**） | **误报率抽检**（见 §7） |
 | **P4 AI 接入** | FR-8 设置页 AI 节 ＋ FR-6.3 Pi 增强 ＋ FR-10 版本闸 | 降级矩阵逐条验 |
-| **P5 留痕** | FR-9 台账 kind 扩项 ＋ 新迁移 0008 | **AI-M3T-10~13** ＋ 与既有 `core-db` 守卫同绿 |
+| **P5 留痕** | FR-9 台账 kind 扩项 ＋ 新迁移 0009 | **AI-M3T-10~13** ＋ 与既有 `core-db` 守卫同绿 |
 
 ⚠️ **P1→P3 完全不依赖 Pi 与 AI**，可独立交付。**P4 是可选增强**，没装 Pi 时产品是完整可用的（§2.4 硬约束 1 的兑现）。
 
 ⚠️ **P4 依赖 M8-E 的挂载点已入库**（§5 末）。DEV-0118 遗留的两处挂载若仍未入库，P4 须先解掉那个前置。
 
-⚠️ **P5 可与 P4 并行**，但**它改的是台账 CHECK 约束**（FR-9.2）⇒ 若 M8 后续还要扩 kind，**先合 P5 的 0008**，否则 0008 号位会被后一条占掉。
+⚠️ **P5 可与 P4 并行**，但**它改的是台账 CHECK 约束**（FR-9.2）⇒ 若 M8 后续还要扩 kind，**先合 P5 的 0009**。
+
+⚠️ **v0.3 曾把 P5 的迁移也写成 0008，与 FR-1.1 撞号** —— P1 自己要用 0008（已落地）。本版订正为 **P1=0008、P5=0009**，两处号位不再重叠。
 
 ### 6.2 风险登记
 
@@ -518,7 +565,7 @@ owner v0.2 裁定「AI 能力使用 pi.dev 进行二次开发实现」，落在�
 | **静默降级毁信任** | Pi 挂了，界面还显示「AI 推荐」但其实是基线结果 | FR-6.3.3 最后一行明令禁止；FR-8.5 要求探测状态可见 |
 | **Pi 上游变动** | 大版本改 RPC 协议或改协议，P4 静默失效 | FR-10.1 协议闸 ＋ FR-10.2 版本闸 ＋ FR-10.3 升级即重验 |
 | **台账 kind 双源** | `LOCAL_EVENT_KINDS` 与迁移 CHECK 忘了同改 → 写入直接被 DB 拒 | FR-9.2 三处同改；**AI-M3T-10 是既有的守卫，不得为放行而放松** |
-| **SQLite 改不了 CHECK** | `ALTER` 加不了 kind，只能建新表复制数据 | FR-9.2 已登记为「新迁移 0008 重建表」；⚠️ 这是**代价**，写在这里是为了让 owner 知道扩 kind 不便宜 |
+| **SQLite 改不了 CHECK** | `ALTER` 加不了 kind，只能建新表复制数据 | FR-9.2 已登记为「新迁移 0009 重建表」；⚠️ 这是**代价**，写在这里是为了让 owner 知道扩 kind 不便宜 |
 | **范围蔓延** | 顺手把 M8-A 的活一起干，术语库线背上 agent 接入形态 | FR-10A.4 明确不做 ＋ SCOPE-M3T-01 范围守卫 |
 | **密钥管理** | API Key 落 `app_meta` 会被回显 | FR-8.4 明令禁止；密钥留在 Pi 侧 |
 | **M8-E 挂载未入库** | FR-6.5 的「人工确认后落库」缺界面入口 | §5 末已登记为 P4 前置 |
@@ -582,14 +629,14 @@ owner v0.2 裁定「AI 能力使用 pi.dev 进行二次开发实现」，落在�
 
 | # | 待裁 | 为什么需要 owner |
 |---|---|---|
-| 1 | **难度与「入门必需」是否要两个独立维度** | 实测两批词库的口径差异极大（§2.2）；合并成一个字段会让筛选条变短但信息丢失。owner 已选「人工分类全部」，但**未裁维度数** |
+| 1 | ~~**难度与「入门必需」是否要两个独立维度**~~ | ✅ **已由 owner 批准本 spec（2026-10-18）闭合**：批准即裁定按 FR-2 的两维度实现；本轮开工时又追加裁定「加第三列 `domain`」，故实际落地为**三维度** |
 | 2 | **场景句写 134 条还是全 441 条** | 建议只写 `starter=1` 的 134 条（§6.2）。全量 441 条质量风险高、工作量大。**P4 的 AI 生成也建议先限在这 134 条** |
 | 3 | **「本项目该掌握」是否要跨项目对比**（哪些术语我在项目 A 用过、B 没用过） | 有价值但是另一个模块的量级 |
 | 4 | **是否给 vibe-hub 词条补场景句** | 那批词条是外部来源，改动它们等于修改第三方内容（且 `source='vibe-hub'` 的溯源语义要保留） |
 | 5 | **Pi 接入方式选 RPC / SDK / Print**（FR-6.3.1） | 建议 **A · RPC**，但 B(SDK) 类型最友好。**这是技术选型，需 owner 拍** |
 | 6 | **是否由产品代管 API Key** | 本 spec 的立场是**不代管**（FR-8.4，密钥留 Pi 侧）。若 owner 要求代管，涉及加密存储 ＋ 脱敏回显，**须另立设计** |
 | 7 | **Pi 的 skill 约定是否顺带解 M8-A** | Pi 的 skill 约定公开且有源码（§2.4），可作为 M8-A 的第一个可核验落点。但这**超出本 spec 范围**（FR-10A.4 已明确 Out），须 owner 决定是否单开一条 |
-| 8 | **台账 kind 扩项（FR-9.2）是否走新迁移 0008** | SQLite 改不了 CHECK ⇒ 只能建新表复制数据换名。**代价明确但不便宜**，且 0008 号位一旦被占，后续 M8 的迁移要顺延 |
+| 8 | **台账 kind 扩项（FR-9.2）是否走新迁移 0009** | SQLite 改不了 CHECK ⇒ 只能建新表复制数据换名。**代价明确但不便宜**。⚠️ **号位已定**：0008 被 P1 占用（P1 落地在先），P5 只能是 0009 —— 这条不再需要 owner 选，但要 owner 知悉 P5 的号位被顺延了一位 |
 | 9 | **M8-A 的 skill 桥接是否单开一条** | Pi 的 skill 约定让 M8-A 第一次变得**可核验**（§10）。但本 spec 明确 Out（FR-10A.4）⇒ 须 owner 决定：**单开一条对照**，还是继续等探针 Q3/Q4 |
 
 ### 8.1 本次 v0.2 已闭合的（对照 v0.1）
@@ -609,6 +656,16 @@ owner v0.2 裁定「AI 能力使用 pi.dev 进行二次开发实现」，落在�
 
 ⚠️ **这三条是从 v0.2 的「未考虑」提上来的，不是新增范围** —— 它们的共同点是：**每一条都能在实现期变成一个没人发现的问题**（判据 flaky / 上游静默改 / 范围悄悄变大），所以必须在开工前钉死。
 
+### 8.3 本次 v0.4 已闭合的（开工前实测暴露的规格缺陷）
+
+| # | 缺陷 | v0.4 状态 |
+|---|---|---|
+| 1 | FR-3 立了「领域」维度，但表里没有列能存它，`term-domain-map.json` 落不到词条上 | ✅ **owner 裁定加第三列 `domain`（可空）**；理由与 FR-3.2 同源：`tags[0]` 是自由标签，删标签会让领域跟着变 |
+| 2 | FR-2.3 以 `trm_xxx` 为键，而 `terms.id` 是运行时生成的 | ✅ **改用 `zh`+`en` 自然键**（seed 通道既有定位方式），并实测 441 个自然键全部唯一 |
+| 3 | P1 与 P5 都写「迁移 0008」，撞号 | ✅ **P1=0008（已落地）、P5=0009** |
+
+⚠️ 这三条**不是新增范围，是把写规格时想漏的地方补上**。第 2 条最险：它不会报错，只会让 441 条标注在换机后全部落空而无人察觉 —— 正因如此，FR-2.3 现在写明了复算命令与那条 `||` 遇 NULL 的坑。
+
 ---
 
 ## 9. 复算命令
@@ -625,12 +682,19 @@ sqlite3 ~/.openvibe/data/openvibe.db \
 #   → 前端 140 / 后端 69 / AI 30 / 产品 25 / 设计风格 24 / 技术栈 19 / Git 15 / 测试 10
 
 # 分类覆盖（FR-2.3，441 条必须齐）
-node -e "const l=require('./content/seed/term-levels.json');console.log(Object.keys(l).length)"   # → 441
+node -e "console.log(require('./content/seed/term-levels.json').items.length)"   # → 441
 
-# 漏判自证：id 集合必须与库内完全相同
-sqlite3 ~/.openvibe/data/openvibe.db "SELECT id FROM terms;" | grep -v '^$' | sort > /tmp/db.txt
-node -e "console.log(Object.keys(require('./content/seed/term-levels.json')).sort().join('\n'))" > /tmp/lvl.txt
-diff /tmp/db.txt /tmp/lvl.txt && echo '✅ 441 条 id 完全一致'
+# 自然键唯一性（⚠️ 必须用 quote()：裸 || 拼接遇 NULL 即 NULL，会静默少算 43 条）
+sqlite3 ~/.openvibe/data/openvibe.db \
+  "SELECT COUNT(*) 总数, COUNT(DISTINCT quote(zh)||char(31)||quote(en)) 唯一自然键 FROM terms;"
+#   → 441 | 441
+
+# 漏判自证：自然键集合必须与库内完全相同
+# ⚠️ 两边必须用**同一种序列化**：`quote()` 出单引号、`JSON.stringify` 出双引号，
+#    直接混用会全线不匹配且看不出原因。故统一走 JSON 数组（json_array 遇 NULL 记 null）。
+sqlite3 ~/.openvibe/data/openvibe.db "SELECT json_array(zh, en) FROM terms ORDER BY 1;" | sort > /tmp/db.txt
+node -e "const i=require('./content/seed/term-levels.json').items; console.log(i.map(x=>JSON.stringify([x.zh,x.en])).join('\n'))" | sort > /tmp/lvl.txt
+diff /tmp/db.txt /tmp/lvl.txt && echo '✅ 441 条自然键完全一致'
 ```
 
 ⚠️ **导出命令必须处理内嵌换行**。本次实测踩到：`sqlite3` 直接导出时，`definition` 里的换行会把一条记录**拆成多行**，导致 43 条被误判为「漏分类」（实测 332 行里只有 289 条真条目）。
