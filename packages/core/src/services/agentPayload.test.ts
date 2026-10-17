@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { FORBIDDEN, FORBIDDEN_COVERAGE, newDb, payloadKeys, scanForbidden, selfProofRows } from '../test-support'
 import { FlowTemplatesRepo } from '../repos/flows'
+import { APP_META_KEYS, AppMetaRepo } from '../repos/appMeta'
 import { ProjectsRepo } from '../repos/projects'
 import { createAgentService } from './agentService'
 import { createContextService } from './contextService'
@@ -68,6 +69,10 @@ function oneRow(h: ReturnType<typeof newDb>, kind: string): { payload_json: stri
 
 /** 把四类都真跑一遍，让库里四种行都在 */
 function allRowsWritten(h: ReturnType<typeof newDb>, f: ReturnType<typeof fixture>) {
+  // M8-E 写侧总闸默认关（FR-5.5.2.1）⇒ 本 helper 必须显式打开，
+  // 否则下面两次 ingestBatch 全部先撞 422，**一行都不写**，
+  // 于是「四类已写入 kind 的实际键」这条判据会去查一个空集合 —— 红的原因是闸，不是键。
+  new AppMetaRepo(h.db).write(APP_META_KEYS.agentWriteEnabled, true)
   f.agent.ingestBatch({
     projectId: f.projectId,
     items: [{ kind: 'dev_log', idempotencyKey: 'g1', payload: { body: '正常内容' }, sourcePlatform: 'trae' }],

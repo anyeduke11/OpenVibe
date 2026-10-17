@@ -16,6 +16,7 @@ import {
 } from '@openvibe/shared'
 import type { SqliteDatabase } from '../db'
 import { AgentIngestRepo, type AgentIngest } from '../repos/agentIngest'
+import { APP_META_KEYS, AppMetaRepo } from '../repos/appMeta'
 import { DevLogRepo } from '../repos/devlog'
 import { LocalEventsRepo } from '../repos/localEvents'
 import { ProjectsRepo } from '../repos/projects'
@@ -114,6 +115,24 @@ export function createAgentService(deps: AgentServiceDeps) {
   function ingestBatch(input: IngestBatchInput): IngestBatchResult {
     const now = deps.now()
     const stamp = now.toISOString()
+
+    // M8-E 的写侧总闸（`m8-agent-panel.md` FR-5.5.2.1，默认**关**）。
+    //
+    // **为什么拦在这里而不是路由**：FR-3 要求写入只发生在服务层；
+    // 放路由等于给「别的调用方」留一条绕过总闸的路（CLI / 直调 service 的测试都能过）。
+    // ⚠️ 拦在**任何一条落库之前** —— 半批成功的语义是「这批被部分拒绝」，
+    // 整批拒绝才是「总闸关了，一条都不该进来」。混起来会让关闸看起来像部分故障。
+    // ⚠️ **不新造错误码**：`m8-agent-bridge.md` FR-6.1 把闭集钉死为 12 项，
+    // 扩它属改契约（要走 spec 变更），本轮不做。
+    // 选 `VALIDATION_ERROR`(422) 而非 `FORBIDDEN_ORIGIN`(403)：后者在本仓专指
+    // 来源/双闸面（`http-guard.ts`），用在「功能开关关着」上是挪用，调用方会按跨域问题排查。
+    // 422 的语义是「按当前条件这个请求不成立」—— 条件就是那个开关。
+    if (!new AppMetaRepo(deps.db).read<boolean>(APP_META_KEYS.agentWriteEnabled, false)) {
+      throw new AppError(
+        'VALIDATION_ERROR',
+        '设置页的「允许 agent 写入」当前是关的，回流已被拒绝。请先在设置里打开。',
+      )
+    }
 
     if (input.items.length > BATCH_LIMIT) {
       throw new AppError('VALIDATION_ERROR', `单次最多 ${BATCH_LIMIT} 条，本次 ${input.items.length} 条`, {

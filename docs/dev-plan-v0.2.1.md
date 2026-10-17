@@ -176,6 +176,62 @@ M8 接入面（本迭代 Phase 2 · A + E）
 > **⑥ 本次结项未做的检查**：没有重新评估三道 🟡 的判据是否仍然成立。
 > 结项只登记**实测到的当前状态**，不重开判据的强度评估 —— 后者是另一件事，不应挂在「收尾」名下顺带做掉。
 
+> **DEV-0118（2026-10-17）· Phase 2 开工：M8-E 助手桥接面板落地**
+>
+> owner 指令「进行 phase2 开发」。**Phase 2 = M8-A（skill bridge）＋ M8-E（面板）**，
+> 其中 **M8-A 不可开工**（`m8-skill-bridge.md` 未写，形态取决于未核验的 skill 发现约定），
+> 故本轮做 **M8-E**。开工前置（Phase 1 全绿 ＋ 0-d 运行半边闭合）**仍不满足** ——
+> 与 2026-10-15 越过 Phase 1 前置那次同构，**偏差照实登记，不改判**。
+>
+> **落点全部是新文件，只碰两处既有文件且各压到最小**：
+> 新建 `components/agent/{EmptyState,AgentPanel,ContextPreview,PendingIngestList,InstallGuide}.tsx`
+> ＋ `components/settings/AgentSettingsSection.tsx` ＋ `hooks/useAgentIngests.ts`
+> ＋ `i18n/lane-agent.ts` ＋ 两个测试文件；
+> ⚠️ **两处挂载点未能入库（混合文件，按纪律放弃而不是硬凑）**：
+> `ProjectDetailPage.tsx` 与 `SettingsPage.tsx` 的未提交改动里**含并行会话对整页的重写**
+> （设置页整页重构、开发日志段重写），而我的插入点与他们的改动**相邻** ⇒ `git diff` 把两者
+> 合并进同一个 hunk，hunk 级过滤失效（已实测：暂存后核出暂存内容里带着他们整页的改写）。
+> ⇒ 按「混了的文件宁可不提交」撤出暂存。**后果：面板与设置节已入库但尚未挂载**，
+> 挂载的那两行留在工作树，等并行会话提交后单独入库即可（组件本身不依赖挂载即可测试）。
+> ⚠️ **`SettingsSections.tsx` 未碰**（并行会话约 795 行未提交改动）；M8 开关节做成**独立文件**，
+> 归属上它属 M8、不属「可读性与设计系统」，挂进那个文件会让节标题与内容对不上。
+>
+> **FR-5.5 的写侧总闸是这轮最重的一件，且它改了产品行为**：
+> `APP_META_KEYS.agentWriteEnabled`（走既有 `AppMetaRepo`，**不改迁移**）
+> ＋ `GET/POST /api/settings/agent-write` ＋ `agentService.ingestBatch` **入口拦截**（默认关 ⇒ 422）。
+> ⚠️ **升级后行为变化**：agent 回流默认被拒，须用户在设置里打开。这是 spec FR-5.5.2.1 ＋
+> PRD-M8 FR-1.3「只读默认」的要求，但它是**会打断现网 agent 集成**的变更，故在此显著登记。
+> ⚠️ **不新造错误码**：FR-6.1 把闭集钉死为 12 项，扩它属改契约。选 `VALIDATION_ERROR`(422)
+> 而非 `FORBIDDEN_ORIGIN`(403) —— 后者在本仓专指来源/双闸面，用在这里会让调用方按跨域问题排查。
+>
+> **判据自身修掉四处（都是首版判据把「提及」当「使用」或写窄了）**：
+> ① FR-5.3 零子进程原为裸正则 ⇒ 判据**自身**（测试文件里写着要搜的字面量）与
+>    组件注释里那句「**不得** `dangerouslySetInnerHTML`」双双被判违规 ⇒ 改为**先剥注释再匹配**
+>    ＋ 对本文件登记**结构性豁免**，并加一支自证「剥注释确实剥掉了」。
+> ② emoji 截断用例的孤立代理项判别式首版只判高代理 ⇒ 每个**正常** emoji 对的低代理都被误判，
+>    红的原因是判据写错而实现是对的 ⇒ 改为「高代理后无低代理 **或** 低代理前无高代理」，并加一支「能红」。
+> ③ adapter 标签守卫原为对源文件 `toContain("'cursor'")` ⇒ 合法 JS 键写法是 `cursor:`（无引号），
+>    于是把写法差异报成缺标签 ⇒ 改为**导入映射表**逐键断言，并加反向检查「无陈旧标签」。
+> ④ 剥注释自证首版对整棵 `components/settings` 做证 ⇒ 那棵树里 `SettingsSections.tsx`
+>    **合法地** import 了 `TelemetrySection`，剥完仍有 telemetry ⇒ 自证改为只测剥注释这个动作本身。
+>
+> **写闸的三处 fixture 必须显式打开闸**：`agentService.test.ts` / `agent.api.test.ts` /
+> `agentPayload.test.ts` 的 harness 各加一行 `AppMetaRepo.write(agentWriteEnabled, true)`。
+> ⚠️ 漏任何一处，那支测试会因**闸**而红而不是因它要测的东西 —— 而 `agentPayload` 那处最隐蔽：
+> 闸关着时两次 `ingestBatch` 全被拒、**一行都不写**，「四类已写入 kind 的实际键」就去查了空集合。
+> ⇒ 合计 **43 支**由 422 转红，改 harness 后回到绿。
+>
+> **变异腿**：向 `InstallGuide.tsx` 塞一处真实 `require("child_process")`
+> ⇒ WEB-M8E-04 精准红 1 支（其余 19 支不误伤），还原后 20 绿。
+>
+> **验收覆盖**：`agentPanel.test.tsx` **20 支**（WEB-M8E-01/02/04/05/06/08/13）
+> ＋ `agentWriteGate.api.test.ts` **12 支**（WEB-M8E-09/10/11/12）。
+> ⚠️ **未做**：WEB-M8E-03（FR-5.2 同源断言）与 §7-n（人工验收腿）仍不在这两支文件里 ——
+> 前者要真起 CLI 与 Web 两路比对出参，后者属 owner 腿。
+>
+> **五闸**：typecheck 0 · lint 0 · test **89 文件 / 1012 支**全绿（较 DEV-0113 +2 文件 +32 支）·
+> docs:check rc=0（error 0 warning 132）· spec-claims 10 支。
+
 ### §4.2 Phase 1 · 读写核心（M8-B ＋ C ＋ D ＋ `requirements`）
 
 **出口判据**：M8 spec v1.0 的 §7 二十四条 pass/fail 全绿。**开工前置**：0-e 与 0-f 同时转绿。

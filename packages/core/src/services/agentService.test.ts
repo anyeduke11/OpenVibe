@@ -4,6 +4,7 @@ import { FlowTemplatesRepo } from '../repos/flows'
 import { ProjectsRepo } from '../repos/projects'
 import { TasksRepo } from '../repos/tasks'
 import { createAgentService, AGENT_BATCH_LIMITS } from './agentService'
+import { APP_META_KEYS, AppMetaRepo } from '../repos/appMeta'
 import { AGENT_PAYLOAD_KEYS, TASK_STATUS, type AgentIngestKind, type AgentIngestOne } from '@openvibe/shared'
 
 /**
@@ -31,6 +32,10 @@ function fixture() {
   })
   const projectId = new ProjectsRepo(h.db).create({ name: '服务层演示', flowTemplateId: template.id }).id
   let tick = 0
+  // M8-E 写侧总闸（FR-5.5.2.1）**默认关**，故本 fixture 必须显式打开，
+  // 否则下面每支 ingest 用例都会先撞 422 —— 测的就不是它们要测的东西了。
+  // ⚠️ 这条总闸本身的判据在 `agentWriteGate.test.ts`，不在这里。
+  new AppMetaRepo(h.db).write(APP_META_KEYS.agentWriteEnabled, true)
   const svc = createAgentService({ db: h.db, now: () => new Date(Date.UTC(2026, 9, 14, 0, 0, tick++)) })
   return { h, svc, projectId }
 }

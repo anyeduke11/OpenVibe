@@ -217,3 +217,14 @@ export const TelemetryLedgerLimit = z.preprocess(
   z.number().int().min(1).max(TELEMETRY_EVENTS_LIMIT_MAX),
 )
 export type TelemetryLedgerLimit = z.infer<typeof TelemetryLedgerLimit>
+
+/** M8-E 的写侧总闸（`m8-agent-panel.md` FR-5.5.2.1）。**默认关**（缺行即 false） */
+export const AgentWriteToggleInput = z.object({
+  enabled: z.boolean(),
+})
+export type AgentWriteToggleInput = z.infer<typeof AgentWriteToggleInput>
+
+export const AgentWriteSettingsOut = z.object({
+  enabled: z.boolean(),
+})
+export type AgentWriteSettingsOut = z.infer<typeof AgentWriteSettingsOut>

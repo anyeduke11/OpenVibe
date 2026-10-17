@@ -1,6 +1,6 @@
 import { describe, expect, it, afterEach } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { FlowTemplatesRepo, ProjectsRepo, TasksRepo } from '@openvibe/core'
+import { APP_META_KEYS, AppMetaRepo, FlowTemplatesRepo, ProjectsRepo, TasksRepo } from '@openvibe/core'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
 import { AGENT_INGEST_LIMITS, AGENT_PAYLOAD_KEYS, TASK_STATUS } from '@openvibe/shared'
 import { buildApp } from '../src/app'
@@ -25,6 +25,8 @@ async function harness(): Promise<{ app: FastifyInstance; projectId: string; han
     stages: [{ name: '启动', checklist: [{ id: 'c1', text: '需求一句话' }], artifacts: [] }],
   })
   const projectId = new ProjectsRepo(handle.db).create({ name: '接入演示', flowTemplateId: template.id }).id
+  // M8-E 写侧总闸默认关（FR-5.5.2.1）⇒ 本 harness 显式打开，否则全部 ingest 用例先撞 422
+  new AppMetaRepo(handle.db).write(APP_META_KEYS.agentWriteEnabled, true)
   openHandles.push({ app, handle })
   return { app, projectId, handle }
 }

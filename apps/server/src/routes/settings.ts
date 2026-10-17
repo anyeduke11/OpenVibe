@@ -9,6 +9,7 @@ import {
 } from '@openvibe/core'
 import {
   FlywheelStatsOut,
+  AgentWriteToggleInput,
   TELEMETRY_EVENTS,
   TelemetryEventInput,
   TelemetryLedgerLimit,
@@ -125,6 +126,23 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
   })
 
   app.get('/api/settings/telemetry', async () => telemetryView(meta))
+
+  /**
+   * M8-E 写侧总闸（`m8-agent-panel.md` FR-5.5.2.1）。
+   *
+   * **为什么单独一个端点而不是并进 `/api/settings/telemetry`**：FR-5.5.2 明写
+   * 「台账总开关与遥测总开关**不在此处重复**」—— 混进同一个端点，
+   * 前端就得维护一份「哪些键属于哪节」的映射，而那正是重复开关的成因。
+   */
+  app.get('/api/settings/agent-write', async () => ({
+    enabled: meta.read<boolean>(APP_META_KEYS.agentWriteEnabled, false),
+  }))
+
+  app.post('/api/settings/agent-write', async (req) => {
+    const { enabled } = parseOrThrow(AgentWriteToggleInput, req.body)
+    meta.write(APP_META_KEYS.agentWriteEnabled, enabled)
+    return { enabled }
+  })
 
   /** D13：一次询问的落点。accepted=开关打开，declined=关掉且永不再问，故由 enabled 反推 askState */
   app.post('/api/settings/telemetry', async (req) => {

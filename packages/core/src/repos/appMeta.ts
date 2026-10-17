@@ -8,6 +8,17 @@ export const APP_META_KEYS = {
   telemetryEnabled: 'telemetryEnabled',
   telemetryAskState: 'telemetryAskState',
   onboardingDone: 'onboardingDone',
+  /**
+   * M8-E 的「允许 agent 写入（回流）」总闸（`m8-agent-panel.md` FR-5.5.2.1）。
+   *
+   * **默认关**（读侧一律传 `fallback = false`）—— 与 PRD-M8 技能边界表「只读默认」一致
+   * （PRD-M8 FR-1.3）。FR-5.2 的人工确认门是**读侧**防线，写侧还需要这道总闸，
+   * 否则一次误配就让 agent 开始往库里写。
+   *
+   * ⚠️ **刻意不与既有两开关合并**：台账总开关与遥测总开关各有各的节（FR-5.5.2），
+   * 重复开关会导致两处状态不一致 —— 用户改了一处发现另一处没变。
+   */
+  agentWriteEnabled: 'agentWriteEnabled',
 } as const
 
 export class AppMetaRepo {
