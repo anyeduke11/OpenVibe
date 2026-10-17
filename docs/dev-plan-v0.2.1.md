@@ -279,6 +279,52 @@ M8 接入面（本迭代 Phase 2 · A + E）
 > **五闸**：typecheck 0 · lint 0 · test 86 文件 / **957** 支全绿 · docs:check rc=0（探针面「留空 Q1/Q3/Q4」）· spec-claims 10 支 · **HEAD 独立编译 rc=0**。
 > **诚实登记**：Q1／Q3／Q4 三问仍全空（须 owner 在 Trae／CodeBuddy 真机跑）；两处屏摄仍待 owner 签收；`agent_bridge_installed` 未做（Phase 2，spec 尚未写，此刻做等于凭空造产品动作）。
 
+> **DEV-0113（2026-10-17）· owner 三条指令：屏摄代拍 ✅ · `stage_view_switched` 落地 ✅ · `agent_bridge_installed` 半落地**
+>
+> **① 两处屏摄的 README 半张已代拍并归档（owner 腿，但只备料不代判）。**
+> 用 headless Chrome ＋ 裸 CDP 截**GitHub 实际渲染视图**（`gh repo view` 实测 `visibility: PUBLIC`）——
+> 判据问「用户不加解释能不能读懂」，而用户读的是渲染后那一版，不是 raw Markdown。
+> 产出 `docs/devlog-evidence/phase1-exit-shots/{x-m8-readme,j-readme-ledger}.png`（1100px，各约 0.5 MB）。
+> ⚠️ **取证踩了两个坑，都记在施工单里**：① 首版用 `nextElementSibling` 逐级走找不到下一标题 ——
+> GitHub 把标题包在 wrapper `div` 里，同级遍历撞到 wrapper 永不返回，**结果截到文末（5120×14108）**；
+> 改**文档序**遍历（`querySelectorAll` 取下一个同级或更高级标题）才对。② 体积：2× 截得 4.3 MB／3.3 MB，
+> JPEG 实测**更大**（1.3–1.5 MB），最后重采样到 1100px（GitHub 文章原生宽约 838px）压到合计 946 KB。
+> ⚠️ **条 j 的设置页那半张仍未拍**，前置未满足（三节并存 ＋ 组件未入库），见施工单。
+> ⚠️ **两张都不构成签收** —— 判据原文写明「判不过须回报 owner」，§7 的 🟡 **未**改 ✅。
+>
+> **② `stage_view_switched` 落地，FR-2.3 的「首版四类」至此四类齐。**
+> owner 解除 apps/web 交叠阻塞后实做，**写入点接在 `POST /api/projects/:id/stages/current`**——
+> **没新造端点**：那个端点本来就只在真切换时才被调用，前端 `ProjectDetailPage.switchTo` 先挡了同阶段。
+> ⚠️ **但去重仍住在服务端**（切换前阶段 == 目标阶段则不记）：§6.4 要求**每个发射点自带去重**，
+> 前端那层是 UI 顺手优化不是契约，它哪天被改掉或换调用方，连点四次就多四条。
+> ⚠️ **它与 `stage_advanced` 分列两个 kind 是有意的**：后者是「项目阶段前进了」，
+> 前者是「用户切到哪个阶段去看」—— **回看已完成的旧阶段同样要记，而项目阶段并没有前进**。
+> 凭据：`local-events.writepoints.test.ts` 新增 `describe` 5 支；**变异实测**把去重条件改恒真
+> ⇒ **精准红 2 支**（两种去重形态），其余 17 支未误伤，基线还原后回到 19 绿。
+>
+> **③ `agent_bridge_installed`：交付了能做的，且查清了不能做的原因（不是「凭空造动作」，是有据的阻塞）。**
+> ⚠️ **先订正 DEV-0112 的一处说法**：我当时写「其 spec 尚未写，此刻做等于凭空造产品动作」——
+> **前半句不准确**。PRD `PRD-M8-agent-bridge-v1.0-20261013.md:453` **已写明**触发点（检测到项目内存在 skill 目录）、
+> payload 键（`adapter`／`packVersion`）与去重键（`(project_id, adapter, pack_version)`）。缺的**不是**规格文本。
+> **后半句成立，但原因是本会话才查到的、更硬的一条**：`m8-agent-bridge.md:51` 早已登记——
+> 「M8-A 的核心形态取决于 Trae/CodeBuddy 的 skill 发现约定（目录/格式），而该约定**运行半边未经真机核验**」。
+> 那个「运行半边」**就是探针 Q3／Q4**（script 可执行性、对 symlink 的限制），两问至今全空。
+> ⇒ **在 Q3/Q4 闭合前，没有任何代码知道「skill 目录」长什么样**，此时硬造触发点只能凭空发明目录名 ——
+> 把一个未验证的约定写进产品，比不写更坏。
+> **交付的是不依赖那个约定的部分**：`packages/core/src/services/bridgeInstallService.ts`
+> —— 键闭集（从 `AGENT_PAYLOAD_SHAPE` 派生）＋ 校验（含路径分隔符与长度上限，FR-5.1.2 禁列在写入点的兜底）
+> ＋ **§6.4 的去重键**。去重恰恰是这类事件最易做错处（重复检测会把「用了几次」虚高，而 D15 拿它判活跃度，
+> 虚高**不会报错**、只会让统计偏向重度用户）。18 支单测 ＋ **双向变异实测**：去掉去重 ⇒ 红 1 支；
+> 去重恒命中（过宽）⇒ 红 8 支。
+> ⚠️ **本服务当前无生产调用方**，`constants.ts` 与 `agentPayload.test.ts` 的措辞已同步
+> 「声明态」→「**半落地态**」，且那支「不得被悄悄写成已写入」的断言**保持 `= 0`**——
+> 改成 `> 0` 就等于要求一个写不出来的触发条件。
+> ⚠️ **刻意不加 HTTP 端点**：`command-run` 那类端点的理由是 CLI 不直接开库（FR-4.4），
+> 而 M8-A 届时走 CLI 上报还是进程内直调，**取决于 Q3/Q4 的答案**（复制 vs symlink 决定写几次、谁来写），
+> 现在钉死端点形状很可能一答就作废。
+>
+> **四闸**：typecheck 0 · lint 0 · test **87 文件 / 980 支**全绿（较 DEV-0112 +1 文件 +23 支）· docs:check rc=0（error 0 warning 132）· spec-claims 10 支。
+
 ### §4.3 Phase 2 · 接入面（M8-A ＋ M8-E）
 
 **出口判据**：`m8-skill-bridge.md` 与 `m8-agent-panel.md` 各自的验收条目全绿。

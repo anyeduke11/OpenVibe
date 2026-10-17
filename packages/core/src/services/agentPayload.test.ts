@@ -19,7 +19,8 @@ import { AGENT_PAYLOAD_KEYS, AGENT_PAYLOAD_TYPES, AGENT_EVENT_KINDS, AgentIngest
  * - `agent_ingest_accepted` —— 键断言存在但**硬编码字面量**，禁列只有两个 `not.toContain` 点断言
  * - `agent_ingest_rejected` —— **键断言与禁列都零覆盖**
  * - `agent_context_served` —— 键断言存在但**硬编码**，无禁列
- * - `agent_bridge_installed` —— 声明态，写入点属 M8-A（Phase 2）
+ * - `agent_bridge_installed` —— **半落地态**（2026-10-17 更新）：服务层写入点已存在
+ *   （`bridgeInstallService`，含 §6.4 去重键），但触发条件卡在探针 Q3/Q4，**生产上零写入**
  *
  * 即「规格写五类、代码只验一类」。且那两处硬编码意味着：**改规格不会红、改表也不会红**。
  * 故本文件把四类**已写入** kind 拉齐到同一条判据上，并让判据引用**单一出处**。
@@ -161,13 +162,18 @@ describe('FR-5.1.1 · 五类 payload 键闭集（单一出处 ＋ 逐字对齐�
     expect([...specKeys].filter((k) => !implKeys.has(k) && k !== 'legacyFlag')).toEqual([])
   })
 
-  it('⚠️ 声明态那一类不得被悄悄写成「已写入」—— 它属 Phase 2', () => {
+  it('⚠️ 半落地那一类不得被悄悄记成「已写入」—— 触发条件仍卡在探针 Q3/Q4', () => {
     expect(AGENT_PAYLOAD_KEYS.agent_bridge_installed).toEqual(['adapter', 'packVersion'])
     const f = fixture()
     allRowsWritten(f.h, f)
     const absent = f.h.db
       .prepare("SELECT COUNT(*) AS c FROM local_events WHERE kind = 'agent_bridge_installed'")
       .get() as { c: number }
+    // ⚠️ 本支断言的是**「跑完四类已写入 kind 后，库里仍为零」**，
+    // 即半落地那一类没有被顺带写进去。2026-10-17 起它多了服务层
+    // （`bridgeInstallService`，含去重键），但**生产触发点仍不存在**
+    // —— skill 目录形态是 M8-A 未闭合三问之一（探针 Q3/Q4），
+    // 故此处不得改成「应当 > 0」，那会要求一个写不出来的触发条件。
     expect(absent.c).toBe(0)
     f.h.close()
   })

@@ -9,6 +9,31 @@
 
 ---
 
+## ✅ 已归档（2026-10-17 · agent 代拍）
+
+README 两半张已用 headless Chrome + 裸 CDP 截出并落盘，**均为 GitHub 实际渲染视图**（`github.com/anyeduke11/OpenVibe`，
+仓库可见性实测 `PUBLIC`）—— 判据问的是「用户不加解释能不能读懂」，而用户读的就是渲染后那一版，不是 raw Markdown。
+
+| 文件 | 对应 | 覆盖范围 | 尺寸 / 体积 |
+|---|---|---|---|
+| `x-m8-readme.png` | 条 x | `README.md:154-180` 全节，**三段同框**（能读 / 能写 / 不能做） | 1100×820 · 482 KB |
+| `j-readme-ledger.png` | 条 j · README 半 | `README.md:182-208`，含五维对照表全五行 + 三条支撑 | 1100×1008 · 464 KB |
+
+**取证方法**：`--headless=new` ＋ `Emulation.setDeviceMetricsOverride` ＋ `Page.captureScreenshot(clip)`，
+按标题文本在 `article.markdown-body` 内定位起止（取**下一个同级或更高级标题**为下界）。
+⚠️ **首版踩过的坑**：用 `nextElementSibling` 逐级走找不到下一标题 —— GitHub 把标题包在 wrapper `div` 里，
+同级遍历撞到 wrapper 就永远不返回，于是截到文末（首版 5120×14108）。**改文档序遍历**才正确。
+⚠️ 体积先按 2× 截得 4.3 MB / 3.3 MB，JPEG 实测**更大**（1.3–1.5 MB），最后重采样到 1100px
+（GitHub 文章原生宽约 838px，1.3 倍足够清晰）压到 946 KB 合计。
+
+⚠️ **两张都不构成签收**。判据原文写明「判不过须回报 owner 而非改文案了事」——
+**判定权在 owner**，agent 只负责把判定物拍齐、把可拍性说清。条 x 的三段、条 j 的五维表是否「讲清」，
+仍需 owner 看过后裁定；agent 不得据「图已归档」自行把 §7 的 🟡 改成 ✅。
+
+⚠️ **条 j 只完成了一半**：设置页那半张（判定物 2/2）仍未拍，前置未满足，见下方「设置页为什么现在不能拍」。
+
+---
+
 ## 屏摄一 · 条 x · M8 README
 
 ### 判据原文

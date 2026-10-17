@@ -173,8 +173,14 @@ export const AGENT_PAYLOAD_KEYS = Object.fromEntries(
  * 故此处不再有「规格待对齐」这回事 —— ⚠️ 下一轮若再看到有注释声称「spec 仍写 snake_case、
  * 待对齐」，那是**陈述性腐烂**，不是新的债：以本表为准。
  *
- * ⚠️ `agent_bridge_installed` 属**声明态** —— 写入点在 M8-A（Phase 2），
- *   其 spec `m8-skill-bridge.md` 尚未写。故此处登记形状，但当前**无生产写入点**。
+ * ⚠️ `agent_bridge_installed` 属**半落地态**（2026-10-17 更新）——服务层写入点已存在
+ *   （`packages/core/src/services/bridgeInstallService.ts`，含 PRD §6.4 的去重键与本表的键闭集，
+ *   18 支单测 ＋ 双向变异实测），但**触发条件仍未接线**。
+ *   PRD 的触发点是「检测到项目内存在 skill 目录」，而 skill 目录的**目录名与格式**正是 M8-A
+ *   未闭合的形态三问之一（`m8-agent-bridge.md:51` 登记：核心形态取决于 Trae/CodeBuddy 的
+ *   skill 发现约定，而该约定的**运行半边未经真机核验** —— 即探针 Q3/Q4，至今全空）。
+ *   在那两问闭合前没有任何代码知道「skill 目录」长什么样，硬造触发点等于凭空发明约定。
+ *   故此处登记形状，**当前仍无生产调用方**。
  */
 export type AgentPayloadKind = keyof typeof AGENT_PAYLOAD_SHAPE
 

@@ -117,7 +117,39 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
   app.post('/api/projects/:id/stages/current', async (req) => {
     const { id } = req.params as { id: string }
     const { stageName } = parseOrThrow(StageBody, req.body)
+    // ⚠️ 先读一次再切：去重需要「切换前」的阶段，而 `switchStage` 内部也会 get。
+    // 抛错顺序与改动前一致（不存在 ⇒ NOT_FOUND，不在快照 ⇒ VALIDATION_ERROR，
+    // 两者都由 `switchStage` 自己抛，这里只是把「不存在」提前到同一位置）。
+    const before = projects.get(id)
+    if (!before) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
     projects.switchStage(id, stageName)
+
+    // `stage_view_switched` 的写入点（local-event-ledger FR-2.3 点名的**四类之四**）。
+    //
+    // **为什么记在这个端点而不是前端**：FR-3 要求写入只发生在服务层。前端另开一个
+    // 「我看了一下」端点，等于给同一个用户动作开第二个入口，且计数会被重渲染放大。
+    // 而这个端点本来就只在**真的切换**时才被调用 —— 前端 `ProjectDetailPage.switchTo`
+    // 先挡了 `stageName === view.currentStage`。
+    //
+    // **为什么还要在服务端再挡一次**：§6.4 要求**每个发射点自带去重**，不依赖前端。
+    // 前端那层是 UI 的顺手优化，不是契约；它哪天被改掉、或换成别的调用方，
+    // 同一个阶段连点四次就会让台账多四条。**不依赖调用方自觉**是这一层的全部理由。
+    //
+    // **为什么这不是 `stage_advanced`**：那个 kind 语义是「项目阶段前进了」，
+    // 而这里是「用户切到了哪个阶段去看」—— 回看已完成的旧阶段同样要记，
+    // 但项目阶段并没有前进。两者同源动作、不同语义，故分两个 kind。
+    if (before.currentStage !== stageName) {
+      ledger({
+        kind: 'stage_view_switched',
+        subjectType: 'stage',
+        // 阶段没有独立 id，以快照里的阶段名作标识；`switchStage` 已校验它属于
+        // 该项目的 stagesSnapshot ⇒ 是**有界枚举**，不是可识别的自由文本（FR-6.3）。
+        subjectId: stageName,
+        projectId: id,
+        payload: { origin: 'user' },
+      })
+    }
+
     const project = projects.get(id)
     if (!project) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
     return { ...project, health: projects.healthSummary(id) }
