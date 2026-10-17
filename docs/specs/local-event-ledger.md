@@ -113,7 +113,7 @@
 | i | 一键清空：全表归零、返回条数、**不产生**清空事件行 | `SELECT COUNT(*)` 两值断言 | ✅ 端点 `POST /api/local-events/clear` **回传删掉的条数**；`local-events.api.test.ts` 的 `describe('§7-i')` 3 支（含「清空本身不落台账行」「空表清空 ⇒ `cleared: 0`」）。**UI 侧二次确认 Dialog 尚未入库，见下方 ⚠️i** | ✅ **通过**（判据是服务端行为，已交付且在库内） |
 | j | **人工验收腿**：README 与设置页两节文案能否讲清「本机≠遥测」 | 屏摄归档；判不过须回报 owner 而非改文案了事 | 🟡 **判定物已存在**：`README.md`「隐私与网络行为」下新增「本机事件台账：和匿名遥测是两件不同的事」（对照表五维 ＋ 禁列的测试兜底 ＋ 清空后果）；设置页两节各有独立正文。**屏摄归档仍缺** | 🟡 **待 owner 屏摄签收**（属 owner 腿，agent 不代判） |
 | k | 无回填：升级后首条事件时间 > 升级时间 | 单测断言 | ✅ **通过**（`core-db.test.ts` 的 `CORE-EVT-05`：「存量库升级后写下的首条事件，时间晚于升级动作本身」—— 表里**只有这一条**（迁移没偷偷回填历史行）＋ `created_at` **严格大于**升级时刻 ＋ `day` 与事件时间一致 ＋ 存量行未变。⚠️ 断言刻意把事件推进至少 1ms：毫秒精度下若两者同刻，「>」会因分辨率而非因语义成立）。另有结构代理在 `m8-ledger-schema.test.ts` 的「迁移只 CREATE、不 ALTER 既有表」一条 | ✅ **通过** |
-| l | 设置页两节并排且各自数据源不同表 | DOM 结构 + 两节各自 query key | ✅ `LocalLedgerSection`（`/api/local-events/summary` → `local_events`）与 `TelemetrySection`（`/api/settings/telemetry` → `telemetry_events`）**在同一列相邻挂载**，query key 前缀 `['local-events', …]` vs `['telemetry']`。⚠️ 见下方 ⚠️l | 🟡 **结构成立，文案有冲突待裁** |
+| l | 设置页两节并排且各自数据源不同表 | DOM 结构 + 两节各自 query key | ✅ `LocalLedgerSection`（`/api/local-events/summary` → `local_events`）与 `TelemetrySection`（`/api/settings/telemetry` → `telemetry_events`）**在同一列相邻挂载**，query key 前缀 `['local-events', …]` vs `['telemetry']`。⚠️ 见下方 ⚠️l | 🟡 **裁定已下、待交叠解除后执行**（见 ⚠️l：删旧 `LedgerSection` 只留 `LocalLedgerSection`） |
 | m | 现有闸零放松：golden 零 diff、`seed:check` 三精确值不变、`bundle:check` 入口余量不减 | 三条外部凭据 | ⚠️ **本条是三条命令，不是测试**：`git status --porcelain -- tests/golden/ content/seed/` → 空；`pnpm seed:check` rc=0（7/21 精确值命中）；`pnpm bundle:check` 入口 267.27 kB ≤ 300 kB | ✅ **通过** |
 
 > ### 🟢 本表于 2026-10-15 第二轮回填（DEV-0101）：补齐 0-f 的被验收物
@@ -141,7 +141,17 @@
 >
 > 并行会话的 `LedgerSection`（`components/settings/SettingsSections.tsx:218`）挂着 chip「不出网」与文案「append-only · 可清空 · 本机可复算 · 不出网」「与匿名遥测正交：本层永远在，关掉遥测它照样记账」，**但它读的是 `/api/telemetry/events` → `telemetry_events` 表**：受 `telemetryEnabled` 开关控制（关掉则 `{queued:false, reason:'disabled'}`）、带 `sent_at`、**会被发出**。`hooks/useLedger.ts` 的头注释同样写着「只读本机 SQLite，绝不出网……不是遥测」，而契约就写在下一行 —— 注释与实现相反。
 >
-> 这正是 FR-2.2 要禁的混名：**界面上写着「不出网」，数据其实会出网**，且「关掉遥测照样记账」不成立。本轮因此**另起** `LocalLedgerSection` 走真台账端点，而不是去改它（该文件属并行会话 795 行改动，改它等于抢写）。**三节并存时的读感与最终取舍请 owner 定。**
+> 这正是 FR-2.2 要禁的混名：**界面上写着「不出网」，数据其实会出网**，且「关掉遥测照样记账」不成立。本轮因此**另起** `LocalLedgerSection` 走真台账端点，而不是去改它（该文件属并行会话 795 行改动，改它等于抢写）。
+>
+> **✅ owner 已裁（2026-10-17）**：**删旧 `LedgerSection`、只留 `LocalLedgerSection`。** 即：设置页的本机事件台账最终**只有一节**，走 `/api/local-events/summary` → `local_events`，挂「不出网」chip 与本节文案。
+>
+> **执行时点＝等 `apps/web` 交叠解除**，本会话不执行。原因有二，且都不是「懒得做」：
+> ① 被删的 `LedgerSection` 在 `SettingsSections.tsx` 内，而该文件属并行活跃会话的改动面 —— 删它等于抢写；
+> ② 替代者 `LocalLedgerSection.tsx` **至今未入库**：它缺 5 处依赖，其中 4 处（`i18n/lane-system`、`components/ui/icons`、`SettingsSections` 里 `Section` 未导出、`ui/styles` 的 `proseCls`／`skelCls`）都是并行会话未入库或未改完的产物。**先删旧的再补新的，中间会有一段设置页没有台账节。**
+>
+> ⚠️ **本条曾长期是「已裁未入册」**：裁定只存在于会话里，本段末尾却一直写着「请 owner 定」。
+> 下一轮读文件的人（含 agent）会据此以为**还没裁**，从而重复讨论或做出错误取舍。
+> **裁定不入册，等于没裁** —— 这是本仓「判据只查格式、查不出你知道但没写」的一个实例。
 
 > ### 🔴 ⚠️i 设置页台账区块的交付物**从未入库**，§7-i 的 ✅ 原先靠它成立（2026-10-17 订正）
 >

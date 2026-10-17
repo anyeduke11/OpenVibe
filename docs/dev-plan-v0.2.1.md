@@ -122,7 +122,7 @@ M8 接入面（本迭代 Phase 2 · A + E）
 | **0-c** | M8 spec §8.2 五处待裁逐条落 FR | ⚠️ **同上，已回填** | M8 spec v1.0 |
 | **0-d** | 六平台 skill 发现约定探针 | 🟡 **结构半边完成；运行半边 harness 与逐步指南已交付，待 owner 在 GUI 跑** | 本文 §6 ＋ `docs/devlog-evidence/M8-probe/` |
 | **0-e** | RF1-1 服务层落地 | ✅ **已落地**（2026-10-16 订正：本行原记「❌ 不存在」，是采样早于 DEV-0098 所致） | `service-layer.md` · DEV-0098 `packService` 7 支 ＋ `injectService` 11 支 |
-| **0-f** | **RF1-5 台账落地（总闸）** | 🟡 **被验收物已落地，§7 十一条通过、两条待办**（2026-10-16 订正：本行原记「❌ 不存在」，是采样早于 DEV-0101 所致。**总闸未转绿**，故 Phase 1 的「0-e 与 0-f 同时转绿」前置至今未满足） | `local-event-ledger.md` §7：余 d／j／k／l 四条（d、l 需裁定，j 是屏摄，k 是时间断言） |
+| **0-f** | **RF1-5 台账落地（总闸）** | 🟡 **被验收物已落地，§7 十一条通过、两条待办**（2026-10-16 订正：本行原记「❌ 不存在」，是采样早于 DEV-0101 所致。**总闸未转绿**，故 Phase 1 的「0-e 与 0-f 同时转绿」前置至今未满足） | `local-event-ledger.md` §7：**余 j／l 两条**（2026-10-17 DEV-0112 订正：本列原写「余 d／j／k／l 四条」，d 与 k 早已转绿 —— d 四类生产写入点已全接、k 的 `CORE-EVT-05` 时间断言已过）。j 是**屏摄（owner 腿）**，施工单见 `devlog-evidence/phase1-exit-shots/README.md`；l 是**裁定已下待执行**（删旧 `LedgerSection` 只留 `LocalLedgerSection`，卡 `apps/web` 交叠） |
 | **0-g** | RF0-4 `docs:check` | 🟡 **已落地并加一条判据**（2026-10-16，owner 指令越过 §8.2 待裁与时间闸）。**八条判据**（FR-1／FR-2／FR-3.4／FR-4／FR-5／FR-6／FR-9 ＋ **FR-11 否定式全局断言须附可复算凭据**）＋ 基线机制 ＋ 36 支变异样本判据测试；已作**第六道闸**进 CI（只增 7 行、零删除）。⚠️ **判据条数已用满触发线**（dev-plan §16.10：规则条数 **> 8** 即触发复审，现为 **8**）。**2026-10-17 已把触发处置前置化**：`checkRuleBudget` 现在每次运行都核对计数，触线时**直接把该撤哪几条连同理由打出来**，候补清单预登记在 `docs/docs-check-baseline.json` 的 `withdrawalCandidates`（FR-5 → FR-6 → FR-4 → FR-11，各带顺位理由）⇒ **下一轮加判据是「按清单换」，不是临时吵，也不是把闸调松**。⚠️ **该判据自身不计入计数**（它判的是判据集而非文档，算进去就永远触发，属结构性自指的显式豁免）。另新增**两块只报数的面**（按 §16.10 原文不计入判据数）：`claimSample` 否定断言凭据抽样实跑、`probe` 探针五问结果文件。**人测耗时闸至今未测**，故本闸不得被引用来声称任何「治理成本次线性」结论 | `scripts/docs-check.ts` ＋ `tests/docs-check.test.ts` ＋ `docs/docs-check-baseline.json` |
 | **0-h** | `m8-agent-panel.md` | ✅ **v1.0 已交付**（2026-10-14，14 条验收 ＋ `WEB-M8E-*` 新族）。**顺带查出一处假引用并就地改判**：PRD-M8 FR-5.4 的「沿用既有 EmptyState 纪律」前提不成立——`grep -rln 'EmptyState' apps/web/src --include='*.tsx'` → **0 命中**，该组件在本仓不存在 ⇒ FR-5.4 改判为「**新建组件并落三态**」 |
 | **0-i** | `m8-skill-bridge.md` | ⏸ **owner 裁定本轮豁免**（2026-10-14：「手把手教我真机跑」）——探针 harness 与逐步指南已交付（`docs/devlog-evidence/M8-probe/`），**等 owner 跑完运行半边五问后另起**。**豁免不等于通过** |
@@ -255,6 +255,29 @@ M8 接入面（本迭代 Phase 2 · A + E）
 > **④ push 19 笔（Q1）**：owner 裁「全部 push」。⚠️ 其中 **8 笔在我接手前就已未推送、非我提交、来源未核**。已在本笔之后执行。
 >
 > **四闸**：typecheck 0 · lint 0 · test 86 文件 / 957 支全绿 · docs:check rc=0。
+
+> **DEV-0112（2026-10-17）· 六项遗留：四项闭合，两项仍属 owner 腿或被交叠阻塞**
+>
+> **① §7-l「已裁未入册」入册（真缺陷，非文书）。** owner 的「删旧 `LedgerSection`、只留 `LocalLedgerSection`」此前只活在会话里，`local-event-ledger.md` ⚠️l 段末尾一直写着「请 owner 定」，行状态写「文案有冲突待裁」。下一轮读文件的人（含 agent）会据此以为**还没裁**，从而重复讨论或做出相反取舍。已把裁定、执行时点与**两条不能现在执行的理由**写进 ⚠️l，行状态改为「裁定已下、待交叠解除后执行」。**教训：裁定不入册等于没裁。**
+>
+> **② 「从 HEAD 单独编译」验证手段补上（DEV-0111 ③ 诚实登记的那半个缺口）。** 新增 `scripts/head-typecheck.sh`：`git archive HEAD` 抽干净检出 → 逐个软链 `node_modules`（实测链 **7** 个，漏一个就报 Cannot find module）→ 跑两段 `tsc`。**实测 HEAD 可独立编译 ✅（两段 rc=0）**，至此 `useLocalEvents.ts` 的入库不止停在 DEV-0111 的「符号级」核实。
+> ⚠️ **不用 `git worktree add`**：它在并行会话活跃的仓库里会写 `.git/worktrees/` 元数据，那是往共享状态里塞东西；`git archive` 只读。
+> ⚠️ **脚本修掉一处自身缺陷**：trap 清理时 cwd 还在临时目录内，导致删除被拒、每次运行留一个垃圾目录。已在 cleanup 里先 `cd "$REPO_ROOT"`；修复后二次运行**无残留**（收尾 `mavis-trash` 那行可见）。
+>
+> **③ 探针 Q5 答完（纯判断题，不需 GUI，故归 agent 而非 owner）。** 结论：**MiniMax Code 不是 `design.md` 说的那个 MiniCode**，只是撞名。四条证据全部可复算：① `DEV_LOG.md:93` 原话「MiniCode ＝ GitHub 开源轻量终端 Agent（**LiuMengxuan04/MiniCode**，1.1k★ MIT）」；② `DEV_LOG.md:69` 更早一轮记的是「检索无果诚实标注待核验」—— 这个平台契约**从第一天起就没有官方文档可依**；③ 外部检索「MiniCode + `MINI.md` + `.mini-code`」返回的四个同名项目（`liumengxuan04/minicode` 等）**全与 MiniMax 无关**，且其 README 均无 `.mini-code/`／`MINI.md`；④ 本机实测无 `~/.mini-code`、`~/.minimax` 下两层无任何 `MINI.md`。
+> 顺带把 **Q2 按 README §3.5 的要求登记为「本轮作废」并注明原因**（需两处同名 skill，而 2026-10-14 裁定去掉了造项目级副本那一步）—— README 明写「留空与作废是两件事」。
+> **闸的独立佐证**：`docs:check` 的探针面本轮自己从「留空 Q1/Q2/Q3/Q4/Q5」变成「**留空 Q1/Q3/Q4**」，即它自己确认了 Q2/Q5 两行解析成功 —— 不是我自称填了。
+> ⚠️ **查出登记缺口（非改名问题）**：MCode 读的是 `AGENTS.md`（本机内置 `init` skill 明写产物为 agents.md 标准的根 `AGENTS.md`），按 §8 分层该落**兼容矩阵**；而 `git grep -i 'minimax|mcode|mavis' -- docs/design.md` → **0 命中**，兼容矩阵里没有 MCode 这一行。**属冻结面改动，未执行，留 owner 裁。**
+>
+> **④ 两处屏摄的施工单（agent 只备料，不代判）。** 新增 `docs/devlog-evidence/phase1-exit-shots/README.md`：钉判据原文、把该拍的指到**行**（条 x → `README.md:154-180`，三段对应到 `:158-161`／`:163-166`／`:168-174`；条 j → `README.md:182-203`，五维表 `:188-192`）、并**回答「现在能不能拍」**。
+> ⚠️ **条 j 的设置页那半张现在不能拍**，三条实测理由：① 工作树 `SettingsPage.tsx` **三节并存**（`TelemetrySection:58`／`LocalLedgerSection:60`／旧 `LedgerSection:71`），拍到的是 owner 已裁「删旧留新」**之前**的中间态，同一张图会被读成「已裁」和「未裁」；② `LocalLedgerSection.tsx` **未入库**（`git cat-file -e HEAD:…` 不存在），HEAD 里设置页**只有 `TelemetrySection` 一节**，连「两节并排」都不成立；③ 删旧节要动并行活跃会话的 `SettingsSections.tsx`。README 那半张 ✅ 可拍。
+>
+> **⑤ 阻塞状态重核（推送后逐项实测，结论：未变）。** `LocalLedgerSection.tsx` 的 5 处依赖 —— `useLocalEvents.ts` **已在 HEAD**（`bcaa57e`）；`i18n/lane-system.ts`、`components/ui/icons.tsx` 仍**不在 HEAD**；`SettingsSections.tsx:17` 的 `Section` 是 `function Section` 而非 `export function Section`（HEAD 版**未导出**）；`ui/styles.ts` 的 `proseCls`／`skelCls` 在 HEAD **0 命中**。另两个 kind 写入点：`stage_view_switched` 卡 `apps/web` 交叠（71 个脏文件）、`agent_bridge_installed` 属 M8-A 且其 spec 尚不存在。
+>
+> **⑥ 顺带订正一处「假现状」传播**：本文件 0-f 行第 4 列原写「余 d／j／k／l 四条」，而 d（生产写入点）与 k（时间断言）早已转绿。已改为「余 j／l 两条」并各注卡点。**这类订正必须回头改引用它的上一处**，否则改完 B 之后 A 仍在讲旧状态。
+>
+> **五闸**：typecheck 0 · lint 0 · test 86 文件 / **957** 支全绿 · docs:check rc=0（探针面「留空 Q1/Q3/Q4」）· spec-claims 10 支 · **HEAD 独立编译 rc=0**。
+> **诚实登记**：Q1／Q3／Q4 三问仍全空（须 owner 在 Trae／CodeBuddy 真机跑）；两处屏摄仍待 owner 签收；`agent_bridge_installed` 未做（Phase 2，spec 尚未写，此刻做等于凭空造产品动作）。
 
 ### §4.3 Phase 2 · 接入面（M8-A ＋ M8-E）
 
