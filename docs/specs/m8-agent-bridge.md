@@ -255,13 +255,20 @@
 
 | 方向 | 内容 | 形态 |
 |---|---|---|
-| 入 | 回流：`kind`、`idempotency_key`、`payload`（按 kind 判形）、`source_platform`、`source_session_id`、`cwd` | POST body，zod 经既有 `parseOrThrow` |
-| 入 | 查询：`project_id` 路径参、`fields` / `budget` query | path + query，zod 校验 |
+| 入 | 回流：`kind`、`idempotencyKey`、`payload`（按 kind 判形）、`sourcePlatform`、`sourceSessionId`、`cwd` | POST body，zod 经既有 `parseOrThrow` |
+| 入 | 查询：路径参 `:id`（即 `GET /api/projects/:id/context`）、`fields` / `budget` query | path + query，zod 校验 |
 | 入 | CLI：`ask <question>`、`status [dir]`、`session log --project --type [...]` | commander 已解析旗标 |
 | 出 | `POST /api/agent/ingest` → `{ results: [{ index, status, id?, reason?, keySha? }], summary: { accepted, duplicate, conflict, rejected } }` | `AgentIngestOut`（新增 ⇒ 触 `output-validation.md` FR-2 出参断言面） |
 | 出 | `GET /api/projects/:id/context` → `ProjectContextOut`（FR-3.2 全形） | `ProjectContextOut`（同上） |
 | 出 | CLI `--json` → 单个 JSON 对象，`summary.ok` **从退出码推导**（照 `index.ts` 既有 `ok: outcome.exitCode === ExitCode.ok` 写法，m6b CLI-CLEAN-11b 钉过这条） | 既有 `Printer` 形制 |
 | 出 | 错误 → 服务端 `{ code, message, details? }`（11 项闭集）；CLI `summary.error.code` 为自由串 + 可执行提示 | 既有 `AppError` / `ApiError` |
+
+> **⚠️ owner 2026-10-17 订正（本表原为 snake_case，与实现相反）**：上两行的请求体字段与路径参
+> 原写作 `idempotency_key` / `source_platform` / `source_session_id` / `project_id`，
+> 而 `AgentIngestOne` 的 zod 入参是 **camelCase**、路由是 `/api/projects/:id/context`。
+> **实测后果**：agent 照本表原样发请求 ⇒ zod 剥掉未知键 ⇒ 必填字段缺失 ⇒ **422**。
+> 本表是 agent 实际会读的那一份，所以按 FR-5.1.1 同一口径**以实现为准**改为 camelCase。
+> 守卫见 `agentPayload.test.ts` 的「请求体字段名与 zod 入参逐字一致」一条。
 
 ---
 

@@ -242,6 +242,20 @@ M8 接入面（本迭代 Phase 2 · A + E）
 >
 > **复核确认的四闸**：typecheck 0 · lint 0 · test 86 文件 / 954 支全绿 · docs:check rc=0。并行会话 8 小时**零推进**（HEAD 仍 `ea77e68`，70 脏文件 100% 属禁区，stash 与暂存皆空）。
 
+> **DEV-0111（2026-10-17）· owner 四项裁决落地**
+>
+> **① 请求体契约分歧：改规格为 camelCase（Q2）。** `m8-agent-bridge.md` §5 的「入」表原写 `idempotency_key` / `source_platform` / `source_session_id` / `project_id`，而 `AgentIngestOne` 的 zod 入参是 camelCase、路由是 `/api/projects/:id/context`。
+> **实测后果不是笔误级**：agent 照规格发 ⇒ zod 剥掉未知键 ⇒ 必填字段缺失 ⇒ **422**。而这张表正是 agent 实际会读的那一份。已按 FR-5.1.1 同一口径以实现为准改写，并补守卫：`agentPayload.test.ts` 新增一组，断言规格「入 · 回流」那一行（**只取内容列** —— 形态列里还有 `parseOrThrow` 这类实现侧名字）里每个字段都是 `AgentIngestOne` 的真实键，外加变异腿「写回 snake_case ⇒ 当场判红」与路径参断言。
+>
+> **② PRD 键名：订正为 camelCase（Q4）。** ⚠️ **只改请求字段与 payload 键，不改 DB 列名** —— `agent_ingests` 表的 `id / project_id / idempotency_key / payload_json / source_platform` 是 **SQLite 列名**，snake_case 是对的。两者**同形不同物**，故在订正处加了一句警示：改请求字段时不要顺手把列名也改了。
+> 顺带把 PRD 里 `truncated`(bool) 一并订正为 `(number)`，与上一轮裁定同源。
+>
+> **③ `useLocalEvents.ts` 单独入库（Q3）。** 独立提交 `bcaa57e`。依赖逐个核实可在 HEAD 解析；⚠️ 诚实登记：那是**符号级**核实，不是「从 HEAD 抽出单独编译」。入库后是**孤立模块** —— 唯一消费者 `LocalLedgerSection.tsx` 仍缺 5 处依赖（4 处属禁区）。
+>
+> **④ push 19 笔（Q1）**：owner 裁「全部 push」。⚠️ 其中 **8 笔在我接手前就已未推送、非我提交、来源未核**。已在本笔之后执行。
+>
+> **四闸**：typecheck 0 · lint 0 · test 86 文件 / 957 支全绿 · docs:check rc=0。
+
 ### §4.3 Phase 2 · 接入面（M8-A ＋ M8-E）
 
 **出口判据**：`m8-skill-bridge.md` 与 `m8-agent-panel.md` 各自的验收条目全绿。

@@ -216,7 +216,7 @@ R1 在项目 A 干活，但 agent 误把工作目录认成项目 B
 | 功能 | 说明 | 优先级 |
 |---|---|---|
 | **FR-2.1 单一端点** | `POST /api/agent/ingest`，`kind` 闭集：`dev_log` / `session` / `requirement` / `task_status` / `check_state`。**不按类型开五个端点** | P0 |
-| **FR-2.2 幂等** | 请求必带 `idempotency_key`（建议 `sha256(project_id + kind + 源会话 id + 本地序号)`）。同 key 同 payload ⇒ 返回 `status:'duplicate'`，**不重复落库** | P0 |
+| **FR-2.2 幂等** | 请求必带 `idempotencyKey`（建议 `sha256(project_id + kind + 源会话 id + 本地序号)`）。同 key 同 payload ⇒ 返回 `status:'duplicate'`，**不重复落库** | P0 |
 | **FR-2.3 校验** | 全部入参走 zod（照 `validate.ts` 既有形制）；`kind` 闭集由 SQL `CHECK` + TS 常量双写并有**一致性测试**（照 `local-event-ledger.md` FR-1.4 的纪律） | P0 |
 | **FR-2.4 人工确认门** | 回流**一律先进「待确认」**（`status='pending'`），用户在 Web 确认后才 `published`。理由：沿用 `m4-playbook.md` FR-5「人工确认是唯一入库路径」的既有纪律；agent 的判断不可作为事实源 | P0 |
 | **FR-2.5 冲突识别** | 上报 `cwd` 与 `projects.local_path` 不一致 ⇒ 标 `conflict` 并在 Web 高亮，不静默写入（§2.4 剧本 B） | P0 |
@@ -347,7 +347,7 @@ R1 在项目 A 干活，但 agent 误把工作目录认成项目 B
 | # | 边界 | 理由 |
 |---|---|---|
 | B12 | agent 回流**不参与 `sync.lock` 互斥**：回流只写 DB 不碰目标项目目录，两条路径无交集 | 承 `dev-plan.md` §1.2 末「sync/scan 不碰 DB 文件锁」那条既有不变式的同型推理 |
-| B13 | 「同一 `idempotency_key` + 不同 payload」⇒ 判 `conflict`，**不覆盖先到者**，写方须显式改 key | 覆盖 = 静默丢数据。**owner 2026-10-14 裁②**：该冲突使用**新增错误码 `IDEMPOTENCY_CONFLICT`**（B 级），不用 `STALE_SELECTION`／`NAME_CONFLICT` 任一既有码 ⇒ `ERROR_CODES` 闭集 11 → **12** 项 |
+| B13 | 「同一 `idempotencyKey` + 不同 payload」⇒ 判 `conflict`，**不覆盖先到者**，写方须显式改 key | 覆盖 = 静默丢数据。**owner 2026-10-14 裁②**：该冲突使用**新增错误码 `IDEMPOTENCY_CONFLICT`**（B 级），不用 `STALE_SELECTION`／`NAME_CONFLICT` 任一既有码 ⇒ `ERROR_CODES` 闭集 11 → **12** 项 |
 | B14 | 两个 agent 同时对同一项目回流 ⇒ 允许并发，落库按 `created_at` 排序 | **`UNIQUE(idempotency_key)` 是唯一仲裁者，不做应用层锁**（SQLite 单写者已提供该保证，再加锁是第二套并发模型）。**owner 2026-10-14 裁⑥：看板的合并策略「交给用户在 Web 裁决」** ⇒ M8-B/C 只保证数据可得、不做自动合并；合并 UI 归 **M8-E**（`m8-agent-panel.md`）。原 §11-待裁④ 的「(a) 按时间序平铺起步」已被此裁定取代 |
 | **B14.1** | **回流体量上限三值已定**（owner 裁③） | 单条 **512 KB** / **20 条** / 总量 **2 MB**。前两值与 `packages/shared/src/constants.ts:108-109`（`singleFileMaxBytes` / `packTotalMaxBytes`）同族；第三值取 2 MB 是为使单次回流**不可能突破整包预算**（原建议的 512 KB 总量经连带修正为本值） |
 
@@ -391,7 +391,7 @@ R1 在项目 A 干活，但 agent 误把工作目录认成项目 B
 | E5 | 项目 `local_path` 为空（只登记了名字没登记路径） | `PROJECT_PATH_UNBOUND` + 「该项目未绑定本地路径，先在 Web 项目设置里填」 | Web 补路径 | 1 |
 | E6 | `ask` 关键词不在闭集 | `UNKNOWN_QUERY` + **列出全部合法关键词** | 改关键词 | 1 |
 | E7 | `--related` 路径逃逸项目根 | `PATH_ESCAPE` + 点名该路径，**零写入** | 改相对路径 | 1 |
-| E8 | 同一 `idempotency_key` 不同 payload | `KEY_CONFLICT` + 双方 payload 的 sha 前 8 位 | 改 key | 1 |
+| E8 | 同一 `idempotencyKey` 不同 payload | `KEY_CONFLICT` + 双方 payload 的 sha 前 8 位 | 改 key | 1 |
 | E9 | 部分条目校验失败 | **逐条结果表**（accepted/duplicate/rejected + reason），成功的照落 | 按 reason 修 | 0（有 accepted 时）／1（全失败） |
 | E10 | 目标项目正在被 `sync` 占用 | 若本命令需读 lock（`status` 带漂移态）⇒ 只读 lock 不加锁，**不阻塞**；若需写盘 ⇒ `SYNC_BUSY` 复用既有 code | 等持锁者收工 | 0 / 1 |
 
@@ -446,11 +446,11 @@ R1 在项目 A 干活，但 agent 误把工作目录认成项目 B
 
 | kind | 触发点 | `payload_json` 允许键 | 判级 |
 |---|---|---|---|
-| `agent_ingest_accepted` | 回流条目进 `pending` | `kind` / `source_platform` | 新增 kind ⇒ **B 级（改迁移）** |
-| `agent_ingest_rejected` | 条目被用户否决或校验拒 | `kind` / `reason_code`（枚举，非自由文本） | 同上 |
-| `agent_context_served` | `/context` 返回 200 | `fields_count` / `truncated`(bool) / `platform` | 同上 |
-| `cli_agent_command_run` | M8 的 CLI 子命令执行完毕 | `command`(枚举：`ask`/`status`/`session`/`requirement`) / `exit_code` / `agent` | 同上 |
-| `agent_bridge_installed` | 检测到项目内存在 skill 目录 | `adapter` / `pack_version` | 同上 |
+| `agent_ingest_accepted` | 回流条目进 `pending` | `kind` / `sourcePlatform` | 新增 kind ⇒ **B 级（改迁移）** |
+| `agent_ingest_rejected` | 条目被用户否决或校验拒 | `kind` / `reasonCode`（枚举，非自由文本） | 同上 |
+| `agent_context_served` | `/context` 返回 200 | `fieldsCount` / `truncated`(number) / `platform` | 同上 |
+| `cli_agent_command_run` | M8 的 CLI 子命令执行完毕 | `command`(枚举：`ask`/`status`/`session`/`requirement`) / `exitCode` / `agent` | 同上 |
+| `agent_bridge_installed` | 检测到项目内存在 skill 目录 | `adapter` / `packVersion` | 同上 |
 
 **禁列（写进规格，不靠自觉）**：`payload_json` **不得**出现绝对路径、项目名、用户名、会话正文、`body` 任何片段。
 
@@ -462,7 +462,15 @@ R1 在项目 A 干活，但 agent 误把工作目录认成项目 B
 |---|---|
 | `agent_context_served` | **服务端计数**，同请求只记一次（不依赖前端） |
 | `cli_agent_command_run` | CLI 进程生命周期内一次 |
-| `agent_ingest_accepted` | 按 `idempotency_key` 天然去重 |
+> **⚠️ owner 2026-10-17 订正**：本表与 §FR-2.2 里的 **请求体字段** ＋ 本节 payload 键原写作
+> snake_case（`idempotency_key` / `source_platform` / `reason_code` / `fields_count` /
+> `exit_code` / `pack_version`），而实现是 camelCase。agent 照原文发请求会被 zod 剥掉未知键
+> ⇒ 必填字段缺失 ⇒ **422**。已按 `m8-agent-bridge.md` 同一口径改为 camelCase。
+> **⚠️ 但 DB 列名仍是 snake_case 且是对的** —— `agent_ingests` 表的 `id / project_id /
+> idempotency_key / payload_json / source_platform` 是 **SQLite 列名**，不在本次订正范围。
+> 两者同形不同物：改请求字段时**不要**顺手把列名也改了。
+
+| `agent_ingest_accepted` | 按 `idempotencyKey` 天然去重 |
 | `agent_bridge_installed` | 按 `(project_id, adapter, pack_version)` 去重，重复检测不重复记 |
 
 ### 6.5 产品内可见数字（L3）
@@ -503,7 +511,7 @@ R1 在项目 A 干活，但 agent 误把工作目录认成项目 B
 |---|---|---|
 | a | **端到端剧本（§2.3）八步全通** | 真机：Trae 项目 + skill 分发 + 读 + 回流 + Web 看板更新，屏摄归档 |
 | b | `openvibe status` 与 `GET /context` 对同一项目返回**同一阶段/清单/任务集合** | 同源断言（FR-5.2） |
-| c | 同一 `idempotency_key` 重放 3 次 ⇒ 台账恰 1 条 | `SELECT COUNT(*)` |
+| c | 同一 `idempotencyKey` 重放 3 次 ⇒ 台账恰 1 条 | `SELECT COUNT(*)` |
 | d | 同 key 不同 payload ⇒ `KEY_CONFLICT`，先到者**内容未被改写** | 内容 sha 比对 |
 | e | 20 条批量里 3 条非法 ⇒ 17 条落库、响应逐条给结果、**无整包回滚** | 计数断言 |
 | f | `--related ../evil.txt` ⇒ `PATH_ESCAPE` + 零写入 | 同 m6b §7-5 形状 |

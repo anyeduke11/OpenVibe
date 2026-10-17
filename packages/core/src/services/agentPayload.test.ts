@@ -7,7 +7,7 @@ import { ProjectsRepo } from '../repos/projects'
 import { createAgentService } from './agentService'
 import { createContextService } from './contextService'
 import { createCommandRunService } from './commandRunService'
-import { AGENT_PAYLOAD_KEYS, AGENT_PAYLOAD_TYPES, AGENT_EVENT_KINDS } from '@openvibe/shared'
+import { AGENT_PAYLOAD_KEYS, AGENT_PAYLOAD_TYPES, AGENT_EVENT_KINDS, AgentIngestOne } from '@openvibe/shared'
 
 /**
  * M8 台账 payload 的**统一守卫**（`m8-agent-bridge.md` FR-5.1.1 键闭集 ＋ FR-5.1.2 禁列）。
@@ -286,5 +286,52 @@ describe('FR-6.3 覆盖差 · 禁列清单每一项都得能指认守卫', () =>
     // ③ **但项目名与正文扫不出来** —— 这正是它们只能靠写入点的原因，
     //    故对照表里必须写明 whyNotRegex，而不能假装扫描器管得了。
     expect(labels).not.toContain('项目名')
+  })
+})
+
+describe('FR-2.1 请求体字段名 · 规格与 zod 入参逐字一致', () => {
+  /**
+   * 为什么单立一组：FR-5.1.1 的守卫只管 `payload_json` 的键，
+   * **管不到请求体字段名** —— 而 2026-10-17 实测，规格 §5 那张「入」表原写 snake_case，
+   * 实现是 camelCase。zod 剥掉未知键 ⇒ agent 照规格发必得 422。
+   *
+   * 同一类缺陷的第二个实例，故同一套守卫：规格文本 ↔ 实现，双向。
+   */
+  it('规格 §5「入 · 回流」那一行的每个字段都必须是 `AgentIngestOne` 的真实键', () => {
+    const spec = readFileSync(SPEC_PATH, 'utf8')
+    const row = spec
+      .split('\n')
+      .find((l) => l.startsWith('| 入 |') && l.includes('POST body'))
+    expect(row, '规格 §5 找不到「入 · 回流」那一行').toBeDefined()
+
+    // ⚠️ 只取**内容列**（`split('|')[2]`）：形态列里还有 `parseOrThrow` 这类实现侧的名字，
+    // 全行收会把它们当成请求字段。
+    const specFields = [...row!.split('|')[2]!.matchAll(/`([A-Za-z][A-Za-z0-9_]*)`/g)].map((m) => m[1]!)
+    for (const f of specFields) {
+      expect(Object.keys(AgentIngestOne.shape), `规格 §5 写了 ${f}，但 zod 入参没有`).toContain(f)
+    }
+  })
+
+  it('⚠️ 变异腿：规格若写回 snake_case ⇒ 断言当场判红', () => {
+    // 这正是本轮订正前的实况：规格写 `idempotency_key`，zod 没有这个键。
+    const specRow =
+      '| 入 | 回流：`kind`、`idempotency_key`、`payload`（按 kind 判形）、`source_platform`、`source_session_id`、`cwd` | POST body，zod 经既有 `parseOrThrow` |'
+    const specFields = [...specRow.split('|')[2]!.matchAll(/`([A-Za-z][A-Za-z0-9_]*)`/g)].map((m) => m[1]!)
+    const shape = Object.keys(AgentIngestOne.shape)
+    expect(specFields.filter((f) => !shape.includes(f))).toContain('idempotency_key')
+    // 反证：改成 camelCase 后就抓不到 ⇒ 这条腿不是恒真
+    const fixed = specFields.map((f) =>
+      f === 'idempotency_key' ? 'idempotencyKey' : f === 'source_platform' ? 'sourcePlatform' : f === 'source_session_id' ? 'sourceSessionId' : f,
+    )
+    expect(fixed.filter((f) => !shape.includes(f))).toEqual([])
+  })
+
+  it('规格 §5「入 · 查询」那一行的路径参必须与真实路由一致', () => {
+    const spec = readFileSync(SPEC_PATH, 'utf8')
+    const row = spec.split('\n').find((l) => l.startsWith('| 入 |') && l.includes('path + query'))
+    expect(row).toBeDefined()
+    // 实测路由是 `/api/projects/:id/context` —— 规格原写 `project_id`，与真实路径参不同名
+    expect(row).toContain('`:id`')
+    expect(row).not.toContain('`project_id`')
   })
 })
