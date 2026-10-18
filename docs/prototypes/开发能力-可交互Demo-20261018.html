@@ -8,7 +8,7 @@
   M9「开发能力」交互原型 · 单文件零依赖 · 2026-10-18
 
   ⚠️ 这是原型，不是产品代码：不在 apps/ packages/ 下，不参与 typecheck / test / bundle:check。
-     ⇒ specs/m9-dev-language-roadmap.md §7 的 32 条判据本轮零通过。
+     ⇒ specs/m9-dev-language-roadmap.md §7 的 36 条判据本轮零通过。
      边界逐条列在 §10.2。本文件自己有一条能当场自证的：降级自检按钮（§10.3 第 2 条）。
 
   视觉：内联复制 apps/web/src/index.css 的 29 支颜色 token × 双主题，不新增任何字面色阶。
@@ -330,6 +330,24 @@ button.b.sm { padding: 3px 8px; font-size: 11.5px; }
   padding: 4px 12px; border-radius: var(--radius-full); color: var(--color-ink-muted); }
 .tab.on { background: var(--color-panel); color: var(--color-accent-deep); font-weight: 620;
   box-shadow: var(--shadow-1); }
+/* ── 模式切换（§3.17）── */
+.modebar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin-bottom: 11px; }
+.mcard {
+  text-align: left; cursor: pointer; font-family: inherit; padding: 9px 12px;
+  background: var(--color-panel); border: 1px solid var(--color-line); border-radius: var(--radius-md);
+  display: flex; flex-direction: column; gap: 3px;
+}
+.mcard:hover { background: var(--color-panel-2); }
+.mcard[aria-pressed='true'] {
+  background: var(--color-accent-soft); border-color: var(--color-accent-line);
+  box-shadow: inset 0 0 0 1px var(--color-accent-line);
+}
+.mcard .mt { font-size: 13px; color: var(--color-ink); font-weight: 620; }
+.mcard[aria-pressed='true'] .mt { color: var(--color-accent-deep); }
+.mcard .md { font-size: 11.5px; color: var(--color-accent-deep); }
+.mcard .mf { font-size: 11px; color: var(--color-ink-muted); }
+@media (max-width: 900px) { .modebar { grid-template-columns: 1fr; } }
+
 /* ── 资源卡 ── */
 .resgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 9px; }
 .rescard { padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; }
@@ -413,6 +431,7 @@ textarea.ta {
 
   <div class="scroll">
     <div id="view-topics" class="view">
+    <div class="modebar" id="modebar" data-catalog></div>
     <div class="hero" id="hero"></div>
 
     <div class="bar">
@@ -428,9 +447,12 @@ textarea.ta {
     <div class="note" style="margin-bottom:10px">
       <b>本页的两套「阶段」不是同一套，互不推导</b>
       左边的 <b>站</b>是本模块的知识点 DAG 层（前置依赖决定谁挡谁，§3.6）；
-      「学习资源」页里的 <b>指南阶段</b>是 owner 提供的《Python 与 Go 系统学习指南》原样分期（含周数与产出）。
+      「学习资源」页里的 <b>路线</b>是 owner 提供的《Python 与 Go 系统学习指南》原样分期（含周数与产出）。
       两者<b>不交叉引用、不互相推导</b> —— 与本模块对 <code>growth-path</code> 的处置是同一条纪律（§4.1）。
     </div>
+
+    <div id="routePanel" data-catalog style="margin-bottom:12px"></div>
+    <div id="vibePanel" data-catalog style="margin-bottom:12px"></div>
 
     <div class="work">
       <div class="card">
@@ -1011,10 +1033,17 @@ const PY_EXTRA = [
     ref: REF.apycn, ev: { source: 4 },
     point: 'FastAPI 的 `@app.get` 既是路由注册也是装饰器；依赖注入靠「把函数参数声明成类型，由框架解析」实现。⚠️ 这类库级条目前置关系几乎不存在，所以**不进学习路线**，只在用到时链到这里。' },
 
-  { id: 'py-pack', title: '打包与依赖管理', concept: 'module', stage: 7, level: 'point', kind: 'library',
-    summary: '虚拟环境、依赖清单、锁文件；「本机能跑」不等于「别人能跑」。', prereqs: ['py-module'],
-    ref: REF.apycn, ev: { source: 2 },
-    point: 'pip 的依赖解析不保证可复现 —— 所以有 requirements.txt 的哈希锁（pip-compile / uv lock）。本项目开发框架把这件事固化成了闸：锁文件一旦与依赖清单不同步即报错。' },
+  /* ⚠️ 这条是被 DL-33 逼出来的拆分：原先一条「打包与依赖管理」同时含**安装依赖**与**打包发布**，
+     而速成模式只需要前者 —— 不拆就会得到「速成必学、熟悉可跳过」这种自相矛盾的集合。 */
+  { id: 'py-deps', title: '安装依赖与虚拟环境', concept: 'module', stage: 7, level: 'point', kind: 'library',
+    summary: 'pip install / venv / requirements.txt；「装得上」和「换台机器还装得上」是两件事。', prereqs: ['py-module'],
+    ref: REF.apycn, ev: { source: 1 },
+    point: 'venv 让依赖与系统隔离；requirements.txt 记录「装了哪些」，但 pip 的解析不保证可复现 —— 要可复现得用哈希锁（pip-compile / uv lock）。' },
+
+  { id: 'py-pack', title: '打包发布到 PyPI', concept: 'module', stage: 7, level: 'point', kind: 'library',
+    summary: 'pyproject.toml、发版流程；库级条目，不进学习路线。', prereqs: ['py-deps'],
+    ref: REF.apycn, ev: { source: 1 },
+    point: '⚠️ 指南「熟悉」模式明确把**打包发布**标为可跳过 —— 这一条只在精通模式出现。' },
 ];
 
 const GO_EXTRA = [
@@ -1083,10 +1112,6 @@ const GO_EXTRA = [
     ref: REF.ago, ev: { source: 2 },
     point: '`http.HandlerFunc` 就是 `func(ResponseWriter, *Request)` 的别名；中间件把「下一个 handler」当参数传下去。⚠️ 库里级条目不进学习路线，只在项目用到时链过来。' },
 
-  { id: 'go-build', title: '构建与 go.mod', concept: 'module', stage: 7, level: 'point', kind: 'library',
-    summary: '模块路径、语义化版本、GOOS/GOARCH 交叉编译。', prereqs: ['go-module'],
-    ref: REF.ago, ev: { source: 1 },
-    point: 'go.mod 的模块路径必须与仓库地址一致（`hostinsp/agent` 对应本仓内一个 domain + 目录），否则别人 `go get` 不到。跨编译只要 `GOOS=linux GOARCH=amd64 go build`，不需要交叉工具链。' },
 ];
 
 /* 概念 → 两门的语言层条目（共用概念层写一份，语言差异只写差异） */
@@ -1115,10 +1140,10 @@ const PREREQ = {
   'py-datamodel': ['py-collection'], 'py-polymorphism': ['py-datamodel'],
   'py-concurrency': ['py-function', 'py-error'],
   'py-decorator': ['py-function'], 'py-generator': ['py-function'],
-  'py-context': ['py-error'], 'py-typehint': ['py-variable'],
+  'py-context': ['py-error'], 'py-typehint': ['py-variable'], 'py-deps': ['py-module'],
   'py-comprehension': ['py-collection'], 'py-fstring': ['py-variable'],
   'py-dataclass': ['py-datamodel'], 'py-excchain': ['py-error'],
-  'py-web': ['py-decorator', 'py-context'], 'py-pack': ['py-module'],
+  'py-web': ['py-decorator', 'py-context'], 'py-deps': ['py-module'], 'py-pack': ['py-deps'],
 
   'go-collection': ['go-variable'], 'go-function': ['go-variable', 'go-collection'],
   'go-module': ['go-function'], 'go-error': ['go-function'],
@@ -1128,7 +1153,7 @@ const PREREQ = {
   'go-slice': ['go-collection'], 'go-ifacezero': ['go-collection'],
   'go-structtag': ['go-datamodel'], 'go-errorwrap': ['go-error'],
   'go-generic': ['go-function'], 'go-wg': ['go-goroutine'],
-  'go-http': ['go-function', 'go-ifacezero'], 'go-build': ['go-module'],
+  'go-http': ['go-function', 'go-ifacezero'],
 };
 
 /* 行为证据（除源码命中外的那一类）—— 真实来自样例工程的阶段清单。
@@ -1148,6 +1173,18 @@ const STAGES = [
   { id: 6, t: 'Web 框架', g: '能把逻辑暴露成接口' },
   { id: 7, t: '数据与部署', g: '能让它长期跑起来' },
 ];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   三种学习模式（精通 / 熟悉 / 了解·速成）—— 数据**逐条取自 owner 提供的
+   《Python 与 Go 系统学习指南》2026-10-19 版**（附件自述核实于 2026-10-18；
+   ⚠️ 本轮网络不通，未做二次核实）。
+   模式键沿用附件的 data-mode：master / familiar / vibe。
+   ═══════════════════════════════════════════════════════════════════════ */
+const GUIDE_MODES = {"master":{"name":"精通","dur":"Python 4–6 月 / Go 6–9 月","fit":"想系统入行、追求扎实根基与工程能力","out":"完整掌握原理、高级特性与生态，能读源码、做技术选型"},"familiar":{"name":"熟悉","dur":"Python 3–4 周 / Go 4–6 周","fit":"要用这门语言做项目、但不以此为唯一主业","out":"独立读写代码、完成常规项目、排查常见问题，冷门底层标为跳过"},"vibe":{"name":"了解 · 速成（Vibe Coding）","dur":"3–7 天起步","fit":"零基础、想用 AI 工具快速做出能跑的东西","out":"看得懂 AI 代码、会运行与反馈、交付一个小项目，不背语法"}};
+const GUIDE_DETAIL = {"本模式目标":{"master":"完整掌握一门语言的语法、原理、高级特性与主流生态，形成体系化知识与工程能力。","familiar":"覆盖工作中约 80% 的场景：独立读写代码、独立完成常规项目、独立排查常见问题。","vibe":"不背语法，借助 AI 编程工具在最短时间内做出可运行的东西，并能与 AI 高效协作迭代。"},"适合人群":{"master":"想从事相关开发岗位（后端 / 数据 / 云原生 / AI 应用），或追求扎实根基的长期学习者。","familiar":"不以该语言为主业，但要用它做项目、自动化工作或与主语言互补；有其他语言经验者上手更快。","vibe":"零基础「先做后学」、创业者与产品验证、运营 / 数据 / 设计等需要快速自动化的非专职开发者。"},"预期产出":{"master":"独立交付完整项目并部署，能读框架源码、做性能分析与工程决策；双修约 12 个月（见文末规划）。","familiar":"CLI 工具、Web / API 服务、数据处理等常规项目可独立完成，会写测试、查文档、定位问题。","vibe":"3–7 天内交付一个能跑的小项目；能看懂 AI 生成代码、会运行调试、会读报错并把问题反馈给 AI。"},"资源口径":{"master":"05 精通模式 · 双语言双修总规划（路线 A：零基础） 按每天 1.5–2 小时估算的 12 个月参考节奏；有编程经验者可整体压缩到 6–8 个月，目标明确者按第 02 节的路线 B / C 调整。 Python 入门与巩固 第 1–4 月 廖雪峰教程 / 黑马 2025 新课 + 官方 Tutorial 对照，完成 HackerRank 与 Exercism 入门题；读《Think Python》或《Automate the Boring Stuff》，产出 3–5 个自动化小脚本。 Python 进阶与第一个完整项目 第 5–6 月 攻克 OOP、装饰器、生成器、类型注解与 pytest；按兴趣选 FastAPI / pandas / 爬虫方向，跟官方教程做一个完整作品并上传 GitHub。 Go 入门 第 7–8 月 A Tour of Go 全部做完，李文周教程补中文讲解，Go by Example 随手查；Exercism Go Track 同步推进。有 Python 基础后，这个阶段会比零基础快一倍。 Go 工程化与并发 第 9–10 月 用 learn-go-with-tests 养成 TDD 习惯，精读 Modules Reference；攻克 goroutine / channel / context 与 sync，配合 Gophercises 做通道与锁的专项练习。 双修综合项目 第 11–12 月 做一个让两门语言对话的项目：Python（FastAPI 或 Streamlit）做数据处理 / AI 能力层，Go 写高并发 API 网关或微服务，用 gRPC 或 HTTP 通信并容器化部署。这会同时成为你两个方向的作品集。","familiar":"05 熟悉模式 · 7–10 周双修规划 目标是「能独立做常规项目」，不追求底层与高级专题；只学一门时按括号内单门周期即可（Python 3–4 周、Go 4–6 周）。 Python 熟悉档 第 1–3 周 官方教程 / 廖雪峰主线 + 浏览器交互练习，过完核心语法、函数与模块；产出 3–5 个实用小脚本。 Go 熟悉档 第 4–6 周 A Tour of Go + 李文周 / 菜鸟过完语法与核心类型；接口、错误、Modules 收尾；产出 10+ 个练习和一个 CLI 工具。 工程与测试 第 7–8 周 Python 学 pytest / 类型注解，Go 学表驱动测试与 httptest；两门各完成一个带测试的小项目并上传 GitHub。 主流框架实战 第 9–10 周 Python 跟 FastAPI 或 pandas 官方教程做一个项目，Go 用标准库 net/http 或 Gin 做一个 CRUD API；遇到高级主题（异步、并发深入）知道去哪查即可。","vibe":"每门语言仅保留 4 个左右「必学」入口，其余折叠；重点学习下方速成专区的 AI 工具与 Vibe Coding 工作流。 显示当前模式下可跳过的资源（灰显） 01 如何使用这份指南 所有资源按语言分章、按类别分区，每张卡片都带有统一标签；可以先按下方标签说明读懂卡片，再按章节内的筛选条按阶段过滤。 阶段标签 入门 进阶 高级 全阶段 费用与语言 免费 付费 部分免费 中文 英文 中英 特殊标记 精选 12.3k GitHub 星标 内容偏旧 使用建议 一条主线跟到底 ：入门阶段只选一个主线教程（中文打底或官方教程），不要在多个资源间横跳。 带「精选」标记的优先 ：每个分类中最被推荐的资源已加星标，时间有限时优先用它们。 练习与项目并行 ：每学完一个概念立刻到 Exercism / LeetCode 验证，每阶段结束产出一个能跑的作品。 「内容偏旧」怎么看 ：如《Go 语言圣经》、Effective Go 等经典不含泛型等新特性，学思想与语法可以，新写法必须以官方新文档为准。 02 Python 与 Go 如何互补、先学哪个 两门语言不是竞争关系，而是工程师技能谱上的两端：Python 让你快速把想法变成结果，Go 让你把服务写得又快又稳。先看差异，再按你的背景选顺序。 维度 Python Go（Golang） 语言定位 解释型、动态类型、多范式，语法接近伪代码，表达力优先，「写得快」 编译型、静态类型、关键字极少、风格强制统一，为团队工程与服务端设计，「跑得稳」 学习曲线 公认上手最快的语言之一，当天就能写出有用脚本；高级特性（装饰器/元类/异步）有深度 语法半天能看完，规则少且唯一；难点在接口、错误处理、并发模型与工程组织 并发模型 threading 受 GIL 约束；CPU 密集用 multiprocessing，高并发 IO 用 asyncio 协程 goroutine + channel 语言级原生并发，几行代码启动上万协程，是 Go 的核心优势 性能与部署 开发效率极高；运行依赖解释器与环境，打包分发相对麻烦 编译为单个静态二进制，启动快、内存占用低、部署就是传一个文件，天生适合容器 典型领域 数据分析、人工智能/大模型应用、脚本自动化、爬虫、Web 后端、科学计算 云原生（Docker、Kubernetes、Terraform 均为 Go 编写）、微服务、API 网关、CLI、中间件 生态框架 PyPI 包的数量居各语言之首；FastAPI / Django / Flask、NumPy / pandas、PyTorch 标准库极强（net/http、json、日志、测试开箱即用）；Gin、GORM、gRPC、go-zero、Kitex 就业方向 数据分析师、算法/AI 应用工程师、后端、测试开发、自动化运维、量化 后端工程师、基础架构/中间件、云平台、SRE / DevOps、游戏服务端 版本基线 本指南对齐 Python 3.12 / 3.13 （2026 年现状；3.13 含实验性 JIT 与自由线程） 本指南对齐 Go 1.22 及以上 （泛型为基线、循环变量新语义、log/slog、mux 增强） 路线 A · 零基础 先 Python 后 Go。 Python 语法友好、反馈即时，最适合建立编程思维；能用 Python 独立做出项目后（约 4–6 个月），再学 Go 会很快——你已经懂变量、函数、接口这些概念，Go 只需要 4–5 个月。 路线 B · 有其他语言经验 两门都可直接从官方教程起步，也可并行。 工作日跟 Python（廖雪峰 / 官方 Tutorial），周末跟 Go（A Tour of Go / Go by Example），3–4 个月即可同时入门；注意用不同项目练手，避免语法互相串。 路线 C · 目标明确 按目标倒推。 想做 AI 应用 / 数据分析 / 自动化办公：只学 Python 即可开局；想做云原生 / 高并发后端 / 中间件 / DevOps 工具链：直接 Go 优先，Python 之后作为「生产力工具」补。 CHAPTER 03 · PYTHON Python 系统学习路线 从语法到面向对象、异步与主流生态。推荐中文主线（廖雪峰 / 黑马 2025 新课）打底，官方 Tutorial 与英文资源拔高，Exercism 与项目贯穿始终。 版本基线 Python 3.12 / 3.13 零基础约 4–6 个月 有经验约 2–3 个月 对照官方可视化路线图 roadmap.sh/python"}};
+const GUIDE_ROUTES2 = {"master":{"py":[{"ord":"阶段 0","dur":"阶段 0 · 约 0.5 周","title":"环境与准备","weeks":"0.5 周","pts":["安装 Python 3.12 / 3.13（python.org），选编辑器 VS Code / PyCharm","会运行 .py 文件、用 REPL、看懂报错 traceback","pip 装包、虚拟环境 venv / uv，Git 基础"],"outcome":"跑通 Hello World 与一个打印日历的小脚本"},{"ord":"阶段 1","dur":"阶段 1 · 约 3–4 周","title":"入门：语法、控制流、数据结构、函数","weeks":"3–4 周","pts":["变量与类型、运算符、输入输出、f-string","if / for / while、match 模式匹配；列表、元组、字典、集合与推导式","函数（参数、返回值、lambda、递归）、字符串方法、文件读写、异常基础"],"outcome":""},{"ord":"阶段 2","dur":"阶段 2 · 约 6–8 周","title":"巩固与进阶：OOP、工程化、语言核心","weeks":"6–8 周","pts":["面向对象、继承与多态、魔术方法、鸭子类型；模块与包、第三方包管理","with 上下文管理器、迭代器/生成器、装饰器、闭包、浅/深拷贝","类型注解、dataclasses；pytest 测试、ruff / black 代码风格"],"outcome":"读 Automate the Boring Stuff 做 3–5 个实用脚本；把旧脚本重构为类并写测试"},{"ord":"阶段 3","dur":"阶段 3 · 约 6–8 周","title":"方向实战：Web / 数据 / 爬虫，完成一个完整作品","weeks":"6–8 周","pts":["Web 后端：FastAPI（首选，异步）/ Django（全栈）/ Flask（轻量）","数据科学：NumPy、pandas、Matplotlib，Jupyter Notebook","爬虫与自动化：requests、BeautifulSoup、Selenium / Playwright；AI 应用：大模型 API + Streamlit"],"outcome":"跟官方教程做一个完整项目，写 README 上传 GitHub"},{"ord":"阶段 4","dur":"阶段 4 · 长期持续","title":"高级：并发、性能、打包与生态深化","weeks":"长期","pts":["GIL、threading、multiprocessing、concurrent.futures、asyncio 协程与事件循环","timeit / cProfile 性能分析；pyproject.toml、打包发布到 PyPI","选读《Fluent Python》写出 Pythonic 代码；LeetCode 热题 100；尝试开源贡献"],"outcome":""}],"go":[{"ord":"阶段 0","dur":"阶段 0 · 约 0.5 周","title":"环境与准备","weeks":"0.5 周","pts":["安装最新 Go（go.dev/dl），配 VS Code / GoLand，跑通 Hello World","学会 go mod init 初始化模块（直接用现代 Modules，跳过 GOPATH 旧模式）","浏览 roadmap.sh/golang 建立全景，认识 gofmt / go vet 等内置工具"],"outcome":"go run 跑通第一个程序，全部代码用 go.mod 管理"},{"ord":"阶段 1","dur":"阶段 1 · 约 4–6 周","title":"入门：语法与核心类型","weeks":"4–6 周","pts":["变量 / 常量 / 类型、运算符、流程控制；数组、切片、映射","函数（多返回值、变参、闭包、defer）、指针、结构体、方法","接口（隐式实现）、错误基础；Go by Example 当语法字典随查随写"],"outcome":""},{"ord":"阶段 2","dur":"阶段 2 · 约 6–8 周","title":"进阶：工程、测试、泛型与标准库","weeks":"6–8 周","pts":["error 包装与解包、panic/recover；包与 Modules（go mod tidy、依赖、发布）","testing 表驱动测试 / 基准 / httptest，用 TDD 方式走完 learn-go-with-tests","泛型（类型参数与约束）；net/http、encoding/json、log/slog、context、io/os、time"],"outcome":"一个带测试的 CLI 工具 + 一个 CRUD Web API（标准库或 Gin）；读《100 Go Mistakes》对照避坑"},{"ord":"阶段 3","dur":"阶段 3 · 约 8–12 周","title":"高级：并发、性能、工程化与云原生","weeks":"8–12 周","pts":["goroutine、channel、select、worker pool、sync（Mutex/WaitGroup/Once/Map）、context 取消与超时","fan-in / fan-out / pipeline 等并发模式；race detector、pprof / trace 性能分析","选一条项目线：Web/API（Let's Go）、微服务/RPC（gRPC → Kitex / go-zero）、造轮子（7days-golang）"],"outcome":"一个带日志/配置/测试/基准、可部署的微服务或完整 Web 项目；了解 Docker / K8s（二者均为 Go 编写）"}]},"familiar":{"py":[{"ord":"第 1 周","dur":"第 1 周 · 核心语法","title":"环境与语法基础","weeks":"1 周","pts":["环境搭建、pip / venv、运行 .py 与 REPL","变量与类型、控制流、列表 / 元组 / 字典 / 集合、推导式","函数、参数、返回值、lambda；字符串与文件读写、异常基础"],"outcome":"10+ 个小练习（计算器、猜数字、文件整理）"},{"ord":"第 2 周","dur":"第 2 周 · 组织代码","title":"模块、OOP 与常用标准库","weeks":"1 周","pts":["模块与包、import、第三方库安装；项目目录结构","面向对象基础：类、方法、继承（够用即可，不深挖元类 / 描述符）","常用标准库：pathlib、datetime、re、json、logging、requests 三方库"],"outcome":"3–5 个实用脚本（批量改名、Excel 汇总、抓一个网页）"},{"ord":"第 3–4 周","dur":"第 3–4 周 · 工程与项目","title":"测试、工程规范与一个主流框架","weeks":"1–2 周","pts":["类型注解与 dataclasses；pytest 写测试；ruff 格式化","按需选一个方向：FastAPI（Web/API，推荐）或 pandas（数据）","跟官方教程做一个完整项目，写 README 上传 GitHub"],"outcome":""}],"go":[{"ord":"第 1.5–2 周","dur":"第 1.5–2 周 · 核心语法","title":"环境、语法与核心类型","weeks":"1.5–2 周","pts":["go mod init 初始化模块；变量 / 常量 / 类型、流程控制","数组、切片、映射；函数、多返回值、defer、闭包","指针、结构体、方法"],"outcome":"A Tour of Go 做完 + 10 个小练习"},{"ord":"第 3–4 周","dur":"第 3–4 周 · 接口、错误与模块","title":"接口、错误处理与 Modules","weeks":"1.5–2 周","pts":["接口的隐式实现；error 判空与包装、panic/recover","包与 go mod tidy、第三方依赖；常用标准库 json、time、log/slog、io/os","泛型基本用法（看懂会写泛型函数即可）"],"outcome":"一个带子命令的 CLI 小工具"},{"ord":"第 5–6 周","dur":"第 5–6 周 · 测试与 Web/API","title":"表驱动测试与一个服务项目","weeks":"1–2 周","pts":["testing 表驱动测试、httptest；context 基础","用标准库 net/http 或 Gin 做一个 CRUD API，会并发处理请求","写 README 传 GitHub，go build 编译成单二进制"],"outcome":""}]},"vibe":{"py":[{"ord":"Day 1","dur":"Day 1 · 起步","title":"装 AI 工具与 Python，跑通第一个脚本","weeks":"1 天","pts":["安装 Trae / Cursor 等 AI 编程工具与 Python","让 AI 带你写并运行一个 5 行脚本，学会看终端输出"],"outcome":""},{"ord":"Day 2–3","dur":"Day 2–3 · 最小知识","title":"只学能看懂代码的最小集合","weeks":"2 天","pts":["变量、控制流、函数、列表字典、报错长什么样（边看边问 AI）","认识 pip install 与 requirements.txt"],"outcome":""},{"ord":"Day 4–7","dur":"Day 4–7 · 交付","title":"直接做一个小项目","weeks":"4 天","pts":["批量改名 / Excel 合并 / 爬网页 / Streamlit 小页面，任选一个","让 AI 小步实现，运行验证、读报错回贴、每天 Git 提交"],"outcome":""}],"go":[{"ord":"Day 1","dur":"Day 1 · 起步","title":"装 Go 与 AI 工具，跑通 Hello World","weeks":"1 天","pts":["go mod init、go run . 运行、go build 编译","让 AI 解释第一个程序的每一行"],"outcome":""},{"ord":"Day 2–3","dur":"Day 2–3 · 最小知识","title":"只学能看懂代码的最小集合","weeks":"2 天","pts":["类型 / 控制流 / 函数 / 结构体 / 错误处理 / 包，配合 Go by Example","认识 go get / go mod tidy，标准库自带不用装"],"outcome":""},{"ord":"Day 4–7","dur":"Day 4–7 · 交付","title":"直接做一个小项目","weeks":"4 天","pts":["CLI 小工具（待办 / 文件整理）或 HTTP 小接口（net/http）","逐函数让 AI 生成、go build 验证、编译成单文件运行"],"outcome":""}]}};
+const GUIDE_PLANS2 = {"master":[{"title":"Python 入门与巩固","when":"第 1–4 月","body":"廖雪峰教程 / 黑马 2025 新课 + 官方 Tutorial 对照，完成 HackerRank 与 Exercism 入门题；读《Think Python》或《Automate the Boring Stuff》，产出 3–5 个自动化小脚本。"},{"title":"Python 进阶与第一个完整项目","when":"第 5–6 月","body":"攻克 OOP、装饰器、生成器、类型注解与 pytest；按兴趣选 FastAPI / pandas / 爬虫方向，跟官方教程做一个完整作品并上传 GitHub。"},{"title":"Go 入门","when":"第 7–8 月","body":"A Tour of Go 全部做完，李文周教程补中文讲解，Go by Example 随手查；Exercism Go Track 同步推进。有 Python 基础后，这个阶段会比零基础快一倍。"},{"title":"Go 工程化与并发","when":"第 9–10 月","body":"用 learn-go-with-tests 养成 TDD 习惯，精读 Modules Reference；攻克 goroutine / channel / context 与 sync，配合 Gophercises 做通道与锁的专项练习。"},{"title":"双修综合项目","when":"第 11–12 月","body":"做一个让两门语言对话的项目：Python（FastAPI 或 Streamlit）做数据处理 / AI 能力层，Go 写高并发 API 网关或微服务，用 gRPC 或 HTTP 通信并容器化部署。这会同时成为你两个方向的作品集。"}],"familiar":[{"title":"Python 熟悉档","when":"第 1–3 周","body":"官方教程 / 廖雪峰主线 + 浏览器交互练习，过完核心语法、函数与模块；产出 3–5 个实用小脚本。"},{"title":"Go 熟悉档","when":"第 4–6 周","body":"A Tour of Go + 李文周 / 菜鸟过完语法与核心类型；接口、错误、Modules 收尾；产出 10+ 个练习和一个 CLI 工具。"},{"title":"工程与测试","when":"第 7–8 周","body":"Python 学 pytest / 类型注解，Go 学表驱动测试与 httptest；两门各完成一个带测试的小项目并上传 GitHub。"},{"title":"主流框架实战","when":"第 9–10 周","body":"Python 跟 FastAPI 或 pandas 官方教程做一个项目，Go 用标准库 net/http 或 Gin 做一个 CRUD API；遇到高级主题（异步、并发深入）知道去哪查即可。"}]};
+const GUIDE_VIBE = {"desc":"这个专区不教你「背语法」，而是教你在 3–7 天内与 AI 编程工具协作：看懂它写的代码、让它在你的控制下小步前进、在出问题时把它拉回正轨。切回「精通 / 熟悉」模式，你随时能看到完整路线。","capabilities":[{"t":"看得懂","d":"能看懂 AI 生成的代码大概在做什么：变量、条件、循环、函数分别在干什么、调用了哪些库。"},{"t":"会运行","d":"能在本地或 AI 工具里运行项目，认识目录结构，会安装依赖、执行启动命令、打开运行结果。"},{"t":"读报错","d":"报错时能定位到哪一行、属于哪类问题（找不到包 / 语法 / 网络 / 权限），并完整复制报错信息。"},{"t":"会反馈","d":"能向 AI 描述「我要什么、现在怎样、期望什么」，并附上报错、相关文件和复现步骤。"},{"t":"小步迭代","d":"让 AI 一次只改一个功能，每步立刻运行验证，而不是一次生成整个项目然后无从下手。"},{"t":"会兜底","d":"会用 Git 提交与回退，知道这次改了什么，翻车时能回到上一个能跑的版本。"}],"know":{"py":[{"t":"变量与类型","d":"数字、字符串、布尔、列表、字典是什么，AI 写出来能认。"},{"t":"控制流","d":"if 条件、for 循环、while 大概长什么样。"},{"t":"函数","d":"def 定义、参数与返回值；知道 Python 代码块靠缩进区分。"},{"t":"组织代码","d":"一个文件即一个模块，import 怎么读；认识 main 文件、文件夹、配置文件的作用。"},{"t":"错误处理","d":"try / except 长什么样；看到 Traceback 先读最后一行。"},{"t":"安装依赖","d":"pip install、虚拟环境 venv、requirements.txt 各是什么。"},{"t":"运行与调试","d":"python main.py 怎么跑，用 print 或调试器查看变量值。"}],"go":[{"t":"变量与类型","d":"var 与 := 短声明、基本类型、切片 slice、映射 map。"},{"t":"控制流","d":"if / for（Go 没有 while）、range 遍历集合。"},{"t":"函数","d":"func、多返回值、函数也是值。"},{"t":"组织代码","d":"package 与 import、go.mod 与 go mod tidy，目录约定。"},{"t":"错误处理","d":"error 是返回值，常见 if err != nil 判空；panic 是什么。"},{"t":"安装依赖","d":"go get、go mod tidy；标准库随 Go 自带、不用额外安装。"},{"t":"运行与调试","d":"go run . 运行、go build 编译成单个二进制、go fmt 格式化。"}]},"steps":["STEP 1 说清需求与上下文","STEP 2 小步生成，拒绝一次成型","STEP 3 Review 与验证","STEP 4 报错闭环"],"pitfalls":["幻觉 API： AI 编造不存在的库、函数或参数——让它给出官方文档链接，或坚持用最主流的包。","依赖装不上： 先让 AI 解释 requirements.txt / go.mod 是什么；安装失败时把完整终端报错贴回去。","一次生成太多： 跑不起来且无法定位——让 AI 回退到上一个能跑的版本，拆成小步重做。","环境问题： 把你的操作系统、Python / Go 版本、项目目录结构告诉 AI，一半「玄学问题」因此消失。","悄悄改坏： AI 顺手改了无关文件——每完成一步用 Git 提交，review 改动后再继续。","安全红线： 不要把密钥、真实用户数据贴进对话框；不运行看不懂的危险命令（rm -rf、curl 管道执行、sudo 等）。"],"plan":{"py":["Day 1 · 准备 安装一个 AI IDE（国内新手推荐 Trae 或 Cursor），新建项目；让 AI 带你写并运行一个 5 行脚本，学会打开终端、运行、看输出。","Day 2–3 · 最小知识 对照 7 项清单，让 AI 用「一个小例子 + 一句话解释」讲清变量、控制流、函数、列表字典；学会 pip install 与 requirements.txt。","Day 4 · 定项目 从批量重命名、Excel 合并、爬一个网页、Streamlit 小页面中选一个；让 AI 先列任务拆解与目录结构。","Day 5–6 · 小步实现 一个功能一个回合，运行 → 读报错 → 回贴 → 再跑；每天结束用 Git 提交一次。","Day 7 · 收尾 修掉遗留 bug，让 AI 帮你写 README，把项目运行成功并能向别人演示；记下仍不懂的 3 个点。"],"go":["Day 1 · 准备 安装 Go 与 AI IDE；让 AI 解释 go mod init 并带你跑通 Hello World；学会 go run . 与 go build。","Day 2–3 · 最小知识 对照清单让 AI 讲 slice / map、func、多返回值、if err != nil、package / import；配合 Go by Example 查。","Day 4 · 定项目 选一个 CLI 小工具（待办、文件整理）或 HTTP 小接口；让 AI 先给出目录结构与任务拆解。","Day 5–6 · 小步实现 逐函数生成，go fmt、go build 验证；让 AI 顺便写表驱动测试；每天 Git 提交。","Day 7 · 收尾 编译成单个二进制运行，写 README，Git 提交；列出仍不懂的点（接口、并发）以后再补。"]},"redline":"安全红线： 不要把密钥、真实用户数据贴进对话框；不运行看不懂的危险命令（rm -rf、curl 管道执行、sudo 等）。"};
 
 /* ═══════════════════════════════════════════════════════════════════════
    三 · 扫描规则（T0）：topic ← 模式串 + 文件。行号运行时解析，不写死。
@@ -1192,6 +1229,82 @@ const RULES = [
   { lang: 'go', topic: 'go-datamodel', pattern: 'type Finding struct', file: 'agent/collector.go' },
   { lang: 'go', topic: 'go-generic', pattern: '[T any]', file: 'agent/parse.go' },
 ];
+
+
+/* ═══════════════════════════════════════════════════════════════════════
+   模式 → 知识点视图（§3.17）。核心判断：**模式只改三件事**
+     ① 看多深 depth  ② 哪些必学 required  ③ 先学哪个 rank
+   ⚠️ **模式不改掌握度口径** —— 三种模式下三态是同一个数。
+     速成模式不会让任何知识点更容易点亮：那会变成 §2.2 明确拒绝的「自评清单」。
+   ═══════════════════════════════════════════════════════════════════════ */
+const PROFILE_ORDER = ['master', 'familiar', 'vibe'];
+const PROFILE_KEY = { master: 'master', familiar: 'familiar', vibe: 'vibe' };
+
+/* 速成模式：按附件「最小必要知识 7 项」反推的最小必学集。
+   ⚠️ 7 项与知识点**不是一一对应**（控制流/安装依赖/运行调试没有独立条目），
+   所以速成专区那 7 项单独成面板，不硬塞进 DAG —— 理由见 §3.17 第 3 条。 */
+const VIBE_REQUIRED = {
+  py: ['py-variable', 'py-collection', 'py-function', 'py-module', 'py-error', 'py-deps'],
+  go: ['go-variable', 'go-collection', 'go-function', 'go-module', 'go-error'],
+};
+/* 熟悉模式：附件「资源口径」写明冷门底层标为可跳过。
+   ⚠️ **可跳过集必须与速成必学集不相交**（DL-33）—— 第一版正是在这里违规的：
+   「打包与依赖管理」当时把安装依赖与打包发布挤在一条里，导致它「速成必学 / 熟悉可跳过」。 */
+const FAMILIAR_SKIP = { py: ['py-concurrency'], go: ['go-wg', 'go-http'] };
+
+/* 速成的预计投入（分钟）—— **只看懂并能提问的时间，不含练习与做项目**。
+   ⚠️ 合计远小于附件的「3–7 天」是正常的：那几天里练手与做项目占大头。 */
+const VIBE_MINUTES = {
+  'py-variable': 20, 'py-collection': 30, 'py-function': 30,
+  'py-module': 15, 'py-error': 20, 'py-deps': 15,
+  'go-variable': 20, 'go-collection': 30, 'go-function': 25,
+  'go-module': 20, 'go-error': 20,
+};
+
+function profOf(lang, topicId) {
+  const lk = lang === 'python' ? 'py' : 'go';
+  const t = topicById(topicId);
+  // ── 速成
+  if (S.profile === 'vibe') {
+    const req = VIBE_REQUIRED[lk].includes(topicId);
+    return { depth: 'headline', required: req, rank: req ? VIBE_REQUIRED[lk].indexOf(topicId) : 999,
+             est: VIBE_MINUTES[topicId] || 0 };
+  }
+  // ── 熟悉
+  if (S.profile === 'familiar') {
+    const skip = FAMILIAR_SKIP[lk].includes(topicId);
+    const depth = (t && t.level === 'full') ? 'concept' : 'headline';
+    return { depth: skip ? 'headline' : depth, required: !skip, rank: (t ? t.stage : 9) * 100 + rankInStage(lang, topicId), est: 0 };
+  }
+  // ── 精通
+  return { depth: 'full', required: true, rank: (t ? t.stage : 9) * 100 + rankInStage(lang, topicId), est: 0 };
+}
+function rankInStage(lang, id) {
+  const l = langTopics(lang);
+  return l.findIndex(x => x.id === id);
+}
+function profTopics(lang, profile) {
+  const old = S.profile; S.profile = profile;
+  const out = langTopics(lang).map(t => ({ t, p: profOf(lang, t.id) }));
+  S.profile = old;
+  return out;
+}
+function vibeTotalMinutes(lang) {
+  return VIBE_REQUIRED[lang === 'python' ? 'py' : 'go']
+    .reduce((s, id) => s + (VIBE_MINUTES[id] || 0), 0);
+}
+/* DL-33：必学集合必须逐层包含 rapid ⊆ familiar ⊆ mastery。
+   否则会出现「速成学的东西，精通路线里反而没有」的荒谬状态。 */
+function requiredNotNested() {
+  const bad = [];
+  for (const lang of ['python', 'go']) {
+    const s = PROFILE_ORDER.map(p => new Set(profTopics(lang, p).filter(x => x.p.required).map(x => x.t.id)));
+    const [m, f, v] = s;
+    for (const id of v) if (!f.has(id)) bad.push(lang + ':vibe⊄familiar ' + id);
+    for (const id of f) if (!m.has(id)) bad.push(lang + ':familiar⊄master ' + id);
+  }
+  return bad;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    四 · 推导引擎（N=3 · §3.13 源码证据封顶 active）
@@ -1357,6 +1470,7 @@ const TOPIC_RES = {
   'py-dataclass':      [['Fluent Python（2nd Edition, 2022）','primary'],['The Python Language Reference（语言参考）','backup']],
   'py-excchain':       [['Think Python（3rd Edition, 2024）','primary'],['Real Python','backup']],
   'py-web':            [['FastAPI 官方教程','primary'],['Django 官方教程（投票应用 · 7 部分）','backup']],
+  'py-deps':           [['廖雪峰 · Python 教程','primary'],['Automate the Boring Stuff with Python（3rd Edition）','backup']],
   'py-pack':           [['Python Crash Course（3rd Edition, 2022）','primary'],['Automate the Boring Stuff with Python（3rd Edition）','backup']],
 
   'go-variable':       [['A Tour of Go（官方交互教程 · 中文镜像）','primary'],['李文周 ·《Go 语言学习之路》','backup']],
@@ -1376,7 +1490,6 @@ const TOPIC_RES = {
   'go-generic':        [['A Tour of Go（官方交互教程 · 中文镜像）','primary'],['Go Modules Reference（模块参考）','backup']],
   'go-wg':             [['Concurrency in Go','primary'],['Gophercises（20 个动手小项目）','practice']],
   'go-http':           [["Let's Go（Alex Edwards）",'primary'],['astaxie / build-web-application-with-golang（Go Web 编程开源书）','backup']],
-  'go-build':          [['Go Modules Reference（模块参考）','primary'],['Go 官方文档中心（中国镜像）','backup']],
 };
 const RES_ROLE_LABEL = { primary: '主去处', backup: '备选', practice: '练习平台' };
 
@@ -1505,7 +1618,9 @@ function readmeCard(md) {
    ═══════════════════════════════════════════════════════════════════════ */
 const S = {
   lang: 'python',
+  profile: 'master',   // 精通 / familiar / vibe
   view: 'topics',
+  showSkipped: false,    // 知识点列表是否展开「本模式可跳过」
   heuristic: false,      // Go 是否模拟「未检测到工具链」
   sweepNote: null,       // 巡检两轮的结果说明（存状态而非存 DOM，重渲染后仍在）
   readmeMd: null,        // 导出的 README.md 原文
@@ -1598,29 +1713,46 @@ function renderStages() {
 
 function renderTopics() {
   const mode = currentMode(), states = computeAll(S.lang, mode === 'heuristic');
-  const list = langTopics(S.lang).filter(t => t.stage === S.stage);
+  const all = langTopics(S.lang).filter(t => t.stage === S.stage);
+  const profs = profTopics(S.lang, S.profile);
+  const pmap = new Map(profs.map(x => [x.t.id, x.p]));
+  const req = all.filter(t => pmap.get(t.id).required);
+  const skip = all.filter(t => !pmap.get(t.id).required);
+  const list = S.showSkipped ? all : req.sort((a, b) => pmap.get(a.id).rank - pmap.get(b.id).rank);
+
   const head = document.getElementById('topicHead');
   head.textContent = `第 ${S.stage + 1} 站 · ${STAGES[S.stage].t}`;
   document.getElementById('topicMeta').innerHTML =
-    `${list.length} 条 · ${list.filter(t => t.level === 'full').length} 条三段齐全`;
+    `${GUIDE_MODES[S.profile].name} · 必学 ${req.length} / ${all.length} 条`
+    + (req.length ? ` · ${req.filter(t => t.level === 'full').length} 条三段齐全` : '');
 
-  document.getElementById('topics').innerHTML = list.map(t => {
-    const st = states.get(t.id);
-    const m = STATE_META[st.level];
-    const locked = !st.prereqOk && st.level === 'untouched';
-    const hits = RULES.filter(r => r.lang === S.lang && r.topic === t.id && !(mode === 'heuristic' && r.regexOnly)).length;
-    return `<li class="topic ${t.id === S.topic ? 'on' : ''}" data-topic="${t.id}">
-      <div class="r1">
-        <span class="ttl">${esc(t.title)}</span>
-        <span class="spacer"></span>
-        ${t.kind === 'library' ? '<span class="tag">库级 · 不进路线</span>' : ''}
-        ${t.level === 'full' ? chip('acc', '完整') : '<span class="tag">要点级</span>'}
-        ${locked ? '<span class="tag lock">前置未达成</span>' : chip(m.chip, m.label)}
-      </div>
-      <div class="r2">${esc(t.summary)}${hits ? ` · 源码命中 ${st.src} 次（计入 ${st.counted} 次）` : ''}</div>
-    </li>`;
-  }).join('') || '<li class="topic"><div class="r2">本站暂无知识点</div></li>';
-  document.querySelectorAll('.topic').forEach(el => el.onclick = () => { S.topic = el.dataset.topic; renderAll(); });
+  document.getElementById('topics').innerHTML =
+    (list.length ? list.map(t => {
+      const st = states.get(t.id), m = STATE_META[st.level], pf = pmap.get(t.id);
+      const locked = !st.prereqOk && st.level === 'untouched';
+      const hits = RULES.filter(r => r.lang === S.lang && r.topic === t.id && !(mode === 'heuristic' && r.regexOnly)).length;
+      const shown = pf.depth === 'headline' ? '要点级' : (pf.depth === 'concept' ? '要点 + 三段' : '完整');
+      return `<li class="topic ${t.id === S.topic ? 'on' : ''}" data-topic="${t.id}">
+        <div class="r1">
+          ${pf.required ? `<span class="tag">${pf.rank + 1}</span>` : '<span class="tag lock">可跳过</span>'}
+          <span class="ttl">${esc(t.title)}</span>
+          <span class="spacer"></span>
+          ${t.kind === 'library' ? '<span class="tag">库级</span>' : ''}
+          ${shown === '完整' ? chip('acc', '完整') : `<span class="tag">${esc(shown)}</span>`}
+          ${pf.est ? `<span class="tag">${pf.est} 分钟</span>` : ''}
+          ${locked ? '<span class="tag lock">前置未达成</span>' : chip(m.chip, m.label)}
+        </div>
+        <div class="r2">${esc(t.summary)}${hits ? ` · 源码命中 ${st.src} 次（计入 ${st.counted} 次）` : ''}</div>
+      </li>`;
+    }).join('') : '<li class="topic"><div class="r2">本站在本模式下没有必学知识点（可在下方展开「可跳过」查看全部）。</div></li>')
+    + (skip.length ? `<li class="topic" id="skipToggle" style="background:var(--color-panel-sunk)">
+        <div class="r1"><span class="ttl" style="font-size:12.5px">${S.showSkipped ? '收起' : '展开'}本模式可跳过的 ${skip.length} 条</span>
+        <span class="spacer"></span><span class="tag">非必学</span></div>
+        <div class="r2">可跳过 ≠ 不重要，只是本模式不要求先学。</div></li>` : '');
+
+  document.querySelectorAll('.topic[data-topic]').forEach(el => el.onclick = () => { S.topic = el.dataset.topic; renderAll(); });
+  const tg = document.getElementById('skipToggle');
+  if (tg) tg.onclick = () => { S.showSkipped = !S.showSkipped; renderTopics(); };
 }
 
 function renderDetail() {
@@ -1634,39 +1766,53 @@ function renderDetail() {
   const c = t.content;
   const terms = (c && CONCEPT_TERMS[t.concept]) || [];
   const req = S.requests.filter(r => r.topic === id).length;
+  const pf = profOf(S.lang, id);
 
   let html = `<div class="card-b">
     <h3>${esc(t.title)}</h3>
     <div class="meta">
       ${chip(m.chip, m.label)}
+      ${pf.required ? `<span class="tag">本模式第 ${pf.rank + 1} 位 · 必学</span>` : '<span class="tag lock">本模式可跳过</span>'}
+      ${pf.est ? `<span class="tag">看懂约 ${pf.est} 分钟</span>` : ''}
       ${t.level === 'full' ? chip('acc', '三段齐全') : '<span class="tag">要点级 · 非完整内容</span>'}
-      ${t.kind === 'library' ? '<span class="tag">库级（前置关系几乎不存在，不进学习路线）</span>' : ''}
+      ${t.kind === 'library' ? '<span class="tag">库级（不进学习路线）</span>' : ''}
       ${mode === 'heuristic' ? chip('warn', '启发式识别') : ''}
     </div>
-    <div style="font-size:13px;color:var(--color-ink-muted)">${esc(t.summary)}</div>
-    <div class="note" style="margin-top:9px"><b>状态怎么来的</b>
+    <div style="font-size:13px;color:var(--color-ink-muted)">${esc(t.summary)}</div>`;
+
+  /* ── 模式决定「看到多深」：三档，且**不假装**被折叠的部分已经看过 ── */
+  if (pf.depth === 'headline') {
+    html += `<div class="note" style="margin-top:9px"><b>当前是「${esc(GUIDE_MODES[S.profile].name)}」模式，本条只给要点</b>
+      三段内容（步骤 / 样例 / 原理解析）在<b>精通</b>模式下可看。这里刻意不做「加载更多」的假象，
+      免得你以为已经看全了。</div>
+      <div class="sec"><h4>一句话要点</h4><div style="font-size:13px">${esc(t.point || t.summary)}</div></div>`;
+  } else {
+    html += `<div class="note" style="margin-top:9px"><b>状态怎么来的</b>
       行为证据 ${st.nonSrc} 次（阶段清单/任务/技能）＋ 源码命中 ${st.src} 次。
       ${st.src > 1 ? `重复命中 <b>只计 1 次</b>（抄 ${st.src} 次同一段 ≠ 理解 ${st.src} 个点）。` : ''}
       ${st.capped ? `<b>本条只有源码证据 ⇒ 状态上限「本项目用到过」，永远到不了「掌握」。</b>` : ''}
-      ${t.level !== 'full' ? '' : ''}
-      阈值 N=${N_MASTERED}（本轮自定默认值，待 owner 签收）。</div>`;
+      阈值 N=${N_MASTERED}（本轮自定默认值，待 owner 签收）。
+      ${pf.depth === 'concept' ? '<br>⚠️ 当前是「熟悉」模式：<b>语言差异表与源码实例未展开</b>，完整版在精通模式。' : ''}</div>`;
+  }
 
-  if (c) {
+  if (pf.depth !== 'headline' && c) {
     html += `<div class="sec"><h4>怎么学的步骤</h4><ol class="steps">${c.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></div>
       <div class="sec"><h4>学习样例</h4>
         <div class="code-cap">Python</div><pre class="code">${esc(c.samples.python)}</pre>
         <div class="code-cap">Go</div><pre class="code">${esc(c.samples.go)}</pre>
       </div>
-      <div class="sec"><h4>原理解析</h4><div style="font-size:13px">${esc(c.principle)}</div></div>
-      <div class="sec"><h4>两门语言的差异（这一层才是学第二门语言要看的东西）</h4>
+      <div class="sec"><h4>原理解析</h4><div style="font-size:13px">${esc(c.principle)}</div></div>`;
+    if (pf.depth === 'full') {
+      html += `<div class="sec"><h4>两门语言的差异（这一层才是学第二门语言要看的东西）</h4>
         <table class="mini"><thead><tr><th style="width:88px">差异面</th><th>Python</th><th>Go</th></tr></thead>
         <tbody>${c.deltas.map(d => `<tr><td>${esc(d[0])}</td><td>${esc(d[1])}</td><td>${esc(d[2])}</td></tr>`).join('')}</tbody></table>
       </div>`;
-  } else if (t.level === 'full') {
+    }
+  } else if (pf.depth !== 'headline' && t.level === 'full') {
     html += `<div class="sec"><h4>怎么学的步骤</h4><ol class="steps">${t.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></div>
       <div class="sec"><h4>学习样例</h4><pre class="code">${esc(t.sample)}</pre></div>
       <div class="sec"><h4>原理解析</h4><div style="font-size:13px">${esc(t.principle)}</div></div>`;
-  } else {
+  } else if (pf.depth !== 'headline') {
     html += `<div class="sec"><h4>要点（尚未写满三段）</h4><div style="font-size:13px">${esc(t.point)}</div>
       <div style="margin-top:9px">
         <button class="b sm" id="reqBtn" ${req ? 'disabled' : ''}>${req ? '已登记' : '我要这条的完整内容'}</button>
@@ -1753,10 +1899,14 @@ function renderSources() {
 function renderFoot() {
   document.getElementById('foot').innerHTML = `
     原型说明：本文件在 <code>docs/prototypes/</code> 下，<b>不是产品代码</b>，不参与 typecheck / test / bundle:check。<br>
-    规格 <code>docs/specs/m9-dev-language-roadmap.md</code> §7 的 32 条判据<b>本轮零通过</b> —— 边界逐条列在 §10.2。<br>
+    规格 <code>docs/specs/m9-dev-language-roadmap.md</code> §7 的 36 条判据<b>本轮零通过</b> —— 边界逐条列在 §10.2。<br>
     命中清单的「自查」是在<b>本 demo 自带的合成样例工程</b>上逐行核对，不是真在你的项目上跑 grep；行号由扫描器运行时解析，不写死。<br>
-    「学习资源」与「两门对照」两页<b>逐条取自 owner 提供的《Python 与 Go 系统学习指南》</b>（89 条资源 ＋ 分阶段路线 ＋ 8 维对照 ＋ 6 条练习原则）；
-    附件自述核实于 2026-10-18，<b>本轮网络不通，未做二次核实</b>。`;
+    <b>三种学习模式（精通 / 熟悉 / 了解·速成）、学习资源页与两门对照页，逐条取自 owner 提供的
+    《Python 与 Go 系统学习指南》2026-10-19 版</b>（3 模式 × 2 语言 × 3 条路线 ＋ 双修规划 ＋ 89 条资源 ＋
+    8 维对照 ＋ 6 条练习原则 ＋ 速成专区 6 能力 / 7 项最小知识 / 4 步工作流 / 6 翻车点 / 逐日计划）；
+    附件自述核实于 2026-10-18，<b>本轮网络不通，未做二次核实</b>。<br>
+    ⚠️ <b>精通与熟悉在本版的必学集几乎相同</b>（差别只落在展示深度）—— 因为指南标为可跳过的冷门底层
+    （元类 / runtime / 反射 / cgo / pprof）在实测清单里尚无对应条目。这是建模缺口，不是 bug，见规格 §6.3 第 6 条。`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1834,6 +1984,12 @@ function renderRes() {
   } else {
     for (const r of list) {
       const st = livenessOf(r);
+      /* 「本模式可跳过」＝ 该资源在本模式**没有任何**必学知识点挂接它。
+         ⚠️ 判定用「必学知识点集合」而不是「资源自己声明的模式」——
+            后者需要一个 res↔topic 的反向索引，而 §3.15 刻意不做反向（无序清单不得定义路线）。 */
+      const reqTopics = profTopics(S.lang, S.profile).filter(x => x.p.required);
+      const linked = reqTopics.filter(x => (TOPIC_RES[x.t.id] || []).some(([n]) => n === r.n));
+      const optional = linked.length === 0;
       const liveTag = !st.fixture ? '<span class="tag">巡检夹具未覆盖</span>'
         : !st.checkedAt ? '<span class="tag">未巡检</span>'
         : st.alive ? (st.fails ? chip('warn', '疑似失效 ' + st.code) : chip('ok', '正常 ' + st.code))
@@ -1847,10 +2003,12 @@ function renderRes() {
           <span class="tag">${esc(GUIDE_RES.cost[r.c] || r.c)}</span>
           ${r.fav ? chip('acc', '★ 精选') : ''}
           ${r.star ? `<span class="tag">${esc(r.star)}</span>` : ''}
+          ${optional ? '<span class="tag">本模式可跳过</span>' : ''}
           ${liveTag}
         </div>
         <div class="d">${esc(r.d)}</div>
-        <div class="f">${esc(r.f)}${st.checkedAt ? ` · 巡检日 2026-10-${st.checkedAt}` : ''}${st.alive ? '' : ' · <b>已失效但保留（路径留着才找得回）</b>'}</div>
+        <div class="f">${esc(r.f)}${st.checkedAt ? ` · 巡检日 2026-10-${st.checkedAt}` : ''}${st.alive ? '' : ' · <b>已失效但保留（路径留着才找得回）</b>'}
+          ${linked.length ? ` · 本模式被 ${linked.length} 个必学知识点引用` : ''}</div>
       </div>`;
     }
   }
@@ -2169,6 +2327,95 @@ function doAsk() {
   document.getElementById('drawerBody').appendChild(d);
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════
+   模式切换的三处界面（§3.17）
+   ═══════════════════════════════════════════════════════════════════════ */
+function renderModeBar() {
+  const bar = document.getElementById('modebar');
+  const cur = GUIDE_MODES[S.profile];
+  bar.innerHTML = PROFILE_ORDER.map(k => {
+    const m = GUIDE_MODES[k];
+    return `<button class="mcard" data-profile="${k}" aria-pressed="${k === S.profile}">
+      <div class="mt">${esc(m.name)}</div>
+      <div class="md">${esc(m.dur)}</div>
+      <div class="mf">${esc(m.fit)}</div>
+    </button>`;
+  }).join('') + `
+    <div class="note" style="grid-column:1/-1;margin-top:2px">
+      <b>模式只改三件事：学哪些 · 先学哪个 · 看到多深</b>
+      ⚠️ <b>它不改变掌握度的判定</b> —— 三种模式下三态是同一个数，速成也不会让知识点更容易点亮
+      （否则就退回 §2.2 拒绝的「自评清单」）。
+      当前：<b>${esc(cur.name)}</b> · ${esc(GUIDE_DETAIL['本模式目标'][S.profile] || '')}
+      ${Object.keys(GUIDE_ROUTES2[S.profile] || {}).length ? '' : ' ⚠️ 该模式在本语言没有路线数据'}
+    </div>`;
+  bar.querySelectorAll('.mcard').forEach(el => el.onclick = () => {
+    S.profile = el.dataset.profile; S.topic = null; S.stage = 0; S.showSkipped = false;
+    renderAll();
+  });
+}
+
+function renderRoutePanel() {
+  const box = document.getElementById('routePanel');
+  const lk = S.lang === 'python' ? 'py' : 'go';
+  const langName = S.lang === 'python' ? 'Python' : 'Go';
+  const routes = GUIDE_ROUTES2[S.profile] || {};
+  const list = routes[lk] || [];
+  const goal = (GUIDE_DETAIL['本模式目标'] || {})[S.profile] || '';
+  const req = profTopics(S.lang, S.profile);
+  const reqN = req.filter(x => x.p.required).length;
+  const vibeMin = S.profile === 'vibe' ? vibeTotalMinutes(S.lang) : 0;
+
+  box.innerHTML = `<div class="card"><div class="card-h">${esc(langName)} · ${esc(GUIDE_MODES[S.profile].name)}路线
+      <span class="spacer"></span>
+      <span class="tag">${esc(GUIDE_MODES[S.profile].dur)}</span>
+      <span class="tag">必学 ${reqN} / ${req.length}</span>
+      ${S.profile === 'vibe' ? `<span class="tag">看懂约 ${vibeMin} 分钟</span>` : ''}
+    </div>
+    <div class="card-b">
+      ${goal ? `<div class="note" style="margin-bottom:8px"><b>本模式目标</b>${esc(goal)}</div>` : ''}
+      ${list.map((ph, i) => `<div class="phase">
+        <div class="ph"><b>${esc(ph.ord || ('第 ' + (i + 1) + ' 段'))}</b>${esc(ph.weeks || '')}</div>
+        <div><div style="font-size:13px;color:var(--color-ink)">${esc(ph.title)}</div>
+          <ul>${ph.pts.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+          ${ph.outcome ? `<div style="font-size:11.5px;color:var(--color-ink-faint);margin-top:3px">产出：${esc(ph.outcome)}</div>` : ''}
+        </div></div>`).join('') || '<div class="note warn">该模式在此语言暂无路线数据（附件未给）。</div>'}
+      ${GUIDE_PLANS2[S.profile] ? `<div class="note" style="margin-top:9px"><b>双修总规划（${esc(GUIDE_MODES[S.profile].name)}）</b>
+        ${GUIDE_PLANS2[S.profile].map(r => `<div style="margin-top:4px"><b>${esc(r.when)} · ${esc(r.title)}</b>${esc(r.body)}</div>`).join('')}
+      </div>` : '<div class="note warn" style="margin-top:9px">附件<b>未给速成模式的双修总规划</b>（速成定位是单门起步），此处如实显示为空而不是补一个估算。</div>'}
+    </div></div>`;
+}
+
+/** 速成专区面板 —— 只在 vibe 模式出现。
+ *  ⚠️ 它是**内容**不是知识点：6 项能力 / 最小知识 7 项 / 4 步工作流都没有代码证据可查，
+ *     硬要纳入掌握度就是 §2.2 拒绝的自评清单（§3.17 第 3 条）。 */
+function renderVibePanel() {
+  const box = document.getElementById('vibePanel');
+  if (S.profile !== 'vibe') { box.innerHTML = ''; box.hidden = true; return; }
+  box.hidden = false;
+  const V = GUIDE_VIBE, lk = S.lang === 'python' ? 'py' : 'go';
+  const langName = S.lang === 'python' ? 'Python' : 'Go';
+  box.innerHTML = `<div class="card"><div class="card-h">速成专区 · Vibe Coding
+      <span class="spacer"></span><span class="tag">内容，不进 DAG · 不参与掌握度</span></div>
+    <div class="card-b">
+      ${V.desc ? `<div style="font-size:12.5px;color:var(--color-ink-muted);margin-bottom:9px">${esc(V.desc)}</div>` : ''}
+      <div class="sec"><h4>速成后你应该具备的 6 项能力</h4>
+        <div class="resgrid">${V.capabilities.map(c => `<div class="card rescard">
+          <div class="n">${esc(c.t)}</div><div class="d">${esc(c.d)}</div></div>`).join('')}</div></div>
+      <div class="sec"><h4>${esc(langName)} · 最小必要知识 7 项</h4>
+        <table class="mini"><tbody>${(V.know[lk] || []).map(k =>
+          `<tr><td style="width:150px;color:var(--color-ink)">${esc(k.t)}</td><td>${esc(k.d)}</td></tr>`).join('')}</tbody></table>
+        <div class="note" style="margin-top:7px">这 7 项<b>不是知识点 DAG 的节点</b>（其中「控制流」「安装依赖」「运行调试」在知识点模型里没有独立条目），
+        所以它们单独成面板 —— 硬塞进 DAG 会造出没有前置边、没有代码证据的节点。</div></div>
+      <div class="sec"><h4>Vibe Coding 标准工作流（4 步循环）</h4>
+        <ol class="steps">${V.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></div>
+      <div class="sec"><h4>新手最常见的 6 个翻车点</h4>
+        <table class="mini"><tbody>${V.pitfalls.map(p => `<tr><td>${esc(p)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="sec"><h4>${esc(langName)} · 3–7 天逐日计划</h4>
+        <table class="mini"><tbody>${(V.plan[lk] || []).map(p => `<tr><td>${esc(p)}</td></tr>`).join('')}</tbody></table></div>
+    </div></div>`;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    八 · 降级自检（全站不得出现 AI 字样 —— DL-08 的界面侧形态）
    ═══════════════════════════════════════════════════════════════════════ */
@@ -2178,6 +2425,10 @@ function doAsk() {
      ② data-ai-chrome = 那个开关自己（「AI 可用」是状态指示，不是推荐内容）；
      ③ data-catalog = 资源清单与对照表两页 —— 它们的文字是**外部资源的原标题逐字引用**
         （如「Python+AI 零基础入门」这类课程名），不构成「把基线结果包装成生成式结果」；
+     ⑤ 三处 data-catalog 区域：资源清单 / 两门对照 / **模式切换与路线面板 / 速成专区** ——
+        它们全是**附件原文的逐字引用**（模式目标里就有「借助 AI 编程工具」这句话）；
+     ⑥ 速成专区—— 那是**教怎么与 AI 协作的静态说明文本**，不是 AI 产出的结果；
+        它的主题就是 AI-assisted coding，去掉这两个字母反而说不清它在讲什么；
      ④ textarea 里的内容是用户可编辑的原文（导出的清单），不是界面对用户的断言；
         aria-hidden/inert 的区域（关闭态的抽屉）—— 用户看不到，读屏也不该读到。
      ⚠️ 后两条是刻意排除的：判据断的是**归因声明**，不是「页面上有没有这两个字母」。 */
@@ -2198,6 +2449,7 @@ function degradeCheck() {
 function renderAll() {
   syncGoSwitch();
   document.getElementById('resCount').textContent = GUIDE_RES[S.lang === 'python' ? 'py' : 'go'].length;
+  renderModeBar(); renderRoutePanel(); renderVibePanel();
   renderHero(); renderScanBadge(); renderStages(); renderTopics(); renderDetail();
   renderSources(); renderFoot();
   switchView(S.view);
