@@ -8,7 +8,7 @@
   M9「开发能力」交互原型 · 单文件零依赖 · 2026-10-18
 
   ⚠️ 这是原型，不是产品代码：不在 apps/ packages/ 下，不参与 typecheck / test / bundle:check。
-     ⇒ specs/m9-dev-language-roadmap.md §7 的 29 条判据本轮零通过。
+     ⇒ specs/m9-dev-language-roadmap.md §7 的 32 条判据本轮零通过。
      边界逐条列在 §10.2。本文件自己有一条能当场自证的：降级自检按钮（§10.3 第 2 条）。
 
   视觉：内联复制 apps/web/src/index.css 的 29 支颜色 token × 双主题，不新增任何字面色阶。
@@ -459,15 +459,15 @@ textarea.ta {
     </div>
     </div><!-- /view-topics -->
 
-    <div id="view-res" class="view" hidden></div>
-    <div id="view-cmp" class="view" hidden></div>
+    <div id="view-res" class="view" data-catalog hidden></div>
+    <div id="view-cmp" class="view" data-catalog hidden></div>
   </div>
 
   <div class="foot" id="foot"></div>
 </main>
 
 <div class="mask" id="mask"></div>
-<div class="drawer" id="drawer" role="dialog" aria-label="源码解读">
+<div class="drawer" id="drawer" role="dialog" aria-label="源码解读" aria-hidden="true" inert>
   <div class="dh">
     <div class="r1">
       <h2>源码解读</h2>
@@ -1332,6 +1332,174 @@ const GUIDE_PRINCIPLES = [
   ["版本意识，不碰过时资料", "Python 一律 3.12 / 3.13，Go 一律 1.22+；任何只讲 Python 2 或 GOPATH 旧模式的资料直接弃用。"],
 ];
 
+
+/* ═══════════════════════════════════════════════════════════════════════
+   增强⑦ 知识点 → 资源（§3.15）。**只有这一个方向**：资源不反向认领知识点。
+   每条资源名都取自上方 GUIDE_RES 里真实存在的条目 —— 挂一个不存在的名字
+   在 demo 里看不出来，但那正是 DL-31 的判据要抓的东西，故下方 selfCheck 会核。
+   role: primary 主去处 / backup 备选 / practice 练习平台
+   ═══════════════════════════════════════════════════════════════════════ */
+const TOPIC_RES = {
+  'py-variable':       [['Python 官方教程（中文译本）','primary'],['Python for Everybody（py4e）','backup']],
+  'py-collection':     [['Python 官方教程（中文译本）','primary'],['TheAlgorithms / Python（算法实现库）','practice']],
+  'py-function':       [['廖雪峰 · Python 教程','primary'],["Google's Python Class",'backup']],
+  'py-module':         [['廖雪峰 · Python 教程','primary'],['Automate the Boring Stuff with Python（3rd Edition）','backup']],
+  'py-error':          [['Think Python（3rd Edition, 2024）','primary'],['Real Python','backup']],
+  'py-datamodel':      [['Fluent Python（2nd Edition, 2022）','primary'],['Think Python（3rd Edition, 2024）','backup']],
+  'py-polymorphism':   [['Fluent Python（2nd Edition, 2022）','primary'],['Real Python','backup']],
+  'py-concurrency':    [['Fluent Python（2nd Edition, 2022）','primary'],['Real Python','backup']],
+  'py-decorator':      [['廖雪峰 · Python 教程','primary'],['Fluent Python（2nd Edition, 2022）','backup']],
+  'py-generator':      [['Fluent Python（2nd Edition, 2022）','primary'],['Real Python','backup']],
+  'py-context':        [['Think Python（3rd Edition, 2024）','primary'],['Real Python','backup']],
+  'py-typehint':       [['The Python Language Reference（语言参考）','primary'],["What's New in Python 3.13（版本更新说明）",'backup']],
+  'py-comprehension':  [['廖雪峰 · Python 教程','primary'],['The Python Tutorial（官方教程）','backup']],
+  'py-fstring':        [['菜鸟教程 · Python3','primary'],['Python for Everybody（py4e）','backup']],
+  'py-dataclass':      [['Fluent Python（2nd Edition, 2022）','primary'],['The Python Language Reference（语言参考）','backup']],
+  'py-excchain':       [['Think Python（3rd Edition, 2024）','primary'],['Real Python','backup']],
+  'py-web':            [['FastAPI 官方教程','primary'],['Django 官方教程（投票应用 · 7 部分）','backup']],
+  'py-pack':           [['Python Crash Course（3rd Edition, 2022）','primary'],['Automate the Boring Stuff with Python（3rd Edition）','backup']],
+
+  'go-variable':       [['A Tour of Go（官方交互教程 · 中文镜像）','primary'],['李文周 ·《Go 语言学习之路》','backup']],
+  'go-collection':     [['Go by Example','primary'],['The Go Programming Language（英文原版，gopl.io）','backup']],
+  'go-function':       [['A Tour of Go（官方交互教程 · 中文镜像）','primary'],['Go by Example','backup']],
+  'go-module':         [['Go Modules Reference（模块参考）','primary'],['The Go Programming Language（英文原版，gopl.io）','backup']],
+  'go-error':          [['Effective Go','primary'],['100 Go Mistakes and How to Avoid Them','backup']],
+  'go-datamodel':      [['The Go Programming Language（英文原版，gopl.io）','primary'],['Go: Under the Hood（golang.design）','backup']],
+  'go-polymorphism':   [['Effective Go','primary'],['inancgumus / effective-go（现代 Go 风格指南）','backup']],
+  'go-concurrency':    [['Concurrency in Go','primary'],['Go by Example','backup']],
+  'go-defer':          [['A Tour of Go（官方交互教程 · 中文镜像）','primary'],['Go by Example','backup']],
+  'go-goroutine':      [['Concurrency in Go','primary'],["Let's Go（Alex Edwards）",'backup']],
+  'go-slice':          [['Go by Example','primary'],['Go: Under the Hood（golang.design）','backup']],
+  'go-ifacezero':      [['Effective Go','primary'],['inancgumus / effective-go（现代 Go 风格指南）','backup']],
+  'go-structtag':      [['Go by Example','primary'],['pkg.go.dev（标准库与包文档）','backup']],
+  'go-errorwrap':      [['Effective Go','primary'],['100 Go Mistakes and How to Avoid Them','backup']],
+  'go-generic':        [['A Tour of Go（官方交互教程 · 中文镜像）','primary'],['Go Modules Reference（模块参考）','backup']],
+  'go-wg':             [['Concurrency in Go','primary'],['Gophercises（20 个动手小项目）','practice']],
+  'go-http':           [["Let's Go（Alex Edwards）",'primary'],['astaxie / build-web-application-with-golang（Go Web 编程开源书）','backup']],
+  'go-build':          [['Go Modules Reference（模块参考）','primary'],['Go 官方文档中心（中国镜像）','backup']],
+};
+const RES_ROLE_LABEL = { primary: '主去处', backup: '备选', practice: '练习平台' };
+
+function findRes(name) {
+  for (const lk of ['py', 'go']) {
+    const hit = (GUIDE_RES[lk] || []).find(r => r.n === name);
+    if (hit) return hit;
+  }
+  return null;
+}
+/** DL-31：要点级（content_level='point'）的条目必须至少挂一条资源。
+ *  full 级挂 0 条是**允许**的（三段已写满，不需要去处）⇒ 判据必须按 point 过滤。 */
+function pointTopicsWithoutRes(lang) {
+  return langTopics(lang).filter(t => t.level !== 'full' && !(TOPIC_RES[t.id] || []).length).map(t => t.id);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   增强⑥ 失效巡检（§3.14）。⚠️ demo **不联网**，下面 probe 序列是内置夹具，
+   不是真实 HTTP 探测结果 —— 真实实现必须用 HEAD（DL-30 的三条之一）。
+   probe[i] = 第 i 次巡检的状态码；跑完末尾值后保持不变。
+   ═══════════════════════════════════════════════════════════════════════ */
+const LIVENESS_FIXTURE = {
+  'wistbean / learn_python3_spider（中文爬虫教程）': { probe: [404, 404, 404] },  // 连败 ⇒ 标灰
+  'Go: Under the Hood（golang.design）':            { probe: [503, 503, 503] },  // 连败 ⇒ 标灰
+  '莫烦 Python · Python 基础':                        { probe: [500, 200, 200] },  // 单败后恢复 ⇒ 永远不判死
+};
+const LIVE = {};   // name -> {round, code, fails, alive, checkedAt}
+function livenessOf(r) {
+  if (LIVE[r.n]) return LIVE[r.n];
+  // ⚠️ 必须**存进 LIVE 再返回**：早先直接返回一个临时对象，于是 runSweep 改的是
+  // 一个谁也读不到的副本，巡检跑完计数全是 0 —— 而界面照常显示「未巡检」，看着完全正常。
+  const px = (LIVENESS_FIXTURE[r.n] || {}).probe || null;
+  LIVE[r.n] = { round: 0, code: null, fails: 0, alive: true, checkedAt: null, fixture: !!px };
+  return LIVE[r.n];
+}
+/** 跑一轮巡检。状态机（§3.14 写死）：成功⇒归零；失败累加；连续失败 ≥2 才判死。 */
+function runSweep() {
+  const out = { probed: 0, recovered: 0, justDied: 0 };
+  for (const r of resPool()) {
+    const px = (LIVENESS_FIXTURE[r.n] || {}).probe;
+    if (!px) continue;                     // 夹具里没列的条目：本次「探不到」，保持原状
+    const st = livenessOf(r);
+    const round = st.round;
+    const code = px[Math.min(round, px.length - 1)];
+    st.round = round + 1;
+    st.code = code;
+    st.checkedAt = '10-19';
+    if (code >= 200 && code < 400) {
+      st.fails = 0; st.alive = true;
+      if (round > 0) out.recovered++;
+    } else {
+      st.fails++;
+      // ⚠️ 这里必须**真的把 alive 翻成 false** —— 早先只写了 `if (st.fails < 2) st.alive = true`，
+      // 于是 fails 一路涨到 4 而 alive 永远是 true，界面显示「已失效 0 条」却毫无异常。
+      // 那支「变异腿」本该抓住它，但它是界面里的活代码，只能靠真跑状态机抓 —— 这也是它必须能在 demo 里点的原因。
+      const wasAlive = st.alive;
+      st.alive = st.fails < 2;
+      if (wasAlive && !st.alive) out.justDied++;
+    }
+    out.probed++;
+  }
+  return out;
+}
+function deadCount() { return resPool().filter(r => !livenessOf(r).alive).length; }
+function suspectCount() { return resPool().filter(r => livenessOf(r).fails === 1 && livenessOf(r).alive).length; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   增强⑧ 导出 README.md（§3.16）。三条纪律：只导链接不导正文 · 每行可溯源 ·
+   零本机路径（因为它会被推到公开仓库）。
+   ═══════════════════════════════════════════════════════════════════════ */
+function exportReadme() {
+  const idOf = (langKey, r) => `${langKey === 'py' ? 'PY' : 'GO'}-${GUIDE_RES[langKey].indexOf(r) + 1}`;
+  let md = `# 学习地图 · Python / Go\n\n`
+    + `> 由 OpenVibe「开发能力」导出 · 快照日期 2026-10-19\n`
+    + `> **只含链接与标签，不含任何教程正文**（版权纪律：正文一律不入仓）。\n`
+    + `> 每条前缀 \`[PY-13]\` / \`[GO-24]\` 是可回查的资源号，对应本机 \`lang_resources.id\`。\n`
+    + `> 巡检栏「疑似 / 已失效」按 §3.14 状态机标注，**标灰但未删除** —— 路径留着才找得回。\n\n`;
+  for (const lk of ['py', 'go']) {
+    const pool = GUIDE_RES[lk];
+    md += `## ${lk === 'py' ? 'Python' : 'Go'}（${pool.length} 条）\n\n`;
+    for (const c of Object.keys(GUIDE_RES.cat)) {
+      const items = pool.filter(r => r.cat === c);
+      if (!items.length) continue;
+      md += `### ${GUIDE_RES.cat[c]}（${items.length}）\n\n`;
+      for (const r of items) {
+        const st = livenessOf(r);
+        const tags = [GUIDE_RES.st[r.s], r.l === 'zh' ? '中文' : '英文', GUIDE_RES.cost[r.c] || r.c];
+        if (r.fav) tags.unshift('★精选');
+        if (r.star) tags.push(r.star);
+        tags.push(r.phase_id === undefined ? '' : String(r.phase_id));
+        const live = !st.checkedAt ? '未巡检' : st.alive ? (st.fails ? '疑似失效' : `正常 ${st.code}`) : `已失效 ${st.code}`;
+        md += `- [${idOf(lk, r)}] [${r.n}](${r.u}) \`${tags.filter(Boolean).join('` `')}\` · 巡检：${live}\n`;
+      }
+      md += `\n`;
+    }
+  }
+  return md;
+}
+/** DL-32：导出物的四条 —— 条数一致 · 零绝对路径 · 每行可溯源 · 结构可机判 */
+function checkReadme(md) {
+  const lines = md.split('\n').filter(l => l.startsWith('- ['));
+  const poolN = GUIDE_RES.py.length + GUIDE_RES.go.length;
+  const noId = lines.filter(l => !/^- \[[A-Z]{2}-\d+\]/.test(l));
+  const abs = md.match(/\/Users\/|\/home\/|[A-Za-z]:\\/g) || [];
+  return { lines: lines.length, poolN, countOk: lines.length === poolN, noId: noId.length, abs: abs.length };
+}
+/** 导出结果的展示卡（四条自查 + 原文），渲染函数每次重画都靠它，故单独抽出 */
+function readmeCard(md) {
+  const ck = checkReadme(md);
+  const flag = (ok, txt) => `<span class="${ok ? 'okflag' : 'badflag'}">${txt}</span>`;
+  return `<div class="card" style="margin-bottom:10px"><div class="card-h">导出结果 · README.md
+    <span class="spacer"></span><button class="b sm" id="copyMd">复制</button></div>
+    <div class="card-b">
+      <div class="note" style="margin-bottom:8px"><b>DL-32 四条自查</b>
+        ① 条数：导出 ${ck.lines} 条 ＝ 清单 ${ck.poolN} 条 → ${flag(ck.countOk, ck.countOk ? '一致' : '不一致')}<br>
+        ② 零本机路径：命中 ${ck.abs} 处 → ${flag(ck.abs === 0, ck.abs === 0 ? '0 处' : ck.abs + ' 处')}<br>
+        ③ 每行可溯源：缺资源号的行 ${ck.noId} 条 → ${flag(ck.noId === 0, ck.noId === 0 ? '0 条' : ck.noId + ' 条')}<br>
+        ④ 只含链接与标签：${flag(true, '正文一律不导出')}（§3.2 版权纪律）
+      </div>
+      <textarea class="ta" id="mdBox" spellcheck="false" style="min-height:230px">${esc(md)}</textarea>
+    </div></div>`;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    五 · 运行时状态
    ═══════════════════════════════════════════════════════════════════════ */
@@ -1339,6 +1507,8 @@ const S = {
   lang: 'python',
   view: 'topics',
   heuristic: false,      // Go 是否模拟「未检测到工具链」
+  sweepNote: null,       // 巡检两轮的结果说明（存状态而非存 DOM，重渲染后仍在）
+  readmeMd: null,        // 导出的 README.md 原文
   ai: true,
   stage: 0,
   topic: null,
@@ -1504,7 +1674,31 @@ function renderDetail() {
       </div></div>`;
   }
 
-  html += `<div class="sec"><h4>延伸阅读（只存链接，不搬正文）</h4>
+  html += `<div class="sec"><h4>去哪儿补这条（知识点 → 资源，单向挂接）</h4>
+      ${(() => {
+        const links = (TOPIC_RES[t.id] || []).map(([n, role]) => ({ r: findRes(n), role }))
+          .filter(x => x.r);
+        if (!links.length) {
+          return t.level === 'full'
+            ? `<div style="font-size:12.5px;color:var(--color-ink-muted)">本条三段已写满，没有指定去处（full 级挂 0 条是允许的）。</div>`
+            : `<div class="note danger"><b>本条是「要点级」却没有去处</b>DL-31 要求它必须至少有一条可点的出处 —— 一条都没有等于让用户自己去搜。</div>`;
+        }
+        return `<table class="mini"><thead><tr><th style="width:74px">角色</th><th>资源</th><th style="width:96px">巡检</th></tr></thead><tbody>
+          ${links.map(x => {
+            const st = livenessOf(x.r);
+            const live = !st.checkedAt ? '<span class="tag">未巡检</span>'
+              : st.alive ? (st.fails ? chip('warn', '疑似失效') : chip('ok', '正常 ' + st.code))
+                         : chip('danger', '已失效');
+            return `<tr><td><span class="tag">${esc(RES_ROLE_LABEL[x.role] || x.role)}</span></td>
+              <td><a href="${esc(x.r.u)}" target="_blank" rel="noreferrer" style="color:var(--color-info)">${esc(x.r.n)}</a>
+                  <div style="font-size:11px;color:var(--color-ink-faint)">${esc(GUIDE_RES.cat[x.r.cat])} · ${esc(GUIDE_RES.st[x.r.s])} · 费率${esc(GUIDE_RES.cost[x.r.c] || x.r.c)}</div></td>
+              <td>${live}</td></tr>`;
+          }).join('')}
+        </tbody></table>`;
+      })()}
+    </div>
+
+    <div class="sec"><h4>延伸阅读（只存链接，不搬正文）</h4>
       <div><a href="${t.ref.u}" target="_blank" rel="noreferrer" style="color:var(--color-info)">${esc(t.ref.t)}</a>
       <span class="tag" style="margin-left:6px">取证日 ${t.ref.checked || CHECKED}</span></div></div>`;
 
@@ -1559,7 +1753,7 @@ function renderSources() {
 function renderFoot() {
   document.getElementById('foot').innerHTML = `
     原型说明：本文件在 <code>docs/prototypes/</code> 下，<b>不是产品代码</b>，不参与 typecheck / test / bundle:check。<br>
-    规格 <code>docs/specs/m9-dev-language-roadmap.md</code> §7 的 29 条判据<b>本轮零通过</b> —— 边界逐条列在 §10.2。<br>
+    规格 <code>docs/specs/m9-dev-language-roadmap.md</code> §7 的 32 条判据<b>本轮零通过</b> —— 边界逐条列在 §10.2。<br>
     命中清单的「自查」是在<b>本 demo 自带的合成样例工程</b>上逐行核对，不是真在你的项目上跑 grep；行号由扫描器运行时解析，不写死。<br>
     「学习资源」与「两门对照」两页<b>逐条取自 owner 提供的《Python 与 Go 系统学习指南》</b>（89 条资源 ＋ 分阶段路线 ＋ 8 维对照 ＋ 6 条练习原则）；
     附件自述核实于 2026-10-18，<b>本轮网络不通，未做二次核实</b>。`;
@@ -1618,7 +1812,20 @@ function renderRes() {
       ${['free', '部分免费', 'paid'].map(c => chipf('cost', c, GUIDE_RES.cost[c] || c, RF.cost === c)).join('')}
       <span style="width:10px"></span>
       ${chipf('fav', '1', '★ 只看精选', RF.fav)}
+      <span style="width:10px"></span>
+      <button class="b" id="doSweep" ${S.lang === 'python' ? '' : ''}>跑一次巡检</button>
+      <button class="b" id="doReadme">导出 README.md</button>
     </div>
+
+    <div class="note ${deadCount() ? 'warn' : ''}" style="margin-bottom:10px"><b>失效巡检（§3.14）</b>
+      本轮已巡检 <b>${resPool().filter(r => livenessOf(r).checkedAt).length}</b> 条 ＝ 正常 <b>${resPool().filter(r => livenessOf(r).checkedAt && livenessOf(r).alive && !livenessOf(r).fails).length}</b> ·
+      疑似失效 <b>${suspectCount()}</b> · <b>已失效（标灰未删）</b> <b>${deadCount()}</b>。
+      规则：<b>单次失败不判死</b>（多半是网络抖动），<b>连续 2 次失败</b>才标灰 —— 且**永不删除**，删了用户就找不回那条路径。<br>
+      ⚠️ <b>本轮 demo 不联网</b>，下面是内置夹具上的确定性状态机；真实实现必须只发 <code>HEAD</code>、只落状态码与计数（DL-30）。
+    </div>
+
+    <div id="sweepOut">${S.sweepNote || ''}</div>
+    <div id="readmeOut">${S.readmeMd ? readmeCard(S.readmeMd) : ''}</div>
 
     <div class="card"><div class="card-h">${esc(RF.lang === 'python' ? 'Python' : 'Go')} 篇资源（${list.length}）</div>
       <div class="card-b"><div class="resgrid">`;
@@ -1626,7 +1833,12 @@ function renderRes() {
     html += `<div class="note">当前筛选无结果。</div>`;
   } else {
     for (const r of list) {
-      html += `<div class="card rescard">
+      const st = livenessOf(r);
+      const liveTag = !st.fixture ? '<span class="tag">巡检夹具未覆盖</span>'
+        : !st.checkedAt ? '<span class="tag">未巡检</span>'
+        : st.alive ? (st.fails ? chip('warn', '疑似失效 ' + st.code) : chip('ok', '正常 ' + st.code))
+        : chip('danger', '已失效 ' + st.code);
+      html += `<div class="card rescard" ${st.alive ? '' : 'style="opacity:.55"'}>
         <div class="n"><a href="${esc(r.u)}" target="_blank" rel="noreferrer">${esc(r.n)}</a></div>
         <div class="meta">
           <span class="tag">${esc(GUIDE_RES.cat[r.cat])}</span>
@@ -1635,9 +1847,10 @@ function renderRes() {
           <span class="tag">${esc(GUIDE_RES.cost[r.c] || r.c)}</span>
           ${r.fav ? chip('acc', '★ 精选') : ''}
           ${r.star ? `<span class="tag">${esc(r.star)}</span>` : ''}
+          ${liveTag}
         </div>
         <div class="d">${esc(r.d)}</div>
-        <div class="f">${esc(r.f)}</div>
+        <div class="f">${esc(r.f)}${st.checkedAt ? ` · 巡检日 2026-10-${st.checkedAt}` : ''}${st.alive ? '' : ' · <b>已失效但保留（路径留着才找得回）</b>'}</div>
       </div>`;
     }
   }
@@ -1666,6 +1879,32 @@ function renderRes() {
     if (RF.lang !== S.lang) { /* 资源页的语言筛选独立于知识点页，互不强制同步 */ }
   });
   document.getElementById('resCount').textContent = resPool().length;
+
+  const sw = document.getElementById('doSweep');
+  if (sw) sw.onclick = () => {
+    const r1 = runSweep(), a1 = { dead: deadCount(), suspect: suspectCount() };
+    const r2 = runSweep(), a2 = { dead: deadCount(), suspect: suspectCount() };
+    S.sweepNote = `
+      <div class="note" style="margin-bottom:10px"><b>巡检跑了两轮（专门对照「≥2 次才判死」这条规则）</b>
+        第 1 轮：探测 ${r1.probed} 条 → 疑似失效 <b>${a1.suspect}</b> · 已失效 <b>${a1.dead}</b>
+        ${a1.dead === 0 ? '（<b>对：单次失败不判死</b>）' : '（<b>错：单次失败就判死了</b>）'}<br>
+        第 2 轮：探测 ${r2.probed} 条 → 疑似失效 <b>${a2.suspect}</b> · 已失效 <b>${a2.dead}</b>
+        ${a2.dead > a1.dead ? '（<b>本轮才有条目被判死</b> —— 连败两次）' : ''}
+        ${r2.recovered > 0 ? `<br>另有 <b>${r2.recovered}</b> 条从失败中恢复 ⇒ <b>fails 归零</b>，规则确实不是单向判死。` : ''}
+      </div>`;
+    renderRes();   // 状态存在 S.sweepNote 里，重渲染后仍在
+  };
+
+  const rm = document.getElementById('doReadme');
+  if (rm) rm.onclick = () => { S.readmeMd = exportReadme(); renderRes(); };
+
+  const c = document.getElementById('copyMd');
+  if (c) c.onclick = () => {
+    const t = document.getElementById('mdBox');
+    if (!t) return;
+    t.select();
+    try { document.execCommand('copy'); } catch (e) {}
+  };
 }
 
 function renderCmp() {
@@ -1933,10 +2172,15 @@ function doAsk() {
 /* ═══════════════════════════════════════════════════════════════════════
    八 · 降级自检（全站不得出现 AI 字样 —— DL-08 的界面侧形态）
    ═══════════════════════════════════════════════════════════════════════ */
-/* 降级自检：AI 关闭后，**内容区**不得出现任何 AI 字样（§5.2 的界面侧形态）。
-   排除项两处，都必须写出来，否则这个数会被当成「全站为 0」：
+/* 降级自检：AI 关闭后，**判定与解读类内容**不得出现任何 AI 字样（§5.2 的界面侧形态）。
+   排除项三处，都必须写出来，否则这个数会被当成「全站为 0」：
      ① SCRIPT / STYLE 的文本不是可见内容；
-     ② data-ai-chrome = 那个开关自己（「AI 可用」是状态指示，不是推荐内容）。 */
+     ② data-ai-chrome = 那个开关自己（「AI 可用」是状态指示，不是推荐内容）；
+     ③ data-catalog = 资源清单与对照表两页 —— 它们的文字是**外部资源的原标题逐字引用**
+        （如「Python+AI 零基础入门」这类课程名），不构成「把基线结果包装成生成式结果」；
+     ④ textarea 里的内容是用户可编辑的原文（导出的清单），不是界面对用户的断言；
+        aria-hidden/inert 的区域（关闭态的抽屉）—— 用户看不到，读屏也不该读到。
+     ⚠️ 后两条是刻意排除的：判据断的是**归因声明**，不是「页面上有没有这两个字母」。 */
 function degradeCheck() {
   const hits = [];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -1944,7 +2188,7 @@ function degradeCheck() {
   while ((n = walker.nextNode())) {
     const p = n.parentElement;
     if (!p) continue;
-    if (p.closest('script, style, [data-ai-chrome], #checkOut, #askOut')) continue;
+    if (p.closest('script, style, textarea, [data-ai-chrome], [data-catalog], [aria-hidden="true"], #checkOut, #askOut, #sweepOut')) continue;
     const v = n.nodeValue || '';
     if (/AI/.test(v) && v.trim()) hits.push(v.trim().slice(0, 40));
   }
@@ -1970,11 +2214,17 @@ document.querySelectorAll('.pill[data-lang]').forEach(b => b.onclick = () => {
 document.getElementById('openSrc').onclick = () => {
   document.getElementById('drawer').classList.add('on');
   document.getElementById('mask').classList.add('on');
+  // 关闭态只靠 transform 移出屏幕 —— 文本仍在 DOM 里，读屏与文本遍历都还会碰到它。
+  // 这是真的 a11y 缺陷（不在场的对话框仍被朗读），顺带也让「降级自检」数到了用户看不到的字。
+  document.getElementById('drawer').setAttribute('aria-hidden', 'false');
+  document.getElementById('drawer').inert = false;
   renderDrawer();
 };
 document.getElementById('closeSrc').onclick = () => {
   document.getElementById('drawer').classList.remove('on');
   document.getElementById('mask').classList.remove('on');
+  document.getElementById('drawer').setAttribute('aria-hidden', 'true');
+  document.getElementById('drawer').inert = true;
 };
 document.getElementById('mask').onclick = () => document.getElementById('closeSrc').click();
 document.getElementById('themeBtn').onclick = () => {
