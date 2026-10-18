@@ -14,6 +14,7 @@ import { KanbanBoard, TaskComposer } from '../components/projects/KanbanBoard'
 import { ProjectDashboard } from '../components/projects/ProjectDashboard'
 import { StageBar } from '../components/projects/StageBar'
 import { AgentPanel } from '../components/agent/AgentPanel'
+import { TermRecommendationPanel } from '../components/terms/TermRecommendationPanel'
 import { toast } from '../components/ui/Toaster'
 import { Icon } from '../components/ui/icons'
 import {
@@ -36,6 +37,7 @@ import {
   useProjectMutations,
 } from '../hooks/useProjects'
 import { useProjectPorts } from '../hooks/useProjectPorts'
+import { useTermRecommendations } from '../hooks/useTermRecommendations'
 import { PortsPanel } from '../components/projects/PortsPanel'
 import { useTasks, useTaskMutations } from '../hooks/useTasks'
 import { laneEngineering } from '../i18n/lane-engineering'
@@ -53,6 +55,7 @@ export function ProjectDetailPage() {
   const checks = useCheckStates(id)
   const injection = useInjectionStatus(id)
   const ports = useProjectPorts(id)
+  const recommend = useTermRecommendations(id)
   const tasks = useTasks(id)
   const flows = useFlowTemplates()
   const [logType, setLogType] = useState<DevLogType>('DEV')
@@ -287,6 +290,12 @@ export function ProjectDetailPage() {
               view.health.unchecked,
               view.health.total,
             )}
+          />
+
+          <TermRecommendationPanel
+            data={recommend.data}
+            loading={recommend.isPending}
+            error={recommend.error}
           />
 
           <PortsPanel data={ports.data} />

@@ -57,6 +57,7 @@ export { LocalEventsRepo, dayOf, type LocalEventInput, type LocalEventSummary } 
 /* --- 服务层（service-layer.md 第五个服务；写入点集中在此，不散落 route）--- */
 export { createAgentService, AGENT_BATCH_LIMITS, type AgentServiceDeps, type IngestBatchResult } from './services/agentService'
 export { createContextService, type ContextServiceDeps } from './services/contextService'
+export { createTermRecommendService, type TermRecommendDeps } from './services/termRecommendService'
 export { createCommandRunService, CLI_COMMAND_RUN_COMMANDS, CLI_COMMAND_RUN_PAYLOAD_KEYS, type CliCommandRunCommand, type CommandRunInput, type CommandRunServiceDeps } from './services/commandRunService'
 export {
   createPackService,

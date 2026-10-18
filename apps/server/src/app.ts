@@ -19,6 +19,7 @@ import { registerSettingsRoutes, type SettingsRouteInput } from './routes/settin
 import { registerSkillRoutes } from './routes/skills'
 import { registerTaskRoutes } from './routes/tasks'
 import { registerTermRoutes } from './routes/terms'
+import { registerTermRecommendationRoutes } from './routes/termRecommendations'
 import { NO_WEB, setupStatic, type WebStatus } from './plugins/static'
 
 export interface BuildAppOptions {
@@ -72,6 +73,7 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerAgentRoutes(app, deps)
   registerPromptRoutes(app, deps)
   registerTermRoutes(app, deps)
+  registerTermRecommendationRoutes(app, deps)
   registerPlaybookRoutes(app, deps)
   registerFlowTemplateRoutes(app, deps)
   registerPackRoutes(app, deps)
