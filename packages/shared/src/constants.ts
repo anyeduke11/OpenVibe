@@ -122,7 +122,7 @@ export const LEDGER_EVENT_KINDS = [
 ] as const
 
 /** M8 Agent 接入层 5 项（m8-agent-bridge.md FR-5.1） */
-export const AGENT_EVENT_KINDS = [
+const AGENT_CORE_EVENT_KINDS = [
   'agent_ingest_accepted',
   'agent_ingest_rejected',
   'agent_context_served',
@@ -130,7 +130,25 @@ export const AGENT_EVENT_KINDS = [
   'agent_bridge_installed',
 ] as const
 
-/** 台账 kind 全集 18 项 —— 迁移 CHECK 的唯一对照面 */
+/**
+ * ⚠️ 声明态：**生产写入点属 P4**（AI 增强层），本轮无写入点，与
+ * `agent_bridge_installed` 同形（同样声明在先、写入在后）。
+ *
+ * ⚠️ 这一项在**单独一个数组**里而不是并进上面的 5 项：CHECK 约束是**有序字面量表**，
+ * 迁移 0010 把它放在 M8 五项**之后**。若直接往 `AGENT_EVENT_KINDS` 里 append，
+ * 顺序自然也对；但把它单列出来，是为了让「6 项」这个计数变化在 diff 里一眼可见 ——
+ * 它正是 §8 待裁第 8 条说的「M8 后续还要扩 kind ⇒ 先合 P5 的 0010」那笔。
+ */
+export const AGENT_AI_EVENT_KINDS = ['ai_recommend_call'] as const
+
+/** Agent 侧全部 kind（M8 五项 ＋ AI 一项），台账 CHECK 的对照面之一 */
+export const AGENT_EVENT_KINDS = [...AGENT_CORE_EVENT_KINDS, ...AGENT_AI_EVENT_KINDS] as const
+
+/**
+ * 台账 kind 全集 19 项（13 台账 ＋ 6 Agent）—— 迁移 CHECK 的唯一对照面。
+ * ⚠️ 18 → 19 是 **P5 的一笔 CHECK 变更**（FR-9.2），不是顺手加一行常量：
+ * SQLite 不能 ALTER CHECK，必须靠迁移 0010 建新表复制数据再换名。
+ */
 export const LOCAL_EVENT_KINDS = [...LEDGER_EVENT_KINDS, ...AGENT_EVENT_KINDS] as const
 export type LocalEventKind = (typeof LOCAL_EVENT_KINDS)[number]
 
@@ -150,6 +168,25 @@ const AGENT_PAYLOAD_SHAPE = {
   cli_agent_command_run: { command: 'string', exitCode: 'number', agent: 'string' },
   /** 声明态：写入点属 M8-A（Phase 2），本轮无生产写入点 */
   agent_bridge_installed: { adapter: 'string', packVersion: 'string' },
+  /**
+   * AI 推荐调用留痕（m3-terms-learning FR-9.1）。**⚠️ 键集就是「最小可复盘集」，
+   * 一个原文容器都不许有**（FR-9.3）：
+   * 画像只留 `inputHash` 指纹，输出只留计数 —— 台账是长期留存表，
+   * 落进去一行 checklist 文本就等于在用户没同意的地方长期保存项目内容。
+   * 键名由 `AGENT_PAYLOAD_KEYS` 派生并被 `payloadKeys()` 守卫逐键断类型，
+   * 所以「多写一个键」在这里过不去。
+   */
+  ai_recommend_call: {
+    aiModel: 'string',
+    aiProvider: 'string',
+    inputHash: 'string',
+    candidateCount: 'number',
+    passedCount: 'number',
+    droppedCount: 'number',
+    result: 'string',
+    failureReason: 'string',
+    durationMs: 'number',
+  },
 } as const
 
 /** 台账 payload 允许的值类型 */

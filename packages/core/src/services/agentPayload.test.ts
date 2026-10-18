@@ -36,6 +36,28 @@ import { AGENT_PAYLOAD_KEYS, AGENT_PAYLOAD_TYPES, AGENT_EVENT_KINDS, AgentIngest
 const SPECS_DIR = join(import.meta.dirname, '..', '..', '..', '..', 'docs', 'specs')
 const SPEC_PATH = join(SPECS_DIR, 'm8-agent-bridge.md')
 const LEDGER_SPEC_PATH = join(SPECS_DIR, 'local-event-ledger.md')
+const M3_SPEC_PATH = join(SPECS_DIR, 'm3-terms-learning.md')
+
+/**
+ * ⚠️ **每个 kind 绑各自的规格**（2026-10-18 · P5 落地时加）。
+ *
+ * 原先所有 Agent kind 都拿去比 M8 那份规格的 FR-5.1.1 那一行。P5 新增
+ * `ai_recommend_call` 之后那会立刻红 —— 但**红得对**：它的键闭集是
+ * **m3 FR-9.1-b** 定义的，不是 M8 FR-5.1.1。
+ *
+ * ⚠️ **不能靠把键补进 M8 规格来消这条红**：那是把「M3 定义的契约」伪装成
+ * 「M8 定义的契约」，两份规格会就此分叉，而 M8 自己那份 FR-5.1.1 的判据
+ * 反而没人守了。⇒ 正确做法是**各自绑各自的规格**，并让一条守卫断「每个 kind
+ * 都被某份规格认领」—— 漏绑一个，下面的遍历会让它直接落到兜底分支而红。
+ */
+const KIND_SPEC: Record<string, { spec: string; marker: string }> = {
+  agent_ingest_accepted: { spec: SPEC_PATH, marker: '允许键' },
+  agent_ingest_rejected: { spec: SPEC_PATH, marker: '允许键' },
+  agent_context_served: { spec: SPEC_PATH, marker: '允许键' },
+  cli_agent_command_run: { spec: SPEC_PATH, marker: '允许键' },
+  agent_bridge_installed: { spec: SPEC_PATH, marker: '允许键' },
+  ai_recommend_call: { spec: M3_SPEC_PATH, marker: 'FR-9.1-b' },
+}
 
 /** 四类**已有生产写入点**的 kind（第五类属 Phase 2，见文首） */
 const WRITTEN = ['agent_ingest_accepted', 'agent_ingest_rejected', 'agent_context_served', 'cli_agent_command_run'] as const
@@ -109,6 +131,28 @@ function specPayloadKeys(line: string): Set<string> {
   return out
 }
 
+/**
+ * 同上，但**只取某一个 kind 的**键。
+ *
+ * ⚠️ 为什么必须有这个变体：M8 规格 FR-5.1.1 那一行是「五个 kind 写在一行里」
+ * （`A` → `k1` / `k2`；`B` → `k3`；…）。P5 让每个 kind 绑各自的规格后，
+ * 若还用「整行的键并集」去跟单个 kind 的形状表比，反向判据会把**别的 kind 的键**
+ * 报成「规格多写」—— 那是解析粒度的错，不是规格真的错了。
+ *
+ * 切法：按 `；` 分组 → 找出**箭头左侧**含该 kind 名的那一组 → 只取该组箭头右侧。
+ */
+function specPayloadKeysFor(line: string, kind: string): Set<string> {
+  for (const group of line.split(/[；;]/)) {
+    if (!group.includes('→')) continue
+    const [lhs = '', ...rhsParts] = group.split('→')
+    if (!lhs.includes('`' + kind + '`')) continue
+    const out = new Set<string>()
+    for (const m of rhsParts.join('→').matchAll(/`([A-Za-z][A-Za-z0-9_]*)`/g)) out.add(m[1]!)
+    return out
+  }
+  return new Set()
+}
+
 describe('FR-5.1.1 · 五类 payload 键闭集（单一出处 ＋ 逐字对齐规格）', () => {
   it('四类已写入 kind 的实际键**逐字等于**闭集（两侧都排序，比的是集合）', () => {
     const f = fixture()
@@ -128,8 +172,14 @@ describe('FR-5.1.1 · 五类 payload 键闭集（单一出处 ＋ 逐字对齐�
     f.h.close()
   })
 
-  it('⚠️ 单一出处必须覆盖全部五个 kind —— 少一类就是「规格说五类、表里只有四类」', () => {
+  it('⚠️ 单一出处必须覆盖全部 Agent kind —— 少一类就是「规格说 N 类、表里只有 N−1 类」', () => {
     expect(Object.keys(AGENT_PAYLOAD_KEYS).sort()).toEqual([...AGENT_EVENT_KINDS].sort())
+  })
+
+  it('⚠️ 每个 kind 都必须被某份规格显式认领（漏绑一个，下面的遍历会让它红）', () => {
+    for (const kind of Object.keys(AGENT_PAYLOAD_KEYS)) {
+      expect(KIND_SPEC[kind], `kind ${kind} 没有绑任何规格的闭集那一行`).toBeDefined()
+    }
   })
 
   it('⚠️ 单一出处的键集必须与规格 FR-5.1.1 原文**逐字一致**（双向，防规格漂移）', () => {
@@ -137,23 +187,28 @@ describe('FR-5.1.1 · 五类 payload 键闭集（单一出处 ＋ 逐字对齐�
     //
     // ⚠️ **必须是双向**，不能只断「实现 ⊆ 规格」：只断单向的话，规格里**多写**一个键、
     // 或者改回 snake_case（旧称），测试照样绿 —— 而那正是「规格漂移」未被真正堵住的地方。
-    const spec = readFileSync(SPEC_PATH, 'utf8')
-    const line = spec.split('\n').find((l) => l.includes('FR-5.1.1') && l.includes('允许键'))
-    expect(line, '规格里找不到 FR-5.1.1 允许键那一行 —— 规格被改写了，本判据需同步').toBeDefined()
-
-    // 正向：实现的每个键都要在规格那行出现
+    // 逐 kind 走**它自己那份**规格（见 KIND_SPEC 的理由）
     for (const kind of Object.keys(AGENT_PAYLOAD_KEYS)) {
+      const binding = KIND_SPEC[kind]!
+      const spec = readFileSync(binding.spec, 'utf8')
+      const line = spec
+        .split('\n')
+        .find((l) => l.includes(binding.marker) && l.includes('→'))
+      expect(line, `${binding.spec} 里找不到 ${kind} 的闭集那一行 —— 规格被改写了，本判据需同步`).toBeDefined()
+
+      // 正向：实现的每个键都要在规格那行出现
       for (const key of AGENT_PAYLOAD_KEYS[kind as keyof typeof AGENT_PAYLOAD_KEYS]) {
-        expect(line!, `规格 FR-5.1.1 未提及 ${kind} 的键 ${key}`).toContain(key)
+        expect(line!, `${binding.spec} 未提及 ${kind} 的键 ${key}`).toContain(key)
       }
+      // 反向：该规格那行声明的每个键都必须属于**这个 kind** ——
+      // 抓「规格多写 / 改回 snake_case / 把别的 kind 的键写进来」
+      const specKeys = specPayloadKeysFor(line!, kind)
+      const implKeys = new Set(AGENT_PAYLOAD_KEYS[kind as keyof typeof AGENT_PAYLOAD_KEYS])
+      const orphans = [...specKeys].filter((k) => !implKeys.has(k))
+      expect(orphans, `${kind}：规格出现但形状表没有的键：${orphans.join(', ')}`).toEqual([])
+      // 正向与反向必须**同时**成立：集合相等，不是包含
+      expect([...implKeys].filter((k) => !specKeys.has(k))).toEqual([])
     }
-    // 反向：规格那行声明的每个键都必须在形状表里 —— 抓「规格多写 / 改回 snake_case」
-    const specKeys = specPayloadKeys(line!)
-    const implKeys = new Set(Object.values(AGENT_PAYLOAD_TYPES).flatMap((v) => Object.keys(v!)))
-    const orphans = [...specKeys].filter((k) => !implKeys.has(k))
-    expect(orphans, `规格 FR-5.1.1 出现但形状表没有的键：${orphans.join(', ')}`).toEqual([])
-    // 正向与反向必须**同时**成立：集合相等，不是包含
-    expect([...implKeys].filter((k) => !specKeys.has(k))).toEqual([])
   })
 
   it('⚠️ 变异腿：规格多写一个键 ⇒ 双向判据必须判红（否则反向那一半可能恒真）', () => {

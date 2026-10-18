@@ -30,10 +30,11 @@ describe('UT-MIGRATION-01 · migration 只前进且幂等', () => {
       '0007_local_events_and_agent_bridge',
       '0008_terms_learning',
       '0009_terms_scenario',
+      '0010_ai_recommend_ledger',
     ])
     expect(migrate(db)).toEqual([])
     const count = (db.prepare('SELECT COUNT(*) AS c FROM schema_migrations').get() as { c: number }).c
-    expect(count).toBe(9)
+    expect(count).toBe(10)
     db.close()
     rmSync(dir, { recursive: true, force: true })
   })
@@ -131,6 +132,7 @@ const ALL_VERSIONS = [
   '0007_local_events_and_agent_bridge',
   '0008_terms_learning',
   '0009_terms_scenario',
+  '0010_ai_recommend_ledger',
 ]
 
 /** 存量行的记账时间戳：刻意早于 0007 落库（2026-10-14），好断言「旧行没被重写」 */
@@ -241,6 +243,7 @@ describe('CORE-EVT-01 · 0007 升级的既有库两径（local-event-ledger §7-
         '0007_local_events_and_agent_bridge',
         '0008_terms_learning',
         '0009_terms_scenario',
+        '0010_ai_recommend_ledger',
       ])
       expect(ledgerRows(legacy.db).map((r) => r.version)).toEqual(ALL_VERSIONS)
       // 旧记账行没被重写（新行的时间戳严格晚于存量行）
@@ -284,6 +287,7 @@ describe('CORE-EVT-01 · 0007 升级的既有库两径（local-event-ledger §7-
         '0007_local_events_and_agent_bridge',
         '0008_terms_learning',
         '0009_terms_scenario',
+        '0010_ai_recommend_ledger',
       ])
       expect(ledgerRows(legacy.db).map((r) => r.version)).toEqual(ALL_VERSIONS)
       expect(tableNames(legacy.db)).toContain('playbooks')
