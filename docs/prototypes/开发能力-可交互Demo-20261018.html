@@ -431,6 +431,7 @@ textarea.ta {
 
   <div class="scroll">
     <div id="view-topics" class="view">
+    <div id="onboard" data-catalog></div>
     <div class="modebar" id="modebar" data-catalog></div>
     <div class="hero" id="hero"></div>
 
@@ -1293,6 +1294,41 @@ function vibeTotalMinutes(lang) {
   return VIBE_REQUIRED[lang === 'python' ? 'py' : 'go']
     .reduce((s, id) => s + (VIBE_MINUTES[id] || 0), 0);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §3.18 / §3.20 共用的反查（两处都在问同一件事，写两遍必然漂移）
+   ═══════════════════════════════════════════════════════════════════════ */
+/** 这条知识点在本模式是不是必学。
+ *  ⚠️ §3.20 第 3 条要求资源标记与 §3.18 的站位映射都从它派生，不各写一份。 */
+function isRequiredIn(profile, lang, topicId) {
+  return profTopics(lang, profile).some(x => x.t.id === topicId && x.p.required);
+}
+/** 这条资源在本模式覆盖了哪些必学知识点。
+ *  ⚠️ 判定用「本模式必学知识点集合」反查，**不做 res↔topic 反向索引** ——
+ *     §3.15 刻意不做反向：无序清单一旦能反向认领知识点，它就会定义路线。 */
+function resRequiredTopics(lang, profile, resName) {
+  return profTopics(lang, profile)
+    .filter(x => x.p.required && (TOPIC_RES[x.t.id] || []).some(([n]) => n === resName))
+    .map(x => x.t);
+}
+/** §3.18 转档：已点亮的速成必学 → 精通路线的站位。
+ *  映射是**查 lang_topics.stage 得到的**，不是维护一张对照表（§3.18 第 2 条）。 */
+function vibeStationPlan(lang) {
+  const lk = lang === 'python' ? 'py' : 'go';
+  const states = computeAll(lang, currentMode() === 'heuristic');
+  const lit = VIBE_REQUIRED[lk]
+    .map(id => ({ id, t: topicById(id), st: states.get(id) }))
+    .filter(x => x.t && x.st && ['active', 'mastered'].includes(x.st.level));
+  const stages = lit.map(x => x.t.stage).filter(n => Number.isInteger(n));
+  const total = STAGES.length;                    // 站数（1-based 表述用）
+  const first = stages.length ? Math.min(...stages) + 1 : 0;
+  const last = stages.length ? Math.max(...stages) + 1 : 0;
+  return {
+    lit, total, first, last,
+    remaining: stages.length ? total - last : total,   // 从第 last 站算起还剩几站
+    range: stages.length ? (first === last ? `第 ${first} 站` : `第 ${first}–${last} 站`) : '',
+  };
+}
 /* DL-33：必学集合必须逐层包含 rapid ⊆ familiar ⊆ mastery。
    否则会出现「速成学的东西，精通路线里反而没有」的荒谬状态。 */
 function requiredNotNested() {
@@ -1632,7 +1668,24 @@ const S = {
   shares: [],            // lang_source_shares：只存计数，不存内容
   requests: [],          // lang_topic_requests
   derived: [],
+  /* §3.19 首次进入的一次性提问：null=未答 · 'vibe'=要速成 · 'master'=要系统学。
+     ⚠️ 它**不是知识点状态**，不进 computeState()（DL-34 的延伸）—— 存的是「用户想怎么用」。 */
+  onboard: null,
+  modeExpanded: false,   // 折叠行「以后要深入再来」点开后置 true（§3.19 第 4 条：那行必须一直可点）
+  promote: false,        // §3.18 转档弹层是否展开
+  resOpen: null,         // §3.20 资源标记展开的那一条资源名
 };
+
+/* §3.19 的作答只存用户偏好，**刻意不存进 lang_* 任何表**（demo 里对应 localStorage 一格）。
+   ⚠️ 若哪次改动让它参与了掌握度计算，DL-34 就从后门失守了。 */
+const ONBOARD_KEY = 'm9-onboard-v13';
+function loadOnboard() {
+  try { const v = localStorage.getItem(ONBOARD_KEY); return v === 'vibe' || v === 'master' ? v : null; }
+  catch (e) { return null; }
+}
+function saveOnboard(v) {
+  try { localStorage.setItem(ONBOARD_KEY, v); } catch (e) { /* 无存储能力时静默降级为本次会话有效 */ }
+}
 
 function LANG_META(lang) {
   return lang === 'python'
@@ -1758,10 +1811,20 @@ function renderTopics() {
 function renderDetail() {
   const box = document.getElementById('detail');
   const id = S.topic || (langTopics(S.lang).filter(t => t.stage === S.stage)[0] || {}).id;
-  const t = topicById(id);
-  if (!t) { box.innerHTML = '<div class="card-b"><div class="note">选一个知识点看详情</div></div>'; return; }
+  let t = topicById(id);
+  /* ⚠️ 防守：`topicById` 只按 id 找，**不校验语言** —— 若 S.topic 还指着另一门的知识点，
+     下面 computeAll(S.lang) 里就查不到，`.get(id)` 返回 undefined 再取 .level 直接抛。
+     本轮之前的语言切换入口会清 S.topic，所以它一直触发不到；
+     但「每个入口都记得清」不是能依赖的性质，这里按当前语言复核一次。 */
+  let st = null;
+  if (t) st = computeAll(S.lang, currentMode() === 'heuristic').get(t.id);
+  if (!t || !st) {
+    S.topic = null;
+    box.innerHTML = '<div class="card-b"><div class="note">选一个知识点看详情</div></div>';
+    return;
+  }
   S.topic = id;
-  const mode = currentMode(), st = computeAll(S.lang, mode === 'heuristic').get(id);
+  const mode = currentMode();
   const m = STATE_META[st.level];
   const c = t.content;
   const terms = (c && CONCEPT_TERMS[t.concept]) || [];
@@ -1984,12 +2047,11 @@ function renderRes() {
   } else {
     for (const r of list) {
       const st = livenessOf(r);
-      /* 「本模式可跳过」＝ 该资源在本模式**没有任何**必学知识点挂接它。
-         ⚠️ 判定用「必学知识点集合」而不是「资源自己声明的模式」——
-            后者需要一个 res↔topic 的反向索引，而 §3.15 刻意不做反向（无序清单不得定义路线）。 */
-      const reqTopics = profTopics(S.lang, S.profile).filter(x => x.p.required);
-      const linked = reqTopics.filter(x => (TOPIC_RES[x.t.id] || []).some(([n]) => n === r.n));
-      const optional = linked.length === 0;
+      /* §3.20 模式标记：由「本模式必学知识点集合」反查，**不建 res↔topic 反向索引**（§3.15）。
+         ⚠️ 刻意只有两档：DL-33 已保证 familiar.required ⊆ master.required，
+            「熟悉用」那一档在本版**恒为空** —— 写三档就是造一个永不出现的状态。 */
+      const linked = resRequiredTopics(S.lang, S.profile, r.n);
+      const required = linked.length > 0;
       const liveTag = !st.fixture ? '<span class="tag">巡检夹具未覆盖</span>'
         : !st.checkedAt ? '<span class="tag">未巡检</span>'
         : st.alive ? (st.fails ? chip('warn', '疑似失效 ' + st.code) : chip('ok', '正常 ' + st.code))
@@ -2003,9 +2065,15 @@ function renderRes() {
           <span class="tag">${esc(GUIDE_RES.cost[r.c] || r.c)}</span>
           ${r.fav ? chip('acc', '★ 精选') : ''}
           ${r.star ? `<span class="tag">${esc(r.star)}</span>` : ''}
-          ${optional ? '<span class="tag">本模式可跳过</span>' : ''}
+          ${required
+            ? `<button class="pill" data-ropen="${esc(r.n)}" aria-expanded="${S.resOpen === r.n}" aria-pressed="true"
+                 title="点开看它覆盖了本模式必学里的哪几条">本模式必学</button>`
+            : '<span class="tag">仅扩展阅读</span>'}
           ${liveTag}
         </div>
+        ${required && S.resOpen === r.n
+          ? `<div class="d" data-resopen="${esc(r.n)}" style="font-size:12px">覆盖本模式必学里的：${linked.map(t => esc(t.title)).join('、')}</div>`
+          : ''}
         <div class="d">${esc(r.d)}</div>
         <div class="f">${esc(r.f)}${st.checkedAt ? ` · 巡检日 2026-10-${st.checkedAt}` : ''}${st.alive ? '' : ' · <b>已失效但保留（路径留着才找得回）</b>'}
           ${linked.length ? ` · 本模式被 ${linked.length} 个必学知识点引用` : ''}</div>
@@ -2035,6 +2103,10 @@ function renderRes() {
     else RF[k] = v;
     renderRes();
     if (RF.lang !== S.lang) { /* 资源页的语言筛选独立于知识点页，互不强制同步 */ }
+  });
+  box.querySelectorAll('[data-ropen]').forEach(b => b.onclick = () => {
+    S.resOpen = S.resOpen === b.dataset.ropen ? null : b.dataset.ropen;
+    renderRes();
   });
   document.getElementById('resCount').textContent = resPool().length;
 
@@ -2331,10 +2403,46 @@ function doAsk() {
 /* ═══════════════════════════════════════════════════════════════════════
    模式切换的三处界面（§3.17）
    ═══════════════════════════════════════════════════════════════════════ */
+function modeCollapsed() { return S.onboard !== 'master' && !S.modeExpanded; }
+
+/** §3.19 首次进入的一次性提问。
+ *  ⚠️ 「跳过，按默认走」与「选速成」**走同一个入口**（下面 `skip` → `'vibe'` 的那一行）——
+ *     这不是图省事，而是让 DL-38 的「两者渲染逐字相同」成为结构上必然，
+ *     而不是靠两条代码路径碰巧一致（那种一致性第一次改文案就会断）。 */
+function renderOnboard() {
+  const box = document.getElementById('onboard');
+  if (S.onboard) { box.innerHTML = ''; box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = `<div class="card"><div class="card-h">先问一句：你打算怎么用这套指南
+      <span class="spacer"></span><span class="tag">只问这一次 · 可在下方随时改</span></div>
+    <div class="card-b">
+      <div style="font-size:13px;color:var(--color-ink-muted)">三张模式卡并排看着公平，
+      但「我只是想让 AI 帮我写代码」的人<b>恰恰不知道该选哪个</b> —— 而选错的后果是打开一个
+      4–6 个月的计划然后关掉，前面所有工作归零。所以这里替用户先做一次选择。</div>
+      <div class="bar" style="margin-top:10px;margin-bottom:0">
+        <button class="b pri" data-onboard="vibe">直接带着 AI 写项目，我只需要看懂它在写什么</button>
+        <button class="b" data-onboard="master">我要系统学这门语言</button>
+        <span class="spacer" style="flex:1"></span>
+        <button class="b" data-onboard="skip">跳过，按默认走</button>
+      </div>
+      <div class="note" style="margin-top:9px"><b>三个出口都通着同一个兜底</b>：
+      无论选哪个，精通与熟悉都<b>不会被藏掉</b> —— 它们在首屏折叠成一行「以后要深入再来」，随时可点开。
+      「跳过」与选速成<b>行为完全一致</b>（DL-38）。</div>
+    </div></div>`;
+  box.querySelectorAll('[data-onboard]').forEach(b => b.onclick = () => {
+    const v = b.dataset.onboard === 'skip' ? 'vibe' : b.dataset.onboard;
+    S.onboard = v; saveOnboard(v);
+    S.profile = v; S.modeExpanded = false; S.topic = null; S.stage = 0;
+    renderAll();
+  });
+}
+
 function renderModeBar() {
   const bar = document.getElementById('modebar');
   const cur = GUIDE_MODES[S.profile];
-  bar.innerHTML = PROFILE_ORDER.map(k => {
+  const collapsed = modeCollapsed();
+  const visible = collapsed ? [S.profile] : PROFILE_ORDER;
+  bar.innerHTML = visible.map(k => {
     const m = GUIDE_MODES[k];
     return `<button class="mcard" data-profile="${k}" aria-pressed="${k === S.profile}">
       <div class="mt">${esc(m.name)}</div>
@@ -2342,15 +2450,22 @@ function renderModeBar() {
       <div class="mf">${esc(m.fit)}</div>
     </button>`;
   }).join('') + `
+    ${collapsed ? `<div class="note" style="grid-column:1/-1;margin-top:2px">
+      <button class="b" id="expandModes">以后要深入再来 → 精通 / 熟悉</button>
+      <b>已折叠另外两个模式。</b>速成不适合你的话，两句话就能展开 —— 折叠只是不让它挡住首屏，不是拿掉。
+    </div>` : ''}
     <div class="note" style="grid-column:1/-1;margin-top:2px">
       <b>模式只改三件事：学哪些 · 先学哪个 · 看到多深</b>
       ⚠️ <b>它不改变掌握度的判定</b> —— 三种模式下三态是同一个数，速成也不会让知识点更容易点亮
-      （否则就退回 §2.2 拒绝的「自评清单」）。
+      （否则就退回 §2.2 拒绝的「自评清单」）。上面这个选择**同样不参与**判定（§3.19 · DL-38）。
       当前：<b>${esc(cur.name)}</b> · ${esc(GUIDE_DETAIL['本模式目标'][S.profile] || '')}
       ${Object.keys(GUIDE_ROUTES2[S.profile] || {}).length ? '' : ' ⚠️ 该模式在本语言没有路线数据'}
     </div>`;
+  const ex = bar.querySelector('#expandModes');
+  if (ex) ex.onclick = () => { S.modeExpanded = true; renderAll(); };
   bar.querySelectorAll('.mcard').forEach(el => el.onclick = () => {
     S.profile = el.dataset.profile; S.topic = null; S.stage = 0; S.showSkipped = false;
+    S.resOpen = null;   /* §3.20：标记随模式切换即时重算，展开的那一条也要收回，否则会展开到无关条目 */
     renderAll();
   });
 }
@@ -2383,7 +2498,24 @@ function renderRoutePanel() {
       ${GUIDE_PLANS2[S.profile] ? `<div class="note" style="margin-top:9px"><b>双修总规划（${esc(GUIDE_MODES[S.profile].name)}）</b>
         ${GUIDE_PLANS2[S.profile].map(r => `<div style="margin-top:4px"><b>${esc(r.when)} · ${esc(r.title)}</b>${esc(r.body)}</div>`).join('')}
       </div>` : '<div class="note warn" style="margin-top:9px">附件<b>未给速成模式的双修总规划</b>（速成定位是单门起步），此处如实显示为空而不是补一个估算。</div>'}
+      ${S.onboard === 'master' ? twoLangCompare() : ''}
     </div></div>`;
+}
+
+/** §3.19：答「我要系统学这门语言」时，把两门的精通路线并排摆出来 ——
+ *  系统学习者真正要先决定的是「先学哪门」，而不是「精通模式叫什么」。 */
+function twoLangCompare() {
+  const rows = ['python', 'go'].map(lg => {
+    const rs = (GUIDE_ROUTES2.master || {})[lg === 'python' ? 'py' : 'go'] || [];
+    const n = profTopics(lg, 'master').filter(x => x.p.required).length;
+    return `<td style="vertical-align:top;width:50%">
+      <b>${lg === 'python' ? 'Python' : 'Go'}</b>
+      <div style="font-size:11.5px;color:var(--color-ink-faint)">精通 · ${rs.length} 段路线 · 本模式必学 ${n} 条</div>
+      <ul>${rs.map(x => `<li>${esc(x.title)}${x.duration_label || x.weeks ? ' <span class="tag">' + esc(x.duration_label || x.weeks) + '</span>' : ''}</li>`).join('')}</ul>
+    </td>`;
+  }).join('');
+  return `<div class="note" style="margin-top:9px" data-catalog><b>你要系统学 ⇒ 先看两门放在一起（§3.19）</b>
+    <table class="mini" style="margin-top:6px"><tbody><tr>${rows}</tr></tbody></table></div>`;
 }
 
 /** 速成专区面板 —— 只在 vibe 模式出现。
@@ -2413,7 +2545,46 @@ function renderVibePanel() {
         <table class="mini"><tbody>${V.pitfalls.map(p => `<tr><td>${esc(p)}</td></tr>`).join('')}</tbody></table></div>
       <div class="sec"><h4>${esc(langName)} · 3–7 天逐日计划</h4>
         <table class="mini"><tbody>${(V.plan[lk] || []).map(p => `<tr><td>${esc(p)}</td></tr>`).join('')}</tbody></table></div>
+      ${promoteBlock()}
     </div></div>`;
+  box.querySelectorAll('[data-promote]').forEach(b => b.onclick = () => { S.promote = !S.promote; renderAll(); });
+  box.querySelectorAll('[data-goto-profile]').forEach(b => b.onclick = () => {
+    S.profile = b.dataset.gotoProfile; S.modeExpanded = true; S.topic = null; S.stage = 0; renderAll();
+  });
+}
+
+/** §3.18 转档 —— 「速成是入口不是终点」。
+ *  ⚠️ **只给位置，不给结论**：点亮一条速成必学 ≠ 完成那一站（精通在那一站要更多条目、更深的展开），
+ *     所以文案只能写「站到第 N 站的门口」，不许写「已完成第 N 站」（DL-37 的反证半边）。 */
+function promoteBlock() {
+  const p = vibeStationPlan(S.lang);
+  const head = `<div class="sec"><h4>这些学够了，下一步 →</h4>
+    <button class="b ${S.promote ? '' : 'pri'}" data-promote="1">${S.promote ? '收起' : '看看精通路线还差多远'}</button>
+    <div style="font-size:12px;color:var(--color-ink-faint);margin-top:4px">
+      速成不是终点 —— 但也别从头切精通，那会让人重新面对 4–6 个月然后关掉。</div>`;
+  if (!S.promote) return head + `</div>`;
+
+  const body = p.lit.length
+    ? `<div class="note" data-promo="open" data-promo-lit="${p.lit.length}" data-promo-first="${p.first}" data-promo-last="${p.last}" data-promo-remain="${p.remaining}">
+        <b>你的 ${p.lit.length} 条速成必学落在${esc(p.range)}</b>
+        ⇒ 你已经<b>站到第 ${p.last} 站的门口</b>。
+        ⚠️ <b>「站到门口」不等于「走完那一站」</b> —— 精通路线在那一站还要更多条目、更深的展开。
+        精通路线还剩 <b>${p.remaining}</b> 站（从第 ${p.last} 站算起）。<br>
+        逐条映射（来自各知识点的站位，<b>不是维护出来的对照表</b>）：
+        ${p.lit.map(x => `${esc(x.t.title)} → 第 ${x.t.stage + 1} 站`).join('　')}
+      </div>`
+    : `<div class="note warn" data-promo="open" data-promo-lit="0" data-promo-first="0" data-promo-last="0" data-promo-remain="${p.total}">
+        <b>速成必学一条都还没点亮</b> ⇒ 精通路线完整 <b>${p.total}</b> 站，从第 1 站开始。
+        （这里显示完整站数而不是 0 —— 空白或 0 会被读成「功能坏了」，DL-35 同款。）</div>`;
+
+  return head + body + `
+      <div class="note" style="margin-top:7px"><b>速成是「看懂并能提问」，精通是「能独立写出」</b>
+      —— 两者不是同一件事的多少之差。切换模式<b>不会清空任何已点亮的状态</b>（DL-34 · DL-38）。</div>
+      <div class="bar" style="margin-top:7px;margin-bottom:0">
+        <button class="b" data-goto-profile="master">切到精通看看</button>
+        <button class="b" data-goto-profile="familiar">切到熟悉</button>
+      </div>
+    </div>`;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -2431,6 +2602,10 @@ function renderVibePanel() {
         它的主题就是 AI-assisted coding，去掉这两个字母反而说不清它在讲什么；
      ④ textarea 里的内容是用户可编辑的原文（导出的清单），不是界面对用户的断言；
         aria-hidden/inert 的区域（关闭态的抽屉）—— 用户看不到，读屏也不该读到。
+     ⑦ #onboard 首次进入的那一问 —— 选项文案是**用户自己意图的逐字复述**
+        （「我只是想让 AI 帮我写代码」是 owner 的原话），问的是用户打算怎么用，
+        不是把基线结果包装成生成式结果。⚠️ 这条排除是**逐字对应**的：
+        若哪天有人在那一块加了一句「根据你的代码推荐速成模式」，那就不是排除项了，是违规。
      ⚠️ 后两条是刻意排除的：判据断的是**归因声明**，不是「页面上有没有这两个字母」。 */
 function degradeCheck() {
   const hits = [];
@@ -2449,7 +2624,7 @@ function degradeCheck() {
 function renderAll() {
   syncGoSwitch();
   document.getElementById('resCount').textContent = GUIDE_RES[S.lang === 'python' ? 'py' : 'go'].length;
-  renderModeBar(); renderRoutePanel(); renderVibePanel();
+  renderOnboard(); renderModeBar(); renderRoutePanel(); renderVibePanel();
   renderHero(); renderScanBadge(); renderStages(); renderTopics(); renderDetail();
   renderSources(); renderFoot();
   switchView(S.view);
@@ -2514,6 +2689,11 @@ function syncGoSwitch() {
   goSwitch.hidden = !on;
   if (!on) S.heuristic = false;
 }
+
+/* §3.19 启动时读一次作答：只问一次（DL-38）。未答 → 默认速成并把精通/熟悉折叠。
+   ⚠️ 这里改的只是 **S.profile**（视图属性），没有碰任何知识点状态 —— DL-34 在启动路径上也成立。 */
+S.onboard = loadOnboard();
+S.profile = S.onboard || 'vibe';
 
 renderAll();
 </script>
