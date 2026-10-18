@@ -1,5 +1,5 @@
 import { describe, expect, it, afterEach, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { TermOut } from '@openvibe/shared'
 import { TermFilterBar } from './TermFilterBar'
 import { TermCard } from './TermCard'
@@ -95,6 +95,61 @@ describe('TERMVIEW-01 · 筛选条三段各管各的维度', () => {
     expect(screen.getAllByRole('button', { name: 'L2' })).toHaveLength(1)
     expect(screen.getAllByRole('button', { name: 'L3' })).toHaveLength(1)
     expect(screen.queryByRole('button', { name: 'L4' })).toBeNull()
+  })
+
+  it('⚠️ 领域 chip 超量折叠，且选中的那个永远补在末尾（筛完的项被藏起来 = 用户以为筛没了）', () => {
+    const domains = ['前端', '后端', 'AI', '产品', '测试', '技术栈', 'Git', '设计风格'].map(
+      (domain, i) => ({ domain, count: 140 - i }),
+    )
+    const onDomain = vi.fn()
+    render(
+      <TermFilterBar
+        domainCounts={domains}
+        total={441}
+        domain="设计风格"
+        level={null}
+        starterOnly={false}
+        onDomain={onDomain}
+        onLevel={vi.fn()}
+        onStarterOnly={vi.fn()}
+      />,
+    )
+    // 默认只露前 4 个（前端/后端/AI/产品）＋ 选中的那个（设计风格，计数 140-7=133）
+    expect(screen.getByRole('button', { name: '前端 140' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '产品 137' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '设计风格 133' })).toBeTruthy()
+    // 藏起来的是第 5~7 个：测试 136 / 技术栈 135 / Git 134
+    expect(screen.queryByRole('button', { name: '技术栈 135' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '测试 136' })).toBeNull()
+    // 折叠计数要出现在按钮名里（用户知道还藏了几个）：8 - 5 = 3
+    expect(screen.getByRole('button', { name: /更多/ }).textContent).toContain('3')
+    // 展开后全露
+    fireEvent.click(screen.getByRole('button', { name: /更多/ }))
+    expect(screen.getByRole('button', { name: '技术栈 135' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Git 134' })).toBeTruthy()
+  })
+
+  it('⚠️ 难度与「只看完懂」不能被领域 chip 挤出这一组（FR-4.1 示意图里它们是常驻的）', () => {
+    const domains = ['前端', '后端', 'AI', '产品', '测试', '技术栈', 'Git', '设计风格'].map(
+      (domain) => ({ domain, count: 10 }),
+    )
+    render(
+      <TermFilterBar
+        domainCounts={domains}
+        total={441}
+        domain={null}
+        level={null}
+        starterOnly={false}
+        onDomain={vi.fn()}
+        onLevel={vi.fn()}
+        onStarterOnly={vi.fn()}
+      />,
+    )
+    // 三个难度档与「只看完懂」都在同一个 group 里 ⇒ 折叠领域 chip 不会把它们推出这一组
+    const group = screen.getByRole('group')
+    expect(within(group).getByRole('button', { name: 'L1' })).toBeTruthy()
+    expect(within(group).getByRole('button', { name: 'L3' })).toBeTruthy()
+    expect(within(group).getByRole('button', { name: '只看完懂' })).toBeTruthy()
   })
 
   it('选中态走 aria-pressed 而非仅靠颜色（色觉障碍与自动化都靠它）', () => {

@@ -108,9 +108,14 @@ export function PlaybooksPage() {
               <RefreshHint busy={(list.isFetching || search_.isFetching) && !active.isLoading} />
             }
           >
+            {/* `w-auto!` 不是笔误，是必须的：inputCls 自带 `w-full`，而 Tailwind v4 生成的 CSS 里
+            `.w-full` 排在 `.w-auto` **之后**，两者同权重 ⇒ `w-full` 恒胜，
+            下拉框会撑满整条轨道、把后面的筛选项全推出可视区。`!` 提升权重，
+            **不改共享 inputCls**（另有多个调用点依赖它的 `w-full`）。
+全仓同形态已清零：核法是搜 `inputCls` 同一串里不带 `!` 的 `w-auto`，命中 0。 */}
             <select
               aria-label={zh.library.filters.status}
-              className={`${inputCls} w-auto shrink-0 appearance-none`}
+              className={`${inputCls} w-auto! shrink-0 appearance-none`}
               value={status ?? ''}
               onChange={(e) => setStatus(e.target.value === '' ? undefined : e.target.value)}
             >

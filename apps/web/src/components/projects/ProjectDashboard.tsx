@@ -94,9 +94,13 @@ export function ProjectDashboard(props: {
             <label className="sr-only" htmlFor="project-status">
               {zh.projects.filterStatus}
             </label>
+            {/* `w-auto!` 不是笔误，理由同 TermsPage 等 7 处：inputCls 自带 `w-full`，
+            Tailwind v4 生成的 CSS 里 `.w-full` 排在 `.w-auto` **之后**且同权重 ⇒ `w-full` 恒胜，
+            下拉框会撑满整条 flex 行、把左边的标题与提示挤没。`!` 提升权重，
+            **不改共享 inputCls**（另有多个调用点依赖它的 `w-full`）。 */}
             <select
               id="project-status"
-              className={`${inputCls} ml-auto h-7 w-auto appearance-none py-0 text-xs`}
+              className={`${inputCls} ml-auto h-7 w-auto! appearance-none py-0 text-xs`}
               value={project.status}
               onChange={(e) => props.onStatusChange(e.target.value)}
             >
