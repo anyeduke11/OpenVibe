@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { SkillUpdateCheckItem } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
+import { Icon, type IconName } from '../ui/icons'
 import { toast } from '../ui/Toaster'
 import { btnGhost, btnPrimary, chipTone, noteCls, rowCls } from '../ui/styles'
 import { useSkillRemote, useSkillRetrack, useSkillUpdateCheck } from '../../hooks/useSkills'
@@ -15,32 +16,12 @@ const STATUS_CHIP: Record<SkillUpdateCheckItem['status'], string> = {
   checkFailed: chipTone('danger'),
 }
 
-const STATUS_ICON: Record<SkillUpdateCheckItem['status'], React.ReactNode> = {
-  upToDate: (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  remoteChanged: (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-      <path d="M2 8a6 6 0 0110.5-4M14 8a6 6 0 01-10.5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M8 2v4M8 10v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
-  notTracked: (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-      <path d="M8 1.5L1 14h14L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M8 6v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="8" cy="11.5" r="0.75" fill="currentColor" />
-    </svg>
-  ),
-  checkFailed: (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
+// 图标只从 icons.tsx 取（不引图标库，入口 JS 余量只有 ~37kB）
+const STATUS_ICON: Record<SkillUpdateCheckItem['status'], IconName> = {
+  upToDate: 'check',
+  remoteChanged: 'refresh',
+  notTracked: 'warn',
+  checkFailed: 'alert',
 }
 
 /**
@@ -109,8 +90,8 @@ export function SkillUpdateDialog(props: { open: boolean; onClose: () => void })
 
   const renderRow = (item: SkillUpdateCheckItem) => (
     <div key={item.skillId} className={`${rowCls} flex items-center gap-2 px-1.5 py-1.5 text-xs`}>
-      <span className={`${STATUS_CHIP[item.status]} shrink-0`}>
-        {STATUS_ICON[item.status]}
+      <span className={`${STATUS_CHIP[item.status]} shrink-0 gap-1`}>
+        <Icon name={STATUS_ICON[item.status]} size={11} />
         {zh.skills.updates.status[item.status]}
       </span>
       <span className="min-w-0 flex-1 truncate font-medium text-ink-body">{item.name}</span>

@@ -1,38 +1,77 @@
 import type { FlywheelStatsOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-
-const ITEMS: { key: keyof FlywheelStatsOut; label: string }[] = [
-  { key: 'assets', label: zh.flywheel.assets },
-  { key: 'packs', label: zh.flywheel.packs },
-  { key: 'injections', label: zh.flywheel.injections },
-  { key: 'reflows', label: zh.flywheel.reflows },
-  { key: 'loops', label: zh.flywheel.loops },
-]
+import { sys } from '../../i18n/lane-system'
+import { statCls, statHeroCls } from '../ui/styles'
+import { Icon } from '../ui/icons'
 
 /**
- * 顶栏常驻五项（onboarding FR-3.1，props 形状见 dev-plan §5.2）。
- * 数字为 0 时显示占位文案而非「0」（spec §4.3），首启不至于满屏零。
+ * 飞轮统计条（onboarding FR-3.1，props 形状见 dev-plan §5.2）—— 工作台与成长页共用同一块。
+ *
+ * 口径（§1.4 定的，不改）：北极星是「标准化飞轮**完整走完**的圈数」
+ * （沉淀 → 组包 → 注入 → 回流，按项目去重），其余四格是它的因子，不是它的替代口径。
+ * 所以强调底（statHeroCls，全页只此一处）落在圈数那一格。
+ *
+ * 一行放得下是硬要求：四格 `grid-cols-2 lg:grid-cols-4`，不是一屏一张卡。
  */
 export function FlywheelCard(props: FlywheelStatsOut) {
+  const zeroed =
+    props.assets === 0 &&
+    props.packs === 0 &&
+    props.injections === 0 &&
+    props.reflows === 0 &&
+    props.loops === 0
+
+  const cells: {
+    key: string
+    label: string
+    value: string
+    note: string
+    hero?: boolean
+  }[] = [
+    {
+      key: 'loops',
+      label: sys.workbench.stats.heroKey,
+      value: String(props.loops),
+      note: zeroed ? sys.workbench.stats.zeroNote : sys.workbench.stats.heroNote,
+      hero: true,
+    },
+    {
+      key: 'assets',
+      label: sys.workbench.stats.assetsKey,
+      value: String(props.assets),
+      note: sys.workbench.stats.assetsNote,
+    },
+    {
+      // 原型同款：包数与注入次数挤一格（值写成 `3 / 12`），五项指标才排得进四格
+      key: 'packs',
+      label: sys.workbench.stats.packKey,
+      value: `${String(props.packs)} / ${String(props.injections)}`,
+      note: sys.workbench.stats.packNote,
+    },
+    {
+      key: 'reflows',
+      label: sys.workbench.stats.reflowKey,
+      value: String(props.reflows),
+      note: sys.workbench.stats.reflowNote,
+    },
+  ]
+
   return (
-    <section
-      aria-label={zh.flywheel.title}
-      title={zh.flywheel.tooltip}
-      className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-line bg-panel px-6 py-2"
-    >
-      <span className="text-[11px] font-medium text-ink-faint">{zh.flywheel.title}</span>
-      {ITEMS.map((item) => {
-        const value = props[item.key]
-        return (
-          <span key={item.key} className="flex items-baseline gap-1.5">
-            <span className="text-xs text-ink-muted">{item.label}</span>
-            <span className={`mono text-sm font-semibold ${value === 0 ? 'text-ink-faint' : 'text-ink-body'}`}>
-              {value === 0 ? zh.flywheel.placeholder : String(value)}
-            </span>
-          </span>
-        )
-      })}
-      <span className="ml-auto text-[11px] text-ink-faint">{zh.flywheel.hint}</span>
+    <section aria-label={zh.flywheel.title} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {cells.map((c) => (
+        <div
+          key={c.key}
+          className={c.hero ? statHeroCls : statCls}
+          title={c.hero ? zh.flywheel.tooltip : undefined}
+        >
+          <div className="flex items-center gap-1.5 text-xs text-ink-faint">
+            <Icon name={c.hero ? 'refresh' : 'chart'} size={13} />
+            <span className="truncate">{c.label}</span>
+          </div>
+          <div className="num mt-1 text-[27px] font-semibold leading-none text-ink">{c.value}</div>
+          <div className="mt-1.5 text-xs leading-snug text-ink-muted">{c.note}</div>
+        </div>
+      ))}
     </section>
   )
 }

@@ -1,30 +1,30 @@
 import { useNavigate } from 'react-router-dom'
 import type { PackOut } from '@openvibe/shared'
-import { usePackExports, usePackInjections } from '../../hooks/usePacks'
-import { useFlowTemplates } from '../../hooks/useFlows'
+import { usePackExports } from '../../hooks/usePacks'
+import { laneEngineering } from '../../i18n/lane-engineering'
 import { zh } from '../../i18n/zh'
-import { btnGhost, btnPrimary, chipTone } from '../ui/styles'
+import { btnGhost, btnPrimary, cardCls, cardHeadCls, emptyHintCls } from '../ui/styles'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { ExportHistoryPanel } from './ExportHistoryPanel'
 
-/** 包详情抽屉：定义 + 导出历史（不可变实例）+ 注入历史（m6a FR-3.3 / FR-5.2） */
+/**
+ * 导出历史抽屉（m6a FR-3.3 / §7.8）。
+ *
+ * 只装「全量台账」这一件事：详情面板同屏只留最近一次导出（省一屏高度），
+ * 不可变实例的完整列表与回放下载在这里，两者不重复也不互相替代。
+ */
 export function PackDetailSheet(props: { pack: PackOut | null; onClose: () => void }) {
   const { pack } = props
   const navigate = useNavigate()
-  const flows = useFlowTemplates()
+  // 抽屉开着就取数，关着不取（enabled 依赖 id，卸载式懒取由 Dialog 控制）
   const exports = usePackExports(pack?.id ?? null)
-  const injections = usePackInjections(pack?.id ?? null)
   if (pack === null) return null
-
-  const selection = pack.selection
-  const flowName = flows.data?.items.find((t) => t.id === selection.flowTemplateId)?.name
-  const count = exports.data?.total ?? 0
 
   return (
     <Dialog open onOpenChange={(o) => (o ? undefined : props.onClose())}>
       <DialogPanel
         variant="sheet"
-        title={`${zh.packs.detail.title} · ${pack.name}`}
+        title={`${laneEngineering.packs.allExports} · ${pack.name}`}
         footer={
           <>
             <button className={btnGhost} onClick={props.onClose}>
@@ -42,50 +42,38 @@ export function PackDetailSheet(props: { pack: PackOut | null; onClose: () => vo
           </>
         }
       >
-        <div className="space-y-5 text-sm">
-          <section>
-            <h2 className="mb-2 text-xs font-medium text-ink-muted">{zh.packs.detail.definition}</h2>
-            <p className="text-ink-body">{pack.description === '' ? zh.common.none : pack.description}</p>
-            <p className="mt-2 flex flex-wrap gap-1">
-              {pack.targets.map((t) => (
-                <span key={t} className={chipTone('default')}>
-                  {zh.packs.targetLabels[t] ?? t}
-                </span>
-              ))}
-            </p>
-            <p className="mt-2 text-xs text-ink-muted">
-              {zh.packs.assetSummary(
-                selection.promptIds.length,
-                selection.termIds.length,
-                selection.skillIds.length,
-              )}
-              {` · ${flowName === undefined ? zh.packs.noFlow : zh.packs.flowOf(flowName)}`}
-            </p>
-          </section>
+        <section className={cardCls}>
+          <header className={cardHeadCls}>
+            <h2 className="text-xs font-semibold text-ink-muted">{zh.packs.detail.exports}</h2>
+            <span className="ml-auto tabular-nums text-[11px] text-ink-faint">
+              {String(exports.data?.total ?? 0)}
+            </span>
+          </header>
+        </section>
 
-          <section>
-            <h2 className="mb-2 text-xs font-medium text-ink-muted">
-              {`${zh.packs.detail.exports}（${String(count)}）`}
-            </h2>
-            <ExportHistoryPanel packId={pack.id} />
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-xs font-medium text-ink-muted">{zh.packs.detail.injections}</h2>
-            {(injections.data?.items.length ?? 0) === 0 ? (
-              <p className="text-xs text-ink-muted">{zh.packs.detail.noInjections}</p>
-            ) : (
-              <ul className="space-y-1 text-xs text-ink-muted">
-                {injections.data?.items.map((row) => (
-                  <li key={row.id} className="flex gap-2">
-                    <span className="mono text-ink-body">{row.projectPath}</span>
-                    <span className="ml-auto text-ink-faint">{row.injectedAt}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
+        {exports.isLoading && (
+          <p className="mt-2 text-xs text-ink-faint">{laneEngineering.state.loading}</p>
+        )}
+        {exports.isError && (
+          <div className="mt-2 rounded-md border border-danger-line bg-danger-soft px-3 py-2 text-xs">
+            <p className="text-danger">{zh.common.failed((exports.error as Error).message)}</p>
+            <button
+              type="button"
+              className="mt-1.5 text-accent hover:underline"
+              onClick={() => void exports.refetch()}
+            >
+              {laneEngineering.state.retry}
+            </button>
+          </div>
+        )}
+        {!exports.isLoading && !exports.isError && (exports.data?.items.length ?? 0) === 0 && (
+          <div className={`${emptyHintCls} mt-2`}>
+            <p>{zh.packs.exports.empty}</p>
+          </div>
+        )}
+        {!exports.isLoading && !exports.isError && (exports.data?.items.length ?? 0) > 0 && (
+          <ExportHistoryPanel packId={pack.id} />
+        )}
       </DialogPanel>
     </Dialog>
   )

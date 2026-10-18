@@ -1,7 +1,9 @@
 import { useParams } from 'react-router-dom'
 import { PackWizard } from '../components/packs/PackWizard'
 import { usePack } from '../hooks/usePacks'
+import { laneEngineering } from '../i18n/lane-engineering'
 import { zh } from '../i18n/zh'
+import { btnGhost, noteCls, noteTitleCls, skelCls } from '../components/ui/styles'
 
 /**
  * `/packs/new` 与 `/packs/${id}/edit` 同一向导（m6a FR-1.6：定义保存后可再编辑再导出）。
@@ -13,13 +15,34 @@ export function PackNewPage() {
   const pack = usePack(id ?? null)
 
   if (id === undefined) return <PackWizard key="new" initial={null} />
+
   if (pack.isLoading)
-    return <p className="px-5 py-4 text-sm text-ink-faint">{zh.common.loading}</p>
+    return (
+      <div className="space-y-3 px-5 py-4" aria-hidden>
+        <div className={`${skelCls} h-8 w-72`} />
+        <div className={`${skelCls} h-4 w-full max-w-xl`} />
+        <div className={`${skelCls} h-4 w-3/4 max-w-md`} />
+      </div>
+    )
+
   if (pack.isError)
     return (
-      <p className="px-5 py-4 text-sm text-danger">
-        {zh.common.failed((pack.error as Error).message)}
-      </p>
+      <div className="px-5 py-4">
+        <div className={noteCls('danger')}>
+          <span className={`${noteTitleCls} text-danger`}>
+            {zh.common.failed((pack.error as Error).message)}
+          </span>
+          <p className="text-ink-body">{laneEngineering.state.retryHint}</p>
+          <button
+            type="button"
+            className={`${btnGhost} mt-2`}
+            onClick={() => void pack.refetch()}
+          >
+            {laneEngineering.state.retry}
+          </button>
+        </div>
+      </div>
     )
+
   return <PackWizard key={id} initial={pack.data ?? null} />
 }

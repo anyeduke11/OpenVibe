@@ -1,9 +1,16 @@
 import { useMemo, useState } from 'react'
 import { TERM_ROADMAP, type TermOut } from '@openvibe/shared'
-import { zh } from '../../i18n/zh'
+import { laneRoadmap as zhRoadmap } from '../../i18n/lane-assets'
 import { useRoadmapOrder } from '../../hooks/useRoadmapOrder'
 import { useTermMutations } from '../../hooks/useTerms'
-import { CHIP_TONES, chipCls, chipPressed, chipTone } from '../ui/styles'
+import { CHIP_TONES, chipCls, chipPressed, chipTone, inputCls } from '../ui/styles'
+import { Icon } from '../ui/icons'
+import {
+  AssetEmpty,
+  AssetError,
+  AssetNoResults,
+  AssetSkeleton,
+} from '../library/AssetStates'
 
 // 可按压的 chip：选中与未选中在形制层择一。chipTone('default') 与 chipPressed 各自
 // 带 border/bg/text 三个色类，叠加只会让 Tailwind 任意挑一个生效（顺序不由源码决定），
@@ -11,26 +18,6 @@ import { CHIP_TONES, chipCls, chipPressed, chipTone } from '../ui/styles'
 const toggleChip = (on: boolean): string =>
   `${chipCls} ${on ? chipPressed : `${CHIP_TONES.default} hover:bg-panel`}`
 import { toast } from '../ui/Toaster'
-
-/** 文案随组件走（TermsPage 是懒加载 chunk） */
-const zhRoadmap = {
-  view: '学习路线',
-  station: (n: number) => `第 ${n} 站`,
-  count: (n: number) => `${n} 条`,
-  loose: '未入路线',
-  looseHint: '这些词条的标签不在学习路线里。用行尾下拉「归组」写入路线标签（一次归位、永久生效），或点编辑手动处理。',
-  emptyGroup: '（暂无）',
-  related: (n: number) => `关联 ${n}`,
-  empty: '库为空——先导入或新建词条。',
-  reorder: '调整顺序',
-  reordering: '完成调整',
-  resetOrder: '恢复默认顺序',
-  orderReset: '已恢复默认顺序',
-  moveUp: '上移一站',
-  moveDown: '下移一站',
-  regroupPlaceholder: '归组到…',
-  regrouped: (name: string) => `「${name}」已归组`,
-}
 
 interface RoadmapTerm {
   term: TermOut
@@ -62,6 +49,10 @@ const briefOf = (t: TermOut): string => {
 export function TermRoadmapView(props: {
   terms: TermOut[]
   loading: boolean
+  error: string | null
+  filtered: boolean
+  onClearFilters: () => void
+  onRetry: () => void
   onEdit: (term: TermOut) => void
 }) {
   const [openStations, setOpenStations] = useState<Set<string>>(() => new Set())
@@ -123,9 +114,15 @@ export function TermRoadmapView(props: {
     )
   }
 
-  if (props.loading) return <p className="px-5 py-6 text-sm text-ink-faint">{zh.common.loading}</p>
+  // 四态与 TermsTable 同口径，加载走骨架而不是一行灰字
+  if (props.loading) return <AssetSkeleton rows={6} />
+  if (props.error !== null) return <AssetError message={props.error} onRetry={props.onRetry} />
   if (props.terms.length === 0)
-    return <p className="px-5 py-6 text-sm text-ink-muted">{zhRoadmap.empty}</p>
+    return props.filtered ? (
+      <AssetNoResults what="词条" onClear={props.onClearFilters} />
+    ) : (
+      <AssetEmpty message={zhRoadmap.empty} />
+    )
 
   return (
     <div className="px-5 py-4">
@@ -193,16 +190,18 @@ export function TermRoadmapView(props: {
                         disabled={s.stationNo <= 1}
                         onClick={() => move(s.id, -1)}
                         title={zhRoadmap.moveUp}
+                        aria-label={zhRoadmap.moveUp}
                       >
-                        ↑
+                        <Icon name="fwd" size={11} className="-rotate-90" />
                       </button>
                       <button
                         className={`${chipTone('default')} cursor-pointer hover:bg-panel`}
                         disabled={s.stationNo >= stations.length - 1}
                         onClick={() => move(s.id, 1)}
                         title={zhRoadmap.moveDown}
+                        aria-label={zhRoadmap.moveDown}
                       >
-                        ↓
+                        <Icon name="fwd" size={11} className="rotate-90" />
                       </button>
                     </span>
                   )}
@@ -259,7 +258,7 @@ export function TermRoadmapView(props: {
                               {brief !== '' && <span className="ml-2 text-[11px] text-ink-muted">{brief}</span>}
                             </button>
                             <select
-                              className="shrink-0 rounded border border-line bg-panel px-1.5 py-0.5 text-[11px]"
+                              className={`${inputCls} w-auto shrink-0 py-0.5 text-[11px]`}
                               value=""
                               aria-label={zhRoadmap.regroupPlaceholder}
                               onChange={(e) => {

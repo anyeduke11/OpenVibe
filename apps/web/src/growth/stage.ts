@@ -81,6 +81,45 @@ export const STAGE_WHY: Readonly<Record<Stage, string>> = {
   3: '现在是定标者视图：元规则可见——检查项的设计权、评审流与使用统计。',
 }
 
+/**
+ * 毕业信号一律标「待采集」。
+ *
+ * 红线是硬约束：阶段**可见可解释**，而「解释」里最容易被造假的一格就是毕业信号。
+ * §5.1 的判定信号来自 D29 台账读端点（RF1-5，未开工），在它落地前
+ * `graduate` 只是**人写的目标**，不是机器判过的事实——所以这一层对外只暴露
+ * 「待采集」这个事实，不给「已毕业」的结论。
+ */
+export const GRADUATE_PENDING = '待采集'
+
+export interface StageDetail {
+  name: string
+  en: string
+  /** 用户此刻的心智（§5.1「用户的心智」列原文） */
+  mind: string
+  /** 系统该替他行使的权威 */
+  authority: string
+  /** 目标毕业信号（未判定，恒为 GRADUATE_PENDING） */
+  graduate: string
+  /** 该阶段的一句话解释（红线 3：永远有一句「为什么你现在看到这个」） */
+  why: string
+  /** 恒为 true：信号尚未采集，界面不得据此声称已毕业 */
+  graduatePending: true
+}
+
+export function stageDetail(stage: Stage): StageDetail {
+  const def = STAGES[stage]
+  if (def === undefined) throw new RangeError(`非法阶段：${String(stage)}`)
+  return {
+    name: def.name,
+    en: def.en,
+    mind: def.mind,
+    authority: def.authority,
+    graduate: def.graduate,
+    why: STAGE_WHY[stage],
+    graduatePending: true,
+  }
+}
+
 const STORAGE_KEY = 'openvibe.growth.v1'
 
 export interface GrowthState {

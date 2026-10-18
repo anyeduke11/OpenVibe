@@ -6,7 +6,8 @@ import { zh } from '../i18n/zh'
 import { FlowTemplateCard } from '../components/flows/FlowTemplateCard'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
 import { toast } from '../components/ui/Toaster'
-import { btnDanger, btnGhost, btnPrimary, emptyHintCls } from '../components/ui/styles'
+import { btnDanger, btnGhost, btnPrimary, emptyHintCls, h1Cls, h1SubCls, noteCls, noteTitleCls, skelCls } from '../components/ui/styles'
+import { laneEngineering } from '../i18n/lane-engineering'
 
 /** 两个重 UI 都懒加载（DEV-0074）：问答运行对话框 + 模板编辑器（含 dnd-kit）只在点开时
  *  加载，流程页的卡片列表保持入口纤瘦（bundle 门槛） */
@@ -67,19 +68,39 @@ export function FlowsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-3 border-b border-line-hair px-5 py-3">
-        <h1 className="mr-auto text-base font-semibold">{zh.flows.title}</h1>
-        <button className={btnPrimary} onClick={() => setEditor({ template: null })}>
-          {zh.flows.newFlow}
-        </button>
+      <header className="border-b border-line-hair px-5 pt-4 pb-3">
+        <h1 className={h1Cls}>{zh.flows.title}</h1>
+        <p className={h1SubCls}>{laneEngineering.view.flows}</p>
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-xs text-ink-faint tabular-nums">
+            {list.data === undefined ? '' : laneEngineering.flowDelete.count(list.data.total)}
+          </span>
+          <button
+            className={`${btnPrimary} ml-auto`}
+            onClick={() => setEditor({ template: null })}
+          >
+            {zh.flows.newFlow}
+          </button>
+        </div>
       </header>
 
-      <div className="flex-1 overflow-auto px-5 py-4">
-        {list.isLoading && <p className="text-sm text-ink-faint">{zh.common.loading}</p>}
+      <div className="min-h-0 flex-1 overflow-auto px-5 py-3">
+        {list.isLoading &&
+          [0, 1, 2].map((i) => (
+            <div key={i} className={`${skelCls} mb-3 h-32`} aria-hidden />
+          ))}
         {list.isError && (
-          <p className="text-sm text-danger">{zh.common.failed((list.error as Error).message)}</p>
+          <div className={noteCls('danger')}>
+            <span className={`${noteTitleCls} text-danger`}>
+              {zh.common.failed((list.error as Error).message)}
+            </span>
+            <p className="text-ink-body">{laneEngineering.state.retryHint}</p>
+            <button type="button" className={`${btnGhost} mt-2`} onClick={() => void list.refetch()}>
+              {laneEngineering.state.retry}
+            </button>
+          </div>
         )}
-        {items.length === 0 && !list.isLoading && (
+        {items.length === 0 && !list.isLoading && !list.isError && (
           <div className={emptyHintCls}>
             <p>{zh.flows.empty}</p>
             <button className={btnPrimary} onClick={() => setEditor({ template: null })}>
@@ -87,7 +108,7 @@ export function FlowsPage() {
             </button>
           </div>
         )}
-        <div className="space-y-5">
+        <div className="space-y-4">
           {builtins.length > 0 && section(zh.flows.builtin, builtins)}
           {customs.length > 0 && section(zh.flows.custom, customs)}
         </div>
@@ -147,6 +168,15 @@ export function FlowsPage() {
             <div className="space-y-2 text-sm">
               <p>{zh.flows.deleteDialog.body(deleting.name)}</p>
               <p className="text-xs text-ink-muted">{zh.flows.deleteDialog.note}</p>
+              <div className="rounded-md border border-line bg-panel-2 px-3 py-2 text-xs">
+                <span className={`${noteTitleCls} text-ink-body`}>
+                  {laneEngineering.flowDelete.impactTitle}
+                </span>
+                <ul className="space-y-0.5 text-ink-muted">
+                  <li>· {laneEngineering.flowDelete.impactKept}</li>
+                  <li>· {laneEngineering.flowDelete.impactGone}</li>
+                </ul>
+              </div>
             </div>
           )}
         </DialogPanel>

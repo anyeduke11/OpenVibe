@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CONTROLLED_TAG_VOCAB, type PlaybookOut } from '@openvibe/shared'
+import { lane } from '../i18n/lane-assets'
 import { zh } from '../i18n/zh'
+import { AssetFilterBar, AssetPageHead, AssetSearchBox, FilterDivider } from '../components/library/AssetPageHead'
+import { RefreshHint } from '../components/library/AssetStates'
 import { TagFilterBar } from '../components/library/TagFilterBar'
 import { PlaybookEditorDrawer } from '../components/playbooks/PlaybookEditorDrawer'
 import { PlaybooksMdPreview } from '../components/playbooks/PlaybooksMdPreview'
@@ -59,6 +62,18 @@ export function PlaybooksPage() {
   )
   const verifiedCount = useMemo(() => allItems.filter((p) => p.verified).length, [allItems])
 
+  const activeFilters = [status, tag, trimmed || undefined].filter(
+    (v) => v !== undefined && v !== '',
+  ).length
+  const clearFilters = useCallback(() => {
+    setStatus(undefined)
+    setTag(undefined)
+    setSearch('')
+  }, [])
+
+  // 搜索与列表两条请求都可能失败，四态取当前生效的那条
+  const active = searching ? search_ : list
+
   const onToggle = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
 
@@ -72,58 +87,76 @@ export function PlaybooksPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="border-b border-line-hair px-5 py-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="mr-auto text-base font-semibold">{zh.playbooks.title}</h1>
-          <input
-            className={`${inputCls} w-80`}
-            placeholder={zh.playbooks.searchPlaceholder}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <select
-            className={`${inputCls} w-auto appearance-none`}
-            value={status ?? ''}
-            onChange={(e) => setStatus(e.target.value === '' ? undefined : e.target.value)}
+      <AssetPageHead
+        title={zh.playbooks.title}
+        hint={lane.view.playbooks}
+        actions={
+          <>
+            <AssetSearchBox
+              value={search}
+              onChange={setSearch}
+              ariaLabel={zh.playbooks.searchPlaceholder}
+            />
+            <button className={btnPrimary} onClick={() => setEditor({ playbook: null })}>
+              {zh.playbooks.newPlaybook}
+            </button>
+          </>
+        }
+        filters={
+          <AssetFilterBar
+            trailing={
+              <RefreshHint busy={(list.isFetching || search_.isFetching) && !active.isLoading} />
+            }
           >
-            <option value="">{`${zh.library.filters.all} · ${zh.library.filters.status}`}</option>
-            {(['draft', 'published'] as const).map((s) => (
-              <option key={s} value={s}>
-                {zh.playbooks.status[s]}
-              </option>
-            ))}
-          </select>
-          <button className={btnPrimary} onClick={() => setEditor({ playbook: null })}>
-            {zh.playbooks.newPlaybook}
-          </button>
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <TagFilterBar tags={tags} selected={tag} onToggle={setTag} />
-          {searching && trimmed.length < 3 && (
-            <span className="text-[11px] text-warn">{zh.playbooks.shortQueryHint}</span>
-          )}
-          {(list.isFetching || search_.isFetching) && (
-            <span className="text-[11px] text-ink-faint">{zh.common.loading}</span>
-          )}
-        </div>
-      </header>
+            <select
+              aria-label={zh.library.filters.status}
+              className={`${inputCls} w-auto shrink-0 appearance-none`}
+              value={status ?? ''}
+              onChange={(e) => setStatus(e.target.value === '' ? undefined : e.target.value)}
+            >
+              <option value="">{`${zh.library.filters.all} · ${zh.library.filters.status}`}</option>
+              {(['draft', 'published'] as const).map((s) => (
+                <option key={s} value={s}>
+                  {zh.playbooks.status[s]}
+                </option>
+              ))}
+            </select>
+            <FilterDivider />
+            <TagFilterBar tags={tags} selected={tag} onToggle={setTag} />
+            {searching && trimmed.length < 3 && (
+              <span className="shrink-0 text-[11px] text-warn">{zh.playbooks.shortQueryHint}</span>
+            )}
+            {activeFilters > 0 && (
+              <button
+                className="shrink-0 text-xs text-accent underline underline-offset-2 hover:text-accent-deep"
+                onClick={clearFilters}
+              >
+                {lane.state.clearFilters}（{lane.filter.active(activeFilters)}）
+              </button>
+            )}
+          </AssetFilterBar>
+        }
+      />
 
       <PlaybooksTable
         rows={rows}
         selected={selected}
-        loading={searching ? search_.isLoading : list.isLoading}
-        error={searching ? (search_.error?.message ?? null) : (list.error?.message ?? null)}
-        searching={searching}
+        loading={active.isLoading}
+        error={active.error?.message ?? null}
+        filtered={activeFilters > 0}
+        onClearFilters={clearFilters}
+        onRetry={() => void active.refetch()}
+        onCreate={() => setEditor({ playbook: null })}
         onToggle={onToggle}
         onSelectAll={setSelected}
         onEdit={(playbook) => setEditor({ playbook })}
-        onRetry={() => (searching ? void search_.refetch() : void list.refetch())}
+        onDelete={setDeleting}
       />
 
-      <footer className="flex items-center gap-3 border-t border-line-hair px-5 py-2 text-xs text-ink-muted">
-        <span>{zh.playbooks.total(rows.length)}</span>
-        <span>{zh.playbooks.seedCount(seedCount)}</span>
-        <span>{zh.playbooks.verifiedCount(verifiedCount)}</span>
+      <footer className="flex shrink-0 items-center gap-3 border-t border-line-hair px-5 py-1.5 text-xs text-ink-muted">
+        <span className="tabular-nums">{zh.playbooks.total(rows.length)}</span>
+        <span className="tabular-nums">{zh.playbooks.seedCount(seedCount)}</span>
+        <span className="tabular-nums">{zh.playbooks.verifiedCount(verifiedCount)}</span>
         <span className="ml-auto" />
         <button
           className={btnPrimary}
@@ -193,9 +226,10 @@ export function PlaybooksPage() {
         >
           {deleting !== null && (
             <div className="space-y-2 text-sm">
-              <p>{zh.playbooks.deleteDialog.body(deleting.scenario)}</p>
+              {/* 影响范围：删什么、种子条目删了不会自动恢复、可改再删 */}
+              <p className="proseCls">{zh.playbooks.deleteDialog.body(deleting.scenario)}</p>
               {deleting.source === 'openvibe-seed' && (
-                <p className="text-xs text-ink-muted">{zh.playbooks.deleteDialog.seedNote}</p>
+                <p className="proseCls text-xs text-ink-muted">{zh.playbooks.deleteDialog.seedNote}</p>
               )}
               <div className="flex justify-end pt-1">
                 <button className={btnGhost} onClick={() => setEditor({ playbook: deleting })}>

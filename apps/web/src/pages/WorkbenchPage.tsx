@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../api/client'
 import { useLedger } from '../hooks/useLedger'
-import { useProjectList } from '../hooks/useProjects'
+import { useProjectList, type ProjectView } from '../hooks/useProjects'
 import {
   useFlywheelStats,
   useOnboardingToggle,
@@ -12,18 +12,35 @@ import {
   useTelemetryToggle,
 } from '../hooks/useSettings'
 import { zh } from '../i18n/zh'
+import { sys } from '../i18n/lane-system'
 import { FlywheelCard } from '../components/onboarding/FlywheelCard'
 import { OnboardingBar } from '../components/onboarding/OnboardingBar'
 import { TelemetryAskCard } from '../components/onboarding/TelemetryAskCard'
-import { btnGhost, btnPrimary, emptyHintCls, rowCls } from '../components/ui/styles'
+import {
+  btnGhost,
+  btnPrimary,
+  cardBodyCls,
+  cardCls,
+  cardFootCls,
+  cardHeadCls,
+  chipTone,
+  emptyHintCls,
+  noteCls,
+  noteTitleCls,
+  proseCls,
+  rowCls,
+  skelCls,
+} from '../components/ui/styles'
+import { Icon } from '../components/ui/icons'
 import { toast } from '../components/ui/Toaster'
 
 /**
  * 工作台（侧栏「概览」组，路由 `/`）。
  *
- * 三张常驻卡（首启向导 / 遥测询问 / 飞轮）原本挂在顶栏，V1 起就在每一页可见；
- * V2 把它们收到本页，因为 PRD §3.4 写的是「飞轮统计面板 = **工作台** 常驻卡片」——
- * 收回来既合规格，又让 AppShell 的入口包瘦下来（入口只剩顶栏 + 侧栏）。
+ * 本页承接三件首启/常驻内容（它们已于本轮从壳层搬来，见 AppShell 纪律 2）：
+ * OnboardingBar（无项目且未完成时出镜，可跳步）、FlywheelCard（常驻统计条）、
+ * TelemetryAskCard（见过首次注入且 askState 仍是 unset 时问一次）。三件都在这一页，
+ * 老用户不必在其他页面被横幅打扰，首启用户落地就看见。
  */
 export function WorkbenchPage() {
   const qc = useQueryClient()
@@ -35,6 +52,8 @@ export function WorkbenchPage() {
   const markDone = useOnboardingToggle()
   const toggleTelemetry = useTelemetryToggle()
   const [step, setStep] = useState(1)
+  // 手动重开向导：FR-2.1 的双条件是「自动出镜」的条件，不是「只有那时能打开」
+  const [wizardOpen, setWizardOpen] = useState(false)
 
   const firstRun =
     settings.data !== undefined &&
@@ -46,6 +65,7 @@ export function WorkbenchPage() {
     markDone.mutate(true, {
       onSuccess: () => {
         setStep(1)
+        setWizardOpen(false)
         void qc.invalidateQueries({ queryKey: ['stats'] })
       },
     })
@@ -62,226 +82,288 @@ export function WorkbenchPage() {
 
   return (
     <div className="flex flex-col gap-4 px-6 py-6 max-md:px-4">
-      <header>
-        <h1 className="text-[26px] font-semibold tracking-tight text-ink max-md:text-[22px]">
-          {zh.workbench.title}
-        </h1>
-        <p className="mt-1 max-w-[68ch] text-[13.5px] text-ink-muted">{zh.workbench.subtitle}</p>
+      {/* view-head：h1 + 一句话说明 + 右侧主动作（三页同构） */}
+      <header className="flex flex-wrap items-start gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[30px] font-semibold leading-[1.25] tracking-tight text-ink max-sm:text-[25px]">
+            {zh.workbench.title}
+          </h1>
+          <p className={`${proseCls} mt-1 text-[13.5px] text-ink-muted`}>
+            {zh.workbench.subtitle}
+          </p>
+        </div>
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            className={btnGhost}
+            aria-pressed={firstRun || wizardOpen}
+            onClick={() => setWizardOpen((v) => !v)}
+          >
+            <Icon name="flow" size={14} />
+            {sys.workbench.action.wizard}
+          </button>
+          <Link to="/packs" className={btnPrimary}>
+            <Icon name="plus" size={14} />
+            {sys.workbench.action.newPack}
+          </Link>
+        </div>
       </header>
 
-      {/* 常驻三卡：向导按 FR-2.1 双条件出镜，询问卡按 FR-4.2 在见过首次注入后才问 */}
-      {firstRun && (
+      {(firstRun || wizardOpen) && (
         <OnboardingBar step={step} onStepChange={setStep} onSkip={finish} onDone={finish} />
       )}
       {telemetry.data !== undefined && (stats.data?.injections ?? 0) > 0 && (
         <TelemetryAskCard askState={telemetry.data.askState} onChoose={choose} />
       )}
-      {stats.data !== undefined && <FlywheelCard {...stats.data} />}
+
+      <FlywheelBody stats={stats} />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <RecentProjects
+          loading={projects.isLoading}
+          error={projects.error}
+          onRetry={() => void projects.refetch()}
+          items={recent}
+          total={projects.data?.total ?? 0}
+        />
         <div className="flex min-w-0 flex-col gap-4">
-          {/* 定位卡：V2 的表达位是「一屏说清这是什么 + 三个入口」 */}
-          <section className="rounded-md border border-accent-line bg-accent-soft px-4 py-4">
-            <h2 className="text-lg font-semibold text-accent-deep max-md:text-base">
-              {zh.workbench.lead.title}
-            </h2>
-            <p className="mt-1.5 max-w-[68ch] text-sm text-ink-body">{zh.workbench.lead.body}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Link to="/library" className={btnPrimary}>
-                {zh.workbench.lead.browse}
-              </Link>
-              <Link to="/packs" className={btnGhost}>
-                {zh.workbench.lead.pack}
-              </Link>
-              <Link to="/settings" className={btnGhost}>
-                {zh.workbench.lead.settings}
-              </Link>
-            </div>
-          </section>
-
-          <section className="rounded-md border border-line bg-panel shadow-1">
-            <h2 className="border-b border-line-hair px-4 py-2.5 text-sm font-semibold text-ink">
-              {zh.workbench.today.title}
-              <span className="ml-2 text-[11.5px] font-normal text-ink-faint">
-                {zh.workbench.today.hint}
-              </span>
-            </h2>
-            <ul className="flex flex-col">
-              <QuickRow to="/library" label={zh.workbench.today.findPrompt} />
-              <QuickRow to="/projects" label={zh.workbench.today.checkList} />
-              <QuickRow to="/projects" label={zh.workbench.today.appendLog} />
-            </ul>
-          </section>
-
-          <section className="rounded-md border border-line bg-panel shadow-1">
-            <h2 className="flex items-center gap-2 border-b border-line-hair px-4 py-2.5 text-sm font-semibold text-ink">
-              {zh.workbench.projects.title}
-              <Link
-                to="/projects"
-                className="ml-auto text-xs font-normal text-ink-muted hover:text-ink"
-              >
-                {zh.workbench.projects.all} ›
-              </Link>
-            </h2>
-            {projects.isLoading ? (
-              <p className="px-4 py-6 text-sm text-ink-faint">{zh.common.loading}</p>
-            ) : recent.length === 0 ? (
-              <div className="px-4 py-6">
-                <div className={emptyHintCls}>
-                  <p>{zh.workbench.projects.empty}</p>
-                  <Link to="/projects" className={btnGhost}>
-                    {zh.workbench.projects.new}
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <ul className="flex flex-col">
-                {recent.map((p) => (
-                  <li key={p.id}>
-                    <Link
-                      to={`/projects/${p.id}`}
-                      className={`${rowCls} flex items-center gap-3 px-4 py-2.5 transition-colors last:border-b-0`}
-                    >
-                      <span className="min-w-0 grow">
-                        <span className="block truncate text-sm font-medium text-ink">
-                          {p.name}
-                        </span>
-                        <span className="mono block truncate text-[11.5px] text-ink-muted">
-                          {p.localPath ?? zh.common.none}
-                          {p.currentStage ? ` · ${zh.workbench.projects.stage(p.currentStage)}` : ''}
-                          {p.health.total > 0
-                            ? ` · ${p.health.total - p.health.unchecked}/${p.health.total}`
-                            : ''}
-                        </span>
-                      </span>
-                      {p.standardPackId && p.standardPackVersion ? (
-                        <span className="mono shrink-0 rounded-sm border border-line-hair bg-panel-2 px-2 py-0.5 text-[11.5px] text-ink-muted">
-                          {zh.workbench.projects.pack(p.standardPackVersion)}
-                        </span>
-                      ) : (
-                        <span className="shrink-0 text-[11.5px] text-ink-faint">
-                          {zh.workbench.projects.noPack}
-                        </span>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-4">
-          <section className="rounded-md border border-line bg-panel shadow-1">
-            <h2 className="border-b border-line-hair px-4 py-2.5 text-sm font-semibold text-ink">
-              {zh.workbench.ledger.title}
-              <span className="ml-2 rounded-sm border border-line-hair bg-panel-2 px-1.5 text-[11px] font-normal text-ink-muted">
-                不出网
-              </span>
-            </h2>
-            <LedgerBody
-              state={ledger}
-              emptyText={zh.workbench.ledger.empty}
-              emptyHint={zh.workbench.ledger.emptyHint}
-            />
-            <div className="flex items-center gap-2 border-t border-line-hair px-4 py-2">
-              <span className="text-[11px] text-ink-faint">{zh.workbench.ledger.hint}</span>
-              <Link
-                to="/growth"
-                className="ml-auto text-xs text-ink-muted hover:text-ink"
-              >
-                {zh.workbench.ledger.open} ›
-              </Link>
-            </div>
-          </section>
-
-          <section className="rounded-md border border-line bg-panel shadow-1">
-            <h2 className="border-b border-line-hair px-4 py-2.5 text-sm font-semibold text-ink">
-              {zh.workbench.quick.title}
-            </h2>
-            <div className="grid grid-cols-2 gap-2 p-3">
-              <QuickLink to="/terms" label={zh.workbench.quick.terms} />
-              <QuickLink to="/skills" label={zh.workbench.quick.skills} />
-              <QuickLink to="/flows" label={zh.workbench.quick.flows} />
-              <QuickLink to="/packs" label={zh.workbench.quick.packs} />
-            </div>
-          </section>
+          <TodayCard />
+          <LedgerCard state={ledger} />
         </div>
       </div>
     </div>
   )
 }
 
-function QuickRow(props: { to: string; label: string }) {
+/** 统计条四态：加载骨架 / 错误可重试 / 数据 / （全零由 hero 注自陈） */
+function FlywheelBody(props: { stats: ReturnType<typeof useFlywheelStats> }) {
+  const { stats } = props
+  if (stats.isLoading) {
+    return (
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-busy>
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className={`${skelCls} h-[86px] rounded-md`} />
+        ))}
+      </div>
+    )
+  }
+  if (stats.error) {
+    return (
+      <div className={noteCls('danger')}>
+        <b className={`${noteTitleCls} flex items-center gap-1.5 text-danger`}>
+          <Icon name="alert" size={13} />
+          统计条没取到
+        </b>
+        <p className={proseCls}>{sys.state.error(errText(stats.error))}</p>
+        <button
+          type="button"
+          className={`${btnGhost} mt-2`}
+          onClick={() => void stats.refetch()}
+        >
+          <Icon name="refresh" size={13} />
+          {sys.state.retry}
+        </button>
+      </div>
+    )
+  }
+  if (stats.data === undefined) return null
+  return <FlywheelCard {...stats.data} />
+}
+
+function RecentProjects(props: {
+  loading: boolean
+  error: unknown
+  onRetry: () => void
+  items: ProjectView[]
+  total: number
+}) {
   return (
-    <li className="border-b border-line-hair last:border-b-0">
-      <Link
-        to={props.to}
-        className={`${rowCls} block px-4 py-2.5 text-sm text-ink-body transition-colors hover:text-ink`}
-      >
-        {props.label}
-        <span className="float-right text-ink-faint">›</span>
-      </Link>
-    </li>
+    <section className={`${cardCls} min-w-0`}>
+      <div className={cardHeadCls}>
+        <Icon name="folder" size={15} className="text-ink-faint" />
+        <h2 className="text-sm font-semibold text-ink">{zh.workbench.projects.title}</h2>
+        <Link
+          to="/projects"
+          className="ml-auto flex items-center gap-1 text-xs text-ink-muted hover:text-ink"
+        >
+          {zh.workbench.projects.all} ›
+        </Link>
+      </div>
+
+      {props.loading ? (
+        <div className={`${cardBodyCls} space-y-2`} aria-busy>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={`${skelCls} h-9`} />
+          ))}
+        </div>
+      ) : props.error !== null && props.error !== undefined ? (
+        <div className={cardBodyCls}>
+          <div className={emptyHintCls}>
+            <p className="text-danger">{sys.state.error(errText(props.error))}</p>
+            <button type="button" className={btnGhost} onClick={props.onRetry}>
+              <Icon name="refresh" size={13} />
+              {sys.state.retry}
+            </button>
+          </div>
+        </div>
+      ) : props.items.length === 0 ? (
+        <div className={cardBodyCls}>
+          <div className={emptyHintCls}>
+            <p>{sys.workbench.projects.emptyTitle}</p>
+            <p>{sys.workbench.projects.emptyHint}</p>
+            <Link to="/projects" className={btnGhost}>
+              <Icon name="plus" size={13} />
+              {sys.workbench.projects.emptyCta}
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <ul className="flex flex-col">
+          {props.items.map((p) => (
+            <li key={p.id}>
+              <Link
+                to={`/projects/${p.id}`}
+                className={`${rowCls} flex items-center gap-3 px-3.5 py-2 transition-colors last:border-b-0`}
+              >
+                <span className="min-w-0 grow">
+                  <span className="block truncate text-sm font-medium text-ink">{p.name}</span>
+                  <span className="mono block truncate text-[11.5px] text-ink-muted">
+                    {p.localPath ?? sys.workbench.projects.noPath}
+                    {p.currentStage ? ` · ${zh.workbench.projects.stage(p.currentStage)}` : ''}
+                    {p.health.total > 0
+                      ? ` · ${sys.workbench.projects.checkNote(
+                          p.health.total - p.health.unchecked,
+                          p.health.total,
+                        )}`
+                      : ''}
+                  </span>
+                </span>
+                {p.standardPackId && p.standardPackVersion ? (
+                  <span className={`${chipTone('ok')} shrink-0`}>
+                    <Icon name="check" size={12} />
+                    {zh.workbench.projects.pack(p.standardPackVersion)}
+                  </span>
+                ) : (
+                  <span className="shrink-0 text-[11.5px] text-ink-muted">
+                    {zh.workbench.projects.noPack}
+                  </span>
+                )}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {props.items.length > 0 && (
+        <div className={cardFootCls}>
+          <span className="text-[11.5px] text-ink-muted">
+            健康摘要 = 所处阶段 + 未完检查项 + 最近日志
+          </span>
+        </div>
+      )}
+    </section>
   )
 }
 
-function QuickLink(props: { to: string; label: string }) {
+function TodayCard() {
+  const rows: { to: string; label: string; icon: 'search' | 'check' | 'doc' }[] = [
+    { to: '/library', label: zh.workbench.today.findPrompt, icon: 'search' },
+    { to: '/projects', label: zh.workbench.today.checkList, icon: 'check' },
+    { to: '/projects', label: zh.workbench.today.appendLog, icon: 'doc' },
+  ]
   return (
-    <Link
-      to={props.to}
-      className="rounded-md border border-line bg-panel-2 px-3 py-2 text-[13px] text-ink-body transition-colors hover:border-line-strong hover:bg-panel hover:text-ink"
-    >
-      {props.label}
-    </Link>
+    <section className={cardCls}>
+      <div className={cardHeadCls}>
+        <Icon name="list" size={15} className="text-ink-faint" />
+        <h2 className="text-sm font-semibold text-ink">{zh.workbench.today.title}</h2>
+      </div>
+      <div className={`${cardBodyCls} flex flex-col gap-1.5`}>
+        {rows.map((r) => (
+          <Link key={r.label} to={r.to} className={`${btnGhost} justify-start`}>
+            <Icon name={r.icon} size={13} />
+            {r.label}
+          </Link>
+        ))}
+        <p className="mt-0.5 text-[11.5px] text-ink-muted">{sys.workbench.today.note}</p>
+      </div>
+    </section>
   )
 }
 
 /**
- * 台账四态：加载 / 错误 / 空 / 有数据。端点未上线（404）与真出错分开说，
- * 不让「还没实现」看起来像「坏了」。
+ * 本机自证层（MT 层）在工作台的落点：只读、只留本机、不出网。
+ * 四态齐全，且把「端点未上线」与「真出错」分开说。
  */
-function LedgerBody(props: {
-  state: ReturnType<typeof useLedger>
-  emptyText: string
-  emptyHint: string
-}) {
+function LedgerCard(props: { state: ReturnType<typeof useLedger> }) {
   const { state } = props
-  if (state.isLoading) {
-    return <p className="px-4 py-5 text-sm text-ink-faint">{zh.common.loading}</p>
-  }
-  if (state.error instanceof ApiError && state.error.status === 404) {
-    return <p className="px-4 py-5 text-[13px] text-ink-faint">{zh.workbench.ledger.unavailable}</p>
-  }
-  if (state.error) {
-    return (
-      <p className="px-4 py-5 text-[13px] text-danger">
-        {zh.common.failed(state.error instanceof Error ? state.error.message : '')}
-      </p>
-    )
-  }
+  const missing = state.error instanceof ApiError && state.error.status === 404
   const items = state.data?.items ?? []
-  if (items.length === 0) {
-    return (
-      <div className="px-4 py-5 text-center">
-        <p className="text-[13px] text-ink-faint">{props.emptyText}</p>
-        <p className="mt-1 text-[11.5px] text-ink-faint">{props.emptyHint}</p>
-      </div>
-    )
-  }
+
   return (
-    <ul className="flex flex-col">
-      {items.slice(0, 6).map((e) => (
-        <li
-          key={e.id}
-          className={`${rowCls} flex items-center gap-2 px-4 py-2 last:border-b-0`}
-        >
-          <span className="mono min-w-0 grow truncate text-[12px] text-ink-body">{e.name}</span>
-          <span className="mono shrink-0 text-[11px] text-ink-faint">
-            {new Date(e.ts).toLocaleString('zh-CN', { hour12: false })}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <section className={cardCls}>
+      <div className={cardHeadCls}>
+        <Icon name="lock" size={15} className="text-ink-faint" />
+        <h2 className="text-sm font-semibold text-ink">{zh.workbench.ledger.title}</h2>
+        <span className={chipTone('default')}>
+          <Icon name="lock" size={12} />
+          不出网
+        </span>
+      </div>
+
+      {state.isLoading ? (
+        <div className={`${cardBodyCls} space-y-1.5`} aria-busy>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={`${skelCls} h-4`} />
+          ))}
+        </div>
+      ) : missing ? (
+        <div className={cardBodyCls}>
+          <p className={`${proseCls} text-[13px] text-ink-muted`}>{sys.state.notOnline}</p>
+        </div>
+      ) : state.error ? (
+        <div className={cardBodyCls}>
+          <div className={emptyHintCls}>
+            <p className="text-danger">{sys.state.error(errText(state.error))}</p>
+            <button type="button" className={btnGhost} onClick={() => void state.refetch()}>
+              <Icon name="refresh" size={13} />
+              {sys.state.retry}
+            </button>
+          </div>
+        </div>
+      ) : items.length === 0 ? (
+        <div className={cardBodyCls}>
+          <div className={emptyHintCls}>
+            <p>{zh.workbench.ledger.empty}</p>
+            <p>{zh.workbench.ledger.emptyHint}</p>
+            <Link to="/packs" className={btnGhost}>
+              <Icon name="pack" size={13} />
+              {sys.workbench.action.newPack}
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <ul className="flex flex-col">
+          {items.slice(0, 5).map((e) => (
+            <li key={e.id} className={`${rowCls} flex items-center gap-2 px-3.5 py-1.5`}>
+              <span className="mono min-w-0 grow truncate text-[12px] text-ink-body">{e.name}</span>
+              <span className="num shrink-0 text-[11px] text-ink-muted">
+                {new Date(e.ts).toLocaleString('zh-CN', { hour12: false })}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className={cardFootCls}>
+        <span className="text-[11px] text-ink-muted">{sys.workbench.ledger.orthogonal}</span>
+        <Link to="/growth" className="ml-auto shrink-0 text-xs text-ink-muted hover:text-ink">
+          {zh.workbench.ledger.open} ›
+        </Link>
+      </div>
+    </section>
   )
+}
+
+function errText(e: unknown): string {
+  return e instanceof Error ? e.message : ''
 }

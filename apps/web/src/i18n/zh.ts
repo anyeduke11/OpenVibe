@@ -1,29 +1,15 @@
+// 域文案（跟着懒加载页走；壳层不得 import 本文件——理由见 i18n/core.ts 顶部注）。
+// 壳层自用的 appName / nav / common 已拆到 ./core，入口只带那三样。
+import { appName, common, nav } from './core'
+
+export { appName, common, nav }
+
 // 中文 UI 文案单一来源（dev-plan §5.4 / PRD A1 中文社区优先）
 export const zh = {
-  appName: 'OpenVibe 灵典',
-  nav: {
-    // 侧栏四组八项（DESIGN.md Layout）：概览 / 资产 / 工程 / 系统
-    group: {
-      overview: '概览',
-      assets: '资产',
-      engineering: '工程',
-      system: '系统',
-    },
-    workbench: '工作台',
-    growth: '成长与统计',
-    library: '提示词库',
-    terms: '术语库',
-    playbooks: '技巧库',
-    skills: 'Skill',
-    flows: '流程模板',
-    projects: '项目',
-    packs: '标准包',
-    settings: '设置',
-    // 侧栏底部：本机优先的落点，不是版权信息
-    footerPath: '~/.openvibe/',
-    footerHost: '127.0.0.1:8787',
-    countAria: (n: number) => `${String(n)} 项`,
-  },
+  appName,
+  nav,
+  common,
+
   library: {
     title: '提示词库',
     searchPlaceholder: '搜索标题 / 正文 / 标签（中文子串、英文 ≥3 字符走全文索引）',
@@ -685,11 +671,12 @@ export const zh = {
       flowNone: '还没有流程模板',
       flowSkip: '不关联流程（不生成 CHECKLIST.md）',
       flowStages: (n: number) => `${String(n)} 个阶段`,
-      assetsHint: '四栏多选，按最近更新排序；术语支持「全选当前结果」一键选集（m6a FR-1.3）。技巧栏只列已发布条目——草稿不产字节',
+      assetsHint:
+        '四栏多选，按最近更新排序；术语支持「全选当前结果」一键选集（m6a FR-1.3）。技巧栏只列已发布条目——草稿不产字节',
       promptsCol: '提示词（active）',
       termsCol: '术语',
-      skillsCol: 'Skill',
       playbooksCol: '技巧（已发布）',
+      skillsCol: 'Skill',
       searchAsset: '搜索…',
       selectAll: '全选当前结果',
       clearSel: '清空',
@@ -698,7 +685,8 @@ export const zh = {
       targetsHint: '勾选决定生成哪些主文件（design §8.2 映射）；至少一个平台',
       compatNote: '写了 AGENTS.md 即被其他读 AGENTS.md 的代理顺带覆盖，具体清单在第 5 步预览里给出',
       targetsRequired: '至少选择一个目标平台',
-      assetsRequired: '提示词 / 术语 / skill / 流程至少挑一项（空选集不可组包，m6a FR-2.4）。只选了技巧同样不成包——技巧缺场景上下文时单发价值低（m4 §6.4）',
+      assetsRequired:
+        '提示词 / 术语 / skill / 流程至少挑一项（空选集不可组包，m6a FR-2.4）。只选了技巧同样不成包——技巧缺场景上下文时单发价值低（m4 §6.4）',
       saveNext: '保存定义并预览',
       saving: '保存中…',
       saved: '定义已保存',
@@ -747,57 +735,6 @@ export const zh = {
     injections: {
       projectPath: '项目路径',
       at: (name: string, v: string) => `${name}@${v}`,
-    },
-  },
-  growth: {
-    title: '成长与统计',
-    subtitle: 'F0–F3 阶段向量、渐进披露五红线、飞轮面板与本机事件台账。全部本机可复算，不上报。',
-    whyLabel: '为什么你现在看到这个：',
-    vector: {
-      title: '阶段向量',
-      hint: '按模块维护，不是一个全局等级',
-      module: '模块',
-      expert: '专家视图',
-      expertOn: '专家视图 开',
-      expertOff: '专家视图 关',
-      reset: '重置我的阶段',
-      pending:
-        '阶段自动判定依赖 D29 本机事件台账（RF1-5，尚未开工）。在那之前阶段由你手选并记在本机——宁可自己认领，也不拿假信号算一个假的「已毕业」。',
-    },
-    redlines: {
-      title: '渐进披露五红线',
-      hint: '硬约束，不是建议',
-    },
-    cli: {
-      title: 'CLI 命令参考',
-      hint: 'CLI 是唯一能写你磁盘的通道',
-      command: '命令',
-      summary: '说明',
-      risk: '风险',
-      risks: { readonly: '只读', decision: '需决策', destructive: '破坏性' },
-      writesDisk: '写盘',
-      missing: 'CLI 元数据端点尚未上线（需 server 侧只读端点）',
-    },
-    ledger: {
-      all: '全部',
-      empty: '该类目下没有事件',
-    },
-  },
-  palette: {
-    title: '命令面板',
-    placeholder: '搜页面、提示词、术语、Skill…',
-    search: '搜索',
-    empty: '没有匹配项',
-    move: '选择',
-    enter: '打开',
-    close: '关闭',
-    hint: '⌘K 唤起 · esc 关闭',
-    group: {
-      nav: '页面',
-      command: '命令',
-      prompt: '提示词',
-      term: '术语',
-      skill: 'Skill',
     },
   },
   workbench: {
@@ -913,6 +850,40 @@ export const zh = {
     decline: '暂不',
     chose: (v: string) => `已${v}，设置页「匿名统计」可随时改`,
   },
+  growth: {
+    title: '成长与统计',
+    subtitle: 'F0–F3 阶段向量、渐进披露五红线、飞轮面板与本机事件台账。全部本机可复算，不上报。',
+    whyLabel: '为什么你现在看到这个：',
+    vector: {
+      title: '阶段向量',
+      hint: '按模块维护，不是一个全局等级',
+      module: '模块',
+      expert: '专家视图',
+      expertOn: '专家视图 开',
+      expertOff: '专家视图 关',
+      reset: '重置我的阶段',
+      pending:
+        '阶段自动判定依赖 D29 本机事件台账（RF1-5，尚未开工）。在那之前阶段由你手选并记在本机——宁可自己认领，也不拿假信号算一个假的「已毕业」。',
+    },
+    redlines: {
+      title: '渐进披露五红线',
+      hint: '硬约束，不是建议',
+    },
+    cli: {
+      title: 'CLI 命令参考',
+      hint: 'CLI 是唯一能写你磁盘的通道',
+      command: '命令',
+      summary: '说明',
+      risk: '风险',
+      risks: { readonly: '只读', decision: '需决策', destructive: '破坏性' },
+      writesDisk: '写盘',
+      missing: 'CLI 元数据端点尚未上线（需 server 侧只读端点）',
+    },
+    ledger: {
+      all: '全部',
+      empty: '该类目下没有事件',
+    },
+  },
   settings: {
     title: '设置',
     service: {
@@ -969,19 +940,23 @@ export const zh = {
       body: '全部状态就在数据目录：data/openvibe.db（SQLite）+ config.json + packs/ 导出目录。备份 = 停服务后整目录复制。注入目标项目里的 .openvibe/ 只放 lock 与覆盖前备份，可随项目提交 git。',
     },
   },
-  common: {
-    allTags: '标签过滤',
-    clearFilter: '清除过滤',
-    loading: '加载中…',
-    failed: (msg: string) => `请求失败：${msg}`,
-    none: '—',
-    nav: {
-      aria: '主导航',
-    },
-    theme: {
-      aria: '切换主题（暖纸 / 暖夜）',
-      dark: '暖夜',
-      light: '暖纸',
+  palette: {
+    title: '命令面板',
+    placeholder: '搜页面、提示词、术语、Skill…',
+    search: '搜索',
+    empty: '没有匹配项',
+    move: '选择',
+    enter: '打开',
+    close: '关闭',
+    hint: '⌘K 唤起 · esc 关闭',
+    group: {
+      nav: '页面',
+      command: '命令',
+      prompt: '提示词',
+      term: '术语',
+      skill: 'Skill',
     },
   },
+
+
 } as const

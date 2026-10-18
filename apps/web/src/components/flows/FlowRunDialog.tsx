@@ -4,7 +4,7 @@ import { extractVariables, fillVariables, remainingVariables } from '@openvibe/s
 import { zh } from '../../i18n/zh'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
-import { btnGhost, btnPrimary, chipTone, inputCls, labelCls, noteCls } from '../ui/styles'
+import { btnGhost, btnPrimary, inputCls, labelCls, noteCls, segCls, segItemCls } from '../ui/styles'
 import { useFlowMutations } from '../../hooks/useFlows'
 
 /** 文案随组件走（不走中央 zh.ts）：本组件整体在懒加载 chunk，文案不占入口体积 */
@@ -114,20 +114,22 @@ export function FlowRunDialog(props: {
         }
       >
         <div className="space-y-3 text-sm">
+          {/* 阶段导航走 segmented（DESIGN.md tabs）：它是「当前走到第几段」的控件，不是状态 chip */}
           <div className="flex flex-wrap items-center gap-1.5">
-            {stages.map((s, i) => (
-              <button
-                key={s.name}
-                // 阶段条只留两态：当前（accent 形制）与其余（default 形制）。
-                // 「已走过的阶段更实、未走的更虚」原本靠第三档灰阶区分，但那正是
-                // 颜色单义承载语义；进度另有右侧文案兜底，故并掉。
-                className={`${chipTone(i === step ? 'accent' : 'default')} cursor-pointer`}
-                onClick={() => setStep(i)}
-              >
-                {String(i + 1)}. {s.name}
-              </button>
-            ))}
-            <span className="ml-auto text-[11px] text-ink-faint">
+            <span className={segCls}>
+              {stages.map((s, i) => (
+                <button
+                  key={s.name}
+                  type="button"
+                  aria-pressed={i === step}
+                  className={segItemCls}
+                  onClick={() => setStep(i)}
+                >
+                  {`${String(i + 1)}. ${s.name}`}
+                </button>
+              ))}
+            </span>
+            <span className="ml-auto text-[11px] tabular-nums text-ink-faint">
               {zhRun.progress(step + 1, stages.length)}
             </span>
           </div>

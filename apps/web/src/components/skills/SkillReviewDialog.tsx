@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type { SkillReviewItem } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
+import { Icon, type IconName } from '../ui/icons'
 import {
   btnGhost,
   btnPrimary,
@@ -19,33 +20,12 @@ const LEVEL_CHIP: Record<SkillReviewItem['level'], string> = {
   fail: chipTone('danger'),
 }
 
-const LEVEL_ICON: Record<SkillReviewItem['level'], React.ReactNode> = {
-  ok: (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5 8l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  info: (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 7v3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="8" cy="5" r="0.75" fill="currentColor" />
-    </svg>
-  ),
-  warn: (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-      <path d="M8 1.5L1 14h14L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M8 6v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="8" cy="11.5" r="0.75" fill="currentColor" />
-    </svg>
-  ),
-  fail: (
-    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  ),
+// 图标只从 icons.tsx 取（不引图标库，入口 JS 余量只有 ~37kB）
+const LEVEL_ICON: Record<SkillReviewItem['level'], IconName> = {
+  ok: 'check',
+  info: 'info',
+  warn: 'warn',
+  fail: 'alert',
 }
 
 /** 内置审查（DEV-0067）：规范面 + 质量面 + 泄漏面；打开即全量审查，明细按条目折叠 */
@@ -108,8 +88,8 @@ export function SkillReviewDialog(props: { open: boolean; onClose: () => void })
                   {problematic.map((item) => (
                     <details key={item.skillId} className="rounded-md border border-line p-2">
                       <summary className="flex cursor-pointer items-center gap-2 text-xs">
-                        <span className={LEVEL_CHIP[item.level]}>
-                          {LEVEL_ICON[item.level]}
+                        <span className={`${LEVEL_CHIP[item.level]} gap-1`}>
+                          <Icon name={LEVEL_ICON[item.level]} size={11} />
                           {zh.skills.reviewDialog.levels[item.level]}
                         </span>
                         <span className="truncate font-medium text-ink-body">{item.name}</span>

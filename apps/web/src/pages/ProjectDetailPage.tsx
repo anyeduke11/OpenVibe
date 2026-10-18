@@ -13,8 +13,20 @@ import { DevLogList } from '../components/projects/DevLogList'
 import { KanbanBoard, TaskComposer } from '../components/projects/KanbanBoard'
 import { ProjectDashboard } from '../components/projects/ProjectDashboard'
 import { StageBar } from '../components/projects/StageBar'
+import { AgentPanel } from '../components/agent/AgentPanel'
 import { toast } from '../components/ui/Toaster'
-import { btnGhost } from '../components/ui/styles'
+import { Icon } from '../components/ui/icons'
+import {
+  btnGhost,
+  cardCls,
+  h1Cls,
+  h1SubCls,
+  noteCls,
+  noteTitleCls,
+  segCls,
+  segItemCls,
+  skelCls,
+} from '../components/ui/styles'
 import { useFlowTemplates } from '../hooks/useFlows'
 import { useDevLog } from '../hooks/useDevLog'
 import {
@@ -26,6 +38,7 @@ import {
 import { useProjectPorts } from '../hooks/useProjectPorts'
 import { PortsPanel } from '../components/projects/PortsPanel'
 import { useTasks, useTaskMutations } from '../hooks/useTasks'
+import { laneEngineering } from '../i18n/lane-engineering'
 import { zh } from '../i18n/zh'
 
 /** 勾选记录按「阶段名 + 项 id」定位：清单 id 只在阶段内唯一，跨阶段会重名 */
@@ -185,17 +198,31 @@ export function ProjectDetailPage() {
   }
 
   if (project.isLoading) {
-    return <p className="p-6 text-sm text-ink-muted">{zh.common.loading}</p>
+    return (
+      <div className="space-y-3 px-5 py-4" aria-hidden>
+        <div className={`${skelCls} h-9 w-64`} />
+        <div className={`${skelCls} h-24 w-full`} />
+        <div className={`${skelCls} h-40 w-full`} />
+      </div>
+    )
   }
   if (view === undefined) {
     return (
-      <div className="space-y-3 p-6">
-        <p className="text-sm text-danger">
-          {zh.common.failed(project.error instanceof Error ? project.error.message : 'unknown')}
-        </p>
-        <Link className="text-sm text-accent hover:underline" to="/projects">
-          {zh.projects.detail.back}
-        </Link>
+      <div className="space-y-2 px-5 py-4">
+        <div className={noteCls('danger')}>
+          <span className={`${noteTitleCls} text-danger`}>
+            {zh.common.failed(project.error instanceof Error ? project.error.message : 'unknown')}
+          </span>
+          <p className="text-ink-body">{laneEngineering.state.retryHint}</p>
+          <div className="mt-2 flex items-center gap-2">
+            <button className={btnGhost} onClick={() => void project.refetch()}>
+              {laneEngineering.state.retry}
+            </button>
+            <Link className="text-sm text-accent hover:underline" to="/projects">
+              {zh.projects.detail.back}
+            </Link>
+          </div>
+        </div>
       </div>
     )
   }
@@ -204,46 +231,48 @@ export function ProjectDetailPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-wrap items-center gap-2 border-b border-line-hair px-5 py-3">
-        <Link className={`${btnGhost} h-[1.85rem] px-2 py-0 text-xs`} to="/projects">
-          ← {zh.projects.detail.back}
+      <header className="border-b border-line-hair px-5 pt-4 pb-3">
+        <Link className={`${btnGhost} h-7 px-2 py-0 text-xs`} to="/projects">
+          <Icon name="back" size={13} />
+          {zh.projects.detail.back}
         </Link>
-        <h1 className="text-base font-semibold">{view.name}</h1>
-        {templateName !== null && (
-          <span className="text-[11px] text-ink-faint">
-            {zh.projects.detail.snapshotFrom(templateName)}
-          </span>
-        )}
-        {view.status !== 'archived' && (
-          <button
-            className={`${btnGhost} ml-auto text-xs`}
-            onClick={() => setStatus('archived')}
-          >
-            {zh.projects.status.archived}
-          </button>
-        )}
+        <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <h1 className={h1Cls}>{view.name}</h1>
+          {view.status !== 'archived' && (
+            <button
+              className={`${btnGhost} ml-auto text-xs`}
+              onClick={() => setStatus('archived')}
+            >
+              {zh.projects.status.archived}
+            </button>
+          )}
+        </div>
+        <p className={h1SubCls}>
+          {templateName === null
+            ? laneEngineering.view.project
+            : `${zh.projects.detail.snapshotFrom(templateName)} · ${laneEngineering.view.project}`}
+        </p>
       </header>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-auto px-5 py-4">
-        <ProjectDashboard
-          project={view}
-          templateName={templateName}
-          injection={injection.data}
-          onStatusChange={setStatus}
-        />
-
-        <PortsPanel data={ports.data} />
-
-        <section className="rounded-lg border border-line bg-panel p-4">
-          <StageBar
-            stages={stages}
-            current={currentStage}
-            doneCount={doneCount}
-            onSwitch={switchTo}
+      {/* 四块并排：左列「阶段 + 清单 + 端口」，右列「看板 + 日志」——单栏会把每块推成一屏 */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 items-start gap-3 overflow-auto px-5 py-3 xl:grid-cols-2 xl:overflow-hidden">
+        <div className="min-h-0 space-y-3 xl:overflow-auto">
+          <ProjectDashboard
+            project={view}
+            templateName={templateName}
+            injection={injection.data}
+            onStatusChange={setStatus}
           />
-        </section>
 
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+          <section className={cardCls}>
+            <StageBar
+              stages={stages}
+              current={currentStage}
+              doneCount={doneCount}
+              onSwitch={switchTo}
+            />
+          </section>
+
           <ChecklistPanel
             stage={activeStage}
             stageProgress={percent}
@@ -259,6 +288,11 @@ export function ProjectDetailPage() {
               view.health.total,
             )}
           />
+
+          <PortsPanel data={ports.data} />
+        </div>
+
+        <div className="min-h-0 space-y-3 xl:overflow-auto">
           <div>
             <KanbanBoard
               tasks={taskItems}
@@ -273,34 +307,37 @@ export function ProjectDetailPage() {
               onCreate={(title, stageName) => createTask(title, stageName)}
             />
           </div>
-        </div>
 
-        <div>
-          <div className="mb-2 inline-flex items-center gap-0.5 rounded-sm border border-line bg-panel-2 p-0.5">
-            {DEVLOG_TYPES.map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setLogType(type)}
-                aria-pressed={logType === type}
-                className={`rounded-sm px-3 py-1.5 text-sm transition-colors ${
-                  logType === type
-                    ? 'bg-panel font-medium text-ink-body shadow-1'
-                    : 'text-ink-muted hover:text-ink-body'
-                }`}
-              >
-                {zh.projects.devlog.tabs[type]}
-              </button>
-            ))}
+          <div>
+            <div className={`${segCls} mb-2 w-fit`}>
+              {DEVLOG_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setLogType(type)}
+                  aria-pressed={logType === type}
+                  className={segItemCls}
+                >
+                  {zh.projects.devlog.tabs[type]}
+                </button>
+              ))}
+            </div>
+            <DevLogList
+              projectId={view.id}
+              projectName={view.name}
+              type={logType}
+              entries={devLog.data?.items ?? []}
+              loading={devLog.isLoading}
+              error={devLog.isError ? (devLog.error as Error).message : null}
+              onRetry={() => void devLog.refetch()}
+              onNew={() => setLogEditorOpen(true)}
+            />
           </div>
-          <DevLogList
-            projectId={view.id}
-            projectName={view.name}
-            type={logType}
-            entries={devLog.data?.items ?? []}
-            loading={devLog.isLoading}
-            onNew={() => setLogEditorOpen(true)}
-          />
+
+          {/* M8-E 助手桥接面板（m8-agent-panel.md FR-5.1.1：详情页内**一**个区，
+              不新开页面、不进侧边栏 —— 使用场景是「干活时顺手看」，跳页会打断协作上下文）。
+              挂在左列末尾：三子块自上而下按「上下文 → 回流 → 接入指引」排（FR-5.1.1.1）。 */}
+          <AgentPanel projectId={view.id} />
         </div>
       </div>
 

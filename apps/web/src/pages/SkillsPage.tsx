@@ -1,18 +1,23 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { SkillScanReport } from '@openvibe/shared'
+import { lane } from '../i18n/lane-assets'
+import { zh } from '../i18n/zh'
+import { AssetFilterBar, AssetPageHead, AssetSearchBox } from '../components/library/AssetPageHead'
+import { RefreshHint } from '../components/library/AssetStates'
 import { SkillCleanupDialog } from '../components/skills/SkillCleanupDialog'
 import { SkillEditorDrawer } from '../components/skills/SkillEditorDrawer'
 import { SkillList } from '../components/skills/SkillList'
 import { SkillRemoteDialog } from '../components/skills/SkillRemoteDialog'
 import { SkillReviewDialog } from '../components/skills/SkillReviewDialog'
+import { SkillToolsDialog } from '../components/skills/SkillToolsDialog'
 import { SkillUpdateDialog } from '../components/skills/SkillUpdateDialog'
 import { SkillScanReportView } from '../components/skills/SkillScanReportView'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
 import { toast } from '../components/ui/Toaster'
-import { btnDanger, btnGhost, btnPrimary, inputCls } from '../components/ui/styles'
+import { Icon } from '../components/ui/icons'
+import { btnDanger, btnGhost, btnPrimary } from '../components/ui/styles'
 import { useDebounced } from '../hooks/useDebounced'
 import { useSkillMutations, useSkillList, type SkillRow } from '../hooks/useSkills'
-import { zh } from '../i18n/zh'
 
 export function SkillsPage() {
   const [search, setSearch] = useState('')
@@ -20,21 +25,13 @@ export function SkillsPage() {
   const [editor, setEditor] = useState<{ skill: SkillRow | null } | null>(null)
   const [deleting, setDeleting] = useState<SkillRow | null>(null)
   const [report, setReport] = useState<SkillScanReport | null>(null)
-  const [rootsInput, setRootsInput] = useState('')
   const [remoteOpen, setRemoteOpen] = useState(false)
   const [cleanupOpen, setCleanupOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [updatesOpen, setUpdatesOpen] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const list = useSkillList(q)
   const { remove, scan } = useSkillMutations()
-
-  /** 自定义根：空格 / 中西文逗号分隔；空输入即回落默认扫描 */
-  const parseRoots = (raw: string): string[] =>
-    raw
-      .split(/[\s,，、]+/)
-      .map((s) => s.trim())
-      .filter((s) => s !== '')
-  const customRoots = parseRoots(rootsInput)
 
   const runScan = (roots?: string[]) =>
     scan.mutate(roots, {
@@ -45,69 +42,75 @@ export function SkillsPage() {
       onError: (e: Error) => toast(e.message, 'error'),
     })
 
+  const clearFilters = useCallback(() => setSearch(''), [])
+
+  // 工具箱里的按钮先关自己再开目标对话框，避免两个 Radix 焦点域叠在一起
+  const handoff =
+    (close: () => void, open: () => void) => () => {
+      close()
+      open()
+    }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-wrap items-center gap-2 border-b border-line-hair px-5 py-3">
-        <h1 className="mr-auto text-base font-semibold">{zh.skills.title}</h1>
-        <input
-          className={`${inputCls} w-64`}
-          placeholder={zh.skills.searchPlaceholder}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <input
-          className={`${inputCls} w-80 font-mono text-xs`}
-          placeholder={zh.skills.customScanPlaceholder}
-          value={rootsInput}
-          onChange={(e) => setRootsInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && customRoots.length > 0) runScan(customRoots)
-          }}
-        />
-        <button
-          className={btnGhost}
-          disabled={scan.isPending || customRoots.length === 0}
-          title={zh.skills.scanCustomHint}
-          onClick={() => runScan(customRoots)}
-        >
-          {scan.isPending ? zh.skills.scanning : zh.skills.scanCustom}
-        </button>
-        <button
-          className={btnGhost}
-          disabled={scan.isPending}
-          title={zh.skills.scanDefaultHint}
-          onClick={() => runScan(undefined)}
-        >
-          {scan.isPending ? zh.skills.scanning : zh.skills.scan}
-        </button>
-        <button className={btnGhost} onClick={() => setRemoteOpen(true)}>
-          {zh.skills.remoteImport}
-        </button>
-        <button className={btnGhost} onClick={() => setUpdatesOpen(true)}>
-          {zh.skills.checkUpdates}
-        </button>
-        <button className={btnGhost} onClick={() => setCleanupOpen(true)}>
-          {zh.skills.cleanup}
-        </button>
-        <button className={btnGhost} onClick={() => setReviewOpen(true)}>
-          {zh.skills.review}
-        </button>
-        <button className={btnPrimary} onClick={() => setEditor({ skill: null })}>
-          {zh.skills.create.title}
-        </button>
-      </header>
+      <AssetPageHead
+        title={zh.skills.title}
+        hint={lane.view.skills}
+        actions={
+          <>
+            <AssetSearchBox
+              value={search}
+              onChange={setSearch}
+              ariaLabel={zh.skills.searchPlaceholder}
+              widthClass="w-56"
+            />
+            <button className={btnPrimary} onClick={() => setEditor({ skill: null })}>
+              <Icon name="plus" size={12} />
+              {zh.skills.create.title}
+            </button>
+          </>
+        }
+        filters={
+          <AssetFilterBar
+            trailing={
+              <>
+                <RefreshHint busy={list.isFetching && !list.isLoading} />
+                <button className={btnGhost} onClick={() => setToolsOpen(true)} title={lane.skills.toolsHint}>
+                  <Icon name="layers" size={12} />
+                  {lane.skills.tools}
+                </button>
+              </>
+            }
+          >
+            {/* 默认扫描是最高频入口，留在筛选行左端一步可达 */}
+            <button
+              className={btnGhost}
+              disabled={scan.isPending}
+              title={zh.skills.scanDefaultHint}
+              onClick={() => runScan(undefined)}
+            >
+              <Icon name="refresh" size={12} />
+              {scan.isPending ? zh.skills.scanning : zh.skills.scan}
+            </button>
+            <span className="truncate text-[11px] text-ink-faint">{zh.skills.scanCustomHint}</span>
+          </AssetFilterBar>
+        }
+      />
 
       <SkillList
         items={list.data?.items ?? []}
         loading={list.isLoading}
+        error={list.error?.message ?? null}
+        searching={q.trim() !== ''}
+        onClearFilters={clearFilters}
+        onRetry={() => void list.refetch()}
         onEdit={(skill) => setEditor({ skill })}
         onDelete={setDeleting}
         onCreate={() => setEditor({ skill: null })}
       />
 
-      <footer className="border-t border-line-hair px-5 py-2 text-xs text-ink-muted">
-        {zh.skills.total(list.data?.total ?? 0)}
-        {list.isFetching && <span className="ml-2 text-ink-faint">刷新中…</span>}
+      <footer className="flex shrink-0 items-center gap-3 border-t border-line-hair px-5 py-1.5 text-xs text-ink-muted">
+        <span className="tabular-nums">{zh.skills.total(list.data?.total ?? 0)}</span>
       </footer>
 
       {editor !== null && (
@@ -120,6 +123,18 @@ export function SkillsPage() {
         />
       )}
 
+      <SkillToolsDialog
+        open={toolsOpen}
+        onClose={() => setToolsOpen(false)}
+        onScanRoots={(roots) => {
+          setToolsOpen(false)
+          runScan(roots)
+        }}
+        onOpenRemote={handoff(() => setToolsOpen(false), () => setRemoteOpen(true))}
+        onOpenUpdates={handoff(() => setToolsOpen(false), () => setUpdatesOpen(true))}
+        onOpenCleanup={handoff(() => setToolsOpen(false), () => setCleanupOpen(true))}
+        onOpenReview={handoff(() => setToolsOpen(false), () => setReviewOpen(true))}
+      />
       <SkillRemoteDialog open={remoteOpen} onClose={() => setRemoteOpen(false)} />
       <SkillCleanupDialog open={cleanupOpen} onClose={() => setCleanupOpen(false)} />
       <SkillReviewDialog open={reviewOpen} onClose={() => setReviewOpen(false)} />
@@ -167,8 +182,16 @@ export function SkillsPage() {
         >
           {deleting !== null && (
             <div className="space-y-2 text-sm">
-              <p>{zh.skills.deleteDialog.body(deleting.name)}</p>
-              <p className="text-xs text-ink-muted">{zh.skills.deleteDialog.note}</p>
+              {/* 影响范围：只删台账与版本历史，磁盘目录不受影响 */}
+              <p className="proseCls">{zh.skills.deleteDialog.body(deleting.name)}</p>
+              <p className="proseCls text-xs text-ink-muted">{zh.skills.deleteDialog.note}</p>
+              {deleting.installedTargets.length > 0 && (
+                <p className="proseCls text-xs text-ink-muted">
+                  <span className="mono">
+                    {deleting.installedTargets.join(' · ')}
+                  </span>
+                </p>
+              )}
             </div>
           )}
         </DialogPanel>

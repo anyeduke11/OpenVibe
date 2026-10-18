@@ -1,5 +1,6 @@
 import type { SkillScanReport } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
+import { Icon } from '../ui/icons'
 
 /** 扫描摘要条（m2 FR-1.5）：四项计数 + 扫描根清单 + warnings 明细（DEV-0063 起含根覆盖） */
 export function SkillScanReportView(props: { report: SkillScanReport }) {
@@ -53,11 +54,7 @@ export function SkillScanReportView(props: { report: SkillScanReport }) {
                 key={w}
                 className="inline-flex w-full items-start gap-1.5 rounded-full border border-warn-line bg-warn-soft px-2 py-0.5 text-[11px] text-warn"
               >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" className="mt-0.5 shrink-0">
-                  <path d="M8 1.5L1 14h14L8 1.5z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-                  <path d="M8 6v3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  <circle cx="8" cy="11.5" r="0.75" fill="currentColor" />
-                </svg>
+                <Icon name="warn" size={11} className="mt-0.5" />
                 <span className="mono">{w}</span>
               </li>
             ))}

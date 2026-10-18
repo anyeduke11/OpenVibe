@@ -1,5 +1,7 @@
 import type { Stage } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
+import { Icon } from '../ui/icons'
+import { chipTone } from '../ui/styles'
 
 /** 阶段条（m5 FR-3.1）：按快照顺序展示，当前阶段高亮，全勾标 ✅ */
 export function StageBar(props: {
@@ -21,16 +23,23 @@ export function StageBar(props: {
               type="button"
               onClick={() => props.onSwitch(stage.name)}
               aria-current={isCurrent ? 'step' : undefined}
-              className={`flex h-full flex-col items-start gap-0.5 rounded-md border px-3 py-2 text-left transition-colors ${
+              className={`flex h-full flex-col items-start gap-0.5 rounded-sm border px-2.5 py-1.5 text-left transition-colors ${
                 isCurrent
-                  ? 'border-accent bg-accent-soft text-accent'
+                  ? 'border-accent-line bg-accent-soft text-accent-deep'
                   : 'border-line bg-panel text-ink-muted hover:border-line-strong'
               }`}
             >
               <span className="text-xs font-medium">
-                {String(i + 1)}. {stage.name} {allDone && zh.projects.detail.stageAllDone}
+                {`${String(i + 1)}. ${stage.name}`}
+                {/* 全勾用状态 chip 说，不用 ✅（emoji 不做设计元素，DESIGN.md Don'ts） */}
+                {allDone && (
+                  <span className={chipTone('ok')}>
+                    <Icon name="check" size={10} />
+                    {zh.projects.detail.stageAllDone}
+                  </span>
+                )}
               </span>
-              <span className="text-[11px] opacity-80">
+              <span className="text-[11px] text-ink-muted">
                 {zh.projects.detail.progress(
                   total === 0 ? 0 : Math.round((done / total) * 100),
                   done,

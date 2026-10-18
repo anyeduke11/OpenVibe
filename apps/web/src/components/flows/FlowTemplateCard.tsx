@@ -1,8 +1,12 @@
 import type { FlowTemplateOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-import { btnDanger, btnGhost, chipTone } from '../ui/styles'
+import { Icon } from '../ui/icons'
+import { btnDanger, btnGhost, btnPrimary, cardBodyCls, cardCls, cardHeadCls, chipTone, tagCls } from '../ui/styles'
 
-/** 模板卡（dev-plan §5.2）：阶段/检查项概览 + 问答运行/编辑/复制/删除入口 */
+/**
+ * 模板卡（dev-plan §5.2）：阶段 / 检查项概览 + 问答运行 / 编辑 / 复制 / 删除入口。
+ * 卡头放「运行」这一支主动作（它是这张卡唯一能立刻推进事情的动作），其余进卡体行内次操作。
+ */
 export function FlowTemplateCard(props: {
   template: FlowTemplateOut
   projectCount: number
@@ -15,56 +19,62 @@ export function FlowTemplateCard(props: {
   const itemCount = template.stages.reduce((sum, s) => sum + s.checklist.length, 0)
   const hasPrompts = template.stages.some((s) => (s.prompt ?? '').trim() !== '')
   return (
-    <article className="flex flex-col gap-2 rounded-lg border border-line bg-panel p-4">
-      <header className="flex items-start gap-2">
-        <h3 className="text-sm font-semibold">{template.name}</h3>
-        <span
-          className={`${chipTone(template.builtin ? 'accent' : 'default')} ml-auto shrink-0`}
-        >
+    <article className={cardCls}>
+      <header className={cardHeadCls}>
+        <h3 className="truncate text-sm font-semibold text-ink">{template.name}</h3>
+        {/* 「内置 / 自定义」是状态，恒走「图标 + 文字 + 颜色」三通道 */}
+        <span className={`${chipTone(template.builtin ? 'accent' : 'default')} gap-1 whitespace-nowrap`}>
+          <Icon name={template.builtin ? 'lock' : 'copy'} size={11} />
           {template.builtin ? zh.flows.builtin : zh.flows.custom}
         </span>
-      </header>
-      <p className="text-xs text-ink-muted">
-        {zh.flows.kinds[template.kind]} · {zh.flows.stageCount(template.stages.length)} ·{' '}
-        {zh.flows.itemCount(itemCount)}
-      </p>
-      <ol className="flex flex-wrap gap-1 text-[11px] text-ink-muted">
-        {template.stages.map((s, i) => (
-          <li key={s.name} className="rounded border border-line-hair bg-panel-2 px-1.5 py-0.5">
-            {String(i + 1)}. {s.name}
-          </li>
-        ))}
-      </ol>
-      <footer className="mt-auto flex items-center gap-1.5 pt-1">
         {hasPrompts && (
-          <button className={btnGhost} onClick={() => props.onRun(template)}>
+          <button className={`${btnPrimary} ml-auto h-7 px-2 py-0 text-xs`} onClick={() => props.onRun(template)}>
+            <Icon name="pulse" size={13} />
             {zh.flows.actions.run}
           </button>
         )}
-        {template.builtin ? (
-          <>
-            <button className={btnGhost} onClick={() => props.onDuplicate(template)}>
-              {zh.flows.actions.duplicate}
-            </button>
-            <span className="ml-auto text-[11px] text-ink-faint">{zh.flows.builtinReadonly}</span>
-          </>
-        ) : (
-          <>
-            <button className={btnGhost} onClick={() => props.onEdit(template)}>
-              {zh.flows.actions.edit}
-            </button>
-            <button className={btnGhost} onClick={() => props.onDuplicate(template)}>
-              {zh.flows.actions.duplicate}
-            </button>
-            <button className={btnDanger} onClick={() => props.onDelete(template)}>
-              {zh.flows.actions.del}
-            </button>
-          </>
-        )}
-        <span className="ml-auto text-[11px] text-ink-faint">
-          {props.projectCount > 0 && zh.flows.inUseBy(props.projectCount)}
-        </span>
-      </footer>
+      </header>
+
+      <div className={cardBodyCls}>
+        <p className="text-[11px] text-ink-muted">
+          {`${zh.flows.kinds[template.kind]} · ${zh.flows.stageCount(template.stages.length)} · ${zh.flows.itemCount(itemCount)}`}
+        </p>
+
+        {/* 阶段链是这条模板的骨架信息：tag（纯文字元信息）而不是 chip —— 它没有状态语义 */}
+        <ol className="mt-1.5 flex flex-wrap gap-1">
+          {template.stages.map((s, i) => (
+            <li key={s.name} className={tagCls}>
+              {`${String(i + 1)}. ${s.name}`}
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {template.builtin ? (
+            <>
+              <button className={`${btnGhost} h-7 px-2 py-0 text-xs`} onClick={() => props.onDuplicate(template)}>
+                {zh.flows.actions.duplicate}
+              </button>
+              <span className="text-[11px] text-ink-faint">{zh.flows.builtinReadonly}</span>
+            </>
+          ) : (
+            <>
+              <button className={`${btnGhost} h-7 px-2 py-0 text-xs`} onClick={() => props.onEdit(template)}>
+                {zh.flows.actions.edit}
+              </button>
+              <button className={`${btnGhost} h-7 px-2 py-0 text-xs`} onClick={() => props.onDuplicate(template)}>
+                {zh.flows.actions.duplicate}
+              </button>
+              <button className={`${btnDanger} ml-auto h-7 px-2 py-0 text-xs`} onClick={() => props.onDelete(template)}>
+                {zh.flows.actions.del}
+              </button>
+            </>
+          )}
+          <span className="w-full text-[11px] tabular-nums text-ink-faint">
+            {props.projectCount > 0 && zh.flows.inUseBy(props.projectCount)}
+          </span>
+        </div>
+      </div>
     </article>
   )
 }

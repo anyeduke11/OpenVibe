@@ -4,7 +4,7 @@ import { usePromptAggregates } from '../../hooks/usePrompts'
 import { useSkillList } from '../../hooks/useSkills'
 import { useTermList } from '../../hooks/useTerms'
 import { zh } from '../../i18n/zh'
-import { chipTone, inputCls, noteCls } from '../ui/styles'
+import { cardCls, cardHeadCls, inputCls, noteCls, tagCls } from '../ui/styles'
 
 /** 选集四栏的 id 集合；同一形状复用给 STALE_SELECTION 明细（字段名与 resolve.ts 的 StaleDetails 一致） */
 export interface AssetIds {
@@ -53,14 +53,14 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
   const total = props.rows.length
 
   return (
-    <section className="flex h-[62vh] min-h-0 flex-col rounded-lg border border-line bg-panel">
-      <header className="flex items-center gap-2 border-b border-line-hair px-3 py-2">
-        <h3 className="mr-auto text-xs font-medium text-ink-muted">{`${props.title}（${String(total)}）`}</h3>
+    <section className={`${cardCls} flex h-[62vh] min-h-0 flex-col`}>
+      <header className={cardHeadCls}>
+        <h3 className="truncate text-xs font-semibold text-ink-muted">{`${props.title}（${String(total)}）`}</h3>
         <span className="text-[11px] text-ink-faint">{zh.packs.wizard.picked(props.ids.length)}</span>
       </header>
-      <div className="flex items-center gap-2 px-3 py-2">
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5">
         <input
-          className={`${inputCls} text-xs`}
+          className={`${inputCls} h-7 text-xs`}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={zh.packs.wizard.searchAsset}
@@ -80,7 +80,7 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
           {zh.packs.wizard.clearSel}
         </button>
       </div>
-      <ul className="min-h-0 flex-1 overflow-auto border-t border-line-hair px-1 pb-2">
+      <ul className="min-h-0 flex-1 overflow-auto border-t border-line-hair px-1 py-1">
         {shown.length === 0 && (
           <li className="px-3 py-2 text-xs text-ink-faint">{zh.packs.wizard.noneAvailable}</li>
         )}
@@ -89,7 +89,7 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
           return (
             <li key={row.id}>
               <label
-                className={`flex cursor-pointer items-start gap-2 rounded px-2 py-1.5 text-sm hover:bg-panel-2 ${
+                className={`flex cursor-pointer items-start gap-2 rounded-sm px-2 py-1 text-sm hover:bg-panel-2 ${
                   isStale ? 'bg-danger-soft text-danger' : ''
                 }`}
               >
@@ -102,9 +102,8 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
                 <span className="min-w-0">
                   <span className="block truncate" title={props.label(row)}>
                     {props.label(row)}
-                    <span className={`${chipTone('default')} ml-1.5`}>
-                      {props.badge(row)}
-                    </span>
+                    {/* 列内 badge 是元信息不是状态 → tag */}
+                    <span className={`${tagCls} ml-1.5`}>{props.badge(row)}</span>
                   </span>
                   <span className="block truncate text-[11px] text-ink-faint">{props.note(row)}</span>
                 </span>
@@ -139,7 +138,7 @@ export function AssetPicker(props: AssetPickerProps) {
           {zh.packs.preview.stale(staleAll.join(', '))}
         </p>
       )}
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-4">
+      <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-4">
         <Column
           title={zh.packs.wizard.promptsCol}
           rows={byUpdated(prompts.data?.items ?? [])}

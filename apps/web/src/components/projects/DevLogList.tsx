@@ -2,7 +2,23 @@ import { useState } from 'react'
 import type { DevLogOut, DevLogType } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 import { MarkdownPreview } from '../library/MarkdownPreview'
-import { btnGhost, btnPrimary, chipTone } from '../ui/styles'
+import { Icon } from '../ui/icons'
+import {
+  btnGhost,
+  btnPrimary,
+  cardBodyCls,
+  cardCls,
+  cardHeadCls,
+  chipTone,
+  emptyHintCls,
+  ledgerNumCls,
+  noteCls,
+  noteTitleCls,
+  rowCls,
+  skelCls,
+  tagCls,
+} from '../ui/styles'
+import { laneEngineering } from '../../i18n/lane-engineering'
 import { ReflowActions } from './ReflowActions'
 
 /** 日志列表（m5 FR-5.3）：时间倒序、类型过滤、单条展开渲染 Markdown + 回流入口 */
@@ -12,55 +28,75 @@ export function DevLogList(props: {
   type: DevLogType
   entries: DevLogOut[]
   loading: boolean
+  error: string | null
+  onRetry: () => void
   onNew: () => void
 }) {
   const [open, setOpen] = useState<string | null>(null)
   const fileName = props.type === 'DEV' ? 'DEV_LOG.md' : 'CHECK_LOG.md'
 
   return (
-    <section className="rounded-lg border border-line bg-panel p-4">
-      <header className="mb-2 flex items-center gap-2">
-        <h2 className="text-sm font-semibold">{zh.projects.devlog.title}</h2>
-        <span className={chipTone('default')}>
-          {String(props.entries.length)}
-        </span>
+    <section className={`${cardCls} mt-2`}>
+      <header className={cardHeadCls}>
+        <h2 className="text-xs font-semibold text-ink-muted">{zh.projects.devlog.title}</h2>
+        <span className={`${tagCls} tabular-nums`}>{String(props.entries.length)}</span>
         <a
-          className={`${btnGhost} ml-auto`}
+          className={`${btnGhost} ml-auto h-7 px-2 py-0 text-xs`}
           href={`/api/projects/${props.projectId}/devlog/export?type=${props.type}`}
           download={fileName}
           title={zh.projects.devlog.exportHint}
         >
           {zh.projects.devlog.export(fileName)}
         </a>
-        <button className={btnPrimary} onClick={props.onNew}>
+        <button className={`${btnPrimary} h-7 px-2 py-0 text-xs`} onClick={props.onNew}>
           {zh.projects.devlog.newEntry(props.type)}
         </button>
       </header>
 
-      {props.loading && <p className="text-sm text-ink-faint">{zh.common.loading}</p>}
-      {!props.loading && props.entries.length === 0 && (
-        <p className="text-sm text-ink-muted">{zh.projects.devlog.empty}</p>
-      )}
+      <div className={cardBodyCls}>
+        {props.loading &&
+          [0, 1].map((i) => (
+            <div key={i} className={`${skelCls} mb-2 h-8 w-full`} aria-hidden />
+          ))}
+        {props.error !== null && (
+          <div className={noteCls('danger')}>
+            <span className={`${noteTitleCls} text-danger`}>{zh.common.failed(props.error)}</span>
+            <p className="text-ink-body">{laneEngineering.state.retryHint}</p>
+            <button type="button" className={`${btnGhost} mt-1.5`} onClick={props.onRetry}>
+              {laneEngineering.state.retry}
+            </button>
+          </div>
+        )}
+        {!props.loading && props.error === null && props.entries.length === 0 && (
+          <div className={emptyHintCls}>
+            <p>{zh.projects.devlog.empty}</p>
+            <button className={btnPrimary} onClick={props.onNew}>
+              {zh.projects.devlog.newEntry(props.type)}
+            </button>
+          </div>
+        )}
 
-      <ol className="space-y-2">
-        {props.entries.map((entry) => {
-          const expanded = open === entry.id
-          return (
-            <li key={entry.id} className="rounded-md border border-line px-3 py-2">
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 text-left"
-                onClick={() => setOpen(expanded ? null : entry.id)}
-              >
-                <span className={`${chipTone('accent')} font-medium`}>
-                  {entry.displayNo}
-                </span>
-                <span className="truncate text-sm text-ink-body">
-                  {entry.title === '' ? entry.body.split('\n')[0]?.slice(0, 40) ?? '' : entry.title}
-                </span>
-                <span className="ml-auto shrink-0 text-[11px] text-ink-faint">{entry.createdAt}</span>
-                <span className="shrink-0 text-[11px] text-ink-faint">{expanded ? '▴' : '▾'}</span>
-              </button>
+        <ol className="space-y-1.5">
+          {props.entries.map((entry) => {
+            const expanded = open === entry.id
+            return (
+              <li key={entry.id} className={`${rowCls} rounded-sm`}>
+                <button
+                  type="button"
+                  className="flex w-full items-center gap-2 py-1.5 text-left"
+                  onClick={() => setOpen(expanded ? null : entry.id)}
+                >
+                  <span className={`${chipTone('accent')} font-medium tabular-nums`}>
+                    {entry.displayNo}
+                  </span>
+                  <span className="truncate text-sm text-ink-body">
+                    {entry.title === '' ? (entry.body.split('\n')[0]?.slice(0, 40) ?? '') : entry.title}
+                  </span>
+                  <span className={`${ledgerNumCls} ml-auto shrink-0 text-[11px] text-ink-faint`}>
+                    {entry.createdAt}
+                  </span>
+                  <Icon name={expanded ? 'fwd' : 'fwd'} size={12} className="shrink-0 text-ink-faint rotate-90" />
+                </button>
 
               {entry.relatedFiles.length > 0 && (
                 <p className="mt-1 text-[11px] text-ink-muted">
@@ -85,9 +121,10 @@ export function DevLogList(props: {
                 </>
               )}
             </li>
-          )
-        })}
-      </ol>
+            )
+          })}
+        </ol>
+      </div>
     </section>
   )
 }

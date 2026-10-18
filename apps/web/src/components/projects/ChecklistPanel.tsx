@@ -1,6 +1,6 @@
 import type { Stage } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-import { chipTone } from '../ui/styles'
+import { cardBodyCls, cardCls, cardHeadCls, emptyHintCls, tagMonoCls } from '../ui/styles'
 
 export interface OrphanStageState {
   stageName: string
@@ -19,9 +19,9 @@ export function ChecklistPanel(props: {
 }) {
   const { stage } = props
   return (
-    <section className="rounded-lg border border-line bg-panel p-4">
-      <header className="mb-2 flex items-baseline gap-2">
-        <h2 className="text-sm font-semibold">{zh.projects.checklist.title}</h2>
+    <section className={cardCls}>
+      <header className={cardHeadCls}>
+        <h2 className="text-xs font-semibold text-ink-muted">{zh.projects.checklist.title}</h2>
         {stage !== undefined && (
           <span className="text-xs text-ink-muted">
             {props.stageProgress(
@@ -32,11 +32,14 @@ export function ChecklistPanel(props: {
         )}
         <span className="ml-auto text-[11px] text-ink-faint">{props.projectProgressLine}</span>
       </header>
+      <div className={cardBodyCls}>
 
       {stage === undefined ? (
-        <p className="text-sm text-ink-muted">{zh.projects.checklist.empty}</p>
+        <div className={emptyHintCls}>
+          <p>{zh.projects.checklist.empty}</p>
+        </div>
       ) : (
-        <ul className="space-y-1.5">
+        <ul className="space-y-0.5">
           {stage.checklist.map((item) => {
             const on = props.isChecked(item.id)
             return (
@@ -52,27 +55,25 @@ export function ChecklistPanel(props: {
                   <span className={on ? 'text-ink-faint line-through' : 'text-ink-body'}>
                     {item.text}
                   </span>
-                  <span className={`${chipTone('default')} ml-auto shrink-0`}>
-                    {item.id}
-                  </span>
+                  <span className={`${tagMonoCls} ml-auto shrink-0`}>{item.id}</span>
                 </label>
               </li>
             )
           })}
           {stage.checklist.length === 0 && (
-            <li className="text-sm text-ink-faint">{zh.projects.checklist.empty}</li>
+            <li className="py-1 text-sm text-ink-faint">{zh.projects.checklist.empty}</li>
           )}
         </ul>
       )}
 
       {stage !== undefined && stage.artifacts.length > 0 && (
-        <p className="mt-3 text-[11px] text-ink-muted">
+        <p className="mt-2 text-[11px] text-ink-muted">
           {zh.flows.editor.artifacts}: {stage.artifacts.join('、')}
         </p>
       )}
 
       {props.orphans.length > 0 && (
-        <details className="mt-3 rounded-md border border-line-hair bg-panel-2 px-3 py-2">
+        <details className="mt-2 rounded-md border border-line-hair bg-panel-2 px-3 py-2">
           <summary className="cursor-pointer text-[11px] text-ink-muted">
             {zh.projects.checklist.removedStage}（{String(props.orphans.length)}）
           </summary>
@@ -86,6 +87,7 @@ export function ChecklistPanel(props: {
           </ul>
         </details>
       )}
+      </div>
     </section>
   )
 }

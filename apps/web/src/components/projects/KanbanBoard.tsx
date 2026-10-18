@@ -19,7 +19,9 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { TASK_STATUS, type TaskOut, type TaskStatus } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-import { btnGhost, chipTone, inputCls } from '../ui/styles'
+import { cardBodyCls, cardCls, cardHeadCls, btnGhost, chipTone, inputCls } from '../ui/styles'
+import { Icon } from '../ui/icons'
+import { laneEngineering } from '../../i18n/lane-engineering'
 
 function isTaskStatus(value: string): value is TaskStatus {
   return (TASK_STATUS as readonly string[]).includes(value)
@@ -62,6 +64,8 @@ function TaskCard(props: CardProps) {
     data: { status: column },
   })
   const [editing, setEditing] = useState(false)
+  // 删除是破坏动作：行内二次确认，第一下只武装不提交
+  const [armed, setArmed] = useState(false)
   const [draft, setDraft] = useState(task.title)
 
   const commit = () => {
@@ -78,8 +82,8 @@ function TaskCard(props: CardProps) {
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`rounded-md border bg-panel p-2 text-sm ${
-        isDragging ? 'border-accent shadow-md' : 'border-line'
+      className={`rounded-sm border bg-panel p-1.5 text-sm ${
+        isDragging ? 'border-accent shadow-1' : 'border-line'
       }`}
     >
       <div className="flex items-start gap-1.5">
@@ -90,7 +94,7 @@ function TaskCard(props: CardProps) {
           {...attributes}
           {...listeners}
         >
-          ⠿
+          <Icon name="list" size={13} />
         </button>
         {editing ? (
           <input
@@ -121,11 +125,21 @@ function TaskCard(props: CardProps) {
         )}
         <button
           type="button"
-          aria-label={zh.flows.actions.del}
-          className="px-0.5 text-ink-faint hover:text-danger"
-          onClick={() => props.onDelete(task.id)}
+          aria-label={armed ? laneEngineering.taskDelete.confirm : zh.flows.actions.del}
+          title={armed ? laneEngineering.taskDelete.confirm : undefined}
+          className={`shrink-0 px-1 text-[11px] ${
+            armed ? 'text-danger' : 'text-ink-faint hover:text-danger'
+          }`}
+          onClick={() => {
+            if (!armed) {
+              setArmed(true)
+              return
+            }
+            setArmed(false)
+            props.onDelete(task.id)
+          }}
         >
-          ✕
+          {armed ? laneEngineering.taskDelete.armed : '✕'}
         </button>
       </div>
 
@@ -193,13 +207,13 @@ function Column(props: { status: TaskStatus; count: number; children: ReactNode 
   return (
     <div
       ref={setNodeRef}
-      className={`flex min-h-40 flex-col rounded-lg border p-2 ${
-        isOver ? 'border-accent bg-accent-soft/40' : 'border-line bg-panel-2'
+      className={`flex min-h-28 flex-col rounded-md border p-1.5 ${
+        isOver ? 'border-accent bg-accent-soft' : 'border-line bg-panel-2'
       }`}
     >
-      <header className="mb-2 flex items-center gap-2 px-1">
+      <header className="mb-1.5 flex items-center gap-2 px-1">
         <h3 className="text-xs font-medium text-ink-muted">{zh.projects.kanban.columns[props.status]}</h3>
-        <span className="text-[11px] text-ink-faint">{String(props.count)}</span>
+        <span className="text-[11px] tabular-nums text-ink-faint">{String(props.count)}</span>
       </header>
       {props.children}
     </div>
@@ -292,22 +306,23 @@ export function KanbanBoard(props: {
   }
 
   return (
-    <section className="rounded-lg border border-line bg-panel p-4">
-      <header className="mb-2 flex items-center gap-2">
-        <h2 className="text-sm font-semibold">{zh.projects.kanban.title}</h2>
+    <section className={cardCls}>
+      <header className={cardHeadCls}>
+        <h2 className="text-xs font-semibold text-ink-muted">{zh.projects.kanban.title}</h2>
         <span className="text-[11px] text-ink-faint">{zh.projects.kanban.dragHint}</span>
         {activeId !== null && (
           <span className="ml-auto text-[11px] text-accent">{zh.projects.kanban.dragging}</span>
         )}
       </header>
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        onDragCancel={() => setActiveId(null)}
-      >
-        <div className="grid gap-2 md:grid-cols-3">
+      <div className={cardBodyCls}>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+          onDragCancel={() => setActiveId(null)}
+        >
+          <div className="grid gap-2 md:grid-cols-3">
           {TASK_STATUS.map((status) => {
             const list = byColumn(status)
             return (
@@ -316,7 +331,7 @@ export function KanbanBoard(props: {
                   items={list.map((t) => t.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <ul className="flex-1 space-y-1.5">
+                  <ul className="flex-1 space-y-1">
                     {list.map((task, i) => (
                       <TaskCard
                         key={task.id}
@@ -332,7 +347,7 @@ export function KanbanBoard(props: {
                       />
                     ))}
                     {list.length === 0 && (
-                      <li className="px-1 py-3 text-center text-[11px] text-ink-faint">
+                      <li className="px-1 py-2 text-center text-[11px] text-ink-faint">
                         {zh.projects.kanban.emptyColumn}
                       </li>
                     )}
@@ -343,6 +358,7 @@ export function KanbanBoard(props: {
           })}
         </div>
       </DndContext>
+      </div>
     </section>
   )
 }

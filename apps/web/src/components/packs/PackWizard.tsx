@@ -14,7 +14,8 @@ import { usePackExports, usePackList, usePackMutations, usePackPreview } from '.
 import { useFlowTemplates } from '../../hooks/useFlows'
 import { zh } from '../../i18n/zh'
 import { toast } from '../ui/Toaster'
-import { btnGhost, btnPrimary, chipTone, inputCls, labelCls, noteCls } from '../ui/styles'
+import { btnGhost, btnPrimary, chipPressed, chipTone, h1Cls, h1SubCls, inputCls, labelCls, noteCls, segCls, segItemCls } from '../ui/styles'
+import { laneEngineering } from '../../i18n/lane-engineering'
 import { AssetPicker, type AssetIds } from './AssetPicker'
 import { PackPreviewPane } from './PackPreviewPane'
 
@@ -62,6 +63,12 @@ export function PackWizard(props: { initial: PackOut | null }) {
   const [savedId, setSavedId] = useState<string | null>(initial?.id ?? null)
   const [rev, setRev] = useState(0)
   const [step, setStep] = useState(0)
+  /** 走到的最远步：步骤条只允许回到走过的步（m6a FR-1「任何一步可回退」） */
+  const [maxStep, setMaxStep] = useState(0)
+  const goTo = (next: number): void => {
+    setStep(next)
+    setMaxStep((m) => Math.max(m, next))
+  }
   const [name, setName] = useState(initial?.name ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [flowTemplateId, setFlowTemplateId] = useState<string>(initial?.selection.flowTemplateId ?? '')
@@ -147,11 +154,11 @@ export function PackWizard(props: { initial: PackOut | null }) {
     } catch (e) {
       const err = e as ApiError
       if (err.code === 'NAME_CONFLICT') {
-        setStep(0)
+        goTo(0)
         toast(err.message, 'error')
       } else if (err.code === 'STALE_SELECTION') {
         setStale(toAssetIds(err.details))
-        setStep(2)
+        goTo(2)
         toast(err.message, 'error')
       } else {
         toast(err.message, 'error')
@@ -172,7 +179,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
       setSaving(false)
       if (id === null) return
     }
-    setStep((s) => Math.min(STEPS.length - 1, s + 1))
+    goTo(Math.min(STEPS.length - 1, step + 1))
   }
 
   const runExport = async (channel: 'download' | 'directory') => {
@@ -197,7 +204,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
       const err = e as ApiError
       if (err.code === 'STALE_SELECTION') {
         setStale(toAssetIds(err.details))
-        setStep(2)
+        goTo(2)
       }
       toast(err.message, 'error')
     }
@@ -229,11 +236,31 @@ export function PackWizard(props: { initial: PackOut | null }) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-3 border-b border-line-hair px-5 py-3">
-        <h1 className="text-base font-semibold">{`${
-          initial === null ? zh.packs.wizard.title : zh.packs.wizard.editTitle
-        } · ${STEPS[step] ?? ''}`}</h1>
-        <span className="ml-auto text-[11px] text-ink-faint">{`${String(step + 1)} / ${String(STEPS.length)}`}</span>
+      <header className="border-b border-line-hair px-5 pt-4 pb-3">
+        <h1 className={h1Cls}>
+          {initial === null ? zh.packs.wizard.title : zh.packs.wizard.editTitle}
+        </h1>
+        <p className={h1SubCls}>{laneEngineering.view.packNew}</p>
+        {/* 步骤条本身就是导航：走过的步都能点回去，未走过的不能点（否则绕过校验直接看空预览） */}
+        <ol className={`${segCls} mt-3 flex-wrap`}>
+          {STEPS.map((label, i) => {
+            const visited = i <= maxStep
+            const on = i === step
+            return (
+              <li key={label}>
+                <button
+                  type="button"
+                  aria-current={on ? 'step' : undefined}
+                  disabled={!visited}
+                  className={`${segItemCls} ${on ? chipPressed : ''} disabled:opacity-40`}
+                  onClick={() => goTo(i)}
+                >
+                  {label}
+                </button>
+              </li>
+            )
+          })}
+        </ol>
       </header>
 
       <div className="flex-1 overflow-auto px-5 py-4">
@@ -370,7 +397,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
                     className="ml-2 underline"
                     onClick={() => {
                       setStale(previewStale)
-                      setStep(2)
+                      goTo(2)
                     }}
                   >
                     {zh.packs.preview.backToAssets}
@@ -400,7 +427,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
         <button
           className={btnGhost}
           disabled={step === 0 || saving}
-          onClick={() => setStep((s) => Math.max(0, s - 1))}
+          onClick={() => goTo(Math.max(0, step - 1))}
         >
           {zh.packs.wizard.prev}
         </button>

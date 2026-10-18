@@ -7,7 +7,7 @@ import { PromptEditorDrawer } from '../library/PromptEditorDrawer'
 import { PlaybookEditorDrawer } from '../playbooks/PlaybookEditorDrawer'
 import { TermEditorDrawer } from '../terms/TermEditorDrawer'
 import { toast } from '../ui/Toaster'
-import { btnGhost, chipTone } from '../ui/styles'
+import { btnGhost, tagCls } from '../ui/styles'
 
 function selectedText(): string {
   return (window.getSelection()?.toString() ?? '').trim()
@@ -56,7 +56,7 @@ export function ReflowActions(props: { entry: DevLogOut; projectName: string }) 
       </button>
       <span className="text-[11px] text-ink-faint">{zh.projects.reflow.pickHint}</span>
       {entry.linkedAssetIds.length > 0 && (
-        <span className={`${chipTone('default')} ml-auto`}>
+        <span className={`${tagCls} ml-auto`}>
           {zh.projects.devlog.linkedAssets(entry.linkedAssetIds.length)}
         </span>
       )}

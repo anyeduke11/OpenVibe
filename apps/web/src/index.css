@@ -138,6 +138,11 @@ body,
   height: 100%;
 }
 
+/* 滚动条常驻槽位：侧栏计数/列表行数变化时内容不左右跳（DESIGN.md「列对齐即信任」） */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -166,6 +171,14 @@ input {
   line-height: 1.72;
   color: var(--color-ink);
   word-break: break-word;
+  /* 行长闸门：正文超 68ch 即换行容器，不拉宽文本块
+     （DESIGN.md Readability Contract 第 3 条）。代码块与表格不随之收窄：
+     pre 自己横向滚动，table 允许自然溢出到容器。 */
+  max-width: 68ch;
+}
+.html-md pre,
+.html-md table {
+  max-width: none;
 }
 .html-md h1,
 .html-md h2,
