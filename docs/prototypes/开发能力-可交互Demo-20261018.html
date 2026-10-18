@@ -1,0 +1,2019 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>开发能力 · 可交互 Demo · OpenVibe 灵典</title>
+<!--
+  M9「开发能力」交互原型 · 单文件零依赖 · 2026-10-18
+
+  ⚠️ 这是原型，不是产品代码：不在 apps/ packages/ 下，不参与 typecheck / test / bundle:check。
+     ⇒ specs/m9-dev-language-roadmap.md §7 的 29 条判据本轮零通过。
+     边界逐条列在 §10.2。本文件自己有一条能当场自证的：降级自检按钮（§10.3 第 2 条）。
+
+  视觉：内联复制 apps/web/src/index.css 的 29 支颜色 token × 双主题，不新增任何字面色阶。
+  字体：Outfit / JetBrains Mono 未随本文件分发（LICENSE 见仓库 assets/fonts），
+        此处退到系统栈 —— 真实页面走 @font-face 自托管。
+-->
+<style>
+/* ══════════════ token：亮（暖纸）· 29 支，与 apps/web/src/index.css 逐字一致 ══════════════ */
+:root {
+  --font-sans: 'Outfit', 'PingFang SC', 'Hiragino Sans GB', 'HarmonyOS Sans SC', 'MiSans',
+    'Microsoft YaHei', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  --shadow-1: 0 1px 2px color-mix(in srgb, var(--color-scrim) 5%, transparent),
+    0 1px 1px color-mix(in srgb, var(--color-scrim) 4%, transparent);
+  --shadow-2: 0 4px 16px -4px color-mix(in srgb, var(--color-scrim) 12%, transparent),
+    0 2px 4px color-mix(in srgb, var(--color-scrim) 5%, transparent);
+  --shadow-3: 0 24px 48px -16px color-mix(in srgb, var(--color-scrim) 26%, transparent),
+    0 8px 16px -8px color-mix(in srgb, var(--color-scrim) 12%, transparent);
+
+  --color-accent: #a8501c;
+  --color-accent-deep: #7c3811;
+  --color-accent-soft: #f7e8d7;
+  --color-accent-line: #e4c9ab;
+  --color-on-accent: #fffaf3;
+
+  --color-canvas: #faf5ec;
+  --color-panel: #fffdf9;
+  --color-panel-2: #f8f1e6;
+  --color-panel-sunk: #f1e7d8;
+
+  --color-line-hair: #efe5d5;
+  --color-line: #e3d6c1;
+  --color-line-strong: #cdbca2;
+
+  --color-ink: #2a2018;
+  --color-ink-body: #4a3b2d;
+  --color-ink-muted: #6a5846;
+  --color-ink-faint: #75634c;
+
+  --color-scrim: #2a2018;
+
+  --color-ok: #3d6b37;
+  --color-ok-soft: #ecf2e3;
+  --color-ok-line: #c6dcbb;
+
+  --color-warn: #92610e;
+  --color-warn-soft: #f9efd7;
+  --color-warn-line: #e6cf9d;
+
+  --color-danger: #ab3527;
+  --color-danger-soft: #fbe7e2;
+  --color-danger-line: #eec2b8;
+
+  --color-info: #2b5a74;
+  --color-info-soft: #e4edf2;
+  --color-info-line: #bdd3df;
+}
+
+/* ══════════════ token：暗（暖夜）· 同构，只换光照不换层级 ══════════════ */
+[data-theme='dark'] {
+  --color-accent: #e9a63f;
+  --color-accent-deep: #c4822e;
+  --color-accent-soft: #372814;
+  --color-accent-line: #4a3320;
+  --color-on-accent: #1b1510;
+
+  --color-canvas: #16120f;
+  --color-panel: #1e1a14;
+  --color-panel-2: #26201a;
+  --color-panel-sunk: #2d2820;
+
+  --color-line-hair: #28251f;
+  --color-line: #3a362c;
+  --color-line-strong: #4a4538;
+
+  --color-ink: #f0ebe0;
+  --color-ink-body: #c8c2b4;
+  --color-ink-muted: #a39e8e;
+  --color-ink-faint: #9a8b76;
+
+  --color-scrim: #080503;
+
+  --color-ok: #74b290;
+  --color-ok-soft: #1f2e25;
+  --color-ok-line: #2a4234;
+
+  --color-warn: #c89c3f;
+  --color-warn-soft: #2f2817;
+  --color-warn-line: #57451b;
+
+  --color-danger: #e8836f;
+  --color-danger-soft: #33221d;
+  --color-danger-line: #5a2f27;
+
+  --color-info: #6f9cc5;
+  --color-info-soft: #1c2a38;
+  --color-info-line: #24384a;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; display: flex;
+  background: var(--color-canvas);
+  color: var(--color-ink-body);
+  font-family: var(--font-sans);
+  font-size: 14px; line-height: 1.6;
+}
+
+/* ── 侧栏 ───────────────────────────────────────────── */
+.side {
+  width: 232px; flex: none; height: 100vh; overflow-y: auto;
+  background: var(--color-panel); border-right: 1px solid var(--color-line);
+  padding: 14px 10px 24px;
+}
+.brand { display: flex; gap: 9px; align-items: center; padding: 4px 8px 14px; }
+.brand-tile {
+  width: 30px; height: 30px; border-radius: var(--radius-sm); flex: none;
+  background: linear-gradient(150deg, var(--color-accent), var(--color-accent-deep));
+  color: var(--color-on-accent); display: grid; place-items: center;
+  font-size: 12px; font-weight: 700;
+}
+.brand-name { color: var(--color-ink); font-weight: 650; font-size: 13.5px; line-height: 1.25; }
+.brand-sub { color: var(--color-ink-faint); font-size: 11px; }
+.nav-group { margin-top: 14px; }
+.nav-title {
+  font-size: 11px; color: var(--color-ink-faint); letter-spacing: .04em;
+  padding: 0 8px 5px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; border-radius: var(--radius-md);
+  color: var(--color-ink-muted); cursor: default; font-size: 13px;
+}
+.nav-item .ic { width: 16px; text-align: center; opacity: .75; font-size: 12px; }
+.nav-item.on {
+  background: var(--color-accent-soft); color: var(--color-accent-deep);
+  font-weight: 600; box-shadow: inset 2px 0 0 var(--color-accent);
+}
+.nav-item.on .ic { opacity: 1; }
+.nav-item .badge-new {
+  margin-left: auto; font-size: 10px; padding: 0 5px; border-radius: var(--radius-full);
+  background: var(--color-accent); color: var(--color-on-accent);
+}
+
+/* ── 主区 ───────────────────────────────────────────── */
+main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100vh; }
+.top {
+  height: 58px; flex: none; display: flex; align-items: center; gap: 12px;
+  padding: 0 20px; background: var(--color-panel);
+  border-bottom: 1px solid var(--color-line);
+  position: sticky; top: 0; z-index: 5;
+}
+.top h1 { font-size: 15px; margin: 0; color: var(--color-ink); font-weight: 650; }
+.top .spacer { flex: 1; }
+.scroll { overflow-y: auto; padding: 18px 20px 60px; }
+
+/* ── chip / tag / note（形制取自 DESIGN.md 的 chip 六形制；.tag 尚未登记，是本仓待办缺口） ── */
+.chip, .tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: var(--radius-full); font-size: 11.5px; line-height: 1.7;
+  padding: 1px 8px; white-space: nowrap;
+}
+.tag { background: var(--color-panel-sunk); color: var(--color-ink-muted); border: 1px solid var(--color-line-hair); }
+.chip.ok { background: var(--color-ok-soft); color: var(--color-ok); border: 1px solid var(--color-ok-line); }
+.chip.warn { background: var(--color-warn-soft); color: var(--color-warn); border: 1px solid var(--color-warn-line); }
+.chip.danger { background: var(--color-danger-soft); color: var(--color-danger); border: 1px solid var(--color-danger-line); }
+.chip.info { background: var(--color-info-soft); color: var(--color-info); border: 1px solid var(--color-info-line); }
+.chip.acc { background: var(--color-accent-soft); color: var(--color-accent-deep); border: 1px solid var(--color-accent-line); }
+
+.note {
+  border-radius: var(--radius-md); padding: 9px 12px; font-size: 12.5px;
+  background: var(--color-info-soft); border: 1px solid var(--color-info-line); color: var(--color-ink-body);
+}
+.note.warn { background: var(--color-warn-soft); border-color: var(--color-warn-line); }
+.note.danger { background: var(--color-danger-soft); border-color: var(--color-danger-line); }
+/* 只让「标题那个 b」成块；正文里的 <b>（如「本次命中 <b>37</b> 处」）必须留在行内 ——
+   写成 `.note b` 会把每一个加粗数字都顶成独立行，读起来像坏了。 */
+.note > b:first-child { display: block; color: var(--color-ink); margin-bottom: 2px; }
+
+.card {
+  background: var(--color-panel); border: 1px solid var(--color-line);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-1);
+}
+.card-h {
+  padding: 10px 13px; border-bottom: 1px solid var(--color-line-hair);
+  font-size: 12.5px; color: var(--color-ink); font-weight: 620;
+  display: flex; align-items: center; gap: 8px;
+}
+.card-h .spacer { flex: 1; }
+.card-b { padding: 12px 13px; }
+
+/* ── 摘要 ── */
+.hero { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+.stat { padding: 10px 12px; }
+.stat .k { font-size: 11px; color: var(--color-ink-faint); }
+.stat .v { font-size: 21px; color: var(--color-ink); font-variant-numeric: tabular-nums; line-height: 1.3; }
+.stat .s { font-size: 11px; color: var(--color-ink-muted); }
+
+.bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.pill {
+  border-radius: var(--radius-full); padding: 4px 13px; font-size: 12.5px; cursor: pointer;
+  background: var(--color-panel); border: 1px solid var(--color-line); color: var(--color-ink-muted);
+}
+.pill[aria-pressed='true'] {
+  background: var(--color-accent-soft); border-color: var(--color-accent-line);
+  color: var(--color-accent-deep); font-weight: 600;
+}
+
+/* ── 三栏 ── */
+.work { display: grid; grid-template-columns: 186px minmax(330px, 1.05fr) minmax(360px, 1.35fr); gap: 12px; align-items: start; }
+.stages { list-style: none; margin: 0; padding: 6px; }
+.stage {
+  padding: 8px 9px; border-radius: var(--radius-sm); cursor: pointer; margin-bottom: 2px;
+  border: 1px solid transparent;
+}
+.stage:hover { background: var(--color-panel-2); }
+.stage.on { background: var(--color-panel-sunk); border-color: var(--color-line); }
+.stage .n { font-size: 10px; color: var(--color-ink-faint); font-variant-numeric: tabular-nums; }
+.stage .t { font-size: 12.5px; color: var(--color-ink); }
+.stage.on .t { font-weight: 620; }
+.stage .g { font-size: 11px; color: var(--color-ink-muted); margin-top: 1px; }
+.stage .meter { height: 3px; border-radius: 2px; background: var(--color-line-hair); margin-top: 5px; overflow: hidden; }
+.stage .meter i { display: block; height: 100%; background: var(--color-accent); }
+
+.topics { list-style: none; margin: 0; padding: 0; }
+.topic {
+  padding: 9px 11px; border-bottom: 1px solid var(--color-line-hair); cursor: pointer;
+}
+.topic:last-child { border-bottom: 0; }
+.topic:hover { background: var(--color-panel-2); }
+.topic.on { background: var(--color-accent-soft); }
+.topic .r1 { display: flex; align-items: center; gap: 7px; }
+.topic .ttl { color: var(--color-ink); font-size: 13px; font-weight: 560; }
+.topic .r2 { color: var(--color-ink-muted); font-size: 11.5px; margin-top: 2px; }
+.topic .spacer { flex: 1; }
+.lock { opacity: .55; }
+
+.detail h3 { margin: 0 0 3px; font-size: 15px; color: var(--color-ink); }
+.detail .meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.sec { margin-top: 13px; }
+.sec > h4 {
+  margin: 0 0 6px; font-size: 11.5px; color: var(--color-ink-faint); font-weight: 600;
+  letter-spacing: .03em; display: flex; align-items: center; gap: 6px;
+}
+.steps { margin: 0; padding-left: 19px; color: var(--color-ink-body); font-size: 13px; }
+.steps li { margin-bottom: 3px; }
+pre.code {
+  margin: 0; padding: 9px 11px; border-radius: var(--radius-sm);
+  background: var(--color-panel-sunk); border: 1px solid var(--color-line-hair);
+  font-family: var(--font-mono); font-size: 11.5px; line-height: 1.65;
+  color: var(--color-ink); overflow-x: auto; white-space: pre;
+}
+.code-cap { font-size: 11px; color: var(--color-ink-faint); margin: 4px 0 2px; }
+table.mini { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.mini th, table.mini td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--color-line-hair); vertical-align: top; }
+table.mini th { font-size: 11px; color: var(--color-ink-faint); font-weight: 600; }
+table.mini td { color: var(--color-ink-body); }
+.termchip {
+  display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+  border-radius: var(--radius-full); padding: 1px 9px; font-size: 11.5px;
+  background: var(--color-panel-2); border: 1px solid var(--color-line); color: var(--color-info);
+}
+.termchip:hover { background: var(--color-info-soft); border-color: var(--color-info-line); }
+
+/* ── 按钮 ── */
+button.b {
+  border-radius: var(--radius-sm); padding: 5px 11px; font-size: 12.5px; cursor: pointer;
+  font-family: inherit; border: 1px solid var(--color-line); background: var(--color-panel); color: var(--color-ink-body);
+}
+button.b:hover { background: var(--color-panel-2); }
+button.b.pri { background: var(--color-accent); border-color: var(--color-accent); color: var(--color-on-accent); font-weight: 560; }
+button.b.pri:hover { background: var(--color-accent-deep); border-color: var(--color-accent-deep); }
+button.b:disabled { opacity: .45; cursor: not-allowed; }
+button.b.sm { padding: 3px 8px; font-size: 11.5px; }
+.switch { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--color-ink-muted); cursor: pointer; }
+.switch input { accent-color: var(--color-accent); width: 15px; height: 15px; }
+
+/* ── 抽屉（源码解读） ── */
+.mask {
+  position: fixed; inset: 0; background: color-mix(in srgb, var(--color-scrim) 34%, transparent);
+  opacity: 0; pointer-events: none; transition: opacity 160ms; z-index: 40;
+}
+.mask.on { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: fixed; top: 0; right: 0; height: 100vh; width: min(720px, 94vw);
+  background: var(--color-canvas); border-left: 1px solid var(--color-line);
+  box-shadow: var(--shadow-3); transform: translateX(102%);
+  transition: transform 160ms; z-index: 41; display: flex; flex-direction: column;
+}
+.drawer.on { transform: none; }
+.dh { flex: none; padding: 12px 16px; border-bottom: 1px solid var(--color-line); background: var(--color-panel); }
+.dh .r1 { display: flex; align-items: center; gap: 8px; }
+.dh h2 { margin: 0; font-size: 14.5px; color: var(--color-ink); }
+.db { flex: 1; overflow-y: auto; padding: 14px 16px 40px; }
+.find { border: 1px solid var(--color-line); border-radius: var(--radius-md); background: var(--color-panel); margin-bottom: 8px; }
+.find .fh { display: flex; align-items: center; gap: 8px; padding: 8px 11px; flex-wrap: wrap; }
+.find .path { font-family: var(--font-mono); font-size: 11.5px; color: var(--color-ink); }
+.find .ln { font-family: var(--font-mono); font-size: 11.5px; color: var(--color-accent-deep); }
+.find .fb { border-top: 1px dashed var(--color-line-hair); padding: 8px 11px; }
+.find .fb pre { background: transparent; padding: 0; border: 0; }
+.ledger { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ledger th, .ledger td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--color-line-hair); }
+.ledger th { font-size: 11px; color: var(--color-ink-faint); font-weight: 600; }
+.ledger td { font-variant-numeric: tabular-nums; }
+.foot { padding: 8px 20px 20px; color: var(--color-ink-faint); font-size: 11.5px; line-height: 1.7; }
+.okflag { color: var(--color-ok); font-weight: 600; }
+.badflag { color: var(--color-danger); font-weight: 600; }
+/* ── 顶部视图切换 ── */
+.tabs { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--radius-full);
+  background: var(--color-panel-2); border: 1px solid var(--color-line-hair); }
+.tab { border: 0; background: transparent; font-family: inherit; font-size: 12.5px; cursor: pointer;
+  padding: 4px 12px; border-radius: var(--radius-full); color: var(--color-ink-muted); }
+.tab.on { background: var(--color-panel); color: var(--color-accent-deep); font-weight: 620;
+  box-shadow: var(--shadow-1); }
+/* ── 资源卡 ── */
+.resgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 9px; }
+.rescard { padding: 10px 12px; display: flex; flex-direction: column; gap: 5px; }
+.rescard .n { font-size: 13px; color: var(--color-ink); font-weight: 600; line-height: 1.45; }
+.rescard .n a { color: var(--color-info); text-decoration: none; }
+.rescard .n a:hover { text-decoration: underline; }
+.rescard .d { font-size: 12px; color: var(--color-ink-body); }
+.rescard .f { font-size: 11px; color: var(--color-ink-faint); }
+.rescard .meta { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+.phase { display: grid; grid-template-columns: 62px 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--color-line-hair); }
+.phase:last-child { border-bottom: 0; }
+.phase .ph { font-size: 11px; color: var(--color-ink-faint); }
+.phase .ph b { display: block; color: var(--color-ink); font-size: 13px; font-weight: 620; }
+.phase ul { margin: 4px 0 0; padding-left: 17px; font-size: 12.5px; }
+textarea.ta {
+  width: 100%; min-height: 150px; font-family: var(--font-mono); font-size: 11px;
+  background: var(--color-panel-sunk); color: var(--color-ink);
+  border: 1px solid var(--color-line); border-radius: var(--radius-sm); padding: 8px; resize: vertical;
+}
+.srcgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.src { padding: 8px 10px; }
+.src .u { font-family: var(--font-mono); font-size: 11px; color: var(--color-ink-muted); }
+@media (max-width: 1180px) { .work { grid-template-columns: 1fr; } .hero { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+
+<aside class="side">
+  <div class="brand">
+    <div class="brand-tile">OV</div>
+    <div>
+      <div class="brand-name">OpenVibe 灵典</div>
+      <div class="brand-sub">个人工作台</div>
+    </div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-title">工作台</div>
+    <div class="nav-item"><span class="ic">◱</span>工作台总览</div>
+    <div class="nav-item"><span class="ic">▤</span>项目</div>
+    <div class="nav-item"><span class="ic">⛭</span>技能</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-title">成长与统计</div>
+    <div class="nav-item"><span class="ic">↗</span>成长</div>
+    <div class="nav-item"><span class="ic">☰</span>台账</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-title">资产</div>
+    <div class="nav-item"><span class="ic">▣</span>资料库</div>
+    <div class="nav-item"><span class="ic">✦</span>术语</div>
+    <!-- M9 新增：assets 组内，紧随「术语」（两者互链最密） -->
+    <div class="nav-item on"><span class="ic">◈</span>开发能力<span class="badge-new">新</span></div>
+    <div class="nav-item"><span class="ic">▦</span>标准包</div>
+    <div class="nav-item"><span class="ic">▩</span>流程模板</div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-title">系统</div>
+    <div class="nav-item"><span class="ic">⚙</span>设置</div>
+  </div>
+</aside>
+
+<main>
+  <div class="top">
+    <h1>开发能力</h1>
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-view="topics">知识点</button>
+      <button class="tab" data-view="res">学习资源 <span class="tag" id="resCount"></span></button>
+      <button class="tab" data-view="cmp">两门对照</button>
+    </div>
+    <span class="tag">项目：招商银行 · 主机安全巡检平台</span>
+    <div class="spacer"></div>
+    <label class="switch" data-ai-chrome title="关掉后内容区不得出现任何 AI 字样（DL-08 的界面侧形态）">
+      <input type="checkbox" id="aiOn" checked /> AI 可用
+    </label>
+    <button class="b" id="themeBtn">暖纸 / 暖夜</button>
+  </div>
+
+  <div class="scroll">
+    <div id="view-topics" class="view">
+    <div class="hero" id="hero"></div>
+
+    <div class="bar">
+      <span style="font-size:12px;color:var(--color-ink-faint)">语言</span>
+      <button class="pill" data-lang="python" aria-pressed="true">Python 3.13</button>
+      <button class="pill" data-lang="go" aria-pressed="false">Go 1.23</button>
+      <span class="spacer" style="flex:1"></span>
+      <span id="scanMode"></span>
+      <button class="b pri" id="openSrc">源码解读（T0 ＋ T1 ＋ T2）</button>
+      <button class="b" id="selfcheck">降级自检</button>
+    </div>
+
+    <div class="note" style="margin-bottom:10px">
+      <b>本页的两套「阶段」不是同一套，互不推导</b>
+      左边的 <b>站</b>是本模块的知识点 DAG 层（前置依赖决定谁挡谁，§3.6）；
+      「学习资源」页里的 <b>指南阶段</b>是 owner 提供的《Python 与 Go 系统学习指南》原样分期（含周数与产出）。
+      两者<b>不交叉引用、不互相推导</b> —— 与本模块对 <code>growth-path</code> 的处置是同一条纪律（§4.1）。
+    </div>
+
+    <div class="work">
+      <div class="card">
+        <div class="card-h">进度<span class="spacer"></span><span class="tag" id="stageCount"></span></div>
+        <ul class="stages" id="stages"></ul>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span id="topicHead">知识点</span><span class="spacer"></span><span class="tag" id="topicMeta"></span></div>
+        <ul class="topics" id="topics"></ul>
+      </div>
+
+      <div class="card detail" id="detail"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="card-h">来源健康（只存链接不存正文 · 每条出处带取证日）</div>
+      <div class="card-b">
+        <div class="srcgrid" id="sources"></div>
+        <div class="note warn" style="margin-top:9px">
+          <b>为什么有一条要标红</b>
+          awesome-python-cn 最后更新 2022-08-29，已停更 4 年。本产品不静默把它当有效来源 —— 它只作「延伸阅读」外链，
+          <b>不</b>参与任何知识点判定。
+        </div>
+      </div>
+    </div>
+    </div><!-- /view-topics -->
+
+    <div id="view-res" class="view" hidden></div>
+    <div id="view-cmp" class="view" hidden></div>
+  </div>
+
+  <div class="foot" id="foot"></div>
+</main>
+
+<div class="mask" id="mask"></div>
+<div class="drawer" id="drawer" role="dialog" aria-label="源码解读">
+  <div class="dh">
+    <div class="r1">
+      <h2>源码解读</h2>
+      <span id="dScan"></span>
+      <div class="spacer" style="flex:1"></div>
+      <button class="b" id="closeSrc">关闭</button>
+    </div>
+  </div>
+  <div class="db" id="drawerBody"></div>
+</div>
+
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════════════════════
+   一 · 样例工程（随 demo 附带的合成源码；不是真实项目，见 §10.2）
+   行号不写死 —— 全部在运行时由扫描器解析出来，所以导出清单里的行号
+   与文件内容永远一致（这正是 DL-22 要断的那件事）。
+   ═══════════════════════════════════════════════════════════════════════ */
+const GEN_RULES = ['ssh_perm','sudo_nopasswd','empty_passwd','shell_history','cron_allow_all',
+  'port_open','weak_ssh_key','root_login','no_audit_rule','time_sync','ntp_off','selinux_off',
+  'firewall_off','password_age','sudo_log','last_log','uid0_dup','path_tmp','mount_nosuid','core_dump'];
+
+const pyStream = [
+  '"""巡检流水线的规则流（样例工程）。',
+  '',
+  '说明：下面 20 个函数是同一个人复制出来的 —— 每一份的函数体完全一样，',
+  '只改了规则名。这正是「源码命中 20 次但只计 1 次」的真实形态。',
+  '"""',
+  'from typing import Iterator',
+  '',
+].concat(GEN_RULES.flatMap((r, i) => [
+  '',
+  `def gen_${r}(rows: list[str]) -> Iterator[str]:`,
+  `    """筛出命中 ${r} 的行。"""`,
+  '    for row in rows:',
+  `        if rule_${r}(row):`,
+  '            yield row',
+])).concat([
+  '',
+  'def _rule_generic(row: str) -> bool:',
+  '    return ":" in row',
+]);
+
+const FILES = {
+  'backend/app.py': [
+    '"""主机安全巡检平台 · 采集任务入口（样例工程）。"""',
+    'from typing import Dict, List',
+    '',
+    'from fastapi import FastAPI',
+    '',
+    'from backend.collectors.base import CollectorContext',
+    'from backend.report.render import render_summary',
+    '',
+    'app = FastAPI(title="host-inspection")',
+    '',
+    '',
+    '@app.get("/collectors")',
+    'def list_collectors() -> List[str]:',
+    '    """返回已注册的采集器名称。"""',
+    '    return ["linux_host", "db_audit", "net_device"]',
+    '',
+    '',
+    '@app.get("/tasks/{task_id}")',
+    'def get_task(task_id: str) -> Dict[str, str]:',
+    '    with CollectorContext(task_id) as ctx:',
+    '        return render_summary(ctx.snapshot())',
+  ].join('\n'),
+
+  'backend/collectors/base.py': [
+    'import logging',
+    'from abc import ABC, abstractmethod',
+    'from typing import Iterator, List, Optional',
+    '',
+    'log = logging.getLogger(__name__)',
+    '',
+    '',
+    'class CollectorError(RuntimeError):',
+    '    """采集器执行失败。"""',
+    '',
+    '',
+    'class CollectorContext:',
+    '    """一次采集任务的上下文：进入时开审计，退出时收尾。"""',
+    '',
+    '    def __init__(self, task_id: str) -> None:',
+    '        self.task_id = task_id',
+    '        self._rows: List[str] = []',
+    '',
+    '    def __enter__(self) -> "CollectorContext":',
+    '        log.info("collector start task=%s", self.task_id)',
+    '        return self',
+    '',
+    '    def __exit__(self, exc_type, exc, tb) -> None:',
+    '        if exc_type is not None:',
+    '            raise CollectorError(f"task {self.task_id} 失败") from exc',
+    '        log.info("collector done rows=%d", len(self._rows))',
+    '',
+    '    def snapshot(self) -> List[str]:',
+    '        return list(self._rows)',
+    '',
+    '',
+    'class BaseCollector(ABC):',
+    '    name: str = ""',
+    '',
+    '    @abstractmethod',
+    '    def collect(self) -> Iterator[str]:',
+    '        raise NotImplementedError',
+    '',
+    '    def find(self, needle: str) -> Optional[str]:',
+    '        for row in self._rows:',
+    '            if needle in row:',
+    '                return row',
+    '        return None',
+  ].join('\n'),
+
+  'backend/report/render.py': [
+    'from dataclasses import dataclass',
+    'from typing import Dict, List',
+    '',
+    '',
+    '@dataclass(frozen=True)',
+    'class HostFinding:',
+    '    host: str',
+    '    rule: str',
+    '    severity: str',
+    '',
+    '',
+    'def render_summary(rows: List[HostFinding]) -> Dict[str, str]:',
+    '    """把采集结果汇总成报告页要的字典。"""',
+    '    counts: Dict[str, int] = {}',
+    '    for row in rows:',
+    '        counts[row.severity] = counts.get(row.severity, 0) + 1',
+    '    hosts = sorted({row.host for row in rows})',
+    '    top = [f"{h}:{counts.get(\'high\', 0)}" for h in hosts]',
+    '    return {',
+    '        "hosts": "、".join(hosts),',
+    '        "high": f"高危 {counts.get(\'high\', 0)} 条",',
+    '        "detail": "；".join(top) or "无命中",',
+    '    }',
+  ].join('\n'),
+
+  'backend/pipeline/stream.py': pyStream.join('\n'),
+
+  'agent/main.go': [
+    'package main',
+    '',
+    'import (',
+    '\t"context"',
+    '\t"log"',
+    '\t"os"',
+    '\t"os/signal"',
+    '\t"sync"',
+    '\t"syscall"',
+    '\t"time"',
+    '',
+    '\t"hostinsp/agent/collector"',
+    ')',
+    '',
+    'func main() {',
+    '\tctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)',
+    '\tdefer stop()',
+    '',
+    '\thosts := loadHosts("configs/hosts.txt")',
+    '\tfindings := make(chan collector.Finding, len(hosts))',
+    '\tvar wg sync.WaitGroup',
+    '',
+    '\tfor _, h := range hosts {',
+    '\t\twg.Add(1)',
+    '\t\tgo func(host string) {',
+    '\t\t\tdefer wg.Done()',
+    '\t\t\tfor _, f := range collector.Collect(ctx, host) {',
+    '\t\t\t\tselect {',
+    '\t\t\t\tcase findings <- f:',
+    '\t\t\t\tcase <-ctx.Done():',
+    '\t\t\t\t\tlog.Printf("collector %s cancelled", host)',
+    '\t\t\t\t\treturn',
+    '\t\t\t\t}',
+    '\t\t\t}',
+    '\t\t}(h)',
+    '\t}',
+    '',
+    '\tgo func() {',
+    '\t\twg.Wait()',
+    '\t\tclose(findings)',
+    '\t}()',
+    '',
+    '\tout, err := os.Create("findings.jsonl")',
+    '\tif err != nil {',
+    '\t\tlog.Fatalf("create output: %v", err)',
+    '\t}',
+    '\tdefer out.Close()',
+    '',
+    '\tdeadline := time.After(30 * time.Second)',
+    '\tcount := 0',
+    '\tfor f := range findings {',
+    '\t\tselect {',
+    '\t\tcase <-deadline:',
+    '\t\t\tlog.Printf("timeout, flushed %d findings", count)',
+    '\t\t\treturn',
+    '\t\tdefault:',
+    '\t\t}',
+    '\t\tif err := out.WriteString(f.String() + "\\n"); err != nil {',
+    '\t\t\tlog.Printf("write: %v", err)',
+    '\t\t}',
+    '\t\tcount++',
+    '\t}',
+    '\tlog.Printf("done: %d findings", count)',
+    '}',
+    '',
+    'func loadHosts(path string) []string {',
+    '\tb, err := os.ReadFile(path)',
+    '\tif err != nil {',
+    '\t\tlog.Fatalf("read hosts: %v", err)',
+    '\t}',
+    '\tvar out []string',
+    '\tfor _, line := range splitLines(string(b)) {',
+    '\t\tif line != "" {',
+    '\t\t\tout = append(out, line)',
+    '\t\t}',
+    '\t}',
+    '\treturn out',
+    '}',
+  ].join('\n'),
+
+  'agent/collector.go': [
+    'package collector',
+    '',
+    'import (',
+    '\t"context"',
+    '\t"fmt"',
+    '\t"strings"',
+    ')',
+    '',
+    'type Finding struct {',
+    '\tHost     string `json:"host"`',
+    '\tRule     string `json:"rule"`',
+    '\tSeverity string `json:"severity"`',
+    '}',
+    '',
+    'type Collector interface {',
+    '\tCollect(ctx context.Context, host string) ([]Finding, error)',
+    '\tRules() []string',
+    '}',
+    '',
+    'type SSHCollector struct {',
+    '\tTimeout int',
+    '}',
+    '',
+    'func (c *SSHCollector) Rules() []string {',
+    '\treturn []string{"ssh_perm", "sudo_nopasswd"}',
+    '}',
+    '',
+    'func (c *SSHCollector) Collect(ctx context.Context, host string) ([]Finding, error) {',
+    '\tout := make([]Finding, 0, 8)',
+    '\traw, err := readLines(ctx, host)',
+    '\tif err != nil {',
+    '\t\treturn nil, fmt.Errorf("collect %s: %w", host, err)',
+    '\t}',
+    '\tfor _, line := range raw {',
+    '\t\tif strings.HasPrefix(line, "root:") {',
+    '\t\t\tout = append(out, Finding{Host: host, Rule: "ssh_perm", Severity: "high"})',
+    '\t\t}',
+    '\t}',
+    '\treturn out, nil',
+    '}',
+    '',
+    'func readLines(ctx context.Context, host string) ([]string, error) {',
+    '\treturn nil, fmt.Errorf("ssh not configured: %s", host)',
+    '}',
+    '',
+    'var _ Collector = (*SSHCollector)(nil)',
+  ].join('\n'),
+
+  'agent/parse.go': [
+    'package collector',
+    '',
+    'import "strings"',
+    '',
+    'func ParseRule(lines []string) map[string]int {',
+    '\tcounts := map[string]int{}',
+    '\tfor i, line := range lines {',
+    '\t\tfields := strings.Split(line, ":")',
+    '\t\tif len(fields) < 2 {',
+    '\t\t\tcontinue',
+    '\t\t}',
+    '\t\tcounts[fields[1]] += i % 3',
+    '\t}',
+    '\treturn counts',
+    '}',
+  ].join('\n'),
+};
+
+/* 20 个复制出来的规则谓词（真实存在，才让 20 次命中是真的） */
+for (const r of GEN_RULES) {
+  FILES['backend/pipeline/stream.py'] += `\n\ndef rule_${r}(row: str) -> bool:\n    return row.startswith("${r}")`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   二 · 知识点数据
+   ├ 共通概念 8 个（跨语言写一份）＝ content_level 'full'
+   └ 语言专有 16 个（8 Python + 8 Go）＝ 前 4 写满、后 4 要点
+   实测全量是 Python 84 条 / Go 34 条（§1.5），本 demo 只铺 8 + 8，
+   界面上如实写「样例铺了 8 / 84」，不假装铺满。
+   ═══════════════════════════════════════════════════════════════════════ */
+const REF = {
+  runoobPy: { t: 'Python3 教程（菜鸟）', u: 'https://www.runoob.com/python3/python3-tutorial.html' },
+  runoobGo: { t: 'Go 教程（菜鸟）', u: 'https://www.runoob.com/go/go-tutorial.html' },
+  xinliang: { t: 'Go 笔记 · 基础语法', u: 'https://github.com/xinliangnote/Golang' },
+  // 超出 runoob 目录的部分（Web/工程化）改挂另两个源；apycn 已停更，出处上必须写出来
+  apycn: { t: 'awesome-python-cn（已停更 2022-08-29）', u: 'https://github.com/jobbole/awesome-python-cn' },
+  ago: { t: 'awesome-go · 主题索引', u: 'https://github.com/sindresorhus/awesome-go' },
+};
+const CHECKED = '2026-10-18';
+
+const CONCEPTS = {
+  variable: {
+    title: '变量与类型', kind: 'language', stage: 0,
+    summary: '名字绑值；两门都是静态类型，但推断时机不同。',
+    steps: [
+      '先分清「声明」和「赋值」这两件事在两门里分别由谁承担。',
+      '写同一段「swap 两个值」的代码，两门各写一遍，看差异出现在哪一行。',
+      '找出「类型写在哪儿」：Python 写在运行时对象的属性上，Go 写在源码声明里。',
+    ],
+    principle: 'Python 的变量是「名字 → 对象」的绑定，赋值只是换绑定，改类型不违法；Go 的变量有编译期类型，一旦声明就是那个类型，换类型要新声明。这决定了 Python 里一个函数能收什么由调用方决定，Go 里由签名决定。',
+    samples: {
+      python: 'x: int = 1\nx = "一"        # 合法：只是换了个名字的绑定\n\ndef f(v):        # 运行时才知道 v 是什么\n    return type(v).__name__',
+      go: 'var x int = 1\nx = "一"            // 编译错误：cannot use "一" as int\n\nfunc f(v interface{}) string {\n\treturn fmt.Sprintf("%T", v)\n}',
+    },
+    deltas: [
+      ['类型系统', '动态 · 运行期绑定，可换绑', '静态 · 声明即定型，换型须新声明'],
+      ['空值', 'None（所有类型都能是 None）', '零值（int 是 0、指针是 nil，须自己判断）'],
+    ],
+  },
+  function: {
+    title: '函数', kind: 'language', stage: 2,
+    summary: '两门都是一等公民，差别在返回值表达与多返回值。',
+    steps: [
+      '把同一件事（读文件、解析、报错）各写一个函数，两门对照。',
+      '重点看「怎么把错误带出来」—— 这是两门分歧最大的一处。',
+      '再看「返回值有几个」，Go 天然支持多返回，Python 靠元组。',
+    ],
+    principle: '函数是「输入 → 输出」的映射。真正的差别不在写法而在约定：Python 抛异常、约定「不返回就是出错」；Go 把 error 当第一个返回值、约定「你必须检查」。前者让主流程干净但把控制流藏进栈里，后者啰嗦但错误路径在代码里看得见。',
+    samples: {
+      python: 'def parse(line: str) -> tuple[str, Exception | None]:\n    if ":" not in line:\n        return "", ValueError("缺少冒号")\n    return line.split(":", 1)[0], None',
+      go: 'func parse(line string) (string, error) {\n\tif !strings.Contains(line, ":") {\n\t\treturn "", errors.New("缺少冒号")\n\t}\n\treturn strings.SplitN(line, ":", 2)[0], nil\n}',
+    },
+    deltas: [
+      ['错误表达', '抛异常（raise / except）', '返回值（error 必被检查）'],
+      ['多返回值', '元组，需解包', '语言级支持 (a, err)'],
+      ['参数默认值', 'def f(x=1) 词法绑定', 'func f(x int) 调用方传，另有可变参 …T'],
+    ],
+  },
+  error: {
+    title: '错误处理', kind: 'language', stage: 4,
+    summary: '异常栈 vs error 链；「谁在栈上」决定了排查体验。',
+    steps: [
+      '故意抛一个深层错误，分别看两门打印出来的东西。',
+      '找出「哪一层负责决定这句话怎么说」—— 两门答案不同。',
+      '学会 Go 的 `%w` 包装：不包装就丢上下文。',
+    ],
+    principle: 'Python 的 traceback 是解释器在展开栈时现场拼的，所以每一层都自动带上「我从哪儿来」；Go 没有栈展开，错误是一张被逐层传下去的值，不包装就只剩最内层那句话。⇒ Python 调试「信息够但控制流隐形」，Go 控制流「看得见但信息要自己接」。',
+    samples: {
+      python: 'try:\n    rows = load(path)\nexcept OSError as exc:\n    raise ConfigError(f"读取 {path} 失败") from exc   # from 是显式因果链',
+      go: 'rows, err := load(path)\nif err != nil {\n\treturn nil, fmt.Errorf("读取 %s 失败: %w", path, err)  // %w 才是包装\n}',
+    },
+    deltas: [
+      ['栈信息', '自动展开，每层都带', '无展开；靠 %w 逐层接'],
+      ['分支写法', 'try / except', 'if err != nil'],
+      ['忽略错误', '写 except: pass（静默）', '写 _ = err（编译能过但不显眼）'],
+    ],
+  },
+  datamodel: {
+    title: '数据建模', kind: 'language', stage: 3,
+    summary: 'class/dataclass 与 struct；字段可见性与默认值规则不同。',
+    steps: [
+      '同一个「一条巡检结论」各写一个数据结构。',
+      '数一数：哪些字段是必需的、哪些有默认值、哪些不可变。',
+      '注意 Python 里「改一个 dataclass 的字段要重建所有实例」这件事。',
+    ],
+    principle: 'Go 的 struct 是内存布局，字段访问是固定偏移，没有继承；Python 的 class 是对象模板，实例属性存在对象自己的字典里，运行时可增删。两者的直接后果：Go 里「一个类型可以有两种形状」必须靠嵌入多个 struct，Python 里可以随手 monkeypatch。',
+    samples: {
+      python: '@dataclass(frozen=True)\nclass Finding:\n    host: str\n    severity: str = "info"   # 有默认值\n\nf = Finding("web01")        # frozen：改字段要先 copy.replace',
+      go: 'type Finding struct {\n\tHost     string `json:"host"`\n\tSeverity string `json:"severity"`\n}\n\nf := Finding{Host: "web01"}  // 零值即空串',
+    },
+    deltas: [
+      ['继承', '类继承（单链）＋组合', '无继承，用嵌入（struct 里放 struct）'],
+      ['字段可变', '运行时可增删（__dict__）', '编译期固定'],
+      ['默认值', '构造时显式给 / 类属性', '零值（0 / "" / nil），不给就是零值'],
+    ],
+  },
+  polymorphism: {
+    title: '接口与多态', kind: 'language', stage: 3,
+    summary: 'Python 鸭子类型靠「有就行」，Go 靠「声明归属」。',
+    steps: [
+      '写两个不相干类型，都实现同一个方法，故意不写任何基类声明。',
+      '在 Python 侧看看能不能调用；在 Go 侧看编译是否通过。',
+      '对比：Go 为什么需要 `var _ Collector = (*SSHCollector)(nil)` 这一行。',
+    ],
+    principle: 'Python 的多态是运行时的：一个对象只要有那个方法就能传进去，接口是「调用点临时凑出来的」。Go 的接口是具名的、且通常由**使用方**声明（不是实现方），这样接口才不会随实现膨胀。代价是 Go 必须显式声明归属，样板代码换来了可搜索的实现关系。',
+    samples: {
+      python: 'class Ssh:            # 没有基类\n    def collect(self): return []\n\ndef run(c):                  # 传入即可用\n    return c.collect()        # 只要有 collect 就行',
+      go: 'type Collector interface {\n\tCollect(ctx context.Context, host string) ([]Finding, error)\n}\n\nfunc run(c Collector) ([]Finding, error) {\n\treturn c.Collect(ctx, host)\n}\n\nvar _ Collector = (*SSHCollector)(nil)   // 编译期归属声明',
+    },
+    deltas: [
+      ['接口归属', '隐式（运行期凑出来）', '显式具名（通常由使用方声明）'],
+      ['实现检查', '到运行才发现', '编译期（需 var _ 断言行）'],
+      ['空接口', '没有 None 之外的「无实现」', 'nil；且 nil 接口调方法会 panic'],
+    ],
+  },
+  concurrency: {
+    title: '并发原语', kind: 'language', stage: 5,
+    summary: '协程/线程/任务 与 goroutine/channel；共享内存 vs 消息传递。',
+    steps: [
+      '先决定用哪种模型：共享内存（要锁）还是消息传递（要通道）。',
+      '把「同时跑 N 个任务并汇总结果」各写一遍，注意汇总处怎么等。',
+      'Go 里特意看 `wg.Wait()` 放在哪个 goroutine 里 —— 放错位置就死锁。',
+    ],
+    principle: 'Python 的并发是**协作式**的：一个线程只在 await 点让出控制权，所以 CPU 密集任务开多线程没用，得用多进程。Go 的 goroutine 是**抢占式**的且调度在运行时内，函数只要不超过 1KB 栈就随便起。两条推论：Python 遇「并发了但没变快」先查是不是 CPU 密集；Go 遇「起太多 goroutine」先查是不是漏了 Wait/close。',
+    samples: {
+      python: 'async def one(h):\n    async with httpx.AsyncClient() as c:\n        return (await c.get(h)).status_code\n\nresults = await asyncio.gather(*[one(h) for h in hosts])   # 只在 await 点让出',
+      go: 'var wg sync.WaitGroup\nfor _, h := range hosts {\n\twg.Add(1)\n\tgo func(host string) {\n\t\tdefer wg.Done()\n\t\tdo(host)\n\t}(h)\n}\nwg.Wait()   // 主 goroutine 等，预抢占',
+    },
+    deltas: [
+      ['调度', '协作式：只在 await 点让出', '抢占式：运行时可随时切换'],
+      ['标识', 'Task / 线程 / 进程', 'goroutine（默认栈 2KB，按需涨）'],
+      ['同步', 'Lock / Semaphore / 队列', 'channel（首选）+ sync.WaitGroup'],
+      ['数据竞争', 'GIL 下线程安全≠进程安全', '共享内存必须显式锁或走 channel'],
+    ],
+  },
+  module: {
+    title: '模块与包', kind: 'language', stage: 2,
+    summary: '导入语法、可见性、循环导入 —— 三门差异最大的工程面。',
+    steps: [
+      '同一目录组织两门各一个包，注意「谁先被加载」。',
+      '试一次循环导入，看两门分别报什么错。',
+      '找出 Go 里「小写开头 = 包外不可见」这条规则影响了哪些设计。',
+    ],
+    principle: 'Python 的包靠 `__init__.py` 与目录本身，`import` 会**执行**模块顶层代码；Go 的包靠目录，一个目录一个包，标识符首字母大小写决定可见性（导出与否）。⇒ Python 循环导入报运行时错、Go 循环导入报编译期错 —— 后者早得多，这是 Go 工程体验好的一个原因。',
+    samples: {
+      python: 'from backend.collectors.base import CollectorContext\n\n# 循环导入在运行时报：cannot import name ... partially initialized',
+      go: 'import "hostinsp/agent/collector"\n\ntype alias = collector.Finding   // 首字母大写才导出\n// 循环导入在编译期报：import cycle not allowed',
+    },
+    deltas: [
+      ['可见性', '下划线前缀是约定，非强制', '首字母大小写是强制'],
+      ['循环依赖', '运行时报错', '编译期报错'],
+      ['路径', 'sys.path + 包名', '模块路径全名（与目录一致）'],
+    ],
+  },
+  collection: {
+    title: '集合与切片', kind: 'language', stage: 1,
+    summary: '列表/字典 vs 切片/map；两边的「别名」问题都很真实。',
+    steps: [
+      '写一段「把一个列表的前 3 个元素拿出来」，看两边的越界行为。',
+      '重点实验：修改切片结果，原切片变不变？—— 两边都会变，原因不同。',
+      'Python 用 [:] 是复制，Go 要显式 copy 才复制。',
+    ],
+    principle: 'Python 的列表是**连续内存的引用数组**，切片返回新列表但元素是同一批对象；Go 的切片是「指针 + 长度 + 容量」三元组，切片运算默认共享底层数组。⇒ 两边都有别名问题，但 Go 更隐蔽：`s[1:3]` 连底层数组都不复制，改元素会影响原数组；Python 的 `s[1:3][0]=x` 只改元素（对象是共享的），`s[1:3]=x` 才改列表本身。',
+    samples: {
+      python: 'xs = [1, 2, 3, 4]\nsub = xs[1:3]      # 新列表，元素共享\nsub[0] = 99         # xs 变成 [1, 99, 3, 4]（元素是同一批 int? 否：int 不可变，xs 不变）\ncopy = xs[:]       # 要深拷贝得 copy.deepcopy',
+      go: 'xs := []int{1, 2, 3, 4}\nsub := xs[1:3]     // 共享底层数组！\nsub[0] = 99          // xs[1] 也变成 99\nout := make([]int, len(xs)); copy(out, xs)   // 真复制',
+    },
+    deltas: [
+      ['动态长', 'list 可变长', 'append 重新分配并拷贝'],
+      ['切片语义', '复制列表（元素共享）', '共享底层数组（不复制）'],
+      ['哈希表', 'dict（有序，3.7+）', 'map（无序，需排序）'],
+      ['不存在键', 'KeyError', '零值（需用 v, ok := m[k] 判）'],
+    ],
+  },
+};
+
+/* 概念层挂接的术语（全部取自本机 441 条术语库的真实词条，非编造） */
+const CONCEPT_TERMS = {
+  variable: ['依赖'], function: ['单元测试', '代码审查'], error: ['幂等', '回滚'],
+  datamodel: ['依赖', '技术债'], polymorphism: ['单元测试'],
+  concurrency: ['协程', '线程', '进程', '竞态条件', '缓存'], module: ['依赖', '持续集成'],
+  collection: ['缓存', '消息队列'],
+};
+
+const PY_EXTRA = [
+  { id: 'py-decorator', title: '装饰器', concept: 'function', stage: 3, level: 'full', kind: 'language',
+    summary: '不改函数体地给它加能力；@ 语法本质是一次赋值。',
+    prereqs: ['py-function'], ref: REF.runoobPy, ev: { checklist: 3, source: 6 },
+    steps: ['先手写一个「接收函数、返回新函数」的普通函数，再换成 @ 写法。',
+            '搞清 @a.b(c) 的求值顺序（自下而上、先算参数）。',
+            '写一个带 functools.wraps 的装饰器，看 __name__ 为什么会变。'],
+    principle: '装饰器就是把「函数」当值传进去再返回一个函数。因此它可以叠加（自下而上）、可以带参数（多一层闭包）、也可以注册到表上（Spring 那种「注解即注册」就是这个原理）。',
+    sample: 'def retry(n: int):\n    def deco(fn):\n        @functools.wraps(fn)      # 不加会丢 __name__\n        def inner(*a, **kw):\n            for i in range(n):\n                try:\n                    return fn(*a, **kw)\n                except TimeoutError:\n                    if i == n - 1: raise\n        return inner\n    return deco',
+    deltas: [['Go 无对应', '—', '没有语法糖，一般用中间件或显式包装函数']] },
+
+  { id: 'py-generator', title: '生成器与迭代器', concept: 'function', stage: 2, level: 'full', kind: 'language',
+    summary: 'yield 把函数变成「按需产出」的序列；样例工程里被复制了 20 次。',
+    prereqs: ['py-function'], ref: REF.runoobPy, ev: { source: 20 },
+    steps: ['把一个返回 list 的函数改成 yield 的生成器，对比内存与惰性。',
+            '用 next() 手动推进一次，看 StopIteration 从哪来。',
+            '把生成器套生成器，确认它仍然惰性。'],
+    principle: '生成器保存的是「执行到哪一步」的状态机，而不是结果数组。因此它天然适合流式/大数据，但也意味着**只能消费一次**、且状态被消费进度绑住 —— 想重放就得重新造一个。',
+    sample: 'def gen(rows):\n    for row in rows:\n        if rule(row):\n            yield row      # 挂起在这里，下次 next() 接着走\n\n# 复制 20 份只改规则名 = 20 次源码命中，但只有 1 个概念',
+    deltas: [['Go 侧', '—', 'channel + range 承担同样职责']] },
+
+  { id: 'py-context', title: '上下文管理器', concept: 'error', stage: 4, level: 'full', kind: 'language',
+    summary: 'with 保证成对执行；__exit__ 能把异常改写成别的异常。',
+    prereqs: ['py-error'], ref: REF.runoobPy, ev: { checklist: 3, source: 3 },
+    steps: ['手写一个 __enter__/__exit__ 类，再改用 contextlib.contextmanager 装饰器写同一个。',
+            '在 __exit__ 里 raise，观察原异常如何被替换。',
+            '在 __exit__ 里 return True，观察异常被吞掉。'],
+    principle: '上下文管理器是「成对执行」的语法保证（进入一定退出，即使中间抛错）。它的第二个用途常被忽略：`__exit__` 可以决定异常是**继续往上抛、被替换、还是被吞掉** —— 这就是样例工程里把 `OSError` 换成 `CollectorError` 的地方。',
+    sample: 'class CollectorContext:\n    def __enter__(self):\n        log.info("start")\n        return self\n    def __exit__(self, t, e, tb):\n        if t is not None:\n            raise CollectorError(...) from e   # 替换异常并保留因果\n        log.info("done")',
+    deltas: [['Go 对应', '—', 'defer（只保证执行，不改异常）']] },
+
+  { id: 'py-typehint', title: '类型注解', concept: 'variable', stage: 0, level: 'full', kind: 'language',
+    summary: '运行时不强制，靠静态检查器（mypy/pyright）守；它是给人和工具看的契约。',
+    prereqs: [], ref: REF.runoobPy, ev: { checklist: 3, source: 9 },
+    steps: ['给一个已存在的函数补全注解，看 mypy 报什么。',
+            '故意写一个错注解，确认运行时不会拦你。',
+            '把 Optional 换成 | None（3.10+），看语法差异。'],
+    principle: '注解在 Python 里**不做任何运行时强制**，它的价值在编辑期与静态检查期。所以「类型对不上」这件事在 Go 是编译错误、在 Python 是 mypy 的报错 —— 运行行为完全一样，只是谁在什么时候发现。',
+    sample: 'def get_task(task_id: str) -> Dict[str, str]:\n    ...\n\ndef f(v: int | None) -> None:   # 3.10+ 语法\n    if v is None:\n        return',
+    deltas: [['Go', '注解即编译约束', '声明即约束，注解不写就推断']] },
+
+  { id: 'py-comprehension', title: '列表推导式', concept: 'collection', stage: 1, level: 'point', kind: 'language',
+    summary: '一条式构造列表；可读性够用但别嵌套三层。', prereqs: ['py-collection'],
+    ref: REF.runoobPy, ev: { source: 2 },
+    point: '把「循环 + 收集」压成一行：`[f(x) for x in xs if p(x)]`。⚠️ 嵌套两层的可读性通常不如普通循环。' },
+
+  { id: 'py-fstring', title: 'f-string 格式化', concept: 'function', stage: 1, level: 'point', kind: 'language',
+    summary: 'f"..." 内直接写表达式；3.12+ 支持复用引号与多行。', prereqs: [],
+    ref: REF.runoobPy, ev: { source: 5 },
+    point: 'f"{name}:{count}" 直接插值；`{expr:>10}` 是格式说明符。⚠️ 日志里要用惰性格式（%s 或占位），因为字符串在调用时就已经拼好了。' },
+
+  { id: 'py-dataclass', title: 'dataclass', concept: 'datamodel', stage: 3, level: 'point', kind: 'library',
+    summary: '一行声明生成 __init__/__repr__/__eq__；frozen 换不可变。', prereqs: ['py-datamodel'],
+    ref: REF.runoobPy, ev: { source: 1 },
+    point: '@dataclass(frozen=True) 免写样板。注意：frozen 只防你赋属性，**内部的 list 字段仍可变**。' },
+
+  { id: 'py-excchain', title: '异常链与 traceback', concept: 'error', stage: 4, level: 'point', kind: 'language',
+    summary: 'raise ... from e 写出因果；bare raise 保留原栈。', prereqs: ['py-error'],
+    ref: REF.runoobPy, ev: { source: 2 },
+    point: '`from e` 把新异常挂到原异常的 __cause__ 上，traceback 里会出现「The above exception was the direct cause」。不加 from 也能打印，但会读成「无关的两个错误」。' },
+
+  { id: 'py-web', title: 'Web 框架与依赖注入', concept: 'module', stage: 6, level: 'point', kind: 'library',
+    summary: '路由、依赖注入、中间件三件事；本项目用的是 FastAPI。', prereqs: ['py-decorator', 'py-context'],
+    ref: REF.apycn, ev: { source: 4 },
+    point: 'FastAPI 的 `@app.get` 既是路由注册也是装饰器；依赖注入靠「把函数参数声明成类型，由框架解析」实现。⚠️ 这类库级条目前置关系几乎不存在，所以**不进学习路线**，只在用到时链到这里。' },
+
+  { id: 'py-pack', title: '打包与依赖管理', concept: 'module', stage: 7, level: 'point', kind: 'library',
+    summary: '虚拟环境、依赖清单、锁文件；「本机能跑」不等于「别人能跑」。', prereqs: ['py-module'],
+    ref: REF.apycn, ev: { source: 2 },
+    point: 'pip 的依赖解析不保证可复现 —— 所以有 requirements.txt 的哈希锁（pip-compile / uv lock）。本项目开发框架把这件事固化成了闸：锁文件一旦与依赖清单不同步即报错。' },
+];
+
+const GO_EXTRA = [
+  { id: 'go-defer', title: 'defer 与资源释放', concept: 'error', stage: 2, level: 'full', kind: 'language',
+    summary: 'defer 在函数返回时执行；参数在 defer 语句处就求值了。',
+    prereqs: ['go-function'], ref: REF.xinliang, ev: { checklist: 3, source: 8 },
+    steps: ['写一个不加 defer 的文件读取，故意漏掉 Close，看资源何时泄漏。',
+            '把 os.Open 的返回值直接 defer，观察闭包捕获的是什么。',
+            '试 `defer for` 的写法，确认编译期就报错（这就是「defer 在循环里」的正确解法）。'],
+    principle: 'defer 把「收尾」登记在函数退出时执行，保证 panic 与早退路径都会收尾。⚠️ 最容易错的一点是**参数求值时机**：`defer f(x)` 里 x 是登记那一刻的值，不是退出时的值 —— 这就是 `defer out.Close()` 安全而 `defer os.Remove(path)` 在循环里会删错文件的原因。',
+    sample: 'f, err := os.Open(path)\nif err != nil { return err }\ndefer f.Close()        // 参数（接收者）在登记时就定了\n\nfor _, p := range paths {\n\tif err := handle(p); err != nil {\n\t\tdefer cleanup() // ⚠️ 退出时才跑，不是本轮\n\t}\n}',
+    deltas: [['Python', 'with 语句（异常也被覆盖）', 'defer（不碰异常，只保证执行）']] },
+
+  { id: 'go-goroutine', title: 'goroutine 与 channel', concept: 'concurrency', stage: 5, level: 'full', kind: 'language',
+    summary: 'go 启动、channel 传、close 收；「谁负责 close」是并发设计的第一问。',
+    prereqs: ['go-function'], ref: REF.xinliang, ev: { checklist: 3, source: 5 },
+    steps: ['先写对一遍：起 N 个、汇总、关掉汇总通道。',
+            '故意不 close(findings)，看 for range 为什么死等。',
+            '故意在 worker 里 close，触发 panic: close of closed channel。'],
+    principle: 'channel 是「有类型的通信管道」，它替代了共享内存 + 锁的绝大多数场景。设计要点只有三条：**谁发送、谁接收、谁关闭**；惯例是「发送方不关闭，由协调者关闭」，因为关闭一个多发送方的 channel 谁都说不清是否还有人在发。',
+    sample: 'findings := make(chan Finding, len(hosts))\nvar wg sync.WaitGroup\nfor _, h := range hosts {\n\twg.Add(1)\n\tgo func(host string) {\n\t\tdefer wg.Done()\n\t\tfindings <- collect(host)\n\t}(h)\n}\ngo func() { wg.Wait(); close(findings) }()   // 协调者关闭',
+    deltas: [['Python', 'asyncio.Task + Queue', 'goroutine + channel']] },
+
+  { id: 'go-slice', title: '切片与底层数组', concept: 'collection', stage: 1, level: 'full', kind: 'language',
+    summary: 'slice 是 (ptr, len, cap) 三元组；子切片默认共享底层数组。',
+    prereqs: ['go-collection'], ref: REF.runoobGo, ev: { checklist: 3, source: 4 },
+    steps: ['写 s := xs[1:3]; s[0]=9，看 xs 是否变。',
+            'append 之后再取 sub 的 cap，观察什么时候才真正复制。',
+            '写清「三索引切片 s[a:b:c]」怎么用来限制追加时的写穿。'],
+    principle: '切片持有**指向底层数组的指针 + 长度 + 容量**三件事。取子切片只改这三个数字，不复制数据；append 在容量够时**原地写**，不够时才分配新数组并复制。⇒ 内存省了，代价是「改了子切片意外改了原数据」。',
+    sample: 'xs := []int{1, 2, 3, 4}\nsub := xs[1:3]   // ptr=&xs[1], len=2, cap=3\nsub[0] = 9        // xs[1] 也变\nsub = append(sub, 5)  // cap 够 → 写进 xs[3]\n\nfix := append([]int{}, xs...)   // 真复制',
+    deltas: [['Python', '切片复制列表', '切片共享底层数组']] },
+
+  { id: 'go-ifacezero', title: 'interface 与 nil 的零值', concept: 'polymorphism', stage: 3, level: 'full', kind: 'language',
+    summary: 'nil 接口调方法会 panic；类型化的 nil 指针装进接口后接口≠nil。',
+    prereqs: ['go-collection'], ref: REF.xinliang, ev: { checklist: 3, source: 6 },
+    steps: ['写 var c Collector = (*SSHCollector)(nil); c.Collect(...) 看 panic。',
+            '写一个函数返回 *T，在外层 if err != nil 判断，说明为什么这里安全。',
+            '找出仓库里所有「返回接口还是返回具体类型」的写法并统一。'],
+    principle: '接口值是两个字的组合（类型字 + 数据字）。它是 nil 当且仅当**两个字都是零**。而一个**类型化的 nil 指针**装进接口时，类型字非零 ⇒ 接口不等于 nil ⇒ 经典的「明明是 nil 却进了 if err != nil」。⇒ 这不是 bug，是接口的二元表示的直接后果。',
+    sample: 'type Collector interface{ Collect(ctx context.Context) error }\n\nvar c Collector\n// c == nil  ✓\n\nvar s *SSHCollector\nc = s          // 类型字非零\n// c == nil  ✗  ← 陷阱\n\nif c != nil { c.Collect(ctx) }   // 这里会 panic',
+    deltas: [['Python', 'None 是单一值', '接口是二元组 ⇒ 有「typed nil」']] },
+
+  { id: 'go-structtag', title: '结构体标签', concept: 'datamodel', stage: 3, level: 'point', kind: 'language',
+    summary: '反引号里的字符串，供反射/编码库读取。', prereqs: ['go-datamodel'],
+    ref: REF.xinliang, ev: { source: 3 },
+    point: '`json:"host,omitempty"` 这类标签由 encoding/json、yaml、validate 等库各自解释 —— 编译器不认，**写错了不会报错**，只会运行时字段静默丢失。' },
+
+  { id: 'go-errorwrap', title: '错误包装 %w', concept: 'error', stage: 4, level: 'point', kind: 'language',
+    summary: 'fmt.Errorf("...: %w", err) 才建因果链；%v 只是拼字符串。', prereqs: ['go-error'],
+    ref: REF.xinliang, ev: { source: 2 },
+    point: '只有 `%w` 能被 errors.Is/As 追溯；用 `%v` 包装后，外层就再也 `errors.Is(err, ErrX)` 不到了。' },
+
+  { id: 'go-generic', title: '泛型（since 1.18）', concept: 'function', stage: 2, level: 'point', kind: 'language',
+    summary: '类型参数；引入前只能靠 interface{} 或生成代码。', prereqs: ['go-function'],
+    ref: REF.runoobGo, ev: { source: 0 },
+    point: '[T any] 声明类型参数，`any` 是 interface{} 的别名。⚠️ 差异表带 since_version=1.18：1.18 之前「无泛型」也成立，故记 until_version=1.18 而不是删掉 —— 保留「以前为什么没有」。' },
+
+  { id: 'go-wg', title: '锁与 WaitGroup', concept: 'concurrency', stage: 5, level: 'point', kind: 'language',
+    summary: 'wg.Add(1) 必须在启动 goroutine 之前，否则可能先 Wait 后 Add。', prereqs: ['go-goroutine'],
+    ref: REF.xinliang, ev: { source: 3 },
+    point: 'WaitGroup 是「计数信号量」。常见错法：把 wg.Add(1) 写进 goroutine 内部 —— 主 goroutine 可能已经 Wait 返回，计数归零后又 Add，于是后面的 Done 变成负数 panic。' },
+
+  { id: 'go-http', title: 'net/http 服务与中间件', concept: 'module', stage: 6, level: 'point', kind: 'library',
+    summary: '标准库就够用的 HTTP 服务；中间件是一层套一层的 Handler。', prereqs: ['go-function', 'go-ifacezero'],
+    ref: REF.ago, ev: { source: 2 },
+    point: '`http.HandlerFunc` 就是 `func(ResponseWriter, *Request)` 的别名；中间件把「下一个 handler」当参数传下去。⚠️ 库里级条目不进学习路线，只在项目用到时链过来。' },
+
+  { id: 'go-build', title: '构建与 go.mod', concept: 'module', stage: 7, level: 'point', kind: 'library',
+    summary: '模块路径、语义化版本、GOOS/GOARCH 交叉编译。', prereqs: ['go-module'],
+    ref: REF.ago, ev: { source: 1 },
+    point: 'go.mod 的模块路径必须与仓库地址一致（`hostinsp/agent` 对应本仓内一个 domain + 目录），否则别人 `go get` 不到。跨编译只要 `GOOS=linux GOARCH=amd64 go build`，不需要交叉工具链。' },
+];
+
+/* 概念 → 两门的语言层条目（共用概念层写一份，语言差异只写差异） */
+function expand() {
+  const py = [], go = [];
+  for (const [slug, c] of Object.entries(CONCEPTS)) {
+    py.push({
+      id: 'py-' + slug, title: c.title, concept: slug, stage: c.stage, level: 'full',
+      kind: c.kind, summary: c.summary, ref: REF.runoobPy, content: c,
+    });
+    go.push({
+      id: 'go-' + slug, title: c.title, concept: slug, stage: c.stage, level: 'full',
+      kind: c.kind, summary: c.summary, ref: REF.runoobGo, content: c,
+    });
+  }
+  return py.concat(PY_EXTRA).concat(go.concat(GO_EXTRA));
+}
+const TOPICS = expand();
+
+/* 前置边（知识点必须是 DAG 不是列表 —— 依据 §2.5 的实测反例：
+   runoob Python3 的「Python3 模块」在侧栏 #28、「Python logging 模块」在 #76，
+   相隔 48 位而 logging 明显依赖「模块」，所以源顺序不能当依赖顺序） */
+const PREREQ = {
+  'py-collection': ['py-variable'], 'py-function': ['py-variable', 'py-collection'],
+  'py-module': ['py-function'], 'py-error': ['py-function'],
+  'py-datamodel': ['py-collection'], 'py-polymorphism': ['py-datamodel'],
+  'py-concurrency': ['py-function', 'py-error'],
+  'py-decorator': ['py-function'], 'py-generator': ['py-function'],
+  'py-context': ['py-error'], 'py-typehint': ['py-variable'],
+  'py-comprehension': ['py-collection'], 'py-fstring': ['py-variable'],
+  'py-dataclass': ['py-datamodel'], 'py-excchain': ['py-error'],
+  'py-web': ['py-decorator', 'py-context'], 'py-pack': ['py-module'],
+
+  'go-collection': ['go-variable'], 'go-function': ['go-variable', 'go-collection'],
+  'go-module': ['go-function'], 'go-error': ['go-function'],
+  'go-datamodel': ['go-collection'], 'go-polymorphism': ['go-datamodel'],
+  'go-concurrency': ['go-function', 'go-error'],
+  'go-defer': ['go-function'], 'go-goroutine': ['go-function'],
+  'go-slice': ['go-collection'], 'go-ifacezero': ['go-collection'],
+  'go-structtag': ['go-datamodel'], 'go-errorwrap': ['go-error'],
+  'go-generic': ['go-function'], 'go-wg': ['go-goroutine'],
+  'go-http': ['go-function', 'go-ifacezero'], 'go-build': ['go-module'],
+};
+
+/* 行为证据（除源码命中外的那一类）—— 真实来自样例工程的阶段清单。
+   刻意只给一部分条目：其余条目只能靠源码命中，于是状态封顶在「本项目用到过」。 */
+const BEHAVIOR = {
+  'py-variable': 3, 'py-collection': 3, 'py-function': 3, 'py-decorator': 3, 'py-typehint': 3, 'py-context': 3,
+  'go-variable': 3, 'go-collection': 3, 'go-function': 3, 'go-defer': 3, 'go-slice': 3, 'go-ifacezero': 3,
+};
+
+const STAGES = [
+  { id: 0, t: '语法基础', g: '能读懂并写出一段线性逻辑' },
+  { id: 1, t: '数据结构', g: '能选择合适的数据结构装数据' },
+  { id: 2, t: '函数与模块', g: '能把一段逻辑拆成可复用单元' },
+  { id: 3, t: '面向对象', g: '能对一个领域建模并表达多态' },
+  { id: 4, t: '异常与文件', g: '能处理失败路径与外部资源' },
+  { id: 5, t: '并发', g: '能让多件事同时跑且不出错' },
+  { id: 6, t: 'Web 框架', g: '能把逻辑暴露成接口' },
+  { id: 7, t: '数据与部署', g: '能让它长期跑起来' },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   三 · 扫描规则（T0）：topic ← 模式串 + 文件。行号运行时解析，不写死。
+   regexOnly=true 的条目是「只有解析器认得出、正则认不出」的那些 ——
+   它们正是 DL-19（回退只降精度不减结果）要断的反方向。
+   ═══════════════════════════════════════════════════════════════════════ */
+const RULES = [
+  { lang: 'python', topic: 'py-decorator', pattern: '@app.get(', file: 'backend/app.py' },
+  { lang: 'python', topic: 'py-decorator', pattern: '@abstractmethod', file: 'backend/collectors/base.py' },
+  { lang: 'python', topic: 'py-decorator', pattern: '@dataclass', file: 'backend/report/render.py' },
+  { lang: 'python', topic: 'py-typehint', pattern: '-> List[str]:', file: 'backend/app.py' },
+  { lang: 'python', topic: 'py-typehint', pattern: '-> Dict[str, str]:', file: 'backend/app.py' },
+  { lang: 'python', topic: 'py-typehint', pattern: 'def __init__(self, task_id: str) -> None:', file: 'backend/collectors/base.py' },
+  { lang: 'python', topic: 'py-context', pattern: 'with CollectorContext(', file: 'backend/app.py' },
+  { lang: 'python', topic: 'py-context', pattern: 'def __exit__', file: 'backend/collectors/base.py', regexOnly: true },
+  { lang: 'python', topic: 'py-context', pattern: 'def __enter__', file: 'backend/collectors/base.py', regexOnly: true },
+  { lang: 'python', topic: 'py-error', pattern: 'raise CollectorError', file: 'backend/collectors/base.py' },
+  { lang: 'python', topic: 'py-excchain', pattern: 'from exc', file: 'backend/collectors/base.py', regexOnly: true },
+  { lang: 'python', topic: 'py-fstring', pattern: 'f"', file: 'backend/report/render.py' },
+  { lang: 'python', topic: 'py-fstring', pattern: 'f"task', file: 'backend/collectors/base.py' },
+  { lang: 'python', topic: 'py-comprehension', pattern: 'for h in hosts]', file: 'backend/report/render.py' },
+  { lang: 'python', topic: 'py-dataclass', pattern: '@dataclass', file: 'backend/report/render.py' },
+  { lang: 'python', topic: 'py-generator', pattern: 'yield row', file: 'backend/pipeline/stream.py' },
+  { lang: 'python', topic: 'py-collection', pattern: 'xs[1:3]', file: 'backend/report/render.py' },
+
+  { lang: 'go', topic: 'go-goroutine', pattern: 'go func(', file: 'agent/main.go' },
+  { lang: 'go', topic: 'go-goroutine', pattern: 'make(chan ', file: 'agent/main.go' },
+  { lang: 'go', topic: 'go-goroutine', pattern: 'close(findings)', file: 'agent/main.go', regexOnly: true },
+  { lang: 'go', topic: 'go-defer', pattern: 'defer ', file: 'agent/main.go' },
+  { lang: 'go', topic: 'go-defer', pattern: 'defer wg.Done()', file: 'agent/main.go' },
+  { lang: 'go', topic: 'go-wg', pattern: 'sync.WaitGroup', file: 'agent/main.go' },
+  { lang: 'go', topic: 'go-wg', pattern: 'wg.Wait()', file: 'agent/main.go' },
+  { lang: 'go', topic: 'go-ifacezero', pattern: 'type Collector interface', file: 'agent/collector.go', regexOnly: true },
+  { lang: 'go', topic: 'go-ifacezero', pattern: 'var _ Collector', file: 'agent/collector.go', regexOnly: true },
+  { lang: 'go', topic: 'go-structtag', pattern: '`json:"', file: 'agent/collector.go', regexOnly: true },
+  { lang: 'go', topic: 'go-errorwrap', pattern: '%w', file: 'agent/collector.go' },
+  { lang: 'go', topic: 'go-errorwrap', pattern: 'error)', file: 'agent/collector.go' },
+  { lang: 'go', topic: 'go-slice', pattern: '[]Finding', file: 'agent/collector.go' },
+  { lang: 'go', topic: 'go-slice', pattern: 'make([]Finding', file: 'agent/collector.go' },
+  { lang: 'go', topic: 'go-collection', pattern: '[]string', file: 'agent/parse.go' },
+  { lang: 'go', topic: 'go-collection', pattern: 'map[string]int', file: 'agent/parse.go' },
+  { lang: 'go', topic: 'go-datamodel', pattern: 'type Finding struct', file: 'agent/collector.go' },
+  { lang: 'go', topic: 'go-generic', pattern: '[T any]', file: 'agent/parse.go' },
+];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   四 · 推导引擎（N=3 · §3.13 源码证据封顶 active）
+   ═══════════════════════════════════════════════════════════════════════ */
+const N_MASTERED = 3;
+
+function langTopics(lang) { return TOPICS.filter(t => (lang === 'python' ? t.id.startsWith('py-') : t.id.startsWith('go-'))); }
+
+function sourceHits(lang, topicId, heuristic) {
+  return RULES.filter(r => r.lang === lang && r.topic === topicId && !(heuristic && r.regexOnly));
+}
+
+function sourceHitCount(lang, topicId, heuristic) {
+  const rules = sourceHits(lang, topicId, heuristic);
+  let n = 0;
+  for (const r of rules) {
+    const text = FILES[r.file] || '';
+    n += text.split('\n').filter(l => l.includes(r.pattern)).length;
+  }
+  return n;
+}
+
+const stateCache = new Map();
+let cycleError = null;
+
+/* 真拓扑序 + 成环检测（DL-04：前置边无环，构造一条 a→b→a 必须能检出） */
+function topoSort(list) {
+  const byId = new Map(list.map(t => [t.id, t]));
+  const out = [], mark = new Map();
+  const visit = (t, stack) => {
+    const m = mark.get(t.id) || 0;
+    if (m === 2) return;
+    if (m === 1) { cycleError = [...stack, t.id].join(' → '); return; }
+    mark.set(t.id, 1);
+    for (const p of (PREREQ[t.id] || [])) if (byId.has(p)) visit(byId.get(p), [...stack, t.id]);
+    mark.set(t.id, 2); out.push(t);
+  };
+  list.forEach(t => visit(t, []));
+  return out;
+}
+
+function computeAll(lang, heuristic) {
+  stateCache.clear(); cycleError = null;
+  const list = langTopics(lang);
+  const order = topoSort(list);
+  for (const t of order) {
+    const prereqs = (PREREQ[t.id] || []).filter(id => langTopics(lang).some(x => x.id === id));
+    const src = sourceHitCount(lang, t.id, heuristic);
+    const nonSrc = BEHAVIOR[t.id] || 0;
+    const prereqStates = prereqs.map(id => stateCache.get(id)).filter(Boolean);
+    const prereqOk = prereqs.length === 0 || (prereqStates.length === prereqs.length && prereqStates.every(s => s.level === 'mastered'));
+
+    let level;
+    if (nonSrc >= N_MASTERED && prereqOk) level = 'mastered';
+    else if (src + nonSrc >= 1) level = 'active';
+    else level = 'untouched';
+
+    // §3.13 写死的封顶：只有源码证据的条目，任何组合都到不了 mastered。
+    // 「非源码证据 ≥3」才可能 mastered，所以 nonSrc===0 时结构上不可能是 mastered；
+    // 这里显式再判一次，让封顶在代码里看得见、而不是靠推理。
+    const capped = nonSrc === 0;
+    if (capped && level === 'mastered') level = 'active';
+
+    stateCache.set(t.id, {
+      level, src, nonSrc,
+      // §3.13 重复命中只增加确定性、不增加掌握度 ⇒ 计入 1 次
+      counted: nonSrc > 0 ? nonSrc : (src > 0 ? 1 : 0),
+      capped, prereqOk, prereqs,
+    });
+  }
+  return stateCache;
+}
+
+const STATE_META = {
+  untouched: { chip: '', label: '本项目未涉及', tip: '这是关于项目的事实，不是关于你的判断' },
+  active: { chip: 'info', label: '本项目用到过', tip: '只能证明「用过」，不能证明「会用」' },
+  mastered: { chip: 'ok', label: '本项目反复用到过 · 前置均达成', tip: '仍不等���「你已掌握」—— 本产品不做能力断言' },
+};
+
+const SOURCES = [
+  { u: 'runoob.com/python3', n: 84, kind: '有序池', note: '线性教学序，基础 40 ＋ 高级 44', checked: CHECKED, stale: false },
+  { u: 'runoob.com/go', n: 34, kind: '有序池', note: '只有一段侧栏，粒度较粗', checked: CHECKED, stale: false },
+  { u: 'github.com/xinliangnote/Golang', n: 43, kind: '有序池', note: '五源里最好：标题就是真实工程问题', checked: CHECKED, stale: false },
+  { u: 'github.com/walter201230/Python', n: 101, kind: '有序池', note: '内容在 mindmap.png 里，不可文本抽取', checked: CHECKED, stale: false },
+  { u: 'github.com/sindresorhus/awesome-go', n: 3323, kind: '无序池', note: '主题型，进「按需查阅」', checked: CHECKED, stale: false },
+  { u: 'github.com/jobbole/awesome-python-cn', n: 874, kind: '无序池', note: '停更 4 年，不作真相源', checked: CHECKED, stale: true },
+];
+
+/* 资源清单：**逐字取自 owner 提供的《Python 与 Go 系统学习指南》(2026-10-18)。
+   附件自述「所有链接于 2026-10-18 逐条检索核实」；⚠️ 本轮网络不通，**未做二次核实** ——
+   因此每条只带附件给的时效说明 f，不额外加「已核实」字样（§3.2 的取证纪律：
+   没核过的不能写成核过）。 */
+const GUIDE_RES = {"cat":{"official":"官方文档","github":"GitHub 仓库","course":"在线课程","book":"免费书籍","video":"视频课","practice":"实战练习平台"},"st":{"0":"全阶段","1":"入门","2":"进阶","3":"高级"},"cost":{"free":"免费","paid":"付费","部分免费":"部分免费"},"py":[{"n":"The Python Tutorial（官方教程）","u":"https://docs.python.org/3.13/tutorial/","l":"en","c":"free","s":1,"fav":1,"d":"Python 官方入门教程，从解释器、数据类型讲到模块、类与标准库巡礼，是一切学习的权威起点，也是有其他语言经验者的快速通道。","f":"对齐 Python 3.13，官方文档持续滚动更新","cat":"official"},{"n":"Python 官方教程（中文译本）","u":"https://docs.python.org/zh-cn/3.13/tutorial/","l":"zh","c":"free","s":1,"d":"官方教程的官方中文译本，术语准确，适合英文阅读吃力的零基础学习者对照阅读。","f":"对齐 3.13，2026 年仍在同步更新","cat":"official"},{"n":"The Python Language Reference（语言参考）","u":"https://docs.python.org/3.13/reference/","l":"en","c":"free","s":3,"d":"Python 语法与核心语义权威而精确的定义：词法、数据模型、执行模型、表达式、语句与完整文法。不必通读，学到难点时按章回查。","f":"对齐 3.13，2026 年在线维护","cat":"official"},{"n":"The Python Standard Library（标准库参考）","u":"https://docs.python.org/3.13/library/","l":"en","c":"free","s":0,"d":"re、datetime、collections、itertools、asyncio、pathlib、sqlite3、unittest 等全部标准库模块的官方手册，写代码时最常查的文档。","f":"随版本同步更新","cat":"official"},{"n":"What's New in Python 3.13（版本更新说明）","u":"https://docs.python.org/3.13/whatsnew/3.13.html","l":"en","c":"free","s":3,"d":"3.13 新特性清单：改进的交互解释器与报错、实验性自由线程（Free-threaded）、实验性 JIT、copy.replace() 与新 typing 构造。","f":"Python 3.13 官方页面，2026 年在线","cat":"official"},{"n":"Beginner's Guide to Python（官方新手指南）","u":"https://wiki.python.org/moin/BeginnersGuide","l":"en","c":"free","s":1,"d":"Python 软件基金会官方 Wiki 导航页，区分「从未编程」与「有其他语言经验」两条路径，汇集安装、编辑器与练习站点。","f":"官方 Wiki，2026 年可访问，明确提示避开 Python 2","cat":"official"},{"n":"jackfrued / Python-100-Days（100天从新手到大师）","u":"https://github.com/jackfrued/Python-100-Days","l":"zh","c":"free","s":0,"fav":1,"star":"187k★","d":"国内星数最高的 Python 系统自学路线：100 天从语法、进阶、面向对象到 Web / 爬虫 / 数据分析 / AI 项目，Jupyter Notebook 形式，每天有知识点与练习。","f":"2026-07 仍在推送，长期活跃维护","cat":"github"},{"n":"Asabeneh / 30-Days-Of-Python","u":"https://github.com/Asabeneh/30-Days-Of-Python","l":"en","c":"free","s":1,"star":"76.5k★","d":"30 天挑战式英文教程，每天一个主题（变量、条件、循环、函数、OOP、列表字典、异常、API），含大量课堂练习与小项目。","f":"2026-09 仍在推送，活跃维护","cat":"github"},{"n":"trekhleb / learn-python","u":"https://github.com/trekhleb/learn-python","l":"en","c":"free","s":1,"star":"18.4k★","d":"按主题拆分的 Python 脚本练习场与速查表，每个主题配可运行示例与习题，适合边查边练。","f":"2026-04 有更新，Python 3","cat":"github"},{"n":"jackfrued / Python-Core-50-Courses（Python 基础 50 课）","u":"https://github.com/jackfrued/Python-Core-50-Courses","l":"zh","c":"free","s":1,"star":"12.6k★","d":"《100 天》同一作者把最难的入门部分用更通俗方式重写的 50 课，附带视频讲解，适合直接啃 100 天有困难的纯新手。","f":"中文基础课，可作为 100 天前置","cat":"github"},{"n":"michaelliao / learn-python3（廖雪峰教程配套源码）","u":"https://github.com/michaelliao/learn-python3","l":"zh","c":"free","s":1,"star":"6.5k★","d":"廖雪峰《Python 教程》全部示例的可运行源码，配合网站逐节敲写。","f":"最近推送 2024-05，内容稳定，示例仍适用 Python 3","cat":"github"},{"n":"geekcomputers / Python（示例代码集）","u":"https://github.com/geekcomputers/Python","l":"en","c":"free","s":0,"star":"35.4k★","d":"社区贡献的数百个短小 Python 脚本（算法、工具、小游戏），是「读别人代码」的素材库（非系统教程）。","f":"2026-10 仍在接收社区 PR","cat":"github"},{"n":"TheAlgorithms / Python（算法实现库）","u":"https://github.com/TheAlgorithms/Python","l":"en","c":"free","s":2,"star":"225k★","d":"全部经典算法与数据结构的 Python 实现，用于对照学习算法，而不是学语法。","f":"2026-10 仍在更新，极其活跃","cat":"github"},{"n":"廖雪峰 · Python 教程","u":"https://liaoxuefeng.com/books/python/index.html","l":"zh","c":"free","s":1,"fav":1,"d":"国内最知名的零起点中文 Python 教程，语言通俗，覆盖基础语法、函数、面向对象、异步 IO、协程与常用模块，每节有可复制示例。","f":"2025–2026 持续更新，基于 Python 3.x，提供免费 PDF 快照","cat":"course"},{"n":"菜鸟教程 · Python3","u":"https://www.runoob.com/python3/python3-tutorial.html","l":"zh","c":"free","s":1,"d":"目录式语法手册，每节配可在线运行的实例，适合初学后当「字典」快速查语法点。","f":"2026 年仍维护；部分基础示例写法偏旧，以官方教程为准","cat":"course"},{"n":"莫烦 Python · Python 基础","u":"https://mofanpy.com/tutorials/python-basic/","l":"zh","c":"free","s":1,"d":"短小章节的交互式基础教学，主打「玩中学」，并衔接其后的 NumPy / pandas / 机器学习板块。","f":"网站 2026 年仍在更新，配套 B 站视频","cat":"course"},{"n":"Google's Python Class","u":"https://developers.google.com/edu/python/","l":"en","c":"free","s":1,"d":"Google 内部两天强化培训的对外版本：讲义 + 讲座视频 + 大量编码练习，从字符串、列表讲到文件、进程与 HTTP。","f":"基于 Python 3，页面 2025 年更新","cat":"course"},{"n":"Python for Everybody（py4e）","u":"https://www.py4e.com/","l":"en","c":"free","s":1,"fav":1,"d":"面向零基础的大学级公开课（Dr. Chuck），从编程思维讲到网络、数据库与结构化数据，强调用 Python 解决数据分析问题；教材 PDF/HTML/EPUB 全免费。","f":"教材 2024-01 更新到 Python 3.12，2026 年站点活跃","cat":"course"},{"n":"freeCodeCamp · Scientific Computing with Python（免费认证）","u":"https://www.freecodecamp.org/learn/scientific-computing-with-python/","l":"en","c":"free","s":1,"fav":1,"d":"浏览器内交互式课程，语法 + 科学计算基础，结课须独立完成 5 个实战小项目，通过后获得免费认证。","f":"freeCodeCamp 核心认证路径，持续维护","cat":"course"},{"n":"freeCodeCamp · Learn Python for Beginners","u":"https://www.freecodecamp.org/learn/learn-python-for-beginners","l":"en","c":"free","s":1,"d":"Mike Dane 主讲的结构化短课，从环境搭建、基础类型、控制流、函数到文件模块、错误处理与面向对象，分模块带小项目。","f":"页面 2026-05 仍在维护","cat":"course"},{"n":"Kaggle Learn · Python","u":"https://www.kaggle.com/learn/python","l":"en","c":"free","s":1,"d":"浏览器内微课程，每节 5 分钟，语法 + 内置数据结构配真实数据练习，适合之后要走数据分析 / ML 方向的人。","f":"2026 年在线维护，免费微认证","cat":"course"},{"n":"Codecademy · Learn Python 3","u":"https://www.codecademy.com/catalog/language/python","l":"en","c":"mix","s":1,"d":"纯浏览器内敲代码，零环境配置、即时反馈，适合第一周建立「我能写代码」的手感；免费层可学基础，进阶与项目付费。","f":"免费课已对齐 Python 3.13，2026 年在线","cat":"course"},{"n":"LearnPython.org（中文交互教程）","u":"https://www.learnpython.org/zh/","l":"zh","c":"free","s":1,"d":"浏览器内免费交互练习，由 DataCamp 支持，有中文版，适合零散时间做语法练习。","f":"在线维护，适合入门备选","cat":"course"},{"n":"Think Python（3rd Edition, 2024）","u":"https://allendowney.github.io/ThinkPython/","l":"en","c":"free","s":1,"fav":1,"d":"「像计算机科学家一样思考」风格，第 3 版全文改为可运行的 Jupyter Notebook（可直接在 Colab 打开），强调理解而非记忆，CC 许可免费。","f":"第 3 版 2024 年发布，现代 Python","cat":"book"},{"n":"Automate the Boring Stuff with Python（3rd Edition）","u":"https://automatetheboringstuff.com/","l":"en","c":"free","s":1,"fav":1,"d":"不讲抽象理论，直接用脚本自动处理文件重命名、Excel、PDF/Word、网页抓取、邮件与鼠标键盘宏，趣味性强，最适合防弃坑；CC 免费在线。","f":"第 3 版已免费公开全文，2026-10 在线","cat":"book"},{"n":"Python for Everybody（免费教材）","u":"https://www.py4e.com/book.php","l":"en","c":"free","s":1,"d":"py4e 公开课配套教材，系统通读型，PDF / HTML / EPUB 全免费，适合作为零基础主教材。","f":"2024-01 更新对齐 Python 3.12","cat":"book"},{"n":"Fluent Python（2nd Edition, 2022）","u":"https://www.oreilly.com/library/view/fluent-python-2nd/9781492056348/","l":"en","c":"paid","s":3,"fav":1,"d":"写出 Pythonic 代码的标杆书：数据模型、描述符、迭代器/生成器、并发与 asyncio、类型注解。有中译本《流畅的 Python（第2版）》。英文原版约 US$69.99，中译约 ¥199。","f":"2022 年出版，更新到 Python 3.10；思想长期有效，新版细节再查官方文档","cat":"book"},{"n":"Python Crash Course（3rd Edition, 2022）","u":"https://nostarch.com/python-crash-course-3rd-edition/","l":"en","c":"paid","s":1,"d":"前半讲语法，后半带三个完整项目（外星人入侵游戏、数据可视化、Django Web 应用），全球畅销 250 万册。有中译《Python编程：从入门到实践》。英文约 US$49.99，中译约 ¥110。","f":"第 3 版 2022 年出版，中译基于 Python 3.11","cat":"book"},{"n":"黑马程序员 ·《Python+AI 零基础入门到大神全套》185 集","u":"https://www.bilibili.com/video/BV1sHU9BmEne/","l":"zh","c":"free","s":1,"fav":1,"d":"2025 新版完整合集（约 31 小时）：从环境、核心语法、数据容器、函数、类型注解、OOP，到 AI 应用（Ollama / DeepSeek API、Streamlit）、爬虫、pandas 数据分析、FastAPI Web。","f":"2025-11 发布，官方账号完整连载","cat":"video"},{"n":"黑马程序员 ·《600 集 Python 从入门到精通》","u":"https://www.bilibili.com/video/BV1ex411x7Em/","l":"zh","c":"free","s":1,"old":1,"d":"播放量千万级的经典系统语法课，集数多、讲得细，适合喜欢慢节奏逐句跟练的人。","f":"发布较早的经典老课；基础语法仍有效，部分工具链与第三方库写法偏旧，建议搭配新课","cat":"video"},{"n":"莫烦 Python ·《Python 基础教程》36 集","u":"https://www.bilibili.com/video/BV1wW411Y7ai","l":"zh","c":"free","s":1,"d":"36 集短视频覆盖安装、print、循环、函数、文件、类、列表/字典、模块、异常、lambda/map、深浅拷贝、线程/进程、tkinter、正则。","f":"官方合集完整，配合 mofanpy.com 文字版","cat":"video"},{"n":"freeCodeCamp · Learn Python Full Course（4.5 小时）","u":"https://www.youtube.com/watch?v=rfscVS0vtbw","l":"en","c":"free","s":1,"d":"YouTube 上传播最广的单节 Python 入门完整课（Mike Dane），浏览器内跟敲，覆盖变量、控制流、函数、数据结构与 OOP。","f":"官方频道长期在线的经典完整课","cat":"video"},{"n":"freeCodeCamp · Free Python Programming Course（5 小时）","u":"https://www.freecodecamp.org/news/python-programming-course/","l":"en","c":"free","s":1,"d":"Beau Carnes 主讲：先做石头剪刀布项目，再系统讲变量、字符串、四大容器、函数、闭包、OOP、装饰器、异常、with、pip，最后用 21 点项目复习。","f":"官方文章页 2026 年可访问，覆盖现代 Python 基础","cat":"video"},{"n":"Exercism · Python Track","u":"https://exercism.org/tracks/python","l":"en","c":"free","s":0,"fav":1,"d":"17 个概念、146 道循序渐进练习，自动代码分析 + 免费人工导师点评，是「有人帮你看代码」的最佳渠道。","f":"2026-10 在线维护，概念路线对齐现代 Python","cat":"practice"},{"n":"力扣 LeetCode（中文站）","u":"https://leetcode.cn/","l":"zh","c":"mix","s":2,"d":"用 Python 刷算法题，推荐「热题 100」与「面试经典 150 题」清单，培养数据结构与算法能力。","f":"2026 年活跃，免费层题量足够","cat":"practice"},{"n":"Codewars","u":"https://www.codewars.com","l":"en","c":"free","s":1,"d":"kata 小挑战按 8 kyu（入门）到 1 kyu（专家）升级，TDD 式写测试再通过，趣味化练语言熟练度。","f":"2026 年活跃，社区每月新增大量 kata","cat":"practice"},{"n":"HackerRank · Python","u":"https://www.hackerrank.com/domains/python","l":"en","c":"free","s":1,"d":"从 Hello World、if-else、运算符到字符串、集合、迭代器的分级小关卡，即时判题，适合初学第一周保持手感。","f":"2026 年在线","cat":"practice"},{"n":"FastAPI 官方教程","u":"https://fastapi.tiangolo.com/tutorial/first-steps/","l":"en","c":"free","s":3,"d":"业界主流异步 API 框架的手把手教程，自带交互式文档，基于类型注解与 Pydantic，是 Python Web 方向的首选实践。","f":"要求 Python 3.10+，文档 2026 年极其活跃","cat":"practice"},{"n":"Django 官方教程（投票应用 · 7 部分）","u":"https://docs.djangoproject.com/en/5.2/intro/tutorial01/","l":"en","c":"free","s":2,"d":"跟着官方从头建一个带后台管理的投票网站，理解 MTV、路由、ORM 与模板。","f":"Django 5.2，支持 Python 3.10+","cat":"practice"},{"n":"pandas 官方入门（Getting started）","u":"https://pandas.pydata.org/docs/getting_started/index.html","l":"en","c":"free","s":2,"d":"官方入门导览 +「10 Minutes to pandas」，讲 DataFrame、读写、筛选、分组、透视与时间序列。","f":"pandas 新版文档，2026 年在线","cat":"practice"},{"n":"wistbean / learn_python3_spider（中文爬虫教程）","u":"https://github.com/wistbean/learn_python3_spider","l":"zh","c":"free","s":2,"star":"22.2k★","d":"从 0 到 1 的中文爬虫系列：抓包（Fiddler / mitmproxy）、requests、BeautifulSoup、Selenium 等模块实战。","f":"2026-10 仍在推送，活跃维护","cat":"practice"},{"n":"Real Python","u":"https://realpython.com/","l":"en","c":"mix","s":0,"d":"高质量 Python 专题文章与视频，按 Basics / Intermediate / Advanced 分层，覆盖语法进阶、Web、数据科学、测试与工具链，适合遇到具体主题时深挖。","f":"2026-10 仍在日更，跟进最新版本","cat":"practice"},{"n":"Datawhale · 动手学数据分析","u":"https://github.com/datawhalechina/hands-on-data-analysis","l":"zh","c":"free","s":2,"d":"基于 Titanic 数据集带练 pandas 全流程的中文开源项目课，适合数据方向的第一个跟练项目。","f":"内容成熟，近年更新不频繁","cat":"practice"}],"go":[{"n":"A Tour of Go（官方交互教程 · 中文镜像）","u":"https://golang.google.cn/tour/welcome","l":"zh","c":"free","s":1,"fav":1,"d":"官方交互式教程的中国可直连镜像，浏览器内直接写代码运行，分基础、方法与接口、泛型、并发四部分，每节带练习。","f":"内容随官方同步，2026-08 仍在更新，含泛型章节","cat":"official"},{"n":"Go 官方文档中心（中国镜像）","u":"https://golang.google.cn/doc/","l":"bi","c":"free","s":1,"d":"官方教程入口：Getting started（Hello World + 模块）、Create a module（函数、错误处理、数组、映射、单元测试、编译）、多模块工作区等分步教程。","f":"官方维护，2026-09 仍更新，对齐当前 Go 版本","cat":"official"},{"n":"A Tour of Go（官方英文原版）","u":"https://go.dev/tour/","l":"en","c":"free","s":1,"d":"官方交互式入门，四模块（Basics / Methods & Interfaces / Generics / Concurrency），也可本地 go install 安装离线版。","f":"已含独立泛型章节，2026 年仍更新","cat":"official"},{"n":"Effective Go","u":"https://go.dev/doc/effective_go","l":"en","c":"free","s":2,"old":1,"d":"官方撰写的地道 Go 风格指南（格式、命名、控制结构、切片、并发、错误），读其「写法品味」。","f":"官方明确注明写于 2009 年、不再更新，不覆盖泛型与 Modules；新写法以新文档为准","cat":"official"},{"n":"Go by Example","u":"https://gobyexample.com/","l":"en","c":"free","s":1,"fav":1,"d":"70+ 个带注释的可运行示例，按语法点组织（通道、状态协程、JSON、上下文等），是边查边写的语法速查手册。","f":"2026-10-16 仍在更新，示例假设最新大版本 Go","cat":"official"},{"n":"Go Modules Reference（模块参考）","u":"https://go.dev/ref/mod","l":"en","c":"free","s":2,"d":"官方对 module / package / 版本、go.mod、依赖解析、go mod tidy / vendor / download、代理与校验和的权威定义，告别 GOPATH 的一手文档。","f":"随工具链持续维护","cat":"official"},{"n":"pkg.go.dev（标准库与包文档）","u":"https://pkg.go.dev/std","l":"en","c":"free","s":0,"d":"fmt、net/http、context、sync、log/slog、encoding/json 等标准库包的官方 API 文档与示例，也是第三方包统一文档站。","f":"随每个 Go 版本同步更新","cat":"official"},{"n":"golang / go（Go 官方源码）","u":"https://github.com/golang/go","l":"en","c":"free","s":3,"star":"139k★","d":"Go 语言编译器、运行时、标准库的官方仓库，可阅读 src/runtime、src/net/http 源码并跟踪设计提案（proposal）。","f":"2026-10-17 仍在推送，极度活跃","cat":"github"},{"n":"quii / learn-go-with-tests（TDD 学 Go）","u":"https://github.com/quii/learn-go-with-tests","l":"en","c":"free","s":1,"fav":1,"star":"23.9k★","d":"用测试驱动开发循序渐进讲 Go：基础类型、结构体/接口、切片、映射、依赖注入、HTTP 服务、并发、上下文，每章先写测试再实现，同时学会 Go 与工程化测试。","f":"2026-09 仍在推送，含现代 Go 实践","cat":"github"},{"n":"inancgumus / learngo（1000+ 示例练习册）","u":"https://github.com/inancgumus/learngo","l":"en","c":"free","s":1,"star":"20k★","d":"按章节编排的 1000+ 个可运行 Go 小示例与练习，从变量到切片、映射、指针、接口、错误、并发，适合动手跟敲。","f":"最近提交 2025-06，内容成熟稳定","cat":"github"},{"n":"inancgumus / effective-go（现代 Go 风格指南）","u":"https://github.com/inancgumus/effective-go","l":"en","c":"free","s":2,"star":"299★","d":"面向现代 Go 的 idiomatic 写法建议：命名、错误处理、接口、并发、项目组织，可视为「新时代版 Effective Go」。","f":"个人维护，持续增补","cat":"github"},{"n":"astaxie / build-web-application-with-golang（Go Web 编程开源书）","u":"https://github.com/astaxie/build-web-application-with-golang","l":"zh","c":"free","s":2,"old":1,"star":"43.9k★","d":"从 HTTP 协议、Web 基础到 MVC、会话、数据库、部署的中文系统 Web 教程，是中文 Go Web 领域影响力最大的开源书之一。","f":"2024-05 后基本停更，基于早期 Go、无泛型；Web 思想可参考，新语法勿以此为准","cat":"github"},{"n":"unknwon / the-way-to-go_ZH_CN（Go 入门指南）","u":"https://github.com/unknwon/the-way-to-go_ZH_CN","l":"zh","c":"free","s":1,"old":1,"star":"35.0k★","d":"《The Way to Go》中文正式译本，语法覆盖系统全面，eBook 目录版可读，适合打语法底子。","f":"2024-08 后停更，基于 Go 1.10 前后、无泛型，新特性需另补","cat":"github"},{"n":"geektutu / 7days-golang（7 天用 Go 从零实现系列）","u":"https://github.com/geektutu/7days-golang","l":"zh","c":"free","s":2,"fav":1,"star":"17.0k★","d":"7 天分别从零手写 Web 框架 Gee、分布式缓存 GeeCache、ORM GeeORM、RPC 框架 GeeRPC，源码 + 图文逐日讲解（配套博客 geektutu.com）。","f":"2026-09 仍在提交，原理经典，最佳造轮子项目","cat":"github"},{"n":"golang-china / gopl-zh（Go 语言圣经中文译本）","u":"https://github.com/golang-china/gopl-zh","l":"zh","c":"free","s":1,"old":1,"star":"6.3k★","d":"《The Go Programming Language》官方中文译本源码仓库（柴树杉等译），与在线版同步，适合经典精读。","f":"译本停留在 Go 1.5 时代、无泛型；学思想与语法，新特性另补","cat":"github"},{"n":"Go-zh / tour（Go Tour 中文翻译）","u":"https://github.com/Go-zh/tour","l":"zh","c":"free","s":1,"old":1,"star":"1.5k★","d":"官方 Go Tour 的中文翻译源码，可本地运行，适合英文吃力的入门者对照阅读。","f":"最近提交 2022-03，轻维护；翻译内容旧于官方最新版，建议优先用中文镜像","cat":"github"},{"n":"zeromicro / go-zero（微服务框架）","u":"https://github.com/zeromicro/go-zero","l":"zh","c":"free","s":3,"star":"33k★","d":"国产 Go 微服务框架，含 RPC/REST、服务治理、并发控制与中间件，适合读框架源码、学习工程化范本。","f":"2026-10 仍在提交，活跃","cat":"github"},{"n":"cloudwego / kitex（RPC 框架，字节开源）","u":"https://github.com/cloudwego/kitex","l":"zh","c":"free","s":3,"star":"8.1k★","d":"CloudWeGo 高性能 RPC 框架，配套 Hertz HTTP 框架，适合学习工业级 RPC 设计与云原生生态。","f":"2026-10 仍有提交，活跃","cat":"github"},{"n":"grpc / grpc-go（gRPC 官方 Go 实现）","u":"https://github.com/grpc/grpc-go","l":"en","c":"free","s":3,"star":"23k★","d":"gRPC 官方 Go 语言绑定，examples/ 目录含 helloworld、route_guide 等官方示例。","f":"2026-10 仍在提交，官方活跃维护","cat":"github"},{"n":"李文周 ·《Go 语言学习之路》","u":"https://www.liwenzhou.com/posts/Go/golang-menu/","l":"zh","c":"free","s":1,"fav":1,"d":"国内更新时间最长、最成体系的中文图文教程之一：环境、语法、函数/结构体/接口、错误处理、单元测试、并发、网络编程、泛型、迭代器、Gin、GORM、Viper/Zap 与项目实战，并附配套 B 站视频。","f":"2025-08 更新置顶，已补充泛型与迭代器，中文入门主线首选","cat":"course"},{"n":"菜鸟教程 · Go 语言教程","u":"https://www.runoob.com/go/","l":"zh","c":"free","s":1,"d":"轻量化语法速览，每节配可运行示例与在线测验，适合零基础快速过一遍语法。","f":"2026-04 至 2026-09 持续修订","cat":"course"},{"n":"C 语言中文网 · Go 语言入门教程","u":"https://c.biancheng.net/golang/","l":"zh","c":"free","s":1,"d":"讲解细致、常与其他语言对比，适合有其他语言经验者快速理解 Go 的设计与并发原生支持。","f":"2026-05 仍有更新","cat":"course"},{"n":"Ardan Labs · Free Training Bundle","u":"https://www.ardanlabs.com/training/","l":"en","c":"mix","s":3,"d":"Bill Kennedy（《Go in Action》作者）团队放出的免费 webinar 与课程预览，讲 Go 机制、性能与生产级服务设计；完整 Ultimate Go 系列为付费商业培训。","f":"站点 2026-09 更新，商业培训持续运营","cat":"course"},{"n":"Google Codelab · gRPC-Go 入门（中文）","u":"https://codelabs.developers.google.cn/grpc/getting-started-grpc-go?hl=zh_cn","l":"zh","c":"free","s":3,"d":"Google 官方 Codelab，用 gRPC-Go 从零搭建路线地图客户端/服务端，手把手走 protobuf 与代码生成。","f":"2026-03 更新，官方维护","cat":"course"},{"n":"gRPC 官方 · Go Quickstart","u":"https://grpc.io/docs/languages/go/quickstart/","l":"bi","c":"free","s":3,"d":"官方 5 分钟跑通 helloworld 的 Go 示例，配合 basics 教程（route_guide）系统学习四种 RPC 模式。","f":"2026-05 更新，官方维护","cat":"course"},{"n":"《Go 语言高级编程》（Advanced Go Programming）","u":"https://github.com/chai2010/advanced-go-programming-book","l":"zh","c":"free","s":3,"star":"20k★","d":"柴树杉、曹春晖的开源高阶书，覆盖 CGO、Go 汇编、RPC 实现、Protobuf 插件、Web 框架实现、分布式系统等底层专题。","f":"2019 年完稿、2025-10 仍有轻量更新；底层原理不过时","cat":"book"},{"n":"《Go 语言设计与实现》（Draven）","u":"https://draven.co/golang/","l":"zh","c":"free","s":3,"d":"按「前置知识 → 编译原理（词法/语法/类型检查/SSA/机器码）→ 运行时（调度/内存分配/GC/通道）」系统拆解 Go 源码实现（另有图灵纸质版）。","f":"在线站 2026-07 仍可访问；基于 Go 1.15 前后源码，读设计思想为主","cat":"book"},{"n":"Go: Under the Hood（golang.design）","u":"https://golang.design/under-the-hood/en/","l":"bi","c":"free","s":3,"d":"从语言设计视角讲 Go 源码工程与演进：运行时三层视图、调度器、分配器、GC、工具链，中英双语。","f":"2026-10 页面更新，已按新版 Go 系统重写","cat":"book"},{"n":"《Go 语言圣经》中文版（在线免费）","u":"https://gopl-zh.github.io/","l":"zh","c":"free","s":1,"old":1,"d":"《The Go Programming Language》中译本在线版，系统讲透类型、函数、方法、接口、并发、标准库与实战程序，每章带练习，是经典精读材料。","f":"内容基于 Go 1.5 前后、无泛型；适合思想与经典精读，新特性另补","cat":"book"},{"n":"The Go Programming Language（英文原版，gopl.io）","u":"https://www.gopl.io/","l":"en","c":"paid","s":1,"old":1,"d":"Donovan 与 Kernighan 著「语言圣经」，Go 之父团队推荐，类型/函数/方法/接口/并发/标准库讲得最通透（中译本在线免费，见上条）。","f":"2015 年出版，基于 Go 1.5、无泛型；语法经典，新特性另补","cat":"book"},{"n":"100 Go Mistakes and How to Avoid Them","u":"https://www.manning.com/books/100-go-mistakes-and-how-to-avoid-them","l":"en","c":"paid","s":2,"fav":1,"d":"100 个易错点与规避方案：切片/映射、错误处理、接口、并发陷阱、JSON、性能与 pprof 诊断，含泛型时代内容；有简体中文译本，100go.co 可免费试读。","f":"2022-08 出版（Go 1.18+），100go.co 2026-10 仍更新","cat":"book"},{"n":"Concurrency in Go","u":"https://dl.acm.org/doi/book/10.5555/3169370","l":"en","c":"paid","s":3,"d":"Katherine Cox-Buday 著（O'Reilly），系统讲 goroutine、通道、select、sync、上下文、并发模式与错误传播，Go 并发领域权威书；有中译本《Go 并发编程》。","f":"2017 年出版、早于泛型；并发原语至今适用","cat":"book"},{"n":"Let's Go（Alex Edwards）","u":"https://alexedwards.gumroad.com/l/lets-go","l":"en","c":"paid","s":2,"fav":1,"d":"项目式写专业级 Web 应用的最佳教材之一：HTML / PDF / EPUB 含源码，工程细节极佳。","f":"已更新至 Go 1.27，2026-08 仍在更新","cat":"book"},{"n":"Let's Go Further（Alex Edwards）","u":"https://alexedwards.gumroad.com/l/lets-go-further","l":"en","c":"paid","s":2,"d":"续集：高级 API 模式、后台任务、权限与安全，与 Let's Go 配套使用。","f":"2026-10-03 更新，对齐现行 Go","cat":"book"},{"n":"flyfei ·《10 小时入门 Go 语言全集》","u":"https://www.bilibili.com/video/BV13kHWztEJE","l":"zh","c":"free","s":1,"d":"2025 年发布的 10 小时系统入门合集：环境、语法、面向对象、包、标准库、字符串/时间、反射、泛型、工具链，配套课件代码。","f":"2025-10 发布，含新语法，适合当下入门","cat":"video"},{"n":"尚硅谷 · 韩顺平《Go 语言核心编程》381 集","u":"https://www.bilibili.com/video/BV1pt41127FZ","l":"zh","c":"free","s":1,"old":1,"d":"培训机构完整长课，案例 + 源码级讲授核心语法与部分底层，集数多、讲解细，适合做语法补充。","f":"2019–2020 年完结，基于早期 Go、无泛型；仅建议做语法补充，新特性勿以此为准","cat":"video"},{"n":"CloudWeGo · Gomall 电商商城微服务实战","u":"https://juejin.cn/post/7396921720692572198","l":"zh","c":"free","s":3,"d":"字节 CloudWeGo 官方出品，用 Kitex RPC + Hertz HTTP 从 0 到 1 搭电商商城 demo，讲中间件与工程实践（B 站官方账号有配套视频）。","f":"2024-07 发布，面向有基础者的进阶项目","cat":"video"},{"n":"freeCodeCamp · Build 11 Projects（8h24m 完整课）","u":"https://www.youtube.com/watch?v=jFfo23yIWac","l":"en","c":"free","s":2,"fav":1,"d":"Akhil Sharma 设计：8 小时做出 11 个项目——Web Server、CRUD API、图书管理系统、SlackBot、邮箱验证、AWS Lambda、Fiber CRM、Serverless、AI Bot。","f":"2022-03 发布，约 90 万播放；项目思路长期有效","cat":"video"},{"n":"TechWorld with Nana · Golang Full Course","u":"https://www.youtube.com/watch?v=yyUHQIec83I","l":"en","c":"free","s":1,"d":"Nana 出品的完整入门长课，从安装到语法、函数、结构体、接口、并发、模块，节奏清晰，适合零基础。","f":"2021-12 发布，250 万+播放；框架与新特性另补","cat":"video"},{"n":"Anthony GG（频道）","u":"https://www.youtube.com/@anthonygg_","l":"en","c":"free","s":3,"d":"十年 Go 经验开发者，讲后端架构、工程化、性能与真实项目复盘，每周直播回放，面向有基础者。","f":"2025 年仍高频更新","cat":"video"},{"n":"JustForFunc（Francesc Campoy）","u":"https://www.youtube.com/c/JustForFunc","l":"en","c":"free","s":0,"old":1,"d":"前 Google 工程师频道，每集一个小项目 / 代码评审讲 Go 的趣味与生产级写法（Flappy Bird、K8s、测试基准等）。","f":"更新已放缓，经典集数仍值得回看，作为课外补充","cat":"video"},{"n":"freeCodeCamp · Go + React 全栈应用课程（2024）","u":"https://www.freecodecamp.org/news/learn-the-basics-of-go-by-building-a-full-stack-web-app-with-react-and-go","l":"en","c":"free","s":2,"d":"以 Go 作后端、React / TypeScript / MongoDB 构建全栈应用，在项目中巩固 Go 基础。","f":"2024-05 发布","cat":"video"},{"n":"Exercism · Go Track","u":"https://exercism.org/tracks/go/","l":"en","c":"free","s":0,"fav":1,"d":"165 道练习、34 个概念，自动分析代码 + 免费人工导师评审，浏览器内可写、配套本地 CLI，是日常练习的主阵地。","f":"2026-10 维护中，对齐现行 Go，约 16.7 万学员","cat":"practice"},{"n":"Gophercises（20 个动手小项目）","u":"https://gophercises.com/","l":"en","c":"mix","s":2,"d":"约 20 个迷你应用与工具：测验游戏、链接解析器、站点地图生成器、购物车、URL 短链等，专项练通道、互斥锁、协程与接口；习题与代码免费，视频解答付费。","f":"习题经典，2026-02 仍可访问","cat":"practice"},{"n":"力扣 LeetCode（Go 刷题）","u":"https://leetcode.cn/","l":"zh","c":"mix","s":2,"d":"支持 Go 提交，从两数之和起按题型刷，巩固语法与数据结构，训练算法与面试。","f":"平台持续运营，Go 为官方支持语言之一","cat":"practice"},{"n":"造轮子与读框架：7days-golang / go-zero / kitex / grpc-go","u":"https://github.com/geektutu/7days-golang","l":"zh","c":"free","s":3,"d":"想「造轮子」就跟 7days-golang 手写 Web 框架 / 分布式缓存 / ORM / RPC；想读工业级代码就跑 go-zero、kitex、grpc-go 官方示例（星数与链接见上方 GitHub 仓库区）。","f":"均为 2026 年仍活跃的仓库","cat":"practice"}]};
+
+/* 指南的分阶段路线（照抄附件，**不做我的再编排** —— 附件为主） */
+const GUIDE_PHASES = {
+  python: [
+    { s: 0, w: "0.5 周", t: "环境与准备", pts: ["安装 Python 3.12 / 3.13（python.org），选编辑器 VS Code / PyCharm", "会运行 .py 文件、用 REPL、看懂报错 traceback", "pip 装包、虚拟环境 venv / uv，Git 基础"], out: "跑通 Hello World 与一个打印日历的小脚本" },
+    { s: 1, w: "3–4 周", t: "入门：语法、控制流、数据结构、函数", pts: ["变量与类型、运算符、输入输出、f-string", "if / for / while、match 模式匹配；列表、元组、字典、集合与推导式", "函数（参数、返回值、lambda、递归）、字符串方法、文件读写、异常基础"], out: "每节示例手敲一遍；HackerRank 基础关卡 + Exercism 入门概念题" },
+    { s: 2, w: "6–8 周", t: "巩固与进阶：OOP、工程化、语言核心", pts: ["面向对象、继承与多态、魔术方法、鸭子类型；模块与包、第三方包管理", "with 上下文管理器、迭代器/生成器、装饰器、闭包、浅/深拷贝", "类型注解、dataclasses；pytest 测试、ruff / black 代码风格"], out: "读 Automate the Boring Stuff 做 3–5 个实用脚本；把旧脚本重构为类并写测试" },
+    { s: 3, w: "6–8 周", t: "方向实战：Web / 数据 / 爬虫，完成一个完整作品", pts: ["Web 后端：FastAPI（首选，异步）/ Django（全栈）/ Flask（轻量）", "数据科学：NumPy、pandas、Matplotlib，Jupyter Notebook", "爬虫与自动化：requests、BeautifulSoup、Selenium / Playwright；AI 应用：大模型 API + Streamlit"], out: "跟官方教程做一个完整项目，写 README 上传 GitHub" },
+    { s: 4, w: "长期", t: "高级：并发、性能、打包与生态深化", pts: ["GIL、threading、multiprocessing、concurrent.futures、asyncio 协程与事件循环", "timeit / cProfile 性能分析；pyproject.toml、打包发布到 PyPI", "选读《Fluent Python》写出 Pythonic 代码；LeetCode 热题 100；尝试开源贡献"], out: "（持续）" },
+  ],
+  go: [
+    { s: 0, w: "0.5 周", t: "环境与准备", pts: ["安装最新 Go（go.dev/dl），配 VS Code / GoLand，跑通 Hello World", "学会 go mod init 初始化模块（直接用现代 Modules，跳过 GOPATH 旧模式）", "浏览 roadmap.sh/golang 建立全景，认识 gofmt / go vet 等内置工具"], out: "go run 跑通第一个程序，全部代码用 go.mod 管理" },
+    { s: 1, w: "4–6 周", t: "入门：语法与核心类型", pts: ["变量 / 常量 / 类型、运算符、流程控制；数组、切片、映射", "函数（多返回值、变参、闭包、defer）、指针、结构体、方法", "接口（隐式实现）、错误基础；Go by Example 当语法字典随查随写"], out: "Tour 每节练习动手做；Exercism Go Track 前 20–30 道，产出 10+ 个小练习" },
+    { s: 2, w: "6–8 周", t: "进阶：工程、测试、泛型与标准库", pts: ["error 包装与解包、panic/recover；包与 Modules（go mod tidy、依赖、发布）", "testing 表驱动测试 / 基准 / httptest，用 TDD 方式走完 learn-go-with-tests", "泛型（类型参数与约束）；net/http、encoding/json、log/slog、context、io/os、time"], out: "一个带测试的 CLI 工具 + 一个 CRUD Web API；读《100 Go Mistakes》对照避坑" },
+    { s: 3, w: "8–12 周", t: "高级：并发、性能、工程化与云原生", pts: ["goroutine、channel、select、worker pool、sync（Mutex/WaitGroup/Once/Map）、context 取消与超时", "fan-in / fan-out / pipeline 等并发模式；race detector、pprof / trace 性能分析", "选一条项目线：Web/API（Let's Go）、微服务/RPC（gRPC → Kitex / go-zero）、造轮子（7days-golang）"], out: "一个带日志/配置/测试/基准、可部署的微服务或完整 Web 项目；了解 Docker / K8s" },
+  ],
+};
+
+/* 两门语言对照（照抄附件 §02，8 个维度） */
+const GUIDE_COMPARE = [
+  ["语言定位", "解释型、动态类型、多范式，语法接近伪代码，表达力优先，「写得快」", "编译型、静态类型、关键字极少、风格强制统一，为团队工程与服务端设计，「跑得稳」"],
+  ["学习曲线", "上手最快，当天就能写出有用脚本；高级特性（装饰器/元类/异步）有深度", "语法半天能看完，规则少且唯一；难点在接口、错误处理、并发模型与工程组织"],
+  ["并发模型", "threading 受 GIL 约束；CPU 密集用 multiprocessing，高并发 IO 用 asyncio 协程", "goroutine + channel 语言级原生并发，几行代码启动上万协程，是 Go 的核心优势"],
+  ["性能与部署", "开发效率极高；运行依赖解释器与环境，打包分发相对麻烦", "编译为单个静态二进制，启动快、内存占用低、部署就是传一个文件，天生适合容器"],
+  ["典型领域", "数据分析、人工智能/大模型应用、脚本自动化、爬虫、Web 后端、科学计算", "云原生（Docker / Kubernetes / Terraform 均为 Go 编写）、微服务、API 网关、CLI、中间件"],
+  ["生态框架", "PyPI 包数量居首；FastAPI / Django / Flask、NumPy / pandas、PyTorch", "标准库极强（net/http、json、日志、测试开箱即用）；Gin、GORM、gRPC、go-zero、Kitex"],
+  ["就业方向", "数据分析师、算法/AI 应用工程师、后端、测试开发、自动化运维、量化", "后端工程师、基础架构/中间件、云平台、SRE / DevOps、游戏服务端"],
+  ["版本基线", "Python 3.12 / 3.13（3.13 含实验性 JIT 与自由线程）", "Go 1.22 及以上（泛型为基线、循环变量新语义、log/slog、mux 增强）"],
+];
+
+/* 选学顺序（照抄附件 §02 的三条路线） */
+const GUIDE_ORDER = [
+  ["路线 A · 零基础", "先 Python 后 Go。Python 反馈即时，最适合建立编程思维；能用 Python 独立做出项目后（约 4–6 个月），再学 Go 会很快 —— 概念已经懂，Go 只需 4–5 个月。"],
+  ["路线 B · 有其他语言经验", "两门都可直接从官方教程起步，也可并行。工作日跟 Python（廖雪峰 / 官方 Tutorial），周末跟 Go（A Tour of Go / Go by Example），3–4 个月即可同时入门；注意用不同项目练手，避免语法互相串。"],
+  ["路线 C · 目标明确", "按目标倒推。想做 AI 应用 / 数据分析 / 自动化办公：只学 Python 即可开局；想做云原生 / 高并发后端 / 中间件 / DevOps 工具链：直接 Go 优先，Python 之后作为「生产力工具」补。"],
+];
+
+/* 贯穿始终的练习原则（照抄附件） */
+const GUIDE_PRINCIPLES = [
+  ["少看多敲，报错先自己读", "每个示例必须亲手敲一遍再运行，拒绝复制粘贴；遇到报错先读 traceback / panic 信息，再查文档。"],
+  ["概念 + 题目双轨", "学完一个概念立刻在 Exercism / Codewars / LeetCode 找对应小题验证；每天 1 题保持手感。"],
+  ["以项目收尾，作品说话", "每个阶段结束都产出一个能跑的小作品（哪怕简陋），写清 README 推到 GitHub，逐步形成作品集。"],
+  ["官方文档兜底", "第三方库出问题先查官方文档（FastAPI、Django、pandas、pkg.go.dev 都已收录），再看博客与教程。"],
+  ["每周一次 code review", "善用 Exercism 免费人工导师；写完代码隔几天自己重看一遍，关注命名、错误处理与测试。"],
+  ["版本意识，不碰过时资料", "Python 一律 3.12 / 3.13，Go 一律 1.22+；任何只讲 Python 2 或 GOPATH 旧模式的资料直接弃用。"],
+];
+
+/* ═══════════════════════════════════════════════════════════════════════
+   五 · 运行时状态
+   ═══════════════════════════════════════════════════════════════════════ */
+const S = {
+  lang: 'python',
+  view: 'topics',
+  heuristic: false,      // Go 是否模拟「未检测到工具链」
+  ai: true,
+  stage: 0,
+  topic: null,
+  checked: new Set(),
+  consent: false,        // 记住本项目的选择
+  shares: [],            // lang_source_shares：只存计数，不存内容
+  requests: [],          // lang_topic_requests
+  derived: [],
+};
+
+function LANG_META(lang) {
+  return lang === 'python'
+    ? { name: 'Python', ver: '3.13', scanner: 'ast（Python 标准库）', mode: 'parser' }
+    : { name: 'Go', ver: '1.23', scanner: 'go/parser', mode: 'parser' };
+}
+function currentMode() { return (S.lang === 'go' && S.heuristic) ? 'heuristic' : 'parser'; }
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+function topicById(id) { return TOPICS.find(t => t.id === id); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   六 · 渲染
+   ═══════════════════════════════════════════════════════════════════════ */
+function chip(tone, text) { return `<span class="chip ${tone}">${esc(text)}</span>`; }
+
+function renderHero() {
+  const lang = S.lang, mode = currentMode();
+  S.derived = [...computeAll(lang, mode === 'heuristic').values()];
+  const list = langTopics(lang);
+  const cnt = k => list.filter(t => computeAll(lang, mode === 'heuristic').get(t.id).level === k).length;
+  const touched = cnt('mastered') + cnt('active');
+  const reached = Math.max(...STAGES.filter(s => list.some(t => t.stage === s.id &&
+    ['active', 'mastered'].includes(computeAll(lang, mode === 'heuristic').get(t.id).level))).map(s => s.id), [0]);
+  const fullN = list.filter(t => t.level === 'full').length;
+  const html = `
+    <div class="card stat"><div class="k">知识点（已铺 / 实测全量）</div>
+      <div class="v">${list.length} <span style="font-size:13px;color:var(--color-ink-faint)">/ ${lang === 'python' ? 84 : 34}</span></div>
+      <div class="s">两门都可筛选</div></div>
+    <div class="card stat"><div class="k">本项目有行为证据</div>
+      <div class="v">${touched}</div>
+      <div class="s">${cnt('untouched')} 条本项目未涉及</div></div>
+    <div class="card stat"><div class="k">当前进度</div>
+      <div class="v">第 ${reached + 1} 站</div>
+      <div class="s">${STAGES[reached].t} · ${STAGES[reached].g}</div></div>
+    <div class="card stat"><div class="k">三段内容完整</div>
+      <div class="v">${fullN}</div>
+      <div class="s">其余为要点级，界面上已标注</div></div>`;
+  document.getElementById('hero').innerHTML = html +
+    (cycleError ? `<div class="card stat" style="grid-column:1/-1;border-color:var(--color-danger-line)">
+      <span class="badflag">前置边有环：${esc(cycleError)}</span></div>` : '');
+}
+
+function renderScanBadge() {
+  const m = currentMode();
+  const box = document.getElementById('scanMode');
+  if (m === 'parser') {
+    const meta = LANG_META(S.lang);
+    box.innerHTML = chip('ok', `完整解析（${meta.scanner} · ${meta.name} ${meta.ver}）`);
+  } else {
+    box.innerHTML = chip('warn', '启发式模式：未检测到 Go 工具链，识别可能不全');
+  }
+  const meta = LANG_META(S.lang);
+  document.getElementById('dScan').innerHTML = m === 'parser'
+    ? chip('ok', `完整解析 · ${meta.scanner}`)
+    : chip('warn', '启发式模式 · 正则');
+}
+
+function renderStages() {
+  const mode = currentMode(), states = computeAll(S.lang, mode === 'heuristic');
+  const list = langTopics(S.lang);
+  document.getElementById('stageCount').textContent = STAGES.length + ' 站';
+  document.getElementById('stages').innerHTML = STAGES.map(s => {
+    const ts = list.filter(t => t.stage === s.id);
+    const done = ts.filter(t => ['active', 'mastered'].includes(states.get(t.id).level)).length;
+    const pct = ts.length ? Math.round(done / ts.length * 100) : 0;
+    return `<li class="stage ${s.id === S.stage ? 'on' : ''}" data-stage="${s.id}">
+      <div class="n">第 ${s.id + 1} 站 · ${done}/${ts.length}</div>
+      <div class="t">${esc(s.t)}</div>
+      <div class="g">${esc(s.g)}</div>
+      <div class="meter"><i style="width:${pct}%"></i></div>
+    </li>`;
+  }).join('');
+  document.querySelectorAll('.stage').forEach(el => el.onclick = () => { S.stage = +el.dataset.stage; S.topic = null; renderAll(); });
+}
+
+function renderTopics() {
+  const mode = currentMode(), states = computeAll(S.lang, mode === 'heuristic');
+  const list = langTopics(S.lang).filter(t => t.stage === S.stage);
+  const head = document.getElementById('topicHead');
+  head.textContent = `第 ${S.stage + 1} 站 · ${STAGES[S.stage].t}`;
+  document.getElementById('topicMeta').innerHTML =
+    `${list.length} 条 · ${list.filter(t => t.level === 'full').length} 条三段齐全`;
+
+  document.getElementById('topics').innerHTML = list.map(t => {
+    const st = states.get(t.id);
+    const m = STATE_META[st.level];
+    const locked = !st.prereqOk && st.level === 'untouched';
+    const hits = RULES.filter(r => r.lang === S.lang && r.topic === t.id && !(mode === 'heuristic' && r.regexOnly)).length;
+    return `<li class="topic ${t.id === S.topic ? 'on' : ''}" data-topic="${t.id}">
+      <div class="r1">
+        <span class="ttl">${esc(t.title)}</span>
+        <span class="spacer"></span>
+        ${t.kind === 'library' ? '<span class="tag">库级 · 不进路线</span>' : ''}
+        ${t.level === 'full' ? chip('acc', '完整') : '<span class="tag">要点级</span>'}
+        ${locked ? '<span class="tag lock">前置未达成</span>' : chip(m.chip, m.label)}
+      </div>
+      <div class="r2">${esc(t.summary)}${hits ? ` · 源码命中 ${st.src} 次（计入 ${st.counted} 次）` : ''}</div>
+    </li>`;
+  }).join('') || '<li class="topic"><div class="r2">本站暂无知识点</div></li>';
+  document.querySelectorAll('.topic').forEach(el => el.onclick = () => { S.topic = el.dataset.topic; renderAll(); });
+}
+
+function renderDetail() {
+  const box = document.getElementById('detail');
+  const id = S.topic || (langTopics(S.lang).filter(t => t.stage === S.stage)[0] || {}).id;
+  const t = topicById(id);
+  if (!t) { box.innerHTML = '<div class="card-b"><div class="note">选一个知识点看详情</div></div>'; return; }
+  S.topic = id;
+  const mode = currentMode(), st = computeAll(S.lang, mode === 'heuristic').get(id);
+  const m = STATE_META[st.level];
+  const c = t.content;
+  const terms = (c && CONCEPT_TERMS[t.concept]) || [];
+  const req = S.requests.filter(r => r.topic === id).length;
+
+  let html = `<div class="card-b">
+    <h3>${esc(t.title)}</h3>
+    <div class="meta">
+      ${chip(m.chip, m.label)}
+      ${t.level === 'full' ? chip('acc', '三段齐全') : '<span class="tag">要点级 · 非完整内容</span>'}
+      ${t.kind === 'library' ? '<span class="tag">库级（前置关系几乎不存在，不进学习路线）</span>' : ''}
+      ${mode === 'heuristic' ? chip('warn', '启发式识别') : ''}
+    </div>
+    <div style="font-size:13px;color:var(--color-ink-muted)">${esc(t.summary)}</div>
+    <div class="note" style="margin-top:9px"><b>状态怎么来的</b>
+      行为证据 ${st.nonSrc} 次（阶段清单/任务/技能）＋ 源码命中 ${st.src} 次。
+      ${st.src > 1 ? `重复命中 <b>只计 1 次</b>（抄 ${st.src} 次同一段 ≠ 理解 ${st.src} 个点）。` : ''}
+      ${st.capped ? `<b>本条只有源码证据 ⇒ 状态上限「本项目用到过」，永远到不了「掌握」。</b>` : ''}
+      ${t.level !== 'full' ? '' : ''}
+      阈值 N=${N_MASTERED}（本轮自定默认值，待 owner 签收）。</div>`;
+
+  if (c) {
+    html += `<div class="sec"><h4>怎么学的步骤</h4><ol class="steps">${c.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></div>
+      <div class="sec"><h4>学习样例</h4>
+        <div class="code-cap">Python</div><pre class="code">${esc(c.samples.python)}</pre>
+        <div class="code-cap">Go</div><pre class="code">${esc(c.samples.go)}</pre>
+      </div>
+      <div class="sec"><h4>原理解析</h4><div style="font-size:13px">${esc(c.principle)}</div></div>
+      <div class="sec"><h4>两门语言的差异（这一层才是学第二门语言要看的东西）</h4>
+        <table class="mini"><thead><tr><th style="width:88px">差异面</th><th>Python</th><th>Go</th></tr></thead>
+        <tbody>${c.deltas.map(d => `<tr><td>${esc(d[0])}</td><td>${esc(d[1])}</td><td>${esc(d[2])}</td></tr>`).join('')}</tbody></table>
+      </div>`;
+  } else if (t.level === 'full') {
+    html += `<div class="sec"><h4>怎么学的步骤</h4><ol class="steps">${t.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol></div>
+      <div class="sec"><h4>学习样例</h4><pre class="code">${esc(t.sample)}</pre></div>
+      <div class="sec"><h4>原理解析</h4><div style="font-size:13px">${esc(t.principle)}</div></div>`;
+  } else {
+    html += `<div class="sec"><h4>要点（尚未写满三段）</h4><div style="font-size:13px">${esc(t.point)}</div>
+      <div style="margin-top:9px">
+        <button class="b sm" id="reqBtn" ${req ? 'disabled' : ''}>${req ? '已登记' : '我要这条的完整内容'}</button>
+        ${req ? `<span class="tag" style="margin-left:8px">已登记 · 排在补齐队列第 ${queuePos(id)} 位（按行为证据与登记数排序，不按登记时间）</span>` : ''}
+      </div></div>`;
+  }
+
+  html += `<div class="sec"><h4>延伸阅读（只存链接，不搬正文）</h4>
+      <div><a href="${t.ref.u}" target="_blank" rel="noreferrer" style="color:var(--color-info)">${esc(t.ref.t)}</a>
+      <span class="tag" style="margin-left:6px">取证日 ${t.ref.checked || CHECKED}</span></div></div>`;
+
+  if (terms.length) {
+    html += `<div class="sec"><h4>学完这个点，你能读懂这几个词条（挂自术语库，稀疏是常态）</h4>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${terms.map(z =>
+        `<span class="termchip" data-term="${esc(z)}">✦ ${esc(z)}</span>`).join('')}</div>
+      <div class="note" style="margin-top:8px">词条取自本机术语库（441 条）里的真实条目。<b>反向不写</b>：本模块只挂接，不改术语表。</div>
+    </div>`;
+  }
+
+  const mine = RULES.filter(r => r.lang === S.lang && r.topic === id);
+  html += `<div class="sec"><h4>本项目的源码实例</h4>
+    ${mine.length ? `<div style="font-size:12.5px">${mine.map(r => {
+      const n = (FILES[r.file] || '').split('\n').filter(l => l.includes(r.pattern)).length;
+      return `<div style="font-family:var(--font-mono);font-size:11.5px;padding:2px 0">
+        ${esc(r.file)} · 命中 ${n} 行 · 模式 <code>${esc(r.pattern)}</code>
+        ${r.regexOnly ? '<span class="tag" style="margin-left:6px">仅解析器可确认</span>' : ''}</div>`;
+    }).join('')}</div>` : '<div style="font-size:12.5px;color:var(--color-ink-muted)">本项目未涉及这个知识点。</div>'}
+  </div>`;
+
+  box.innerHTML = html;
+  const rb = document.getElementById('reqBtn');
+  if (rb) rb.onclick = () => { S.requests.push({ topic: id, at: new Date().toISOString() }); renderDetail(); };
+  box.querySelectorAll('.termchip').forEach(el => el.onclick = () => showTerm(el.dataset.term));
+}
+
+function queuePos(id) {
+  const list = langTopics(S.lang).filter(t => t.level !== 'full');
+  const score = t => (BEHAVIOR[t.id] || 0) * 2 + S.requests.filter(r => r.topic === t.id).length;
+  return list.slice().sort((a, b) => score(b) - score(a)).findIndex(t => t.id === id) + 1;
+}
+
+function showTerm(zh) {
+  alert(`术语「${zh}」\n\n（demo 占位：真实实现走 /terms?q=${encodeURIComponent(zh)}）\n\n该词条在本机术语库 441 条里，` +
+    (zh === '协程' ? 'domain=后端' : zh === '指针' || zh === '依赖' ? 'domain=技术栈' : zh === '单元测试' || zh === '幂等' ? 'domain=测试' : 'domain 已标注'));
+}
+
+function renderSources() {
+  document.getElementById('sources').innerHTML = SOURCES.map(s => `
+    <div class="card src">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span class="ttl" style="font-size:12.5px;color:var(--color-ink)">${esc(s.u)}</span>
+        ${s.stale ? chip('danger', '已停更') : chip('ok', '在用')}
+      </div>
+      <div style="font-size:12px;margin-top:3px">${s.n} 条 · ${esc(s.kind)}</div>
+      <div style="font-size:11.5px;color:var(--color-ink-muted)">${esc(s.note)}</div>
+      <div style="font-size:11px;color:var(--color-ink-faint);margin-top:2px">取证日 ${s.checked}${s.stale ? ' · 停更于 2022-08-29' : ''}</div>
+    </div>`).join('');
+}
+
+function renderFoot() {
+  document.getElementById('foot').innerHTML = `
+    原型说明：本文件在 <code>docs/prototypes/</code> 下，<b>不是产品代码</b>，不参与 typecheck / test / bundle:check。<br>
+    规格 <code>docs/specs/m9-dev-language-roadmap.md</code> §7 的 29 条判据<b>本轮零通过</b> —— 边界逐条列在 §10.2。<br>
+    命中清单的「自查」是在<b>本 demo 自带的合成样例工程</b>上逐行核对，不是真在你的项目上跑 grep；行号由扫描器运行时解析，不写死。<br>
+    「学习资源」与「两门对照」两页<b>逐条取自 owner 提供的《Python 与 Go 系统学习指南》</b>（89 条资源 ＋ 分阶段路线 ＋ 8 维对照 ＋ 6 条练习原则）；
+    附件自述核实于 2026-10-18，<b>本轮网络不通，未做二次核实</b>。`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   七 · 两个新视图：学习资源（附件为准）／两门对照（附件为准）
+   ═══════════════════════════════════════════════════════════════════════ */
+const RF = { lang: 'python', cat: 'all', st: 'all', cost: 'all', fav: false };
+
+/* ⚠️ 附件数据的键是 py/go（不是 python/go）—— 这处映射是刻意显式的：
+   两套命名并存最容易出的错就是「取了个 undefined 还以为筛出 0 条」。 */
+function resPool() { return GUIDE_RES[RF.lang === 'python' ? 'py' : 'go']; }
+function resFiltered() {
+  return resPool().filter(r =>
+    (RF.cat === 'all' || r.cat === RF.cat) &&
+    (RF.st === 'all' || String(r.s) === RF.st) &&
+    (RF.cost === 'all' || r.c === RF.cost) &&
+    (!RF.fav || r.fav));
+}
+
+function renderRes() {
+  const box = document.getElementById('view-res');
+  const pool = resPool(), list = resFiltered();
+  const cats = [...new Set(pool.map(r => r.cat))];
+  const chipf = (act, val, txt, on) =>
+    `<button class="pill" data-rf="${esc(act + ':' + val)}" aria-pressed="${on}">${esc(txt)}</button>`;
+  const counts = k => pool.filter(r => k(r)).length;
+
+  let html = `<div class="hero" style="grid-template-columns:repeat(4,1fr)">
+      <div class="card stat"><div class="k">资源总数（附件口径）</div><div class="v">${pool.length}</div>
+        <div class="s">Python 43 ＋ Go 46</div></div>
+      <div class="card stat"><div class="k">当前筛选</div><div class="v">${list.length}</div>
+        <div class="s">只显示链接与一句说明，不搬正文</div></div>
+      <div class="card stat"><div class="k">带「精选」标记</div><div class="v">${counts(r => r.fav)}</div>
+        <div class="s">时间有限时优先用它们</div></div>
+      <div class="card stat"><div class="k">中文资源</div><div class="v">${counts(r => r.l === 'zh')}</div>
+        <div class="s">其余为英文</div></div>
+    </div>
+
+    <div class="note warn" style="margin-bottom:10px"><b>这份清单的出处与可信度，必须说清</b>
+      逐条取自 owner 提供的《Python 与 Go 系统学习指南》（附件自述「所有链接于 2026-10-18 逐条检索核实」）。
+      ⚠️ <b>本轮网络不通，我没有二次核实过任何一条</b> —— 所以每张卡只展示附件给的说明与时效注记，
+      不额外标「已核实」。这与本模块 §3.2 的取证纪律同款：没核过的不能写成核过。</div>
+
+    <div class="bar">
+      ${chipf('lang', 'python', 'Python', RF.lang === 'python')}${chipf('lang', 'go', 'Go', RF.lang === 'go')}
+      <span style="width:10px"></span>
+      ${chipf('cat', 'all', '全部分类', RF.cat === 'all')}
+      ${cats.map(c => chipf('cat', c, GUIDE_RES.cat[c], RF.cat === c)).join('')}
+      <span style="width:10px"></span>
+      ${chipf('st', 'all', '全部阶段', RF.st === 'all')}
+      ${[0, 1, 2, 3].map(s => chipf('st', String(s), GUIDE_RES.st[s], RF.st === String(s))).join('')}
+      <span style="width:10px"></span>
+      ${chipf('cost', 'all', '不限费用', RF.cost === 'all')}
+      ${['free', '部分免费', 'paid'].map(c => chipf('cost', c, GUIDE_RES.cost[c] || c, RF.cost === c)).join('')}
+      <span style="width:10px"></span>
+      ${chipf('fav', '1', '★ 只看精选', RF.fav)}
+    </div>
+
+    <div class="card"><div class="card-h">${esc(RF.lang === 'python' ? 'Python' : 'Go')} 篇资源（${list.length}）</div>
+      <div class="card-b"><div class="resgrid">`;
+  if (list.length === 0) {
+    html += `<div class="note">当前筛选无结果。</div>`;
+  } else {
+    for (const r of list) {
+      html += `<div class="card rescard">
+        <div class="n"><a href="${esc(r.u)}" target="_blank" rel="noreferrer">${esc(r.n)}</a></div>
+        <div class="meta">
+          <span class="tag">${esc(GUIDE_RES.cat[r.cat])}</span>
+          <span class="tag">${esc(GUIDE_RES.st[r.s])}</span>
+          <span class="tag">${r.l === 'zh' ? '中文' : '英文'}</span>
+          <span class="tag">${esc(GUIDE_RES.cost[r.c] || r.c)}</span>
+          ${r.fav ? chip('acc', '★ 精选') : ''}
+          ${r.star ? `<span class="tag">${esc(r.star)}</span>` : ''}
+        </div>
+        <div class="d">${esc(r.d)}</div>
+        <div class="f">${esc(r.f)}</div>
+      </div>`;
+    }
+  }
+  html += `</div></div></div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="card-h">指南分阶段路线（照抄附件 · 与左侧「站」不是同一套）</div>
+      <div class="card-b">
+        <div class="note" style="margin-bottom:8px">版本基线：Python 3.12 / 3.13，Go 1.22+。时间按每天 1.5–2 小时、每周 5–6 天估算。</div>
+        ${GUIDE_PHASES[RF.lang].map(p => `<div class="phase">
+          <div class="ph"><b>阶段 ${p.s}</b>${esc(p.w)}</div>
+          <div><div style="font-size:13px;color:var(--color-ink)">${esc(p.t)}</div>
+            <ul>${p.pts.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
+            <div style="font-size:11.5px;color:var(--color-ink-faint);margin-top:3px">产出：${esc(p.out)}</div>
+          </div></div>`).join('')}
+      </div>
+    </div>`;
+
+  box.innerHTML = html;
+  box.querySelectorAll('[data-rf]').forEach(b => b.onclick = () => {
+    const [k, v] = b.dataset.rf.split(':');
+    if (k === 'fav') RF.fav = !RF.fav;
+    else if (k === 'lang') { RF.lang = v; RF.cat = 'all'; RF.st = 'all'; RF.cost = 'all'; }
+    else RF[k] = v;
+    renderRes();
+    if (RF.lang !== S.lang) { /* 资源页的语言筛选独立于知识点页，互不强制同步 */ }
+  });
+  document.getElementById('resCount').textContent = resPool().length;
+}
+
+function renderCmp() {
+  const box = document.getElementById('view-cmp');
+  box.innerHTML = `
+    <div class="card"><div class="card-h">两门语言怎么互补（照抄附件 §02）</div>
+      <div class="card-b"><table class="mini">
+        <thead><tr><th style="width:92px">维度</th><th>Python</th><th>Go（Golang）</th></tr></thead>
+        <tbody>${GUIDE_COMPARE.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</tbody>
+      </table></div></div>
+
+    <div class="card" style="margin-top:12px"><div class="card-h">先学哪个（三条路线）</div>
+      <div class="card-b">${GUIDE_ORDER.map(r => `<div class="note" style="margin-bottom:7px">
+        <b>${esc(r[0])}</b>${esc(r[1])}</div>`).join('')}</div></div>
+
+    <div class="card" style="margin-top:12px"><div class="card-h">贯穿始终的练习原则</div>
+      <div class="card-b"><table class="mini">
+        <thead><tr><th style="width:180px">原则</th><th>怎么做</th></tr></thead>
+        <tbody>${GUIDE_PRINCIPLES.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('')}</tbody>
+      </table>
+      <div class="note" style="margin-top:8px"><b>这套原则与本模块的关系</b>
+        它们讲的是「人怎么学」，本模块的掌握度讲的是「项目里用过什么」。
+        <b>两者不是同一套证据，互不推导</b> —— 刻意不把练习平台的进度混进掌握度，否则那条诚实性就没了。</div>
+      </div></div>`;
+}
+
+function switchView(v) {
+  S.view = v;
+  for (const id of ['topics', 'res', 'cmp']) {
+    document.getElementById('view-' + id).hidden = (id !== v);
+  }
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.view === v));
+  if (v === 'res') renderRes();
+  if (v === 'cmp') renderCmp();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   八 · 源码解读抽屉（T0 清单 → T1 逐片段确认 → T2 解读）
+   ═══════════════════════════════════════════════════════════════════════ */
+function buildFindings() {
+  const mode = currentMode();
+  const out = [];
+  for (const r of RULES) {
+    if (r.lang !== S.lang) continue;
+    if (mode === 'heuristic' && r.regexOnly) continue;
+    const lines = (FILES[r.file] || '').split('\n');
+    lines.forEach((text, i) => {
+      if (!text.includes(r.pattern)) return;
+      out.push({
+        key: r.file + ':' + (i + 1) + ':' + r.pattern,
+        file: r.file, line: i + 1, text,
+        pattern: r.pattern, topic: r.topic,
+        confidence: mode === 'heuristic' ? 'possible' : 'confirmed',
+      });
+    });
+  }
+  return out;
+}
+
+function exportText() {
+  const f = buildFindings();
+  const mode = currentMode();
+  const meta = LANG_META(S.lang);
+  const head = [
+    '# 开发能力 · 源码识别清单（demo 样例工程）',
+    `# 扫描模式：${mode} · ${meta.scanner} · ${meta.name} ${meta.ver}`,
+    '# 路径为相对路径（不含本机绝对路径）',
+    '# 每一项都可用下列命令在项目目录里复现：',
+    `#   grep -rn '${f.length ? f[0].pattern : '<pattern>'}' .`,
+    '',
+    'file:line\tpattern\tconfidence\ttopic',
+  ];
+  return head.join('\n') + '\n' + f.map(x =>
+    `${x.file}:${x.line}\t${x.pattern}\t${x.confidence}\t${x.topic}`).join('\n') + '\n';
+}
+
+function selfCheck() {
+  const f = buildFindings();
+  let ok = 0, bad = [];
+  for (const x of f) {
+    const lines = (FILES[x.file] || '').split('\n');
+    // 独立于扫描结果重新定位：命中的行数必须与清单声称的一致
+    const hit = lines.some((l, i) => i + 1 === x.line && l.includes(x.pattern));
+    if (hit) ok++; else bad.push(`${x.file}:${x.line}`);
+  }
+  const absLeak = JSON.stringify(FILES).match(/\/Users\/|\/home\/|[A-Z]:\\\\/g) || [];
+  const dl19 = (() => {
+    if (S.lang !== 'go') return null;
+    const heur = RULES.filter(r => r.lang === 'go' && !r.regexOnly).map(r => r.topic + '|' + r.pattern);
+    const full = RULES.filter(r => r.lang === 'go').map(r => r.topic + '|' + r.pattern);
+    return heur.every(h => full.includes(h));
+  })();
+  return { total: f.length, ok, bad, absLeak, dl19 };
+}
+
+function renderDrawer() {
+  const body = document.getElementById('drawerBody');
+  const f = buildFindings();
+  const mode = currentMode();
+  const byTopic = {};
+  f.forEach(x => { (byTopic[x.topic] = byTopic[x.topic] || []).push(x); });
+
+  let html = `<div class="note ${mode === 'heuristic' ? 'warn' : ''}">
+    <b>T0 · 本地静态分析（不出网）</b>
+    扫描模式：${mode === 'parser'
+      ? `完整解析 —— ${LANG_META(S.lang).scanner}`
+      : '<b>启发式模式</b> —— 未检测到 Go 工具链，结果只标「可能」，且比完整解析少'}
+    ${mode === 'parser' ? '' : '<button class="b sm" id="backParser" style="margin-left:8px">切回完整解析</button>'}
+    <div style="margin-top:4px">本次命中 <b>${f.length}</b> 处，涉及 <b>${Object.keys(byTopic).length}</b> 个知识点。路径一律相对，不含本机绝对路径。</div>
+  </div>`;
+
+  if (S.lang === 'go') {
+    const sc = selfCheck();
+    html += `<div class="note" style="margin-top:8px">
+      <b>回退只降精度、不减结果（DL-19）</b>
+      启发式能认出的 ${RULES.filter(r => r.lang === 'go' && !r.regexOnly).length} 条，完整解析是否全部认出？
+      <span class="${sc.dl19 ? 'okflag' : 'badflag'}">${sc.dl19 ? '是（包含关系成立）' : '否（这是缺陷，不是「正则更宽」）'}</span>
+    </div>`;
+  }
+
+  html += `<div class="card" style="margin-top:10px"><div class="card-h">命中清单
+    <span class="spacer"></span>
+    <span class="tag">${mode === 'parser' ? '已确认' : '可能'} ${f.filter(x => x.confidence === (mode === 'parser' ? 'confirmed' : 'possible')).length} 条</span>
+  </div><div class="card-b">`;
+
+  for (const [tid, xs] of Object.entries(byTopic)) {
+    const t = topicById(tid);
+    html += `<div style="font-size:12px;color:var(--color-ink);font-weight:600;margin:8px 0 5px">
+      ${esc(t ? t.title : tid)} <span class="tag">${xs.length} 处</span></div>`;
+    xs.forEach((x, i) => {
+      const key = tid + '#' + i;
+      const on = S.checked.has(key);
+      html += `<div class="find">
+        <div class="fh">
+          <label class="switch"><input type="checkbox" data-k="${esc(key)}" ${on ? 'checked' : ''}/> 允许解读此片段</label>
+          <span class="path">${esc(x.file)}<span class="ln">:${x.line}</span></span>
+          ${chip(x.confidence === 'confirmed' ? 'ok' : 'warn', x.confidence === 'confirmed' ? '已确认' : '可能')}
+          <span class="tag">模式 ${esc(x.pattern)}</span>
+        </div>
+        <div class="fb"><pre class="code">${esc(x.text)}</pre></div>
+      </div>`;
+    });
+  }
+  html += `</div></div>`;
+
+  /* T1 授权区 —— AI 关闭时整块换成降级形态，且**不出现任何 AI 字样**（§5.2） */
+  const n = S.checked.size;
+  if (!S.ai) {
+    html += `<div class="card" style="margin-top:10px"><div class="card-h">解读能力当前不可用</div>
+      <div class="card-b">
+        <div class="note"><b>降级形态</b>
+          确定性层照常工作：上面的命中清单、置信度分级、相对路径、导出与自查全部可用。
+          片段解读这一段已关闭，因此界面上不会出现任何指向它的字样。<br>
+          <span style="color:var(--color-ink-faint)">这条纪律与「降级时不得把基线结果包装成生成式结果」是同一条 ——
+          用户看到的每一句话都要能说清是谁给的。</span>
+        </div>
+      </div></div>`;
+  } else {
+  html += `<div class="card" style="margin-top:10px"><div class="card-h">T1 · 逐片段确认 → T2 · 解读</div>
+    <div class="card-b">
+      <div class="note ${n === 0 ? '' : 'warn'}">
+        <b>将要发送的确切内容（${n} 个片段）</b>
+        ${n === 0 ? '当前<b>全部未勾选</b> ⇒ 不发送任何内容。这是默认态。'
+          : `已勾选的片段原文逐条列在上方清单里 —— <b>看到全文再勾</b>，否则「勾选」就是在盲签。`}
+        <div style="margin-top:5px">已勾选 <b>${n}</b> 个片段。发送给 AI 的内容里<b>已把本机绝对路径替换为项目内相对路径</b>。</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:9px;flex-wrap:wrap">
+        <label class="switch"><input type="checkbox" id="consent" ${S.consent ? 'checked' : ''}/> 记住本项目的选择</label>
+        <button class="b sm" id="clearConsent" ${S.consent ? '' : 'disabled'}>清除记忆（立即回到全不勾）</button>
+        <span class="spacer" style="flex:1"></span>
+        <button class="b pri" id="askAi" ${n === 0 || !S.ai ? 'disabled' : ''}>请求解读（${n} 个片段）</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--color-ink-faint);margin-top:5px">
+        记忆粒度限定「本项目」：全局记忆会让一个项目的授权泄漏到另一个项目。</div>
+    </div></div>`;
+  }   /* end if(!S.ai) */
+
+  /* 台账 */
+  html += `<div class="card" style="margin-top:10px"><div class="card-h">出网台账（只存计数与来源，不存片段内容）</div>
+    <div class="card-b">
+      ${S.shares.length === 0
+        ? '<div style="font-size:12.5px;color:var(--color-ink-muted)">尚未发送过任何片段。</div>'
+        : `<table class="ledger"><thead><tr><th>时间</th><th>片段数</th><th>授权来源</th></tr></thead><tbody>
+          ${S.shares.map(s => `<tr><td>${esc(s.at)}</td><td>${s.n}</td>
+            <td>${s.src === 'remembered' ? chip('warn', '因「记住了」而默认勾') : chip('info', '当次逐条勾选')}</td></tr>`).join('')}
+          </tbody></table>`}
+      <div style="font-size:11.5px;color:var(--color-ink-faint);margin-top:6px">
+        两类必须可分开统计：出事时要分得清用户是主动授权，还是被记忆带过去的。</div>
+    </div></div>`;
+
+  /* 导出 + 自查 */
+  const sc = selfCheck();
+  html += `<div class="card" style="margin-top:10px"><div class="card-h">导出识别清单（机器可核）</div>
+    <div class="card-b">
+      <div style="display:flex;gap:8px;margin-bottom:7px">
+        <button class="b sm" id="doExport">生成清单</button>
+        <button class="b sm" id="doCheck">自查（逐项复现）</button>
+        <button class="b sm" id="copyExp">复制</button>
+      </div>
+      <textarea class="ta" id="expBox" spellcheck="false">${S.shares.length ? '' : '（点「生成清单」）'}</textarea>
+      <div id="checkOut" style="font-size:12px;margin-top:7px"></div>
+    </div></div>`;
+
+  body.innerHTML = html;
+
+  body.querySelectorAll('input[data-k]').forEach(el => el.onchange = () => {
+    if (el.checked) S.checked.add(el.dataset.k); else S.checked.delete(el.dataset.k);
+    renderDrawer();
+  });
+  const cs = document.getElementById('consent');
+  if (cs) cs.onchange = () => {
+    S.consent = cs.checked;
+    if (!S.consent) S.checked.clear();
+    renderDrawer();
+  };
+  const cc = document.getElementById('clearConsent');
+  if (cc) cc.onclick = () => { S.consent = false; S.checked.clear(); renderDrawer(); };
+  const bp = document.getElementById('backParser');
+  if (bp) bp.onclick = () => { S.heuristic = false; renderAll(); renderDrawer(); };
+  const ai = document.getElementById('askAi');
+  if (ai) ai.onclick = doAsk;
+  document.getElementById('doExport').onclick = () => { document.getElementById('expBox').value = exportText(); };
+  document.getElementById('copyExp').onclick = () => {
+    const t = document.getElementById('expBox'); t.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.getElementById('checkOut').innerHTML = '<span class="okflag">已复制。</span>真实场景下这串文本可直接 grep 复现每一项。';
+  };
+  document.getElementById('doCheck').onclick = () => {
+    const r = selfCheck();
+    document.getElementById('checkOut').innerHTML =
+      `逐项复核 <b>${r.ok}/${r.total}</b> 项：` +
+      (r.bad.length === 0
+        ? `<span class="okflag">全部可复现</span> —— 每一项声称的 <code>file:line</code> 在样例文件里都能独立定位到同一模式串。`
+        : `<span class="badflag">${r.bad.length} 项对不上</span>：${esc(r.bad.slice(0, 5).join(' '))}`) +
+      `<br>绝对路径泄露检查：<span class="${r.absLeak.length === 0 ? 'okflag' : 'badflag'}">${r.absLeak.length === 0 ? '0 处' : r.absLeak.length + ' 处'}</span>
+       <span style="color:var(--color-ink-faint)">（demo 在样例文本里搜 /Users/ /home/ C:\\ ）</span>`;
+  };
+}
+function tid0(x) { return x.topic; }
+
+function doAsk() {
+  if (!S.ai) return;
+  const n = S.checked.size;
+  if (!n) return;
+  const remembered = S.consent;
+  S.shares.unshift({ at: new Date().toLocaleTimeString('zh-CN'), n, src: remembered ? 'remembered' : 'explicit_tick' });
+  renderDrawer();
+  const out = document.getElementById('askOut');
+  if (out) out.remove();
+  const d = document.createElement('div');
+  d.className = 'card'; d.id = 'askOut'; d.style.marginTop = '10px';
+  d.innerHTML = `<div class="card-h">T2 · AI 解读结果（只展示，不留存）</div>
+    <div class="card-b">
+      <div class="note"><b>这一行在做什么</b>你勾选的 ${n} 个片段属于「${[...new Set([...S.checked].map(k => k.split('#')[0]))].map(t => topicById(t) ? topicById(t).title : t).join('、')}」。
+      这段代码是<b>从模板复制来的</b>，规则名换成了实际要跑的那条 —— 结构对，但没人验证过每条规则的判定条件。</div>
+      <div class="note warn" style="margin-top:7px"><b>与确定性层的分歧</b>
+        确定性层说这些知识点「本项目用到过」；AI 说这段代码<b>未经理解</b>。
+        <b>分歧已显式标注，不静默取一边。</b></div>
+      <div class="note" style="margin-top:7px"><b>绝不自动入库</b>
+        AI 产出的任何知识点/术语一律走「待确认回流」＋人工确认，不直接写表。</div>
+    </div>`;
+  document.getElementById('drawerBody').appendChild(d);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   八 · 降级自检（全站不得出现 AI 字样 —— DL-08 的界面侧形态）
+   ═══════════════════════════════════════════════════════════════════════ */
+/* 降级自检：AI 关闭后，**内容区**不得出现任何 AI 字样（§5.2 的界面侧形态）。
+   排除项两处，都必须写出来，否则这个数会被当成「全站为 0」：
+     ① SCRIPT / STYLE 的文本不是可见内容；
+     ② data-ai-chrome = 那个开关自己（「AI 可用」是状态指示，不是推荐内容）。 */
+function degradeCheck() {
+  const hits = [];
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let n;
+  while ((n = walker.nextNode())) {
+    const p = n.parentElement;
+    if (!p) continue;
+    if (p.closest('script, style, [data-ai-chrome], #checkOut, #askOut')) continue;
+    const v = n.nodeValue || '';
+    if (/AI/.test(v) && v.trim()) hits.push(v.trim().slice(0, 40));
+  }
+  return hits;
+}
+
+function renderAll() {
+  syncGoSwitch();
+  document.getElementById('resCount').textContent = GUIDE_RES[S.lang === 'python' ? 'py' : 'go'].length;
+  renderHero(); renderScanBadge(); renderStages(); renderTopics(); renderDetail();
+  renderSources(); renderFoot();
+  switchView(S.view);
+  if (document.getElementById('drawer').classList.contains('on')) renderDrawer();
+}
+
+/* ── 事件绑定 ── */
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => switchView(b.dataset.view));
+document.querySelectorAll('.pill[data-lang]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.pill[data-lang]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  S.lang = b.dataset.lang; S.stage = 0; S.topic = null;
+  renderAll();
+});
+document.getElementById('openSrc').onclick = () => {
+  document.getElementById('drawer').classList.add('on');
+  document.getElementById('mask').classList.add('on');
+  renderDrawer();
+};
+document.getElementById('closeSrc').onclick = () => {
+  document.getElementById('drawer').classList.remove('on');
+  document.getElementById('mask').classList.remove('on');
+};
+document.getElementById('mask').onclick = () => document.getElementById('closeSrc').click();
+document.getElementById('themeBtn').onclick = () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  document.documentElement.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+};
+document.getElementById('aiOn').onchange = e => { S.ai = e.target.checked; renderAll(); };
+document.getElementById('selfcheck').onclick = () => {
+  const ai = document.getElementById('aiOn');
+  if (ai.checked) {
+    ai.checked = false; S.ai = false; renderAll();
+    const hits = degradeCheck();
+    document.getElementById('foot').insertAdjacentHTML('afterbegin',
+      `<div class="note danger" style="margin-bottom:8px"><b>降级自检结果</b>
+        AI 开关已关。界面可读文本里 <b>${hits.length}</b> 处出现「AI」字样${hits.length ? '：' + esc(hits.join(' / ')) : '（降级后不出现任何 AI 字样）'}。
+        ${hits.length ? '<b>这说明降级形态没做干净。</b>' : '用户看到的内容全部来自确定性层。'}</div>`);
+  } else {
+    ai.checked = true; S.ai = true; renderAll();
+  }
+};
+
+/* Go 的「模拟未检测到工具链」开关（演示 §3.8.2：不许静默回退）。只在 Go 下出现 ——
+   Python 侧没有双路径，给个永远点不动的按钮会让人以为它坏了。 */
+const goSwitch = document.createElement('button');
+goSwitch.className = 'b'; goSwitch.id = 'goSwitch';
+goSwitch.onclick = () => {
+  S.heuristic = !S.heuristic;
+  goSwitch.textContent = S.heuristic ? '切回完整解析' : '模拟：未检测到 Go 工具链';
+  renderAll();
+  if (document.getElementById('drawer').classList.contains('on')) renderDrawer();
+};
+document.querySelector('.bar').appendChild(goSwitch);
+function syncGoSwitch() {
+  const on = S.lang === 'go';
+  goSwitch.hidden = !on;
+  if (!on) S.heuristic = false;
+}
+
+renderAll();
+</script>
+</body>
+</html>
