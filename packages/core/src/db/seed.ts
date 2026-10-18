@@ -273,6 +273,12 @@ interface TermDomainMapItem {
   domain: string
 }
 
+interface TermScenarioItem {
+  zh: string | null
+  en: string | null
+  scenario: string
+}
+
 function readSeedBundle(file: string, warn: (msg: string) => void): unknown[] | null {
   try {
     const parsed = JSON.parse(readFileSync(file, 'utf8')) as {
@@ -396,13 +402,46 @@ export function applyTermAnnotations(db: SqliteDatabase, seedDir: string): SeedB
     }
   }
 
-  // 两个标注文件都读不到 ⇒ 与 bundle 同样口径报 error（种子目录整个缺失的情形）；
+  // ---- 3) 大白话场景句（FR-4.2 ①）----
+  // ⚠️ 与前两项同一套自然键定位，但**不含术语本身**是内容质量判据、不在这里判 ——
+  // 那要靠人读（抽检），机械判只能判「句子里出现了术语字面量」这一条最粗的形式，
+  // 而它对日常词（按钮/卡片）必然误报。质量判据见 P2 的抽检记录，不写进回填通道。
+  const rawScenarios = readSeedBundle(join(seedDir, 'term-scenarios.json'), warn)
+  if (rawScenarios) {
+    for (const raw of rawScenarios) {
+      const it = raw as TermScenarioItem
+      if (
+        typeof it?.zh !== 'string' ||
+        typeof it?.scenario !== 'string' ||
+        it.scenario === '' ||
+        (it?.en !== null && typeof it?.en !== 'string')
+      ) {
+        result.skipped += 1
+        warn(`场景句条目非法，已跳过: ${JSON.stringify(raw).slice(0, 80)}`)
+        continue
+      }
+      const hits = repo.findAllByNaturalKey(it.zh, it.en)
+      if (hits.length === 0) {
+        result.skipped += 1
+        continue
+      }
+      if (hits.length > 1) {
+        warn(`场景句命中 ${hits.length} 条同键词条，已全部回填: ${it.zh}`)
+      }
+      for (const hit of hits) {
+        if (hit.scenario === it.scenario) continue
+        if (repo.setLearning(hit.id, { scenario: it.scenario })) result.created += 1
+      }
+    }
+  }
+
+  // 三个标注文件都读不到 ⇒ 与 bundle 同样口径报 error（种子目录整个缺失的情形）；
   // 否则**只看有没有真的写进去**：有写入 imported，没写入 skipped。
   //
   // ⚠️ 刻意不看 `skipped`：未跑过 import-vibehub 的安装恒有 332 条未命中，若把它计入状态，
   // 二次启动就永远不是 skipped，「二次启动全 skipped」这条既有可观察契约（IT-SEED-REAL-01）
   // 会静默失效。未命中数仍在 `skipped` 计数里可查。
-  if (rawLevels === null && rawMap === null) {
+  if (rawLevels === null && rawMap === null && rawScenarios === null) {
     result.status = 'error'
   } else if (result.created > 0) {
     result.status = 'imported'

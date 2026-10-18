@@ -34,6 +34,7 @@ type TermRow = {
   level: string
   starter: number
   domain: string | null
+  scenario: string | null
   created_at: string
   updated_at: string
 }
@@ -56,6 +57,8 @@ function rowToTerm(row: TermRow): TermOut {
     level: row.level as TermOut['level'],
     starter: row.starter === 1,
     domain: row.domain ?? null,
+    // 列可空（未写即走「定义直出」），但对外一律给字符串 ''，不让 null 漏到前端
+    scenario: row.scenario ?? '',
     seedHash: row.seed_hash,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -134,8 +137,9 @@ export class TermsRepo {
     this.db
       .prepare(
         `INSERT INTO terms (id, zh, en, aliases, definition, example, related_term_ids,
-           source, tags, status, seed_hash, level, starter, domain, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)`,
+           source, tags, status, seed_hash, level, starter, domain, scenario,
+           created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         id,
@@ -151,6 +155,7 @@ export class TermsRepo {
         input.level ?? 'L2',
         input.starter === true ? 1 : 0,
         input.domain ?? null,
+        input.scenario ?? '',
         ts,
         ts,
       )
@@ -176,7 +181,8 @@ export class TermsRepo {
     this.db
       .prepare(
         `UPDATE terms SET zh=?, en=?, aliases=?, definition=?, example=?, related_term_ids=?,
-           tags=?, status=?, level=?, starter=?, domain=?, seed_hash=NULL, updated_at=? WHERE id=?`,
+           tags=?, status=?, level=?, starter=?, domain=?, scenario=?, seed_hash=NULL,
+           updated_at=? WHERE id=?`,
       )
       .run(
         zh ?? null,
@@ -190,6 +196,7 @@ export class TermsRepo {
         patch.level ?? before.level,
         patch.starter === undefined ? (before.starter ? 1 : 0) : patch.starter ? 1 : 0,
         patch.domain === undefined ? before.domain : patch.domain,
+        patch.scenario ?? before.scenario,
         nowIso(),
         id,
       )
@@ -272,7 +279,7 @@ export class TermsRepo {
   }
 
   /**
-   * seed 通道：回填学习化三列（level / starter / domain）。
+   * seed 通道：回填学习化四列（level / starter / domain / scenario）。
    *
    * ⚠️ **刻意不走 `update()`**：那条路径会写 `seed_hash = NULL`，而 seed_hash 为 NULL 的
    * 语义是「用户改过这条词条」⇒ 下次 `terms.json` 升级时这条会被整条跳过并 warning。
@@ -280,12 +287,19 @@ export class TermsRepo {
    * 词库的种子升级通道，且不留任何痕迹。同理不碰 `updated_at` —— 回填不该把词条顶到
    * 列表最前面（`list()` 按 updated_at DESC 排序）。
    *
-   * 只写传了的字段（`undefined` 表示不改），所以 level/starter 与 domain 可以分两次回填。
+   * 只写传了的字段（`undefined` 表示不改），所以 level/starter、domain、scenario
+   * 可以分多次回填。scenario 同样走这条路径而非 update()：它由 `term-scenarios.json`
+   * 回填，走 update() 会把 441 条标成「用户改过」，理由与 level/starter 完全相同。
    * 返回 false 表示 id 不存在，调用方负责计数与告警。
    */
   setLearning(
     id: string,
-    meta: { level?: TermOut['level']; starter?: boolean; domain?: string | null },
+    meta: {
+      level?: TermOut['level']
+      starter?: boolean
+      domain?: string | null
+      scenario?: string
+    },
   ): boolean {
     const sets: string[] = []
     const params: (string | number | null)[] = []
@@ -300,6 +314,10 @@ export class TermsRepo {
     if (meta.domain !== undefined) {
       sets.push('domain = ?')
       params.push(meta.domain)
+    }
+    if (meta.scenario !== undefined) {
+      sets.push('scenario = ?')
+      params.push(meta.scenario)
     }
     if (sets.length === 0) return false
     const info = this.db

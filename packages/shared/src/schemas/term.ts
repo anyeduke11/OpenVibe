@@ -15,6 +15,15 @@ const exampleSchema = z.string().refine((s) => utf8ByteLength(s) <= LIMITS.termE
 })
 
 /**
+ * 大白话场景句（m3-terms-learning FR-4.2 ①）。刻意**允许空串**：
+ * spec §6.2 定的形态是「没写到的走定义直出」，未写是合法状态而非缺失，
+ * 因此默认值给 `''` 而不是让每个读取点写兜底（与 FR-1.3 对 level/starter 的取舍同一条纪律）。
+ */
+const scenarioSchema = z.string().refine((s) => utf8ByteLength(s) <= LIMITS.termScenarioMaxBytes, {
+  message: `scenario 超过 ${LIMITS.termScenarioMaxBytes} 字节上限`,
+})
+
+/**
  * 字段体单源：入参与出参共用。**必须是裸 `z.object`，不得在它上面挂 refine。**
  *
  * ⚠️ 这条是本轮修掉的一个 HEAD 既有破损（Zod v4 升上来时漏改的）：`TermOut` 原本写作
@@ -43,6 +52,8 @@ const termFields = z.object({
   starter: z.boolean().default(false),
   /** 领域刻意可空：未归类是合法状态（用户自建词条、上游新增领域），不编造默认值 */
   domain: z.enum(TERM_DOMAINS).nullable().default(null),
+  /** 大白话场景句：未写即空串，卡片走「定义直出」（FR-4.2 ① / §6.2） */
+  scenario: scenarioSchema.default(''),
 })
 
 export const TermCreateInput = termFields.refine((t) => (t.zh ?? '') !== '' || (t.en ?? '') !== '', {
@@ -64,6 +75,7 @@ export const TermUpdateInput = z
     level: z.enum(TERM_LEVELS).optional(),
     starter: z.boolean().optional(),
     domain: z.enum(TERM_DOMAINS).nullable().optional(),
+  scenario: scenarioSchema.optional(),
   })
   .refine((t) => t.zh !== '' || t.en !== '' || (t.zh === undefined && t.en === undefined), {
     message: 'zh 与 en 不得同时置空',
@@ -86,6 +98,7 @@ export const TermOut = termFields
    * 直接 500 掉整个词库列表。
    */
   domain: z.string().nullable().default(null),
+  scenario: z.string().default(''),
   id: z.string(),
   seedHash: z.string().nullable(),
   createdAt: z.string(),

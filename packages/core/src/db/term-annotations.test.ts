@@ -230,6 +230,22 @@ describe('UT-TERM-ANN-04 · 标注数据文件', () => {
     expect(levelsFile.items.filter((i) => i.starter)).toHaveLength(134)
   })
 
+  it('term-scenarios.json 441 条，键与库内自然键一一对应、无重复、无空句', () => {
+    const scn = JSON.parse(
+      readFileSync(join(REPO_SEED_DIR, 'term-scenarios.json'), 'utf8'),
+    ) as { schemaVersion: number; items: { zh: string | null; en: string | null; scenario: string }[] }
+    expect(scn.schemaVersion).toBe(1)
+    expect(scn.items).toHaveLength(441)
+    const keys = scn.items.map((i) => JSON.stringify([i.zh, i.en]))
+    expect(new Set(keys).size, '自然键重复').toBe(441)
+    expect(scn.items.filter((i) => i.scenario.trim() === ''), '有空场景句').toHaveLength(0)
+    // 与 term-levels.json 的键集合必须完全相同（两遍回填定位的是同一批词条）
+    const lvl = JSON.parse(
+      readFileSync(join(REPO_SEED_DIR, 'term-levels.json'), 'utf8'),
+    ) as { items: { zh: string | null; en: string | null }[] }
+    expect([...keys].sort()).toEqual(lvl.items.map((i) => JSON.stringify([i.zh, i.en])).sort())
+  })
+
   it('term-domain-map.json 覆盖全部 8 领域，且每条带可复核的理由', () => {
     expect(domainMapFile.schemaVersion).toBe(1)
     expect(domainMapFile.items.length).toBeGreaterThan(0)
@@ -262,7 +278,7 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
   /** 真实种子目录 → 只保留 terms 相关文件，另两个 bundle 不参与本组断言 */
   function seedTermsOnly(dir: string): void {
     mkdirSync(dir, { recursive: true })
-    for (const f of ['terms.json', 'term-levels.json', 'term-domain-map.json']) {
+    for (const f of ['terms.json', 'term-levels.json', 'term-domain-map.json', 'term-scenarios.json']) {
       cpSync(join(REPO_SEED_DIR, f), join(dir, f))
     }
   }
@@ -278,9 +294,10 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
     const repo = new TermsRepo(h.db)
     const terms = repo.list()
     expect(terms).toHaveLength(109)
-    // 332 条 vibe-hub 词条尚未导入 ⇒ 未命中是正常初态，计入 skipped 而非告警
-    expect(ann.skipped).toBe(441 - 109)
-    expect(ann.warnings, '未命中不该逐条刷屏（332 条会让每次首启刷满告警）').toEqual([])
+    // 332 条 vibe-hub 词条尚未导入 ⇒ 未命中是正常初态，计入 skipped 而非告警。
+    // 两遍各 332（term-levels 一次、term-scenarios 一次）⇒ 664。
+    expect(ann.skipped).toBe(2 * (441 - 109))
+    expect(ann.warnings, '未命中不该逐条刷屏（会让每次首启刷满告警）').toEqual([])
 
     // 逐条核对：每个词条的 level/starter/domain 都与数据文件一致
     const byKey = new Map(levelsFile.items.map((i) => [JSON.stringify([i.zh, i.en]), i]))
@@ -296,6 +313,55 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
       expect(map.get(t.tags[0]!)).toBe(t.domain)
     }
     expect(new Set(terms.map((t) => t.domain)).size).toBeGreaterThan(1)
+    h.close()
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('⚠️ 场景句逐条落上：109 条自建词条一句都不能空、且与数据文件逐字一致', () => {
+    const h = newDb()
+    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    seedTermsOnly(dir)
+    runSeed(h.db, dir)
+    const terms = new TermsRepo(h.db).list()
+    const scn = JSON.parse(readFileSync(join(REPO_SEED_DIR, 'term-scenarios.json'), 'utf8')) as {
+      items: { zh: string | null; en: string | null; scenario: string }[]
+    }
+    const byKey = new Map(scn.items.map((i) => [JSON.stringify([i.zh, i.en]), i.scenario]))
+    for (const t of terms) {
+      const want = byKey.get(JSON.stringify([t.zh ?? null, t.en ?? null]))
+      expect(want, `词条没有对应场景句: ${t.zh}`).toBeDefined()
+      expect(t.scenario).toBe(want!)
+      expect(t.scenario.trim(), `场景句为空: ${t.zh}`).not.toBe('')
+    }
+    h.close()
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('⚠️ 场景句回填同样不碰 seed_hash（走 update() 会把 441 条标成「用户改过」）', () => {
+    const h = newDb()
+    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    seedTermsOnly(dir)
+    runSeed(h.db, dir)
+    const nulls = (
+      h.db.prepare('SELECT COUNT(*) AS c FROM terms WHERE seed_hash IS NULL').get() as { c: number }
+    ).c
+    expect(nulls, '有词条被标成「用户改过」⇒ 种子升级通道已冻结').toBe(0)
+    h.close()
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('⚠️ 回填不碰 updated_at（否则 441 条会被顶到 list() 最前面）', () => {
+    const h = newDb()
+    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    seedTermsOnly(dir)
+    runSeed(h.db, dir)
+    // 首启后 updated_at 应仍与 created_at 同源（回填未刷新它）
+    const drift = (
+      h.db
+        .prepare('SELECT COUNT(*) AS c FROM terms WHERE updated_at <> created_at')
+        .get() as { c: number }
+    ).c
+    expect(drift, '回填刷新了 updated_at').toBe(0)
     h.close()
     rmSync(dir, { recursive: true, force: true })
   })

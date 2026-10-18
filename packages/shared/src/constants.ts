@@ -273,6 +273,12 @@ export const LIMITS = {
   termEnMax: 100,
   termDefinitionMaxBytes: 4 * 1024,
   termExampleMaxBytes: 2 * 1024,
+  /**
+   * 大白话场景句上限（m3-terms-learning FR-4.2 ①）。口径是 20~45 个汉字，
+   * UTF-8 三个字节/字 ⇒ 45 字约 135 B；取 400 B 留一倍以上余量，
+   * 免得哪天有人写长句时被静默截断（静默截断比报错更难查）。
+   */
+  termScenarioMaxBytes: 400,
   // m4 §3 四段全按字节族（owner 2026-10-01 裁 [DEV-0088]）；键名即单位，不留「KB 是字符还是字节」的第二读法
   playbookScenarioMaxBytes: 1024,
   playbookProblemMaxBytes: 1024,
