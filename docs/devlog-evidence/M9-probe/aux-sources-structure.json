@@ -1,0 +1,54 @@
+{
+ "_readme": "另四个来源的**结构**实测（只取目录/章节骨架，不取正文）。目的是回答「它们各能贡献什么、能不能当学习路线」。",
+ "collected_at": "2026-10-18",
+ "method": "GitHub API（gh，已认证）取 git/trees/HEAD?recursive=1 与 README；runoob 两份见同目录另两个 json",
+ "sources": [
+  {
+   "name": "xinliangnote/Go",
+   "kind": "教程型（有编号）",
+   "md_count": 43,
+   "structure": {
+    "00-基础语法": 22,
+    "01-Gin框架": 10,
+    "02-Go gRPC": 3,
+    "03-go-gin-api [文档]": 7
+   },
+   "note": "⭐ 五个源里**最适合当学习路线**的一个：编号有序，且标题是真实工程问题而非语法名词（chan 通道 / defer / 解析 JSON 数据 / 逃逸分析 / sync.Pool / sync.WaitGroup）",
+   "last_pushed": "2024-04-07"
+  },
+  {
+   "name": "walter201230/Python",
+   "kind": "教程型（有编号）",
+   "md_count": 101,
+   "structure": {
+    "Article/PythonBasis": 95,
+    "codeSpecification": 4
+   },
+   "note": "编号章节（python0..pythonN，每章带 Preface ＋ mindmap.png）。⚠️ 用的是 .png 脑图，**内容在图片里** ⇒ 不可文本抽取，只能当导航用",
+   "last_pushed": "2026-10-17"
+  },
+  {
+   "name": "jobbole/awesome-python-cn",
+   "kind": "资源清单（按主题）",
+   "sections": 94,
+   "list_items": 874,
+   "note": "⚠️ **停更于 2022-08-29（4 年）**。94 个主题章节 / 874 条链接 ⇒ 只能当「知识点候选池」，不能当真相源",
+   "last_pushed": "2022-08-29"
+  },
+  {
+   "name": "avelino/awesome-go",
+   "kind": "资源清单（按主题）",
+   "sections": 147,
+   "list_items": 3323,
+   "note": "✅ 活跃（2026-10-15）。量最大（3323 条），但同样无学习顺序 ⇒ 「按需查阅」区的候选池",
+   "last_pushed": "2026-10-15"
+  }
+ ],
+ "aggregate": {
+  "ordered_pool": 262,
+  "ordered_note": "教程型可当路线：runoob-Python 84 ＋ runoob-Go 34 ＋ walter201230 101 ＋ xinliangnote 43",
+  "unordered_pool": 4197,
+  "unordered_note": "资源清单型只能当查阅池：awesome-go 3323 ＋ awesome-python-cn 874",
+  "total": 4459
+ }
+}
