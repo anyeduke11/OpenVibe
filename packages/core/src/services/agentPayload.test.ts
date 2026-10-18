@@ -59,6 +59,20 @@ const KIND_SPEC: Record<string, { spec: string; marker: string }> = {
   ai_recommend_call: { spec: M3_SPEC_PATH, marker: 'FR-9.1-b' },
 }
 
+/**
+ * 在规格原文里定位「声明这个 kind 的键闭集」那一行。
+ *
+ * ⚠️ **条件必须是「marker ＋ 箭头 ＋ 本 kind 的名字」三条同时成立**，只按 marker 找会取到**第一条**命中。
+ * 本轮实测：m3 规格第 10 行的版本行里同时出现了「新增 FR-9.1-b」「（`payload_json` 允许键闭集 …）」
+ * 与「v0.6 → v0.7」，于是只按 marker 找会返回版本行 —— 而版本行不含任何键名，判据遂**恒红**。
+ * 这类「锚点词在别处也出现」的坑是判据变成永红的最常见形态，故把 kind 名也写进条件。
+ */
+export function findSpecRow(spec: string, marker: string, kind: string): string | undefined {
+  return spec
+    .split('\n')
+    .find((l) => l.includes(marker) && l.includes('→') && l.includes(kind))
+}
+
 /** 四类**已有生产写入点**的 kind（第五类属 Phase 2，见文首） */
 const WRITTEN = ['agent_ingest_accepted', 'agent_ingest_rejected', 'agent_context_served', 'cli_agent_command_run'] as const
 
@@ -191,9 +205,7 @@ describe('FR-5.1.1 · 五类 payload 键闭集（单一出处 ＋ 逐字对齐�
     for (const kind of Object.keys(AGENT_PAYLOAD_KEYS)) {
       const binding = KIND_SPEC[kind]!
       const spec = readFileSync(binding.spec, 'utf8')
-      const line = spec
-        .split('\n')
-        .find((l) => l.includes(binding.marker) && l.includes('→'))
+      const line = findSpecRow(spec, binding.marker, kind)
       expect(line, `${binding.spec} 里找不到 ${kind} 的闭集那一行 —— 规格被改写了，本判据需同步`).toBeDefined()
 
       // 正向：实现的每个键都要在规格那行出现
@@ -209,6 +221,19 @@ describe('FR-5.1.1 · 五类 payload 键闭集（单一出处 ＋ 逐字对齐�
       // 正向与反向必须**同时**成立：集合相等，不是包含
       expect([...implKeys].filter((k) => !specKeys.has(k))).toEqual([])
     }
+  })
+
+  it('⚠️ 变异腿：规格前文出现同名锚点（版本行里的「新增 FR-9.1-b … 允许键 … v0.6 → v0.7」）⇒ 必须取到真正那一行', () => {
+    // 复刻本轮真实踩到的形态：m3 规格第 10 行是版本行，它同时含 marker、含箭头，
+    // 只按 marker 找就必然返回它 —— 而版本行里一个键名都没有，守卫遂恒红。
+    const decoy =
+      '| 版本 | **v0.7**。v0.6 → v0.7：P5 落地 FR-9.2 的 CHECK 扩项 ＋ **新增 FR-9.1-b**（`payload_json` 允许键闭集 …）|'
+    const real = '- **FR-9.1-b** `payload_json` **允许键**：`ai_recommend_call` → `aiModel` / `aiProvider`。'
+    const spec = [decoy, real].join('\n')
+
+    expect(findSpecRow(spec, 'FR-9.1-b', 'ai_recommend_call')).toBe(real)
+    // 反证：去掉 kind 条件就会取到那一行 —— 说明这条条件确实在做事，不是摆设
+    expect(findSpecRow(spec, 'FR-9.1-b', '不存在的kind')).toBeUndefined()
   })
 
   it('⚠️ 变异腿：规格多写一个键 ⇒ 双向判据必须判红（否则反向那一半可能恒真）', () => {
