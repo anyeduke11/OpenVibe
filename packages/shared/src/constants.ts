@@ -5,6 +5,27 @@ export const APP_NAME = 'openvibe' as const
 export const APP_ID = 'openvibe-cli' as const
 export const DEFAULT_PORT = 8787
 
+/**
+ * 前端唯一约定端口（owner 2026-09-30 定）：dev 与 preview 都锁 5144。
+ * strictPort=true → 端口被占时 vite 直接报错退出，绝不静默漂移到 5174 等备用端口；
+ * 「禁止使用其他端口」由此机制保证，而不是靠约定。
+ *
+ * ⚠️ **2026-10-19 从 `apps/web/vite.config.ts` 迁到这里**：原先它只住在 vite 配置里，
+ *    于是 server 侧无从知道「用户该打开哪个地址」—— 启动日志只写 API 那个端口，
+ *    而浏览器打开它是打不到界面的（那是 API 口）。把常量留在只有 vite 看得见的地方，
+ *    等于让「应用入口」这个事实没有可被复用的出处。
+ *
+ * ⚠️ **但 vite 配置并没有改成 import 这里**（实测起不来，理由见 `apps/web/vite.config.ts`
+ *    的同款说明：它由 Node 原生 ESM 加载，而本包的相对导入不带扩展名）。
+ *    ⇒ 形态是「**这里为准 ＋ vite 配置那一份被守卫锁死**」，由 `tests/dev-ports.test.ts` 断。
+ */
+export const WEB_PORT = 5144
+
+/** 两个端口的本机基址 —— 启动横幅与 CLI 文案共用，避免各处拼字符串拼出第三种写法 */
+export const LOOPBACK_HOST = '127.0.0.1' as const
+export const WEB_URL = `http://${LOOPBACK_HOST}:${WEB_PORT}` as const
+export const API_URL = `http://${LOOPBACK_HOST}:${DEFAULT_PORT}` as const
+
 /** 专用 adapter（design §8 v1.3 冻结：MVP 六个） */
 export const ADAPTER_IDS = [
   'claude-code',
@@ -234,7 +255,6 @@ export const AGENT_PAYLOAD_KEYS = Object.fromEntries(
  *   故此处登记形状，**当前仍无生产调用方**。
  */
 export type AgentPayloadKind = keyof typeof AGENT_PAYLOAD_SHAPE
-
 
 /** `kind` 与 `day` 的联合索引口径（FR-1.2）；day 落列不现算，照 telemetry_events 先例 */
 export const LOCAL_EVENT_INDEXES = ['idx_local_events_kind_day', 'idx_local_events_created_at'] as const

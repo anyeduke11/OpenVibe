@@ -89,9 +89,12 @@ export default tseslint.config(
     languageOptions: { globals: { console: 'readonly', process: 'readonly' } },
   },
   {
-    // 验收走查驱动器（docs/devlog-evidence/**.mjs）：Node 侧脚本，起子进程 + 裸 CDP，
-    // 不是产品代码也不进任何 app 运行时，故只补它用到的那几个全局。
-    files: ['docs/**/*.mjs'],
+    // Node 侧脚本，起子进程 + 裸 CDP / 进程组管理，不是产品代码也不进任何 app 运行时，
+    // 故只补它们用到的那几个全局。
+    // ⚠️ 两处刻意合并成一个 block 而不是各写一份：这两类文件的判定依据是**同一句话**
+    //   （「Node 跑的工具脚本」），拆成两条后下一次新增 .mjs 时就有一个漏配，
+    //   而漏配的表现是 24 条 `x is not defined` —— 闸是红的，但红的原因与被测的东西毫无关系。
+    files: ['docs/**/*.mjs', 'scripts/**/*.mjs'],
     languageOptions: {
       globals: {
         Buffer: 'readonly',
