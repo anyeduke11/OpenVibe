@@ -35,9 +35,14 @@ function makeP4Payload(over: Record<string, unknown> = {}) {
 const KEYS = AGENT_PAYLOAD_KEYS.ai_recommend_call
 
 describe('P5 · FR-9.1 留痕的最小可复盘集', () => {
-  it('⚠️ 台账 kind 已含 ai_recommend_call，且是**追加**在末尾（追加才让历史行仍合法）', () => {
+  it('⚠️ 台账 kind 已含 ai_recommend_call；**末尾项**是最新一轮的最近追加（M9 v1.6 P0 加 4 项后，末尾是 `lang_resource_probe`）', () => {
+    // 写死 19 + 4 = 23，扩项必须在这里被看见（与上同源）。
+    expect(LOCAL_EVENT_KINDS).toHaveLength(23)
+    // ai_recommend_call 仍在内（M3 AI 那条）
     expect(LOCAL_EVENT_KINDS).toContain('ai_recommend_call')
-    expect(LOCAL_EVENT_KINDS[LOCAL_EVENT_KINDS.length - 1]).toBe('ai_recommend_call')
+    // 末尾是 M9 v1.6 P0 预声明的 4 项里**最末**追加的那一项 ——「追加」这条原则没变，
+    // 只是**追加者换了**（从 M3 AI 换成 M9 P0）。
+    expect(LOCAL_EVENT_KINDS[LOCAL_EVENT_KINDS.length - 1]).toBe('lang_resource_probe')
   })
 
   it('⚠️ 键闭集里没有任何「装原文」的容器（FR-9.3）', () => {

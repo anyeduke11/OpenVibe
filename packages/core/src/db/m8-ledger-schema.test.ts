@@ -8,6 +8,7 @@ import {
   AGENT_EVENT_KINDS,
   AGENT_AI_EVENT_KINDS,
   AGENT_INGEST_KINDS,
+  LANG_EVENT_KINDS,
   AGENT_INGEST_STATUSES,
   TELEMETRY_EVENTS,
 } from '@openvibe/shared'
@@ -75,18 +76,36 @@ function checkLiterals(table: string, column: string): string[] {
 }
 
 describe('0007 迁移与 shared 常量的双源一致性', () => {
-  it('kind 的 CHECK 字面量 ≡ LOCAL_EVENT_KINDS（逐字、逐序）', () => {
-    expect(checkLiterals('local_events', 'kind')).toEqual([...LOCAL_EVENT_KINDS])
+  /**
+   * 2026-10-19 更新（M9 v1.6 P0 加入 4 项预声明后）：
+   * 0007 是**历史**迁移文件 —— 它的 CHECK 字面量是 19 项（13 ＋ 6），
+   * **永远不应被改**。M9 的 4 项预声明要靠新迁移 0011 落地（属于 P1 工作）。
+   * 所以 0007 与 LOCAL_EVENT_KINDS 的关系是「**前 19 项逐字相等**」，不是「完全相等」。
+   */
+  it('0007 的 CHECK 字面量 ≡ LOCAL_EVENT_KINDS 的前 19 项（逐字、逐序；M9 的 4 项待 0011 迁移落地）', () => {
+    const old = checkLiterals('local_events', 'kind')
+    expect(old).toEqual([...LOCAL_EVENT_KINDS].slice(0, old.length))
+    // 同时锁死 19：任何后续 commit 若改了 0007 的 CHECK，会被这条红掉。
+    expect(old).toHaveLength(19)
   })
 
-  it('kind 的 CHECK 字面量 ≡ 台账 13 ＋ Agent 6 的并集', () => {
-    expect([...LOCAL_EVENT_KINDS]).toEqual([...LEDGER_EVENT_KINDS, ...AGENT_EVENT_KINDS])
+  it('kind 的 CHECK 字面量 ≡ 台账 13 ＋ Agent 6 ＋ M9 预声明 4', () => {
+    expect([...LOCAL_EVENT_KINDS]).toEqual([
+      ...LEDGER_EVENT_KINDS,
+      ...AGENT_EVENT_KINDS,
+      ...LANG_EVENT_KINDS,
+    ])
     expect(LEDGER_EVENT_KINDS).toHaveLength(13)
     // M8 五项 ＋ M3 AI 一项（P5 新增）。⚠️ 写死计数是有意的：扩项必须在这里被看见，
     // 否则「悄悄多了一项」不会有任何人察觉。
     expect(AGENT_EVENT_KINDS).toHaveLength(6)
     expect(AGENT_AI_EVENT_KINDS).toEqual(['ai_recommend_call'])
-    expect(LOCAL_EVENT_KINDS).toHaveLength(19)
+    // M9 v1.6 P0 预声明 4 项。⚠️ 这 4 项在 P0 还**没有被任何 `INSERT` 引用** —— 它们要靠
+    // P1 写的迁移 0011 建新表（SQLite 不能 ALTER CHECK）才会真正落地；当下
+    // LANG_EVENT_KINDS 只是**声明**，与 P0-pre 阶段的「禁列扫描器接 lang_* 命名空间」
+    // 配套使用。
+    expect(LANG_EVENT_KINDS).toHaveLength(4)
+    expect(LOCAL_EVENT_KINDS).toHaveLength(23)
   })
 
   it('⚠️ 每份历史迁移的 CHECK 闭集都必须是当前集的前缀（否则历史行会因新定义而非法）', () => {

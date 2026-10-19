@@ -124,6 +124,21 @@ export const FORBIDDEN_COVERAGE: ForbiddenCoverage[] = [
     guard: '同上：白名单构造，业务正文根本不会进入台账 payload',
     whyNotRegex: '正文是任意长自由文本；正则只能覆盖「恰好长得像路径」的子集，其余静默漏过',
   },
+  {
+    /**
+     * M9（m9-dev-language-roadmap.md v1.6 P0.3）：
+     * `lang_*` 命名空间的全部 kind 必须在「同一道禁列扫描器下」走。
+     *
+     * 为什么不单写一个 `LangEventsRepo` 写点 + 一份新扫描器：那次「FR-6.3 守卫被
+     * 复制两份、漂移没人知道」的教训（2026-10-17）正是这条 —— 写新扫描器时不会
+     * 把它与旧扫描器做对账，而禁列规则会**真的不一样**。这里直接复用 `scanForbidden`，
+     * 配 P1b 的 `LangEventsRepo` 单一写入点。
+     */
+    item: 'lang_* 命名空间（lang_topic_findings / lang_source_consent / lang_source_shares / lang_resource_probe）',
+    specRef: 'm9-dev-language-roadmap.md v1.6 §3.14–§3.16 / §3.17.1 / §3.21',
+    mechanism: 'scanner',
+    guard: 'Unix 绝对路径',  // 与本地台账共用同一道禁列规则
+  },
 ]
 
 /** 返回命中的禁列标签列表（空数组 = 干净） */

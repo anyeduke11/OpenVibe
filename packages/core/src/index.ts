@@ -1,3 +1,4 @@
+export { M9_FIXTURES, M9_FIXTURE_NAMES, type M9FixtureName } from "./fixtures/m9"
 // packages/core —— 领域核心：db / repos / search（R3：禁止依赖任何 app）
 export { openDatabase, defaultDbPath, openvibeHome, type SqliteDatabase } from './db'
 export { migrate, nowIso } from './db/runner'
@@ -59,6 +60,7 @@ export { createAgentService, AGENT_BATCH_LIMITS, type AgentServiceDeps, type Ing
 export { createContextService, type ContextServiceDeps } from './services/contextService'
 export { createTermRecommendService, type TermRecommendDeps } from './services/termRecommendService'
 export { createCommandRunService, CLI_COMMAND_RUN_COMMANDS, CLI_COMMAND_RUN_PAYLOAD_KEYS, type CliCommandRunCommand, type CommandRunInput, type CommandRunServiceDeps } from './services/commandRunService'
+export { assembleAiCallPayload, toRelativePath, PayloadAssemblyError, type AssembleOpts, type AiCallPayload, type SourceFragment } from './services/m9-payload'
 export {
   createPackService,
   type PackServiceDeps,

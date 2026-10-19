@@ -162,6 +162,30 @@ const AGENT_CORE_EVENT_KINDS = [
  */
 export const AGENT_AI_EVENT_KINDS = ['ai_recommend_call'] as const
 
+/**
+ * M9 语言学习模块的台账 kind（m9-dev-language-roadmap.md §3.14–§3.16 / §3.17.1 / §3.21）。
+ *
+ * ⚠️ **本版（v1.6 P0）只是声明 `lang_*` 命名空间**：
+ * - SQLite CHECK 约束的实际落地在 P1（迁移 `0011_lang_topics.sql`），**M9 之前不存在
+ *   任何 `lang_*` 的写点**，所以本数组在 P0 还不会被任何 `INSERT` 引用。
+ * - 落地步骤：P1.1 写迁移 → P1b 写 `LocalEventsRepo`-like 写入点（lang_events_repo）→
+ *   这一刻才把 `LANG_EVENT_KINDS` 与 `LOCAL_EVENT_KINDS` 接上。
+ *
+ * **为什么 P0 就要先声明**：禁列扫描器的覆盖表（`FORBIDDEN_COVERAGE`）必须**预先**
+ * 把 lang_* 写点登记进表，否则下一轮写 `lang_*` 的写入点时，覆盖表漏了，扫描器没扫，
+ * 没有任何东西会变红 —— 这正是 FR-6.3 守卫当初被复制两份、漂移没人知道的那次教训。
+ */
+export const LANG_EVENT_KINDS = [
+  /** P4 源码扫描的每条命中（`lang_topic_findings` 表对应） */
+  'lang_topic_findings',
+  /** P4 「记住不发」开关（DL-21：清除后立刻回到全不勾） */
+  'lang_source_consent',
+  /** P4 每次出网计数（DL-23：consent_source 二分） */
+  'lang_source_shares',
+  /** P1b 资源失效巡检（DL-30：HEAD only，状态码与计数落库） */
+  'lang_resource_probe',
+] as const
+
 /** Agent 侧全部 kind（M8 五项 ＋ AI 一项），台账 CHECK 的对照面之一 */
 export const AGENT_EVENT_KINDS = [...AGENT_CORE_EVENT_KINDS, ...AGENT_AI_EVENT_KINDS] as const
 
@@ -170,7 +194,18 @@ export const AGENT_EVENT_KINDS = [...AGENT_CORE_EVENT_KINDS, ...AGENT_AI_EVENT_K
  * ⚠️ 18 → 19 是 **P5 的一笔 CHECK 变更**（FR-9.2），不是顺手加一行常量：
  * SQLite 不能 ALTER CHECK，必须靠迁移 0010 建新表复制数据再换名。
  */
-export const LOCAL_EVENT_KINDS = [...LEDGER_EVENT_KINDS, ...AGENT_EVENT_KINDS] as const
+/**
+ * 台账 kind 全集 19 → 23 项（M9 加 4 项）。
+ *
+ * ⚠️ 这是**预声明**（M9 P0）—— P1 之前 `LANG_EVENT_KINDS` 不会被任何 `INSERT` 引用。
+ *    SQLite 不能 ALTER CHECK，必须靠迁移 0011 建新表复制数据再换名（M8 那一笔的同款教训）。
+ *    **数字变了就开迁移**，不是改个常量就够了。
+ */
+export const LOCAL_EVENT_KINDS = [
+  ...LEDGER_EVENT_KINDS,
+  ...AGENT_EVENT_KINDS,
+  ...LANG_EVENT_KINDS,
+] as const
 export type LocalEventKind = (typeof LOCAL_EVENT_KINDS)[number]
 
 /**
