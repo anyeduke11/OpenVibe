@@ -432,6 +432,7 @@ textarea.ta {
   <div class="scroll">
     <div id="view-topics" class="view">
     <div id="onboard" data-catalog></div>
+    <div id="stageTrackPanel" data-catalog style="margin-bottom:12px"></div>
     <div class="modebar" id="modebar" data-catalog></div>
     <div class="hero" id="hero"></div>
 
@@ -1238,6 +1239,128 @@ const RULES = [
    ⚠️ **模式不改掌握度口径** —— 三种模式下三态是同一个数。
      速成模式不会让任何知识点更容易点亮：那会变成 §2.2 明确拒绝的「自评清单」。
    ═══════════════════════════════════════════════════════════════════════ */
+/* ═══ 2026-10-19 依《Agent 评测专家成才方案》补入：成长阶段 × 编程轨道 ═══
+   ⚠️ 这份数据**逐字取自配套方案**，不是本 demo 设计的；
+      它治的是「模式让用户凭空选」这个毛病 —— 源文档里模式在阶段上是有权威答案的。 */
+const GUIDE_STAGES = [
+  {
+    "id": 0,
+    "name": "阶段 0 · 基础与入场",
+    "period": "第 1–3 个月 · 看懂舞台，拿到入场券",
+    "goal": "建立 LLM/Agent 基础认知，完成平台入驻，养成错题本习惯。这个阶段不追产出，追「不犯错、留记录」。编程只要求「速成」：能看懂脚本、能运行项目、会读报错、会装依赖。",
+    "tracks": [
+      {
+        "lang": "Python",
+        "mode": "vibe",
+        "modeName": "了解 · 速成（Vibe Coding）"
+      }
+    ]
+  },
+  {
+    "id": 1,
+    "name": "阶段 1 · 评测基本功",
+    "period": "第 4–9 个月 · 从凭感觉到可复现",
+    "goal": "成为稳定交付的合格评测员：出题有效率、rubric 可复现、打分一致性有数据证明。Python 升到「熟悉」，开始用脚本与开源框架做评测工程。",
+    "tracks": [
+      {
+        "lang": "Python",
+        "mode": "fam",
+        "modeName": "熟悉"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "阶段 2 · Agent 专项",
+    "period": "第 10–15 个月 · 核心差异化",
+    "goal": "能独立完成 Agent 评测全流程：设计任务 → 执行 → 轨迹判卷 → 报告，并亲手做过攻防复现。Python 用于写 checker 与流水线，Go 只需「了解」以读懂云原生基建。",
+    "tracks": [
+      {
+        "lang": "Python",
+        "mode": "mas",
+        "modeName": "熟悉 → 精通（写 checker / 流水线）"
+      },
+      {
+        "lang": "Go",
+        "mode": "vibe",
+        "modeName": "了解 · 速成（选学）"
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "name": "阶段 3 · 专家化",
+    "period": "第 16–24 个月 · 从接任务到定标准",
+    "goal": "在细分方向做出标签，从「接任务的人」变成「定标准的人」，并让专业度被看见。Python 精通支撑评测基建，Go 按云原生/高性能方向选学到「熟悉」。",
+    "tracks": [
+      {
+        "lang": "Python",
+        "mode": "mas",
+        "modeName": "精通"
+      },
+      {
+        "lang": "Go",
+        "mode": "fam",
+        "modeName": "熟悉（云原生方向选学）"
+      }
+    ]
+  }
+];
+/* Go 选学定位 —— 逐字取自《Agent 评测专家成才方案》§4 联动小节 */
+const GUIDE_LANG_ROLE = { main: 'Python', elective: 'Go',
+  note: '评测工作的语言主线是 Python（写 checker、跑评测框架、处理数据集），Go 只在云原生/高性能/并发压测方向选学。' };
+/* §1.7 补记：附件里速成专区的两个分组，此前一直没本 demo 收录 */
+const GUIDE_VIBE_RES = {
+  "tools": [
+    {
+      "n": "TRAE（字节跳动 AI IDE · 国内版）",
+      "u": "https://docs.trae.cn/ide/get-started-with-trae"
+    },
+    {
+      "n": "Cursor · Quickstart",
+      "u": "https://cursor.com/docs/get-started/quickstart"
+    },
+    {
+      "n": "GitHub Copilot · 中文快速入门",
+      "u": "https://docs.github.com/zh/copilot/get-started/quickstart"
+    },
+    {
+      "n": "Claude Code · Quickstart",
+      "u": "https://code.claude.com/docs/en/quickstart"
+    },
+    {
+      "n": "Windsurf · Getting Started",
+      "u": "https://docs.windsurf.com/windsurf/getting-started"
+    },
+    {
+      "n": "Qoder CN（原通义灵码）· 个人版入门",
+      "u": "https://docs.qoder.cn/getting-started/individual-edition-quick-start"
+    }
+  ],
+  "tuts": [
+    {
+      "n": "菜鸟教程 ·《Vibe Coding 入门教程》",
+      "u": "https://www.runoob.com/ai-agent/vibe-coding-start.html"
+    },
+    {
+      "n": "Cursor 官方 ·《使用智能体编码的最佳实践》",
+      "u": "https://cursor.com/cn/blog/agent-best-practices"
+    },
+    {
+      "n": "Anthropic · Claude Code Best Practices",
+      "u": "https://www.anthropic.com/engineering/claude-code-best-practices"
+    },
+    {
+      "n": "Vibe Coding 概念出处 · Simon Willison 解读",
+      "u": "https://simonwillison.net/2025/Mar/19/vibe-coding/"
+    },
+    {
+      "n": "掘金 ·《Vibe Coding 这一年：从玩具到工具》",
+      "u": "https://aicoding.juejin.cn/post/7652624707597090851"
+    }
+  ]
+};
+
 const PROFILE_ORDER = ['master', 'familiar', 'vibe'];
 const PROFILE_KEY = { master: 'master', familiar: 'familiar', vibe: 'vibe' };
 
@@ -1329,6 +1452,48 @@ function vibeStationPlan(lang) {
     range: stages.length ? (first === last ? `第 ${first} 站` : `第 ${first}–${last} 站`) : '',
   };
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   §3.21 成长阶段 × 编程轨道（逐字取自《Agent 评测专家成才方案》§4）
+   ═══════════════════════════════════════════════════════════════════════ */
+/* 配套方案用的档位代号与本 demo 的 PROFILE_ORDER 不一致，先显式翻译再比较 ——
+   ⚠️ 直接当字符串比会把 'mas'/'fam' 当成不存在，映射表会静默全空。 */
+const STAGE_MODE_ALIAS = { vibe: 'vibe', fam: 'familiar', mas: 'master' };
+
+/** 某阶段在某门语言下的轨道行。⚠️ 阶段 0/1 的 Go **不建行**（源文档没有该轨道），
+ *     这里返回空数组而不是「建了行再标不需要」—— 「本阶段没有 Go 轨道」是结论不是可选项。 */
+function stageTracks(stageId, lang) {
+  const st = GUIDE_STAGES.find(s => s.id === stageId);
+  if (!st) return [];
+  const name = lang === 'python' ? 'Python' : 'Go';
+  return st.tracks.filter(t => t.lang === name);
+}
+
+/** 该阶段该门语言的推荐档（用于给用户一个默认值；自选仍可覆盖）。
+ *  ⚠️ 阶段 2 的源数据自相矛盾：`mode:"mas"` 却叫「熟悉 → 精通」（§3.21 第 3 条 / §6.3 第 8 条）。
+ *     本 demo **不偷偷替 owner 选一个**：一律给出可表达的那一档（熟悉），
+ *     并把缺口写在 faceNote 里暴露出来。 */
+function stageRecommend(stageId, lang) {
+  const rows = stageTracks(stageId, lang);
+  if (!rows.length) return null;
+  const t = rows[0];
+  const profile = STAGE_MODE_ALIAS[t.mode] || null;
+  const conflicted = stageId === 2 && lang === 'python';
+  return {
+    profile,
+    label: t.modeName,
+    conflicted,
+    /* 冲突档的处理：显示它名义上的前一档，并明说本阶段还要继续往精通走 */
+    effective: conflicted ? 'familiar' : profile,
+    faceNote: conflicted
+      ? '⚠️ 源文档此处自相矛盾：`mode` 写的是精通（mas），名字却写「熟悉 → 精通」—— ' +
+        '三档枚举表达不出这个中间态。本页按「熟悉」呈现并**如实标注**，不在实现里偷偷替它选一个。'
+      : '',
+  };
+}
+/** Go 在当前阶段是否该默认收起（阶段 0/1 源文档没有 Go 轨道）。 */
+function goHiddenByStage(stageId) { return stageId !== null && stageTracks(stageId, 'go').length === 0; }
+
 /* DL-33：必学集合必须逐层包含 rapid ⊆ familiar ⊆ mastery。
    否则会出现「速成学的东西，精通路线里反而没有」的荒谬状态。 */
 function requiredNotNested() {
@@ -1671,6 +1836,8 @@ const S = {
   /* §3.19 首次进入的一次性提问：null=未答 · 'vibe'=要速成 · 'master'=要系统学。
      ⚠️ 它**不是知识点状态**，不进 computeState()（DL-34 的延伸）—— 存的是「用户想怎么用」。 */
   onboard: null,
+  gstage: null,          // §3.21 成长阶段（null = 未选）。⚠️ 别和 S.stage 混 —— 那个是 DAG 的「站」
+  deepLinked: false,     // §3.21 DL-43：本次是由 URL 片段决定的档位
   modeExpanded: false,   // 折叠行「以后要深入再来」点开后置 true（§3.19 第 4 条：那行必须一直可点）
   promote: false,        // §3.18 转档弹层是否展开
   resOpen: null,         // §3.20 资源标记展开的那一条资源名
@@ -2405,6 +2572,61 @@ function doAsk() {
    ═══════════════════════════════════════════════════════════════════════ */
 function modeCollapsed() { return S.onboard !== 'master' && !S.modeExpanded; }
 
+/** §3.21 成长阶段面板 —— 模式不再是凭空自选，源文档在阶段上给了权威答案。
+ *  ⚠️ **自选没被删掉，只是降级为覆盖手段**：Duke 这类个人使用者没有阶段数据。 */
+function renderStagePanel() {
+  const box = document.getElementById('stageTrackPanel');
+  if (!box) return;
+  const rec = S.gstage === null ? null : stageRecommend(S.gstage, S.lang);
+  const goHidden = goHiddenByStage(S.gstage);
+  box.innerHTML = `<div class="card"><div class="card-h">你在成长路线的哪一阶段（§3.21）
+      <span class="spacer"></span>
+      ${S.gstage === null ? '<span class="tag">未选 · 模式可自由自选</span>' : `<span class="tag">已选 ${esc(GUIDE_STAGES[S.gstage].name)}</span>`}
+      ${S.gstage !== null ? '<button class="b" data-gstage="-1">取消选择</button>' : ''}
+    </div>
+    <div class="card-b">
+      <div class="note" style="margin-bottom:9px"><b>为什么问这个</b>
+      配套《Agent 评测专家成才方案》把语言学习编进了四阶段成长路线，<b>每阶段的推荐档位是定好的</b> ——
+      让你凭空选「精通 / 熟悉 / 速成」，等于把源文档已经回答过的问题再丢回给你。
+      选定后下面是推荐档；<b>你仍可随时改</b>（自选没有被删掉，只是从「唯一入口」降级为「覆盖手段」）。</div>
+      <div class="sec" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+        ${GUIDE_STAGES.map(s => {
+          const on = s.id === S.gstage;
+          const has = stageTracks(s.id, S.lang).length > 0;
+          return `<button class="card rescard" data-gstage="${s.id}" aria-pressed="${on}"
+            style="text-align:left;cursor:pointer;${on ? 'border-color:var(--color-accent)' : ''}${has ? '' : 'opacity:.5'}">
+            <div class="n">${esc(s.name)}</div>
+            <div class="d" style="font-size:11.5px;color:var(--color-ink-faint)">${esc(s.period)}</div>
+            <div style="margin-top:4px">${has
+              ? `<span class="tag">${esc(stageRecommend(s.id, S.lang).label)}</span>`
+              : '<span class="tag lock">本阶段无 ' + (S.lang === 'python' ? 'Python' : 'Go') + ' 轨道</span>'}</div>
+          </button>`;
+        }).join('')}
+      </div>
+      ${rec ? `<div class="note" style="margin-top:9px" data-rec-stage="${S.gstage}" data-rec-profile="${rec.effective}" data-rec-conflict="${rec.conflicted ? 1 : 0}">
+        <b>${esc(GUIDE_STAGES[S.gstage].name)}</b> 给 ${esc(S.lang === 'python' ? 'Python' : 'Go')} 的推荐档是
+        <b>${esc(rec.label)}</b>${rec.effective !== rec.label ? `（本页按 <b>${esc(GUIDE_MODES[rec.effective].name)}</b> 呈现）` : ''}。
+        ${rec.conflicted ? `<div style="margin-top:5px;color:var(--color-warn)">${esc(rec.faceNote)}</div>` : ''}
+      </div>` : ''}
+      <div class="note ${goHidden ? 'warn' : ''}" style="margin-top:9px"><b>两门语言不是对等的</b>
+      ${esc(GUIDE_LANG_ROLE.note)}
+      ${goHidden ? `<div style="margin-top:5px"><b>当前阶段（${esc(GUIDE_STAGES[S.gstage].name)}）没有 Go 轨道</b> ——
+        所以 Go 侧已默认收起。你仍可点「取消选择」或直接切到 Go 页看内容，
+        <b>收起的是默认落点，不是把 Go 藏起来</b>（数据仍全在，DL-14 不变）。</div>` : ''}
+      </div>
+    </div></div>`;
+  box.querySelectorAll('[data-gstage]').forEach(b => b.onclick = () => {
+    const v = +b.dataset.gstage;
+    if (v < 0) { S.gstage = null; renderAll(); return; }
+    S.gstage = v;
+    const r = stageRecommend(v, S.lang);
+    // 采用推荐档，但**只在它可表达时**；阶段 2 的冲突档保留用户当前选择（§3.21 第 3 条）
+    if (r && !r.conflicted) { S.profile = r.effective; S.modeExpanded = true; }
+    S.topic = null; S.stage = 0;
+    renderAll();
+  });
+}
+
 /** §3.19 首次进入的一次性提问。
  *  ⚠️ 「跳过，按默认走」与「选速成」**走同一个入口**（下面 `skip` → `'vibe'` 的那一行）——
  *     这不是图省事，而是让 DL-38 的「两者渲染逐字相同」成为结构上必然，
@@ -2474,6 +2696,7 @@ function renderRoutePanel() {
   const box = document.getElementById('routePanel');
   const lk = S.lang === 'python' ? 'py' : 'go';
   const langName = S.lang === 'python' ? 'Python' : 'Go';
+  const elective = S.lang === 'go';
   const routes = GUIDE_ROUTES2[S.profile] || {};
   const list = routes[lk] || [];
   const goal = (GUIDE_DETAIL['本模式目标'] || {})[S.profile] || '';
@@ -2483,6 +2706,7 @@ function renderRoutePanel() {
 
   box.innerHTML = `<div class="card"><div class="card-h">${esc(langName)} · ${esc(GUIDE_MODES[S.profile].name)}路线
       <span class="spacer"></span>
+      ${elective ? '<span class="tag lock">选学 · 非主线</span>' : '<span class="tag">主线</span>'}
       <span class="tag">${esc(GUIDE_MODES[S.profile].dur)}</span>
       <span class="tag">必学 ${reqN} / ${req.length}</span>
       ${S.profile === 'vibe' ? `<span class="tag">看懂约 ${vibeMin} 分钟</span>` : ''}
@@ -2499,6 +2723,10 @@ function renderRoutePanel() {
         ${GUIDE_PLANS2[S.profile].map(r => `<div style="margin-top:4px"><b>${esc(r.when)} · ${esc(r.title)}</b>${esc(r.body)}</div>`).join('')}
       </div>` : '<div class="note warn" style="margin-top:9px">附件<b>未给速成模式的双修总规划</b>（速成定位是单门起步），此处如实显示为空而不是补一个估算。</div>'}
       ${S.onboard === 'master' ? twoLangCompare() : ''}
+      ${elective ? `<div class="note warn" style="margin-top:9px"><b>Go 是选学，不是主线</b>
+        ${esc(GUIDE_LANG_ROLE.note)} 本页 Go 的路线与资源<b>照常全在</b>（DL-14 不变），
+        只是它<b>不该和 Python 并排当成两个等价选项</b> —— 阶段 0/1 的源文档里 Go 连轨道都没有。
+      </div>` : ''}
     </div></div>`;
 }
 
@@ -2545,6 +2773,17 @@ function renderVibePanel() {
         <table class="mini"><tbody>${V.pitfalls.map(p => `<tr><td>${esc(p)}</td></tr>`).join('')}</tbody></table></div>
       <div class="sec"><h4>${esc(langName)} · 3–7 天逐日计划</h4>
         <table class="mini"><tbody>${(V.plan[lk] || []).map(p => `<tr><td>${esc(p)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="sec"><h4>AI 编程工具官方指引（6 条）</h4>
+        <table class="mini"><tbody>${GUIDE_VIBE_RES.tools.map(t =>
+          `<tr><td style="width:230px"><a href="${esc(t.u)}" target="_blank" rel="noreferrer">${esc(t.n)}</a></td></tr>`).join('')}</tbody></table>
+        <div class="note" style="margin-top:6px">这一组<b>全是产品官方文档</b>，不是二手教程。
+        ⚠️ 它们<b>不进入上面「学习资源」页的 89 条主清单</b> —— 附件里它们没有分类/费用/阶段/精选那套维度，
+        硬塞进去就是给每条编一套并不存在的筛选字段（§3.21 末段）。</div></div>
+      <div class="sec"><h4>Vibe Coding 工作流教程（5 条）</h4>
+        <table class="mini"><tbody>${GUIDE_VIBE_RES.tuts.map(t =>
+          `<tr><td style="width:230px"><a href="${esc(t.u)}" target="_blank" rel="noreferrer">${esc(t.n)}</a></td></tr>`).join('')}</tbody></table>
+        <div class="note" style="margin-top:6px">含 Simon Willison 对 Vibe Coding 概念的原始出处 ——
+        <b>想知道这个词到底指什么，从这一条开始</b>，而不是从教程里学二手定义。</div></div>
       ${promoteBlock()}
     </div></div>`;
   box.querySelectorAll('[data-promote]').forEach(b => b.onclick = () => { S.promote = !S.promote; renderAll(); });
@@ -2624,7 +2863,7 @@ function degradeCheck() {
 function renderAll() {
   syncGoSwitch();
   document.getElementById('resCount').textContent = GUIDE_RES[S.lang === 'python' ? 'py' : 'go'].length;
-  renderOnboard(); renderModeBar(); renderRoutePanel(); renderVibePanel();
+  renderOnboard(); renderStagePanel(); renderModeBar(); renderRoutePanel(); renderVibePanel();
   renderHero(); renderScanBadge(); renderStages(); renderTopics(); renderDetail();
   renderSources(); renderFoot();
   switchView(S.view);
@@ -2694,6 +2933,28 @@ function syncGoSwitch() {
    ⚠️ 这里改的只是 **S.profile**（视图属性），没有碰任何知识点状态 —— DL-34 在启动路径上也成立。 */
 S.onboard = loadOnboard();
 S.profile = S.onboard || 'vibe';
+
+/* §3.21 DL-43：深链锚点。配套方案的每条轨道都指回指南的 `#vibe`/`#python`，
+   ⇒ 本页也必须能被深链到某一档，且**片段优先于 onboarding 的默认模式** ——
+   ⚠️ 这条优先次序反着写很自然（「用户上次答过什么就用什么」），
+   所以显式写成后置覆盖，并在上面留了这行提醒。
+   ⚠️ 只在启动时读一次**不够**：从站外点同一条 `#mode-master` 链接时，
+   浏览器做的是「同文档导航」—— 脚本根本不重跑，深链会静默失效（2026-10-19 实测）。
+   ⇒ 必须同时挂 `hashchange`。 */
+function applyDeepLink() {
+  const m = /^#mode-(master|familiar|vibe)$/.exec(location.hash || '');
+  if (!m) return false;
+  S.profile = m[1];
+  S.modeExpanded = true;          // 深链是明确意图，不该再被折叠成一行
+  S.deepLinked = true;            // 供自检区分「来自深链」与「来自默认」
+  return true;
+}
+applyDeepLink();
+window.addEventListener('hashchange', () => {
+  if (!applyDeepLink()) return;
+  S.topic = null; S.stage = 0;
+  renderAll();
+});
 
 renderAll();
 </script>
