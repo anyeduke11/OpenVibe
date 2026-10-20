@@ -4,33 +4,42 @@
  *
  * ## 它补的是什么
  *
- * P1 出口条件写着：「`lang_topics` 节点数 = **72**」。
+ * P1 出口条件写着：「`lang_topics` 节点数 = **78**」（P1d 订正后的值）。
  * ⚠️ **此前这个数没有任何闸** ——
- *   单测钉的是**两个分项**（Python 45 / Go 27），而 `72` 这个**总数**只活在注释里；
- *   **文档里的 72 与代码里的实跑值之间，没有任何一处把它们绑在一起**。
+ *   单测钉的是**两个分项**（P1d 后是 Python 46 / Go 32），而 `78` 这个**总数**只活在注释里；
+ *   **文档里的数与代码里的实跑值之间，没有任何一处把它们绑在一起**。
  *   ⇒ 改文档不改代码（闸不红）／改代码不改文档（闸也不红）—— 两边可以无声地分叉。
  *
  * ⚠️ **同一个出口条款里的另一条就有闸**：「§3.1 表数复算 17」由 DL-26 守着，
  *   而 DL-26 的做法正是**从 spec 正文读出那个数**再与实跑对账（见 `m9-p1-7-topic-stages.test.ts`）。
  *   ⇒ P1.11 把同一套做法补到节点数上。
  *
- * ## 口径：三个出处，两两相等，且都等于实跑
+ * ## 口径：**两个**，各比各的（P1d 起拆开）
  *
- * | 出处 | 说的是什么 |
- * |---|---|
- * | spec §1.4 三档表 | Python 三档：语言知识点 45 / 库级 30 / 环境与杂项 9（合计 84） |
- * | spec §1.4 订正注记 | 节点数算式：`45 ＋ Go 语言知识点 27 ＝ 72` |
- * | dev-plan §6.2 P1 出口 | 出口条件「节点数 = 72」＋ 实测算式 `45 ＋ 27 = 72` |
+ * ⚠️ **P1d 之前只有一个口径，P1d 之后必须拆成两个** ——
+ *   补建冷门底层六条后，「runoob 源清单的 Python 语言知识点（45）」与
+ *   「库里 Python 语言知识点（46）」**分岔了**（多出来的是自撰的元类那一条）。
+ *   ⇒ 拿一个口径去比另一个口径，**必然误红**（这不是假红，是两个不同的量）。
+ *
+ * | 口径 | 说的是什么 | 对账去处 | 实跑取值 |
+ * |---|---|---|---|
+ * | **源清点** | runoob 源清单 Python 侧的三档：语言 45 / 严格库级 30 / 环境与杂项 9（合计 84） | spec §1.4 三档表 | `source_kind='runoob'` 的 Python 行 |
+ * | **路线节点** | 库里语言级知识点总数：Python 46 ＋ Go 32 ＝ 78 | dev-plan §6.2 P1 出口 ＋ spec §1.4 路线节点口径行 | 全部 `kind='language'` 的行 |
+ *
+ * ⚠️ **两个口径各自的判据**：
+ *   - 源清点口径 ⇒ §1.4 三档表（语言/库级/杂项/合计）必须与 `sourceCensus` 相等；
+ *   - 路线节点口径 ⇒ P1 出口「节点数」与算式必须与 `routeNodes` 相等。
+ *   **跨口径比是错的**（例如拿路线节点的 46 去比源清点的 45）。
  *
  * ## ⚠️ 为什么解析必须锚死（这一处最容易写错）
  *
- * spec §1.4 的订正注记与 dev-plan 的 P1 出口行里，**旧值与新值同在**：
- * - spec：「订正前是 `44 ＋ Go 全 34 ＝ 78`，**订正后是** `45 ＋ Go 语言知识点 27 ＝ 72`」
- * - dev-plan：「**原写 78**，本轮按实测订正为 72 …… 78 的算法是「Python 语言知识点 44 ＋ Go 全部 34 条」；
- *   P1.7 修完分类规则后**实测** `Python 语言知识点 45 ＋ Go 语言知识点 27 = 72`」
+ * spec §1.4 的订正链与 dev-plan 的 P1 出口行里，**旧值与新值同在**：
+ * - spec：「① … ⇒ `44 ＋ Go 全 34 ＝ 78`；② … ⇒ `45 ＋ Go 语言知识点 27 ＝ 72`；③ … ⇒ **78**」
+ * - dev-plan：出口行里同时有「节点数 = 78」与「实测 … ＝ 78」
  *
- * ⇒ **按「第一个出现的数字」取，必然取到 78**（那是被订正掉的旧值）。
- *   本模块一律锚在带语义的标记上：**「订正后是」／「实测」／「「lang_topics 节点数 = N」**。
+ * ⇒ **按「第一个出现的数字」取，必然取到旧值**。
+ *   本模块一律锚在带语义的标记上：
+ *   **「**路线节点口径**：…」**（spec）／**「「lang_topics 节点数 = N」」**＋**「实测 **Python 语言知识点 A ＋ Go 语言知识点 B = C**」**（dev-plan）。
  *
  * ## 它是纯函数
  *
@@ -40,11 +49,11 @@
 
 /** spec §1.4 的 Python 三档（语言知识点 / 库级 / 环境与杂项）。 */
 export interface PythonSplit {
-  /** 语言知识点条数（§1.4 实测 45） */
+  /** 语言知识点条数（§1.4 源清点实测 45） */
   language: number
-  /** **严格**库级条数（§1.4 实测 30）—— ⚠️ 不是 `kind='library'` 的全部（那是 39 ＝ 30 ＋ 杂项 9） */
+  /** **严格**库级条数（§1.4 源清点实测 30）—— ⚠️ 不是 `kind='library'` 的全部（那是 39 ＝ 30 ＋ 杂项 9） */
   library: number
-  /** 环境与杂项条数（§1.4 实测 9） */
+  /** 环境与杂项条数（§1.4 源清点实测 9） */
   misc: number
 }
 
@@ -55,22 +64,38 @@ export interface NodeCountContract {
   total: number
 }
 
-/** 实跑值 —— 由调用方从库里算出来传进来。 */
+/**
+ * 实跑值 —— 由调用方从库里算出来传进来。
+ *
+ * ⚠️ **两个口径分列**（理由见文件头的「两个口径」一节）：
+ *   `sourceCensus` 是**源清点**（只数 `source_kind='runoob'` 的行），
+ *   `routeNodes` 是**路线节点**（数全部 `kind='language'` 的行）。
+ */
 export interface ActualNumbers {
-  /** Python 的语言知识点条数（`kind='language'`） */
-  pyLanguage: number
-  /** Go 的语言知识点条数（`kind='language'`） */
-  goLanguage: number
-  /**
-   * Python 的**严格库级**条数 —— 按 §1.4 分类规则复算（实测 30）。
-   *
-   * ⚠️ **不是 `kind='library'` 的行数**：种子里的 `kind='library'` 有 39 条
-   *   （＝ 严格库级 30 ＋ 环境与杂项 9，两者都归 `library`）。
-   *   §1.4 的三档表把「杂项」单列一档 ⇒ 对账必须用分类器的**严格库级**口径。
-   */
-  pyStrictLibrary: number
-  /** Python 的总条数（实测 84） */
-  pyTotal: number
+  /** **源清点口径** —— runoob 源清单 Python 侧的三档拆分（§1.4 三档表对账用）。 */
+  sourceCensus: {
+    /** Python 语言知识点条数（实测 45） */
+    pyLanguage: number
+    /**
+     * Python 的**严格库级**条数 —— 按 §1.4 分类规则复算（实测 30）。
+     *
+     * ⚠️ **不是 `kind='library'` 的全部**：种子里的 `kind='library'` 有 39 条
+     *   （＝ 严格库级 30 ＋ 环境与杂项 9，两者都归 `library`）。
+     *   §1.4 的三档表把「杂项」单列一档 ⇒ 对账必须用分类器的**严格库级**口径。
+     */
+    pyStrictLibrary: number
+    /** Python 源清单总条数（实测 84） */
+    pyTotal: number
+  }
+  /** **路线节点口径** —— 库里全部语言级知识点（P1 出口「节点数」对账用）。 */
+  routeNodes: {
+    /** Python 的语言知识点条数（实测 46） */
+    pyLanguage: number
+    /** Go 的语言知识点条数（实测 32） */
+    goLanguage: number
+    /** 两门合计（实测 78） */
+    total: number
+  }
 }
 
 export type DocNumberRule =
@@ -123,14 +148,19 @@ export function parseSpecPythonSplit(specText: string): PythonSplit | null {
 }
 
 /**
- * 读 spec §1.4 订正注记里的节点数算式。
+ * 读 spec §1.4 的**路线节点口径**算式。
  *
- * ⚠️ **锚在「订正后是」上** —— 同一段里还有「订正前是 … ＝ 78」。
+ * ⚠️ **锚在「**路线节点口径**：」上** —— 同一节里还有订正链的三个旧算式
+ *   （`44 ＋ Go 全 34 ＝ 78` / `45 ＋ Go 语言知识点 27 ＝ 72`），
+ *   按「第一个出现的数字」取必然取到被订正掉的旧值。
  */
 export function parseSpecNodeCount(specText: string): NodeCountContract | null {
   const sec = sectionByHeading(specText, /^### 1\.4(\s|$)/)
   if (sec === null) return null
-  const m = /订正后是\s*`(\d+)\s*[＋+]\s*Go 语言知识点\s*(\d+)\s*[＝=]\s*(\d+)`/.exec(sec)
+  const m =
+    /\*\*路线节点口径\*\*：Python 语言知识点\s*`(\d+)`\s*[＋+]\s*Go 语言知识点\s*`(\d+)`\s*[＝=]\s*`(\d+)`/.exec(
+      sec,
+    )
   if (!m) return null
   return { pyLanguage: Number(m[1]), goLanguage: Number(m[2]), total: Number(m[3]) }
 }
@@ -170,9 +200,12 @@ export function parsePlanNodeCount(planText: string): NodeCountContract | null {
  *
  * 断四件事：
  * 1. `parse-failed` —— 任一出处读不出来（文档被改到闸认不出 ⇒ 同样报红）
- * 2. `internal-mismatch` —— 某处文档**自己**的算式不成立（45 ＋ 27 ≠ 72）
+ * 2. `internal-mismatch` —— 某处文档**自己**的算式不成立（46 ＋ 32 ≠ 78）
  * 3. `spec-plan-mismatch` —— spec 与 dev-plan 两份台账说的不是一回事
  * 4. `actual-mismatch` —— 文档说的数与**实跑**对不上
+ *
+ * ⚠️ **第 4 条按两个口径分断**：路线节点口径比 `actual.routeNodes`，
+ *   源清点口径比 `actual.sourceCensus` —— **跨口径比是错的**。
  */
 export function verifyDocNumbers(
   docs: { specText: string; planText: string },
@@ -226,53 +259,60 @@ export function verifyDocNumbers(
     })
   }
 
-  // ── ③ 与实跑对账（以 dev-plan 的出口条件为准 —— 那是合同条款）──
-  if (actual.pyLanguage !== planCount.pyLanguage) {
+  // ── ③ 与实跑对账 · 路线节点口径（以 dev-plan 的出口条件为准 —— 那是合同条款）──
+  if (actual.routeNodes.pyLanguage !== planCount.pyLanguage) {
     out.push({
       where: 'dev-plan §6.2 出口条件 · Python 分项',
       rule: 'actual-mismatch',
-      detail: `文档说 ${String(planCount.pyLanguage)} 条，实跑 ${String(actual.pyLanguage)} 条`,
+      detail: `文档说 ${String(planCount.pyLanguage)} 条，实跑 ${String(actual.routeNodes.pyLanguage)} 条`,
     })
   }
-  if (actual.goLanguage !== planCount.goLanguage) {
+  if (actual.routeNodes.goLanguage !== planCount.goLanguage) {
     out.push({
       where: 'dev-plan §6.2 出口条件 · Go 分项',
       rule: 'actual-mismatch',
-      detail: `文档说 ${String(planCount.goLanguage)} 条，实跑 ${String(actual.goLanguage)} 条`,
+      detail: `文档说 ${String(planCount.goLanguage)} 条，实跑 ${String(actual.routeNodes.goLanguage)} 条`,
     })
   }
-  if (actual.pyLanguage + actual.goLanguage !== planCount.total) {
+  if (actual.routeNodes.pyLanguage + actual.routeNodes.goLanguage !== planCount.total) {
     out.push({
       where: 'dev-plan §6.2 出口条件 · 节点数总数',
       rule: 'actual-mismatch',
       detail:
-        `实跑 ${String(actual.pyLanguage)} ＋ ${String(actual.goLanguage)} = ` +
-        `${String(actual.pyLanguage + actual.goLanguage)}，文档说 ${String(planCount.total)}`,
+        `实跑 ${String(actual.routeNodes.pyLanguage)} ＋ ${String(actual.routeNodes.goLanguage)} = ` +
+        `${String(actual.routeNodes.pyLanguage + actual.routeNodes.goLanguage)}，文档说 ${String(planCount.total)}`,
+    })
+  }
+  if (actual.routeNodes.total !== planCount.total) {
+    out.push({
+      where: 'dev-plan §6.2 出口条件 · 节点数总数（自报口径）',
+      rule: 'actual-mismatch',
+      detail: `实跑自报 ${String(actual.routeNodes.total)}，文档说 ${String(planCount.total)}`,
     })
   }
 
-  // ── ④ spec §1.4 三档表 ──
-  if (split.language !== actual.pyLanguage) {
+  // ── ④ spec §1.4 三档表 · **源清点口径**（与上面的路线节点口径不是同一个量）──
+  if (split.language !== actual.sourceCensus.pyLanguage) {
     out.push({
-      where: 'spec §1.4 三档表 · 语言知识点',
+      where: 'spec §1.4 三档表 · 语言知识点（源清点口径）',
       rule: 'actual-mismatch',
-      detail: `文档说 ${String(split.language)} 条，实跑 ${String(actual.pyLanguage)} 条`,
+      detail: `文档说 ${String(split.language)} 条，实跑 ${String(actual.sourceCensus.pyLanguage)} 条`,
     })
   }
-  if (split.library !== actual.pyStrictLibrary) {
+  if (split.library !== actual.sourceCensus.pyStrictLibrary) {
     out.push({
-      where: 'spec §1.4 三档表 · 库级',
+      where: 'spec §1.4 三档表 · 库级（源清点口径）',
       rule: 'actual-mismatch',
-      detail: `文档说 ${String(split.library)} 条，实跑 ${String(actual.pyStrictLibrary)} 条（严格库级口径）`,
+      detail: `文档说 ${String(split.library)} 条，实跑 ${String(actual.sourceCensus.pyStrictLibrary)} 条（严格库级口径）`,
     })
   }
-  if (split.language + split.library + split.misc !== actual.pyTotal) {
+  if (split.language + split.library + split.misc !== actual.sourceCensus.pyTotal) {
     out.push({
-      where: 'spec §1.4 三档表 · 三档合计',
+      where: 'spec §1.4 三档表 · 三档合计（源清点口径）',
       rule: 'actual-mismatch',
       detail:
         `${String(split.language)} ＋ ${String(split.library)} ＋ ${String(split.misc)} = ` +
-        `${String(split.language + split.library + split.misc)}，实跑 Python 总数 ${String(actual.pyTotal)}`,
+        `${String(split.language + split.library + split.misc)}，实跑 Python 源清单总数 ${String(actual.sourceCensus.pyTotal)}`,
     })
   }
 

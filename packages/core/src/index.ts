@@ -152,6 +152,60 @@ export {
   type LinkProbeViolation,
   type LinkVerdict,
 } from './db/m9-p1c-links'
+// ⚠️ **M9 v1.6 P1d · 三模式层** —— 模式层的口径、装载器与两条守卫
+export {
+  assignTopicProfiles,
+  vibeMinutesBySlug,
+  vibeTotalMinutes,
+  COLD_TIER_TOPICS,
+  VIBE_ABILITY_LABELS,
+  VIBE_ABILITY_MAP,
+  PROFILE_DEPTH,
+  type ModeTopic,
+  type TopicProfileRow,
+  type VibeEntry,
+} from './db/m9-p1d-mode-assign'
+export {
+  seedProfiles,
+  seedProfilePhases,
+  seedTopicProfiles,
+  type M9ProfileSeedResult,
+} from './db/m9-p1d-seed-profiles'
+export {
+  findLayeringViolations,
+  findEmptyRequiredViolations,
+  findEstMinutesViolations,
+  type ProfileGuardRow,
+} from './db/m9-p1d-profile-guards'
+export {
+  findStagePhaseArtifacts,
+  checkNoMappingStatementsStillThere,
+  type StagePhaseGuardOptions,
+  type StagePhaseViolation,
+} from './db/m9-p1d-stage-phase-guard'
+export {
+  parseSpecPhaseRows,
+  parseSpecVibeStatic,
+  tallyOutcomePrefixes,
+  checkNoMappingStatements,
+  specSection3171,
+  type SpecPhaseRow,
+  type SpecVibeStatic,
+  type OutcomePrefixTally,
+  type NoMappingCheck,
+} from './db/m9-p1d-spec'
+export {
+  VIBE_ABILITIES,
+  VIBE_MINIMAL_KNOWLEDGE,
+  VIBE_WORKFLOW,
+  VIBE_PITFALLS,
+  VIBE_EMPTY_STATE_TEXT,
+  VIBE_STATIC_BLOCK_SIZES,
+  type VibeAbility,
+  type MinimalKnowledgeItem,
+  type VibeWorkflowStep,
+  type VibePitfall,
+} from './db/m9-vibe-static'
 export {
   createPackService,
   type PackServiceDeps,

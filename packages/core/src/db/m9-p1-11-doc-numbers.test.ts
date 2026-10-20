@@ -3,15 +3,20 @@
 //
 // ## 它断什么
 //
-// P1 出口条件写着「`lang_topics` 节点数 = **72**」。⚠️ **此前这个数没有任何闸**：
-// 单测钉的是两个分项（45 / 27），`72` 这个**总数**只活在注释里，
+// P1 出口条件写着「`lang_topics` 节点数 = **78**」。⚠️ **此前这个数没有任何闸**：
+// 单测钉的是两个分项（46 / 32），`78` 这个**总数**只活在注释里，
 // **文档里的数与实跑值之间没有任何一处把它们绑在一起**。
 //
-// ⇒ 本测试断「三处文档出处两两相等，且都等于实跑值」：
+// ⚠️ **P1d 起这道闸按两个口径分断**（**别把它们混成一个数**）：
+//   - **源清点口径**：runoob 源清单 Python 侧的三档 45 / 30 / 9 ＝ 84 ⇒ 比 spec §1.4 三档表；
+//   - **路线节点口径**：库里语言级知识点 46 ＋ 32 ＝ 78 ⇒ 比 dev-plan §6.2 P1 出口。
+//   P1d 补建冷门底层六条后两者在 Python 侧分岔（45 vs 46）⇒ 混着比必然误红。
+//
+// ⇒ 本测试断「三处文档出处两两相等，且各等于自己口径的实跑值」：
 //   ① 正例：真实文档 ＋ 真实库 ⇒ 0 违规；
-//   ② 变异腿：文档里的数被改（72 / 45 / 30 / 27）⇒ 必须红；
+//   ② 变异腿：文档里的数被改（78 / 46 / 32 / 45 / 30）⇒ 必须红；
 //   ③ 变异腿：实跑值与文档对不上 ⇒ 必须红；
-//   ④ 反证腿：旧值（78 / 44 / 31）与新值**同在一行**时，解析器仍取新值
+//   ④ 反证腿：旧值（78 / 72 / 44 / 31）与新值**同在一行**时，解析器仍取新值
 //      （否则就会把被订正掉的旧值当成现状 —— 那比不查更坏）。
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
@@ -38,18 +43,38 @@ const PLAN_FILE = join(REPO_ROOT, 'docs/specs/m9-dev-plan-2026-10.md')
 const SPEC_TEXT = readFileSync(SPEC_FILE, 'utf8')
 const PLAN_TEXT = readFileSync(PLAN_FILE, 'utf8')
 
-/** 从给定的库里取实跑值。 */
+/**
+ * 从给定的库里取实跑值 —— **两个口径分列**。
+ *
+ * ⚠️ **口径分离的机器形态**：
+ *   - **源清点**只数 `source_kind='runoob'` 的行（runoob 那两份源清单）——
+ *     P1d 的冷门六条是 `source_kind='owner_guide'` 的**自撰**条目 ⇒ 不进源清点；
+ *   - **路线节点**数全部 `kind='language'` 的行（含那六条）⇒ 46 ＋ 32 ＝ 78。
+ */
 function measureFrom(db: Parameters<typeof listDagNodes>[0]): ActualNumbers {
   const nodes = listDagNodes(db)
   const py = nodes.filter((n) => n.lang === 'python')
   const go = nodes.filter((n) => n.lang === 'go')
+  const census = db
+    .prepare(
+      `SELECT slug, title, kind FROM lang_topics WHERE lang='python' AND source_kind='runoob'`,
+    )
+    .all() as { slug: string; title: string; kind: string }[]
+  const routePy = py.filter((n) => n.kind === 'language').length
+  const routeGo = go.filter((n) => n.kind === 'language').length
   return {
-    pyLanguage: py.filter((n) => n.kind === 'language').length,
-    goLanguage: go.filter((n) => n.kind === 'language').length,
-    // ⚠️ **严格库级**（§1.4 分类规则复算，实测 30）——
-    //   不是 `kind='library'` 的 39 条（那 39 ＝ 严格库级 30 ＋ 环境与杂项 9）
-    pyStrictLibrary: py.filter((n) => strictLibraryClassifier(n.title)).length,
-    pyTotal: py.length,
+    sourceCensus: {
+      pyLanguage: census.filter((n) => n.kind === 'language').length,
+      // ⚠️ **严格库级**（§1.4 分类规则复算，实测 30）——
+      //   不是 `kind='library'` 的 39 条（那 39 ＝ 严格库级 30 ＋ 环境与杂项 9）
+      pyStrictLibrary: census.filter((n) => strictLibraryClassifier(n.title)).length,
+      pyTotal: census.length,
+    },
+    routeNodes: {
+      pyLanguage: routePy,
+      goLanguage: routeGo,
+      total: routePy + routeGo,
+    },
   }
 }
 
@@ -87,44 +112,47 @@ describe('M9 P1.11 · 文档里的实测数字必须与实跑值相等', () => {
   // ───────────────────────────────────────────────────────────────────────
   // ① 正例
   // ───────────────────────────────────────────────────────────────────────
-  it('① 实跑值：Python 语言 45 / Go 语言 27 / 严格库级 30 / Python 总 84', () => {
+  it('① 实跑值：源清点 45 / 30 / 84 ＋ 路线节点 46 / 32 / 78（两个口径分列）', () => {
     const a = measure()
-    expect(a).toEqual({ pyLanguage: 45, goLanguage: 27, pyStrictLibrary: 30, pyTotal: 84 })
+    expect(a).toEqual({
+      sourceCensus: { pyLanguage: 45, pyStrictLibrary: 30, pyTotal: 84 },
+      routeNodes: { pyLanguage: 46, goLanguage: 32, total: 78 },
+    })
   })
 
   it('② 三处文档出处读出来的数一致，且等于实跑 ⇒ 0 违规', () => {
     const specCount = parseSpecNodeCount(SPEC_TEXT)
     const planCount = parsePlanNodeCount(PLAN_TEXT)
     const split = parseSpecPythonSplit(SPEC_TEXT)
-    expect(specCount).toEqual({ pyLanguage: 45, goLanguage: 27, total: 72 })
-    expect(planCount).toEqual({ pyLanguage: 45, goLanguage: 27, total: 72 })
+    expect(specCount).toEqual({ pyLanguage: 46, goLanguage: 32, total: 78 })
+    expect(planCount).toEqual({ pyLanguage: 46, goLanguage: 32, total: 78 })
     expect(split).toEqual({ language: 45, library: 30, misc: 9 })
     expect(rules(violations(SPEC_TEXT, PLAN_TEXT))).toEqual([])
   })
 
-  it('③ 节点数 72 = 45 ＋ 27（总数不是「两个分项各自对」就算过）', () => {
+  it('③ 节点数 78 = 46 ＋ 32（总数不是「两个分项各自对」就算过）', () => {
     const c = parsePlanNodeCount(PLAN_TEXT)
     expect(c).not.toBeNull()
     expect(c!.pyLanguage + c!.goLanguage).toBe(c!.total)
-    expect(c!.total).toBe(72)
+    expect(c!.total).toBe(78)
   })
 
   // ───────────────────────────────────────────────────────────────────────
   // ② 变异腿：文档里的数被改 ⇒ 必须红
   // ───────────────────────────────────────────────────────────────────────
-  it('变异 ①：dev-plan 的「节点数 = 72」改成 71 ⇒ 红', () => {
-    const bad = replaceOnce(PLAN_TEXT, '「lang_topics 节点数 = 72', '「lang_topics 节点数 = 71')
+  it('变异 ①：dev-plan 的「节点数 = 78」改成 77 ⇒ 红', () => {
+    const bad = replaceOnce(PLAN_TEXT, '「lang_topics 节点数 = 78', '「lang_topics 节点数 = 77')
     expect(rules(violations(SPEC_TEXT, bad))).toContain('actual-mismatch')
   })
 
-  it('变异 ②：dev-plan 的实测分项 45 改成 46 ⇒ 红', () => {
+  it('变异 ②：dev-plan 的实测分项 46 改成 47 ⇒ 红', () => {
     const bad = replaceOnce(
       PLAN_TEXT,
-      '实测 **Python 语言知识点 45',
       '实测 **Python 语言知识点 46',
+      '实测 **Python 语言知识点 47',
     )
     const r = rules(violations(SPEC_TEXT, bad))
-    // 46 ＋ 27 = 73 ≠ 72 ⇒ 文档自己的算式就不成立；同时与 spec 说的 45 对不上
+    // 47 ＋ 32 = 79 ≠ 78 ⇒ 文档自己的算式就不成立；同时与 spec 说的 46 对不上
     expect(r).toContain('internal-mismatch')
     expect(r).toContain('spec-plan-mismatch')
   })
@@ -139,21 +167,19 @@ describe('M9 P1.11 · 文档里的实测数字必须与实跑值相等', () => {
     expect(rules(violations(bad, PLAN_TEXT))).toContain('actual-mismatch')
   })
 
-  it('变异 ⑤：spec 的节点数算式 27 改成 26 ⇒ 两份台账对不上 ⇒ 红', () => {
+  it('变异 ⑤：spec 的路线节点算式 32 改成 31 ⇒ 两份台账对不上 ⇒ 红', () => {
     const bad = replaceOnce(
       SPEC_TEXT,
-      '订正后是 `45 ＋ Go 语言知识点 27 ＝ 72`',
-      '订正后是 `45 ＋ Go 语言知识点 26 ＝ 72`',
+      'Go 语言知识点 `32` ＝ `78`',
+      'Go 语言知识点 `31` ＝ `78`',
     )
     expect(rules(violations(bad, PLAN_TEXT))).toContain('spec-plan-mismatch')
   })
 
   it('变异 ⑥：实跑值与文档对不上 ⇒ 红（闸不是只在改文档时才做事）', () => {
     const wrong: ActualNumbers = {
-      pyLanguage: 44,
-      goLanguage: 27,
-      pyStrictLibrary: 30,
-      pyTotal: 84,
+      sourceCensus: { pyLanguage: 45, pyStrictLibrary: 30, pyTotal: 84 },
+      routeNodes: { pyLanguage: 45, goLanguage: 32, total: 77 },
     }
     expect(rules(violations(SPEC_TEXT, PLAN_TEXT, wrong))).toContain('actual-mismatch')
   })
@@ -183,7 +209,7 @@ describe('M9 P1.11 · 文档里的实测数字必须与实跑值相等', () => {
         victim!.slug,
       )
       const actual = measureFrom(h.db)
-      expect(actual.pyLanguage).toBe(44)
+      expect(actual.routeNodes.pyLanguage).toBe(45)
       const r = rules(verifyDocNumbers({ specText: SPEC_TEXT, planText: PLAN_TEXT }, actual))
       expect(r).toContain('actual-mismatch')
     } finally {
@@ -194,24 +220,55 @@ describe('M9 P1.11 · 文档里的实测数字必须与实跑值相等', () => {
   // ───────────────────────────────────────────────────────────────────────
   // ③ 反证：旧值与新值同在一行时，必须取新值
   // ───────────────────────────────────────────────────────────────────────
-  it('反证 ①：spec 订正注记里「订正前 78」与「订正后 72」同在 ⇒ 取 72', () => {
+  it('反证 ①：spec 订正链里三个旧算式与「路线节点口径」同在 ⇒ 取最新的 78', () => {
     const sec = SPEC_TEXT.slice(SPEC_TEXT.indexOf('### 1.4'))
-    expect(sec).toContain('订正前是 `44 ＋ Go 全 34 ＝ 78`')
-    expect(sec).toContain('订正后是 `45 ＋ Go 语言知识点 27 ＝ 72`')
-    expect(parseSpecNodeCount(SPEC_TEXT)!.total).toBe(72)
+    // ⚠️ 订正链的三个旧值**刻意留在同一节里**（如实登记，不删痕迹）
+    expect(sec).toContain('44 ＋ Go 全 34 ＝ 78')
+    expect(sec).toContain('45 ＋ Go 语言知识点 27 ＝ 72')
+    // 锚点行在它们之后 ⇒ 解析器必须取锚点行的数，不是「第一个出现的数字」
+    expect(parseSpecNodeCount(SPEC_TEXT)!.total).toBe(78)
+    expect(parseSpecNodeCount(SPEC_TEXT)!.pyLanguage).toBe(46)
   })
 
-  it('反证 ②：dev-plan 出口行里「原写 78」与「实测 … = 72」同在 ⇒ 取 72', () => {
+  it('反证 ②：dev-plan 出口行里「节点数 = 78」与「实测 … = 78」同在 ⇒ 取 78', () => {
     const line = PLAN_TEXT.split('\n').find((l) => l.startsWith('- **P1 出口**'))!
-    expect(line).toContain('原写 78')
-    expect(line).toContain('78 的算法是')
-    expect(parsePlanNodeCount(PLAN_TEXT)!.total).toBe(72)
-    expect(parsePlanNodeCount(PLAN_TEXT)!.pyLanguage).toBe(45)
+    expect(line).toContain('「lang_topics 节点数 = 78')
+    expect(line).toContain('实测 **Python 语言知识点 46 ＋ Go 语言知识点 32 = 78**')
+    expect(parsePlanNodeCount(PLAN_TEXT)!.total).toBe(78)
+    expect(parsePlanNodeCount(PLAN_TEXT)!.pyLanguage).toBe(46)
   })
 
   it('反证 ③：闸只在「改文档」时才红 ⇒ 把文档改回去它就绿（规则不是恒红）', () => {
-    const bad = replaceOnce(PLAN_TEXT, '「lang_topics 节点数 = 72', '「lang_topics 节点数 = 71')
+    const bad = replaceOnce(PLAN_TEXT, '「lang_topics 节点数 = 78', '「lang_topics 节点数 = 77')
     expect(rules(violations(SPEC_TEXT, bad)).length).toBeGreaterThan(0)
     expect(rules(violations(SPEC_TEXT, PLAN_TEXT))).toEqual([])
+  })
+
+  // ───────────────────────────────────────────────────────────────────────
+  // ④ 口径分离：P1d 起这两个口径的数**本来就不同**（45 ≠ 46）
+  //   ⇒ 闸必须各比各的；跨口径比会在正例上直接误红。
+  // ───────────────────────────────────────────────────────────────────────
+  it('口径分离：§1.4 三档表说 45、路线节点说 46 ⇒ 各比各的，不互相报错', () => {
+    // 正例：两个口径的数**不同**（源清点 45 ≠ 路线节点 46）——
+    //   若闸跨口径比，这一条必然红 ⇒ 它同时是「分离真的生效了」的证明。
+    expect(rules(violations(SPEC_TEXT, PLAN_TEXT))).toEqual([])
+
+    // 只改源清点那一处（§1.4 三档表）⇒ 红，且**不**牵连路线节点那几条
+    const badCensus = replaceOnce(SPEC_TEXT, '| **语言知识点** | 45 |', '| **语言知识点** | 44 |')
+    const v1 = violations(badCensus, PLAN_TEXT)
+    expect(rules(v1)).toContain('actual-mismatch')
+    expect(
+      v1.filter((v) => v.where.includes('§6.2 出口条件')),
+      '改源清点不该牵连路线节点那条',
+    ).toEqual([])
+
+    // 只改路线节点那一处（dev-plan 出口条件）⇒ 红，且**不**牵连源清点那几条
+    const badRoute = replaceOnce(PLAN_TEXT, '「lang_topics 节点数 = 78', '「lang_topics 节点数 = 77')
+    const v2 = violations(SPEC_TEXT, badRoute)
+    expect(rules(v2)).toContain('actual-mismatch')
+    expect(
+      v2.filter((v) => v.where.includes('§1.4 三档表')),
+      '改路线节点不该牵连源清点那条',
+    ).toEqual([])
   })
 })

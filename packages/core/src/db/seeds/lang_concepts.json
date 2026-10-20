@@ -88,6 +88,60 @@
         "python": "python3-reg-expressions",
         "go": "go-regex"
       }
+    },
+    {
+      "slug": "metaclass-descriptor",
+      "title": "元类与描述符",
+      "summary": "元类与描述符让「属性访问」和「类创建」变成可拦截的两道口子：前者管实例属性怎么取，后者管类本身怎么造。",
+      "content_level": "full",
+      "lang_topics": {
+        "python": "python3-metaclass"
+      }
+    },
+    {
+      "slug": "go-runtime",
+      "title": "Go 运行时",
+      "summary": "Go 运行时是编译器与操作系统之间的一层：goroutine 调度、内存分配与 GC、系统调用封装都在这里。",
+      "content_level": "full",
+      "lang_topics": {
+        "go": "go-runtime"
+      }
+    },
+    {
+      "slug": "go-reflection",
+      "title": "Go 反射",
+      "summary": "反射把类型信息从编译期搬到运行期，于是编译器不再替你检查 —— 每个 API 都得你自己查一遍。",
+      "content_level": "full",
+      "lang_topics": {
+        "go": "go-reflection"
+      }
+    },
+    {
+      "slug": "go-unsafe",
+      "title": "Go unsafe",
+      "summary": "unsafe 是 Go 留给「绕过类型系统直接访问内存」的那道口子，安全责任因此从编译器转到了你手上。",
+      "content_level": "full",
+      "lang_topics": {
+        "go": "go-unsafe"
+      }
+    },
+    {
+      "slug": "go-cgo",
+      "title": "Go 与 C 互操作",
+      "summary": "cgo 在 Go 与 C 的两套内存模型之间搭桥：谁分配、谁释放、指针能活多久，必须逐条说清。",
+      "content_level": "full",
+      "lang_topics": {
+        "go": "go-cgo"
+      }
+    },
+    {
+      "slug": "go-pprof",
+      "title": "Go 性能剖析",
+      "summary": "pprof 靠采样归因：定期抓栈、按出现次数统计。它是低开销看清真实负载的主要手段。",
+      "content_level": "full",
+      "lang_topics": {
+        "go": "go-pprof"
+      }
     }
   ]
 }

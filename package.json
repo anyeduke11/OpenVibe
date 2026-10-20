@@ -23,6 +23,7 @@
     "m9:collect:github": "tsx scripts/collect-m9-github-sources.ts",
     "m9:fingerprint": "tsx scripts/m9-content-fingerprint.ts",
     "m9:links": "tsx scripts/check-m9-links.ts",
+    "m9:phases": "tsx scripts/extract-m9-guide-phases.ts",
     "bundle:check": "pnpm --filter @openvibe/web build && tsx scripts/bundle-check.ts",
     "pkg:cli": "pnpm --filter @openvibe/web build && tsx scripts/build-cli.ts",
     "seed:review": "tsx scripts/seed-review.ts",

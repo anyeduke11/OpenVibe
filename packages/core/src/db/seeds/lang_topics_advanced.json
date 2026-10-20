@@ -1,0 +1,90 @@
+{
+  "_notes": {
+    "source_discipline": "⚠️ §3.2 纪律：只存链接与自撰内容，官方文档正文一个字都不进仓。这 6 条的 `ref_url` 指向官方文档（2026-10-20 用 HEAD 逐条核实可访问），`summary` 与三段内容全部自撰。",
+    "why": "owner 2026-10-20 裁定待裁 #6「精通与熟悉真正分开」⇒ 补建这 6 类冷门底层条目：元类/描述符深挖、runtime、反射、unsafe、cgo、pprof。它们**精通必学、熟悉可跳过**。",
+    "content_layer": "三段内容（步骤/样例/原理解析）挂在**概念层**（`lang_concepts`），不是 topic 侧 —— DL-15 规定三段内容只挂概念、loader 主动拒绝 `ref_kind='topic'`。",
+    "kind": "六条都是 `kind='language'`（语言级，进学习路线）；标题按 §1.4 的分类规则复算也落在 language 一档（无「模块/库/驱动」等关键词）。"
+  },
+  "schemaVersion": 1,
+  "collected_at": "2026-10-20",
+  "items": [
+    {
+      "lang": "python",
+      "slug": "python3-metaclass",
+      "title": "Python3 元类与描述符",
+      "summary": "元类与描述符让「属性访问」和「类创建」变成可拦截的两道口子：前者管实例属性怎么取，后者管类本身怎么造。",
+      "stage_id": 3,
+      "ref_url": "https://docs.python.org/3.13/reference/datamodel.html",
+      "ref_title": "Data model（数据模型）",
+      "source_kind": "owner_guide",
+      "source_checked_at": "2026-10-20",
+      "kind": "language",
+      "content_level": "full"
+    },
+    {
+      "lang": "go",
+      "slug": "go-runtime",
+      "title": "Go 运行时（runtime）",
+      "summary": "Go 运行时是编译器与操作系统之间的一层：goroutine 调度、内存分配与 GC、系统调用封装都在这里。",
+      "stage_id": 5,
+      "ref_url": "https://pkg.go.dev/runtime",
+      "ref_title": "Package runtime（运行时包）",
+      "source_kind": "owner_guide",
+      "source_checked_at": "2026-10-20",
+      "kind": "language",
+      "content_level": "full"
+    },
+    {
+      "lang": "go",
+      "slug": "go-reflection",
+      "title": "Go 反射（reflect）",
+      "summary": "反射把类型信息从编译期搬到运行期，于是编译器不再替你检查 —— 每个 API 都得你自己查一遍。",
+      "stage_id": 3,
+      "ref_url": "https://pkg.go.dev/reflect",
+      "ref_title": "Package reflect（反射包）",
+      "source_kind": "owner_guide",
+      "source_checked_at": "2026-10-20",
+      "kind": "language",
+      "content_level": "full"
+    },
+    {
+      "lang": "go",
+      "slug": "go-unsafe",
+      "title": "Go unsafe（绕过类型系统的指针）",
+      "summary": "unsafe 是 Go 留给「绕过类型系统直接访问内存」的那道口子，安全责任因此从编译器转到了你手上。",
+      "stage_id": 1,
+      "ref_url": "https://pkg.go.dev/unsafe",
+      "ref_title": "Package unsafe（非安全指针）",
+      "source_kind": "owner_guide",
+      "source_checked_at": "2026-10-20",
+      "kind": "language",
+      "content_level": "full"
+    },
+    {
+      "lang": "go",
+      "slug": "go-cgo",
+      "title": "Go 与 C 互操作（cgo）",
+      "summary": "cgo 在 Go 与 C 的两套内存模型之间搭桥：谁分配、谁释放、指针能活多久，必须逐条说清。",
+      "stage_id": 2,
+      "ref_url": "https://pkg.go.dev/cmd/cgo",
+      "ref_title": "Package cmd/cgo（C 语言互操作）",
+      "source_kind": "owner_guide",
+      "source_checked_at": "2026-10-20",
+      "kind": "language",
+      "content_level": "full"
+    },
+    {
+      "lang": "go",
+      "slug": "go-pprof",
+      "title": "Go 性能剖析（pprof）",
+      "summary": "pprof 靠采样归因：定期抓栈、按出现次数统计。它是低开销看清真实负载的主要手段。",
+      "stage_id": 5,
+      "ref_url": "https://pkg.go.dev/net/http/pprof",
+      "ref_title": "Package net/http/pprof（性能剖析端点）",
+      "source_kind": "owner_guide",
+      "source_checked_at": "2026-10-20",
+      "kind": "language",
+      "content_level": "full"
+    }
+  ]
+}

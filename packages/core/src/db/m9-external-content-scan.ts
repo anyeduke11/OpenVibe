@@ -64,10 +64,15 @@ export const EXTERNAL_LAYER_FILES = [
   'docs/devlog-evidence/M9-probe/runoob-content-fingerprints.json',
   'packages/core/src/db/seeds/lang_topics_python3.json',
   'packages/core/src/db/seeds/lang_topics_go.json',
+  'packages/core/src/db/seeds/lang_topics_advanced.json',
+  'packages/core/src/db/seeds/lang_profile_phases.json',
   'packages/core/src/db/seeds/lang_resources.json',
   'packages/core/src/db/seeds/lang_vibe_resources.json',
   'packages/core/src/db/seeds/lang_topic_resources.json',
   'scripts/extract-m9-guide-resources.ts',
+  // ⚠️ **P1d 的附件分期抽取脚本** —— 采集链的一环（附件 HTML → 21 段种子）
+  //   ⇒ 按同款纪律进扫描范围（正文抽取器痕迹 / 键访问取正文 / 成段散文）。
+  'scripts/extract-m9-guide-phases.ts',
   'packages/core/src/db/seeds/_build/build-lang-topics-from-inventory.py',
 ] as const
 
@@ -355,6 +360,50 @@ export const EXTERNAL_FILE_SCHEMAS: Record<string, ExternalFileSchema> = {
     ],
     notesKeys: ['kind', 'stage_id', 'summary'],
   },
+  // ⚠️ **P1d 的冷门底层六条** —— 字段闭集 = `lang_topics` 的列闭集 ＋ `content_level`。
+  //   摘要与三段内容**全部自撰**（§3.7），三段内容本体在 `lang_topic_content.json`
+  //   （自撰内容层，刻意不在扫描范围内）⇒ **这份文件本身没有正文可藏**，
+  //   所以按普通派生清单扫，不进 SELF_AUTHORED_CONTENT_FILES。
+  'packages/core/src/db/seeds/lang_topics_advanced.json': {
+    topLevel: ['_notes', 'collected_at', 'items', 'schemaVersion'],
+    itemKeys: [
+      'content_level',
+      'kind',
+      'lang',
+      'ref_title',
+      'ref_url',
+      'slug',
+      'source_checked_at',
+      'source_kind',
+      'stage_id',
+      'summary',
+      'title',
+    ],
+    // ⚠️ `_notes` 的键名也受正文字段名约束 ⇒ 这里**刻意不叫 `content`**
+    //   （`content` 是 BODY_FIELD_NAMES 的一员 ⇒ 会被判成「用键名藏正文」）。
+    notesKeys: ['content_layer', 'kind', 'source_discipline', 'why'],
+  },
+  // ⚠️ **P1d 的分期路线 21 段** —— 段标签/阶段名/耗时/要点/产出栏**逐字取自附件**
+  //   （§3.17.1）⇒ 这份是**外部源派生**的，不是自撰 ⇒ 照常扫。
+  //   §3.2 版权纪律允许「要点可入库，长文正文不入库」⇒ `points[]` 是合法字段。
+  'packages/core/src/db/seeds/lang_profile_phases.json': {
+    topLevel: ['_notes', 'collected_at', 'items', 'schemaVersion'],
+    itemKeys: [
+      'duration_label',
+      'label',
+      'lang',
+      'ord',
+      'outcome',
+      'points',
+      'profile',
+      'title',
+    ],
+    notesKeys: ['collect_method', 'empty_outcome', 'outcome_prefixes', 'points_note', 'source'],
+    // ⚠️ **只放宽 `points` 一个字段**：附件里最长的那条要点 81 字符
+    //   （Go 精通第 4 段的 goroutine/channel/select 那串）⇒ 比通用上限 80 多 1。
+    //   其余字段（`outcome` 最长 67 · `title` 最长 27）照旧受 80 约束。
+    metadataMaxLen: { points: 100 },
+  },
 }
 
 /**
@@ -380,10 +429,12 @@ export const EXTERNAL_DIR_CLOSURE: Record<string, string[]> = {
   'packages/core/src/db/seeds': [
     'lang_concept_deltas.json',
     'lang_concepts.json',
+    'lang_profile_phases.json',
     'lang_resources.json',
     'lang_topic_content.json',
     'lang_topic_edges.json',
     'lang_topic_resources.json',
+    'lang_topics_advanced.json',
     'lang_topics_go.json',
     'lang_topics_python3.json',
     'lang_vibe_resources.json',

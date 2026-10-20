@@ -58,9 +58,13 @@ import type { SqliteDatabase } from './index'
 const SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))
 const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
 
-/** §1.5 实测：runoob Python3 84 条 ＋ runoob Go 34 条，两条清单都得在。 */
-const EXPECTED_PY_TOTAL = 84
-const EXPECTED_GO_TOTAL = 34
+/**
+ * 实测知识点条数：runoob Python3 84 ＋ runoob Go 34 ＋ **P1d 冷门底层 6** = 124。
+ *
+ * ⚠️ 冷门六条是 P1d 补建的（Python ＋1 · Go ＋5）⇒ 84 → 85、34 → 39。
+ */
+const EXPECTED_PY_TOTAL = 85
+const EXPECTED_GO_TOTAL = 39
 const EXPECTED_TOTAL = EXPECTED_PY_TOTAL + EXPECTED_GO_TOTAL
 
 function insertTerm(db: SqliteDatabase, id: string, zh: string): void {
@@ -451,7 +455,7 @@ describe('M9 P1.8 · DL-14 两门数据都在且可筛选', () => {
     }
   })
 
-  it('② 两门的数据都在（§1.5 实测：Python 84 ＋ Go 34 = 118）', () => {
+  it('② 两门的数据都在（实测：Python 85 ＋ Go 39 = 124）', () => {
     const h = newDb()
     try {
       seedLangTopics(h.db, SEEDS_DIR)

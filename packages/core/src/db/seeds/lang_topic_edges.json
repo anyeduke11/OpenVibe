@@ -569,6 +569,36 @@
       "lang": "go",
       "topic_slug": "go-concurrent",
       "prereq_slug": "go-data-types"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-metaclass",
+      "prereq_slug": "python3-class"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-runtime",
+      "prereq_slug": "go-functions"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-reflection",
+      "prereq_slug": "go-interfaces"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-unsafe",
+      "prereq_slug": "go-pointers"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-cgo",
+      "prereq_slug": "go-modules"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-pprof",
+      "prereq_slug": "go-concurrent"
     }
   ]
 }

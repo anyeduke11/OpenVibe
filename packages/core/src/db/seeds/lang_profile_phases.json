@@ -1,0 +1,301 @@
+{
+  "_notes": {
+    "source": "附件《Python 与 Go 系统学习指南》的 tl-block 时间线（6 块 × 21 段）",
+    "collect_method": "按 tl-block 的 class 读模式（sh-master / sh-familiar / sh-vibe）、按 tl-dot 读语言（py / go），逐段取 tl-time-d（标签）、ph-name（阶段名）、ph-weeks（耗时）、ul li（要点）、out（产出栏）。",
+    "outcome_prefixes": "产出 10 · 练习 2 · 跳过 2 · 空 7 —— **前缀逐字保留，一个都不许剥**（DL-49）。",
+    "empty_outcome": "7 段在附件里就没有产出栏（Python 精通第 5 段 ＋ 两门各 3 段速成）⇒ `outcome` 显式写 null，界面整行不渲染。",
+    "points_note": "每段 2–3 条要点，是附件 `ul li` 的逐字内容（§3.2：要点可入库，长文正文不入库）。"
+  },
+  "collected_at": "2026-10-20",
+  "schemaVersion": 1,
+  "items": [
+    {
+      "profile": "master",
+      "lang": "python",
+      "ord": 1,
+      "label": "阶段 0 · 约 0.5 周",
+      "title": "环境与准备",
+      "duration_label": "0.5 周",
+      "points": [
+        "安装 Python 3.12 / 3.13（python.org），选编辑器 VS Code / PyCharm",
+        "会运行 .py 文件、用 REPL、看懂报错 traceback",
+        "pip 装包、虚拟环境 venv / uv，Git 基础"
+      ],
+      "outcome": "产出：跑通 Hello World 与一个打印日历的小脚本"
+    },
+    {
+      "profile": "master",
+      "lang": "python",
+      "ord": 2,
+      "label": "阶段 1 · 约 3–4 周",
+      "title": "入门：语法、控制流、数据结构、函数",
+      "duration_label": "3–4 周",
+      "points": [
+        "变量与类型、运算符、输入输出、f-string",
+        "if / for / while、match 模式匹配；列表、元组、字典、集合与推导式",
+        "函数（参数、返回值、lambda、递归）、字符串方法、文件读写、异常基础"
+      ],
+      "outcome": "练习：每节示例手敲一遍；HackerRank 基础关卡 + Exercism 入门概念题"
+    },
+    {
+      "profile": "master",
+      "lang": "python",
+      "ord": 3,
+      "label": "阶段 2 · 约 6–8 周",
+      "title": "巩固与进阶：OOP、工程化、语言核心",
+      "duration_label": "6–8 周",
+      "points": [
+        "面向对象、继承与多态、魔术方法、鸭子类型；模块与包、第三方包管理",
+        "with 上下文管理器、迭代器/生成器、装饰器、闭包、浅/深拷贝",
+        "类型注解、dataclasses；pytest 测试、ruff / black 代码风格"
+      ],
+      "outcome": "产出：读 Automate the Boring Stuff 做 3–5 个实用脚本；把旧脚本重构为类并写测试"
+    },
+    {
+      "profile": "master",
+      "lang": "python",
+      "ord": 4,
+      "label": "阶段 3 · 约 6–8 周",
+      "title": "方向实战：Web / 数据 / 爬虫，完成一个完整作品",
+      "duration_label": "6–8 周",
+      "points": [
+        "Web 后端：FastAPI（首选，异步）/ Django（全栈）/ Flask（轻量）",
+        "数据科学：NumPy、pandas、Matplotlib，Jupyter Notebook",
+        "爬虫与自动化：requests、BeautifulSoup、Selenium / Playwright；AI 应用：大模型 API + Streamlit"
+      ],
+      "outcome": "产出：跟官方教程做一个完整项目，写 README 上传 GitHub"
+    },
+    {
+      "profile": "master",
+      "lang": "python",
+      "ord": 5,
+      "label": "阶段 4 · 长期持续",
+      "title": "高级：并发、性能、打包与生态深化",
+      "duration_label": "长期",
+      "points": [
+        "GIL、threading、multiprocessing、concurrent.futures、asyncio 协程与事件循环",
+        "timeit / cProfile 性能分析；pyproject.toml、打包发布到 PyPI",
+        "选读《Fluent Python》写出 Pythonic 代码；LeetCode 热题 100；尝试开源贡献"
+      ],
+      "outcome": null
+    },
+    {
+      "profile": "familiar",
+      "lang": "python",
+      "ord": 1,
+      "label": "第 1 周 · 核心语法",
+      "title": "环境与语法基础",
+      "duration_label": "1 周",
+      "points": [
+        "环境搭建、pip / venv、运行 .py 与 REPL",
+        "变量与类型、控制流、列表 / 元组 / 字典 / 集合、推导式",
+        "函数、参数、返回值、lambda；字符串与文件读写、异常基础"
+      ],
+      "outcome": "产出：10+ 个小练习（计算器、猜数字、文件整理）"
+    },
+    {
+      "profile": "familiar",
+      "lang": "python",
+      "ord": 2,
+      "label": "第 2 周 · 组织代码",
+      "title": "模块、OOP 与常用标准库",
+      "duration_label": "1 周",
+      "points": [
+        "模块与包、import、第三方库安装；项目目录结构",
+        "面向对象基础：类、方法、继承（够用即可，不深挖元类 / 描述符）",
+        "常用标准库：pathlib、datetime、re、json、logging、requests 三方库"
+      ],
+      "outcome": "产出：3–5 个实用脚本（批量改名、Excel 汇总、抓一个网页）"
+    },
+    {
+      "profile": "familiar",
+      "lang": "python",
+      "ord": 3,
+      "label": "第 3–4 周 · 工程与项目",
+      "title": "测试、工程规范与一个主流框架",
+      "duration_label": "1–2 周",
+      "points": [
+        "类型注解与 dataclasses；pytest 写测试；ruff 格式化",
+        "按需选一个方向：FastAPI（Web/API，推荐）或 pandas（数据）",
+        "跟官方教程做一个完整项目，写 README 上传 GitHub"
+      ],
+      "outcome": "跳过：asyncio 深挖、打包发布、装饰器 / 元类高级用法（日后需要再补）"
+    },
+    {
+      "profile": "vibe",
+      "lang": "python",
+      "ord": 1,
+      "label": "Day 1 · 起步",
+      "title": "装 AI 工具与 Python，跑通第一个脚本",
+      "duration_label": "1 天",
+      "points": [
+        "安装 Trae / Cursor 等 AI 编程工具与 Python",
+        "让 AI 带你写并运行一个 5 行脚本，学会看终端输出"
+      ],
+      "outcome": null
+    },
+    {
+      "profile": "vibe",
+      "lang": "python",
+      "ord": 2,
+      "label": "Day 2–3 · 最小知识",
+      "title": "只学能看懂代码的最小集合",
+      "duration_label": "2 天",
+      "points": [
+        "变量、控制流、函数、列表字典、报错长什么样（边看边问 AI）",
+        "认识 pip install 与 requirements.txt"
+      ],
+      "outcome": null
+    },
+    {
+      "profile": "vibe",
+      "lang": "python",
+      "ord": 3,
+      "label": "Day 4–7 · 交付",
+      "title": "直接做一个小项目",
+      "duration_label": "4 天",
+      "points": [
+        "批量改名 / Excel 合并 / 爬网页 / Streamlit 小页面，任选一个",
+        "让 AI 小步实现，运行验证、读报错回贴、每天 Git 提交"
+      ],
+      "outcome": null
+    },
+    {
+      "profile": "master",
+      "lang": "go",
+      "ord": 1,
+      "label": "阶段 0 · 约 0.5 周",
+      "title": "环境与准备",
+      "duration_label": "0.5 周",
+      "points": [
+        "安装最新 Go（go.dev/dl），配 VS Code / GoLand，跑通 Hello World",
+        "学会 go mod init 初始化模块（直接用现代 Modules，跳过 GOPATH 旧模式）",
+        "浏览 roadmap.sh/golang 建立全景，认识 gofmt / go vet 等内置工具"
+      ],
+      "outcome": "产出：go run 跑通第一个程序，全部代码用 go.mod 管理"
+    },
+    {
+      "profile": "master",
+      "lang": "go",
+      "ord": 2,
+      "label": "阶段 1 · 约 4–6 周",
+      "title": "入门：语法与核心类型",
+      "duration_label": "4–6 周",
+      "points": [
+        "变量 / 常量 / 类型、运算符、流程控制；数组、切片、映射",
+        "函数（多返回值、变参、闭包、defer）、指针、结构体、方法",
+        "接口（隐式实现）、错误基础；Go by Example 当语法字典随查随写"
+      ],
+      "outcome": "练习：Tour 每节练习动手做；Exercism Go Track 前 20–30 道，产出 10+ 个小练习"
+    },
+    {
+      "profile": "master",
+      "lang": "go",
+      "ord": 3,
+      "label": "阶段 2 · 约 6–8 周",
+      "title": "进阶：工程、测试、泛型与标准库",
+      "duration_label": "6–8 周",
+      "points": [
+        "error 包装与解包、panic/recover；包与 Modules（go mod tidy、依赖、发布）",
+        "testing 表驱动测试 / 基准 / httptest，用 TDD 方式走完 learn-go-with-tests",
+        "泛型（类型参数与约束）；net/http、encoding/json、log/slog、context、io/os、time"
+      ],
+      "outcome": "产出：一个带测试的 CLI 工具 + 一个 CRUD Web API（标准库或 Gin）；读《100 Go Mistakes》对照避坑"
+    },
+    {
+      "profile": "master",
+      "lang": "go",
+      "ord": 4,
+      "label": "阶段 3 · 约 8–12 周",
+      "title": "高级：并发、性能、工程化与云原生",
+      "duration_label": "8–12 周",
+      "points": [
+        "goroutine、channel、select、worker pool、sync（Mutex/WaitGroup/Once/Map）、context 取消与超时",
+        "fan-in / fan-out / pipeline 等并发模式；race detector、pprof / trace 性能分析",
+        "选一条项目线：Web/API（Let's Go）、微服务/RPC（gRPC → Kitex / go-zero）、造轮子（7days-golang）"
+      ],
+      "outcome": "产出：一个带日志/配置/测试/基准、可部署的微服务或完整 Web 项目；了解 Docker / K8s（二者均为 Go 编写）"
+    },
+    {
+      "profile": "familiar",
+      "lang": "go",
+      "ord": 1,
+      "label": "第 1.5–2 周 · 核心语法",
+      "title": "环境、语法与核心类型",
+      "duration_label": "1.5–2 周",
+      "points": [
+        "go mod init 初始化模块；变量 / 常量 / 类型、流程控制",
+        "数组、切片、映射；函数、多返回值、defer、闭包",
+        "指针、结构体、方法"
+      ],
+      "outcome": "产出：A Tour of Go 做完 + 10 个小练习"
+    },
+    {
+      "profile": "familiar",
+      "lang": "go",
+      "ord": 2,
+      "label": "第 3–4 周 · 接口、错误与模块",
+      "title": "接口、错误处理与 Modules",
+      "duration_label": "1.5–2 周",
+      "points": [
+        "接口的隐式实现；error 判空与包装、panic/recover",
+        "包与 go mod tidy、第三方依赖；常用标准库 json、time、log/slog、io/os",
+        "泛型基本用法（看懂会写泛型函数即可）"
+      ],
+      "outcome": "产出：一个带子命令的 CLI 小工具"
+    },
+    {
+      "profile": "familiar",
+      "lang": "go",
+      "ord": 3,
+      "label": "第 5–6 周 · 测试与 Web/API",
+      "title": "表驱动测试与一个服务项目",
+      "duration_label": "1–2 周",
+      "points": [
+        "testing 表驱动测试、httptest；context 基础",
+        "用标准库 net/http 或 Gin 做一个 CRUD API，会并发处理请求",
+        "写 README 传 GitHub，go build 编译成单二进制"
+      ],
+      "outcome": "跳过：goroutine 深入模式、pprof、反射、cgo、gRPC 与微服务框架（高级阶段再补）"
+    },
+    {
+      "profile": "vibe",
+      "lang": "go",
+      "ord": 1,
+      "label": "Day 1 · 起步",
+      "title": "装 Go 与 AI 工具，跑通 Hello World",
+      "duration_label": "1 天",
+      "points": [
+        "go mod init、go run . 运行、go build 编译",
+        "让 AI 解释第一个程序的每一行"
+      ],
+      "outcome": null
+    },
+    {
+      "profile": "vibe",
+      "lang": "go",
+      "ord": 2,
+      "label": "Day 2–3 · 最小知识",
+      "title": "只学能看懂代码的最小集合",
+      "duration_label": "2 天",
+      "points": [
+        "类型 / 控制流 / 函数 / 结构体 / 错误处理 / 包，配合 Go by Example",
+        "认识 go get / go mod tidy，标准库自带不用装"
+      ],
+      "outcome": null
+    },
+    {
+      "profile": "vibe",
+      "lang": "go",
+      "ord": 3,
+      "label": "Day 4–7 · 交付",
+      "title": "直接做一个小项目",
+      "duration_label": "4 天",
+      "points": [
+        "CLI 小工具（待办 / 文件整理）或 HTTP 小接口（net/http）",
+        "逐函数让 AI 生成、go build 验证、编译成单文件运行"
+      ],
+      "outcome": null
+    }
+  ]
+}

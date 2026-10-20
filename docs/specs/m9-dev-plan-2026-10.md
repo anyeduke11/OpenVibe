@@ -145,13 +145,13 @@ P0 → P1 → P1b ┬→ P1c
 - **P1.9** 采集脚本 `scripts/collect-m9-sources.ts` —— runoob 两门 118 条逐条可复算（只入标题/摘要/链接/取证日，正文一字不进仓） / **DL-01 DL-02** / P1.2, P1.3 / 0（原估内）
 - **P1.10** 停更源必须标红 —— `packages/core/src/db/m9-source-freshness.ts`：新鲜度按 **§1.5 登记**算（**不设天数阈值**），六份清单各带 `source_freshness` 段（停更源带停更日期 ＋ 标红文案；每份**自报参照日 `computed_at`** ⇒ 重新采集后闸不误红） / **DL-03** / P1.8, P1.9 / 0（原估内）
 - **P1.11** 文档里的实测数字必须与实跑值相等 —— `packages/core/src/db/m9-doc-numbers.ts`：从 **dev-plan §6.2 的 P1 出口条件**与 **spec §1.4 三档表**（45 / 30 / 9）把实测数字读出来，与实跑逐项对账（三处出处两两相等 ＋ 都等于实跑） / **DL-13 DL-26**（同一手法：doc ↔ 实跑） / P1.7, P1.8 / 0（原估内）
-- **P1 出口**：`pnpm test` 全绿 + 「lang_topics 节点数 = 72 + lang_topic_edges 不成环」+ §3.1 表数复算 17 ✓ —— ⚠️ **原写 78，本轮按实测订正为 72**（owner 裁定「接受实测值」）：78 的算法是「Python 语言知识点 44 ＋ Go 全部 34 条」；P1.7 修完分类规则后实测 **Python 语言知识点 45 ＋ Go 语言知识点 27 = 72**（Go 34 条里 7 条是库级/杂项，不进学习路线）⇒ 复算：`python3 packages/core/src/db/seeds/_build/build-lang-topics-stages.py`；＋ **DL-03 停更源标记**（六份清单各带 `source_freshness` 段，停更源带停更日期 ＋ 标红文案）⇒ 复算：`npx vitest run packages/core/src/db/m9-p1-10-source-freshness.test.ts`；＋ **文档里的实测数字 ↔ 实跑值对账**（⚠️ 「节点数 = 72」此前只活在注释里，文档与实跑之间**没有任何一处把它们绑在一起**）⇒ 复算：`npx vitest run packages/core/src/db/m9-p1-11-doc-numbers.test.ts`
+- **P1 出口**：`pnpm test` 全绿 + 「lang_topics 节点数 = 78 + lang_topic_edges 不成环」+ §3.1 表数复算 17 ✓ —— ⚠️ **节点数订正过三轮，只认这一版**（owner 裁定「接受实测值」；订正链见 spec §1.4 的下游同步注记）：**路线节点口径**（库里 `kind='language'` 的知识点总数）实测 **Python 语言知识点 46 ＋ Go 语言知识点 32 = 78**（P1.4 分类规则把 Go 34 条源条目里的 7 条判成库级/杂项，不进学习路线；P1d 再补建冷门底层六条：Python ＋1 元类 · Go ＋5）⇒ 复算：`python3 packages/core/src/db/seeds/_build/build-lang-topics-stages.py`；＋ **DL-03 停更源标记**（六份清单各带 `source_freshness` 段，停更源带停更日期 ＋ 标红文案）⇒ 复算：`npx vitest run packages/core/src/db/m9-p1-10-source-freshness.test.ts`；＋ **文档里的实测数字 ↔ 实跑值对账**（⚠️ 「节点数」此前只活在注释里，文档与实跑之间**没有任何一处把它们绑在一起**）⇒ 复算：`npx vitest run packages/core/src/db/m9-p1-11-doc-numbers.test.ts`
 
 > ⚠️ **上面 P1.7–P1.11 的「人日 0（原估内）」是什么意思** —— 它们**不是计划外的新范围**：
 > spec §9 的 **M9-P1 判据列本就把 DL-01/02/03/04/12/13/14/15 列在 P1**；
 > P1.7–P1.9 是 P1.1/P1.2/P1.3 的**判据守卫与采集**（实施中形成的期次编号），
 > P1.10 是 **DL-03**（此前 §9 列了它、§6.2 却没给它子任务行 ⇒ 两份台账不一致，本轮补上），
-> P1.11 是**让 P1 出口条件可复算**（「节点数 = 72」这条条款一直在计划里，只是**没有闸盯它** —— 同一条款里的「表数复算 17」由 DL-26 盯着，两条待遇不一样）。
+> P1.11 是**让 P1 出口条件可复算**（「节点数 = 78」这条条款一直在计划里，只是**没有闸盯它** —— 同一条款里的「表数复算 17」由 DL-26 盯着，两条待遇不一样）。
 > ⇒ **§6.2 前六行已占用全部 4 人日**，故这几行不新增人日。
 > ⚠️ **但「实际投入是否超出原估 4 人日」本轮未计量** —— 重估要连带改 §0 累计人日（38）、
 > spec §0 速览（≈38 人日）、spec §9 M9-P1 行（4）与甘特周次（8 周 × 5 人日/周），**属 owner 决定**；
@@ -189,15 +189,25 @@ P0 → P1 → P1b ┬→ P1c
 > - **DL-03 的 P1c 半**（§7 里 DL-03 一行的「巡检时发现已停更 ⇒ 并入失效巡检」）—— 资源层的「已过时」由 **`tier='e'`** 承载（附件 tier 图例逐字：e = 过时补充，**机器可读**），巡检把它与存活三档**并排输出**且**不算「有效来源」**（`verdictOf().usable=false`）。⚠️ **不用 `freshness` 文案做关键词匹配** —— 那等于再造一份口径（关键词表），必然漂移。⚠️ **tier='e' 的行数不写死**（spec §1.6.1 钉的是 `old` 10 条，不是 tier 分布）—— 单测 ⑧ 断言「巡检报告里的过时行数 == 库里的 tier='e' 行数」；实测那批行**全部落在附件 `old` 标记的 10 条里**，余下 1 条是 tier c（内容偏旧但仍在主线 ⇒ 由文案承载，已登记在 `lang_resources.json` 的 `_notes.old_note`）。**源级停更（`awesome-python-cn` 停更 4 年）不归本模块** —— 那是 P1.10 的 `m9-source-freshness.ts` 按 spec §1.5 登记负责的**知识点出处侧**，两层不混。
 > - **P1c 出口复算**：`npx vitest run packages/core/src/db/m9-p1c-links.test.ts`（12 支）＋ `npx vitest run packages/core/src/db/m9-p1b-resources.test.ts`（39 支，P1b 侧未受影响）
 
-### 6.5 M9-P1d 三模式层（**6 人日** · v1.6 填满时间线 · ⚠️ #6 须 W3 末定）
+### 6.5 M9-P1d 三模式层（**6 人日** · v1.6 填满时间线 · ✅ #6 已于 2026-10-20 闭合）
 
-- **P1d.1** 提取附件 21 段分期 → `seed/lang_profile_phases.json`（脚本 `/tmp/dump.mjs` + 解析 tl-block） / **DL-49** / P1b / 0.5
+- **P1d.1** 提取附件 21 段分期 → `seed/lang_profile_phases.json`（脚本 `scripts/extract-m9-guide-phases.ts` + 解析 tl-block） / **DL-49** / P1b / 0.5
 - **P1d.2** 冷门底层条目（runtime/反射/unsafe/cgo/pprof/元类）按 #6 决定补 / 是否真实分开 / **DL-33 DL-35** / #6 / 1.5
 - **P1d.3** `lang_profile_phases` 迁移 21 行 ＋ 产出栏前缀逐字保留（产出 10 · 练习 2 · 跳过 2 · 空 7） / **DL-49** / P1d.1 / 1
 - **P1d.4** `lang_topic_profiles` 迁移（topic × 模式；depth/required/rank/est_minutes） / **DL-33 DL-36** / P1d.2 / 1
 - **P1d.5** 速成专区作为静态内容（**但 6 段时间线照常显示**） / **DL-35** / P1d.3 / 0.5
 - **P1d.6** 两套阶段分工约束实现：lang_topics 无 phase 列；§3.6 表与 §3.22.1 表共存且不映射 / **DL-50** / P1d.3 / 0.5
 - **P1d 出口**：21 行 + 7 段空产出 + 3 种前缀齐全 + #6 待裁已收
+
+> ✅ **P1d 已产出**（本轮；owner 2026-10-20 裁定 §6.3 第 6 条取「**真正分开**」）：
+> - **P1d.1** —— `scripts/extract-m9-guide-phases.ts`（**零第三方依赖**，正则解析 `tl-block`/`tl-item`/`tl-time-d`/`ph-name`/`ph-weeks`/`ul li`/`out`）＋ 种子 `packages/core/src/db/seeds/lang_profile_phases.json`（**21 段**）。脚本自带**五重自检**：21 段 / 每语言每模式段数 / 产出栏前缀分布（**产出 10 · 练习 2 · 跳过 2 · 空 7**）/ **与 spec §3.17.1 逐格对账** / 每段要点 ≥2；支持 `--check`（只查不写）。⚠️ **附件路径走命令行参数**（仓内零本机路径）。
+> - **P1d.2** —— **6 类冷门底层条目补建到完整内容**：知识点（`lang_topics_advanced.json`，6 条 · `kind='language'` · `content_level='full'`）＋ 概念层 6 个 ＋ **三段内容 18 段**（步骤/样例/原理解析，全部自撰）＋ 前置边 6 条 ＋ 资源挂接 12 条。⚠️ **三段内容挂概念层而非 topic 侧**（DL-15：loader 主动拒绝 `ref_kind='topic'`）⇒ 概念层从 8 个变 **14 个**（8 共通 ＋ 6 语言专有）。⚠️ **出处链接逐条 HEAD 核实**（2026-10-20，`go.dev/cgo/cgo.html` 已 404 ⇒ 换 `pkg.go.dev/cmd/cgo`）。
+> - **P1d.3** —— 迁移 `0013_lang_profiles.sql`：`lang_profile_phases`（21 行 · UNIQUE(profile,lang,ord) · `points` 存 JSON 数组文本 ＋ `CHECK json_valid`）＋ `lang_topic_profiles`（复合主键 (topic_id,profile) ⇒ **查表不许 ORDER BY**，排序放 JS）。装载器 `m9-p1d-seed-profiles.ts`。
+> - **P1d.4** —— `lang_topic_profiles` 的 **234 行由代码现算**（`m9-p1d-mode-assign.ts`）⇒ **不落种子 JSON**：`topic_id` 是自增行号（换个库就不是同一个数），快照在别的库上是错的；且**口径只留一处**。三条规则：① 必学集只从 `kind='language'` 里选（库级不进路线，DL-12）② 深度按模式给上限（master=full / familiar=concept / vibe=headline）③ 顺序按站序与能力序。
+> - **P1d.5** —— 速成专区四块静态内容（**6 能力 · 每门 7 项最小知识 · 4 步工作流 · 6 翻车点**）落在 `m9-vibe-static.ts`（**不建表、不进 DAG、不参与掌握度**）＋ spec §3.17.2 的**逐字对照面**；**6 段时间线照常进 `lang_profile_phases`**（时间线是时间，其余四块是叙述，两者不混）。
+> - **P1d.6** —— DL-50 守卫 `m9-p1d-stage-phase-guard.ts`：`lang_topics` **无 phase 类列** ＋ 仓内**无「站↔段」映射表** ＋ **反证支**（§3.6 两列分工表与 §3.22.1 三套分段表都在，且都写了「不映射」）。⚠️ **反向判据必须配真变异的腿**：本轮真 `ALTER TABLE` 加过 `phase_id`、真在临时目录建过 `lang_stage_phase_map`。
+> - **速成必学集的口径** —— 由附件 CHAPTER 06 的 **6 项能力**反推；其中「会反馈 / 小步迭代 / 会兜底」是**工作流能力** ⇒ 属静态内容，**不映射知识点**；真正映射的是「看得懂 / 会运行 / 读报错」三支（Python 15 条 / Go 16 条，分钟合计 131 / 137）。⚠️ **分钟数只算「看懂并能提问」**，不含练习与做项目。
+> - **P1d 出口复算**：`npx vitest run packages/core/src/db/m9-p1d-mode-profiles.test.ts`（25 支）＋ `npx vitest run packages/core/src/db/m9-p1d-vibe-static.test.ts`（5 支）＋ `npx vitest run packages/core/src/db/m9-p1-11-doc-numbers.test.ts`（15 支，节点数改判后的对账闸）
 
 ### 6.6 M9-P1e 模式交互层（**3 人日**）
 
@@ -291,10 +301,10 @@ P0 → P1 → P1b ┬→ P1c
 | DL-30 | P1c.1/P1b.4 | 巡检只发 HEAD + 永不删除 | **两侧都已产出** —— ① P1b.4 侧（m9-p1b-probe.ts）：去重到 87 个 URL ＋ 状态机，单次失败不判死、连续两次标灰不删、传输层**结构上**只能发 HEAD 且没有 body 通道；② **P1c.1 侧**（m9-p1c-links.ts ＋ `scripts/check-m9-links.ts`）：**真出网的 HEAD**（Node 标准库，零第三方依赖）＋ 状态码与计数落库 ＋ **两张表同一支脚本**（98 个去重 URL）＋ **手动触发**（默认 dry-run，不进启动流程）。⚠️ **三条纪律的证据形态**：本地起**真的** HTTP 服务抓 method（服务端看到的是 HEAD、请求体 0 字节）—— 假 transport 验不了这条（它是我们自己写的，验的是「自己有没有骗自己」）。**变异腿实跑**：`FAIL_THRESHOLD` 改 1 ⇒ 「单次失败不判死」那支当场红 |
 | DL-31 | P1b.5 | 要点级至少一条去处 | 已产出（P1b · m9-p1b-resources.test.ts）—— 118 个要点级知识点逐条有挂接；变异腿「删一条挂接 ⇒ 红」＋ 反证「`full` 级挂 0 条允许」 |
 | DL-32 | P1b.6 | README 导出满足零正文 | 已产出（P1b · m9-p1b-readme.ts）—— 零本机路径 ＋ 条数一致 ＋ 每行带 `lang_resources.id` 可溯源；守卫自证（注入绝对路径必被报出） |
-| DL-33 | P1d.4 | 必学集逐层包含 | 未开工（#6 决后） |
+| DL-33 | P1d.4 | 必学集逐层包含 | **已产出**（P1d · m9-p1d-profile-guards.ts）—— `vibe ⊆ familiar ⊆ master` **逐条比**（不是比计数）；**冷门六条是这条判据第一次被真正触发的地方**（精通必学 / 熟悉可跳过 ⇒ 精通 ⊋ 熟悉）。⚠️ **变异腿实跑**：把一条速成必学改成「熟悉不必学」⇒ 当场红 |
 | DL-34 | P2.3 | 模式不影响掌握度 | 未开工 |
-| DL-35 | P1d.2/P1d.5 | 必学集非空 | 未开工（#6 决后） |
-| DL-36 | P1d.4 | 速成必学有 est_minutes | 未开工 |
+| DL-35 | P1d.2/P1d.5 | 必学集非空 | **已产出**（P1d · m9-p1d-profile-guards.ts ＋ m9-vibe-static.ts）—— 六个「语言 × 模式」组合逐一断言非空；**反证那一半**（空列表必须有兜底文案、不许空白）在数据层落地：速成专区**恒有内容**（四块静态内容 ＋ 6 段时间线）＋ `VIBE_EMPTY_STATE_TEXT`。⚠️ **变异腿实跑**：清空某一门的熟悉必学集 ⇒ 当场红 |
+| DL-36 | P1d.4 | 速成必学有 est_minutes | **已产出**（P1d · m9-p1d-profile-guards.ts）—— 速成必学逐条有正整数分钟；**速成不必学与精通/熟悉一律 NULL**（逐条估分钟是伪造精度）。⚠️ **变异腿实跑**：置 NULL 与给精通填分钟各一条，都当场红 |
 | DL-37 | P1e.1 | 转档起始站 = 映射结果 | 未开工 |
 | DL-38 | P1e.2 | 跳过与选速成逐字一致 | 未开工（#7 决后） |
 | DL-39 | P1e.3 | 资源标记 = 必学集反查 | 未开工 |
@@ -307,16 +317,18 @@ P0 → P1 → P1b ┬→ P1c
 | DL-46 | §11.1 | 台账卡住哪期与 §9 依赖一致 | **可立刻开工** |
 | DL-47 | P1b.1/P1b.2 | 资源层逐条相等含去重主键 | 已产出（P1b · scripts/extract-m9-guide-resources.ts ＋ m9-p1b-resources.test.ts）—— 89 ＋ 11 ＋ 六类逐类 ＋ 9 字段齐全 ＋ tier 列非空 ＋ 两个共用 URL 各占 2 行（去重 87） |
 | DL-48 | P1b.2 | 必要性必须由矩阵推导 | 已产出（P1b · m9-p1b-necessity.ts）—— ⚠️ **轴是 tier 不是展示分类**（2026-10-20 实测纠正，spec §1.6.1 已订正）；矩阵 × tier 现算 == spec 记的三档分布（53/36/0 · 25/28/36 · 8/0/81） |
-| DL-49 | P1d.1/P1d.3 | 分期 21 段逐格相等 + 7 段空 + 3 前缀 | 未开工 |
-| DL-50 | P1d.6 | 8 站与分期不得映射 | 未开工 |
+| DL-49 | P1d.1/P1d.3 | 分期 21 段逐格相等 + 7 段空 + 3 前缀 | **已产出**（P1d · m9-p1d-spec.ts ＋ m9-p1d-seed-profiles.ts）—— 段序/标签/阶段名/耗时/产出整串**逐格等于 spec §3.17.1**；前缀分布 **产出 10 · 练习 2 · 跳过 2 · 空 7**；**恰 7 段为空**（py 精通第 5 段 ＋ 两门各 3 段速成）。⚠️ **变异腿实跑**：润色「3–4 周」⇒ 红；把「跳过：」剥成「产出：」⇒ 红；给空栏填自撰文案 ⇒ 红 |
+| DL-50 | P1d.6 | 8 站与分期不得映射 | **已产出**（P1d · m9-p1d-stage-phase-guard.ts）—— `lang_topics` **无 phase 类列** ＋ 仓内**无「站↔段」映射表** ＋ **反证支**（§3.6 两列分工表与 §3.22.1 三套分段表都在且都写了「不映射」）。⚠️ **反向判据必须配真变异的腿**：本轮真 `ALTER TABLE` 加过 `phase_id`、真在临时目录建过 `lang_stage_phase_map`、真删过 spec 里「不映射」那句 —— 三条都当场红 |
 
 > 状态「可立刻开工」= **不依赖任何工程代码**，本周 W1 落仓（见 §5.3 与 §11）。
 >
 > **状态「已产出（期 · 文件）」** = 判据已有**可执行闸**（单测或扫描器）在仓里，括号里是产出它的期与落点文件。文件名除 `tests/` 开头者外均在 `packages/core/src/db/` 下。⚠️ **「已产出」不等于「已签收」** —— 本列只登记「闸在仓里」；闸是否覆盖判据原文的每一句，由各期交付报告负责。P1 期六轮（P1.4–P1.9）落地后，本表已从「全列未开工」订正为当前实况。
 >
 > **P1.11 补记** —— 它**不新增判据**（判据仍 **50 条**，§0 速览与 §6.3 台账的计数不动），
-> 只给 **P1 出口条件「节点数 = 72」**与 **spec §1.4 三档表**补了「**文档 ↔ 实跑**」对账闸
-> （`packages/core/src/db/m9-doc-numbers.ts`）⇒ 从此这三个数改了文档或改了库都会红。
+> 只给 **P1 出口条件「节点数 = 78」**与 **spec §1.4 三档表**补了「**文档 ↔ 实跑**」对账闸
+> （`packages/core/src/db/m9-doc-numbers.ts`）⇒ 从此这几个数改了文档或改了库都会红。
+> ⚠️ **P1d 起这道闸按两个口径分断**（**源清点** 45/30/9＝84 对 §1.4 三档表 · **路线节点** 46＋32＝78 对 P1 出口）
+> —— P1d 补建冷门底层六条后，两者在 Python 侧分岔（45 vs 46）⇒ 用一个口径混着比必然误红。
 >
 > **附注①（DL-12 · 四颗牙齿，但判据原文未能完整表达）** —— 站列表纯度 / kind 可复算 / 站号指派 / 边四颗牙都已落地，但**「不进站列表」在当前 schema 下无法由数据独立表达**：`lang_topics.stage_id` 是 `NOT NULL CHECK 0..7`，表里没有「不入站」这个取值 ⇒ 库级条目靠 `kind='library'` 与站列表过滤区分，闸实际断的是「**库级条目出现在站列表里**」，不是「库级条目不存 `stage_id`」。要让判据原文字面成立，需要 `stage_id` 可空或加一列站外标记 —— **属 schema 契约改动，未做**，登记为增强需求。
 >

@@ -9,10 +9,13 @@
 // ⇒ 「复制成两份」的正确机器形态是：**同一个概念的三段内容在 topic 侧也各存了一份**。
 //
 // 本测试断四道闸：
-//   ① 8 个概念各 3 段齐全（steps / example / principle），共 24 行，全部 ref_kind='concept'
-//   ② 24 段 body_md 互不相同（概念层内容没有复制粘贴）
+//   ① 14 个概念各 3 段齐全（steps / example / principle），共 42 行，全部 ref_kind='concept'
+//      （**8 个共通 ＋ 6 个语言专有** —— §3.7「共通概念 8 个 ＋ 语言专有若干」；
+//      6 个语言专有是 P1d 补建的冷门底层那六条）
+//   ② 42 段 body_md 互不相同（概念层内容没有复制粘贴）
 //   ③ **topic 侧零三段内容**（ref_kind='topic' 的行数 = 0）—— DL-15 的执行点
-//   ④ 挂接不悬空：8 个概念的 lang_topics 映射都命中真实 topic 且 lang 对得上
+//   ④ 挂接不悬空：概念的 lang_topics 映射都命中真实 topic 且 lang 对得上
+//      （共通概念挂两门 · 语言专有概念挂一门 —— 两个计数分别钉住）
 //
 // 反向变异腿：
 //   - 注入「函数 steps 的副本」到 topic 侧 ⇒ 闸 ③ 红
@@ -36,9 +39,17 @@ const SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))
 const CONCEPTS_FILE = 'lang_concepts.json'
 const CONTENTS_FILE = 'lang_topic_content.json'
 
-/** §1.4 / §3.7 的规模口径：8 个共通概念 × 3 段 = 24 段 */
-const EXPECTED_CONCEPTS = 8
-const EXPECTED_CONTENTS = 24
+/**
+ * 概念层规模口径（§3.7「共通概念 8 个 ＋ **语言专有若干**」）。
+ *
+ * ⚠️ **P1d 之后是 14 个**：8 个**共通**概念（Python/Go 各挂一条知识点）＋
+ *   6 个**语言专有**概念（冷门底层那六条，各自只挂自己那门的一个知识点）。
+ *   三段内容仍是每概念 3 段 ⇒ 14 × 3 = **42 段**。
+ */
+const EXPECTED_COMMON_CONCEPTS = 8
+const EXPECTED_LANG_SPECIFIC_CONCEPTS = 6
+const EXPECTED_CONCEPTS = EXPECTED_COMMON_CONCEPTS + EXPECTED_LANG_SPECIFIC_CONCEPTS
+const EXPECTED_CONTENTS = EXPECTED_CONCEPTS * 3
 const CONTENT_KINDS = ['steps', 'example', 'principle']
 
 function loadSeed(file: string): {
@@ -60,8 +71,8 @@ function seedAll(h: { db: Parameters<typeof seedConceptContent>[0] }): void {
   seedConceptContent(h.db, SEEDS_DIR)
 }
 
-describe('M9 P1.5 · 概念层 8 个共通概念 ＋ 24 段三段内容', () => {
-  it('两份 seed 都成功 import；8 概念 + 24 段三段内容入库；零 warnings', () => {
+describe('M9 P1.5 · 概念层 14 个概念（8 共通 ＋ 6 语言专有）＋ 42 段三段内容', () => {
+  it('两份 seed 都成功 import；14 概念 + 42 段三段内容入库；零 warnings', () => {
     const h = newDb()
     try {
       seedAll(h)
@@ -76,7 +87,7 @@ describe('M9 P1.5 · 概念层 8 个共通概念 ＋ 24 段三段内容', () => 
         h.db.prepare(`SELECT COUNT(*) AS c FROM lang_concepts`).get() as { c: number }
       ).c
       expect(concepts).toBe(EXPECTED_CONCEPTS)
-      // 24 段内容
+      // 42 段内容
       const contents = (
         h.db.prepare(`SELECT COUNT(*) AS c FROM lang_topic_content`).get() as { c: number }
       ).c
@@ -92,7 +103,7 @@ describe('M9 P1.5 · 概念层 8 个共通概念 ＋ 24 段三段内容', () => 
     }
   })
 
-  it('闸 ①：8 个概念各 3 段齐全（steps/example/principle），全部 ref_kind=concept', () => {
+  it('闸 ①：14 个概念各 3 段齐全（steps/example/principle），全部 ref_kind=concept', () => {
     const h = newDb()
     try {
       seedAll(h)
@@ -134,7 +145,7 @@ describe('M9 P1.5 · 概念层 8 个共通概念 ＋ 24 段三段内容', () => 
     }
   })
 
-  it('闸 ②：24 段 body_md 互不相同（概念层内容没有复制粘贴）', () => {
+  it('闸 ②：42 段 body_md 互不相同（概念层内容没有复制粘贴）', () => {
     const h = newDb()
     try {
       seedAll(h)
@@ -148,7 +159,7 @@ describe('M9 P1.5 · 概念层 8 个共通概念 ＋ 24 段三段内容', () => 
       for (const r of rows) {
         expect(r.body_md.trim().length).toBeGreaterThan(0)
       }
-      // ⭐ 源文件层同样成立：seed JSON 里的 24 段也互不相同
+      // ⭐ 源文件层同样成立：seed JSON 里的 42 段也互不相同
       //    （闸 ② 若只查库，seed 被手改成重复但已入库的那份就查不出来）
       const seedBodies = loadSeed(CONTENTS_FILE).items.map((it) => it.body_md ?? '')
       expect(seedBodies.length).toBe(EXPECTED_CONTENTS)
@@ -185,15 +196,22 @@ describe('M9 P1.5 · 概念层 8 个共通概念 ＋ 24 段三段内容', () => 
     }
   })
 
-  it('闸 ④：挂接不悬空 —— 8 个概念的两门 topic 都真实存在且 lang 对得上', () => {
+  it('闸 ④：挂接不悬空 —— 8 个共通概念各挂两门 ＋ 6 个语言专有概念各挂一门；topic 都真实存在且 lang 对得上', () => {
     const h = newDb()
     try {
       seedAll(h)
       const concepts = loadSeed(CONCEPTS_FILE).items
       expect(concepts.length).toBe(EXPECTED_CONCEPTS)
+      let common = 0
+      let langSpecific = 0
       for (const c of concepts) {
         const mounts = Object.entries(c.lang_topics ?? {})
-        expect(mounts.length, `${c.slug} 挂接为空`).toBe(2)
+        expect(mounts.length, `${c.slug} 挂接为空`).toBeGreaterThan(0)
+        // ⚠️ **挂两门 = 共通概念；挂一门 = 语言专有概念**（§3.7 的两类）。
+        //   计数分别钉住 ⇒ 有人把语言专有概念误改成两门（或反过来）时这条会红。
+        if (mounts.length === 2) common += 1
+        else if (mounts.length === 1) langSpecific += 1
+        else throw new Error(`${c.slug} 挂接了 ${mounts.length} 门（只允许 1 或 2）`)
         for (const [lang, slug] of mounts) {
           const row = h.db
             .prepare(`SELECT lang, kind FROM lang_topics WHERE slug = ?`)
@@ -204,6 +222,8 @@ describe('M9 P1.5 · 概念层 8 个共通概念 ＋ 24 段三段内容', () => 
           expect(row!.kind).toBe('language')
         }
       }
+      expect(common, '共通概念（挂两门）数量不对').toBe(EXPECTED_COMMON_CONCEPTS)
+      expect(langSpecific, '语言专有概念（挂一门）数量不对').toBe(EXPECTED_LANG_SPECIFIC_CONCEPTS)
       h.close()
     } catch (err) {
       try {
@@ -215,7 +235,7 @@ describe('M9 P1.5 · 概念层 8 个共通概念 ＋ 24 段三段内容', () => 
     }
   })
 
-  it('幂等：二次 import 不增不减；24 段内容不被重复插入', () => {
+  it('幂等：二次 import 不增不减；42 段内容不被重复插入', () => {
     const h = newDb()
     try {
       seedAll(h)

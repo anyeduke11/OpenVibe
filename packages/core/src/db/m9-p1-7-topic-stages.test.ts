@@ -5,7 +5,7 @@
 //
 // 断六件事：
 //   ① 8 站分站落地：每条 language 类条目都有站，Python 八站全满、Go 站号连续
-//   ② 前置边入库（112 条），且**只挂 language 类条目**
+//   ② 前置边入库（118 条），且**只挂 language 类条目**
 //   ③ **DL-04：前置边无环** —— 守卫做**真正的环检测**（不靠 stage 单调性）
 //   ④ **DL-12：库级条目不得进学习路线** —— 四颗牙齿，每颗都能被变异腿打红
 //   ⑤ 前置站不得晚于后继站（路线能自上而下走）
@@ -64,19 +64,30 @@ const SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))
 const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
 const SPEC_FILE = join(REPO_ROOT, 'docs/specs/m9-dev-language-roadmap.md')
 
-// ✅ **节点数已裁定并改正文（2026-10-20，owner 裁定「接受实测值」）**：
-//   dev-plan §6.2 的 P1 出口原写「lang_topics 节点数 = 78」，**现已改为 72**。
-//   那 78 来自 §1.4 的 Python 三档（语言知识点 44）＋ 隐含「Go 34 条全是语言知识点」。
-//   **实测 = 72**（Python 45 ＋ Go 27）：
-//     ① Python 侧 **+1**：「Python3 模块」从库级纠正为语言知识点（P1.4 规则缺陷，
-//        P1.7 开工时发现）⇒ 44 → 45；
-//     ② Go 侧 **−7**：runoob Go 34 条里有 7 条是「教程首页 / 简介 / 环境安装 /
-//        开发工具 / 测验 / VSCode」类（§1.4 从未对 Go 做三档拆分）⇒ 34 → 27。
-//   净 78 → 72。spec §1.4 的两行（44/31 ⇒ 45/30）已于同日一并订正。
+// ✅ **节点数口径（三次订正，只留最新一版）**：
+//
+//   **实测 = 78**（Python 46 ＋ Go 32）—— dev-plan §6.2 的 P1 出口写的是这个数。
+//
+//   订正链（如实登记，**旧值一律不与新值同处一行**）：
+//     ① 最初：78 ＝ §1.4 的 Python 三档（语言知识点 44）＋ 隐含「Go 34 条全是语言知识点」
+//        ⇒ **这个 78 是按源清单算的，不是按库里实际有多少条算的**。
+//     ② 2026-10-20（P1.4/P1.7）：按分类规则实测，Python **+1**（「Python3 模块」
+//        从库级纠正为语言知识点）＝ 45、Go **−7**（runoob Go 34 条里有 7 条是
+//        「教程首页 / 简介 / 环境安装 / 开发工具 / 测验 / VSCode」类）＝ 27
+//        ⇒ 72（Python 45 ＋ Go 27）。
+//     ③ **2026-10-20（P1d · owner 裁定待裁 #6「精通与熟悉真正分开」）**：补建冷门底层
+//        六条（元类/描述符深挖 · runtime · 反射 · unsafe · cgo · pprof）⇒
+//        Python **+1**（元类）＝ 46、Go **+5** ＝ 32 ⇒ **78**（Python 46 ＋ Go 32）。
+//
+//   ⚠️ **78 与 spec §1.4 的 45 / 30 / 9 ＝ 84 不是同一个口径**：
+//   §1.4 那三档是 **runoob 源清单**的分档（Python 侧：语言 45 · 严格库级 30 · 环境与杂项 9），
+//   而 78 是**全库语言级知识点总数**（两门合计，含 P1d 补建的六条）。
+//   两个数各自有出处，**不许互相替换**（P1.11 的闸已按两个口径拆开）。
+//
 //   单测钉的是**实测值**（可复算），不是计划值。
-const EXPECTED_EDGES = 112
-const EXPECTED_PY_LANGUAGE = 45
-const EXPECTED_GO_LANGUAGE = 27
+const EXPECTED_EDGES = 118
+const EXPECTED_PY_LANGUAGE = 46
+const EXPECTED_GO_LANGUAGE = 32
 const EXPECTED_STAGE_TABLES = 17
 
 function seedAll(h: { db: Parameters<typeof seedTopicEdges>[0] }): void {
@@ -87,7 +98,7 @@ function seedAll(h: { db: Parameters<typeof seedTopicEdges>[0] }): void {
 }
 
 describe('M9 P1.7 · 分站与前置边', () => {
-  it('① 8 站分站落地：Python 45 条 / Go 27 条 language 类；Python 八站全满，Go 站号连续', () => {
+  it('① 8 站分站落地：Python 46 条 / Go 32 条 language 类；Python 八站全满，Go 站号连续', () => {
     const h = newDb()
     try {
       seedAll(h)
@@ -123,7 +134,7 @@ describe('M9 P1.7 · 分站与前置边', () => {
     }
   })
 
-  it('② 前置边 112 条入库，全部连接 language 类条目', () => {
+  it('② 前置边 118 条入库，全部连接 language 类条目', () => {
     const h = newDb()
     try {
       seedAll(h)
@@ -440,7 +451,7 @@ describe('M9 P1.7 · 反向变异腿（证明闸确实会红）', () => {
         leak.libraryCount,
       )
       expect(rawLibs.length).toBeGreaterThan(0)
-      // 而生产路径把它们全滤掉了 ⇒ 站列表条目数（45）< 未过滤总数（84）
+      // 而生产路径把它们全滤掉了 ⇒ 站列表条目数（46）< 未过滤总数（85）
       const rawTotal = [...raw.values()].flat().length
       expect(rawTotal).toBeGreaterThan(leak.listed)
       expect(leak.listed).toBe(leak.languageOnly)

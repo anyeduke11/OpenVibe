@@ -151,6 +151,114 @@
       "kind": "principle",
       "content_level": "full",
       "body_md": "### 原理解析：正则的本质是「形状语言」，强项与弱项都由此而来\n\n**正则描述的是字符串的形状（正则语言），不是它的含义。** 它的强项和弱项都是这一个事实推出来的。\n\n**强项：把「长什么样」这件事压缩成一行。** 手写解析器要几十行，正则一行。适合的场景有共同特征：\n\n- **形状固定**（日期、版本号、身份证、十六进制色值、URL 的一段）\n- **不需要理解上下文**（不需要知道这个数字是数量还是金额）\n- **一次匹配、不嵌套**\n\n**弱项：理解不了上下文，也处理不了嵌套。** 三个典型的「正则不该干」：\n\n1. **嵌套结构** —— 括号配对、JSON、XML。正则无法数括号，`\\([^()]*\\)` 只能匹配不含内层括号的。\n2. **带引号的分隔符** —— CSV 里的 `\"a,b\",c`。`\"([^\"]*)\"` 在 `\"a\"\"b\",c` 上就崩了。\n3. **语义判断** —— 「这个日期是不是有效」（`2026-02-30` 形状完全合法但日期不存在）。**正则答不了「这值对不对」，只能答「这形状像不像」。**\n\n**两个引擎的实现差异，导致能力差异**\n\n| | Python `re` | Go `regexp`（RE2） |\n|---|---|---|\n| 引擎 | 回溯（NFA 模拟） | 有限自动机（DFA/状态机） |\n| 时间复杂度 | 最坏指数级（灾难性回溯） | **保证线性** |\n| 反向引用 `\\1` | 支持 | 不支持 |\n| 环视（前后查找） | 支持 | 不支持 |\n| 命名捕获 | `(?P<n>)` | `(?P<n>)` |\n\n⇒ **Go 故意不支持反向引用和环视**，因为支持它们就无法保证线性时间。代价是「有些 Python 能写的正则 Go 写不了」，收益是**「一个正则不会让服务卡死」** —— 这在服务端是压倒性的。\n\n**实践上三条**\n\n1. **用非贪婪还是贪婪，看边界在哪。** `.*` 会吃到最后，边界交给后面的部分决定；`.*?` 停在最早能满足整体的地方。**写完必须用反例验证它没有多匹配。**\n2. **把正则编译成常量，别在热路径里重复编译。** Go 放包级 `var`，Python 用 `re.compile` 缓存（模块级）。\n3. **正则越长越要拆。** 一条 80 字符的正则没人能验证；拆成几个有名字的小模式，配合注释，可维护性差一个量级。\n\n⇒ **判断该不该用正则的一句话**：*如果你需要知道「它是什么意思」，那不是正则能回答的问题。*"
+    },
+    {
+      "concept_slug": "metaclass-descriptor",
+      "kind": "steps",
+      "content_level": "full",
+      "body_md": "### 怎么学：元类与描述符\n\n1. **先接受「类也是对象」**：Python 里 `class` 语句执行完得到的是一个 `type` 的实例 —— 它的类型就是元类。这一句没想通，后面全是背魔法。\n2. **再写最小描述符**：定义一个带 `__get__` 的类，把它放进另一个类的属性上，观察属性访问走进你的代码。只跑这一支最小例子，别一上来读 `__set_name__`。\n3. **然后是元类**：继承 `type` 写一个 `__new__`，观察它在**类被创建时**被调用。注意它管的是「类怎么造出来」，不是「实例怎么用」。\n4. **最后才碰 `__init_subclass__` 与 `__set_name__`**：它们覆盖了元类最常见的用途，而且不要求你理解元类的调用时机。\n5. **动手收尾**：给一个普通类挂上自定义描述符，分别打印「读属性」和「写属性」，看两条路各自走到哪里。"
+    },
+    {
+      "concept_slug": "metaclass-descriptor",
+      "kind": "example",
+      "content_level": "full",
+      "body_md": "### 样例：描述符与元类的最小形态\n\n**描述符**（实例属性的读写都被拦截）：\n\n```python\nclass Field:\n    def __set_name__(self, owner, name):\n        self.name = name\n\n    def __get__(self, obj, objtype=None):\n        if obj is None:\n            return self          # 访问类属性时拿到的是描述符本身\n        return obj.__dict__.get(f\"_{self.name}\")\n\n    def __set__(self, obj, value):\n        obj.__dict__[f\"_{self.name}\"] = value\n\n\nclass User:\n    name = Field()\n\n    def __init__(self, name):\n        self.name = name\n\n\nu = User(\"Duke\")\nprint(u.name)      # Duke —— 走的是 __get__\nprint(User.name)   # <Field ...> —— 走的是 __get__(obj=None)\n```\n\n**元类**（类被创建的那一刻就被加工）：\n\n```python\nclass Tagged(type):\n    def __new__(mcls, name, bases, ns):\n        ns[\"tag\"] = \"tagged\"\n        return super().__new__(mcls, name, bases, ns)\n\n\nclass Doc(metaclass=Tagged):\n    pass\n\n\nprint(Doc.tag)     # tagged —— 类还没被使用就已经写进去了\n```\n\n⚠️ **注意两者的层级不同**：描述符拦的是**实例属性访问**，元类拦的是**类创建**。把两者混着讲，最容易得出「元类就是更高级的描述符」这种似是而非的结论。"
+    },
+    {
+      "concept_slug": "metaclass-descriptor",
+      "kind": "principle",
+      "content_level": "full",
+      "body_md": "### 原理解析：属性访问与类创建，其实是同一件事的两种层级\n\n**描述符的本质是「把属性访问变成一次函数调用」。** 属性不是存一个值，而是一个对象；读 `obj.attr` 时，Python 先问「类型里这个属性是不是描述符」，是的话就把调用交给它。\n\n**元类的本质是「把类创建变成一次函数调用」。** 类不是语句糖，它由 `type.__new__` 造出来；元类决定这个过程怎么走。\n\n⇒ 两者是**同一个机制在两个层级上的应用**：描述符管实例属性，元类管类属性。也正因为同源，才有了更轻的替代路径：\n\n- `__set_name__`：类创建时把属性名交给描述符，覆盖了「按名字加工属性」的需求；\n- `__init_subclass__`：类创建时回调，覆盖了「给子类做加工」的需求。\n\n⇒ 这解释了现代 Python 代码里**元类少见、描述符常见**的原因：能用 `__init_subclass__` 解决的，就不必写元类；能用 `__set_name__` 解决的，就不必让描述符承担命名约定。\n\n⚠️ **代价要说清**：走这条路的代码，静态检查工具看不懂你的意图 —— 类型检查器看到的是「一个类创建时多写了一个字段」，而不是「这个类被某种协议约束过」。所以它的正当用途是**框架层**（ORM、校验库、插件机制），而不是业务层。"
+    },
+    {
+      "concept_slug": "go-runtime",
+      "kind": "steps",
+      "content_level": "full",
+      "body_md": "### 怎么学：Go 运行时\n\n1. **先画地图**：runtime 管四件事 —— goroutine 调度、内存分配与 GC、系统调用封装、计时与栈追踪。读一遍官方包的 overview，这张图就够用了。\n2. **只学两件事**：`GOMAXPROCS` 与抢占式调度。写一个纯计算的死循环 goroutine，观察它**不会**把别的 goroutine 饿死 ⇒ 理解「并发不等于并行」。\n3. **再学 GC 的三件事**：什么时候触发、STW（stop-the-world）是什么、为什么可以调 `GOGC`。用 `GODEBUG=gctrace=1` 看一次真实输出，比读十遍文档有用。\n4. **然后是 panic 与 recover 的边界**：panic 沿栈展开，而 `recover` **只在直接 defer 的那个函数里**才有效 —— 这一条几乎每次都要踩。\n5. **最后读一次 goroutine 栈**：用 `runtime.Stack` 或 pprof 的 goroutine profile，把「一个 goroutine 有一份自己的栈」和第 2 步的抢占连起来。"
+    },
+    {
+      "concept_slug": "go-runtime",
+      "kind": "example",
+      "content_level": "full",
+      "body_md": "### 样例：抢占式调度 ＋ 一次真实的 GC 输出\n\n```go\npackage main\n\nimport (\n\t\"fmt\"\n\t\"runtime\"\n\t\"time\"\n)\n\nfunc main() {\n\tfmt.Println(\"GOMAXPROCS =\", runtime.GOMAXPROCS(0))\n\tfmt.Println(\"NumCPU    =\", runtime.NumCPU())\n\n\t// 一个不让出的 goroutine：Go 靠抢占而不是协作让出\n\tdone := make(chan struct{})\n\tgo func() {\n\t\tfor i := 0; i < 2_000_000; i++ {\n\t\t\t// 空转 —— 没有函数调用就不会触发抢占点\n\t\t}\n\t\tclose(done)\n\t}()\n\n\tselect {\n\tcase <-done:\n\t\tfmt.Println(\"计算结束\")\n\tcase <-time.After(2 * time.Second):\n\t\tfmt.Println(\"超时\")\n\t}\n\tfmt.Println(\"main 仍在运行 —— 调度器把 CPU 抢回来了\")\n}\n```\n\n**GC 的一次真实输出**（`GODEBUG=gctrace=1 go run main.go`）：\n\n```\ngc 1 @0.021s 2%: 0.011+0.003+0.005 ms clock, 0.9+0/0.4/0+0.003 ms cpu, 4->4->0 MB, 5 MB goal\n```\n\n⚠️ 读法：`2%` 是**GC 占用的 CPU 比例**，`0.011+0.003+0.005` 分别是 STW 前的准备、STW 本身、STW 后的标记启动三段，`4->4->0 MB` 是「堆从 4MB 涨到 4MB 后被回收成 0」。"
+    },
+    {
+      "concept_slug": "go-runtime",
+      "kind": "principle",
+      "content_level": "full",
+      "body_md": "### 原理解析：Go 的运行时是「编译器与操作系统之间的那一层」\n\n它替程序员做了三件底层工作，于是语言表面才显得简单：\n\n- **调度**：把大量 goroutine（M:N）映射到少量 OS 线程上。goroutine 的初始栈只有 2KB 且按需增长，而线程栈是 1MB 起 ⇒ 「创建 goroutine 很便宜」这句话有实现层的支撑。\n- **内存**：per-P 的分配缓存 ＋ 并发标记的 GC ⇒ 分配快、停顿短，但**分配速率**直接决定 GC 频率。\n- **系统调用**：把「阻塞」这件事从语言层移到线程层（sysmon ＋ 网络轮询）⇒ 写同步代码也不会浪费线程。\n\n⇒ 实用结论有两条：① 并发的首选是 goroutine 而不是线程池；② 性能问题里，**分配速率**往往比 CPU 更值得先看（它同时决定 GC 频率与内存占用）。\n\n⚠️ **一条纪律**：runtime 的行为可以用环境变量调（`GOMAXPROCS`、`GOGC`、`GODEBUG`），但**不要靠调参掩盖设计问题** —— 比如把 `GOGC` 调到极高来压住 GC，代价是内存暴涨，而根因（一次请求里造了十万个小对象）还在。"
+    },
+    {
+      "concept_slug": "go-reflection",
+      "kind": "steps",
+      "content_level": "full",
+      "body_md": "### 怎么学：Go 反射\n\n1. **先分清两个入口**：`reflect.TypeOf` 描述**类型**（有哪些字段、哪些方法），`reflect.ValueOf` 持有**值**（能读也能改）。分不清这两个，后面写的每一行都在绕。\n2. **先只学「读」**：遍历结构体字段、读字段值、读方法名。写一个把任意结构体打成表格的小函数，跑通再说。\n3. **再学「设值」**：`Value.Set` 要求目标**可寻址**且**类型完全一致**（`int` 字段在 reflect 里是 `int64`）。这一步的坑最多，值得单独练半小时。\n4. **然后是接口约定**：`reflect` 能找到 `MarshalJSON`、`String()` 这类方法，是因为它按「方法名 + 签名」匹配接口，而不是靠类型断言。\n5. **最后算代价**：反射让编译器放弃静态检查，也妨碍内联 ⇒ 只在真正需要通用逻辑的**边界**用（序列化、ORM、依赖注入、测试断言）。"
+    },
+    {
+      "concept_slug": "go-reflection",
+      "kind": "example",
+      "content_level": "full",
+      "body_md": "### 样例：读一个结构体、改一个字段\n\n```go\npackage main\n\nimport (\n\t\"fmt\"\n\t\"reflect\"\n)\n\ntype User struct {\n\tName string\n\tAge  int\n}\n\nfunc dump(v any) {\n\trv := reflect.ValueOf(v)\n\tt := rv.Type()\n\tfor i := 0; i < t.NumField(); i++ {\n\t\tfmt.Printf(\"%-6s %-8s = %v\\n\", t.Field(i).Name, t.Field(i).Type, rv.Field(i).Interface())\n\t}\n}\n\nfunc main() {\n\tdump(User{Name: \"Duke\", Age: 36})\n\n\t// 改值：必须先拿到「可寻址」的字段\n\tu := User{}\n\tfield := reflect.ValueOf(&u).Elem().FieldByName(\"Age\")\n\tfield.SetInt(36)      // ⚠️ int 字段在 reflect 里是 int64\n\tfmt.Println(u)        // {Duke 36}\n}\n```\n\n⚠️ **最容易踩的三件事**：\n① `reflect.ValueOf(u)` 拿到的是**副本**，改它不会改原变量 —— 要改就传指针并 `Elem()`；\n② `SetInt` 要给 `int64`，给 `int` 会 panic；\n③ 字段**不可导出**（首字母小写）时 `Interface()` 会 panic ⇒ 先 `CanInterface()` 判断。"
+    },
+    {
+      "concept_slug": "go-reflection",
+      "kind": "principle",
+      "content_level": "full",
+      "body_md": "### 原理解析：反射是把类型信息从编译期搬到运行期\n\n没有类型元数据时，编译器**无法**检查你接下来写的任何一句，于是 `reflect` 的每个 API 都把检查责任交还给你：\n\n- `Kind`（这是不是我要的类型）、\n- `CanSet`（这个值能不能改）、\n- 类型是否**完全一致**（`SetInt` 拒绝 `int32`）。\n\n⇒ 反射的正当用途是**边界处的通用逻辑**：序列化、ORM、依赖注入、测试断言 —— 这些地方的输入类型在编译期就是未知的，换来的是「一份代码处理所有类型」。\n\n⇒ 业务代码里的反射几乎总是亏本买卖：类型写错要等到运行时才发现，编译器也没法帮你内联与优化。\n\n⚠️ **Go 1.18 之后要重新问一句**：泛型覆盖了很大一部分「为了通用而用反射」的场景（容器、算法、工具库）。新的通用库**先问泛型够不够**，再考虑反射 —— 泛型仍然保住了编译期检查。"
+    },
+    {
+      "concept_slug": "go-unsafe",
+      "kind": "steps",
+      "content_level": "full",
+      "body_md": "### 怎么学：Go unsafe\n\n1. **先摆正定位**：`unsafe` 给的是「绕过类型系统直接访问内存」，**不是「更快的指针」**。Go 要么给你完整的类型安全（指针运算、任意转换），要么什么都不给 —— 它不给「带检查的指针运算」。\n2. **只学一个真实用途**：`unsafe.Sizeof` / `unsafe.Offsetof` 用来在编译期算结构体布局（配合 `go vet` 的 unsafeptr 检查）。这类用法零风险，值得记住。\n3. **再学两个受控转换**：`unsafe.Slice` 与 `unsafe.String` —— 把字节切片当字符串看、切片当数组看，**有边界检查、没有悬垂指针风险**。\n4. **然后理解危险在哪**：`uintptr` **不是**真指针，GC 看不见它。把指针转成 `uintptr` 存起来，GC 跑一轮之后那个对象就可能被回收。\n5. **最后记住纪律**：除非你在写标准库级别的库，否则**不要在业务代码里用 `unsafe.Pointer` 强转**。要性能先测量。"
+    },
+    {
+      "concept_slug": "go-unsafe",
+      "kind": "example",
+      "content_level": "full",
+      "body_md": "### 样例：布局查询、无拷贝视图，以及一个**不要写**的例子\n\n```go\npackage main\n\nimport (\n\t\"fmt\"\n\t\"unsafe\"\n)\n\ntype header struct {\n\tlength int\n\tptr    uintptr\n}\n\nfunc main() {\n\t// ① 受控转换：字节切片 → 字符串（不复制）\n\tb := []byte(\"hello\")\n\ts := unsafe.String(&b[0], len(b))\n\tfmt.Println(s)\n\n\t// ② 布局查询：编译期常量，没有运行时开销\n\tfmt.Println(unsafe.Sizeof(header{}), unsafe.Offsetof(header{}.ptr))\n\n\t// ③ ⚠️ 不要在业务代码里写的样子\n\t// x := 42\n\t// up := uintptr(unsafe.Pointer(&x))   // GC 看不见 up 里的指针\n\t// runtime.GC()                       // 此刻 x 可能已被回收，up 是野指针\n}\n```\n\n⚠️ **第 ③ 段为什么危险**：GC 追踪的是**指针类型**；一旦转成 `uintptr`，它就退化成普通整数，GC 无从知道那串数字还指向活着的对象。"
+    },
+    {
+      "concept_slug": "go-unsafe",
+      "kind": "principle",
+      "content_level": "full",
+      "body_md": "### 原理解析：unsafe 的代价是「安全责任从编译器转给你」\n\n用 `unsafe` 换来的三样东西，每一样都要自己付账：\n\n| 换来的 | 要付的账 |\n|---|---|\n| 任意内存读写 | 越界、别名、生命周期全部自己保证 |\n| 零拷贝的字节视图 | 底层数据被改动时，上层看到的字符串会跟着变 |\n| 布局级别的假设 | 编译器的字段重排优化对你是不可见的 |\n\n⇒ 合理用法是「**在有理由的地方用一点点**」：布局查询（`Sizeof`/`Offsetof`）、无拷贝的字节视图（`unsafe.String`/`unsafe.Slice`）。\n\n⇒ 明确禁止的用法是「把一个结构体强转成另一种结构体」—— Go **不保证**结构体的内存布局，字段可能被重排、可能被对齐填充，这种玩法在别的语言里能跑，在 Go 里是未定义行为。\n\n⚠️ **一条工程纪律**：`unsafe` 会让 `go vet` 的 unsafeptr 检查失去意义 ⇒ 仓里一旦出现 `unsafe.Pointer`，就应该在 code review 里被当作**独立议题**审，而不是混在功能改动里带过。"
+    },
+    {
+      "concept_slug": "go-cgo",
+      "kind": "steps",
+      "content_level": "full",
+      "body_md": "### 怎么学：cgo\n\n1. **先弄清它解决什么**：Go 调 C 库，或 C 程序调 Go 函数。代价是**产物需要 C 工具链** ⇒ 交叉编译、静态链接、容器镜像都会变难。\n2. **只学三个声明**：`#include`、`import \"C\"`、以及注释里那段写给 C 编译器的伪 C 代码。注意 `C.int` 这类类型是 cgo 生成的，不是 Go 的类型。\n3. **接着学边界规则**：跨越边界的 Go 指针**只能活在一次调用期间**（cgo pointer rules）—— Go 的 GC 可能移动对象，而 C 侧要求指针任何时刻都有效。\n4. **然后是字符串与内存**：`C.CString` 分配的内存必须 `C.free`，`C.GoString` 拷贝出来的字符串同样要 `C.free`。**忘记 free 是最常见的泄漏来源。**\n5. **最后算总账**：编译变慢、二进制变大、纯静态链接失效、cgo 代码不受 race detector 完全覆盖。"
+    },
+    {
+      "concept_slug": "go-cgo",
+      "kind": "example",
+      "content_level": "full",
+      "body_md": "### 样例：调用一个 C 函数，并记得释放\n\n```go\npackage main\n\n/*\n#include <stdlib.h>\n#include <string.h>\n\nstatic int strlen_like(const char *s) { return s ? (int)strlen(s) : 0; }\n*/\nimport \"C\"\n\nimport (\n\t\"fmt\"\n\t\"unsafe\"\n)\n\nfunc main() {\n\tcs := C.CString(\"hello cgo\")         // 在 C 堆上分配\n\tdefer C.free(unsafe.Pointer(cs))     // ⚠️ 必须释放，否则每次调用都漏一份\n\tn := C.strlen_like(cs)\n\tfmt.Println(\"长度 =\", int(n))\n}\n```\n\n⚠️ **两份内存，两条规则**：\n- `C.CString` 分配的 ⇒ 用 `C.free` 释放（**不是** Go 的 `free`，也不归 GC 管）；\n- `C.GoString` 读出来的 ⇒ 同样是 C 内存，同样要 `C.free`。"
+    },
+    {
+      "concept_slug": "go-cgo",
+      "kind": "principle",
+      "content_level": "full",
+      "body_md": "### 原理解析：cgo 是在两套互不信任的内存模型之间搭桥\n\nGo 侧有 GC（对象会移动、生命周期由运行时管），C 侧没有（指针必须任何时刻都有效、谁分配谁释放）。桥上必须有一份**明确的归属约定**：\n\n- **谁分配谁释放** —— C 分配的内存 GC 不管，Go 分配的内存 C 不能长期持有；\n- **指针能活多久** —— 跨越边界的 Go 指针只能在调用期间有效（cgo pointer rules）；\n- **谁看得见谁** —— GC 追踪的是指针类型，转成 `uintptr` 就断了（见 `unsafe` 那条）。\n\n⇒ 这也解释了 cgo 的实际成本：它不是「多写一点胶水代码」，而是**你的构建系统从此需要 C 工具链**：交叉编译要在目标平台上装 gcc，静态链接失效，容器镜像变大，某些纯 Go 部署方式（scratch 镜像）直接不可用。\n\n⇒ 判断标准只有一条：**这个库没有 Go 纯生版本，且它带来的价值大于它带来的构建与内存负担**。否则纯 Go 实现通常更省心 —— 少一个工具链、少一套内存归属、少一类构建故障。"
+    },
+    {
+      "concept_slug": "go-pprof",
+      "kind": "steps",
+      "content_level": "full",
+      "body_md": "### 怎么学：pprof\n\n1. **先理解它采什么**：**采样**，不是精确计数 —— 运行时定期抓栈，按栈帧出现次数归因。所以「热点」是统计意义上的，而且需要足够的运行时间才有意义。\n2. **先只学一个 profile**：CPU profile（谁在烧 CPU）。heap 与 goroutine profile 知道存在即可，用到再查。\n3. **接着学怎么拿数据**：`go test -cpuprofile`、`go build` 后手工启动、`net/http/pprof` 挂在 `/debug/pprof/`。三条路选一条就行。\n4. **然后学读图**：`top` 看前十、`list 函数名` 看逐行耗时、`-http=:8080` 打开火焰图。\n5. **最后注意两件事**：采样期间要有**足够负载**（否则全是 idle，profile 没信息量）；以及 `-alloc_space`（累计分配）与 `-inuse_space`（当前占用）的区别。"
+    },
+    {
+      "concept_slug": "go-pprof",
+      "kind": "example",
+      "content_level": "full",
+      "body_md": "### 样例：采一份 CPU profile 并读它\n\n```bash\n# ① 跑一段负载并采 CPU profile\ngo test -bench=. -benchtime=5s -cpuprofile=cpu.out ./pkg\n\n# ② 看前十热点\ngo tool pprof -top cpu.out\n\n# ③ 逐行看某个函数\ngo tool pprof -list=handleRequest cpu.out\n\n# ④ 打开火焰图（本地起一个临时 UI）\ngo tool pprof -http=:8080 cpu.out\n```\n\n**在服务里挂一个调试端点**（**只在内网开**）：\n\n```go\nimport (\n\t\"net/http\"\n\t_ \"net/http/pprof\"   // 空导入即注册 /debug/pprof/ 路由\n)\n\n// go func() { http.ListenAndServe(\"127.0.0.1:6060\", nil) }()\n// 之后访问 http://127.0.0.1:6060/debug/pprof/profile?seconds=30 采一份\n```\n\n⚠️ **端点绝不能暴露在公网**：profile 里含调用栈、文件路径、函数名，等于把内部结构送出去。"
+    },
+    {
+      "concept_slug": "go-pprof",
+      "kind": "principle",
+      "content_level": "full",
+      "body_md": "### 原理解析：pprof 的原理是「采样 + 归因」\n\n运行时定期（通常每 10ms）中断并抓取调用栈，把栈帧按出现次数统计，用出现频率近似「谁在占 CPU」。\n\n这既是它的优点，也是它的限制：\n\n- **优点**：开销低（几个百分点）、能看**真实负载**下的热点，而不是实验室里的构造用例；\n- **限制**：短函数容易被漏掉（采样窗口里没被撞上）、结果依赖运行时长（跑 5 秒和跑 5 分钟的结论可能不同）、看不到「等锁」这类阻塞（那是 block/mutex profile 的事）。\n\n⇒ 正确用法是「**先有症状，再采样**」：先看到一个慢请求或一处内存增长，再用 profile 把范围缩小 —— 而不是对着 profile 猜问题。\n\n⇒ 另一条纪律：**profile 端点是敏感资产**。它泄露调用栈、文件路径与函数名，在公网上等于公开内部结构；需要远程采样时应走带鉴权的通道或只在受控内网开启。"
     }
   ]
 }

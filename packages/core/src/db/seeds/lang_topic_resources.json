@@ -1503,6 +1503,78 @@
       "topic_slug": "go-vscode-dev",
       "resource_name": "《Go 语言圣经》中文版（在线免费）",
       "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-metaclass",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-metaclass",
+      "resource_name": "Fluent Python（2nd Edition, 2022）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-runtime",
+      "resource_name": "pkg.go.dev（标准库与包文档）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-runtime",
+      "resource_name": "Go: Under the Hood（golang.design）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-reflection",
+      "resource_name": "pkg.go.dev（标准库与包文档）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-reflection",
+      "resource_name": "Go 官方文档中心（中国镜像）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-unsafe",
+      "resource_name": "pkg.go.dev（标准库与包文档）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-unsafe",
+      "resource_name": "Go 官方文档中心（中国镜像）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-cgo",
+      "resource_name": "Go 官方文档中心（中国镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-cgo",
+      "resource_name": "pkg.go.dev（标准库与包文档）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-pprof",
+      "resource_name": "pkg.go.dev（标准库与包文档）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-pprof",
+      "resource_name": "Go 官方文档中心（中国镜像）",
+      "role": "backup"
     }
   ]
 }
