@@ -45,8 +45,19 @@
  * 不碰数据库、不碰网络 ⇒ 单测可以直接喂「改过的 spec 文本」当变异样本。
  */
 
-/** 三种学习模式（§3.17 的全局枚举，不逐条存表）。 */
-export type LangProfile = 'master' | 'familiar' | 'vibe'
+/**
+ * 三种学习模式（§3.17 的全局枚举，不逐条存表）。
+ *
+ * ⚠️ **定义已迁到 `@openvibe/shared`**（2026-10-20，P1e）——
+ *   web 的模式交互层（§3.19 一次性提问、§3.20 资源标记）与 core 的模式层
+ *   要用**同一份**枚举，而 core 带原生依赖、web 没有指向 core 的 workspace 链接
+ *   ⇒ 枚举留在 core 就等于让 web 抄一份 ⇒ 两处口径必然漂移。
+ *   ⇒ 本文件**从 shared 转出**，既有 import 路径不变，枚举本身仍只此一份。
+ */
+import { LANG_PROFILES, type LangProfile } from '@openvibe/shared'
+
+export { LANG_PROFILES }
+export type { LangProfile }
 
 /**
  * 资源档位（附件 `TIER` 的值域）。
@@ -62,7 +73,6 @@ export type MainResourceTier = Exclude<ResourceTier, 'v'>
 /** 必要性三档。 */
 export type Necessity = 'required' | 'recommended' | 'optional'
 
-export const LANG_PROFILES: readonly LangProfile[] = ['master', 'familiar', 'vibe']
 export const RESOURCE_TIERS: readonly ResourceTier[] = ['a', 'b', 'c', 'd', 'e', 'v']
 export const MAIN_RESOURCE_TIERS: readonly MainResourceTier[] = ['a', 'b', 'c', 'd', 'e']
 
