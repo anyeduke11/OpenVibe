@@ -1,5 +1,6 @@
-// `packages/core/src/db/m9-p1b-probe.ts` —— M9 v1.6 **P1b.4 · 资源失效巡检的调度侧**
-// （`m9-dev-plan-2026-10.md` §6.3 的 P1b.4 ＋ `m9-dev-language-roadmap.md` §3.14 · **DL-30**）
+// `packages/core/src/db/m9-p1b-probe.ts` —— M9 v1.6 **资源失效巡检的状态机与去重规则**
+// （P1b.4 建它 · **P1c.2 扩到第二张表** ＋ `m9-dev-plan-2026-10.md` §6.3/§6.4
+//   ＋ `m9-dev-language-roadmap.md` §3.14 · **DL-30**）
 //
 // ## 它做什么
 //
@@ -21,11 +22,16 @@
 //   **在单测里抓不到真实出网请求** ⇒ 只能靠**接口形状**把它们钉死。
 //   写成「约定调用方别传 GET」的话，下一个人改一行就破了，而且没有任何东西会红。
 //
-// ## ⚠️ 本文件只覆盖**主清单**（89 条 → 87 个 URL）
+// ## ⚠️ 本文件是**状态机与去重规则的唯一出处**
 //
-// §3.21 末段写明 DL-30 的纪律对 `lang_vibe_resources`（11 条）**同样成立**，
-// 但那是 **P1c.2** 的范围（「纳入同一脚本」）—— 本轮不提前吃掉它，
-// 否则 dev-plan 的 P1b/P1c 分档会失真（口径只留一处 ⇒ 台账不许被实现方偷偷改写）。
+// P1b.4 建它（只管主清单 89 条 → 87 个 URL）；**P1c.2**（「`lang_vibe_resources` 纳入同一脚本」）
+// 落地时**扩的是「哪张表」，不是「哪套规则」** —— §3.21 末段写明 DL-30 的纪律对速成那 11 条
+// **同样成立**（Cursor / Windsurf / Qoder 的文档站改版频繁，恰恰更该巡检）。
+//
+// ⚠️ **为什么不在 P1c 另写一套**：两处各写一份状态机，两处必然漂移 ——
+//   改了一处阈值、另一处还按旧值跑，而**两边都是绿的**。
+//   ⇒ 口径只留一处：算式（fails / alive）与去重规则都在本文件，
+//     **脚本**（`scripts/check-m9-links.ts`）与**执行侧**（`m9-p1c-links.ts`）只负责「怎么跑」。
 import type { SqliteDatabase } from './index'
 
 /**
@@ -37,6 +43,39 @@ import type { SqliteDatabase } from './index'
  *   ⇒ 常量可以写在这里，但**闸不靠它**。
  */
 export const FAIL_THRESHOLD = 2
+
+/**
+ * 被巡检的两张表（§3.14 主清单 ＋ §3.21 速成专区）。
+ *
+ * ⚠️ **表的清单只有这一处**：P1b.4 只跑主清单，P1c.2 把速成那 11 条并进**同一个脚本**。
+ */
+export type ProbeTableName = 'lang_resources' | 'lang_vibe_resources'
+
+export const PROBE_TABLE_NAMES: readonly ProbeTableName[] = ['lang_resources', 'lang_vibe_resources']
+
+/**
+ * 每张表一条 SQL —— **算式只有一份**，SQL 只回答「哪张表」。
+ *
+ * ⚠️ 为什么 `lang_vibe_resources` 没有 tier：整张表恒为 v 档（0012 的注释），
+ *   没有「过时」这一维 ⇒ P1c 的「已过时并入」对它恒为 false。
+ */
+const PROBE_SQL: Record<
+  ProbeTableName,
+  { selectTargets: string; selectRows: string; updateRow: string }
+> = {
+  lang_resources: {
+    selectTargets: 'SELECT id, url FROM lang_resources ORDER BY url ASC, id ASC',
+    selectRows: 'SELECT id, alive, consecutive_fails FROM lang_resources WHERE url = ?',
+    updateRow:
+      'UPDATE lang_resources SET last_status_code = ?, consecutive_fails = ?, alive = ?, last_checked_at = ? WHERE id = ?',
+  },
+  lang_vibe_resources: {
+    selectTargets: 'SELECT id, url FROM lang_vibe_resources ORDER BY url ASC, id ASC',
+    selectRows: 'SELECT id, alive, consecutive_fails FROM lang_vibe_resources WHERE url = ?',
+    updateRow:
+      'UPDATE lang_vibe_resources SET last_status_code = ?, consecutive_fails = ?, alive = ?, last_checked_at = ? WHERE id = ?',
+  },
+}
 
 /** 传输层的请求 —— `method` 写死为 HEAD，调用方没有别的选项。 */
 export interface ProbeRequest {
@@ -90,10 +129,11 @@ export function livenessOf(state: ResourceProbeState): Liveness {
  *
  * @returns 87 个目标（89 条资源去重后），每个目标带它的资源行 id。
  */
-export function planProbeTargets(db: SqliteDatabase): ProbeTarget[] {
-  const rows = db
-    .prepare('SELECT id, url FROM lang_resources ORDER BY url ASC, id ASC')
-    .all() as { id: number; url: string }[]
+export function planProbeTargets(
+  db: SqliteDatabase,
+  table: ProbeTableName = 'lang_resources',
+): ProbeTarget[] {
+  const rows = db.prepare(PROBE_SQL[table].selectTargets).all() as { id: number; url: string }[]
   const byUrl = new Map<string, number[]>()
   for (const r of rows) {
     const list = byUrl.get(r.url)
@@ -121,18 +161,15 @@ export function applyProbeOutcome(
   url: string,
   statusCode: number | null,
   checkedAt: string,
+  table: ProbeTableName = 'lang_resources',
 ): { updatedRows: number; markedDead: number; markedSuspect: number } {
   const ok = statusCode !== null && statusCode >= 200 && statusCode < 400
-  const rows = db.prepare('SELECT id, alive, consecutive_fails FROM lang_resources WHERE url = ?').all(url) as {
+  const rows = db.prepare(PROBE_SQL[table].selectRows).all(url) as {
     id: number
     alive: number
     consecutive_fails: number
   }[]
-  const update = db.prepare(
-    `UPDATE lang_resources
-     SET last_status_code = ?, consecutive_fails = ?, alive = ?, last_checked_at = ?
-     WHERE id = ?`,
-  )
+  const update = db.prepare(PROBE_SQL[table].updateRow)
   let markedDead = 0
   let markedSuspect = 0
   const run = db.transaction((row: { id: number; alive: number; consecutive_fails: number }) => {

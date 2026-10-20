@@ -181,6 +181,14 @@ P0 → P1 → P1b ┬→ P1c
 - **P1c.3** 手动触发入口（不进启动流程） / - / P1c.1 / 0.5
 - **P1c 出口**：连跑两次失败 ⇒ `alive=0` ＋ **行仍在表里** ＋ 单次失败 `alive=1`
 
+> ✅ **P1c 已产出**（本轮）：
+> - **P1c.1** —— `scripts/check-m9-links.ts`（**真出网**）＋ `packages/core/src/db/m9-p1c-links.ts`（执行侧：Node 标准库 `http`/`https` 的 HEAD，**零第三方依赖**）。落库的只有 `last_status_code` / `consecutive_fails` / `alive` / `last_checked_at` 四列 —— **响应体零落库**（传输层返回值**只有状态码**，没有 body 通道）。
+> - **P1c.2** —— **同一支脚本**覆盖两张表：主清单 89 行（**87 个去重 URL**）＋ 速成 11 行（11 个 URL）⇒ 合计 **98 个去重 URL**（两张表实测无交集）。**状态机与去重规则仍只有一份**（`m9-p1b-probe.ts`，P1b.4 建、P1c.2 扩到第二张表）⇒ 改阈值只改一处。
+> - **P1c.3** —— 手动入口 `pnpm m9:links`：**默认 dry-run**（只列计划，**一个请求都不发、库一个字都不改**），`--execute` 才真出网；`--db` / `--seed` / `--json` / `--all` / `--timeout` 五个开关。**不进启动流程**由单测钉住：app 目录下**零引用**巡检模块。
+> - **DL-30 三支的证据**：本地起**真的** HTTP 服务（真 socket、真 HEAD、真状态码）—— ① 服务端收到的 method 全是 `HEAD` 且请求体 **0 字节**；② 连跑两次失败 ⇒ `alive=0` 且**行数一条不少**；③ 单次失败 ⇒ `alive` 仍为 1。**变异腿实跑**：把 `FAIL_THRESHOLD` 改成 1 ⇒ 第 ③ 支与 P1b 的两支**当场变红**（已复原）。
+> - **DL-03 的 P1c 半**（§7 里 DL-03 一行的「巡检时发现已停更 ⇒ 并入失效巡检」）—— 资源层的「已过时」由 **`tier='e'`** 承载（附件 tier 图例逐字：e = 过时补充，**机器可读**），巡检把它与存活三档**并排输出**且**不算「有效来源」**（`verdictOf().usable=false`）。⚠️ **不用 `freshness` 文案做关键词匹配** —— 那等于再造一份口径（关键词表），必然漂移。⚠️ **tier='e' 的行数不写死**（spec §1.6.1 钉的是 `old` 10 条，不是 tier 分布）—— 单测 ⑧ 断言「巡检报告里的过时行数 == 库里的 tier='e' 行数」；实测那批行**全部落在附件 `old` 标记的 10 条里**，余下 1 条是 tier c（内容偏旧但仍在主线 ⇒ 由文案承载，已登记在 `lang_resources.json` 的 `_notes.old_note`）。**源级停更（`awesome-python-cn` 停更 4 年）不归本模块** —— 那是 P1.10 的 `m9-source-freshness.ts` 按 spec §1.5 登记负责的**知识点出处侧**，两层不混。
+> - **P1c 出口复算**：`npx vitest run packages/core/src/db/m9-p1c-links.test.ts`（12 支）＋ `npx vitest run packages/core/src/db/m9-p1b-resources.test.ts`（39 支，P1b 侧未受影响）
+
 ### 6.5 M9-P1d 三模式层（**6 人日** · v1.6 填满时间线 · ⚠️ #6 须 W3 末定）
 
 - **P1d.1** 提取附件 21 段分期 → `seed/lang_profile_phases.json`（脚本 `/tmp/dump.mjs` + 解析 tl-block） / **DL-49** / P1b / 0.5
@@ -253,7 +261,7 @@ P0 → P1 → P1b ┬→ P1c
 |---|---|---|---|
 | DL-01 | **P1.2/P1.3**（知识点侧）＋ **P1b.1/P1b.2**（资源侧） | 每条出处都带取证日期 | **两侧都已产出** —— P1 侧（P1.2/P1.3 · m9-p1-seed-lang-topics.ts，`lang_topics.source_checked_at` 非空有闸且已覆盖全部 118 条）；P1b 侧（P1b · m9-p1b-seed-resources.ts）**资源侧的 DL-01 语义是「列不许缺、值不许冒充核过」**：`lang_resources` / `lang_vibe_resources` 的 `source_checked_at` **恒 NULL** ＋ `verified_by` 只能 `'owner_guide'`（CHECK 兜住） |
 | DL-02 | P1.2 | 教程正文零进仓守卫 | 已产出（P1.8 · m9-external-content-scan.ts） |
-| DL-03 | **P1.10**（源级标记）＋ **P1c.1**（巡检时发现停更） | 停更源显式标记 | 已产出（P1.10 · m9-source-freshness.ts）—— ⚠️ **分档**：P1 侧只做「源级停更标记」（按 §1.5 登记，采集时写停更日期 ＋ 标红文案，即 §9 里 DL-03 归 M9-P1 的那一半）；**P1c 侧（巡检时发现已停更 ⇒ 并入失效巡检）未开工** |
+| DL-03 | **P1.10**（源级标记）＋ **P1c.1**（巡检时发现停更） | 停更源显式标记 | **两侧都已产出** —— ① P1 侧（P1.10 · m9-source-freshness.ts）：**源级停更标记**（按 §1.5 登记，采集时写停更日期 ＋ 标红文案，即 §9 里 DL-03 归 M9-P1 的那一半）；② P1c 侧（P1c · m9-p1c-links.ts）：**巡检时把「已过时」并入判定** —— 资源层用 **`tier='e'`**（附件 tier 图例逐字：e = 过时补充，**机器可读**；实测 9 条），`verdictOf().usable=false` ⇒ **不得当有效来源**，且**不因过时而删行**。⚠️ **两层不混**：源级停更（`awesome-python-cn` 停更 4 年）归 P1 侧的**知识点出处侧**；P1c 侧管的是**资源层 100 条链接**。⚠️ **不用 `freshness` 文案做关键词匹配**（那是再造一份口径，必然漂移） |
 | DL-04 | P1.1 | DAG 无环守卫 | 已产出（P1.7 · m9-topic-dag.ts） |
 | DL-05 | P2.2 | 不得出现「你已掌握」 | 未开工 |
 | DL-06 | P1.1 | 挂接不反向写 terms | 已产出（P1.8 · m9-topic-terms.ts） |
@@ -280,7 +288,7 @@ P0 → P1 → P1b ┬→ P1c
 | DL-27 | P1b.2 | 资源层无前置边、不进 DAG | 已产出（P1b · m9-p1b-resources.test.ts）—— 资源表无边列 ＋ 仓里没有「资源×边」表 ＋ 给资源插边被外键挡住 |
 | DL-28 | P2.3 | 资源层不得参与掌握度 | 未开工 |
 | DL-29 | P1c.1 | owner 提供来源不得标 self | 已产出（P1b · m9-p1b-seed-resources.ts ＋ 0012 的 CHECK）—— 资源侧的值域只有 `'owner_guide'` |
-| DL-30 | P1c.1/P1b.4 | 巡检只发 HEAD + 永不删除 | **分档** —— **P1b.4 侧已产出**（m9-p1b-probe.ts：去重到 87 个 URL ＋ 状态机，单次失败不判死、连续两次标灰不删、传输层**结构上**只能发 HEAD 且没有 body 通道）；**P1c.1 侧未开工**（真出网的 `scripts/check-m9-links.ts` 与手动触发入口） |
+| DL-30 | P1c.1/P1b.4 | 巡检只发 HEAD + 永不删除 | **两侧都已产出** —— ① P1b.4 侧（m9-p1b-probe.ts）：去重到 87 个 URL ＋ 状态机，单次失败不判死、连续两次标灰不删、传输层**结构上**只能发 HEAD 且没有 body 通道；② **P1c.1 侧**（m9-p1c-links.ts ＋ `scripts/check-m9-links.ts`）：**真出网的 HEAD**（Node 标准库，零第三方依赖）＋ 状态码与计数落库 ＋ **两张表同一支脚本**（98 个去重 URL）＋ **手动触发**（默认 dry-run，不进启动流程）。⚠️ **三条纪律的证据形态**：本地起**真的** HTTP 服务抓 method（服务端看到的是 HEAD、请求体 0 字节）—— 假 transport 验不了这条（它是我们自己写的，验的是「自己有没有骗自己」）。**变异腿实跑**：`FAIL_THRESHOLD` 改 1 ⇒ 「单次失败不判死」那支当场红 |
 | DL-31 | P1b.5 | 要点级至少一条去处 | 已产出（P1b · m9-p1b-resources.test.ts）—— 118 个要点级知识点逐条有挂接；变异腿「删一条挂接 ⇒ 红」＋ 反证「`full` 级挂 0 条允许」 |
 | DL-32 | P1b.6 | README 导出满足零正文 | 已产出（P1b · m9-p1b-readme.ts）—— 零本机路径 ＋ 条数一致 ＋ 每行带 `lang_resources.id` 可溯源；守卫自证（注入绝对路径必被报出） |
 | DL-33 | P1d.4 | 必学集逐层包含 | 未开工（#6 决后） |

@@ -106,6 +106,52 @@ export {
   type SpecNec,
   type NecRuleViolation,
 } from './db/m9-p1b-necessity'
+// P1b · 资源层种子导入器 —— **巡检脚本的 --seed 走它**（口径只留一处）
+export {
+  seedLangResources,
+  seedLangVibeResources,
+  seedLangTopicResources,
+  seedLangResourceLayer,
+  type M9ResourceSeedResult,
+} from './db/m9-p1b-seed-resources'
+// P1 · 知识点种子导入器 —— 巡检脚本 --seed 时用它（挂接行引用知识点）
+export { seedLangTopics, type M9SeedBundleResult } from './db/m9-p1-seed-lang-topics'
+// P1b/P1c · 失效巡检的**状态机**（§3.14 写死的那三行）—— 唯一出处
+export {
+  FAIL_THRESHOLD,
+  livenessOf,
+  planProbeTargets,
+  applyProbeOutcome,
+  runResourceProbe,
+  PROBE_TABLE_NAMES,
+  type Liveness,
+  type ProbeTableName,
+  type ProbeTarget,
+  type ProbeTransport,
+  type ProbeRequest,
+  type ProbeResponse,
+  type ResourceProbeState,
+} from './db/m9-p1b-probe'
+// P1c · 失效巡检的**执行侧**（真出网 HEAD ＋ 两表去重 ＋ 报告/判定）
+export {
+  headStatusCode,
+  createHeadTransport,
+  planLinkTargets,
+  runLinkProbe,
+  verdictOf,
+  isOutdatedTier,
+  verifyLinkProbeRun,
+  DEFAULT_HEAD_TIMEOUT_MS,
+  PROBE_USER_AGENT,
+  OUTDATED_TIER,
+  type LinkRowRef,
+  type LinkTarget,
+  type LinkTargetReport,
+  type LinkProbeReport,
+  type LinkProbeRule,
+  type LinkProbeViolation,
+  type LinkVerdict,
+} from './db/m9-p1c-links'
 export {
   createPackService,
   type PackServiceDeps,
