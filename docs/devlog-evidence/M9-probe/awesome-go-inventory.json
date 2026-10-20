@@ -143,6 +143,16 @@
       "Guided Learning": 4
     }
   },
+  "source_freshness": {
+    "source": "awesome-go",
+    "source_label": "awesome-go",
+    "computed_at": "2026-10-20",
+    "last_pushed_at": "2026-10-19",
+    "age_days": 1,
+    "stale": false,
+    "basis": "源的最后提交时间 2026-10-19（1 天前）",
+    "notice": null
+  },
   "caveats": [
     "⚠️ 本清单**未做** HEAD 验链：条目是第三方外链的全量候选池，存活调查不是本模块的责任（§3.14 的失效巡检针对 89 条资源，属 P1c）",
     "GitHub API 匿名限流 60 次/小时；本脚本一次最多 8 个请求，设 GITHUB_TOKEN 可放宽"

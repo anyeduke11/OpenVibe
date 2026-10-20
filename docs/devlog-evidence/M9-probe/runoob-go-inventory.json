@@ -18,6 +18,16 @@
     "result": "34/34 返回 2xx",
     "caveat": "全量验链通过"
   },
+  "source_freshness": {
+    "source": "go",
+    "source_label": "runoob / Go",
+    "computed_at": "2026-10-20",
+    "last_pushed_at": null,
+    "age_days": null,
+    "stale": false,
+    "basis": "该源**没有仓库推送时间**（WordPress 站点，非 GitHub 仓库）⇒ 新鲜度由**采集对账**证明：清单与源站逐条一致即为新鲜；`pnpm m9:collect -- --check` 就是那道闸",
+    "notice": null
+  },
   "items": [
     {
       "ordinal": 1,

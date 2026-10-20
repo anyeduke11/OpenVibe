@@ -61,6 +61,21 @@ export { createContextService, type ContextServiceDeps } from './services/contex
 export { createTermRecommendService, type TermRecommendDeps } from './services/termRecommendService'
 export { createCommandRunService, CLI_COMMAND_RUN_COMMANDS, CLI_COMMAND_RUN_PAYLOAD_KEYS, type CliCommandRunCommand, type CommandRunInput, type CommandRunServiceDeps } from './services/commandRunService'
 export { assembleAiCallPayload, toRelativePath, PayloadAssemblyError, type AssembleOpts, type AiCallPayload, type SourceFragment } from './services/m9-payload'
+// P1.10 · DL-03 停更源标记 —— **采集脚本也用它**（scripts/ 走 @openvibe/core 导入）
+// ⇒ 新鲜度标记的**算法只有一处**，采集脚本与守卫不会各算各的。
+export {
+  computeFreshness,
+  yearsText,
+  parseSpecStaleSources,
+  readSpecStaleSources,
+  specSourceNameToKey,
+  validateFreshness,
+  scanSourceFreshness,
+  STALE_SOURCE_KEYS,
+  type SourceFreshness,
+  type FreshnessRule,
+  type FreshnessViolation,
+} from './db/m9-source-freshness'
 export {
   createPackService,
   type PackServiceDeps,

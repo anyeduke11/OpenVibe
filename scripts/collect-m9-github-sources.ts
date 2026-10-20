@@ -5,7 +5,7 @@
  * ## 它补的是什么
  *
  * P1.9 落的 `scripts/collect-m9-sources.ts` 只覆盖 **runoob 两门**。
- * 另三源（xinliangnote 43 篇 / walter201230 101 篇 / awesome-* 4197 条）此前**只有结构骨架**
+ * 另三源（xinliangnote 43 篇 / walter201230 101 篇 / awesome-* 4197 条，此数是**手抄数，真值 4047**）此前**只有结构骨架**
  * （`aux-sources-structure.json`），**没有采集实现** ⇒ 那些数字是手抄的，
  * 「可复算」对它们**不成立**。本脚本把那三源变成**一条命令能复跑**的东西。
  *
@@ -60,6 +60,7 @@ import {
   type InventoryDiff,
 } from './collect-m9-sources'
 import { guardedWrite, writeDiffIsEmpty, type WriteDiff } from './m9-write-guard'
+import { computeFreshness, STALE_SOURCE_KEYS, type SourceFreshness } from '@openvibe/core'
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT_DIR = join(REPO_ROOT, 'docs', 'devlog-evidence', 'M9-probe')
@@ -121,6 +122,11 @@ export interface GithubSourceConfig {
    *     且清单的 `collected_at` 照记 ⇒ 「它什么时候开始陈旧」查得到。
    */
   gate: 'blocking' | 'advisory'
+  /**
+   * **spec §1.5 五源表里的显示名** —— 新鲜度标记里带它，
+   * 好让读清单的人一眼对上 spec 那一行（判据的出处是 spec，不是代码）。
+   */
+  sourceLabel: string
   /** 一句话说明这个源能贡献什么（自撰，进结构摘要） */
   note: string
 }
@@ -128,6 +134,7 @@ export interface GithubSourceConfig {
 export const GITHUB_SOURCES: GithubSourceConfig[] = [
   {
     key: 'xinliangnote-go',
+    sourceLabel: 'xinliangnote/Go',
     gate: 'blocking', // 停更于 2024-04-07 ⇒ 稳定；且教程型清单要进 DAG ⇒ 漂移必须红
     title: 'xinliangnote/Go 教程目录（GitHub 仓库树）',
     owner: 'xinliangnote',
@@ -144,6 +151,7 @@ export const GITHUB_SOURCES: GithubSourceConfig[] = [
   },
   {
     key: 'walter201230-python',
+    sourceLabel: 'walter201230/Python',
     gate: 'blocking', // 教程型清单要进 DAG ⇒ 漂移必须红
     title: 'walter201230/Python 教程目录（GitHub 仓库树）',
     owner: 'walter201230',
@@ -160,6 +168,7 @@ export const GITHUB_SOURCES: GithubSourceConfig[] = [
   },
   {
     key: 'awesome-python-cn',
+    sourceLabel: 'awesome-python-cn',
     gate: 'blocking', // 停更于 2022-08-29 ⇒ 稳定 ⇒ 漂移是真信号
     title: 'jobbole/awesome-python-cn 资源清单（README 列表）',
     owner: 'jobbole',
@@ -175,6 +184,7 @@ export const GITHUB_SOURCES: GithubSourceConfig[] = [
   },
   {
     key: 'awesome-go',
+    sourceLabel: 'awesome-go',
     gate: 'advisory', // 活跃仓（2026-10-19 还在推）⇒ 漂移是上游在正常工作 ⇒ 报但不阻断
     title: 'avelino/awesome-go 资源清单（README 列表）',
     owner: 'avelino',
@@ -551,6 +561,7 @@ export function renderGithubInventory(
   items: CollectedItem[],
   collectedAt: string,
   existence: LinkProbeResult | null,
+  freshness: SourceFreshness,
 ): Record<string, unknown> {
   return {
     _readme: `${cfg.title}。⚠️ 只存标题与 URL，正文一个字未取（spec §3.2 版权与漂移约束）。`,
@@ -569,6 +580,9 @@ export function renderGithubInventory(
       sections: countBySection(items),
     },
     ...(existence ? { link_probe: existence } : {}),
+    // ⚠️ **停更标记（DL-03）** —— 必带，哪怕该源没停更也要写明「凭什么」
+    //   （否则「没标红」与「没查过」分不开）。
+    source_freshness: freshness,
     caveats: [
       cfg.verify === 'tree-api'
         ? '本清单的链接存在性由 **GitHub git/trees API 的那一次响应**证明（文件在树里 ⇒ blob 链接必然可达）；**刻意不发 144 个 HEAD** —— 无信息增量且会撞 GitHub 限流（实测连跑几轮后本机 HEAD/GET 均 20s 无响应）'
@@ -683,11 +697,20 @@ export async function collectGithubSource(
     // 元信息取不到**不影响**清单本身 ⇒ 只丢这一项，不把整门判成不可判定
     lastPushed = null
   }
+  // ⚠️ **停更标记（DL-03）** —— `pushed_at` 是 ISO 时刻，取**日期部分**。
+  //   「是否标红」**不由这里判** ⇒ 由 spec §1.5 的登记决定（`STALE_SOURCE_KEYS`）。
+  const freshness = computeFreshness({
+    source: cfg.key,
+    sourceLabel: cfg.sourceLabel,
+    lastPushedAt: lastPushed === null ? null : lastPushed.slice(0, 10),
+    now: new Date(`${opts.collectedAt}T00:00:00Z`),
+    registeredStale: STALE_SOURCE_KEYS.includes(cfg.key),
+  })
   let wrote = false
   let backupPath: string | null = null
   let diffPath: string | null = null
   if (opts.write) {
-    const content = `${JSON.stringify(renderGithubInventory(cfg, items, opts.collectedAt, existence), null, 2)}\n`
+    const content = `${JSON.stringify(renderGithubInventory(cfg, items, opts.collectedAt, existence, freshness), null, 2)}\n`
     const res = guardedWrite({
       targetRel: `docs/devlog-evidence/M9-probe/${cfg.inventoryFile}`,
       content,

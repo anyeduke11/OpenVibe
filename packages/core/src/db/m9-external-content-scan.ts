@@ -225,11 +225,11 @@ export interface ExternalFileSchema {
 
 export const EXTERNAL_FILE_SCHEMAS: Record<string, ExternalFileSchema> = {
   'docs/devlog-evidence/M9-probe/runoob-python3-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source'],
+    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source', 'source_freshness'],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   'docs/devlog-evidence/M9-probe/runoob-go-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source'],
+    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source', 'source_freshness'],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   'docs/devlog-evidence/M9-probe/aux-sources-structure.json': {
@@ -240,19 +240,19 @@ export const EXTERNAL_FILE_SCHEMAS: Record<string, ExternalFileSchema> = {
   //   前两份做了 HEAD 验链 ⇒ 有 `link_probe`；后两份**刻意没做**（4047 条第三方外链
   //   的存活调查不是本模块的责任）⇒ 无 `link_probe`。**闭集是逐文件的**，不是一刀切。
   'docs/devlog-evidence/M9-probe/xinliangnote-go-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source'],
+    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source', 'source_freshness'],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   'docs/devlog-evidence/M9-probe/walter201230-python-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source'],
+    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source', 'source_freshness'],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   'docs/devlog-evidence/M9-probe/awesome-python-cn-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'source'],
+    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'source', 'source_freshness'],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   'docs/devlog-evidence/M9-probe/awesome-go-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'source'],
+    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'source', 'source_freshness'],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   // ⚠️ **内容指纹产物** —— 字段闭集只有 `url` / `sha256` / `bytes`：

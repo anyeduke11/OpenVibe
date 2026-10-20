@@ -132,7 +132,7 @@ P0 → P1 → P1b ┬→ P1c
 - **P0.4** 「未勾选片段不得出网」入参捕获测试 `tests/m9-discipline.test.ts` —— 用 node 内建 fetch mock，断言捕获的入参里**只有勾选过的片段** / **DL-18** / P0.1, P0.2 / 0.5
 - **P0 出口**：`pnpm test tests/m9-discipline` ＋ `pnpm typecheck` ＋ `pnpm lint` 全绿
 
-### 6.2 M9-P1 知识点库与 DAG（**4 人日**）
+### 6.2 M9-P1 知识点库与 DAG（**4 人日** · 子任务 P1.1–P1.10）
 
 - **P1.1** 迁移 `0011_lang_topics.sql` —— §3.1 的前 6 张表（lang_concepts / lang_concept_deltas / lang_topic_content / lang_topics / lang_topic_edges / lang_topic_terms） / **DL-04 DL-12 DL-13 DL-26 DL-06 DL-24** / P0 / 1
 - **P1.2** runoob Python3 84 条入库 —— 只入标题/摘要/链接/取证日；正文一字不进仓 / **DL-01 DL-02 DL-14** / P0 / 0.5
@@ -140,7 +140,20 @@ P0 → P1 → P1b ┬→ P1c
 - **P1.4** 84 + 34 两条清单的可复算分类（库级 36% ± 抽样误差） / **DL-13** / P1.2, P1.3 / 0.25
 - **P1.5** 概念层 8 个三段内容（步骤/样例/原理解析）—— 写满 / **DL-15** / P0 / 1
 - **P1.6** 语言差异层 —— Python 与 Go 在 8 个概念上的差异条目（since_version / until_version） / **DL-24** / P1.5 / 1
-- **P1 出口**：`pnpm test` 全绿 + 「lang_topics 节点数 = 72 + lang_topic_edges 不成环」+ §3.1 表数复算 17 ✓ —— ⚠️ **原写 78，本轮按实测订正为 72**（owner 裁定「接受实测值」）：78 的算法是「Python 语言知识点 44 ＋ Go 全部 34 条」；P1.7 修完分类规则后实测 **Python 语言知识点 45 ＋ Go 语言知识点 27 = 72**（Go 34 条里 7 条是库级/杂项，不进学习路线）⇒ 复算：`python3 packages/core/src/db/seeds/_build/build-lang-topics-stages.py`
+- **P1.7** 分站与前置边 ＋ 无环守卫 —— `m9-topic-dag.ts`（112 条前置边，Python/Go 各自成 DAG）＋ `m9-p1-7-topic-stages.ts`（库级/杂项分流） / **DL-04 DL-12** / P1.1 / 0（原估内）
+- **P1.8** 外部层三件套 —— `m9-external-content-scan.ts`（DL-02 教程正文零进仓守卫）＋ `m9-topic-terms.ts`（DL-06 挂接不反向写 terms）＋ `m9-topic-filter.ts`（DL-14 两门可筛选） / **DL-02 DL-06 DL-14** / P1.1, P1.2 / 0（原估内）
+- **P1.9** 采集脚本 `scripts/collect-m9-sources.ts` —— runoob 两门 118 条逐条可复算（只入标题/摘要/链接/取证日，正文一字不进仓） / **DL-01 DL-02** / P1.2, P1.3 / 0（原估内）
+- **P1.10** 停更源必须标红 —— `packages/core/src/db/m9-source-freshness.ts`：新鲜度按 **§1.5 登记**算（**不设天数阈值**），六份清单各带 `source_freshness` 段（停更源带停更日期 ＋ 标红文案；每份**自报参照日 `computed_at`** ⇒ 重新采集后闸不误红） / **DL-03** / P1.8, P1.9 / 0（原估内）
+- **P1 出口**：`pnpm test` 全绿 + 「lang_topics 节点数 = 72 + lang_topic_edges 不成环」+ §3.1 表数复算 17 ✓ —— ⚠️ **原写 78，本轮按实测订正为 72**（owner 裁定「接受实测值」）：78 的算法是「Python 语言知识点 44 ＋ Go 全部 34 条」；P1.7 修完分类规则后实测 **Python 语言知识点 45 ＋ Go 语言知识点 27 = 72**（Go 34 条里 7 条是库级/杂项，不进学习路线）⇒ 复算：`python3 packages/core/src/db/seeds/_build/build-lang-topics-stages.py`；＋ **DL-03 停更源标记**（六份清单各带 `source_freshness` 段，停更源带停更日期 ＋ 标红文案）⇒ 复算：`npx vitest run packages/core/src/db/m9-p1-10-source-freshness.test.ts`
+
+> ⚠️ **上面 P1.7–P1.10 的「人日 0（原估内）」是什么意思** —— 它们**不是计划外的新范围**：
+> spec §9 的 **M9-P1 判据列本就把 DL-01/02/03/04/12/13/14/15 列在 P1**；
+> P1.7–P1.9 是 P1.1/P1.2/P1.3 的**判据守卫与采集**（实施中形成的期次编号），
+> P1.10 是 **DL-03**（此前 §9 列了它、§6.2 却没给它子任务行 ⇒ 两份台账不一致，本轮补上）。
+> ⇒ **§6.2 前六行已占用全部 4 人日**，故这四行不新增人日。
+> ⚠️ **但「实际投入是否超出原估 4 人日」本轮未计量** —— 重估要连带改 §0 累计人日（38）、
+> spec §0 速览（≈38 人日）、spec §9 M9-P1 行（4）与甘特周次（8 周 × 5 人日/周），**属 owner 决定**；
+> 本轮只把子任务台账补齐，**不擅自改口径**。这条欠账**登记在此，不静默留着**。
 
 ### 6.3 M9-P1b 资源层 ＋ 挂接（**4 人日** · v1.6 扩为全量）
 
@@ -231,7 +244,7 @@ P0 → P1 → P1b ┬→ P1c
 |---|---|---|---|
 | DL-01 | P1b.1 / P1b.2 | 资源来源标注 | 未开工 |
 | DL-02 | P1.2 | 教程正文零进仓守卫 | 已产出（P1.8 · m9-external-content-scan.ts） |
-| DL-03 | P1c.1 | 停更源显式标记 | 未开工 |
+| DL-03 | **P1.10**（源级标记）＋ **P1c.1**（巡检时发现停更） | 停更源显式标记 | 已产出（P1.10 · m9-source-freshness.ts）—— ⚠️ **分档**：P1 侧只做「源级停更标记」（按 §1.5 登记，采集时写停更日期 ＋ 标红文案，即 §9 里 DL-03 归 M9-P1 的那一半）；**P1c 侧（巡检时发现已停更 ⇒ 并入失效巡检）未开工** |
 | DL-04 | P1.1 | DAG 无环守卫 | 已产出（P1.7 · m9-topic-dag.ts） |
 | DL-05 | P2.2 | 不得出现「你已掌握」 | 未开工 |
 | DL-06 | P1.1 | 挂接不反向写 terms | 已产出（P1.8 · m9-topic-terms.ts） |

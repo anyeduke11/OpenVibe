@@ -19,6 +19,16 @@
     "result": "43/43 条在树里",
     "failed": []
   },
+  "source_freshness": {
+    "source": "xinliangnote-go",
+    "source_label": "xinliangnote/Go",
+    "computed_at": "2026-10-20",
+    "last_pushed_at": "2024-04-07",
+    "age_days": 926,
+    "stale": false,
+    "basis": "源的最后提交时间 2024-04-07（926 天前）",
+    "notice": null
+  },
   "caveats": [
     "本清单的链接存在性由 **GitHub git/trees API 的那一次响应**证明（文件在树里 ⇒ blob 链接必然可达）；**刻意不发 144 个 HEAD** —— 无信息增量且会撞 GitHub 限流（实测连跑几轮后本机 HEAD/GET 均 20s 无响应）",
     "GitHub API 匿名限流 60 次/小时；本脚本一次最多 8 个请求，设 GITHUB_TOKEN 可放宽"

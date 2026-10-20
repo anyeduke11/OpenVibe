@@ -100,6 +100,16 @@
       "杂项": 6
     }
   },
+  "source_freshness": {
+    "source": "awesome-python-cn",
+    "source_label": "awesome-python-cn",
+    "computed_at": "2026-10-20",
+    "last_pushed_at": "2022-08-29",
+    "age_days": 1513,
+    "stale": true,
+    "basis": "源的最后提交时间 2022-08-29（1513 天前）",
+    "notice": "该源已 4 年未更新（最后更新 2022-08-29）—— 只能当候选池，不作真相源"
+  },
   "caveats": [
     "⚠️ 本清单**未做** HEAD 验链：条目是第三方外链的全量候选池，存活调查不是本模块的责任（§3.14 的失效巡检针对 89 条资源，属 P1c）",
     "GitHub API 匿名限流 60 次/小时；本脚本一次最多 8 个请求，设 GITHUB_TOKEN 可放宽"

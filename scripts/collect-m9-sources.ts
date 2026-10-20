@@ -70,6 +70,7 @@ import { readFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { guardedWrite } from './m9-write-guard'
+import { computeFreshness, STALE_SOURCE_KEYS, type SourceFreshness } from '@openvibe/core'
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT_DIR = join(REPO_ROOT, 'docs', 'devlog-evidence', 'M9-probe')
@@ -84,6 +85,8 @@ export interface SourceConfig {
   key: 'python3' | 'go'
   /** 清单文件的显示名（写进 `_readme`） */
   title: string
+  /** **spec §1.5 五源表里的显示名** —— 新鲜度标记里带它（判据的出处是 spec） */
+  sourceLabel: string
   /** 索引页 URL */
   pageUrl: string
   /** 链接解析用的站点根 */
@@ -102,6 +105,7 @@ export const SOURCES: SourceConfig[] = [
   {
     key: 'python3',
     title: 'runoob.com Python3 教程全量清单',
+    sourceLabel: 'runoob / Python3',
     pageUrl: 'https://www.runoob.com/python3/python3-tutorial.html',
     siteRoot: 'https://www.runoob.com',
     defaultSection: '基础教程',
@@ -112,6 +116,7 @@ export const SOURCES: SourceConfig[] = [
   {
     key: 'go',
     title: 'runoob.com Go 教程全量清单',
+    sourceLabel: 'runoob / Go',
     pageUrl: 'https://www.runoob.com/go/go-tutorial.html',
     siteRoot: 'https://www.runoob.com',
     defaultSection: '基础教程',
@@ -516,12 +521,15 @@ function renderInventory(
   cfg: SourceConfig,
   items: CollectedItem[],
   probe: LinkProbeResult | null,
+  freshness: SourceFreshness,
 ): Record<string, unknown> {
   const sections = countSections(items)
   const meta: Record<string, unknown> = {
     _readme: `${cfg.title}。⚠️ 只存标题与 URL，正文一个字未取（spec §3.2 FR-2 版权与漂移约束）。`,
     source: cfg.pageUrl,
-    collected_at: new Date().toISOString().slice(0, 10),
+    // ⚠️ **采集日取自新鲜度块自己的 `computed_at`** ⇒ 文件的两个日期**天生对齐**，
+    //   不会出现「顶层 collected_at 与 age_days 的参照日差一天」这种夹生。
+    collected_at: freshness.computed_at,
     collect_method: COLLECT_METHOD,
     counts: { total: items.length, sections },
     caveats: CAVEATS[cfg.key],
@@ -537,6 +545,9 @@ function renderInventory(
       ...(probe.failed.length > 0 ? { failed: probe.failed } : {}),
     }
   }
+  // ⚠️ **停更标记（DL-03）** —— 必带，哪怕该源没停更也要写明「凭什么」
+  //   （否则「没标红」与「没查过」分不开）。
+  meta['source_freshness'] = freshness
   meta['items'] = items
   return meta
 }
@@ -759,7 +770,16 @@ export async function collectSources(opts: CollectOptions): Promise<CollectOutco
     let backupPath: string | null = null
     let diffPath: string | null = null
     if (opts.write) {
-      const meta = renderInventory(cfg, fresh, probe)
+      // ⚠️ **停更标记（DL-03）** —— runoob 是 WordPress 站点，**没有仓库推送时间**
+      //   ⇒ `last_pushed_at` 为 null，新鲜度由**采集对账**证明（见 basis）。
+      const freshness = computeFreshness({
+        source: cfg.key,
+        sourceLabel: cfg.sourceLabel,
+        lastPushedAt: null,
+        now: new Date(),
+        registeredStale: STALE_SOURCE_KEYS.includes(cfg.key),
+      })
+      const meta = renderInventory(cfg, fresh, probe, freshness)
       // ⚠️ **写回走守卫**：先备份旧清单 ＋ 写差异快照 ＋ 原子替换。
       //   此前是**直接覆盖** ⇒ 源站一改、脚本一跑，仓里的证据就被换掉，
       //   而「换掉之前发生了什么」没有任何记录。
