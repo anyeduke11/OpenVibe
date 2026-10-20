@@ -77,16 +77,20 @@ function checkLiterals(table: string, column: string): string[] {
 
 describe('0007 迁移与 shared 常量的双源一致性', () => {
   /**
-   * 2026-10-19 更新（M9 v1.6 P0 加入 4 项预声明后）：
-   * 0007 是**历史**迁移文件 —— 它的 CHECK 字面量是 19 项（13 ＋ 6），
-   * **永远不应被改**。M9 的 4 项预声明要靠新迁移 0011 落地（属于 P1 工作）。
-   * 所以 0007 与 LOCAL_EVENT_KINDS 的关系是「**前 19 项逐字相等**」，不是「完全相等」。
+   * ⚠️ **2026-10-20 更新（M9 P1b 的 0012 迁移落地后）**：
+   * 「当前定义」从 19 项变成 **23 项** —— M9 的 4 个 kind（含 `lang_resource_probe`）
+   * 由迁移 **0012** 落地（0011 的注释里写明「要等 P1b 写 0012 迁移时一起加到 CHECK」）。
+   *
+   * ⇒ 判据的**口径不变**：**当前** CHECK ≡ `LOCAL_EVENT_KINDS`，逐字逐序、双源不一致就红。
+   *   变的只是「当前」怎么取 —— 取**最后一份**定义该 CHECK 的迁移（现在是 0012）。
+   *   0007 / 0010 那两份**永远是历史**：它们必须是当前集的**前缀**
+   *   （否则历史行会因新定义而非法）—— 那一支由下面的「历史定义必须是前缀」守着。
    */
-  it('0007 的 CHECK 字面量 ≡ LOCAL_EVENT_KINDS 的前 19 项（逐字、逐序；M9 的 4 项待 0011 迁移落地）', () => {
-    const old = checkLiterals('local_events', 'kind')
-    expect(old).toEqual([...LOCAL_EVENT_KINDS].slice(0, old.length))
-    // 同时锁死 19：任何后续 commit 若改了 0007 的 CHECK，会被这条红掉。
-    expect(old).toHaveLength(19)
+  it('当前 CHECK 字面量 ≡ LOCAL_EVENT_KINDS（23 项，逐字、逐序；M9 的 4 项由 0012 落地）', () => {
+    const current = checkLiterals('local_events', 'kind')
+    expect(current).toEqual([...LOCAL_EVENT_KINDS])
+    // 同时锁死 23：任何后续 commit 若改了当前定义的 CHECK，会被这条红掉。
+    expect(current).toHaveLength(23)
   })
 
   it('kind 的 CHECK 字面量 ≡ 台账 13 ＋ Agent 6 ＋ M9 预声明 4', () => {

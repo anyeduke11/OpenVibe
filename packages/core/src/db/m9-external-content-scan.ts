@@ -64,6 +64,10 @@ export const EXTERNAL_LAYER_FILES = [
   'docs/devlog-evidence/M9-probe/runoob-content-fingerprints.json',
   'packages/core/src/db/seeds/lang_topics_python3.json',
   'packages/core/src/db/seeds/lang_topics_go.json',
+  'packages/core/src/db/seeds/lang_resources.json',
+  'packages/core/src/db/seeds/lang_vibe_resources.json',
+  'packages/core/src/db/seeds/lang_topic_resources.json',
+  'scripts/extract-m9-guide-resources.ts',
   'packages/core/src/db/seeds/_build/build-lang-topics-from-inventory.py',
 ] as const
 
@@ -221,6 +225,18 @@ export interface ExternalFileSchema {
   topLevel: string[]
   itemKeys?: string[]
   notesKeys?: string[]
+  /**
+   * **逐字段**的长度上限覆写（字段名 → 字符数）—— 只给「合法超长」的那个字段开。
+   *
+   * ⚠️ **为什么不是「把全局上限调大」**：那是给「正文」开后门。
+   *   ⇒ 覆写是**按文件 + 按字段**的：只有那一个字段放宽，同文件的其他字段照旧受 80 约束。
+   *
+   * ⚠️ **本轮实测的一处必要覆写**（M9 P1b 资源种子）：
+   *   附件的 `d`（资源描述）最长 **115** 字符（主清单）／**121** 字符（速成专区），
+   *   是**一句元数据**，不是教程正文 ⇒ 撞默认的 80 会把两份种子**判红**。
+   *   而把全局上限调大，会连带放过 `name`/`url` 等本该短的字段。
+   */
+  metadataMaxLen?: Record<string, number>
 }
 
 export const EXTERNAL_FILE_SCHEMAS: Record<string, ExternalFileSchema> = {
@@ -277,6 +293,52 @@ export const EXTERNAL_FILE_SCHEMAS: Record<string, ExternalFileSchema> = {
     ],
     notesKeys: ['kind', 'stage_id', 'summary'],
   },
+  // ⚠️ **M9 P1b 资源层三份种子** —— 字段闭集 = 表的列闭集。
+  //   `tier` 是**必要性矩阵的轴**（§1.6.1），`category` 是筛选器用的展示分类 —— 两套维度不许混。
+  'packages/core/src/db/seeds/lang_resources.json': {
+    topLevel: ['_notes', 'collected_at', 'items', 'schemaVersion'],
+    itemKeys: [
+      'category',
+      'freshness',
+      'is_fav',
+      'lang',
+      'lang_label',
+      'level_label',
+      'name',
+      'phase_id',
+      'price',
+      'source_checked_at',
+      'star',
+      'summary',
+      'tier',
+      'url',
+      'verified_by',
+    ],
+    notesKeys: [
+      'demo_copy_diff',
+      'necessary_rule',
+      'old_marked',
+      'old_note',
+      'provenance',
+      'tier_axis',
+      'tier_lookup',
+      'verified_by',
+    ],
+    // ⚠️ 附件的 `d`（资源描述）最长 115 字符 ⇒ 只有这一个字段放宽，其余照旧受 80
+    metadataMaxLen: { summary: 130 },
+  },
+  'packages/core/src/db/seeds/lang_vibe_resources.json': {
+    topLevel: ['_notes', 'collected_at', 'items', 'schemaVersion'],
+    itemKeys: ['freshness', 'group', 'name', 'source_checked_at', 'summary', 'url', 'verified_by'],
+    notesKeys: ['no_dimensions', 'provenance', 'tier_axis', 'verified_by'],
+    // ⚠️ 速成专区的描述最长 121 字符 ⇒ 同款覆写
+    metadataMaxLen: { summary: 130 },
+  },
+  'packages/core/src/db/seeds/lang_topic_resources.json': {
+    topLevel: ['_notes', 'collected_at', 'items', 'schemaVersion'],
+    itemKeys: ['lang', 'resource_name', 'role', 'topic_slug'],
+    notesKeys: ['coverage', 'direction', 'lang_match', 'no_reverse', 'roles', 'self_authored'],
+  },
   'packages/core/src/db/seeds/lang_topics_go.json': {
     topLevel: ['_notes', 'collected_at', 'items', 'schemaVersion', 'source_url'],
     itemKeys: [
@@ -318,10 +380,13 @@ export const EXTERNAL_DIR_CLOSURE: Record<string, string[]> = {
   'packages/core/src/db/seeds': [
     'lang_concept_deltas.json',
     'lang_concepts.json',
+    'lang_resources.json',
     'lang_topic_content.json',
     'lang_topic_edges.json',
+    'lang_topic_resources.json',
     'lang_topics_go.json',
     'lang_topics_python3.json',
+    'lang_vibe_resources.json',
   ],
 }
 
@@ -515,13 +580,19 @@ export function scanExternalJson(file: string, content: string): ContentViolatio
             detail: `数据区 URL ${hit.value.length} 字符 > 上限 ${URL_MAX_LEN}`,
           })
         }
-      } else if (hit.value.length > METADATA_MAX_LEN) {
-        out.push({
-          file,
-          where: hit.path,
-          rule: 'metadata-too-long',
-          detail: `数据区字段 ${hit.value.length} 字符 > 上限 ${METADATA_MAX_LEN}`,
-        })
+      } else {
+        // ⚠️ **逐字段覆写**（见 `ExternalFileSchema.metadataMaxLen` 的 doc）：
+        //   只有登记过的那个字段放宽，同文件其他字段照旧受 `METADATA_MAX_LEN` 约束。
+        const field = hit.path.slice(hit.path.lastIndexOf('.') + 1).replace(/\[\d+\]$/, '')
+        const limit = schema?.metadataMaxLen?.[field] ?? METADATA_MAX_LEN
+        if (hit.value.length > limit) {
+          out.push({
+            file,
+            where: hit.path,
+            rule: 'metadata-too-long',
+            detail: `数据区字段 ${hit.value.length} 字符 > 上限 ${limit}`,
+          })
+        }
       }
       if (hasHtmlTag(hit.value)) {
         out.push({ file, where: hit.path, rule: 'html-in-data', detail: '数据区出现 HTML 标签' })

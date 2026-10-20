@@ -1,0 +1,1508 @@
+{
+  "schemaVersion": 1,
+  "collected_at": "2026-10-20",
+  "_notes": {
+    "direction": "⚠️ **方向只有「知识点 → 资源」一个方向**（§3.15）—— 资源不得反向认领知识点。",
+    "self_authored": "⚠️ **这张挂接表是自撰的** —— 附件给的是「89 条资源」，没有给「哪个知识点该去哪学」；映射由本仓逐条指派。",
+    "coverage": "⚠️ **每个要点级知识点（content_level='point'）至少一行**（DL-31）—— 本表覆盖全部 118 条知识点。",
+    "roles": "role 三档：primary 主去处 / backup 备选 / practice 练习平台。",
+    "no_reverse": "⚠️ 资源侧不写「这条资源覆盖哪些知识点」——那会让无序清单定义路线（§3.15）。",
+    "lang_match": "⚠️ **挂接只在本语言内发生** —— Python 知识点不挂 Go 资源，反之亦然。"
+  },
+  "items": [
+    {
+      "lang": "python",
+      "topic_slug": "python3-tutorial",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-tutorial",
+      "resource_name": "The Python Tutorial（官方教程）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-intro",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-intro",
+      "resource_name": "Beginner's Guide to Python（官方新手指南）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-install",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-install",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-pycharm-usage",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-pycharm-usage",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-vscode-setup",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-vscode-setup",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-basic-syntax",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-basic-syntax",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-basic-syntax",
+      "resource_name": "LearnPython.org（中文交互教程）",
+      "role": "practice"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-data-type",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-data-type",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-type-conversion",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-type-conversion",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-interpreter",
+      "resource_name": "The Python Tutorial（官方教程）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-interpreter",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-comment",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-comment",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-basic-operators",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-basic-operators",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-number",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-number",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-string",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-string",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-string",
+      "resource_name": "Fluent Python（2nd Edition, 2022）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-list",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-list",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-tuple",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-tuple",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-dictionary",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-dictionary",
+      "resource_name": "Fluent Python（2nd Edition, 2022）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-set",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-set",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-conditional-statements",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-conditional-statements",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-loop",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-loop",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-step1",
+      "resource_name": "廖雪峰 · Python 教程",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-step1",
+      "resource_name": "Automate the Boring Stuff with Python（3rd Edition）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-comprehensions",
+      "resource_name": "Fluent Python（2nd Edition, 2022）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-comprehensions",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-iterator-generator",
+      "resource_name": "Fluent Python（2nd Edition, 2022）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-iterator-generator",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-iterator-generator",
+      "resource_name": "Exercism · Python Track",
+      "role": "practice"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-with-keyword",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-with-keyword",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-function",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-function",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-function",
+      "resource_name": "Exercism · Python Track",
+      "role": "practice"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-lambda",
+      "resource_name": "Fluent Python（2nd Edition, 2022）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-lambda",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-decorators",
+      "resource_name": "Real Python",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-decorators",
+      "resource_name": "Fluent Python（2nd Edition, 2022）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-decorators",
+      "resource_name": "Exercism · Python Track",
+      "role": "practice"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-data-structure",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-data-structure",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-data-structure",
+      "resource_name": "HackerRank · Python",
+      "role": "practice"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-module",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-module",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-name-main",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-name-main",
+      "resource_name": "The Python Tutorial（官方教程）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-inputoutput",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-inputoutput",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-file-methods",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-file-methods",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-os-file-methods",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-os-file-methods",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-errors-execptions",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-errors-execptions",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-class",
+      "resource_name": "Python Crash Course（3rd Edition, 2022）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-class",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-class",
+      "resource_name": "Exercism · Python Track",
+      "role": "practice"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-namespace-scope",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-namespace-scope",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-venv",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-venv",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-type-hints",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-type-hints",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-stdlib",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-stdlib",
+      "resource_name": "What's New in Python 3.13（版本更新说明）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-examples",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-examples",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-quiz",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-quiz",
+      "resource_name": "The Python Tutorial（官方教程）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-reg-expressions",
+      "resource_name": "Real Python",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-reg-expressions",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-cgi-programming",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-cgi-programming",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-mysql-connector",
+      "resource_name": "Real Python",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-mysql-connector",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-mysql",
+      "resource_name": "Real Python",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-mysql",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-socket",
+      "resource_name": "Real Python",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-socket",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-smtp",
+      "resource_name": "Real Python",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-smtp",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-multithreading",
+      "resource_name": "Fluent Python（2nd Edition, 2022）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-multithreading",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-xml-processing",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-xml-processing",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-json",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-json",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-date-time",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-date-time",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-built-in-functions",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-built-in-functions",
+      "resource_name": "The Python Language Reference（语言参考）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-mongodb",
+      "resource_name": "Real Python",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-mongodb",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-urllib",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-urllib",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-uwsgi",
+      "resource_name": "Django 官方教程（投票应用 · 7 部分）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-uwsgi",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-pip",
+      "resource_name": "The Python Tutorial（官方教程）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-pip",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-operator",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-operator",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-math",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-math",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-requests",
+      "resource_name": "Real Python",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-requests",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-random",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-random",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-openai",
+      "resource_name": "Automate the Boring Stuff with Python（3rd Edition）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-openai",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-resources",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-resources",
+      "resource_name": "The Python Tutorial（官方教程）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-ai-draw",
+      "resource_name": "freeCodeCamp · Scientific Computing with Python（免费认证）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-ai-draw",
+      "resource_name": "Automate the Boring Stuff with Python（3rd Edition）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-statistics",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-statistics",
+      "resource_name": "freeCodeCamp · Scientific Computing with Python（免费认证）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-hashlib",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-hashlib",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-qt",
+      "resource_name": "freeCodeCamp · Scientific Computing with Python（免费认证）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-qt",
+      "resource_name": "Datawhale · 动手学数据分析",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-pyecharts",
+      "resource_name": "Datawhale · 动手学数据分析",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-pyecharts",
+      "resource_name": "pandas 官方入门（Getting started）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-selenium",
+      "resource_name": "wistbean / learn_python3_spider（中文爬虫教程）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-selenium",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-spider-beautifulsoup",
+      "resource_name": "wistbean / learn_python3_spider（中文爬虫教程）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-spider-beautifulsoup",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-scrapy",
+      "resource_name": "wistbean / learn_python3_spider（中文爬虫教程）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-scrapy",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-markdown2html",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-markdown2html",
+      "resource_name": "Automate the Boring Stuff with Python（3rd Edition）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-sys",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-sys",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-pickle",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-pickle",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-subprocess",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-subprocess",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-queue",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-queue",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-stringio",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-stringio",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-logging",
+      "resource_name": "Real Python",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-logging",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-datetime",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-datetime",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-re",
+      "resource_name": "Real Python",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-re",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-csv",
+      "resource_name": "The Python Standard Library（标准库参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-csv",
+      "resource_name": "pandas 官方入门（Getting started）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-treading",
+      "resource_name": "Real Python",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-treading",
+      "resource_name": "Think Python（3rd Edition, 2024）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-asyncio",
+      "resource_name": "Fluent Python（2nd Edition, 2022）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-asyncio",
+      "resource_name": "Real Python",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-pyqt",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-pyqt",
+      "resource_name": "Automate the Boring Stuff with Python（3rd Edition）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-for",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-for",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-while",
+      "resource_name": "菜鸟教程 · Python3",
+      "role": "primary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-while",
+      "resource_name": "Python 官方教程（中文译本）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-tutorial",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-tutorial",
+      "resource_name": "菜鸟教程 · Go 语言教程",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-intro",
+      "resource_name": "Go 官方文档中心（中国镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-intro",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-environment",
+      "resource_name": "Go 官方文档中心（中国镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-environment",
+      "resource_name": "菜鸟教程 · Go 语言教程",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-vscode-tools",
+      "resource_name": "Go 官方文档中心（中国镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-vscode-tools",
+      "resource_name": "《Go 语言圣经》中文版（在线免费）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-program-structure",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-program-structure",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-basic-syntax",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-basic-syntax",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-data-types",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-data-types",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-variables",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-variables",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-constants",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-constants",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-operators",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-operators",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-decision-making",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-decision-making",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-loops",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-loops",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-loops",
+      "resource_name": "Exercism · Go Track",
+      "role": "practice"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-functions",
+      "resource_name": "Go by Example",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-functions",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-functions",
+      "resource_name": "Exercism · Go Track",
+      "role": "practice"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-scope-rules",
+      "resource_name": "Go: Under the Hood（golang.design）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-scope-rules",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-arrays",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-arrays",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-pointers",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-pointers",
+      "resource_name": "Go: Under the Hood（golang.design）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-structures",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-structures",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-structures",
+      "resource_name": "Gophercises（20 个动手小项目）",
+      "role": "practice"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-slice",
+      "resource_name": "Go: Under the Hood（golang.design）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-slice",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-range",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-range",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-map",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-map",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-recursion",
+      "resource_name": "Go by Example",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-recursion",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-type-casting",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-type-casting",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-interfaces",
+      "resource_name": "Effective Go",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-interfaces",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-interfaces",
+      "resource_name": "Gophercises（20 个动手小项目）",
+      "role": "practice"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-generics",
+      "resource_name": "The Go Programming Language（英文原版，gopl.io）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-generics",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-error-handling",
+      "resource_name": "Effective Go",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-error-handling",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-error-handling",
+      "resource_name": "Gophercises（20 个动手小项目）",
+      "role": "practice"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-concurrent",
+      "resource_name": "Concurrency in Go",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-concurrent",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-concurrent",
+      "resource_name": "Gophercises（20 个动手小项目）",
+      "role": "practice"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-file-handle",
+      "resource_name": "pkg.go.dev（标准库与包文档）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-file-handle",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-regex",
+      "resource_name": "pkg.go.dev（标准库与包文档）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-regex",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-type-assertion",
+      "resource_name": "Effective Go",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-type-assertion",
+      "resource_name": "Go by Example",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-inheritance",
+      "resource_name": "Effective Go",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-inheritance",
+      "resource_name": "Go: Under the Hood（golang.design）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-ide",
+      "resource_name": "Go 官方文档中心（中国镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-ide",
+      "resource_name": "《Go 语言高级编程》（Advanced Go Programming）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-quiz",
+      "resource_name": "A Tour of Go（官方交互教程 · 中文镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-quiz",
+      "resource_name": "Go 官方文档中心（中国镜像）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-modules",
+      "resource_name": "Go Modules Reference（模块参考）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-modules",
+      "resource_name": "Go 官方文档中心（中国镜像）",
+      "role": "backup"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-vscode-dev",
+      "resource_name": "Go 官方文档中心（中国镜像）",
+      "role": "primary"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-vscode-dev",
+      "resource_name": "《Go 语言圣经》中文版（在线免费）",
+      "role": "backup"
+    }
+  ]
+}

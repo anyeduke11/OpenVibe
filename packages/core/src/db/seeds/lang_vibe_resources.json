@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "collected_at": "2026-10-20",
+  "_notes": {
+    "provenance": "速成专区两组：VIBE_TOOLS 6 条 ＋ VIBE_TUTS 5 条（§1.7）。⚠️ 同 lang_resources：**附件原件不在本仓**，路径走命令行。",
+    "tier_axis": "⚠️ 这 11 条的 tier 恒为 **v（AI 工具）** —— 附件里它们不在 `TIER` 映射里（那 87 键是主清单的）。⇒ 矩阵的 v 列对它们生效：速成必学、精通与熟悉推荐。",
+    "no_dimensions": "⚠️ **刻意不带** 分类 / 费用 / 阶段 / 精选 —— 附件里这 11 条**没有分类**，而费用/阶段/精选是**按 DL-41 刻意不落库**（附件有这四个维度，但速成专区是平铺列表，筛选器对这张表不适用）。⚠️ 附件里另有 `d` 描述与 `f` 时效，**这两项落了**（表里有对应列）。",
+    "verified_by": "同主表：全部 'owner_guide'，`source_checked_at` 恒 NULL。"
+  },
+  "items": [
+    {
+      "group": "tools",
+      "name": "TRAE（字节跳动 AI IDE · 国内版）",
+      "url": "https://docs.trae.cn/ide/get-started-with-trae",
+      "summary": "国内直连、中文界面的 VS Code 内核 AI IDE，IDE 模式（自己掌控）与 SOLO 模式（AI 自动规划、生成、测试、预览）可切换，免费额度足够做小项目，国内零基础首选。",
+      "freshness": "文档 2026-10 仍在更新；免费档 500 积分/月 + 新用户赠 4000，定价以官网为准",
+      "verified_by": "owner_guide",
+      "source_checked_at": null
+    },
+    {
+      "group": "tools",
+      "name": "Cursor · Quickstart",
+      "url": "https://cursor.com/docs/get-started/quickstart",
+      "summary": "国际主流 AI IDE，Agent 面板可理解整个代码库、规划并跨文件修改；官方 Quickstart 从安装登录讲到第一个改动与 Plan 模式。",
+      "freshness": "文档站 2026-10-18 仍更新；免费档有限额度，Pro $20/月起",
+      "verified_by": "owner_guide",
+      "source_checked_at": null
+    },
+    {
+      "group": "tools",
+      "name": "GitHub Copilot · 中文快速入门",
+      "url": "https://docs.github.com/zh/copilot/get-started/quickstart",
+      "summary": "装进 VS Code 等编辑器的老牌 AI 插件，边写边内联补全、侧边 Chat 问答与改代码；免费档每月 2000 次补全，适合习惯 VS Code 的人。",
+      "freshness": "中英文 Quickstart 2026 均可访问；付费档注册政策以官网当日公告为准",
+      "verified_by": "owner_guide",
+      "source_checked_at": null
+    },
+    {
+      "group": "tools",
+      "name": "Claude Code · Quickstart",
+      "url": "https://code.claude.com/docs/en/quickstart",
+      "summary": "终端命令行编码智能体，可读文件、跑命令、自主改代码并按测试迭代；适合有终端基础后做成熟项目，不建议作为零基础第一款工具。",
+      "freshness": "Quickstart 2026-10-18 更新；需订阅或 API 预付费额度，无永久免费档",
+      "verified_by": "owner_guide",
+      "source_checked_at": null
+    },
+    {
+      "group": "tools",
+      "name": "Windsurf · Getting Started",
+      "url": "https://docs.windsurf.com/windsurf/getting-started",
+      "summary": "另一款 AI IDE，Cascade 助手可直接新建项目、跨文件改动，免费档含无限 Tab 补全；国际服务，国内网络访问需自行评估。",
+      "freshness": "2026 新定价 2026-03 生效；免费档可体验",
+      "verified_by": "owner_guide",
+      "source_checked_at": null
+    },
+    {
+      "group": "tools",
+      "name": "Qoder CN（原通义灵码）· 个人版入门",
+      "url": "https://docs.qoder.cn/getting-started/individual-edition-quick-start",
+      "summary": "阿里旗下中文 AI 编程助手（2026-05 更名），提供 VS Code / JetBrains 插件与独立 IDE，支持补全、问答、多文件修改与报错排查，个人版有免费额度。",
+      "freshness": "文档 2026-10-16 更新；个人体验版免费",
+      "verified_by": "owner_guide",
+      "source_checked_at": null
+    },
+    {
+      "group": "tuts",
+      "name": "菜鸟教程 ·《Vibe Coding 入门教程》",
+      "url": "https://www.runoob.com/ai-agent/vibe-coding-start.html",
+      "summary": "中文零基础教程：描述需求 → 审查 Diff → 迭代修改 → 测试交付四步循环；好提示词四要素（做什么 / 技术栈 / 约束 / 格式）与好坏对比，附 Flask + SQLite Todo 全流程实战和常见误区。",
+      "freshness": "页面 2026-09-28 更新",
+      "verified_by": "owner_guide",
+      "source_checked_at": null
+    },
+    {
+      "group": "tuts",
+      "name": "Cursor 官方 ·《使用智能体编码的最佳实践》",
+      "url": "https://cursor.com/cn/blog/agent-best-practices",
+      "summary": "官方中文讲 Agent 使用范式：Plan 模式先出可审查计划再写码、上下文管理（让 agent 搜代码库、该 /clear 就清空）、TDD 循环、认真 review diff、给可验证目标。",
+      "freshness": "2026-01-09 发布，贴合 2026 年 Agent 形态",
+      "verified_by": "owner_guide",
+      "source_checked_at": null
+    },
+    {
+      "group": "tuts",
+      "name": "Anthropic · Claude Code Best Practices",
+      "url": "https://www.anthropic.com/engineering/claude-code-best-practices",
+      "summary": "权威方法论长文：先探索 → 规划（plan mode）→ 实现 → 提交；给 AI 可验证的标准（测试 / 构建 / 截图）、具体上下文（文件、报错、URL）、简洁 CLAUDE.md、识别常见失败模式。方法论不限于 Claude Code。",
+      "freshness": "2025-04 发布，2026-10 仍在更新",
+      "verified_by": "owner_guide",
+      "source_checked_at": null
+    },
+    {
+      "group": "tuts",
+      "name": "Vibe Coding 概念出处 · Simon Willison 解读",
+      "url": "https://simonwillison.net/2025/Mar/19/vibe-coding/",
+      "summary": "完整引用 Karpathy 提出 vibe coding 的原帖并划清边界：它特指「不审查 AI 代码」的低风险快速玩法，不等于一般 AI 辅助编程；要给别人用的软件应找人做 vibe check。",
+      "freshness": "2025-03-19 发布，被广泛引用的权威二手出处",
+      "verified_by": "owner_guide",
+      "source_checked_at": null
+    },
+    {
+      "group": "tuts",
+      "name": "掘金 ·《Vibe Coding 这一年：从玩具到工具》",
+      "url": "https://aicoding.juejin.cn/post/7652624707597090851",
+      "summary": "进阶工程化：Spec-Driven Development（Specify → Plan → Tasks → Implement 四步检查点）、上下文治理、实时校验、四个自测问题与安全底线；想把 demo 做成能上线的东西时读。",
+      "freshness": "2026-06-20 发布",
+      "verified_by": "owner_guide",
+      "source_checked_at": null
+    }
+  ]
+}

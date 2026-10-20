@@ -76,6 +76,36 @@ export {
   type FreshnessRule,
   type FreshnessViolation,
 } from './db/m9-source-freshness'
+// P1b · spec §1.6.1 口径读取器 —— **提取脚本与单测共用同一份解析**
+// ⇒ 文档与实跑的对照不会「两边错得一模一样」（那会让对账闸变成同义反复）。
+export {
+  parseSpecResourceCounts,
+  specSection161,
+  type SpecResourceCounts,
+  type SpecCategoryCount,
+} from './db/m9-p1b-spec'
+// P1b · 必要性矩阵（DL-48）—— **提取脚本与单测共用同一份解析**
+export {
+  parseNecRule,
+  parseSpecDistribution,
+  parseSpecNecDistribution,
+  necessaryFor,
+  computeDistribution,
+  verifyNecessity,
+  LANG_PROFILES,
+  RESOURCE_TIERS,
+  MAIN_RESOURCE_TIERS,
+  TIER_LEGEND,
+  NECESSITY_LABEL,
+  type LangProfile,
+  type ResourceTier,
+  type MainResourceTier,
+  type Necessity,
+  type NecRule,
+  type NecDistribution,
+  type SpecNec,
+  type NecRuleViolation,
+} from './db/m9-p1b-necessity'
 export {
   createPackService,
   type PackServiceDeps,

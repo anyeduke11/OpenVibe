@@ -159,13 +159,20 @@ P0 → P1 → P1b ┬→ P1c
 
 ### 6.3 M9-P1b 资源层 ＋ 挂接（**4 人日** · v1.6 扩为全量）
 
-- **P1b.1** 提取附件 89 条资源（PY_DATA + GO_DATA）→ `seed/lang_resources.json` —— 用 `node dump.mjs` 跑一次即可（脚本已就位在 `/tmp/dump.mjs`，落仓到 `scripts/extract-guide-resources.mjs`）/ **DL-47** / P1 / 0.5
-- **P1b.2** `lang_resources` 迁移 ＋ 9 字段闭集 ＋ 必学/推荐/可跳过 必要性由三模式×六类矩阵现算 / **DL-47 DL-48** / P1b.1 / 1
-- **P1b.3** `lang_vibe_resources` 11 条（VIBE_TOOLS 6 + VIBE_TUTS 5）—— 不带分类/费用/阶段维度 / **DL-41** / P1b.1 / 0.5
+- **P1b.1** 提取附件 89 条资源（PY_DATA + GO_DATA）→ `seed/lang_resources.json` —— 落仓脚本 `scripts/extract-m9-guide-resources.ts`（**附件路径走命令行，不落仓**；仓内 demo 原型是同一份数据的副本，但**丢了 `TIER` 映射与速成专区的六个字段** ⇒ 不能当上游）/ **DL-47** / P1 / 0.5
+- **P1b.2** `lang_resources` 迁移 ＋ 9 字段闭集 ＋ **tier 列** ＋ 必学/推荐/可跳过 必要性由**三模式 × 六档 tier** 矩阵现算（⚠️ **矩阵的轴是 tier，不是展示分类** —— 见 spec §1.6.1 的 2026-10-20 订正）/ **DL-47 DL-48** / P1b.1 / 1
+- **P1b.3** `lang_vibe_resources` 11 条（VIBE_TOOLS 6 + VIBE_TUTS 5）—— 不带分类/费用/阶段维度（⚠️ 附件**有**费用/阶段/精选，是按 **DL-41 刻意不落库**；**描述与时效（d/f）落了**）/ **DL-41** / P1b.1 / 0.5
 - **P1b.4** 87 个去重 URL 的探测调度（同一 URL 只发一次 HEAD；连续 2 次失败标灰不删） / **DL-30 DL-47（主键部分）** / P1b.2 / 0.5
 - **P1b.5** `lang_topic_resources` 单向多对多挂接 + 要点级条目每条至少一条去处 / **DL-31** / P1b.2, P1 / 0.5
 - **P1b.6** 导出 README.md（只导链接不导正文 / 零本机路径 / 条数一致） / **DL-32** / P1b.2 / 0.5
-- **P1b 出口**：`lang_resources` = 89 行 ＋ `lang_vibe_resources` = 11 行 ＋ leetcode.cn 与 7days-golang 各占 2 行 ＋ 巡检 HEAD 实际只发 87 次
+- **P1b 出口**：`lang_resources` = 89 行 ＋ `lang_vibe_resources` = 11 行 ＋ leetcode.cn 与 7days-golang 各占 2 行 ＋ 巡检 HEAD 实际只发 87 次 ＋ **每行 tier 落在 a/b/c/d/e 五个值内** ＋ **矩阵 × tier 现算 == spec §1.6.1 记的三档分布**（精通 53/36/0 · 熟悉 25/28/36 · 速成 8/0/81）＋ **118 个要点级知识点逐条有去处** ⇒ 复算：`npx vitest run packages/core/src/db/m9-p1b-resources.test.ts`
+
+> ⚠️ **P1b 本轮订正了三处规格**（都是「文档说的」与「附件实测的」对不上，**以附件为准**）：
+> ① **必要性矩阵的轴是 `tier`（a/b/c/d/e/v），不是展示分类**（official/github/course/book/video/practice）——
+>    两者**恰好都是六项**，肉眼看不出来；而按错的轴算出的分布与 spec 记的数**对不上**（六类计数 13/19/16/14/13/14 里**没有任何子集能加到 53**）⇒ 实为**矩阵列头写错**，**分布那三个数一直是对的**（spec §1.6.1 已订正，分布数字不动）。
+> ② **`lang_topics.content_level` 补列** —— §3.11 要求、DL-31 的判据要遍历它，而 §3.1 的列清单当时漏了 ⇒ 0012 用 `ALTER TABLE ADD COLUMN` 补上（默认 `'point'`）。
+> ③ **`lang_vibe_resources` 补 `freshness` 列** —— 附件那 11 条**有**描述与时效；此前说「只有名称与 URL」是**照着 demo 副本**说的（副本丢了那六个字段）⇒ 现在描述与时效都落了。
+> ⚠️ **这三条订正不新增判据、不改判据数**（仍 50 条）、**不新增表**（仍十七张）、**不新增待裁**（仍九条）。
 
 ### 6.4 M9-P1c 失效巡检（**2 人日**）
 
@@ -244,7 +251,7 @@ P0 → P1 → P1b ┬→ P1c
 
 | 判据 | 期 | 子任务 | 状态 |
 |---|---|---|---|
-| DL-01 | **P1.2/P1.3**（知识点侧）＋ **P1b.1/P1b.2**（资源侧） | 每条出处都带取证日期 | **分档** —— P1 侧**已产出**（P1.2/P1.3 · m9-p1-seed-lang-topics.ts，`lang_topics.source_checked_at` 非空有闸且已覆盖全部 118 条）；**P1b 侧未开工**（`lang_resources` 全表的 `source_checked_at` 与「owner_guide 首取证日恒 NULL」那套规则，属资源层） |
+| DL-01 | **P1.2/P1.3**（知识点侧）＋ **P1b.1/P1b.2**（资源侧） | 每条出处都带取证日期 | **两侧都已产出** —— P1 侧（P1.2/P1.3 · m9-p1-seed-lang-topics.ts，`lang_topics.source_checked_at` 非空有闸且已覆盖全部 118 条）；P1b 侧（P1b · m9-p1b-seed-resources.ts）**资源侧的 DL-01 语义是「列不许缺、值不许冒充核过」**：`lang_resources` / `lang_vibe_resources` 的 `source_checked_at` **恒 NULL** ＋ `verified_by` 只能 `'owner_guide'`（CHECK 兜住） |
 | DL-02 | P1.2 | 教程正文零进仓守卫 | 已产出（P1.8 · m9-external-content-scan.ts） |
 | DL-03 | **P1.10**（源级标记）＋ **P1c.1**（巡检时发现停更） | 停更源显式标记 | 已产出（P1.10 · m9-source-freshness.ts）—— ⚠️ **分档**：P1 侧只做「源级停更标记」（按 §1.5 登记，采集时写停更日期 ＋ 标红文案，即 §9 里 DL-03 归 M9-P1 的那一半）；**P1c 侧（巡检时发现已停更 ⇒ 并入失效巡检）未开工** |
 | DL-04 | P1.1 | DAG 无环守卫 | 已产出（P1.7 · m9-topic-dag.ts） |
@@ -270,12 +277,12 @@ P0 → P1 → P1b ┬→ P1c
 | DL-24 | P1.6 | since_version 影响条目报出 | 已产出（P1.6 · m9-concept-deltas.ts） |
 | DL-25 | P0.1/P0.2/P2.1 | 源码证据封顶 active | 已产出（P0 部分 · tests/m9-discipline.test.ts）⚠️ 见附注② |
 | DL-26 | P1.1 | §3.1 表数可复算 | 已产出（P1.7 · m9-p1-7-topic-stages.test.ts） |
-| DL-27 | P1b.2 | 资源层无前置边、不进 DAG | 未开工 |
+| DL-27 | P1b.2 | 资源层无前置边、不进 DAG | 已产出（P1b · m9-p1b-resources.test.ts）—— 资源表无边列 ＋ 仓里没有「资源×边」表 ＋ 给资源插边被外键挡住 |
 | DL-28 | P2.3 | 资源层不得参与掌握度 | 未开工 |
-| DL-29 | P1c.1 | owner 提供来源不得标 self | 未开工 |
-| DL-30 | P1c.1/P1b.4 | 巡检只发 HEAD + 永不删除 | 未开工 |
-| DL-31 | P1b.5 | 要点级至少一条去处 | 未开工 |
-| DL-32 | P1b.6 | README 导出满足零正文 | 未开工 |
+| DL-29 | P1c.1 | owner 提供来源不得标 self | 已产出（P1b · m9-p1b-seed-resources.ts ＋ 0012 的 CHECK）—— 资源侧的值域只有 `'owner_guide'` |
+| DL-30 | P1c.1/P1b.4 | 巡检只发 HEAD + 永不删除 | **分档** —— **P1b.4 侧已产出**（m9-p1b-probe.ts：去重到 87 个 URL ＋ 状态机，单次失败不判死、连续两次标灰不删、传输层**结构上**只能发 HEAD 且没有 body 通道）；**P1c.1 侧未开工**（真出网的 `scripts/check-m9-links.ts` 与手动触发入口） |
+| DL-31 | P1b.5 | 要点级至少一条去处 | 已产出（P1b · m9-p1b-resources.test.ts）—— 118 个要点级知识点逐条有挂接；变异腿「删一条挂接 ⇒ 红」＋ 反证「`full` 级挂 0 条允许」 |
+| DL-32 | P1b.6 | README 导出满足零正文 | 已产出（P1b · m9-p1b-readme.ts）—— 零本机路径 ＋ 条数一致 ＋ 每行带 `lang_resources.id` 可溯源；守卫自证（注入绝对路径必被报出） |
 | DL-33 | P1d.4 | 必学集逐层包含 | 未开工（#6 决后） |
 | DL-34 | P2.3 | 模式不影响掌握度 | 未开工 |
 | DL-35 | P1d.2/P1d.5 | 必学集非空 | 未开工（#6 决后） |
@@ -284,14 +291,14 @@ P0 → P1 → P1b ┬→ P1c
 | DL-38 | P1e.2 | 跳过与选速成逐字一致 | 未开工（#7 决后） |
 | DL-39 | P1e.3 | 资源标记 = 必学集反查 | 未开工 |
 | DL-40 | P1f.1/P1f.2 | 阶段轨道逐格相等（8 行） | 未开工（#8 决后） |
-| DL-41 | P1f.5 | 11 条速成专区在库 | 未开工 |
+| DL-41 | P1f.5 | 11 条速成专区在库 | 已产出（P1b · m9-p1b-resources.test.ts）—— 11 条在库（tools 6 ＋ tuts 5）、不与主清单混表、无分类/费用/阶段/精选列 |
 | DL-42 | P1f.1 | 不得出现职业等级断言 | 未开工 |
 | DL-43 | P1f.4 | 深链落档（#mode-* 优先） | 未开工 |
 | DL-44 | §11.1 | §0 数字与正文一致 | 可立刻开工（§3.1 内部已由 P1.7 覆盖，§0 速览↔正文待 §11.1） |
 | DL-45 | §11.1 | 判据标注与 §10.2 不矛盾 | **可立刻开工** |
 | DL-46 | §11.1 | 台账卡住哪期与 §9 依赖一致 | **可立刻开工** |
-| DL-47 | P1b.1/P1b.2 | 资源层逐条相等含去重主键 | 未开工 |
-| DL-48 | P1b.2 | 必要性必须由矩阵推导 | 未开工 |
+| DL-47 | P1b.1/P1b.2 | 资源层逐条相等含去重主键 | 已产出（P1b · scripts/extract-m9-guide-resources.ts ＋ m9-p1b-resources.test.ts）—— 89 ＋ 11 ＋ 六类逐类 ＋ 9 字段齐全 ＋ tier 列非空 ＋ 两个共用 URL 各占 2 行（去重 87） |
+| DL-48 | P1b.2 | 必要性必须由矩阵推导 | 已产出（P1b · m9-p1b-necessity.ts）—— ⚠️ **轴是 tier 不是展示分类**（2026-10-20 实测纠正，spec §1.6.1 已订正）；矩阵 × tier 现算 == spec 记的三档分布（53/36/0 · 25/28/36 · 8/0/81） |
 | DL-49 | P1d.1/P1d.3 | 分期 21 段逐格相等 + 7 段空 + 3 前缀 | 未开工 |
 | DL-50 | P1d.6 | 8 站与分期不得映射 | 未开工 |
 

@@ -18,7 +18,7 @@ import { describe, it, expect } from 'vitest'
 import { newDb } from '../test-support/new-db'
 
 describe('M9 P1.1 · 0011 迁移 + §3.1 知识拓扑表', () => {
-  it('0011 干净应用：6 张 lang_* 表都在库（DL-26 的 DB 分支）', () => {
+  it('0011 与 0012 干净应用：9 张 lang_* 表都在库（DL-26 的 DB 分支）', () => {
     const h = newDb()
     const tables = h.db
       .prepare(
@@ -29,10 +29,13 @@ describe('M9 P1.1 · 0011 迁移 + §3.1 知识拓扑表', () => {
     expect(names).toEqual([
       'lang_concept_deltas',
       'lang_concepts',
+      'lang_resources',
       'lang_topic_content',
       'lang_topic_edges',
+      'lang_topic_resources',
       'lang_topic_terms',
       'lang_topics',
+      'lang_vibe_resources',
     ])
     h.close()
   })

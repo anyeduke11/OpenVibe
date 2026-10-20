@@ -135,6 +135,45 @@ describe('M9 P1.8 · DL-02 教程正文零进仓', () => {
     expect(hits.some((h) => h.rule === 'metadata-too-long'), 'URL 不该走非 URL 那一档').toBe(false)
   })
 
+  // ⚠️ **逐字段长度覆写**（M9 P1b 实测引入）：附件的 `d`（资源描述）最长 115 字符（主清单）
+  //   ／121 字符（速成专区）⇒ 撞默认的 80 会把两份种子判红。
+  //   ⇒ 只给**那一个字段**放宽（`summary`），**不调全局上限**（那是给正文开后门）。
+  //   下面四支证明：覆写生效、不是无限豁免、**别的字段照旧受 80**、去掉覆写就红。
+  const RES_SEED = 'packages/core/src/db/seeds/lang_resources.json'
+
+  it('覆写①：资源种子里的 115 字符描述**不该**被报出（覆写生效）', () => {
+    const raw = readFileSync(join(REPO_ROOT, RES_SEED), 'utf8')
+    const parsed = JSON.parse(raw) as { items: { summary: string }[] }
+    const longest = Math.max(...parsed.items.map((i) => i.summary.length))
+    expect(longest, '资源描述的最长值变了，覆写上限要跟着复核').toBeGreaterThan(80)
+    const hits = scanExternalJson(RES_SEED, raw)
+    expect(hits.filter((h) => h.rule === 'metadata-too-long')).toEqual([])
+  })
+
+  it('覆写②：描述超过覆写上限 ⇒ 必须被报出（覆写不是无限豁免）', () => {
+    const raw = readFileSync(join(REPO_ROOT, RES_SEED), 'utf8')
+    const parsed = JSON.parse(raw) as { items: Record<string, unknown>[] }
+    parsed.items[0] = { ...parsed.items[0], summary: 'x'.repeat(131) }
+    const hits = scanExternalJson(RES_SEED, JSON.stringify(parsed))
+    expect(hits.some((h) => h.rule === 'metadata-too-long'), '超上限的描述没被报出').toBe(true)
+  })
+
+  it('覆写③：**没登记覆写的字段**（name）超 80 ⇒ 照旧被报出（覆写是逐字段的）', () => {
+    const raw = readFileSync(join(REPO_ROOT, RES_SEED), 'utf8')
+    const parsed = JSON.parse(raw) as { items: Record<string, unknown>[] }
+    parsed.items[0] = { ...parsed.items[0], name: 'x'.repeat(100) }
+    const hits = scanExternalJson(RES_SEED, JSON.stringify(parsed))
+    expect(hits.some((h) => h.rule === 'metadata-too-long'), 'name 超长没被报出').toBe(true)
+  })
+
+  it('覆写④：反证 —— **没有覆写**的同一份内容 ⇒ 必须被报出（证明覆写是放行的原因）', () => {
+    const raw = readFileSync(join(REPO_ROOT, RES_SEED), 'utf8')
+    const parsed = JSON.parse(raw) as { items: Record<string, unknown>[] }
+    parsed.items[0] = { ...parsed.items[0], summary: 'x'.repeat(115) }
+    const hits = scanExternalJson('probe.json', JSON.stringify(parsed))
+    expect(hits.some((h) => h.rule === 'metadata-too-long'), '没覆写的文件没被报出').toBe(true)
+  })
+
   it('变异 ③：数据区塞 HTML 标签 ⇒ 必须报出', () => {
     const hits = scanExternalJson(
       'probe.json',
