@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 1,
+  "collected_at": "2026-10-19",
+  "_notes": {
+    "source_discipline": "⚠️ §3.7 纪律：差异内容**全部由本仓自撰**，一个字都不从教程搬。",
+    "no_delete_rule": "⚠️ §3.12 纪律：**不删旧条目** —— 语言加新特性时，老差异被打上 `until_version` 而不是删除，删掉就丢了「以前为什么没有」这段历史。",
+    "supersedes_encoding": "⚠️ `supersedes_index` 指向**同文件内**的另一条（-1 = 无）。库里的 `supersedes` 是 `REFERENCES id`（自增主键），seed 阶段还不知道 id ⇒ 用序号表达，由 loader 按序号建 id 链。**这样 seed 自身没有悬空引用。**",
+    "version_lines": "⚠️ §3.12：两门语言**各自版本线**（Python 一年一版、Go 半年一版），**绝不合并成一条时间线** —— 判定函数一律先按 lang 过滤。",
+    "aspect_vocab": "§3.12 的 aspect 词表：语法 / 错误模型 / 并发模型 / 类型系统 / 包管理"
+  },
+  "items": [
+    {
+      "concept_slug": "function",
+      "lang": "python",
+      "aspect": "语法",
+      "summary": "Python 的函数是一等对象：可以赋值、传参、当返回值。lambda 只能写**单个表达式**，写多步逻辑必须转成 def。函数支持默认参数、关键字参数与 *args/**kwargs，嵌套函数可直接捕获外层变量（闭包，捕获的是变量本身而非当时的值）。",
+      "since_version": "3.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "function",
+      "lang": "python",
+      "aspect": "类型系统",
+      "summary": "Python **不在函数边界做类型检查** —— 传错类型不会报错，要到用错的地方才炸。类型注解（`def f(x: int) -> str`）是给人和类型检查器（mypy/pyright）看的提示，**运行期不强制**。",
+      "since_version": "3.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "function",
+      "lang": "go",
+      "aspect": "语法",
+      "summary": "Go 的函数值同样是一等对象（可赋值、可传递），但有三条硬差异：**没有默认参数**（要靠零值 + 变参，或写多个函数）；**多返回值是签名的一部分**（`func f() (int, error)`，调用方漏接一个编译不过）；函数体内**不能定义具名嵌套函数**，只能用 `func(...)` 字面量。",
+      "since_version": "1.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "function",
+      "lang": "go",
+      "aspect": "类型系统",
+      "summary": "Go 1.18 之前**没有类型参数**，写泛型只能靠代码生成，或者用 `interface{}` + 类型断言/反射硬扛 —— 后者把类型错误从编译期推到了运行期。",
+      "since_version": "1.0",
+      "until_version": "1.18",
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "function",
+      "lang": "go",
+      "aspect": "类型系统",
+      "summary": "Go 1.18 起**支持类型参数**：`func Map[T, U any](s []T, f func(T) U) []U` 这类泛型函数可以直接写，类型在编译期确定。⚠️ 老的「无泛型」差异没有删掉，而是打了 `until_version=1.18` —— 那一条记的是「以前为什么没有」这段历史。",
+      "since_version": "1.18",
+      "until_version": null,
+      "supersedes_index": 3
+    },
+    {
+      "concept_slug": "conditional",
+      "lang": "python",
+      "aspect": "语法",
+      "summary": "Python 3.10 之前**没有结构化匹配**，多分派只能靠 if/elif 链，且链长到第三层以后可读性明显下降。",
+      "since_version": "3.0",
+      "until_version": "3.10",
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "conditional",
+      "lang": "python",
+      "aspect": "语法",
+      "summary": "Python 3.10 起有 `match`/`case` **结构化匹配**：按形状而非按值分派（可解构序列、映射、类实例），多分支可读性比 if/elif 链好一档。",
+      "since_version": "3.10",
+      "until_version": null,
+      "supersedes_index": 5
+    },
+    {
+      "concept_slug": "conditional",
+      "lang": "python",
+      "aspect": "类型系统",
+      "summary": "Python 走**真值协议**：`0`、`0.0`、`\"\"`、`[]`、`{}`、`()`、`None` 全都判假，不只是 `False`。写 `if items:` 是常态，但也意味着「空集合」与「没有值」在条件里**分不开**。",
+      "since_version": "3.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "conditional",
+      "lang": "go",
+      "aspect": "语法",
+      "summary": "Go 的 `switch` **不像 C 那样穿透**：每个 case 独立，命中即退出，不需要写 break。Go 还允许**无表达式**的 switch（`switch { case cond: ... }`），写法上比 if/else if 链整齐。",
+      "since_version": "1.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "conditional",
+      "lang": "go",
+      "aspect": "类型系统",
+      "summary": "Go 走**严格布尔**：条件表达式必须是 `bool`，没有隐式真值。零长度切片是**真值**（`len(x) == 0` 要显式写）—— 从 Python 迁过来时 `if not items:` 必须改成 `if len(items) == 0:`。",
+      "since_version": "1.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "loop",
+      "lang": "python",
+      "aspect": "语法",
+      "summary": "Python 的 `for/else` 与 `while/else`：**else 块在循环未被 break 打断时执行**。这个语法常被误读成「循环正常结束后做的事」——它其实是「没有 break 才执行」，写循环搜索时是顺手的「找到就 break，没找到走 else」。",
+      "since_version": "3.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "loop",
+      "lang": "python",
+      "aspect": "并发模型",
+      "summary": "Python 3.7 起 `async`/`await` 成为标准协程语法。asyncio 任务在 **await 点让出执行权**，所以循环里如果直接引用循环变量，await 返回时那个变量可能已经被下一轮改掉了 —— 协程里要先把要用的值取出来。",
+      "since_version": "3.7",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "loop",
+      "lang": "go",
+      "aspect": "语法",
+      "summary": "Go **只有 `for` 一个循环关键字**（没有 while、没有 do-while），`for i, v := range xs` 是它的语法糖。Go 没有 for/else —— 「正常结束 vs 提前跳出」的区分在 Go 里靠返回值表达。",
+      "since_version": "1.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "loop",
+      "lang": "go",
+      "aspect": "并发模型",
+      "summary": "Go 1.22 之前，`for` 的循环变量在**所有迭代间共享同一个变量**。于是「循环里 `go func(){...}()` 捕获循环变量」会看到**最后一次**的值 —— 这是 Go 最经典的并发陷阱之一。",
+      "since_version": "1.0",
+      "until_version": "1.22",
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "loop",
+      "lang": "go",
+      "aspect": "并发模型",
+      "summary": "Go 1.22 起，**每轮迭代使用新的循环变量**，闭包捕获不再共享，上面那个陷阱被语言本身修掉了。⚠️ 老差异没有删 —— 它带 `until_version=1.22`，记的是「1.22 以前为什么会踩坑」。",
+      "since_version": "1.22",
+      "until_version": null,
+      "supersedes_index": 13
+    },
+    {
+      "concept_slug": "data-type",
+      "lang": "python",
+      "aspect": "类型系统",
+      "summary": "Python 在**运行期**才检查类型；`int` 是**任意精度**（不会溢出，大整数运算会变慢）；`bool` 是 `int` 的**子类**（`True + 1 == 2`），这种「意外的兼容」是跨语言迁移最容易漏的一处。",
+      "since_version": "3.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "data-type",
+      "lang": "python",
+      "aspect": "类型系统",
+      "summary": "Python 3.9 起 `dict` 支持**合并运算符** `|` 与原地合并 `|=`；3.9 之前合并两个字典只能用 `{**a, **b}` 或 `a.update(b)`。",
+      "since_version": "3.9",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "data-type",
+      "lang": "go",
+      "aspect": "类型系统",
+      "summary": "Go 在**编译期**检查类型；`int` 是机器字长（64 位平台上是 64 位），要更大的数必须显式选 `int64`/`big.Int`。结构体有**零值**但零值不一定语义正确（`Amount int64` 的 0 与「未设置」无法区分）；`nil` 在指针/切片/映射/接口/函数/channel 上**语义各不相同，却长得一模一样**。",
+      "since_version": "1.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "operator",
+      "lang": "python",
+      "aspect": "语法",
+      "summary": "Python 的 `/` **永远是真除**（`5 / 2 == 2.5`），整除要用 `//`；`and`/`or` **返回操作数本身而不是布尔**（`0 or \"默认值\"` → `\"默认值\"`）；支持 `0 < x < 10` 这种**链式比较**（且是短路求值）。",
+      "since_version": "3.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "operator",
+      "lang": "go",
+      "aspect": "语法",
+      "summary": "Go 的整数 `/` 是**整除**（`5 / 2 == 2`），要真除必须显式 `float64(5) / 2` —— 这一条**不报错、只是数值变了**，是跨语言迁移最容易静默出错的地方。`&&`/`||` 返回 **bool** 而非操作数；**不支持链式比较**（必须拆成两个条件）；`++` 是**语句不是表达式**（`y := x++` 编译不过）。",
+      "since_version": "1.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "type-conversion",
+      "lang": "python",
+      "aspect": "类型系统",
+      "summary": "Python 的转换**一律显式**（`int(x)`、`float(x)`、`str(x)`），不匹配就抛异常。`int(\"12\")` 会成功 —— 但业务上那个 `\"12\"` 可能是订单号而不是数量，**类型系统管不了语义，只有约定管**。`bool` 与 `int` 可以直接互转（`int(True) == 1`）。",
+      "since_version": "3.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "type-conversion",
+      "lang": "go",
+      "aspect": "类型系统",
+      "summary": "Go 只提供**安全的隐式转换**（`int` → `int64` 可以，因为不丢信息），反向必须显式（`int64` → `int` 编译不过）。显式的有损转换**不报错**：`int(3.99)` 静默截断、`int32(1<<40)` 静默溢出。⇒ 转换点要么显式检查失败，要么写一行注释说明「这里的截断是有意的」。",
+      "since_version": "1.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "error-handling",
+      "lang": "python",
+      "aspect": "错误模型",
+      "summary": "Python 用**异常**：`try/except/else/finally` ＋ `raise` ＋ 自定义异常类。异常层次以 `BaseException` 为根，其中 `KeyboardInterrupt`/`SystemExit` **不属于 `Exception`**（写 `except Exception` 不会误捕它们，这是好事）。`raise X from err` 保留原始错误链（`__cause__`）。",
+      "since_version": "3.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "error-handling",
+      "lang": "go",
+      "aspect": "错误模型",
+      "summary": "Go 1.13 之前，判断错误只有两条路：与哨兵值比较（`err == io.EOF`）或做类型断言。**包装过的错误认不出来** —— 一旦某层用 `fmt.Errorf` 加了上下文，上层就再也判不了原始错误。",
+      "since_version": "1.0",
+      "until_version": "1.13",
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "error-handling",
+      "lang": "go",
+      "aspect": "错误模型",
+      "summary": "Go 1.13 起有 `errors.Is` / `errors.As` 与 `%w` 包装，**能穿透包装链判定原始错误**（`errors.Is(err, io.EOF)`）。这让「低层原样返回、上层加上下文」的惯例真正成立。",
+      "since_version": "1.13",
+      "until_version": null,
+      "supersedes_index": 23
+    },
+    {
+      "concept_slug": "error-handling",
+      "lang": "go",
+      "aspect": "错误模型",
+      "summary": "Go 1.20 起有 `errors.Join`，可以把多个错误聚合成一个返回，适合「并发收集多个子任务的结果」这类场景。",
+      "since_version": "1.20",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "error-handling",
+      "lang": "go",
+      "aspect": "错误模型",
+      "summary": "Go 1.21 起有**内置** `min`/`max`（可作用于任意有序类型），以及 `slices` / `maps` 标准包（排序、查找、二分、克隆等通用操作）。",
+      "since_version": "1.21",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "regular-expression",
+      "lang": "python",
+      "aspect": "语法",
+      "summary": "Python 的 `re` 是**回溯引擎**（NFA 模拟），支持**反向引用**（`\\1`）与**环视**（前后查找），功能最全；代价是病态模式可能**指数级回溯**（灾难性回溯），拿用户输入直接去匹配就是拒绝服务面。命名捕获用 `(?P<name>...)`（`(?<name>...)` 是 PCRE 写法，`re` 模块不支持）。",
+      "since_version": "3.0",
+      "until_version": null,
+      "supersedes_index": -1
+    },
+    {
+      "concept_slug": "regular-expression",
+      "lang": "go",
+      "aspect": "语法",
+      "summary": "Go 的 `regexp` 基于 **RE2**，**保证线性时间** —— 「一个正则不会让服务卡死」在服务端是压倒性的价值。代价是**不支持反向引用与环视**（支持它们就无法保证线性时间），所以有些 Python 能写的正则 Go 写不了。命名捕获同样是 `(?P<name>...)`。",
+      "since_version": "1.0",
+      "until_version": null,
+      "supersedes_index": -1
+    }
+  ]
+}

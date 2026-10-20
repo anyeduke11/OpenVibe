@@ -1,527 +1,529 @@
 {
- "_readme": "runoob.com Python3 教程全量清单。⚠️ 只存标题与 URL，正文一个字未取（spec §3.2 FR-2 版权与漂移约束）。",
- "source": "https://www.runoob.com/python3/python3-tutorial.html",
- "collected_at": "2026-10-18",
- "collect_method": "curl 拉取索引页 → 线性扫描 <div class=\"design\" id=\"leftcolumn\"> → 按 <h2 class=\"left\"> 切「基础教程 / 高级教程」两段 → 取 <a> 的 title/href（属性顺序不敏感）",
- "counts": {
-  "total": 84,
-  "basic": 40,
-  "advanced": 44
- },
- "link_probe": {
-  "method": "HEAD，等距抽样 20 条，4 并发，15s 超时",
-  "result": "20/20 返回 200",
-  "caveat": "抽样非全量；全量验链须在采集脚本里跑（spec DL-01）"
- },
- "caveats": [
-  "源页面侧栏边界是 <div class=\"col middle-column\">，页内**不存在** right-column —— 按 right-column 切会一路读到文末并混入全站导航（实测踩过，切出的条目数从 84 虚增到 118）",
-  "侧栏 <a> 的 title/href 属性顺序不固定，按固定顺序写正则会漏一半（实测踩过：44/84）",
-  "源里混有绝对 URL 的全站导航项，采集须显式排除"
- ],
- "items": [
-  {
-   "ordinal": 1,
-   "section": "基础教程",
-   "title": "Python3 教程",
-   "url": "https://www.runoob.com/python3/python3-tutorial.html"
-  },
-  {
-   "ordinal": 2,
-   "section": "基础教程",
-   "title": "Python3 简介",
-   "url": "https://www.runoob.com/python3-intro.html"
-  },
-  {
-   "ordinal": 3,
-   "section": "基础教程",
-   "title": "Python3 环境搭建",
-   "url": "https://www.runoob.com/python3-install.html"
-  },
-  {
-   "ordinal": 4,
-   "section": "基础教程",
-   "title": "Python3 Pycharm",
-   "url": "https://www.runoob.com/python-pycharm-usage.html"
-  },
-  {
-   "ordinal": 5,
-   "section": "基础教程",
-   "title": "Python3 VScode",
-   "url": "https://www.runoob.com/python-vscode-setup.html"
-  },
-  {
-   "ordinal": 6,
-   "section": "基础教程",
-   "title": "Python3 基础语法",
-   "url": "https://www.runoob.com/python3-basic-syntax.html"
-  },
-  {
-   "ordinal": 7,
-   "section": "基础教程",
-   "title": "Python3 基本数据类型",
-   "url": "https://www.runoob.com/python3-data-type.html"
-  },
-  {
-   "ordinal": 8,
-   "section": "基础教程",
-   "title": "Python3 数据类型转换",
-   "url": "https://www.runoob.com/python3-type-conversion.html"
-  },
-  {
-   "ordinal": 9,
-   "section": "基础教程",
-   "title": "Python3 解释器",
-   "url": "https://www.runoob.com/python3/python3-interpreter.html"
-  },
-  {
-   "ordinal": 10,
-   "section": "基础教程",
-   "title": "Python3 注释",
-   "url": "https://www.runoob.com/python3/python3-comment.html"
-  },
-  {
-   "ordinal": 11,
-   "section": "基础教程",
-   "title": "Python3 运算符",
-   "url": "https://www.runoob.com/python3-basic-operators.html"
-  },
-  {
-   "ordinal": 12,
-   "section": "基础教程",
-   "title": "Python3 数字(Number)",
-   "url": "https://www.runoob.com/python3/python3-number.html"
-  },
-  {
-   "ordinal": 13,
-   "section": "基础教程",
-   "title": "Python3 字符串",
-   "url": "https://www.runoob.com/python3/python3-string.html"
-  },
-  {
-   "ordinal": 14,
-   "section": "基础教程",
-   "title": "Python3 列表",
-   "url": "https://www.runoob.com/python3/python3-list.html"
-  },
-  {
-   "ordinal": 15,
-   "section": "基础教程",
-   "title": "Python3 元组",
-   "url": "https://www.runoob.com/python3-tuple.html"
-  },
-  {
-   "ordinal": 16,
-   "section": "基础教程",
-   "title": "Python3 字典",
-   "url": "https://www.runoob.com/python3-dictionary.html"
-  },
-  {
-   "ordinal": 17,
-   "section": "基础教程",
-   "title": "Python3 集合",
-   "url": "https://www.runoob.com/python3-set.html"
-  },
-  {
-   "ordinal": 18,
-   "section": "基础教程",
-   "title": "Python3 条件控制",
-   "url": "https://www.runoob.com/python3/python3-conditional-statements.html"
-  },
-  {
-   "ordinal": 19,
-   "section": "基础教程",
-   "title": "Python3 循环语句",
-   "url": "https://www.runoob.com/python3/python3-loop.html"
-  },
-  {
-   "ordinal": 20,
-   "section": "基础教程",
-   "title": "Python3 编程第一步",
-   "url": "https://www.runoob.com/python3-step1.html"
-  },
-  {
-   "ordinal": 21,
-   "section": "基础教程",
-   "title": "Python3 推导式",
-   "url": "https://www.runoob.com/python-comprehensions.html"
-  },
-  {
-   "ordinal": 22,
-   "section": "基础教程",
-   "title": "Python3 迭代器与生成器",
-   "url": "https://www.runoob.com/python3-iterator-generator.html"
-  },
-  {
-   "ordinal": 23,
-   "section": "基础教程",
-   "title": "Python3 with",
-   "url": "https://www.runoob.com/python3-with-keyword.html"
-  },
-  {
-   "ordinal": 24,
-   "section": "基础教程",
-   "title": "Python3 函数",
-   "url": "https://www.runoob.com/python3/python3-function.html"
-  },
-  {
-   "ordinal": 25,
-   "section": "基础教程",
-   "title": "Python3 lambda（匿名函数）",
-   "url": "https://www.runoob.com/python-lambda.html"
-  },
-  {
-   "ordinal": 26,
-   "section": "基础教程",
-   "title": "Python 装饰器",
-   "url": "https://www.runoob.com/python-decorators.html"
-  },
-  {
-   "ordinal": 27,
-   "section": "基础教程",
-   "title": "Python3 数据结构",
-   "url": "https://www.runoob.com/python3/python3-data-structure.html"
-  },
-  {
-   "ordinal": 28,
-   "section": "基础教程",
-   "title": "Python3 模块",
-   "url": "https://www.runoob.com/python3/python3-module.html"
-  },
-  {
-   "ordinal": 29,
-   "section": "基础教程",
-   "title": "Python __name__",
-   "url": "https://www.runoob.com/python3/python3-name-main.html"
-  },
-  {
-   "ordinal": 30,
-   "section": "基础教程",
-   "title": "Python3 输入和输出",
-   "url": "https://www.runoob.com/python3/python3-inputoutput.html"
-  },
-  {
-   "ordinal": 31,
-   "section": "基础教程",
-   "title": "Python3 File",
-   "url": "https://www.runoob.com/python3-file-methods.html"
-  },
-  {
-   "ordinal": 32,
-   "section": "基础教程",
-   "title": "Python3 OS",
-   "url": "https://www.runoob.com/python3-os-file-methods.html"
-  },
-  {
-   "ordinal": 33,
-   "section": "基础教程",
-   "title": "Python3 错误和异常",
-   "url": "https://www.runoob.com/python3/python3-errors-execptions.html"
-  },
-  {
-   "ordinal": 34,
-   "section": "基础教程",
-   "title": "Python3 面向对象",
-   "url": "https://www.runoob.com/python3/python3-class.html"
-  },
-  {
-   "ordinal": 35,
-   "section": "基础教程",
-   "title": "Python3 命名空间/作用域",
-   "url": "https://www.runoob.com/python3/python3-namespace-scope.html"
-  },
-  {
-   "ordinal": 36,
-   "section": "基础教程",
-   "title": "Python 虚拟环境的创建",
-   "url": "https://www.runoob.com/python3/python-venv.html"
-  },
-  {
-   "ordinal": 37,
-   "section": "基础教程",
-   "title": "Python 类型注解",
-   "url": "https://www.runoob.com/python3/python-type-hints.html"
-  },
-  {
-   "ordinal": 38,
-   "section": "基础教程",
-   "title": "Python3 标准库概览",
-   "url": "https://www.runoob.com/python3/python3-stdlib.html"
-  },
-  {
-   "ordinal": 39,
-   "section": "基础教程",
-   "title": "Python3 实例",
-   "url": "https://www.runoob.com/python3/python3-examples.html"
-  },
-  {
-   "ordinal": 40,
-   "section": "基础教程",
-   "title": "Python 测验",
-   "url": "https://www.runoob.com/quiz/python-quiz.html"
-  },
-  {
-   "ordinal": 41,
-   "section": "高级教程",
-   "title": "Python3 正则表达式",
-   "url": "https://www.runoob.com/python3/python3-reg-expressions.html"
-  },
-  {
-   "ordinal": 42,
-   "section": "高级教程",
-   "title": "Python3 CGI编程",
-   "url": "https://www.runoob.com/python3/python3-cgi-programming.html"
-  },
-  {
-   "ordinal": 43,
-   "section": "高级教程",
-   "title": "Python MySQL - mysql-connector 驱动",
-   "url": "https://www.runoob.com/python-mysql-connector.html"
-  },
-  {
-   "ordinal": 44,
-   "section": "高级教程",
-   "title": "Python3 MySQL 数据库连接 - PyMySQL 驱动",
-   "url": "https://www.runoob.com/python3/python3-mysql.html"
-  },
-  {
-   "ordinal": 45,
-   "section": "高级教程",
-   "title": "Python3 网络编程",
-   "url": "https://www.runoob.com/python3/python3-socket.html"
-  },
-  {
-   "ordinal": 46,
-   "section": "高级教程",
-   "title": "Python3 SMTP发送邮件",
-   "url": "https://www.runoob.com/python3/python3-smtp.html"
-  },
-  {
-   "ordinal": 47,
-   "section": "高级教程",
-   "title": "Python3 多线程",
-   "url": "https://www.runoob.com/python3/python3-multithreading.html"
-  },
-  {
-   "ordinal": 48,
-   "section": "高级教程",
-   "title": "Python3 XML 解析",
-   "url": "https://www.runoob.com/python3/python3-xml-processing.html"
-  },
-  {
-   "ordinal": 49,
-   "section": "高级教程",
-   "title": "Python3 JSON 数据解析",
-   "url": "https://www.runoob.com/python3/python3-json.html"
-  },
-  {
-   "ordinal": 50,
-   "section": "高级教程",
-   "title": "Python3 日期和时间",
-   "url": "https://www.runoob.com/python3/python3-date-time.html"
-  },
-  {
-   "ordinal": 51,
-   "section": "高级教程",
-   "title": "Python3 内置函数",
-   "url": "https://www.runoob.com/python3/python3-built-in-functions.html"
-  },
-  {
-   "ordinal": 52,
-   "section": "高级教程",
-   "title": "Python MongoDB",
-   "url": "https://www.runoob.com/python3/python-mongodb.html"
-  },
-  {
-   "ordinal": 53,
-   "section": "高级教程",
-   "title": "Python3 urllib",
-   "url": "https://www.runoob.com/python-urllib.html"
-  },
-  {
-   "ordinal": 54,
-   "section": "高级教程",
-   "title": "Python uWSGI 安装配置",
-   "url": "https://www.runoob.com/python3/python-uwsgi.html"
-  },
-  {
-   "ordinal": 55,
-   "section": "高级教程",
-   "title": "Python3 pip",
-   "url": "https://www.runoob.com/python3/python3-pip.html"
-  },
-  {
-   "ordinal": 56,
-   "section": "高级教程",
-   "title": "Python3 operator 模块",
-   "url": "https://www.runoob.com/python3/python-operator.html"
-  },
-  {
-   "ordinal": 57,
-   "section": "高级教程",
-   "title": "Python math 模块",
-   "url": "https://www.runoob.com/python3/python-math.html"
-  },
-  {
-   "ordinal": 58,
-   "section": "高级教程",
-   "title": "Python requests 模块",
-   "url": "https://www.runoob.com/python3/python-requests.html"
-  },
-  {
-   "ordinal": 59,
-   "section": "高级教程",
-   "title": "Python random 模块",
-   "url": "https://www.runoob.com/python3/python-random.html"
-  },
-  {
-   "ordinal": 60,
-   "section": "高级教程",
-   "title": "Python OpenAI",
-   "url": "https://www.runoob.com/python3/python-openai.html"
-  },
-  {
-   "ordinal": 61,
-   "section": "高级教程",
-   "title": "Python 有用的资源",
-   "url": "https://www.runoob.com/python3/python3-resources.html"
-  },
-  {
-   "ordinal": 62,
-   "section": "高级教程",
-   "title": "Python AI 绘画",
-   "url": "https://www.runoob.com/python3/python-ai-draw.html"
-  },
-  {
-   "ordinal": 63,
-   "section": "高级教程",
-   "title": "Python statistics 模块",
-   "url": "https://www.runoob.com/python3/python-statistics.html"
-  },
-  {
-   "ordinal": 64,
-   "section": "高级教程",
-   "title": "Python hashlib 模块",
-   "url": "https://www.runoob.com/python3/python-hashlib.html"
-  },
-  {
-   "ordinal": 65,
-   "section": "高级教程",
-   "title": "Python 量化",
-   "url": "https://www.runoob.com/python3/python-qt.html"
-  },
-  {
-   "ordinal": 66,
-   "section": "高级教程",
-   "title": "Python pyecharts 模块",
-   "url": "https://www.runoob.com/python3/python-pyecharts.html"
-  },
-  {
-   "ordinal": 67,
-   "section": "高级教程",
-   "title": "Python selenium 库",
-   "url": "https://www.runoob.com/python3/python-selenium.html"
-  },
-  {
-   "ordinal": 68,
-   "section": "高级教程",
-   "title": "Python 爬虫 - BeautifulSoup",
-   "url": "https://www.runoob.com/python3/python-spider-beautifulsoup.html"
-  },
-  {
-   "ordinal": 69,
-   "section": "高级教程",
-   "title": "Python Scrapy 库",
-   "url": "https://www.runoob.com/python3/python-scrapy.html"
-  },
-  {
-   "ordinal": 70,
-   "section": "高级教程",
-   "title": "Python Markdown 生成 HTML",
-   "url": "https://www.runoob.com/python3/python-markdown2html.html"
-  },
-  {
-   "ordinal": 71,
-   "section": "高级教程",
-   "title": "Python sys 模块",
-   "url": "https://www.runoob.com/python3/python-sys.html"
-  },
-  {
-   "ordinal": 72,
-   "section": "高级教程",
-   "title": "Python Pickle 模块",
-   "url": "https://www.runoob.com/python3/python-pickle.html"
-  },
-  {
-   "ordinal": 73,
-   "section": "高级教程",
-   "title": "Python subprocess 模块",
-   "url": "https://www.runoob.com/python3/python-subprocess.html"
-  },
-  {
-   "ordinal": 74,
-   "section": "高级教程",
-   "title": "Python queue 模块",
-   "url": "https://www.runoob.com/python3/python-queue.html"
-  },
-  {
-   "ordinal": 75,
-   "section": "高级教程",
-   "title": "Python StringIO 模块",
-   "url": "https://www.runoob.com/python3/python-stringio.html"
-  },
-  {
-   "ordinal": 76,
-   "section": "高级教程",
-   "title": "Python logging 模块",
-   "url": "https://www.runoob.com/python3/python-logging.html"
-  },
-  {
-   "ordinal": 77,
-   "section": "高级教程",
-   "title": "Python datetime 模块",
-   "url": "https://www.runoob.com/python3/python-datetime.html"
-  },
-  {
-   "ordinal": 78,
-   "section": "高级教程",
-   "title": "Python re 模块",
-   "url": "https://www.runoob.com/python3/python-re.html"
-  },
-  {
-   "ordinal": 79,
-   "section": "高级教程",
-   "title": "Python csv 模块",
-   "url": "https://www.runoob.com/python3/python-csv.html"
-  },
-  {
-   "ordinal": 80,
-   "section": "高级教程",
-   "title": "Python threading 模块",
-   "url": "https://www.runoob.com/python3/python-treading.html"
-  },
-  {
-   "ordinal": 81,
-   "section": "高级教程",
-   "title": "Python asyncio 模块",
-   "url": "https://www.runoob.com/python3/python-asyncio.html"
-  },
-  {
-   "ordinal": 82,
-   "section": "高级教程",
-   "title": "Python PyQt",
-   "url": "https://www.runoob.com/python3/python-pyqt.html"
-  },
-  {
-   "ordinal": 83,
-   "section": "高级教程",
-   "title": "Python for 循环",
-   "url": "https://www.runoob.com/python3/python3-for.html"
-  },
-  {
-   "ordinal": 84,
-   "section": "高级教程",
-   "title": "Python while 循环",
-   "url": "https://www.runoob.com/python3/python3-while.html"
-  }
- ]
+  "_readme": "runoob.com Python3 教程全量清单。⚠️ 只存标题与 URL，正文一个字未取（spec §3.2 FR-2 版权与漂移约束）。",
+  "source": "https://www.runoob.com/python3/python3-tutorial.html",
+  "collected_at": "2026-10-20",
+  "collect_method": "由 scripts/collect-m9-sources.ts 采集：抓索引页 → 切 <div class=\"design\" id=\"leftcolumn\"> → 按 <h2 class=\"left\"> 切段 → 取 <a> 的 title/href（属性顺序不敏感）→ 排除绝对地址的全站导航项 → 标题归一（解实体 ＋ 连字符转 ASCII ＋ 折叠空白）→ 链接按站点根解析",
+  "counts": {
+    "total": 84,
+    "sections": {
+      "基础教程": 40,
+      "高级教程": 44
+    }
+  },
+  "caveats": [
+    "源页面侧栏边界是 <div class=\"col middle-column\">，页内**不存在** right-column —— 按 right-column 切会一路读到文末并混入全站导航（实测踩过，切出的条目数从 84 虚增到 118）",
+    "侧栏 <a> 的 title/href 属性顺序不固定，按固定顺序写正则会漏一半（实测踩过：44/84）",
+    "源里混有绝对 URL 的全站导航项，采集须显式排除"
+  ],
+  "link_probe": {
+    "method": "HEAD 全量 84 条，4 并发，15s 超时",
+    "result": "84/84 返回 2xx",
+    "caveat": "全量验链通过"
+  },
+  "items": [
+    {
+      "ordinal": 1,
+      "section": "基础教程",
+      "title": "Python3 教程",
+      "url": "https://www.runoob.com/python3/python3-tutorial.html"
+    },
+    {
+      "ordinal": 2,
+      "section": "基础教程",
+      "title": "Python3 简介",
+      "url": "https://www.runoob.com/python3/python3-intro.html"
+    },
+    {
+      "ordinal": 3,
+      "section": "基础教程",
+      "title": "Python3 环境搭建",
+      "url": "https://www.runoob.com/python3/python3-install.html"
+    },
+    {
+      "ordinal": 4,
+      "section": "基础教程",
+      "title": "Python3 Pycharm",
+      "url": "https://www.runoob.com/python3/python-pycharm-usage.html"
+    },
+    {
+      "ordinal": 5,
+      "section": "基础教程",
+      "title": "Python3 VScode",
+      "url": "https://www.runoob.com/python3/python-vscode-setup.html"
+    },
+    {
+      "ordinal": 6,
+      "section": "基础教程",
+      "title": "Python3 基础语法",
+      "url": "https://www.runoob.com/python3/python3-basic-syntax.html"
+    },
+    {
+      "ordinal": 7,
+      "section": "基础教程",
+      "title": "Python3 基本数据类型",
+      "url": "https://www.runoob.com/python3/python3-data-type.html"
+    },
+    {
+      "ordinal": 8,
+      "section": "基础教程",
+      "title": "Python3 数据类型转换",
+      "url": "https://www.runoob.com/python3/python3-type-conversion.html"
+    },
+    {
+      "ordinal": 9,
+      "section": "基础教程",
+      "title": "Python3 解释器",
+      "url": "https://www.runoob.com/python3/python3-interpreter.html"
+    },
+    {
+      "ordinal": 10,
+      "section": "基础教程",
+      "title": "Python3 注释",
+      "url": "https://www.runoob.com/python3/python3-comment.html"
+    },
+    {
+      "ordinal": 11,
+      "section": "基础教程",
+      "title": "Python3 运算符",
+      "url": "https://www.runoob.com/python3/python3-basic-operators.html"
+    },
+    {
+      "ordinal": 12,
+      "section": "基础教程",
+      "title": "Python3 数字(Number)",
+      "url": "https://www.runoob.com/python3/python3-number.html"
+    },
+    {
+      "ordinal": 13,
+      "section": "基础教程",
+      "title": "Python3 字符串",
+      "url": "https://www.runoob.com/python3/python3-string.html"
+    },
+    {
+      "ordinal": 14,
+      "section": "基础教程",
+      "title": "Python3 列表",
+      "url": "https://www.runoob.com/python3/python3-list.html"
+    },
+    {
+      "ordinal": 15,
+      "section": "基础教程",
+      "title": "Python3 元组",
+      "url": "https://www.runoob.com/python3/python3-tuple.html"
+    },
+    {
+      "ordinal": 16,
+      "section": "基础教程",
+      "title": "Python3 字典",
+      "url": "https://www.runoob.com/python3/python3-dictionary.html"
+    },
+    {
+      "ordinal": 17,
+      "section": "基础教程",
+      "title": "Python3 集合",
+      "url": "https://www.runoob.com/python3/python3-set.html"
+    },
+    {
+      "ordinal": 18,
+      "section": "基础教程",
+      "title": "Python3 条件控制",
+      "url": "https://www.runoob.com/python3/python3-conditional-statements.html"
+    },
+    {
+      "ordinal": 19,
+      "section": "基础教程",
+      "title": "Python3 循环语句",
+      "url": "https://www.runoob.com/python3/python3-loop.html"
+    },
+    {
+      "ordinal": 20,
+      "section": "基础教程",
+      "title": "Python3 编程第一步",
+      "url": "https://www.runoob.com/python3/python3-step1.html"
+    },
+    {
+      "ordinal": 21,
+      "section": "基础教程",
+      "title": "Python3 推导式",
+      "url": "https://www.runoob.com/python3/python-comprehensions.html"
+    },
+    {
+      "ordinal": 22,
+      "section": "基础教程",
+      "title": "Python3 迭代器与生成器",
+      "url": "https://www.runoob.com/python3/python3-iterator-generator.html"
+    },
+    {
+      "ordinal": 23,
+      "section": "基础教程",
+      "title": "Python3 with",
+      "url": "https://www.runoob.com/python3/python3-with-keyword.html"
+    },
+    {
+      "ordinal": 24,
+      "section": "基础教程",
+      "title": "Python3 函数",
+      "url": "https://www.runoob.com/python3/python3-function.html"
+    },
+    {
+      "ordinal": 25,
+      "section": "基础教程",
+      "title": "Python3 lambda（匿名函数）",
+      "url": "https://www.runoob.com/python3/python-lambda.html"
+    },
+    {
+      "ordinal": 26,
+      "section": "基础教程",
+      "title": "Python 装饰器",
+      "url": "https://www.runoob.com/python3/python-decorators.html"
+    },
+    {
+      "ordinal": 27,
+      "section": "基础教程",
+      "title": "Python3 数据结构",
+      "url": "https://www.runoob.com/python3/python3-data-structure.html"
+    },
+    {
+      "ordinal": 28,
+      "section": "基础教程",
+      "title": "Python3 模块",
+      "url": "https://www.runoob.com/python3/python3-module.html"
+    },
+    {
+      "ordinal": 29,
+      "section": "基础教程",
+      "title": "Python __name__",
+      "url": "https://www.runoob.com/python3/python3-name-main.html"
+    },
+    {
+      "ordinal": 30,
+      "section": "基础教程",
+      "title": "Python3 输入和输出",
+      "url": "https://www.runoob.com/python3/python3-inputoutput.html"
+    },
+    {
+      "ordinal": 31,
+      "section": "基础教程",
+      "title": "Python3 File",
+      "url": "https://www.runoob.com/python3/python3-file-methods.html"
+    },
+    {
+      "ordinal": 32,
+      "section": "基础教程",
+      "title": "Python3 OS",
+      "url": "https://www.runoob.com/python3/python3-os-file-methods.html"
+    },
+    {
+      "ordinal": 33,
+      "section": "基础教程",
+      "title": "Python3 错误和异常",
+      "url": "https://www.runoob.com/python3/python3-errors-execptions.html"
+    },
+    {
+      "ordinal": 34,
+      "section": "基础教程",
+      "title": "Python3 面向对象",
+      "url": "https://www.runoob.com/python3/python3-class.html"
+    },
+    {
+      "ordinal": 35,
+      "section": "基础教程",
+      "title": "Python3 命名空间/作用域",
+      "url": "https://www.runoob.com/python3/python3-namespace-scope.html"
+    },
+    {
+      "ordinal": 36,
+      "section": "基础教程",
+      "title": "Python 虚拟环境的创建",
+      "url": "https://www.runoob.com/python3/python-venv.html"
+    },
+    {
+      "ordinal": 37,
+      "section": "基础教程",
+      "title": "Python 类型注解",
+      "url": "https://www.runoob.com/python3/python-type-hints.html"
+    },
+    {
+      "ordinal": 38,
+      "section": "基础教程",
+      "title": "Python3 标准库概览",
+      "url": "https://www.runoob.com/python3/python3-stdlib.html"
+    },
+    {
+      "ordinal": 39,
+      "section": "基础教程",
+      "title": "Python3 实例",
+      "url": "https://www.runoob.com/python3/python3-examples.html"
+    },
+    {
+      "ordinal": 40,
+      "section": "基础教程",
+      "title": "Python 测验",
+      "url": "https://www.runoob.com/quiz/python-quiz.html"
+    },
+    {
+      "ordinal": 41,
+      "section": "高级教程",
+      "title": "Python3 正则表达式",
+      "url": "https://www.runoob.com/python3/python3-reg-expressions.html"
+    },
+    {
+      "ordinal": 42,
+      "section": "高级教程",
+      "title": "Python3 CGI编程",
+      "url": "https://www.runoob.com/python3/python3-cgi-programming.html"
+    },
+    {
+      "ordinal": 43,
+      "section": "高级教程",
+      "title": "Python MySQL - mysql-connector 驱动",
+      "url": "https://www.runoob.com/python3/python-mysql-connector.html"
+    },
+    {
+      "ordinal": 44,
+      "section": "高级教程",
+      "title": "Python3 MySQL 数据库连接 - PyMySQL 驱动",
+      "url": "https://www.runoob.com/python3/python3-mysql.html"
+    },
+    {
+      "ordinal": 45,
+      "section": "高级教程",
+      "title": "Python3 网络编程",
+      "url": "https://www.runoob.com/python3/python3-socket.html"
+    },
+    {
+      "ordinal": 46,
+      "section": "高级教程",
+      "title": "Python3 SMTP发送邮件",
+      "url": "https://www.runoob.com/python3/python3-smtp.html"
+    },
+    {
+      "ordinal": 47,
+      "section": "高级教程",
+      "title": "Python3 多线程",
+      "url": "https://www.runoob.com/python3/python3-multithreading.html"
+    },
+    {
+      "ordinal": 48,
+      "section": "高级教程",
+      "title": "Python3 XML 解析",
+      "url": "https://www.runoob.com/python3/python3-xml-processing.html"
+    },
+    {
+      "ordinal": 49,
+      "section": "高级教程",
+      "title": "Python3 JSON 数据解析",
+      "url": "https://www.runoob.com/python3/python3-json.html"
+    },
+    {
+      "ordinal": 50,
+      "section": "高级教程",
+      "title": "Python3 日期和时间",
+      "url": "https://www.runoob.com/python3/python3-date-time.html"
+    },
+    {
+      "ordinal": 51,
+      "section": "高级教程",
+      "title": "Python3 内置函数",
+      "url": "https://www.runoob.com/python3/python3-built-in-functions.html"
+    },
+    {
+      "ordinal": 52,
+      "section": "高级教程",
+      "title": "Python MongoDB",
+      "url": "https://www.runoob.com/python3/python-mongodb.html"
+    },
+    {
+      "ordinal": 53,
+      "section": "高级教程",
+      "title": "Python3 urllib",
+      "url": "https://www.runoob.com/python3/python-urllib.html"
+    },
+    {
+      "ordinal": 54,
+      "section": "高级教程",
+      "title": "Python uWSGI 安装配置",
+      "url": "https://www.runoob.com/python3/python-uwsgi.html"
+    },
+    {
+      "ordinal": 55,
+      "section": "高级教程",
+      "title": "Python3 pip",
+      "url": "https://www.runoob.com/python3/python3-pip.html"
+    },
+    {
+      "ordinal": 56,
+      "section": "高级教程",
+      "title": "Python3 operator 模块",
+      "url": "https://www.runoob.com/python3/python-operator.html"
+    },
+    {
+      "ordinal": 57,
+      "section": "高级教程",
+      "title": "Python math 模块",
+      "url": "https://www.runoob.com/python3/python-math.html"
+    },
+    {
+      "ordinal": 58,
+      "section": "高级教程",
+      "title": "Python requests 模块",
+      "url": "https://www.runoob.com/python3/python-requests.html"
+    },
+    {
+      "ordinal": 59,
+      "section": "高级教程",
+      "title": "Python random 模块",
+      "url": "https://www.runoob.com/python3/python-random.html"
+    },
+    {
+      "ordinal": 60,
+      "section": "高级教程",
+      "title": "Python OpenAI",
+      "url": "https://www.runoob.com/python3/python-openai.html"
+    },
+    {
+      "ordinal": 61,
+      "section": "高级教程",
+      "title": "Python 有用的资源",
+      "url": "https://www.runoob.com/python3/python3-resources.html"
+    },
+    {
+      "ordinal": 62,
+      "section": "高级教程",
+      "title": "Python AI 绘画",
+      "url": "https://www.runoob.com/python3/python-ai-draw.html"
+    },
+    {
+      "ordinal": 63,
+      "section": "高级教程",
+      "title": "Python statistics 模块",
+      "url": "https://www.runoob.com/python3/python-statistics.html"
+    },
+    {
+      "ordinal": 64,
+      "section": "高级教程",
+      "title": "Python hashlib 模块",
+      "url": "https://www.runoob.com/python3/python-hashlib.html"
+    },
+    {
+      "ordinal": 65,
+      "section": "高级教程",
+      "title": "Python 量化",
+      "url": "https://www.runoob.com/python3/python-qt.html"
+    },
+    {
+      "ordinal": 66,
+      "section": "高级教程",
+      "title": "Python pyecharts 模块",
+      "url": "https://www.runoob.com/python3/python-pyecharts.html"
+    },
+    {
+      "ordinal": 67,
+      "section": "高级教程",
+      "title": "Python selenium 库",
+      "url": "https://www.runoob.com/python3/python-selenium.html"
+    },
+    {
+      "ordinal": 68,
+      "section": "高级教程",
+      "title": "Python 爬虫 - BeautifulSoup",
+      "url": "https://www.runoob.com/python3/python-spider-beautifulsoup.html"
+    },
+    {
+      "ordinal": 69,
+      "section": "高级教程",
+      "title": "Python Scrapy 库",
+      "url": "https://www.runoob.com/python3/python-scrapy.html"
+    },
+    {
+      "ordinal": 70,
+      "section": "高级教程",
+      "title": "Python Markdown 生成 HTML",
+      "url": "https://www.runoob.com/python3/python-markdown2html.html"
+    },
+    {
+      "ordinal": 71,
+      "section": "高级教程",
+      "title": "Python sys 模块",
+      "url": "https://www.runoob.com/python3/python-sys.html"
+    },
+    {
+      "ordinal": 72,
+      "section": "高级教程",
+      "title": "Python Pickle 模块",
+      "url": "https://www.runoob.com/python3/python-pickle.html"
+    },
+    {
+      "ordinal": 73,
+      "section": "高级教程",
+      "title": "Python subprocess 模块",
+      "url": "https://www.runoob.com/python3/python-subprocess.html"
+    },
+    {
+      "ordinal": 74,
+      "section": "高级教程",
+      "title": "Python queue 模块",
+      "url": "https://www.runoob.com/python3/python-queue.html"
+    },
+    {
+      "ordinal": 75,
+      "section": "高级教程",
+      "title": "Python StringIO 模块",
+      "url": "https://www.runoob.com/python3/python-stringio.html"
+    },
+    {
+      "ordinal": 76,
+      "section": "高级教程",
+      "title": "Python logging 模块",
+      "url": "https://www.runoob.com/python3/python-logging.html"
+    },
+    {
+      "ordinal": 77,
+      "section": "高级教程",
+      "title": "Python datetime 模块",
+      "url": "https://www.runoob.com/python3/python-datetime.html"
+    },
+    {
+      "ordinal": 78,
+      "section": "高级教程",
+      "title": "Python re 模块",
+      "url": "https://www.runoob.com/python3/python-re.html"
+    },
+    {
+      "ordinal": 79,
+      "section": "高级教程",
+      "title": "Python csv 模块",
+      "url": "https://www.runoob.com/python3/python-csv.html"
+    },
+    {
+      "ordinal": 80,
+      "section": "高级教程",
+      "title": "Python threading 模块",
+      "url": "https://www.runoob.com/python3/python-treading.html"
+    },
+    {
+      "ordinal": 81,
+      "section": "高级教程",
+      "title": "Python asyncio 模块",
+      "url": "https://www.runoob.com/python3/python-asyncio.html"
+    },
+    {
+      "ordinal": 82,
+      "section": "高级教程",
+      "title": "Python PyQt",
+      "url": "https://www.runoob.com/python3/python-pyqt.html"
+    },
+    {
+      "ordinal": 83,
+      "section": "高级教程",
+      "title": "Python for 循环",
+      "url": "https://www.runoob.com/python3/python3-for.html"
+    },
+    {
+      "ordinal": 84,
+      "section": "高级教程",
+      "title": "Python while 循环",
+      "url": "https://www.runoob.com/python3/python3-while.html"
+    }
+  ]
 }

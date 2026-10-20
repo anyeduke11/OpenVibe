@@ -63,3 +63,132 @@ jobs:
           SHOTS: '0'
           EXPECT_SKIP: '2'
         run: node docs/devlog-evidence/DEV-0025/three-smokes.mjs
+
+  # 「可复算」从**流程**变成**闸**（2026-10-20 落）。
+  #
+  # spec §3.2 的硬约束是「采集脚本须能一条命令复跑并输出差异」。
+  # 脚本 P1.9 已有，但**没人记得跑** ⇒ 那句话当时只是一句承诺，不是闸。
+  # 本作业把 `pnpm m9:collect -- --check` 接进 CI：清单与源站逐条对账。
+  #
+  # ⚠️ **退出码分层是这道闸能长期开着的前提**：
+  #   0 一致（绿） · 1 内容漂移（红，我们该修） · 2 不可判定（黄，第三方站点不可达，不阻断）
+  #   若把「网络挂了」也算红，CI 会因站点抖动偶发红；人一旦给这道闸加 `continue-on-error`，
+  #   **闸就等于没有闸**。⇒ 三层码让「环境不行」与「我们该修」分开。
+  #
+  # ⚠️ **不进三平台矩阵**：这是网络作业，只跑一次 ubuntu 即可，不必把三倍的机时花在网络上。
+  m9-collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: M9 采集对账（runoob Python3 ＋ Go 全量）
+        id: collect
+        continue-on-error: true
+        run: |
+          set +e
+          pnpm m9:collect -- --check
+          rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          exit "$rc"
+
+      - name: 判定（0 绿 / 1 红 / 2 黄）
+        env:
+          RC: ${{ steps.collect.outputs.rc }}
+        run: |
+          if [ "$RC" = "0" ]; then
+            echo "✓ 采集对账通过：已入库清单与源站逐条一致"
+          elif [ "$RC" = "2" ]; then
+            echo "::warning::采集对账本次**不可判定**（网络或源站不可达）—— 不阻断，但这条闸本轮没有真正跑成，请人工复跑一次"
+          else
+            echo "::error::采集对账失败（退出码 $RC）—— 清单与源站不一致，或解析器失灵。先跑 \`pnpm m9:collect\` 看差异，确认是源站真变了再用 \`pnpm m9:collect -- --write\` 写回"
+            exit 1
+          fi
+
+      # 另三源（xinliangnote 43 篇 / walter201230 101 篇 / awesome-* 4047 条）——
+      # 走 **GitHub API**，一次最多 8 个请求 ⇒ 匿名也能跑；带上 token 只是更不容易撞限流。
+      #
+      # ⚠️ **退出码同样分三层**，但**漂移分档**：
+      #   awesome-go 是**活跃仓**（漂移是上游在正常工作）⇒ 它的漂移只报不阻断；
+      #   另三个源（两个教程型 ＋ 停更 4 年的 awesome-python-cn）漂移即红。
+      #   分档的事实依据写在 `scripts/collect-m9-github-sources.ts` 的 `gate` 字段 doc 里。
+      - name: M9 另三源对账（GitHub API）
+        id: collect-github
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          pnpm m9:collect:github -- --check
+          rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          exit "$rc"
+
+      - name: 判定（另三源 · 0 绿 / 1 红 / 2 黄）
+        env:
+          RC: ${{ steps.collect-github.outputs.rc }}
+        run: |
+          if [ "$RC" = "0" ]; then
+            echo "✓ 另三源对账通过"
+          elif [ "$RC" = "2" ]; then
+            echo "::warning::另三源对账本次**不可判定**（GitHub API 不可达）—— 不阻断，但这条闸本轮没有真正跑成"
+          else
+            echo "::error::另三源对账失败（退出码 $RC）—— 清单与源站不一致，或解析器失灵。先跑 \`pnpm m9:collect:github\` 看差异，确认后用 \`pnpm m9:collect:github -- --write\` 写回"
+            exit 1
+          fi
+
+  # 「内容未变」这道闸 —— 采集侧的验链是 **HEAD**，只验「可达」，
+  # 一篇教程被改写了（标题没变、链接没变、还是 200）我们察觉不到。
+  # 本作业取每篇教程页的正文区 ⇒ 归一化 ⇒ SHA-256，与已入库指纹对账。
+  #
+  # ⚠️ **指纹漂移即红**（和 `seed:check` 同一形态）：仓里那一份是「某个日期的快照」，
+  #   上游改了 ⇒ 快照过期 ⇒ 该刷新。刷新是一条命令：
+  #   `pnpm m9:fingerprint -- --write`（写前有备份 ＋ 差异快照）。
+  # ⚠️ **只存摘要不存正文**（spec §3.2）—— 灰区处置见 scripts/m9-content-fingerprint.ts 文件头，
+  #   补偿控制（字段闭集 ＋ hex 校验 ＋ 仍在扫描面内）由 packages/core/src/db/m9-external-content-scan.ts 钉住。
+  m9-fingerprint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: runoob 两门内容指纹对账
+        id: fingerprint
+        continue-on-error: true
+        run: |
+          set +e
+          pnpm m9:fingerprint -- --check
+          rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          exit "$rc"
+
+      - name: 判定（0 绿 / 1 红 / 2 黄）
+        env:
+          RC: ${{ steps.fingerprint.outputs.rc }}
+        run: |
+          if [ "$RC" = "0" ]; then
+            echo "✓ 内容指纹一致：全部教程内容与已入库快照逐条相同"
+          elif [ "$RC" = "2" ]; then
+            echo "::warning::内容指纹本次**不可判定**（网络不可达）—— 不阻断，但这条闸本轮没有真正跑成"
+          else
+            echo "::error::内容指纹过期或取不到正文区（退出码 $RC）—— 跑 \`pnpm m9:fingerprint -- --write\` 刷新快照后提交"
+            exit 1
+          fi

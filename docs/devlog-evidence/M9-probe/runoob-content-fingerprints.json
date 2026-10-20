@@ -1,0 +1,601 @@
+{
+  "_readme": "runoob 两门教程的**内容指纹**。⚠️ **只存 SHA-256 摘要，一个字正文都没存**（spec §3.2）；「只存链接不存正文」与「可复算」之间的灰区处置见 scripts/m9-content-fingerprint.ts 的文件头。",
+  "collected_at": "2026-10-20",
+  "collect_method": "由 scripts/m9-content-fingerprint.ts 计算：取每篇教程页的 <div class=\"article-body\"> 正文区（按嵌套深度配对 </div>） ⇒ 去 script/style ⇒ 去标签 ⇒ 解实体 ⇒ 折叠空白 ⇒ SHA-256",
+  "counts": {
+    "total": 118,
+    "unique_urls": 117
+  },
+  "items": [
+    {
+      "url": "https://www.runoob.com/python3/python3-intro.html",
+      "sha256": "2a8d3739936fa7b88e34cc385239575f8ec6128ff4350582a377f93acd09deaa",
+      "bytes": 3611
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-pycharm-usage.html",
+      "sha256": "c04565ea6de2f3570d702273db4f933b85e0976ffb83c1f672b0d9039313cf65",
+      "bytes": 8438
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-install.html",
+      "sha256": "e97176db2c20b7145ce5733aa21f547385d494aa94ec140244e690e0dc93a552",
+      "bytes": 10712
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-tutorial.html",
+      "sha256": "8cb5d4f04b5afb35d5bcd9539deeb913249e86212d774b4148c729fa8f14c13b",
+      "bytes": 1542
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-vscode-setup.html",
+      "sha256": "0071ec1cc5e6592fe4fe816c1bc53025094eb1e6d79e71d494c3be89c08d1a3c",
+      "bytes": 1705
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-basic-syntax.html",
+      "sha256": "b96be02e50cba1cfe693c57551b92146e1ddc45807b60139abebde010a88bf77",
+      "bytes": 12009
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-data-type.html",
+      "sha256": "e69f0acf6e113ddf51d1784b1b63b9e66fe071d61e40ea9823432a047b125e3e",
+      "bytes": 20549
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-type-conversion.html",
+      "sha256": "10df527a21ddfe32a5a440508f22af9f4bf87220314238732668953f8ce995d0",
+      "bytes": 5092
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-interpreter.html",
+      "sha256": "40d02e6b1c197e213a8c50295a3bc2670801ddd9affe4abe8a650963d3e17ab4",
+      "bytes": 1734
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-comment.html",
+      "sha256": "3863b3cb4a1bda9d4919a2034c126ad4aae40b2bd06300955e5cc295789bf0f0",
+      "bytes": 4877
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-basic-operators.html",
+      "sha256": "8111d339ba186fbe48e2d226bb32bb2863bec740881509e6240e0601c5a423db",
+      "bytes": 15042
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-number.html",
+      "sha256": "b19b2fb3fc5192f602b7042d00ef6531bb7d58a722fbd55817df433fccb32af8",
+      "bytes": 6514
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-string.html",
+      "sha256": "e4182dd0075665a34b558143c3df6688c49c81b3fea23de3691a3519f15f76ef",
+      "bytes": 14469
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-list.html",
+      "sha256": "67453dfd9dd78e4e352790045b4cb0768cbd88fbd7be488ce111b55d0b9c5599",
+      "bytes": 6034
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-tuple.html",
+      "sha256": "e03608eb1a6651d91dc506d05dba22b76cffa76939277dfc27746f1193770326",
+      "bytes": 4902
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-dictionary.html",
+      "sha256": "e6a61ee993518a054ba9e048d41fe34c3d6dd1ba73781fa504e367ee352c3d4b",
+      "bytes": 6195
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-set.html",
+      "sha256": "eac360bd46da03ab42d12905353b172eb52cf0925cd62f89369758b99bdd8070",
+      "bytes": 13368
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-conditional-statements.html",
+      "sha256": "c3b49c5630821183962bf3b421a201543f6a5940732afaf6aab05fe9e17e3500",
+      "bytes": 6175
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-loop.html",
+      "sha256": "e402bb64686624f2e3e1af79e45d2f42bb0652193aa993753bd76612fe9c13b0",
+      "bytes": 9469
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-step1.html",
+      "sha256": "66e8b0d7c1fe99c46db8d55ec765327390f19849d51b834a74cd2ab0b131d8bf",
+      "bytes": 2322
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-comprehensions.html",
+      "sha256": "d168c7dc75186b39bb145012a4a2b2c063d4dd92b7cf1463b1848d540306435e",
+      "bytes": 3427
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-iterator-generator.html",
+      "sha256": "aada0359dc07158973530a8abc0328f6afb75acb75b7eba61600160b51c65103",
+      "bytes": 5452
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-with-keyword.html",
+      "sha256": "1b9137b492c0da0b34a1972eccbed17b9e5ccd45c18ff2763820873fb0fb47fd",
+      "bytes": 5372
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-lambda.html",
+      "sha256": "b6bf72f1f90845248dc71c75decc38fb397e0dcf13852455c90d32b42f790604",
+      "bytes": 2814
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-function.html",
+      "sha256": "021581dfd514a5c9905328fc21096182da9374b9a7e2f1396b03054ac915247a",
+      "bytes": 12694
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-decorators.html",
+      "sha256": "6c85e93a975556f019fcf7268356e47fd6ce6c87fc581ef213a792e51c38af26",
+      "bytes": 5057
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-data-structure.html",
+      "sha256": "011518392d0372b0941cd51a47835919e30c5485948b0f938f0e105bfe2a611e",
+      "bytes": 16823
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-module.html",
+      "sha256": "74bfefb019fef476d8ffd5dc7c3c3e240d68c027adeda56442dbd50823cdf5bf",
+      "bytes": 18029
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-name-main.html",
+      "sha256": "5a701621b80b7d6c62628117b9094b4c9c68c671c782b46177bd466cd6a7662f",
+      "bytes": 8459
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-inputoutput.html",
+      "sha256": "8cbe33b2b00f06123a1957331971751bcdaf02f4566f61e36d408096a8295074",
+      "bytes": 14493
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-file-methods.html",
+      "sha256": "74de33330f3a3bba8abd9ab6487eaffa46b1bcdc092cb715e20deefa55571a44",
+      "bytes": 5011
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-os-file-methods.html",
+      "sha256": "478094318c9f195dca5387407d76d9675e46b860d224c2c75e019b928cf33449",
+      "bytes": 8801
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-errors-execptions.html",
+      "sha256": "5560dd09b7597b2ea724349cfa2cbb6ce2d7eb2b8913c9446fba918a4f6ed3ba",
+      "bytes": 10076
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-class.html",
+      "sha256": "fe8a2e56ed0904f419aad126d8c422744793efb1ec293b4b041ab23b02f11b0f",
+      "bytes": 13247
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-namespace-scope.html",
+      "sha256": "9eee7c65aed18bd30e0628e5702a9cdc43c27f99dda54b3f7c7ea000917a8d7b",
+      "bytes": 8473
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-stdlib.html",
+      "sha256": "1c46cc504f26b12f68fe74f79b0116d418ad5961821875507fb35da0af698d2a",
+      "bytes": 8722
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-examples.html",
+      "sha256": "2eae6c979d2a5f0425233cef3cd58de8d8a1d90a980f1a83b24f5f566f33e3ca",
+      "bytes": 2559
+    },
+    {
+      "url": "https://www.runoob.com/quiz/python-quiz.html",
+      "sha256": "1cef6f5518cd35085dd4d4c8418c4b3ff3b386c3d60d1a03d1d4cd6be9935fe7",
+      "bytes": 581
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-reg-expressions.html",
+      "sha256": "cd63300e9eddf4f6862a7686cccb2fc6ba39c1430e1d7a835641c51352e0a6dd",
+      "bytes": 18167
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-venv.html",
+      "sha256": "325365725e82f63c0d1ebc2f4c48f13fc4d34bb1af2b9c3a84c5c7af9096a164",
+      "bytes": 7654
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-cgi-programming.html",
+      "sha256": "4b6655f625c3330c02ef0775c2898269bb4d019a25c024ad0ac37976f3da2e65",
+      "bytes": 19280
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-mysql-connector.html",
+      "sha256": "d7c059467e3fd6bf1ef4ffc86485f224afa2cd163fd24fe4e3fad021d7e1e3c0",
+      "bytes": 15232
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-mysql.html",
+      "sha256": "1160fce6bdbb9dd836a7a133803b044408424da88fb2d15eca28ec1da3368042",
+      "bytes": 10940
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-type-hints.html",
+      "sha256": "e17b8be0468e7f62890d278f8d1139c6ca342b79b5aca99c0be3bae8f30d7cd9",
+      "bytes": 8282
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-socket.html",
+      "sha256": "5ce0cf589a9ce52e8abc03baf063ff78c119bb07f04c421ef8bcde284f06f11a",
+      "bytes": 6233
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-smtp.html",
+      "sha256": "eebd7c59ef3c547fb7c8469a988cdf0d4a1f100aab78b13585daa88beccca077",
+      "bytes": 10601
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-multithreading.html",
+      "sha256": "6f1cc455bd0db5e996ae7eb080d6f2bbfd929badc0194d6b79df5b34cd5f20d9",
+      "bytes": 12373
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-date-time.html",
+      "sha256": "a53e00d368113f338ed276008c020bbbd5630a50732f3f47d1ae91b8d169dfc1",
+      "bytes": 11127
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-xml-processing.html",
+      "sha256": "ccb073a84977805b82cb57383f7c69e3d452427402641067670f77953e5c5ae0",
+      "bytes": 13165
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-json.html",
+      "sha256": "222e198489312bff9c05d88ad1f1b40e4d002665dc5c71a5d16e8b78090b5ed5",
+      "bytes": 2744
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-urllib.html",
+      "sha256": "5f1d19bae4333818211cc983d2f958d84e5fd70afade1d73e643d34d38d9900d",
+      "bytes": 11221
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-built-in-functions.html",
+      "sha256": "e53faa1f678bd533174b4ea3150fc98cd8516d7fb078d5733be6d37529d48fab",
+      "bytes": 1659
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-mongodb.html",
+      "sha256": "586afbbcfb2534260a08e972739a4c840402fa1ab86bd24dc7f052f29c7c834a",
+      "bytes": 3358
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-uwsgi.html",
+      "sha256": "17d918c2b6756b04f3972c7b20ede7453a9ac459ec0a317e7089377475ede9c1",
+      "bytes": 3460
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-pip.html",
+      "sha256": "698f9473e2bf091ce8de200576dc1907c067345681d3d758508b16f088f5aadf",
+      "bytes": 2009
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-requests.html",
+      "sha256": "1270a2b71bc6ec1610500751c80c20c779c1812c45f883b6e47db4d9828b422a",
+      "bytes": 6367
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-math.html",
+      "sha256": "f252a36d6fdb97a5050d83b85edd5c648f097f6121b291d5267f9913459d30f9",
+      "bytes": 6640
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-operator.html",
+      "sha256": "357e0c1770121ab5aa728d2dc33c0854734558f17440dc9594dfe60ea9711496",
+      "bytes": 4706
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-random.html",
+      "sha256": "2698964e20d9ae29c4aeb10679e20a9654626eea312c45723b7e3910d89c2e2b",
+      "bytes": 5140
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-openai.html",
+      "sha256": "77a0cfda76f3861f6dbc5913f0f66b3a77664e94c7affc5e40ae63c67007e669",
+      "bytes": 16372
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-ai-draw.html",
+      "sha256": "a19aab81162eb4c45d6e2b209eb865e09c06ca20c99964a992530beace58e92d",
+      "bytes": 5595
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-resources.html",
+      "sha256": "1f47a853844d892807a65add39f74546e0434722d6f7843cedf6182a253d70e0",
+      "bytes": 348
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-hashlib.html",
+      "sha256": "828830655a8fdf5854d720f299e51fe0aadaf9f321b0e467f2ea43917b91c96b",
+      "bytes": 4876
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-qt.html",
+      "sha256": "2fe74ca5b33891f5f3bafaa50619383e0bd9084179cffa65e633c37ff27e14ad",
+      "bytes": 5095
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-selenium.html",
+      "sha256": "5e0d9faa3bca77f7fc2dae6378ef0c6c262aa8127c0ac567bcac3e15774f9196",
+      "bytes": 7372
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-statistics.html",
+      "sha256": "b5d0e72e6d4c4172313cadfe770d390cd27ecdd69bd9fb4b02b13d3a54298256",
+      "bytes": 5402
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-spider-beautifulsoup.html",
+      "sha256": "c161799cf5853254cad5b54c2880a07fdb9f3feb1679cbe5c9322e5b07a96d29",
+      "bytes": 13221
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-pyecharts.html",
+      "sha256": "76608c23f932082c3232cbee4fc5b92f6897a6881cf4c1a03321352a932161d0",
+      "bytes": 12800
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-markdown2html.html",
+      "sha256": "e446aa6edadfcb26745c02a013518762d20c92c01e2ba467b64c84017b9a24de",
+      "bytes": 3288
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-pickle.html",
+      "sha256": "a194c9ee390e670bcbf371cf696b3bb00c974832679cd2d8c1b9d3a5762344b0",
+      "bytes": 9698
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-sys.html",
+      "sha256": "f96c8f20725f3789dc006ea61a3c13477cc35515dd7cb00002f6047600438016",
+      "bytes": 3520
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-scrapy.html",
+      "sha256": "82de3859ac58781360811caa4eee7cf70cdf02fca41e885e77e40adec20551b5",
+      "bytes": 14595
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-stringio.html",
+      "sha256": "16195d9e8211d1354ce9a2a1436c858b755fb52b0ed402933049c2f6d28e87fe",
+      "bytes": 4622
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-queue.html",
+      "sha256": "527dd9ef2f6f8f9794703c749116266237424ea0021cf080a2d2cc2121503c0c",
+      "bytes": 5675
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-datetime.html",
+      "sha256": "1e9b4f38e9c558ff9b4eff39ac8a9b44936a0d8ef4e3f6c74fa25838d11e83c6",
+      "bytes": 6672
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-subprocess.html",
+      "sha256": "9b3e04d7da78c7df418bcb9a4d98d47f068ff2dd531d2fabeb0e64db1fbe2011",
+      "bytes": 7173
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-logging.html",
+      "sha256": "0f53d185d9547bd262bdaa1407940041787f0678546145d0eaaf229e6cc63b95",
+      "bytes": 8043
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-treading.html",
+      "sha256": "f060768fb88d6e333f72c6d716d355a705fbfc2d1c9eafc01cbe7502571ad214",
+      "bytes": 10228
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-asyncio.html",
+      "sha256": "041443747b3baf3569e2d70f96b867a70687c27eab1a4d2507bd029e7f84ab89",
+      "bytes": 15175
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-re.html",
+      "sha256": "840d502c11c44f4f1efccb498603767f41f693d91c3e8eb5243939f3ca76386f",
+      "bytes": 8465
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-pyqt.html",
+      "sha256": "b1b2fbd7d45abf40c2c89f839d954000b21248f9eaf439bf9b22394fbdb37171",
+      "bytes": 11138
+    },
+    {
+      "url": "https://www.runoob.com/python3/python-csv.html",
+      "sha256": "215defb6fd01fa54155bda970c12d871ab2aa106e8acde94b397f3810176bcf6",
+      "bytes": 5713
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-for.html",
+      "sha256": "d2ec35fc030509239e302557161b107756bd0c0477f5a58686625664bbf0ef4b",
+      "bytes": 2662
+    },
+    {
+      "url": "https://www.runoob.com/python3/python3-while.html",
+      "sha256": "a505cd343dc71d62564187e52ed1cf8e5561dd4f2bde35b85b2ab25f3c717729",
+      "bytes": 3311
+    },
+    {
+      "url": "https://www.runoob.com/go/go-tutorial.html",
+      "sha256": "a15fdb39e0cb033f7c2880a0714a305b8dc6a751bc1d55e98a7794c602e70f27",
+      "bytes": 1367
+    },
+    {
+      "url": "https://www.runoob.com/go/go-intro.html",
+      "sha256": "7176fd1771a8d4153e0747126d519897c1cc051cdc497d5c80d4d0464b9181c3",
+      "bytes": 26354
+    },
+    {
+      "url": "https://www.runoob.com/go/go-vscode.html",
+      "sha256": "38e071178c43c9c20a7fcc011fc07d9c266eddd84932ca39b98dcb1a57be4cbd",
+      "bytes": 4127
+    },
+    {
+      "url": "https://www.runoob.com/go/go-program-structure.html",
+      "sha256": "d9be0c9a9d7ab5f2d4d671688aa305fef898faa090db1c5eda69e40c85e6c8a3",
+      "bytes": 3138
+    },
+    {
+      "url": "https://www.runoob.com/go/go-basic-syntax.html",
+      "sha256": "c9e0abdf4782a8cb2018bc3b129a280a2f2ed6fa5689ecfb890d8ff5b7410e4b",
+      "bytes": 4260
+    },
+    {
+      "url": "https://www.runoob.com/go/go-data-types.html",
+      "sha256": "5b479da2013899550c17414b592daa75e938b862bd24809c2c17083ae9659c06",
+      "bytes": 1968
+    },
+    {
+      "url": "https://www.runoob.com/go/go-variables.html",
+      "sha256": "24e540805d254c21820cbf81ff40e50df3c69311ec2740bfc660e3e2b4d1bea2",
+      "bytes": 7351
+    },
+    {
+      "url": "https://www.runoob.com/go/go-constants.html",
+      "sha256": "506775ec1a7bde0a1d98e5b33b98422f51c8688125f9c32178e4eca1120c6dfb",
+      "bytes": 4614
+    },
+    {
+      "url": "https://www.runoob.com/go/go-operators.html",
+      "sha256": "0df666d24777904b9f3888e76f75efcd7fe60c7376f0124e37c382f63e6d3833",
+      "bytes": 10525
+    },
+    {
+      "url": "https://www.runoob.com/go/go-environment.html",
+      "sha256": "94748c115b586c1e2c5844f420a54b37f821cb8516a47ad61844f1f3f619f287",
+      "bytes": 2361
+    },
+    {
+      "url": "https://www.runoob.com/go/go-decision-making.html",
+      "sha256": "cd042280f15151892d07694d7c494420a8adcfb4347342672a903844469253d6",
+      "bytes": 980
+    },
+    {
+      "url": "https://www.runoob.com/go/go-functions.html",
+      "sha256": "3c4ed90869d749246ad1bde78a447f94a0126cf5f4382268aa33c05939e151ab",
+      "bytes": 3538
+    },
+    {
+      "url": "https://www.runoob.com/go/go-loops.html",
+      "sha256": "be16396687645267120a2d59bc162c4cb59ee3cc9377d3e90f5e9d6c7516e82b",
+      "bytes": 1027
+    },
+    {
+      "url": "https://www.runoob.com/go/go-structures.html",
+      "sha256": "d07195a4a587795d496e5e6c2355be49da0a825a055e4ba27e3234aba7436d15",
+      "bytes": 6063
+    },
+    {
+      "url": "https://www.runoob.com/go/go-arrays.html",
+      "sha256": "23acf604a2371f9213b8be03c232df5cbc034fa6a0bbf31d9415ce10d703b748",
+      "bytes": 5069
+    },
+    {
+      "url": "https://www.runoob.com/go/go-pointers.html",
+      "sha256": "91573d7f24ffd821ac2d6d23b6129bb66ca68acbc7d1af5770c793f135bfbbb3",
+      "bytes": 2779
+    },
+    {
+      "url": "https://www.runoob.com/go/go-scope-rules.html",
+      "sha256": "2e18e67886eea4645c97d2572e0934eb055207d7ccfdfad987be5edc5c6511fe",
+      "bytes": 2630
+    },
+    {
+      "url": "https://www.runoob.com/go/go-recursion.html",
+      "sha256": "644a86416253ea13dd213089499a4a3bbe08218b145ec69c714185889d1212c7",
+      "bytes": 4863
+    },
+    {
+      "url": "https://www.runoob.com/go/go-slice.html",
+      "sha256": "b76d5fead0d895a8ec253aa4be0d921f417ac33d0a9aa06cc36e30037193c7b6",
+      "bytes": 4682
+    },
+    {
+      "url": "https://www.runoob.com/go/go-range.html",
+      "sha256": "be34de48af2fcb7b5e9a9e29b0535fd5d7c44734a6bbf372aa7fb8403c6ec5bf",
+      "bytes": 4213
+    },
+    {
+      "url": "https://www.runoob.com/go/go-map.html",
+      "sha256": "a448fd4da5134fec2136814cd451c342d51028ec57390703edd8c59f3ab5cddf",
+      "bytes": 3839
+    },
+    {
+      "url": "https://www.runoob.com/go/go-interfaces.html",
+      "sha256": "faf72005c51dae7ce131b177705296e20e99a5ececd24d494fc4db1b58ba8fb1",
+      "bytes": 8326
+    },
+    {
+      "url": "https://www.runoob.com/go/go-type-casting.html",
+      "sha256": "0b1c3d516fb800dc681ccdd4558f93259255fc7ef7f98d35bea7c3ed3282773f",
+      "bytes": 5390
+    },
+    {
+      "url": "https://www.runoob.com/go/go-generics.html",
+      "sha256": "a71a25a79a2f750c8b9820a21739983c3d1a4d8b0bfef5d9925c51aab3f40283",
+      "bytes": 10159
+    },
+    {
+      "url": "https://www.runoob.com/go/go-concurrent.html",
+      "sha256": "7762b5b4b7cf5e9bfb75cdbc577dae5033cccd9af1385fbd1c82018335fa0e0b",
+      "bytes": 7621
+    },
+    {
+      "url": "https://www.runoob.com/go/go-error-handling.html",
+      "sha256": "c60d33dd6ec18de9269fee314292efe4980752043ca7ef61603a42f427f4d76a",
+      "bytes": 5839
+    },
+    {
+      "url": "https://www.runoob.com/go/go-regex.html",
+      "sha256": "4f034c8b41ff480e09f04502bb48eaab9cb36aea8bd3b8666246c576f5d50560",
+      "bytes": 3275
+    },
+    {
+      "url": "https://www.runoob.com/go/go-type-assertion.html",
+      "sha256": "cb53f1305f01f15b9f03a02e6fca8d2c6a258ab3378d467f9bead0d2b84c3aaa",
+      "bytes": 3355
+    },
+    {
+      "url": "https://www.runoob.com/go/go-inheritance.html",
+      "sha256": "d083dfd1e8d1f4dc29e04cdf97e3d06ee738c44d39e91064c783e386f17f60e1",
+      "bytes": 3507
+    },
+    {
+      "url": "https://www.runoob.com/go/go-file-handle.html",
+      "sha256": "27737d6fe2f1cb768e15635e90bcc73ca2420e18b2469f8c3e9390f3df01d385",
+      "bytes": 12399
+    },
+    {
+      "url": "https://www.runoob.com/go/go-vscode.html",
+      "sha256": "38e071178c43c9c20a7fcc011fc07d9c266eddd84932ca39b98dcb1a57be4cbd",
+      "bytes": 4127
+    },
+    {
+      "url": "https://www.runoob.com/go/go-ide.html",
+      "sha256": "2df4de9a251cdaaf43476d7f00fe6bc11ee63cb311da5c1f02c4bd674a3fca1e",
+      "bytes": 1963
+    },
+    {
+      "url": "https://www.runoob.com/go/go-quiz.html",
+      "sha256": "53581366bbd0a7005d31be91a40977f4ab1ae3cad29d9cc3cc1c4b8d2ff8db32",
+      "bytes": 289
+    },
+    {
+      "url": "https://www.runoob.com/go/go-modules.html",
+      "sha256": "2dd10e8e3b5b9038f730786d26a8b027274b7aba2adb4d0bff993700f8d42dc1",
+      "bytes": 5976
+    }
+  ]
+}

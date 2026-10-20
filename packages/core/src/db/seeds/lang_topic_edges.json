@@ -1,0 +1,574 @@
+{
+  "schemaVersion": 1,
+  "collected_at": "2026-10-20",
+  "_notes": {
+    "source_discipline": "⚠️ §2.3 第 ① 条：前置边**自撰**，**不用源的侧栏顺序当真相**。反例见 §1.4：「Python3 模块」在源里是 #28，「Python logging 模块」是 #76 —— 相隔 48 位，而 logging 明显依赖模块与函数。",
+    "same_stage_edges_allowed": "⚠️ **允许同站边**（模块 ↔ 作用域这类真实依赖）—— 所以「边必然跨站」**不能**当作无环的理由，DL-04 的守卫必须做**真正的环检测**。",
+    "library_excluded": "⚠️ 边只挂 kind='language' 的条目（DL-12 的推论）：库级条目的前置是「任意语言 ＋ 按需用到」，几乎无序（§1.4），接进 DAG 就是制造永久阻塞点。",
+    "direction": "方向：(topic_slug, prereq_slug) —— topic 依赖 prereq（与表的 topic_id → prereq_topic_id 一致）",
+    "stage_order": "⚠️ 前置站不得晚于后继站（构建期自检 ⑤）：路线自上而下按站走，前置出现在更晚的站 = 「要学后面的才能学前面的」。同站边允许存在（模块 ↔ 作用域这类真实依赖），所以「边必然跨站」不能当作无环的理由 —— DL-04 靠真正的环检测。",
+    "stage_names": "语法基础 / 数据结构 / 函数与模块 / 面向对象 / 异常与文件 / 并发 / Web 框架 / 数据与部署"
+  },
+  "items": [
+    {
+      "lang": "python",
+      "topic_slug": "python3-data-type",
+      "prereq_slug": "python3-basic-syntax"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-data-type",
+      "prereq_slug": "python3-number"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-data-type",
+      "prereq_slug": "python3-basic-operators"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-string",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-string",
+      "prereq_slug": "python3-basic-syntax"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-list",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-list",
+      "prereq_slug": "python3-loop"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-tuple",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-dictionary",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-set",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-data-structure",
+      "prereq_slug": "python3-list"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-data-structure",
+      "prereq_slug": "python3-dictionary"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-data-structure",
+      "prereq_slug": "python3-set"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-comprehensions",
+      "prereq_slug": "python3-list"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-comprehensions",
+      "prereq_slug": "python3-loop"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-comprehensions",
+      "prereq_slug": "python3-conditional-statements"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-type-conversion",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-type-conversion",
+      "prereq_slug": "python3-basic-operators"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-built-in-functions",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-built-in-functions",
+      "prereq_slug": "python3-loop"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-function",
+      "prereq_slug": "python3-basic-syntax"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-function",
+      "prereq_slug": "python3-loop"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-function",
+      "prereq_slug": "python3-conditional-statements"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-lambda",
+      "prereq_slug": "python3-function"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-lambda",
+      "prereq_slug": "python3-conditional-statements"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-decorators",
+      "prereq_slug": "python3-function"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-decorators",
+      "prereq_slug": "python3-namespace-scope"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-module",
+      "prereq_slug": "python3-function"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-module",
+      "prereq_slug": "python3-namespace-scope"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-name-main",
+      "prereq_slug": "python3-module"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-namespace-scope",
+      "prereq_slug": "python3-function"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-iterator-generator",
+      "prereq_slug": "python3-function"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-iterator-generator",
+      "prereq_slug": "python3-loop"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-with-keyword",
+      "prereq_slug": "python3-function"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-with-keyword",
+      "prereq_slug": "python3-namespace-scope"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-type-hints",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-type-hints",
+      "prereq_slug": "python3-function"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-class",
+      "prereq_slug": "python3-function"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-class",
+      "prereq_slug": "python3-namespace-scope"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-class",
+      "prereq_slug": "python3-data-structure"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-examples",
+      "prereq_slug": "python3-class"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-errors-execptions",
+      "prereq_slug": "python3-function"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-errors-execptions",
+      "prereq_slug": "python3-conditional-statements"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-inputoutput",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-inputoutput",
+      "prereq_slug": "python3-basic-syntax"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-file-methods",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-file-methods",
+      "prereq_slug": "python3-inputoutput"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-os-file-methods",
+      "prereq_slug": "python3-file-methods"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-os-file-methods",
+      "prereq_slug": "python3-module"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-reg-expressions",
+      "prereq_slug": "python3-string"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-reg-expressions",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-date-time",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-date-time",
+      "prereq_slug": "python3-module"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-multithreading",
+      "prereq_slug": "python3-function"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-multithreading",
+      "prereq_slug": "python3-loop"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-multithreading",
+      "prereq_slug": "python3-os-file-methods"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-cgi-programming",
+      "prereq_slug": "python3-errors-execptions"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-cgi-programming",
+      "prereq_slug": "python3-inputoutput"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-socket",
+      "prereq_slug": "python3-os-file-methods"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-socket",
+      "prereq_slug": "python3-errors-execptions"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-smtp",
+      "prereq_slug": "python3-socket"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-smtp",
+      "prereq_slug": "python3-errors-execptions"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-uwsgi",
+      "prereq_slug": "python3-module"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-uwsgi",
+      "prereq_slug": "python3-cgi-programming"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python3-pip",
+      "prereq_slug": "python3-module"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-qt",
+      "prereq_slug": "python3-data-structure"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-qt",
+      "prereq_slug": "python3-module"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-ai-draw",
+      "prereq_slug": "python3-module"
+    },
+    {
+      "lang": "python",
+      "topic_slug": "python-ai-draw",
+      "prereq_slug": "python3-data-type"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-data-types",
+      "prereq_slug": "go-basic-syntax"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-data-types",
+      "prereq_slug": "go-operators"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-data-types",
+      "prereq_slug": "go-variables"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-variables",
+      "prereq_slug": "go-basic-syntax"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-constants",
+      "prereq_slug": "go-variables"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-constants",
+      "prereq_slug": "go-basic-syntax"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-arrays",
+      "prereq_slug": "go-data-types"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-pointers",
+      "prereq_slug": "go-variables"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-pointers",
+      "prereq_slug": "go-arrays"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-structures",
+      "prereq_slug": "go-data-types"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-structures",
+      "prereq_slug": "go-variables"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-slice",
+      "prereq_slug": "go-arrays"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-slice",
+      "prereq_slug": "go-pointers"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-range",
+      "prereq_slug": "go-arrays"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-range",
+      "prereq_slug": "go-slice"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-range",
+      "prereq_slug": "go-loops"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-map",
+      "prereq_slug": "go-data-types"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-map",
+      "prereq_slug": "go-variables"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-type-casting",
+      "prereq_slug": "go-data-types"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-type-casting",
+      "prereq_slug": "go-operators"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-type-assertion",
+      "prereq_slug": "go-data-types"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-type-assertion",
+      "prereq_slug": "go-basic-syntax"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-scope-rules",
+      "prereq_slug": "go-variables"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-functions",
+      "prereq_slug": "go-basic-syntax"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-functions",
+      "prereq_slug": "go-variables"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-recursion",
+      "prereq_slug": "go-functions"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-generics",
+      "prereq_slug": "go-functions"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-generics",
+      "prereq_slug": "go-data-types"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-modules",
+      "prereq_slug": "go-functions"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-modules",
+      "prereq_slug": "go-variables"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-interfaces",
+      "prereq_slug": "go-data-types"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-interfaces",
+      "prereq_slug": "go-functions"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-inheritance",
+      "prereq_slug": "go-structures"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-inheritance",
+      "prereq_slug": "go-interfaces"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-error-handling",
+      "prereq_slug": "go-functions"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-error-handling",
+      "prereq_slug": "go-data-types"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-file-handle",
+      "prereq_slug": "go-data-types"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-file-handle",
+      "prereq_slug": "go-functions"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-regex",
+      "prereq_slug": "go-data-types"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-regex",
+      "prereq_slug": "go-functions"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-concurrent",
+      "prereq_slug": "go-functions"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-concurrent",
+      "prereq_slug": "go-loops"
+    },
+    {
+      "lang": "go",
+      "topic_slug": "go-concurrent",
+      "prereq_slug": "go-data-types"
+    }
+  ]
+}

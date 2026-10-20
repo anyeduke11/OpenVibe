@@ -7,8 +7,18 @@
 // ⚠️ 与 `seed.ts`（terms / flows / prompts / playbooks）的四点关键差别：
 //   1. **没有 user-modifiable 路径**：runoob 是采集来的清单，不是用户输入 ⇒ 没有
 //      seed_hash 比对、没有「用户改过则跳过」分支。一次性 INSERT OR IGNORE。
-//   2. **没有 stage_id 归类、kind 归类**：本轮全部 stage_id=0 / kind='language'，
-//      P1d / P1.4 实测归类。详见 `seeds/lang_topics_python3.json` 的 `_notes`。
+//   2. **stage_id 由 P1.7 的分站产物带进来**（P1.7 之前是全 0，§3.6「站数与每站
+//      知识点数本轮不定死」）：分站的单源是 `seeds/_build/build-lang-topics-stages.py`，
+//      它把 stage_id 写进这两份 seed JSON；本 loader 只负责把它带上 INSERT。
+//      ⚠️ **库级条目（kind='library'）的 stage_id 恒为 0** —— 库级不进学习路线
+//      （DL-12），站号对它们无语义占位。
+//      ⚠️ **老库不会自动更新**：`INSERT OR IGNORE` 对已入库的行不改值 ⇒ 已在
+//      P1.7 之前建过库的机器，stage_id 仍是旧值，须由 P1.7 的 `seedTopicEdges` 回写。
+//      ⚠️ **kind 已由 P1.4 归类完毕**（不是全 'language'）：按 §1.4 的可复算规则
+//      打成 'language' / 'library'，Python 84 条里**严格库级 30 条 = 35.7%**（DL-13；
+//      spec §1.4 第 100 行已于 2026-10-20 订正为 30 条 = 35.7%（与此处一致），见
+//      `m9-classify-lang-topics.ts` 的 doc 与 `m9-p1-4-kind-classification.test.ts`）。
+//      分类器单源在 `m9-classify-lang-topics.ts`，规则见 spec §1.4。
 //   3. **正文不入仓**（DL-02）：seed 文件里只存标题与 URL。
 //   4. **不写到 seed_registry 的 contentHash 跳过**：runoob 一旦入库就是终态，
 //      用 INSERT OR IGNORE 自然幂等，registry 只用于"上次入库过"的诊断。

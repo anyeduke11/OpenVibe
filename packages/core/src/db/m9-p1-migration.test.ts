@@ -37,7 +37,7 @@ describe('M9 P1.1 · 0011 迁移 + §3.1 知识拓扑表', () => {
     h.close()
   })
 
-  it('lang_topics.kind 带 CHECK (DL-12：库级 36% ＝ 不可进学习路线)', () => {
+  it('lang_topics.kind 带 CHECK (DL-12：库级 35.7% ＝ 不可进学习路线)', () => {
     const h = newDb()
     // 正向：插入合法值应通过
     expect(() =>

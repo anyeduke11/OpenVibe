@@ -1,0 +1,5371 @@
+{
+  "_readme": "jobbole/awesome-python-cn 资源清单（README 列表）。⚠️ 只存标题与 URL，正文一个字未取（spec §3.2 版权与漂移约束）。",
+  "source": "https://github.com/jobbole/awesome-python-cn",
+  "collected_at": "2026-10-20",
+  "collect_method": "由 scripts/collect-m9-github-sources.ts 采集：GitHub readme API → 只看列表行 → 每个列表项只取第一个链接（其余在描述文字里）→ 锚点链接不算条目 → section 取最近的 ## / ### 标题",
+  "counts": {
+    "total": 877,
+    "unique_urls": 866,
+    "sections": {
+      "环境管理": 6,
+      "包管理": 8,
+      "包仓库": 4,
+      "分发": 9,
+      "构建工具": 6,
+      "交互式解析器": 5,
+      "文件": 9,
+      "日期和时间": 12,
+      "文本处理": 26,
+      "特殊文本格式处理": 21,
+      "自然语言处理": 16,
+      "文档": 6,
+      "配置": 6,
+      "命令行工具": 36,
+      "下载器": 5,
+      "图像处理": 16,
+      "OCR": 3,
+      "音频": 20,
+      "Video": 3,
+      "地理位置": 7,
+      "HTTP": 7,
+      "数据库": 4,
+      "数据库驱动": 23,
+      "ORM": 19,
+      "Web 框架": 16,
+      "WebSocket": 7,
+      "权限": 3,
+      "CMS": 12,
+      "电子商务": 10,
+      "RESTful API": 18,
+      "验证": 15,
+      "模板引擎": 4,
+      "队列": 6,
+      "搜索": 6,
+      "动态消息": 2,
+      "Web 资源管理": 8,
+      "缓存": 9,
+      "电子邮件": 15,
+      "国际化": 3,
+      "URL 处理": 5,
+      "HTML 处理": 23,
+      "网页内容提取": 12,
+      "表单": 7,
+      "数据验证": 8,
+      "序列化": 4,
+      "反垃圾技术": 2,
+      "标记": 1,
+      "管理面板": 10,
+      "Serverless 框架": 2,
+      "静态站点生成器": 7,
+      "进程": 4,
+      "并发和并行": 9,
+      "网络": 8,
+      "WSGI 服务器": 10,
+      "ASGI 服务器": 2,
+      "RPC 服务器": 4,
+      "密码学": 6,
+      "图形用户界面": 16,
+      "游戏开发": 9,
+      "日志": 8,
+      "测试": 36,
+      "渗透测试": 3,
+      "代码分析和 Lint 工具": 22,
+      "调试工具": 22,
+      "科学计算和数据分析": 29,
+      "数据可视化": 20,
+      "计算机视觉": 8,
+      "深度学习": 11,
+      "机器学习": 14,
+      "推荐系统": 8,
+      "分布式计算": 10,
+      "函数式编程": 7,
+      "第三方 API": 9,
+      "DevOps 工具": 18,
+      "任务调度": 11,
+      "外来函数接口": 4,
+      "重构": 3,
+      "高性能": 12,
+      "微软的 Windows 平台": 5,
+      "网络可视化和 SDN": 6,
+      "硬件": 8,
+      "兼容性": 3,
+      "算法和设计模式": 7,
+      "内置类的增强版实现": 5,
+      "机器人": 2,
+      "聊天工具": 1,
+      "编辑器插件和 IDE": 10,
+      "企业级应用集成": 1,
+      "GraphQL": 4,
+      "股票金融": 4,
+      "杂项": 6
+    }
+  },
+  "caveats": [
+    "⚠️ 本清单**未做** HEAD 验链：条目是第三方外链的全量候选池，存活调查不是本模块的责任（§3.14 的失效巡检针对 89 条资源，属 P1c）",
+    "GitHub API 匿名限流 60 次/小时；本脚本一次最多 8 个请求，设 GITHUB_TOKEN 可放宽"
+  ],
+  "items": [
+    {
+      "ordinal": 1,
+      "section": "环境管理",
+      "title": "p",
+      "url": "https://github.com/qw3rtman/p"
+    },
+    {
+      "ordinal": 2,
+      "section": "环境管理",
+      "title": "pyenv",
+      "url": "https://github.com/yyuu/pyenv"
+    },
+    {
+      "ordinal": 3,
+      "section": "环境管理",
+      "title": "Vex",
+      "url": "https://github.com/sashahart/vex"
+    },
+    {
+      "ordinal": 4,
+      "section": "环境管理",
+      "title": "virtualenv",
+      "url": "https://pypi.python.org/pypi/virtualenv"
+    },
+    {
+      "ordinal": 5,
+      "section": "环境管理",
+      "title": "virtualenvwrapper",
+      "url": "https://pypi.python.org/pypi/virtualenvwrapper"
+    },
+    {
+      "ordinal": 6,
+      "section": "环境管理",
+      "title": "buildout",
+      "url": "http://www.buildout.org/en/latest"
+    },
+    {
+      "ordinal": 7,
+      "section": "包管理",
+      "title": "pip",
+      "url": "https://pip.pypa.io/"
+    },
+    {
+      "ordinal": 8,
+      "section": "包管理",
+      "title": "pip-tools",
+      "url": "https://github.com/nvie/pip-tools"
+    },
+    {
+      "ordinal": 9,
+      "section": "包管理",
+      "title": "PyPI",
+      "url": "https://pypi.org/"
+    },
+    {
+      "ordinal": 10,
+      "section": "包管理",
+      "title": "pipenv",
+      "url": "https://github.com/pypa/pipenv"
+    },
+    {
+      "ordinal": 11,
+      "section": "包管理",
+      "title": "poetry",
+      "url": "https://poetry.eustace.io"
+    },
+    {
+      "ordinal": 12,
+      "section": "包管理",
+      "title": "conda",
+      "url": "https://github.com/conda/conda/"
+    },
+    {
+      "ordinal": 13,
+      "section": "包管理",
+      "title": "Curdling",
+      "url": "http://clarete.li/curdling/"
+    },
+    {
+      "ordinal": 14,
+      "section": "包管理",
+      "title": "wheel",
+      "url": "http://pythonwheels.com/"
+    },
+    {
+      "ordinal": 15,
+      "section": "包仓库",
+      "title": "warehouse",
+      "url": "https://github.com/pypa/warehouse"
+    },
+    {
+      "ordinal": 16,
+      "section": "包仓库",
+      "title": "bandersnatch",
+      "url": "https://bitbucket.org/pypa/bandersnatch"
+    },
+    {
+      "ordinal": 17,
+      "section": "包仓库",
+      "title": "devpi",
+      "url": "http://doc.devpi.net/"
+    },
+    {
+      "ordinal": 18,
+      "section": "包仓库",
+      "title": "localshop",
+      "url": "https://github.com/mvantellingen/localshop"
+    },
+    {
+      "ordinal": 19,
+      "section": "分发",
+      "title": "PyInstaller",
+      "url": "https://github.com/pyinstaller/pyinstaller"
+    },
+    {
+      "ordinal": 20,
+      "section": "分发",
+      "title": "cxFreeze",
+      "url": "https://cx-freeze.readthedocs.io/en/latest/index.html"
+    },
+    {
+      "ordinal": 21,
+      "section": "分发",
+      "title": "dh-virtualenv",
+      "url": "http://dh-virtualenv.readthedocs.org/"
+    },
+    {
+      "ordinal": 22,
+      "section": "分发",
+      "title": "Nuitka",
+      "url": "http://nuitka.net/"
+    },
+    {
+      "ordinal": 23,
+      "section": "分发",
+      "title": "py2app",
+      "url": "http://pythonhosted.org/py2app/"
+    },
+    {
+      "ordinal": 24,
+      "section": "分发",
+      "title": "py2exe",
+      "url": "http://www.py2exe.org/"
+    },
+    {
+      "ordinal": 25,
+      "section": "分发",
+      "title": "pynsist",
+      "url": "http://pynsist.readthedocs.org/"
+    },
+    {
+      "ordinal": 26,
+      "section": "分发",
+      "title": "pyarmor",
+      "url": "https://github.com/dashingsoft/pyarmor"
+    },
+    {
+      "ordinal": 27,
+      "section": "分发",
+      "title": "shiv",
+      "url": "https://github.com/linkedin/shiv"
+    },
+    {
+      "ordinal": 28,
+      "section": "构建工具",
+      "title": "buildout",
+      "url": "http://www.buildout.org/"
+    },
+    {
+      "ordinal": 29,
+      "section": "构建工具",
+      "title": "BitBake",
+      "url": "http://www.yoctoproject.org/docs/1.6/bitbake-user-manual/bitbake-user-manual.html"
+    },
+    {
+      "ordinal": 30,
+      "section": "构建工具",
+      "title": "fabricate",
+      "url": "https://code.google.com/archive/p/fabricate"
+    },
+    {
+      "ordinal": 31,
+      "section": "构建工具",
+      "title": "PlatformIO",
+      "url": "https://github.com/platformio/platformio"
+    },
+    {
+      "ordinal": 32,
+      "section": "构建工具",
+      "title": "PyBuilder",
+      "url": "https://github.com/pybuilder/pybuilder"
+    },
+    {
+      "ordinal": 33,
+      "section": "构建工具",
+      "title": "SCons",
+      "url": "http://www.scons.org/"
+    },
+    {
+      "ordinal": 34,
+      "section": "交互式解析器",
+      "title": "IPython",
+      "url": "https://github.com/ipython/ipython"
+    },
+    {
+      "ordinal": 35,
+      "section": "交互式解析器",
+      "title": "bpython",
+      "url": "https://github.com/bpython/bpython"
+    },
+    {
+      "ordinal": 36,
+      "section": "交互式解析器",
+      "title": "ptpython",
+      "url": "https://github.com/jonathanslenders/ptpython"
+    },
+    {
+      "ordinal": 37,
+      "section": "交互式解析器",
+      "title": "Jupyter Notebook (IPython)",
+      "url": "https://jupyter.org"
+    },
+    {
+      "ordinal": 38,
+      "section": "交互式解析器",
+      "title": "awesome-jupyter",
+      "url": "https://github.com/markusschanta/awesome-jupyter"
+    },
+    {
+      "ordinal": 39,
+      "section": "文件",
+      "title": "aiofiles",
+      "url": "https://github.com/Tinche/aiofiles"
+    },
+    {
+      "ordinal": 40,
+      "section": "文件",
+      "title": "imghdr",
+      "url": "https://docs.python.org/2/library/imghdr.html"
+    },
+    {
+      "ordinal": 41,
+      "section": "文件",
+      "title": "mimetypes",
+      "url": "https://docs.python.org/2/library/mimetypes.html"
+    },
+    {
+      "ordinal": 42,
+      "section": "文件",
+      "title": "path.py",
+      "url": "https://github.com/jaraco/path.py"
+    },
+    {
+      "ordinal": 43,
+      "section": "文件",
+      "title": "pathlib",
+      "url": "https://pathlib.readthedocs.org/en/pep428/"
+    },
+    {
+      "ordinal": 44,
+      "section": "文件",
+      "title": "python-magic",
+      "url": "https://github.com/ahupp/python-magic"
+    },
+    {
+      "ordinal": 45,
+      "section": "文件",
+      "title": "Unipath",
+      "url": "https://github.com/mikeorr/Unipath"
+    },
+    {
+      "ordinal": 46,
+      "section": "文件",
+      "title": "watchdog",
+      "url": "https://github.com/gorakhargosh/watchdog"
+    },
+    {
+      "ordinal": 47,
+      "section": "文件",
+      "title": "PyFilesystem2",
+      "url": "https://github.com/pyfilesystem/pyfilesystem2"
+    },
+    {
+      "ordinal": 48,
+      "section": "日期和时间",
+      "title": "arrow",
+      "url": "https://github.com/crsmithdev/arrow"
+    },
+    {
+      "ordinal": 49,
+      "section": "日期和时间",
+      "title": "Chronyk",
+      "url": "https://github.com/KoffeinFlummi/Chronyk"
+    },
+    {
+      "ordinal": 50,
+      "section": "日期和时间",
+      "title": "dateutil",
+      "url": "https://pypi.python.org/pypi/python-dateutil"
+    },
+    {
+      "ordinal": 51,
+      "section": "日期和时间",
+      "title": "delorean",
+      "url": "https://github.com/myusuf3/delorean/"
+    },
+    {
+      "ordinal": 52,
+      "section": "日期和时间",
+      "title": "maya",
+      "url": "https://github.com/kennethreitz/maya"
+    },
+    {
+      "ordinal": 53,
+      "section": "日期和时间",
+      "title": "pendulum",
+      "url": "https://github.com/sdispater/pendulum"
+    },
+    {
+      "ordinal": 54,
+      "section": "日期和时间",
+      "title": "PyTime",
+      "url": "https://github.com/shinux/PyTime"
+    },
+    {
+      "ordinal": 55,
+      "section": "日期和时间",
+      "title": "pytz",
+      "url": "https://launchpad.net/pytz"
+    },
+    {
+      "ordinal": 56,
+      "section": "日期和时间",
+      "title": "when.py",
+      "url": "https://github.com/dirn/When.py"
+    },
+    {
+      "ordinal": 57,
+      "section": "日期和时间",
+      "title": "dateutil",
+      "url": "https://github.com/dateutil/dateutil"
+    },
+    {
+      "ordinal": 58,
+      "section": "日期和时间",
+      "title": "moment",
+      "url": "https://github.com/zachwill/moment"
+    },
+    {
+      "ordinal": 59,
+      "section": "日期和时间",
+      "title": "pytz",
+      "url": "https://launchpad.net/pytz"
+    },
+    {
+      "ordinal": 60,
+      "section": "文本处理",
+      "title": "chardet",
+      "url": "https://github.com/chardet/chardet"
+    },
+    {
+      "ordinal": 61,
+      "section": "文本处理",
+      "title": "difflib",
+      "url": "https://docs.python.org/2/library/difflib.html"
+    },
+    {
+      "ordinal": 62,
+      "section": "文本处理",
+      "title": "ftfy",
+      "url": "https://github.com/LuminosoInsight/python-ftfy"
+    },
+    {
+      "ordinal": 63,
+      "section": "文本处理",
+      "title": "thefuzz",
+      "url": "https://github.com/seatgeek/thefuzz"
+    },
+    {
+      "ordinal": 64,
+      "section": "文本处理",
+      "title": "Levenshtein",
+      "url": "https://github.com/ztane/python-Levenshtein/"
+    },
+    {
+      "ordinal": 65,
+      "section": "文本处理",
+      "title": "pangu.py",
+      "url": "https://github.com/vinta/pangu.py"
+    },
+    {
+      "ordinal": 66,
+      "section": "文本处理",
+      "title": "pypinyin",
+      "url": "https://github.com/mozillazg/python-pinyin"
+    },
+    {
+      "ordinal": 67,
+      "section": "文本处理",
+      "title": "shortuuid",
+      "url": "https://github.com/stochastic-technologies/shortuuid"
+    },
+    {
+      "ordinal": 68,
+      "section": "文本处理",
+      "title": "simplejson",
+      "url": "https://github.com/simplejson/simplejson"
+    },
+    {
+      "ordinal": 69,
+      "section": "文本处理",
+      "title": "unidecode",
+      "url": "https://pypi.python.org/pypi/Unidecode"
+    },
+    {
+      "ordinal": 70,
+      "section": "文本处理",
+      "title": "uniout",
+      "url": "https://github.com/moskytw/uniout"
+    },
+    {
+      "ordinal": 71,
+      "section": "文本处理",
+      "title": "xpinyin",
+      "url": "https://github.com/lxneng/xpinyin"
+    },
+    {
+      "ordinal": 72,
+      "section": "文本处理",
+      "title": "pyfiglet",
+      "url": "https://github.com/pwaller/pyfiglet"
+    },
+    {
+      "ordinal": 73,
+      "section": "文本处理",
+      "title": "flashtext",
+      "url": "https://github.com/vi3k6i5/flashtext"
+    },
+    {
+      "ordinal": 74,
+      "section": "文本处理",
+      "title": "textdistance",
+      "url": "https://github.com/orsinium/textdistance"
+    },
+    {
+      "ordinal": 75,
+      "section": "文本处理",
+      "title": "awesome-slugify",
+      "url": "https://github.com/dimka665/awesome-slugify"
+    },
+    {
+      "ordinal": 76,
+      "section": "文本处理",
+      "title": "python-slugify",
+      "url": "https://github.com/un33k/python-slugify"
+    },
+    {
+      "ordinal": 77,
+      "section": "文本处理",
+      "title": "unicode-slugify",
+      "url": "https://github.com/mozilla/unicode-slugify"
+    },
+    {
+      "ordinal": 78,
+      "section": "文本处理",
+      "title": "phonenumbers",
+      "url": "https://github.com/daviddrysdale/python-phonenumbers"
+    },
+    {
+      "ordinal": 79,
+      "section": "文本处理",
+      "title": "python-phonenumbers",
+      "url": "https://github.com/daviddrysdale/python-phonenumbers"
+    },
+    {
+      "ordinal": 80,
+      "section": "文本处理",
+      "title": "PLY",
+      "url": "http://www.dabeaz.com/ply/"
+    },
+    {
+      "ordinal": 81,
+      "section": "文本处理",
+      "title": "Pygments",
+      "url": "http://pygments.org/"
+    },
+    {
+      "ordinal": 82,
+      "section": "文本处理",
+      "title": "pyparsing",
+      "url": "http://pyparsing.wikispaces.com/"
+    },
+    {
+      "ordinal": 83,
+      "section": "文本处理",
+      "title": "python-nameparser",
+      "url": "https://github.com/derek73/python-nameparser"
+    },
+    {
+      "ordinal": 84,
+      "section": "文本处理",
+      "title": "python-user-agents",
+      "url": "https://github.com/selwin/python-user-agents"
+    },
+    {
+      "ordinal": 85,
+      "section": "文本处理",
+      "title": "sqlparse",
+      "url": "https://sqlparse.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 86,
+      "section": "特殊文本格式处理",
+      "title": "tablib",
+      "url": "https://github.com/kennethreitz/tablib"
+    },
+    {
+      "ordinal": 87,
+      "section": "特殊文本格式处理",
+      "title": "Marmir",
+      "url": "https://github.com/brianray/mm"
+    },
+    {
+      "ordinal": 88,
+      "section": "特殊文本格式处理",
+      "title": "openpyxl",
+      "url": "https://openpyxl.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 89,
+      "section": "特殊文本格式处理",
+      "title": "pyexcel",
+      "url": "https://github.com/pyexcel/pyexcel"
+    },
+    {
+      "ordinal": 90,
+      "section": "特殊文本格式处理",
+      "title": "python-docx",
+      "url": "https://github.com/python-openxml/python-docx"
+    },
+    {
+      "ordinal": 91,
+      "section": "特殊文本格式处理",
+      "title": "python-pptx",
+      "url": "https://github.com/scanny/python-pptx"
+    },
+    {
+      "ordinal": 92,
+      "section": "特殊文本格式处理",
+      "title": "relatorio",
+      "url": "http://relatorio.tryton.org/"
+    },
+    {
+      "ordinal": 93,
+      "section": "特殊文本格式处理",
+      "title": "unoconv",
+      "url": "https://github.com/dagwieers/unoconv"
+    },
+    {
+      "ordinal": 94,
+      "section": "特殊文本格式处理",
+      "title": "XlsxWriter",
+      "url": "https://xlsxwriter.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 95,
+      "section": "特殊文本格式处理",
+      "title": "xlwings",
+      "url": "http://xlwings.org/"
+    },
+    {
+      "ordinal": 96,
+      "section": "特殊文本格式处理",
+      "title": "xlwt",
+      "url": "https://github.com/python-excel/xlwt"
+    },
+    {
+      "ordinal": 97,
+      "section": "特殊文本格式处理",
+      "title": "docxtpl",
+      "url": "https://github.com/elapouya/python-docx-template"
+    },
+    {
+      "ordinal": 98,
+      "section": "特殊文本格式处理",
+      "title": "PDFMiner",
+      "url": "https://github.com/euske/pdfminer"
+    },
+    {
+      "ordinal": 99,
+      "section": "特殊文本格式处理",
+      "title": "PyPDF2",
+      "url": "https://github.com/mstamy2/PyPDF2"
+    },
+    {
+      "ordinal": 100,
+      "section": "特殊文本格式处理",
+      "title": "ReportLab",
+      "url": "http://www.reportlab.com/opensource/"
+    },
+    {
+      "ordinal": 101,
+      "section": "特殊文本格式处理",
+      "title": "Mistune",
+      "url": "https://github.com/lepture/mistune"
+    },
+    {
+      "ordinal": 102,
+      "section": "特殊文本格式处理",
+      "title": "Python-Markdown",
+      "url": "https://github.com/waylan/Python-Markdown"
+    },
+    {
+      "ordinal": 103,
+      "section": "特殊文本格式处理",
+      "title": "Python-Markdown2",
+      "url": "https://github.com/trentm/python-markdown2"
+    },
+    {
+      "ordinal": 104,
+      "section": "特殊文本格式处理",
+      "title": "PyYAML",
+      "url": "http://pyyaml.org/"
+    },
+    {
+      "ordinal": 105,
+      "section": "特殊文本格式处理",
+      "title": "csvkit",
+      "url": "https://github.com/wireservice/csvkit"
+    },
+    {
+      "ordinal": 106,
+      "section": "特殊文本格式处理",
+      "title": "unp",
+      "url": "https://github.com/mitsuhiko/unp"
+    },
+    {
+      "ordinal": 107,
+      "section": "自然语言处理",
+      "title": "NLTK",
+      "url": "http://www.nltk.org/"
+    },
+    {
+      "ordinal": 108,
+      "section": "自然语言处理",
+      "title": "gensim",
+      "url": "https://github.com/piskvorky/gensim"
+    },
+    {
+      "ordinal": 109,
+      "section": "自然语言处理",
+      "title": "jieba",
+      "url": "https://github.com/fxsjy/jieba"
+    },
+    {
+      "ordinal": 110,
+      "section": "自然语言处理",
+      "title": "langid.py",
+      "url": "https://github.com/saffsd/langid.py"
+    },
+    {
+      "ordinal": 111,
+      "section": "自然语言处理",
+      "title": "Pattern",
+      "url": "http://www.clips.ua.ac.be/pattern"
+    },
+    {
+      "ordinal": 112,
+      "section": "自然语言处理",
+      "title": "SnowNLP",
+      "url": "https://github.com/isnowfy/snownlp"
+    },
+    {
+      "ordinal": 113,
+      "section": "自然语言处理",
+      "title": "TextBlob",
+      "url": "http://textblob.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 114,
+      "section": "自然语言处理",
+      "title": "TextGrocery",
+      "url": "https://github.com/2shou/TextGrocery"
+    },
+    {
+      "ordinal": 115,
+      "section": "自然语言处理",
+      "title": "thulac",
+      "url": "https://github.com/thunlp/THULAC-Python"
+    },
+    {
+      "ordinal": 116,
+      "section": "自然语言处理",
+      "title": "polyglot",
+      "url": "https://github.com/aboSamoor/polyglot"
+    },
+    {
+      "ordinal": 117,
+      "section": "自然语言处理",
+      "title": "pytext",
+      "url": "https://github.com/facebookresearch/pytext"
+    },
+    {
+      "ordinal": 118,
+      "section": "自然语言处理",
+      "title": "PyTorch-NLP",
+      "url": "https://github.com/PetrochukM/PyTorch-NLP"
+    },
+    {
+      "ordinal": 119,
+      "section": "自然语言处理",
+      "title": "spacy",
+      "url": "https://spacy.io/"
+    },
+    {
+      "ordinal": 120,
+      "section": "自然语言处理",
+      "title": "Stanza",
+      "url": "https://github.com/stanfordnlp/stanza"
+    },
+    {
+      "ordinal": 121,
+      "section": "自然语言处理",
+      "title": "funNLP",
+      "url": "https://github.com/fighting41love/funNLP"
+    },
+    {
+      "ordinal": 122,
+      "section": "自然语言处理",
+      "title": "pkuseg-python",
+      "url": "https://github.com/lancopku/pkuseg-python"
+    },
+    {
+      "ordinal": 123,
+      "section": "文档",
+      "title": "Sphinx",
+      "url": "http://www.sphinx-doc.org/en/latest/"
+    },
+    {
+      "ordinal": 124,
+      "section": "文档",
+      "title": "awesome-sphinxdoc",
+      "url": "https://github.com/yoloseem/awesome-sphinxdoc"
+    },
+    {
+      "ordinal": 125,
+      "section": "文档",
+      "title": "MkDocs",
+      "url": "http://www.mkdocs.org/"
+    },
+    {
+      "ordinal": 126,
+      "section": "文档",
+      "title": "pdoc",
+      "url": "https://github.com/BurntSushi/pdoc"
+    },
+    {
+      "ordinal": 127,
+      "section": "文档",
+      "title": "Pycco",
+      "url": "https://github.com/pycco-docs/pycco"
+    },
+    {
+      "ordinal": 128,
+      "section": "文档",
+      "title": "readthedocs",
+      "url": "https://github.com/rtfd/readthedocs.org/"
+    },
+    {
+      "ordinal": 129,
+      "section": "配置",
+      "title": "config",
+      "url": "https://www.red-dove.com/config-doc/"
+    },
+    {
+      "ordinal": 130,
+      "section": "配置",
+      "title": "ConfigObj",
+      "url": "http://www.voidspace.org.uk/python/configobj.html"
+    },
+    {
+      "ordinal": 131,
+      "section": "配置",
+      "title": "ConfigParser",
+      "url": "https://docs.python.org/2/library/configparser.html"
+    },
+    {
+      "ordinal": 132,
+      "section": "配置",
+      "title": "profig",
+      "url": "http://profig.readthedocs.org/en/default/"
+    },
+    {
+      "ordinal": 133,
+      "section": "配置",
+      "title": "python-decouple",
+      "url": "https://github.com/henriquebastos/python-decouple"
+    },
+    {
+      "ordinal": 134,
+      "section": "配置",
+      "title": "hydra",
+      "url": "https://github.com/facebookresearch/hydra"
+    },
+    {
+      "ordinal": 135,
+      "section": "命令行工具",
+      "title": "cement",
+      "url": "http://builtoncement.com/"
+    },
+    {
+      "ordinal": 136,
+      "section": "命令行工具",
+      "title": "click",
+      "url": "http://click.pocoo.org/dev/"
+    },
+    {
+      "ordinal": 137,
+      "section": "命令行工具",
+      "title": "cliff",
+      "url": "http://docs.openstack.org/developer/cliff/"
+    },
+    {
+      "ordinal": 138,
+      "section": "命令行工具",
+      "title": "clint",
+      "url": "https://github.com/kennethreitz/clint"
+    },
+    {
+      "ordinal": 139,
+      "section": "命令行工具",
+      "title": "docopt",
+      "url": "http://docopt.org/"
+    },
+    {
+      "ordinal": 140,
+      "section": "命令行工具",
+      "title": "Gooey",
+      "url": "https://github.com/chriskiehl/Gooey"
+    },
+    {
+      "ordinal": 141,
+      "section": "命令行工具",
+      "title": "python-prompt-toolkit",
+      "url": "https://github.com/jonathanslenders/python-prompt-toolkit"
+    },
+    {
+      "ordinal": 142,
+      "section": "命令行工具",
+      "title": "python-fire",
+      "url": "https://github.com/google/python-fire"
+    },
+    {
+      "ordinal": 143,
+      "section": "命令行工具",
+      "title": "Pythonpy",
+      "url": "https://github.com/Russell91/pythonpy/wiki"
+    },
+    {
+      "ordinal": 144,
+      "section": "命令行工具",
+      "title": "asciimatics",
+      "url": "https://github.com/peterbrittain/asciimatics"
+    },
+    {
+      "ordinal": 145,
+      "section": "命令行工具",
+      "title": "alive-progress",
+      "url": "https://github.com/rsalmei/alive-progress"
+    },
+    {
+      "ordinal": 146,
+      "section": "命令行工具",
+      "title": "colorama",
+      "url": "https://pypi.python.org/pypi/colorama"
+    },
+    {
+      "ordinal": 147,
+      "section": "命令行工具",
+      "title": "bashplotlib",
+      "url": "https://github.com/glamp/bashplotlib"
+    },
+    {
+      "ordinal": 148,
+      "section": "命令行工具",
+      "title": "rich",
+      "url": "https://github.com/willmcgugan/rich"
+    },
+    {
+      "ordinal": 149,
+      "section": "命令行工具",
+      "title": "tqdm",
+      "url": "https://github.com/tqdm/tqdm"
+    },
+    {
+      "ordinal": 150,
+      "section": "命令行工具",
+      "title": "aws-cli",
+      "url": "https://github.com/aws/aws-cli"
+    },
+    {
+      "ordinal": 151,
+      "section": "命令行工具",
+      "title": "caniusepython3",
+      "url": "https://github.com/brettcannon/caniusepython3"
+    },
+    {
+      "ordinal": 152,
+      "section": "命令行工具",
+      "title": "cookiecutter",
+      "url": "https://github.com/audreyr/cookiecutter"
+    },
+    {
+      "ordinal": 153,
+      "section": "命令行工具",
+      "title": "doitlive",
+      "url": "https://github.com/sloria/doitlive"
+    },
+    {
+      "ordinal": 154,
+      "section": "命令行工具",
+      "title": "pyftpdlib",
+      "url": "https://github.com/giampaolo/pyftpdlib"
+    },
+    {
+      "ordinal": 155,
+      "section": "命令行工具",
+      "title": "howdoi",
+      "url": "https://github.com/gleitz/howdoi"
+    },
+    {
+      "ordinal": 156,
+      "section": "命令行工具",
+      "title": "PathPicker",
+      "url": "https://github.com/facebook/PathPicker"
+    },
+    {
+      "ordinal": 157,
+      "section": "命令行工具",
+      "title": "percol",
+      "url": "https://github.com/mooz/percol"
+    },
+    {
+      "ordinal": 158,
+      "section": "命令行工具",
+      "title": "thefuck",
+      "url": "https://github.com/nvbn/thefuck"
+    },
+    {
+      "ordinal": 159,
+      "section": "命令行工具",
+      "title": "try",
+      "url": "https://github.com/timofurrer/try"
+    },
+    {
+      "ordinal": 160,
+      "section": "命令行工具",
+      "title": "copier",
+      "url": "https://github.com/pykong/copier"
+    },
+    {
+      "ordinal": 161,
+      "section": "命令行工具",
+      "title": "Invoke",
+      "url": "https://github.com/pyinvoke/invoke#readme"
+    },
+    {
+      "ordinal": 162,
+      "section": "命令行工具",
+      "title": "tmuxp",
+      "url": "https://github.com/tony/tmuxp"
+    },
+    {
+      "ordinal": 163,
+      "section": "命令行工具",
+      "title": "httpie",
+      "url": "https://github.com/jkbrzt/httpie"
+    },
+    {
+      "ordinal": 164,
+      "section": "命令行工具",
+      "title": "iredis",
+      "url": "https://github.com/laixintao/iredis"
+    },
+    {
+      "ordinal": 165,
+      "section": "命令行工具",
+      "title": "kube-shell",
+      "url": "https://github.com/cloudnativelabs/kube-shell"
+    },
+    {
+      "ordinal": 166,
+      "section": "命令行工具",
+      "title": "litecli",
+      "url": "https://github.com/dbcli/litecli"
+    },
+    {
+      "ordinal": 167,
+      "section": "命令行工具",
+      "title": "mycli",
+      "url": "https://github.com/dbcli/mycli"
+    },
+    {
+      "ordinal": 168,
+      "section": "命令行工具",
+      "title": "pgcli",
+      "url": "https://github.com/dbcli/pgcli"
+    },
+    {
+      "ordinal": 169,
+      "section": "命令行工具",
+      "title": "SAWS",
+      "url": "https://github.com/donnemartin/saws"
+    },
+    {
+      "ordinal": 170,
+      "section": "命令行工具",
+      "title": "xonsh",
+      "url": "https://github.com/xonsh/xonsh/"
+    },
+    {
+      "ordinal": 171,
+      "section": "下载器",
+      "title": "s3cmd",
+      "url": "https://github.com/s3tools/s3cmd"
+    },
+    {
+      "ordinal": 172,
+      "section": "下载器",
+      "title": "s4cmd",
+      "url": "https://github.com/bloomreach/s4cmd"
+    },
+    {
+      "ordinal": 173,
+      "section": "下载器",
+      "title": "you-get",
+      "url": "https://www.soimort.org/you-get/"
+    },
+    {
+      "ordinal": 174,
+      "section": "下载器",
+      "title": "youtube-dl",
+      "url": "http://rg3.github.io/youtube-dl/"
+    },
+    {
+      "ordinal": 175,
+      "section": "下载器",
+      "title": "akshare",
+      "url": "https://github.com/jindaxiang/akshare"
+    },
+    {
+      "ordinal": 176,
+      "section": "图像处理",
+      "title": "pillow",
+      "url": "http://pillow.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 177,
+      "section": "图像处理",
+      "title": "hmap",
+      "url": "https://github.com/rossgoodwin/hmap"
+    },
+    {
+      "ordinal": 178,
+      "section": "图像处理",
+      "title": "imgSeek",
+      "url": "https://sourceforge.net/projects/imgseek/"
+    },
+    {
+      "ordinal": 179,
+      "section": "图像处理",
+      "title": "nude.py",
+      "url": "https://github.com/hhatto/nude.py"
+    },
+    {
+      "ordinal": 180,
+      "section": "图像处理",
+      "title": "python-barcode",
+      "url": "https://github.com/WhyNotHugo/python-barcode"
+    },
+    {
+      "ordinal": 181,
+      "section": "图像处理",
+      "title": "pygram",
+      "url": "https://github.com/ajkumar25/pygram"
+    },
+    {
+      "ordinal": 182,
+      "section": "图像处理",
+      "title": "python-qrcode",
+      "url": "https://github.com/lincolnloop/python-qrcode"
+    },
+    {
+      "ordinal": 183,
+      "section": "图像处理",
+      "title": "Quads",
+      "url": "https://github.com/fogleman/Quads"
+    },
+    {
+      "ordinal": 184,
+      "section": "图像处理",
+      "title": "scikit-image",
+      "url": "http://scikit-image.org/"
+    },
+    {
+      "ordinal": 185,
+      "section": "图像处理",
+      "title": "thumbor",
+      "url": "https://github.com/thumbor/thumbor"
+    },
+    {
+      "ordinal": 186,
+      "section": "图像处理",
+      "title": "wand",
+      "url": "https://github.com/dahlia/wand"
+    },
+    {
+      "ordinal": 187,
+      "section": "图像处理",
+      "title": "facerecognition",
+      "url": "https://github.com/ageitgey/face_recognition"
+    },
+    {
+      "ordinal": 188,
+      "section": "图像处理",
+      "title": "pagan",
+      "url": "https://github.com/daboth/pagan"
+    },
+    {
+      "ordinal": 189,
+      "section": "图像处理",
+      "title": "PyMatting",
+      "url": "https://github.com/pymatting/pymatting"
+    },
+    {
+      "ordinal": 190,
+      "section": "图像处理",
+      "title": "pywal",
+      "url": "https://github.com/dylanaraps/pywal"
+    },
+    {
+      "ordinal": 191,
+      "section": "图像处理",
+      "title": "pyvips",
+      "url": "https://github.com/libvips/pyvips"
+    },
+    {
+      "ordinal": 192,
+      "section": "OCR",
+      "title": "paddleocr",
+      "url": "https://github.com/PaddlePaddle/PaddleOCR"
+    },
+    {
+      "ordinal": 193,
+      "section": "OCR",
+      "title": "pyocr",
+      "url": "https://gitlab.gnome.org/World/OpenPaperwork/pyocr"
+    },
+    {
+      "ordinal": 194,
+      "section": "OCR",
+      "title": "pytesseract",
+      "url": "https://github.com/madmaze/pytesseract"
+    },
+    {
+      "ordinal": 195,
+      "section": "音频",
+      "title": "audiolazy",
+      "url": "https://github.com/danilobellini/audiolazy"
+    },
+    {
+      "ordinal": 196,
+      "section": "音频",
+      "title": "audioread",
+      "url": "https://github.com/beetbox/audioread"
+    },
+    {
+      "ordinal": 197,
+      "section": "音频",
+      "title": "beets",
+      "url": "http://beets.io/"
+    },
+    {
+      "ordinal": 198,
+      "section": "音频",
+      "title": "dejavu",
+      "url": "https://github.com/worldveil/dejavu"
+    },
+    {
+      "ordinal": 199,
+      "section": "音频",
+      "title": "django-elastic-transcoder",
+      "url": "https://github.com/StreetVoice/django-elastic-transcoder"
+    },
+    {
+      "ordinal": 200,
+      "section": "音频",
+      "title": "eyeD3",
+      "url": "http://eyed3.nicfit.net/"
+    },
+    {
+      "ordinal": 201,
+      "section": "音频",
+      "title": "id3reader",
+      "url": "http://nedbatchelder.com/code/modules/id3reader.py"
+    },
+    {
+      "ordinal": 202,
+      "section": "音频",
+      "title": "m3u8",
+      "url": "https://github.com/globocom/m3u8"
+    },
+    {
+      "ordinal": 203,
+      "section": "音频",
+      "title": "mutagen",
+      "url": "https://bitbucket.org/lazka/mutagen"
+    },
+    {
+      "ordinal": 204,
+      "section": "音频",
+      "title": "pydub",
+      "url": "https://github.com/jiaaro/pydub"
+    },
+    {
+      "ordinal": 205,
+      "section": "音频",
+      "title": "pyechonest",
+      "url": "https://github.com/echonest/pyechonest"
+    },
+    {
+      "ordinal": 206,
+      "section": "音频",
+      "title": "talkbox",
+      "url": "http://scikits.appspot.com/talkbox"
+    },
+    {
+      "ordinal": 207,
+      "section": "音频",
+      "title": "TimeSide",
+      "url": "https://github.com/Parisson/TimeSide"
+    },
+    {
+      "ordinal": 208,
+      "section": "音频",
+      "title": "tinytag",
+      "url": "https://github.com/devsnd/tinytag"
+    },
+    {
+      "ordinal": 209,
+      "section": "音频",
+      "title": "mingus",
+      "url": "http://bspaans.github.io/python-mingus/"
+    },
+    {
+      "ordinal": 210,
+      "section": "音频",
+      "title": "kapre",
+      "url": "https://github.com/keunwoochoi/kapre"
+    },
+    {
+      "ordinal": 211,
+      "section": "音频",
+      "title": "librosa",
+      "url": "https://github.com/librosa/librosa"
+    },
+    {
+      "ordinal": 212,
+      "section": "音频",
+      "title": "matchering",
+      "url": "https://github.com/sergree/matchering"
+    },
+    {
+      "ordinal": 213,
+      "section": "音频",
+      "title": "pyAudioAnalysis",
+      "url": "https://github.com/tyiannak/pyAudioAnalysis"
+    },
+    {
+      "ordinal": 214,
+      "section": "音频",
+      "title": "beets",
+      "url": "https://github.com/beetbox/beets"
+    },
+    {
+      "ordinal": 215,
+      "section": "Video",
+      "title": "moviepy",
+      "url": "http://zulko.github.io/moviepy/"
+    },
+    {
+      "ordinal": 216,
+      "section": "Video",
+      "title": "scikit-video",
+      "url": "https://github.com/aizvorski/scikit-video"
+    },
+    {
+      "ordinal": 217,
+      "section": "Video",
+      "title": "vidgear",
+      "url": "https://github.com/abhiTronix/vidgear"
+    },
+    {
+      "ordinal": 218,
+      "section": "地理位置",
+      "title": "GeoDjango",
+      "url": "https://docs.djangoproject.com/en/dev/ref/contrib/gis/"
+    },
+    {
+      "ordinal": 219,
+      "section": "地理位置",
+      "title": "GeoIP",
+      "url": "https://github.com/maxmind/geoip-api-python"
+    },
+    {
+      "ordinal": 220,
+      "section": "地理位置",
+      "title": "geojson",
+      "url": "https://github.com/frewsxcv/python-geojson"
+    },
+    {
+      "ordinal": 221,
+      "section": "地理位置",
+      "title": "geopy",
+      "url": "https://github.com/geopy/geopy"
+    },
+    {
+      "ordinal": 222,
+      "section": "地理位置",
+      "title": "GeoIP2",
+      "url": "https://github.com/maxmind/GeoIP2-python"
+    },
+    {
+      "ordinal": 223,
+      "section": "地理位置",
+      "title": "django-countries",
+      "url": "https://github.com/SmileyChris/django-countries"
+    },
+    {
+      "ordinal": 224,
+      "section": "地理位置",
+      "title": "pygeoip",
+      "url": "https://github.com/appliedsec/pygeoip"
+    },
+    {
+      "ordinal": 225,
+      "section": "HTTP",
+      "title": "aiohttp",
+      "url": "https://github.com/aio-libs/aiohttp"
+    },
+    {
+      "ordinal": 226,
+      "section": "HTTP",
+      "title": "requests",
+      "url": "http://docs.python-requests.org/en/latest/"
+    },
+    {
+      "ordinal": 227,
+      "section": "HTTP",
+      "title": "grequests",
+      "url": "https://github.com/kennethreitz/grequests"
+    },
+    {
+      "ordinal": 228,
+      "section": "HTTP",
+      "title": "httplib2",
+      "url": "https://github.com/jcgregorio/httplib2"
+    },
+    {
+      "ordinal": 229,
+      "section": "HTTP",
+      "title": "treq",
+      "url": "https://github.com/twisted/treq"
+    },
+    {
+      "ordinal": 230,
+      "section": "HTTP",
+      "title": "urllib3",
+      "url": "https://github.com/shazow/urllib3"
+    },
+    {
+      "ordinal": 231,
+      "section": "HTTP",
+      "title": "httpx",
+      "url": "https://github.com/encode/httpx"
+    },
+    {
+      "ordinal": 232,
+      "section": "数据库",
+      "title": "pickleDB",
+      "url": "https://pythonhosted.org/pickleDB/"
+    },
+    {
+      "ordinal": 233,
+      "section": "数据库",
+      "title": "PipelineDB",
+      "url": "https://www.pipelinedb.com/"
+    },
+    {
+      "ordinal": 234,
+      "section": "数据库",
+      "title": "TinyDB",
+      "url": "https://github.com/msiemens/tinydb"
+    },
+    {
+      "ordinal": 235,
+      "section": "数据库",
+      "title": "ZODB",
+      "url": "http://www.zodb.org/en/latest/"
+    },
+    {
+      "ordinal": 236,
+      "section": "数据库驱动",
+      "title": "awesome-mysql",
+      "url": "http://shlomi-noach.github.io/awesome-mysql/"
+    },
+    {
+      "ordinal": 237,
+      "section": "数据库驱动",
+      "title": "aiomysql",
+      "url": "https://github.com/aio-libs/aiomysql"
+    },
+    {
+      "ordinal": 238,
+      "section": "数据库驱动",
+      "title": "mysql-python",
+      "url": "https://sourceforge.net/projects/mysql-python/"
+    },
+    {
+      "ordinal": 239,
+      "section": "数据库驱动",
+      "title": "mysql-python",
+      "url": "https://github.com/PyMySQL/mysqlclient-python"
+    },
+    {
+      "ordinal": 240,
+      "section": "数据库驱动",
+      "title": "oursql",
+      "url": "https://pythonhosted.org/oursql/"
+    },
+    {
+      "ordinal": 241,
+      "section": "数据库驱动",
+      "title": "PyMySQL",
+      "url": "https://github.com/PyMySQL/PyMySQL"
+    },
+    {
+      "ordinal": 242,
+      "section": "数据库驱动",
+      "title": "psycopg2",
+      "url": "http://initd.org/psycopg/"
+    },
+    {
+      "ordinal": 243,
+      "section": "数据库驱动",
+      "title": "queries",
+      "url": "https://github.com/gmr/queries"
+    },
+    {
+      "ordinal": 244,
+      "section": "数据库驱动",
+      "title": "txpostgres",
+      "url": "http://txpostgres.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 245,
+      "section": "数据库驱动",
+      "title": "apsw",
+      "url": "http://rogerbinns.github.io/apsw/"
+    },
+    {
+      "ordinal": 246,
+      "section": "数据库驱动",
+      "title": "pymssql",
+      "url": "http://www.pymssql.org/en/latest/"
+    },
+    {
+      "ordinal": 247,
+      "section": "数据库驱动",
+      "title": "asyncio-redis",
+      "url": "https://github.com/jonathanslenders/asyncio-redis"
+    },
+    {
+      "ordinal": 248,
+      "section": "数据库驱动",
+      "title": "cassandra-python-driver",
+      "url": "https://github.com/datastax/python-driver"
+    },
+    {
+      "ordinal": 249,
+      "section": "数据库驱动",
+      "title": "HappyBase",
+      "url": "http://happybase.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 250,
+      "section": "数据库驱动",
+      "title": "Plyvel",
+      "url": "https://plyvel.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 251,
+      "section": "数据库驱动",
+      "title": "py2neo",
+      "url": "http://py2neo.org/2.0/"
+    },
+    {
+      "ordinal": 252,
+      "section": "数据库驱动",
+      "title": "pycassa",
+      "url": "https://github.com/pycassa/pycassa"
+    },
+    {
+      "ordinal": 253,
+      "section": "数据库驱动",
+      "title": "PyMongo",
+      "url": "https://docs.mongodb.org/ecosystem/drivers/python/"
+    },
+    {
+      "ordinal": 254,
+      "section": "数据库驱动",
+      "title": "redis-py",
+      "url": "https://github.com/andymccurdy/redis-py"
+    },
+    {
+      "ordinal": 255,
+      "section": "数据库驱动",
+      "title": "telephus",
+      "url": "https://github.com/driftx/Telephus"
+    },
+    {
+      "ordinal": 256,
+      "section": "数据库驱动",
+      "title": "txRedis",
+      "url": "https://github.com/deldotdr/txRedis"
+    },
+    {
+      "ordinal": 257,
+      "section": "数据库驱动",
+      "title": "kafka-python",
+      "url": "https://github.com/dpkp/kafka-python"
+    },
+    {
+      "ordinal": 258,
+      "section": "数据库驱动",
+      "title": "motor",
+      "url": "https://github.com/mongodb/motor"
+    },
+    {
+      "ordinal": 259,
+      "section": "ORM",
+      "title": "Django Models",
+      "url": "https://docs.djangoproject.com/en/dev/topics/db/models/"
+    },
+    {
+      "ordinal": 260,
+      "section": "ORM",
+      "title": "SQLAlchemy",
+      "url": "http://www.sqlalchemy.org/"
+    },
+    {
+      "ordinal": 261,
+      "section": "ORM",
+      "title": "awesome-sqlalchemy",
+      "url": "https://github.com/dahlia/awesome-sqlalchemy"
+    },
+    {
+      "ordinal": 262,
+      "section": "ORM",
+      "title": "awesome-sqlalchemy",
+      "url": "https://github.com/dahlia/awesome-sqlalchemy"
+    },
+    {
+      "ordinal": 263,
+      "section": "ORM",
+      "title": "Peewee",
+      "url": "https://github.com/coleifer/peewee"
+    },
+    {
+      "ordinal": 264,
+      "section": "ORM",
+      "title": "PonyORM",
+      "url": "https://ponyorm.com/"
+    },
+    {
+      "ordinal": 265,
+      "section": "ORM",
+      "title": "python-sql",
+      "url": "https://pypi.python.org/pypi/python-sql"
+    },
+    {
+      "ordinal": 266,
+      "section": "ORM",
+      "title": "dataset",
+      "url": "https://github.com/pudo/dataset"
+    },
+    {
+      "ordinal": 267,
+      "section": "ORM",
+      "title": "orator",
+      "url": "https://github.com/sdispater/orator"
+    },
+    {
+      "ordinal": 268,
+      "section": "ORM",
+      "title": "orm",
+      "url": "https://github.com/encode/orm"
+    },
+    {
+      "ordinal": 269,
+      "section": "ORM",
+      "title": "pony",
+      "url": "https://github.com/ponyorm/pony/"
+    },
+    {
+      "ordinal": 270,
+      "section": "ORM",
+      "title": "pydal",
+      "url": "https://github.com/web2py/pydal/"
+    },
+    {
+      "ordinal": 271,
+      "section": "ORM",
+      "title": "django-mongodb-engine",
+      "url": "https://github.com/django-nonrel/mongodb-engine"
+    },
+    {
+      "ordinal": 272,
+      "section": "ORM",
+      "title": "PynamoDB",
+      "url": "https://github.com/jlafon/PynamoDB"
+    },
+    {
+      "ordinal": 273,
+      "section": "ORM",
+      "title": "flywheel",
+      "url": "https://github.com/mathcamp/flywheel"
+    },
+    {
+      "ordinal": 274,
+      "section": "ORM",
+      "title": "MongoEngine",
+      "url": "http://mongoengine.org/"
+    },
+    {
+      "ordinal": 275,
+      "section": "ORM",
+      "title": "hot-redis",
+      "url": "https://github.com/stephenmcd/hot-redis"
+    },
+    {
+      "ordinal": 276,
+      "section": "ORM",
+      "title": "redisco",
+      "url": "https://github.com/kiddouk/redisco"
+    },
+    {
+      "ordinal": 277,
+      "section": "ORM",
+      "title": "butterdb",
+      "url": "https://github.com/Widdershin/butterdb"
+    },
+    {
+      "ordinal": 278,
+      "section": "Web 框架",
+      "title": "Django",
+      "url": "https://www.djangoproject.com/"
+    },
+    {
+      "ordinal": 279,
+      "section": "Web 框架",
+      "title": "awesome-django(by shahraizali)",
+      "url": "https://github.com/shahraizali/awesome-django"
+    },
+    {
+      "ordinal": 280,
+      "section": "Web 框架",
+      "title": "awesome-django(by wsvincent)",
+      "url": "https://github.com/wsvincent/awesome-django"
+    },
+    {
+      "ordinal": 281,
+      "section": "Web 框架",
+      "title": "Flask",
+      "url": "http://flask.pocoo.org/"
+    },
+    {
+      "ordinal": 282,
+      "section": "Web 框架",
+      "title": "awesome-flask",
+      "url": "https://github.com/humiaozuzu/awesome-flask"
+    },
+    {
+      "ordinal": 283,
+      "section": "Web 框架",
+      "title": "Pyramid",
+      "url": "https://pylonsproject.org/"
+    },
+    {
+      "ordinal": 284,
+      "section": "Web 框架",
+      "title": "awesome-pyramid",
+      "url": "https://github.com/uralbash/awesome-pyramid"
+    },
+    {
+      "ordinal": 285,
+      "section": "Web 框架",
+      "title": "Bottle",
+      "url": "http://bottlepy.org/docs/dev/index.html"
+    },
+    {
+      "ordinal": 286,
+      "section": "Web 框架",
+      "title": "CherryPy",
+      "url": "http://www.cherrypy.org/"
+    },
+    {
+      "ordinal": 287,
+      "section": "Web 框架",
+      "title": "TurboGears",
+      "url": "http://www.turbogears.org/"
+    },
+    {
+      "ordinal": 288,
+      "section": "Web 框架",
+      "title": "web.py",
+      "url": "http://webpy.org/"
+    },
+    {
+      "ordinal": 289,
+      "section": "Web 框架",
+      "title": "web2py",
+      "url": "http://www.web2py.com/"
+    },
+    {
+      "ordinal": 290,
+      "section": "Web 框架",
+      "title": "Tornado",
+      "url": "http://www.tornadoweb.org/en/latest/"
+    },
+    {
+      "ordinal": 291,
+      "section": "Web 框架",
+      "title": "sanic",
+      "url": "https://github.com/channelcat/sanic/"
+    },
+    {
+      "ordinal": 292,
+      "section": "Web 框架",
+      "title": "starlette",
+      "url": "https://www.starlette.io/"
+    },
+    {
+      "ordinal": 293,
+      "section": "Web 框架",
+      "title": "Masonite",
+      "url": "https://github.com/MasoniteFramework/masonite"
+    },
+    {
+      "ordinal": 294,
+      "section": "WebSocket",
+      "title": "autobahn-python",
+      "url": "https://github.com/crossbario/autobahn-python"
+    },
+    {
+      "ordinal": 295,
+      "section": "WebSocket",
+      "title": "channels",
+      "url": "https://github.com/django/channels"
+    },
+    {
+      "ordinal": 296,
+      "section": "WebSocket",
+      "title": "websockets",
+      "url": "https://github.com/aaugustin/websockets"
+    },
+    {
+      "ordinal": 297,
+      "section": "权限",
+      "title": "Carteblanche",
+      "url": "https://github.com/neuman/python-carteblanche/"
+    },
+    {
+      "ordinal": 298,
+      "section": "权限",
+      "title": "django-guardian",
+      "url": "https://github.com/django-guardian/django-guardian"
+    },
+    {
+      "ordinal": 299,
+      "section": "权限",
+      "title": "django-rules",
+      "url": "https://github.com/dfunckt/django-rules"
+    },
+    {
+      "ordinal": 300,
+      "section": "CMS",
+      "title": "odoo-cms",
+      "url": "http://www.odoo.com"
+    },
+    {
+      "ordinal": 301,
+      "section": "CMS",
+      "title": "django-cms",
+      "url": "http://www.django-cms.org/en/"
+    },
+    {
+      "ordinal": 302,
+      "section": "CMS",
+      "title": "djedi-cms",
+      "url": "http://djedi-cms.org/"
+    },
+    {
+      "ordinal": 303,
+      "section": "CMS",
+      "title": "FeinCMS",
+      "url": "http://www.feincms.org/"
+    },
+    {
+      "ordinal": 304,
+      "section": "CMS",
+      "title": "Kotti",
+      "url": "http://kotti.pylonsproject.org/"
+    },
+    {
+      "ordinal": 305,
+      "section": "CMS",
+      "title": "Mezzanine",
+      "url": "http://mezzanine.jupo.org/"
+    },
+    {
+      "ordinal": 306,
+      "section": "CMS",
+      "title": "Opps",
+      "url": "http://opps.github.io/opps/"
+    },
+    {
+      "ordinal": 307,
+      "section": "CMS",
+      "title": "Plone",
+      "url": "https://plone.org/"
+    },
+    {
+      "ordinal": 308,
+      "section": "CMS",
+      "title": "Quokka",
+      "url": "https://quintagroup.com/cms/python/quokka"
+    },
+    {
+      "ordinal": 309,
+      "section": "CMS",
+      "title": "Wagtail",
+      "url": "https://wagtail.io/"
+    },
+    {
+      "ordinal": 310,
+      "section": "CMS",
+      "title": "Widgy",
+      "url": "https://wid.gy/"
+    },
+    {
+      "ordinal": 311,
+      "section": "CMS",
+      "title": "indico",
+      "url": "https://github.com/indico/indico"
+    },
+    {
+      "ordinal": 312,
+      "section": "电子商务",
+      "title": "django-oscar",
+      "url": "http://oscarcommerce.com/"
+    },
+    {
+      "ordinal": 313,
+      "section": "电子商务",
+      "title": "django-shop",
+      "url": "https://github.com/awesto/django-shop"
+    },
+    {
+      "ordinal": 314,
+      "section": "电子商务",
+      "title": "Cartridge",
+      "url": "https://github.com/stephenmcd/cartridge"
+    },
+    {
+      "ordinal": 315,
+      "section": "电子商务",
+      "title": "shoop",
+      "url": "https://www.shoop.io/en/"
+    },
+    {
+      "ordinal": 316,
+      "section": "电子商务",
+      "title": "alipay",
+      "url": "https://github.com/lxneng/alipay"
+    },
+    {
+      "ordinal": 317,
+      "section": "电子商务",
+      "title": "merchant",
+      "url": "https://github.com/agiliq/merchant"
+    },
+    {
+      "ordinal": 318,
+      "section": "电子商务",
+      "title": "money",
+      "url": "https://github.com/carlospalol/money"
+    },
+    {
+      "ordinal": 319,
+      "section": "电子商务",
+      "title": "python-currencies",
+      "url": "https://github.com/Alir3z4/python-currencies"
+    },
+    {
+      "ordinal": 320,
+      "section": "电子商务",
+      "title": "forex-python",
+      "url": "https://github.com/MicroPyramid/forex-python"
+    },
+    {
+      "ordinal": 321,
+      "section": "电子商务",
+      "title": "saleor",
+      "url": "http://getsaleor.com/"
+    },
+    {
+      "ordinal": 322,
+      "section": "RESTful API",
+      "title": "django-rest-framework",
+      "url": "http://www.django-rest-framework.org/"
+    },
+    {
+      "ordinal": 323,
+      "section": "RESTful API",
+      "title": "django-tastypie",
+      "url": "http://tastypieapi.org/"
+    },
+    {
+      "ordinal": 324,
+      "section": "RESTful API",
+      "title": "django-formapi",
+      "url": "https://github.com/5monkeys/django-formapi"
+    },
+    {
+      "ordinal": 325,
+      "section": "RESTful API",
+      "title": "flask-api",
+      "url": "http://www.flaskapi.org/"
+    },
+    {
+      "ordinal": 326,
+      "section": "RESTful API",
+      "title": "flask-restful",
+      "url": "http://flask-restful.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 327,
+      "section": "RESTful API",
+      "title": "flask-restless",
+      "url": "https://flask-restless.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 328,
+      "section": "RESTful API",
+      "title": "flask-api-utils",
+      "url": "https://github.com/marselester/flask-api-utils"
+    },
+    {
+      "ordinal": 329,
+      "section": "RESTful API",
+      "title": "eve",
+      "url": "https://github.com/nicolaiarocci/eve"
+    },
+    {
+      "ordinal": 330,
+      "section": "RESTful API",
+      "title": "cornice",
+      "url": "https://cornice.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 331,
+      "section": "RESTful API",
+      "title": "falcon",
+      "url": "http://falconframework.org/"
+    },
+    {
+      "ordinal": 332,
+      "section": "RESTful API",
+      "title": "sandman",
+      "url": "https://github.com/jeffknupp/sandman"
+    },
+    {
+      "ordinal": 333,
+      "section": "RESTful API",
+      "title": "restless",
+      "url": "http://restless.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 334,
+      "section": "RESTful API",
+      "title": "ripozo",
+      "url": "https://github.com/vertical-knowledge/ripozo"
+    },
+    {
+      "ordinal": 335,
+      "section": "RESTful API",
+      "title": "apistar",
+      "url": "https://github.com/encode/apistar"
+    },
+    {
+      "ordinal": 336,
+      "section": "RESTful API",
+      "title": "fastapi",
+      "url": "https://github.com/tiangolo/fastapi"
+    },
+    {
+      "ordinal": 337,
+      "section": "RESTful API",
+      "title": "hug",
+      "url": "https://github.com/hugapi/hug"
+    },
+    {
+      "ordinal": 338,
+      "section": "RESTful API",
+      "title": "sandman2",
+      "url": "https://github.com/jeffknupp/sandman2"
+    },
+    {
+      "ordinal": 339,
+      "section": "RESTful API",
+      "title": "vibora",
+      "url": "https://vibora.io/"
+    },
+    {
+      "ordinal": 340,
+      "section": "验证",
+      "title": "authlib",
+      "url": "https://github.com/lepture/authlib"
+    },
+    {
+      "ordinal": 341,
+      "section": "验证",
+      "title": "Authomatic",
+      "url": "http://peterhudec.github.io/authomatic/"
+    },
+    {
+      "ordinal": 342,
+      "section": "验证",
+      "title": "django-allauth",
+      "url": "https://github.com/pennersr/django-allauth"
+    },
+    {
+      "ordinal": 343,
+      "section": "验证",
+      "title": "django-oauth-toolkit",
+      "url": "https://github.com/evonove/django-oauth-toolkit"
+    },
+    {
+      "ordinal": 344,
+      "section": "验证",
+      "title": "django-oauth2-provider",
+      "url": "https://github.com/caffeinehit/django-oauth2-provider"
+    },
+    {
+      "ordinal": 345,
+      "section": "验证",
+      "title": "Flask-OAuthlib",
+      "url": "https://github.com/lepture/flask-oauthlib"
+    },
+    {
+      "ordinal": 346,
+      "section": "验证",
+      "title": "OAuthLib",
+      "url": "https://github.com/idan/oauthlib"
+    },
+    {
+      "ordinal": 347,
+      "section": "验证",
+      "title": "python-oauth2",
+      "url": "https://github.com/joestump/python-oauth2"
+    },
+    {
+      "ordinal": 348,
+      "section": "验证",
+      "title": "python-social-auth",
+      "url": "https://github.com/omab/python-social-auth"
+    },
+    {
+      "ordinal": 349,
+      "section": "验证",
+      "title": "rauth",
+      "url": "https://github.com/litl/rauth"
+    },
+    {
+      "ordinal": 350,
+      "section": "验证",
+      "title": "sanction",
+      "url": "https://github.com/demianbrecht/sanction"
+    },
+    {
+      "ordinal": 351,
+      "section": "验证",
+      "title": "PyJWT",
+      "url": "https://github.com/jpadilla/pyjwt"
+    },
+    {
+      "ordinal": 352,
+      "section": "验证",
+      "title": "python-jws",
+      "url": "https://github.com/brianloveswords/python-jws"
+    },
+    {
+      "ordinal": 353,
+      "section": "验证",
+      "title": "python-jwt",
+      "url": "https://github.com/davedoesdev/python-jwt"
+    },
+    {
+      "ordinal": 354,
+      "section": "验证",
+      "title": "python-jose",
+      "url": "https://github.com/mpdavis/python-jose/"
+    },
+    {
+      "ordinal": 355,
+      "section": "模板引擎",
+      "title": "Jinja2",
+      "url": "https://github.com/pallets/jinja"
+    },
+    {
+      "ordinal": 356,
+      "section": "模板引擎",
+      "title": "Chameleon",
+      "url": "https://chameleon.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 357,
+      "section": "模板引擎",
+      "title": "Genshi",
+      "url": "https://genshi.edgewall.org/"
+    },
+    {
+      "ordinal": 358,
+      "section": "模板引擎",
+      "title": "Mako",
+      "url": "http://www.makotemplates.org/"
+    },
+    {
+      "ordinal": 359,
+      "section": "队列",
+      "title": "celery",
+      "url": "http://www.celeryproject.org/"
+    },
+    {
+      "ordinal": 360,
+      "section": "队列",
+      "title": "daramatiq",
+      "url": "https://github.com/Bogdanp/dramatiq"
+    },
+    {
+      "ordinal": 361,
+      "section": "队列",
+      "title": "huey",
+      "url": "https://github.com/coleifer/huey"
+    },
+    {
+      "ordinal": 362,
+      "section": "队列",
+      "title": "mrq",
+      "url": "https://github.com/pricingassistant/mrq"
+    },
+    {
+      "ordinal": 363,
+      "section": "队列",
+      "title": "rq",
+      "url": "http://python-rq.org/"
+    },
+    {
+      "ordinal": 364,
+      "section": "队列",
+      "title": "simpleq",
+      "url": "https://github.com/rdegges/simpleq"
+    },
+    {
+      "ordinal": 365,
+      "section": "搜索",
+      "title": "django-haystack",
+      "url": "https://github.com/django-haystack/django-haystack"
+    },
+    {
+      "ordinal": 366,
+      "section": "搜索",
+      "title": "elasticsearch-py",
+      "url": "https://www.elastic.co/guide/en/elasticsearch/client/python-api/current/index.html"
+    },
+    {
+      "ordinal": 367,
+      "section": "搜索",
+      "title": "elasticsearch-dsl-py",
+      "url": "https://github.com/elastic/elasticsearch-dsl-py"
+    },
+    {
+      "ordinal": 368,
+      "section": "搜索",
+      "title": "solrpy",
+      "url": "https://github.com/edsu/solrpy"
+    },
+    {
+      "ordinal": 369,
+      "section": "搜索",
+      "title": "pysolr",
+      "url": "https://github.com/django-haystack/pysolr"
+    },
+    {
+      "ordinal": 370,
+      "section": "搜索",
+      "title": "Whoosh",
+      "url": "http://whoosh.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 371,
+      "section": "动态消息",
+      "title": "django-activity-stream",
+      "url": "https://github.com/justquick/django-activity-stream"
+    },
+    {
+      "ordinal": 372,
+      "section": "动态消息",
+      "title": "Stream-Framework",
+      "url": "https://github.com/tschellenbach/Stream-Framework"
+    },
+    {
+      "ordinal": 373,
+      "section": "Web 资源管理",
+      "title": "django-compressor",
+      "url": "https://github.com/django-compressor/django-compressor"
+    },
+    {
+      "ordinal": 374,
+      "section": "Web 资源管理",
+      "title": "django-pipeline",
+      "url": "https://github.com/jazzband/django-pipeline"
+    },
+    {
+      "ordinal": 375,
+      "section": "Web 资源管理",
+      "title": "django-storages",
+      "url": "http://django-storages.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 376,
+      "section": "Web 资源管理",
+      "title": "fanstatic",
+      "url": "http://www.fanstatic.org/en/latest/"
+    },
+    {
+      "ordinal": 377,
+      "section": "Web 资源管理",
+      "title": "File Conveyor",
+      "url": "https://wimleers.com/fileconveyor/"
+    },
+    {
+      "ordinal": 378,
+      "section": "Web 资源管理",
+      "title": "Flask-Assets",
+      "url": "http://flask-assets.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 379,
+      "section": "Web 资源管理",
+      "title": "jinja-assets-compressor",
+      "url": "https://github.com/jaysonsantos/jinja-assets-compressor"
+    },
+    {
+      "ordinal": 380,
+      "section": "Web 资源管理",
+      "title": "webassets",
+      "url": "http://webassets.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 381,
+      "section": "缓存",
+      "title": "Beaker",
+      "url": "http://beaker.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 382,
+      "section": "缓存",
+      "title": "django-cache-machine",
+      "url": "https://github.com/django-cache-machine/django-cache-machine"
+    },
+    {
+      "ordinal": 383,
+      "section": "缓存",
+      "title": "django-cacheops",
+      "url": "https://github.com/Suor/django-cacheops"
+    },
+    {
+      "ordinal": 384,
+      "section": "缓存",
+      "title": "django-viewlet",
+      "url": "https://github.com/5monkeys/django-viewlet"
+    },
+    {
+      "ordinal": 385,
+      "section": "缓存",
+      "title": "dogpile.cache",
+      "url": "http://dogpilecache.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 386,
+      "section": "缓存",
+      "title": "HermesCache",
+      "url": "https://pypi.python.org/pypi/HermesCache"
+    },
+    {
+      "ordinal": 387,
+      "section": "缓存",
+      "title": "johnny-cache",
+      "url": "https://github.com/jmoiron/johnny-cache"
+    },
+    {
+      "ordinal": 388,
+      "section": "缓存",
+      "title": "pylibmc",
+      "url": "https://github.com/lericson/pylibmc"
+    },
+    {
+      "ordinal": 389,
+      "section": "缓存",
+      "title": "python-diskcache",
+      "url": "http://www.grantjenks.com/docs/diskcache/"
+    },
+    {
+      "ordinal": 390,
+      "section": "电子邮件",
+      "title": "django-celery-ses",
+      "url": "https://github.com/StreetVoice/django-celery-ses"
+    },
+    {
+      "ordinal": 391,
+      "section": "电子邮件",
+      "title": "envelopes",
+      "url": "http://tomekwojcik.github.io/envelopes/"
+    },
+    {
+      "ordinal": 392,
+      "section": "电子邮件",
+      "title": "flanker",
+      "url": "https://github.com/mailgun/flanker"
+    },
+    {
+      "ordinal": 393,
+      "section": "电子邮件",
+      "title": "imbox",
+      "url": "https://github.com/martinrusev/imbox"
+    },
+    {
+      "ordinal": 394,
+      "section": "电子邮件",
+      "title": "inbox.py",
+      "url": "https://github.com/kennethreitz/inbox.py"
+    },
+    {
+      "ordinal": 395,
+      "section": "电子邮件",
+      "title": "inbox",
+      "url": "https://github.com/nylas/sync-engine"
+    },
+    {
+      "ordinal": 396,
+      "section": "电子邮件",
+      "title": "lamson",
+      "url": "https://github.com/zedshaw/lamson"
+    },
+    {
+      "ordinal": 397,
+      "section": "电子邮件",
+      "title": "mailjet",
+      "url": "https://github.com/WoLpH/mailjet"
+    },
+    {
+      "ordinal": 398,
+      "section": "电子邮件",
+      "title": "marrow.mailer",
+      "url": "https://github.com/marrow/mailer"
+    },
+    {
+      "ordinal": 399,
+      "section": "电子邮件",
+      "title": "modoboa",
+      "url": "https://github.com/tonioo/modoboa"
+    },
+    {
+      "ordinal": 400,
+      "section": "电子邮件",
+      "title": "pyzmail",
+      "url": "http://www.magiksys.net/pyzmail/"
+    },
+    {
+      "ordinal": 401,
+      "section": "电子邮件",
+      "title": "Talon",
+      "url": "https://github.com/mailgun/talon"
+    },
+    {
+      "ordinal": 402,
+      "section": "电子邮件",
+      "title": "yagmail",
+      "url": "https://pypi.org/project/yagmail/"
+    },
+    {
+      "ordinal": 403,
+      "section": "电子邮件",
+      "title": "salmon",
+      "url": "https://github.com/moggers87/salmon"
+    },
+    {
+      "ordinal": 404,
+      "section": "电子邮件",
+      "title": "mailer",
+      "url": "https://github.com/marrow/mailer"
+    },
+    {
+      "ordinal": 405,
+      "section": "国际化",
+      "title": "Babel",
+      "url": "http://babel.pocoo.org/en/latest/"
+    },
+    {
+      "ordinal": 406,
+      "section": "国际化",
+      "title": "Korean",
+      "url": "https://korean.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 407,
+      "section": "国际化",
+      "title": "PyICU",
+      "url": "https://github.com/ovalhub/pyicu"
+    },
+    {
+      "ordinal": 408,
+      "section": "URL 处理",
+      "title": "furl",
+      "url": "https://github.com/gruns/furl"
+    },
+    {
+      "ordinal": 409,
+      "section": "URL 处理",
+      "title": "purl",
+      "url": "https://github.com/codeinthehole/purl"
+    },
+    {
+      "ordinal": 410,
+      "section": "URL 处理",
+      "title": "pyshorteners",
+      "url": "https://github.com/ellisonleao/pyshorteners"
+    },
+    {
+      "ordinal": 411,
+      "section": "URL 处理",
+      "title": "shorturl",
+      "url": "https://github.com/Alir3z4/python-shorturl"
+    },
+    {
+      "ordinal": 412,
+      "section": "URL 处理",
+      "title": "webargs",
+      "url": "https://github.com/sloria/webargs"
+    },
+    {
+      "ordinal": 413,
+      "section": "HTML 处理",
+      "title": "BeautifulSoup",
+      "url": "http://www.crummy.com/software/BeautifulSoup/bs4/doc/"
+    },
+    {
+      "ordinal": 414,
+      "section": "HTML 处理",
+      "title": "bleach",
+      "url": "http://bleach.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 415,
+      "section": "HTML 处理",
+      "title": "cssutils",
+      "url": "https://pypi.python.org/pypi/cssutils/"
+    },
+    {
+      "ordinal": 416,
+      "section": "HTML 处理",
+      "title": "html5lib",
+      "url": "https://github.com/html5lib/html5lib-python"
+    },
+    {
+      "ordinal": 417,
+      "section": "HTML 处理",
+      "title": "lxml",
+      "url": "http://lxml.de/"
+    },
+    {
+      "ordinal": 418,
+      "section": "HTML 处理",
+      "title": "MarkupSafe",
+      "url": "https://github.com/pallets/markupsafe"
+    },
+    {
+      "ordinal": 419,
+      "section": "HTML 处理",
+      "title": "pyquery",
+      "url": "https://github.com/gawel/pyquery"
+    },
+    {
+      "ordinal": 420,
+      "section": "HTML 处理",
+      "title": "requests-html",
+      "url": "https://github.com/kennethreitz/requests-html"
+    },
+    {
+      "ordinal": 421,
+      "section": "HTML 处理",
+      "title": "untangle",
+      "url": "https://github.com/stchris/untangle"
+    },
+    {
+      "ordinal": 422,
+      "section": "HTML 处理",
+      "title": "xhtml2pdf",
+      "url": "https://github.com/xhtml2pdf/xhtml2pdf"
+    },
+    {
+      "ordinal": 423,
+      "section": "HTML 处理",
+      "title": "xmltodict",
+      "url": "https://github.com/martinblech/xmltodict"
+    },
+    {
+      "ordinal": 424,
+      "section": "HTML 处理",
+      "title": "WeasyPrint",
+      "url": "http://weasyprint.org"
+    },
+    {
+      "ordinal": 425,
+      "section": "HTML 处理",
+      "title": "xmldataset",
+      "url": "https://xmldataset.readthedocs.io/en/latest/"
+    },
+    {
+      "ordinal": 426,
+      "section": "HTML 处理",
+      "title": "Scrapy",
+      "url": "http://scrapy.org/"
+    },
+    {
+      "ordinal": 427,
+      "section": "HTML 处理",
+      "title": "ScrapydWeb",
+      "url": "https://github.com/my8100/scrapydweb"
+    },
+    {
+      "ordinal": 428,
+      "section": "HTML 处理",
+      "title": "cola",
+      "url": "https://github.com/chineking/cola"
+    },
+    {
+      "ordinal": 429,
+      "section": "HTML 处理",
+      "title": "Demiurge",
+      "url": "https://github.com/matiasb/demiurge"
+    },
+    {
+      "ordinal": 430,
+      "section": "HTML 处理",
+      "title": "feedparser",
+      "url": "http://pythonhosted.org/feedparser/"
+    },
+    {
+      "ordinal": 431,
+      "section": "HTML 处理",
+      "title": "Grab",
+      "url": "http://grablib.org/"
+    },
+    {
+      "ordinal": 432,
+      "section": "HTML 处理",
+      "title": "MechanicalSoup",
+      "url": "https://github.com/hickford/MechanicalSoup"
+    },
+    {
+      "ordinal": 433,
+      "section": "HTML 处理",
+      "title": "portia",
+      "url": "https://github.com/scrapinghub/portia"
+    },
+    {
+      "ordinal": 434,
+      "section": "HTML 处理",
+      "title": "pyspider",
+      "url": "https://github.com/binux/pyspider"
+    },
+    {
+      "ordinal": 435,
+      "section": "HTML 处理",
+      "title": "RoboBrowser",
+      "url": "https://github.com/jmcarp/robobrowser"
+    },
+    {
+      "ordinal": 436,
+      "section": "网页内容提取",
+      "title": "Haul",
+      "url": "https://github.com/vinta/Haul"
+    },
+    {
+      "ordinal": 437,
+      "section": "网页内容提取",
+      "title": "html2text",
+      "url": "https://github.com/Alir3z4/html2text"
+    },
+    {
+      "ordinal": 438,
+      "section": "网页内容提取",
+      "title": "lassie",
+      "url": "https://github.com/michaelhelmick/lassie"
+    },
+    {
+      "ordinal": 439,
+      "section": "网页内容提取",
+      "title": "micawber",
+      "url": "https://github.com/coleifer/micawber"
+    },
+    {
+      "ordinal": 440,
+      "section": "网页内容提取",
+      "title": "newspaper",
+      "url": "https://github.com/codelucas/newspaper"
+    },
+    {
+      "ordinal": 441,
+      "section": "网页内容提取",
+      "title": "opengraph",
+      "url": "https://github.com/erikriver/opengraph"
+    },
+    {
+      "ordinal": 442,
+      "section": "网页内容提取",
+      "title": "python-goose",
+      "url": "https://github.com/grangier/python-goose"
+    },
+    {
+      "ordinal": 443,
+      "section": "网页内容提取",
+      "title": "goose3",
+      "url": "https://github.com/goose3/goose3"
+    },
+    {
+      "ordinal": 444,
+      "section": "网页内容提取",
+      "title": "python-readability",
+      "url": "https://github.com/buriy/python-readability"
+    },
+    {
+      "ordinal": 445,
+      "section": "网页内容提取",
+      "title": "sanitize",
+      "url": "https://github.com/Alir3z4/python-sanitize"
+    },
+    {
+      "ordinal": 446,
+      "section": "网页内容提取",
+      "title": "sumy",
+      "url": "https://github.com/miso-belica/sumy"
+    },
+    {
+      "ordinal": 447,
+      "section": "网页内容提取",
+      "title": "textract",
+      "url": "https://github.com/deanmalmgren/textract"
+    },
+    {
+      "ordinal": 448,
+      "section": "表单",
+      "title": "Deform",
+      "url": "http://deform.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 449,
+      "section": "表单",
+      "title": "django-bootstrap3",
+      "url": "https://github.com/dyve/django-bootstrap3"
+    },
+    {
+      "ordinal": 450,
+      "section": "表单",
+      "title": "django-bootstrap4",
+      "url": "https://github.com/zostera/django-bootstrap4"
+    },
+    {
+      "ordinal": 451,
+      "section": "表单",
+      "title": "django-crispy-forms",
+      "url": "http://django-crispy-forms.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 452,
+      "section": "表单",
+      "title": "django-remote-forms",
+      "url": "https://github.com/WiserTogether/django-remote-forms"
+    },
+    {
+      "ordinal": 453,
+      "section": "表单",
+      "title": "WTForms",
+      "url": "http://wtforms.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 454,
+      "section": "表单",
+      "title": "WTForms-JSON",
+      "url": "http://wtforms-json.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 455,
+      "section": "数据验证",
+      "title": "Cerberus",
+      "url": "http://docs.python-cerberus.org/en/stable/"
+    },
+    {
+      "ordinal": 456,
+      "section": "数据验证",
+      "title": "colander",
+      "url": "http://docs.pylonsproject.org/projects/colander/en/latest/"
+    },
+    {
+      "ordinal": 457,
+      "section": "数据验证",
+      "title": "kmatch",
+      "url": "https://github.com/ambitioninc/kmatch"
+    },
+    {
+      "ordinal": 458,
+      "section": "数据验证",
+      "title": "schema",
+      "url": "https://github.com/keleshev/schema"
+    },
+    {
+      "ordinal": 459,
+      "section": "数据验证",
+      "title": "Schematics",
+      "url": "https://github.com/schematics/schematics"
+    },
+    {
+      "ordinal": 460,
+      "section": "数据验证",
+      "title": "valideer",
+      "url": "https://github.com/podio/valideer"
+    },
+    {
+      "ordinal": 461,
+      "section": "数据验证",
+      "title": "voluptuous",
+      "url": "https://github.com/alecthomas/voluptuous"
+    },
+    {
+      "ordinal": 462,
+      "section": "数据验证",
+      "title": "jsonschema",
+      "url": "https://github.com/Julian/jsonschema"
+    },
+    {
+      "ordinal": 463,
+      "section": "序列化",
+      "title": "marshmallow",
+      "url": "https://github.com/marshmallow-code/marshmallow"
+    },
+    {
+      "ordinal": 464,
+      "section": "序列化",
+      "title": "pysimdjson",
+      "url": "https://github.com/TkTech/pysimdjson"
+    },
+    {
+      "ordinal": 465,
+      "section": "序列化",
+      "title": "python-rapidjson",
+      "url": "https://github.com/python-rapidjson/python-rapidjson"
+    },
+    {
+      "ordinal": 466,
+      "section": "序列化",
+      "title": "ultrajson",
+      "url": "https://github.com/esnme/ultrajson"
+    },
+    {
+      "ordinal": 467,
+      "section": "反垃圾技术",
+      "title": "django-simple-captcha",
+      "url": "https://github.com/mbi/django-simple-captcha"
+    },
+    {
+      "ordinal": 468,
+      "section": "反垃圾技术",
+      "title": "django-simple-spam-blocker",
+      "url": "https://github.com/moqada/django-simple-spam-blocker"
+    },
+    {
+      "ordinal": 469,
+      "section": "标记",
+      "title": "django-taggit",
+      "url": "https://github.com/alex/django-taggit"
+    },
+    {
+      "ordinal": 470,
+      "section": "管理面板",
+      "title": "Ajenti",
+      "url": "https://github.com/ajenti/ajenti"
+    },
+    {
+      "ordinal": 471,
+      "section": "管理面板",
+      "title": "django-suit",
+      "url": "http://djangosuit.com/"
+    },
+    {
+      "ordinal": 472,
+      "section": "管理面板",
+      "title": "django-xadmin",
+      "url": "https://github.com/sshwsfc/django-xadmin"
+    },
+    {
+      "ordinal": 473,
+      "section": "管理面板",
+      "title": "flask-admin",
+      "url": "https://github.com/flask-admin/flask-admin"
+    },
+    {
+      "ordinal": 474,
+      "section": "管理面板",
+      "title": "flower",
+      "url": "https://github.com/mher/flower"
+    },
+    {
+      "ordinal": 475,
+      "section": "管理面板",
+      "title": "Grappelli",
+      "url": "http://grappelliproject.com/"
+    },
+    {
+      "ordinal": 476,
+      "section": "管理面板",
+      "title": "Wooey",
+      "url": "https://github.com/wooey/wooey"
+    },
+    {
+      "ordinal": 477,
+      "section": "管理面板",
+      "title": "django-grappelli",
+      "url": "https://grappelliproject.com/"
+    },
+    {
+      "ordinal": 478,
+      "section": "管理面板",
+      "title": "django-jet",
+      "url": "https://github.com/geex-arts/django-jet"
+    },
+    {
+      "ordinal": 479,
+      "section": "管理面板",
+      "title": "jet-bridge",
+      "url": "https://github.com/jet-admin/jet-bridge"
+    },
+    {
+      "ordinal": 480,
+      "section": "Serverless 框架",
+      "title": "python-lambda",
+      "url": "https://github.com/nficano/python-lambda"
+    },
+    {
+      "ordinal": 481,
+      "section": "Serverless 框架",
+      "title": "Zappa",
+      "url": "https://github.com/Miserlou/Zappa"
+    },
+    {
+      "ordinal": 482,
+      "section": "静态站点生成器",
+      "title": "Pelican",
+      "url": "http://blog.getpelican.com/"
+    },
+    {
+      "ordinal": 483,
+      "section": "静态站点生成器",
+      "title": "Cactus",
+      "url": "https://github.com/koenbok/Cactus/"
+    },
+    {
+      "ordinal": 484,
+      "section": "静态站点生成器",
+      "title": "Hyde",
+      "url": "http://hyde.github.io/"
+    },
+    {
+      "ordinal": 485,
+      "section": "静态站点生成器",
+      "title": "Nikola",
+      "url": "https://www.getnikola.com/"
+    },
+    {
+      "ordinal": 486,
+      "section": "静态站点生成器",
+      "title": "Tinkerer",
+      "url": "http://tinkerer.me/"
+    },
+    {
+      "ordinal": 487,
+      "section": "静态站点生成器",
+      "title": "Lektor",
+      "url": "https://www.getlektor.com/"
+    },
+    {
+      "ordinal": 488,
+      "section": "静态站点生成器",
+      "title": "makesite",
+      "url": "https://github.com/sunainapai/makesite"
+    },
+    {
+      "ordinal": 489,
+      "section": "进程",
+      "title": "envoy",
+      "url": "https://github.com/kennethreitz/envoy"
+    },
+    {
+      "ordinal": 490,
+      "section": "进程",
+      "title": "sarge",
+      "url": "http://sarge.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 491,
+      "section": "进程",
+      "title": "sh",
+      "url": "https://github.com/amoffat/sh"
+    },
+    {
+      "ordinal": 492,
+      "section": "进程",
+      "title": "delegator.py",
+      "url": "https://github.com/amitt001/delegator.py"
+    },
+    {
+      "ordinal": 493,
+      "section": "并发和并行",
+      "title": "multiprocessing",
+      "url": "https://docs.python.org/2/library/multiprocessing.html"
+    },
+    {
+      "ordinal": 494,
+      "section": "并发和并行",
+      "title": "threading",
+      "url": "https://docs.python.org/2/library/threading.html"
+    },
+    {
+      "ordinal": 495,
+      "section": "并发和并行",
+      "title": "eventlet",
+      "url": "http://eventlet.net/"
+    },
+    {
+      "ordinal": 496,
+      "section": "并发和并行",
+      "title": "gevent",
+      "url": "http://www.gevent.org/"
+    },
+    {
+      "ordinal": 497,
+      "section": "并发和并行",
+      "title": "Tomorrow",
+      "url": "https://github.com/madisonmay/Tomorrow"
+    },
+    {
+      "ordinal": 498,
+      "section": "并发和并行",
+      "title": "uvloop",
+      "url": "https://github.com/MagicStack/uvloop"
+    },
+    {
+      "ordinal": 499,
+      "section": "并发和并行",
+      "title": "concurrent.futures",
+      "url": "https://docs.python.org/3/library/concurrent.futures.html"
+    },
+    {
+      "ordinal": 500,
+      "section": "并发和并行",
+      "title": "gevent",
+      "url": "http://www.gevent.org/"
+    },
+    {
+      "ordinal": 501,
+      "section": "并发和并行",
+      "title": "scoop",
+      "url": "https://github.com/soravux/scoop"
+    },
+    {
+      "ordinal": 502,
+      "section": "网络",
+      "title": "asyncio",
+      "url": "https://docs.python.org/3/library/asyncio.html"
+    },
+    {
+      "ordinal": 503,
+      "section": "网络",
+      "title": "trio",
+      "url": "https://github.com/python-trio/trio"
+    },
+    {
+      "ordinal": 504,
+      "section": "网络",
+      "title": "Twisted",
+      "url": "https://twistedmatrix.com/trac/"
+    },
+    {
+      "ordinal": 505,
+      "section": "网络",
+      "title": "pulsar",
+      "url": "https://github.com/quantmind/pulsar"
+    },
+    {
+      "ordinal": 506,
+      "section": "网络",
+      "title": "diesel",
+      "url": "https://github.com/dieseldev/diesel"
+    },
+    {
+      "ordinal": 507,
+      "section": "网络",
+      "title": "pyzmq",
+      "url": "http://zeromq.github.io/pyzmq/"
+    },
+    {
+      "ordinal": 508,
+      "section": "网络",
+      "title": "Toapi",
+      "url": "https://github.com/gaojiuli/toapi"
+    },
+    {
+      "ordinal": 509,
+      "section": "网络",
+      "title": "txZMQ",
+      "url": "https://github.com/smira/txZMQ"
+    },
+    {
+      "ordinal": 510,
+      "section": "WebSocket",
+      "title": "AutobahnPython",
+      "url": "https://github.com/crossbario/autobahn-python"
+    },
+    {
+      "ordinal": 511,
+      "section": "WebSocket",
+      "title": "Crossbar",
+      "url": "https://github.com/crossbario/crossbar/"
+    },
+    {
+      "ordinal": 512,
+      "section": "WebSocket",
+      "title": "django-socketio",
+      "url": "https://github.com/stephenmcd/django-socketio"
+    },
+    {
+      "ordinal": 513,
+      "section": "WebSocket",
+      "title": "WebSocket-for-Python",
+      "url": "https://github.com/Lawouach/WebSocket-for-Python"
+    },
+    {
+      "ordinal": 514,
+      "section": "WSGI 服务器",
+      "title": "gunicorn",
+      "url": "https://pypi.python.org/pypi/gunicorn"
+    },
+    {
+      "ordinal": 515,
+      "section": "WSGI 服务器",
+      "title": "uwsgi",
+      "url": "https://uwsgi-docs.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 516,
+      "section": "WSGI 服务器",
+      "title": "bjoern",
+      "url": "https://pypi.python.org/pypi/bjoern"
+    },
+    {
+      "ordinal": 517,
+      "section": "WSGI 服务器",
+      "title": "fapws3",
+      "url": "http://www.fapws.org/"
+    },
+    {
+      "ordinal": 518,
+      "section": "WSGI 服务器",
+      "title": "meinheld",
+      "url": "https://pypi.python.org/pypi/meinheld"
+    },
+    {
+      "ordinal": 519,
+      "section": "WSGI 服务器",
+      "title": "netius",
+      "url": "https://github.com/hivesolutions/netius"
+    },
+    {
+      "ordinal": 520,
+      "section": "WSGI 服务器",
+      "title": "paste",
+      "url": "http://pythonpaste.org/"
+    },
+    {
+      "ordinal": 521,
+      "section": "WSGI 服务器",
+      "title": "rocket",
+      "url": "https://pypi.python.org/pypi/rocket"
+    },
+    {
+      "ordinal": 522,
+      "section": "WSGI 服务器",
+      "title": "waitress",
+      "url": "https://waitress.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 523,
+      "section": "WSGI 服务器",
+      "title": "Werkzeug",
+      "url": "http://werkzeug.pocoo.org/"
+    },
+    {
+      "ordinal": 524,
+      "section": "ASGI 服务器",
+      "title": "daphne",
+      "url": "https://github.com/django/daphne"
+    },
+    {
+      "ordinal": 525,
+      "section": "ASGI 服务器",
+      "title": "uvicorn",
+      "url": "https://github.com/encode/uvicorn"
+    },
+    {
+      "ordinal": 526,
+      "section": "RPC 服务器",
+      "title": "SimpleJSONRPCServer",
+      "url": "https://github.com/joshmarshall/jsonrpclib/"
+    },
+    {
+      "ordinal": 527,
+      "section": "RPC 服务器",
+      "title": "SimpleXMLRPCServer",
+      "url": "https://docs.python.org/2/library/simplexmlrpcserver.html"
+    },
+    {
+      "ordinal": 528,
+      "section": "RPC 服务器",
+      "title": "zeroRPC",
+      "url": "https://github.com/0rpc/zerorpc-python"
+    },
+    {
+      "ordinal": 529,
+      "section": "RPC 服务器",
+      "title": "RPyC",
+      "url": "https://github.com/tomerfiliba/rpyc"
+    },
+    {
+      "ordinal": 530,
+      "section": "密码学",
+      "title": "cryptography",
+      "url": "https://cryptography.io/en/latest/"
+    },
+    {
+      "ordinal": 531,
+      "section": "密码学",
+      "title": "hashids",
+      "url": "https://github.com/davidaurelio/hashids-python"
+    },
+    {
+      "ordinal": 532,
+      "section": "密码学",
+      "title": "Paramiko",
+      "url": "http://www.paramiko.org/"
+    },
+    {
+      "ordinal": 533,
+      "section": "密码学",
+      "title": "Passlib",
+      "url": "https://pythonhosted.org/passlib/"
+    },
+    {
+      "ordinal": 534,
+      "section": "密码学",
+      "title": "PyCrypto",
+      "url": "https://www.dlitz.net/software/pycrypto/"
+    },
+    {
+      "ordinal": 535,
+      "section": "密码学",
+      "title": "PyNacl",
+      "url": "https://github.com/pyca/pynacl"
+    },
+    {
+      "ordinal": 536,
+      "section": "图形用户界面",
+      "title": "curses",
+      "url": "https://docs.python.org/2/library/curses.html#module-curses"
+    },
+    {
+      "ordinal": 537,
+      "section": "图形用户界面",
+      "title": "enaml",
+      "url": "https://github.com/nucleic/enaml"
+    },
+    {
+      "ordinal": 538,
+      "section": "图形用户界面",
+      "title": "kivy",
+      "url": "https://kivy.org/"
+    },
+    {
+      "ordinal": 539,
+      "section": "图形用户界面",
+      "title": "pyglet",
+      "url": "https://bitbucket.org/pyglet/pyglet/wiki/Home"
+    },
+    {
+      "ordinal": 540,
+      "section": "图形用户界面",
+      "title": "PyQt",
+      "url": "https://riverbankcomputing.com/software/pyqt/intro"
+    },
+    {
+      "ordinal": 541,
+      "section": "图形用户界面",
+      "title": "PySide",
+      "url": "https://wiki.qt.io/PySide"
+    },
+    {
+      "ordinal": 542,
+      "section": "图形用户界面",
+      "title": "Tkinter",
+      "url": "https://wiki.python.org/moin/TkInter"
+    },
+    {
+      "ordinal": 543,
+      "section": "图形用户界面",
+      "title": "Toga",
+      "url": "https://github.com/pybee/toga"
+    },
+    {
+      "ordinal": 544,
+      "section": "图形用户界面",
+      "title": "urwid",
+      "url": "http://urwid.org/"
+    },
+    {
+      "ordinal": 545,
+      "section": "图形用户界面",
+      "title": "wxPython",
+      "url": "http://wxpython.org/"
+    },
+    {
+      "ordinal": 546,
+      "section": "图形用户界面",
+      "title": "PyGObject",
+      "url": "https://wiki.gnome.org/Projects/PyGObject"
+    },
+    {
+      "ordinal": 547,
+      "section": "图形用户界面",
+      "title": "Flexx",
+      "url": "https://github.com/zoofIO/flexx"
+    },
+    {
+      "ordinal": 548,
+      "section": "图形用户界面",
+      "title": "Eel",
+      "url": "https://github.com/ChrisKnott/Eel"
+    },
+    {
+      "ordinal": 549,
+      "section": "图形用户界面",
+      "title": "PySimpleGUI",
+      "url": "https://github.com/PySimpleGUI/PySimpleGUI"
+    },
+    {
+      "ordinal": 550,
+      "section": "图形用户界面",
+      "title": "pywebview",
+      "url": "https://github.com/r0x0r/pywebview/"
+    },
+    {
+      "ordinal": 551,
+      "section": "图形用户界面",
+      "title": "DearPyGui",
+      "url": "https://github.com/RaylockLLC/DearPyGui/"
+    },
+    {
+      "ordinal": 552,
+      "section": "游戏开发",
+      "title": "Cocos2d",
+      "url": "http://cocos2d.org/"
+    },
+    {
+      "ordinal": 553,
+      "section": "游戏开发",
+      "title": "Panda3D",
+      "url": "https://www.panda3d.org/"
+    },
+    {
+      "ordinal": 554,
+      "section": "游戏开发",
+      "title": "Pygame",
+      "url": "http://www.pygame.org/news.html"
+    },
+    {
+      "ordinal": 555,
+      "section": "游戏开发",
+      "title": "PyOgre",
+      "url": "http://www.ogre3d.org/tikiwiki/PyOgre"
+    },
+    {
+      "ordinal": 556,
+      "section": "游戏开发",
+      "title": "PyOpenGL",
+      "url": "http://pyopengl.sourceforge.net/"
+    },
+    {
+      "ordinal": 557,
+      "section": "游戏开发",
+      "title": "PySDL2",
+      "url": "http://pysdl2.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 558,
+      "section": "游戏开发",
+      "title": "RenPy",
+      "url": "https://www.renpy.org/"
+    },
+    {
+      "ordinal": 559,
+      "section": "游戏开发",
+      "title": "Arcade",
+      "url": "https://arcade.academy/index.html"
+    },
+    {
+      "ordinal": 560,
+      "section": "游戏开发",
+      "title": "Harfang3D",
+      "url": "http://www.harfang3d.com"
+    },
+    {
+      "ordinal": 561,
+      "section": "日志",
+      "title": "logging",
+      "url": "https://docs.python.org/2/library/logging.html"
+    },
+    {
+      "ordinal": 562,
+      "section": "日志",
+      "title": "logbook",
+      "url": "http://pythonhosted.org/Logbook/"
+    },
+    {
+      "ordinal": 563,
+      "section": "日志",
+      "title": "Eliot",
+      "url": "https://eliot.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 564,
+      "section": "日志",
+      "title": "Raven",
+      "url": "http://raven.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 565,
+      "section": "日志",
+      "title": "Sentry",
+      "url": "https://pypi.python.org/pypi/sentry"
+    },
+    {
+      "ordinal": 566,
+      "section": "日志",
+      "title": "sentry-python",
+      "url": "https://github.com/getsentry/sentry-python"
+    },
+    {
+      "ordinal": 567,
+      "section": "日志",
+      "title": "loguru",
+      "url": "https://github.com/Delgan/loguru"
+    },
+    {
+      "ordinal": 568,
+      "section": "日志",
+      "title": "structlog",
+      "url": "https://www.structlog.org/en/stable/"
+    },
+    {
+      "ordinal": 569,
+      "section": "测试",
+      "title": "unittest",
+      "url": "https://docs.python.org/2/library/unittest.html"
+    },
+    {
+      "ordinal": 570,
+      "section": "测试",
+      "title": "nose",
+      "url": "https://nose.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 571,
+      "section": "测试",
+      "title": "nose2",
+      "url": "https://github.com/nose-devs/nose2"
+    },
+    {
+      "ordinal": 572,
+      "section": "测试",
+      "title": "contexts",
+      "url": "https://github.com/benjamin-hodgson/Contexts"
+    },
+    {
+      "ordinal": 573,
+      "section": "测试",
+      "title": "hypothesis",
+      "url": "https://github.com/DRMacIver/hypothesis"
+    },
+    {
+      "ordinal": 574,
+      "section": "测试",
+      "title": "mamba",
+      "url": "http://nestorsalceda.github.io/mamba/"
+    },
+    {
+      "ordinal": 575,
+      "section": "测试",
+      "title": "pyshould",
+      "url": "https://github.com/drslump/pyshould"
+    },
+    {
+      "ordinal": 576,
+      "section": "测试",
+      "title": "pytest",
+      "url": "http://pytest.org/latest/"
+    },
+    {
+      "ordinal": 577,
+      "section": "测试",
+      "title": "green",
+      "url": "https://github.com/CleanCut/green"
+    },
+    {
+      "ordinal": 578,
+      "section": "测试",
+      "title": "pyvows",
+      "url": "http://heynemann.github.io/pyvows/"
+    },
+    {
+      "ordinal": 579,
+      "section": "测试",
+      "title": "Robot Framework",
+      "url": "https://github.com/robotframework/robotframework"
+    },
+    {
+      "ordinal": 580,
+      "section": "测试",
+      "title": "tox",
+      "url": "https://tox.readthedocs.io/en/latest/"
+    },
+    {
+      "ordinal": 581,
+      "section": "测试",
+      "title": "Selenium",
+      "url": "https://pypi.python.org/pypi/selenium"
+    },
+    {
+      "ordinal": 582,
+      "section": "测试",
+      "title": "PyAutoGUI",
+      "url": "https://github.com/asweigart/pyautogui"
+    },
+    {
+      "ordinal": 583,
+      "section": "测试",
+      "title": "locust",
+      "url": "https://github.com/locustio/locust"
+    },
+    {
+      "ordinal": 584,
+      "section": "测试",
+      "title": "sixpack",
+      "url": "https://github.com/seatgeek/sixpack"
+    },
+    {
+      "ordinal": 585,
+      "section": "测试",
+      "title": "splinter",
+      "url": "https://splinter.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 586,
+      "section": "测试",
+      "title": "Schemathesis",
+      "url": "https://github.com/kiwicom/schemathesis"
+    },
+    {
+      "ordinal": 587,
+      "section": "测试",
+      "title": "mock",
+      "url": "https://docs.python.org/3/library/unittest.mock.html"
+    },
+    {
+      "ordinal": 588,
+      "section": "测试",
+      "title": "doublex",
+      "url": "https://pypi.python.org/pypi/doublex"
+    },
+    {
+      "ordinal": 589,
+      "section": "测试",
+      "title": "freezegun",
+      "url": "https://github.com/spulec/freezegun"
+    },
+    {
+      "ordinal": 590,
+      "section": "测试",
+      "title": "httmock",
+      "url": "https://github.com/patrys/httmock"
+    },
+    {
+      "ordinal": 591,
+      "section": "测试",
+      "title": "httpretty",
+      "url": "http://falcao.it/HTTPretty/"
+    },
+    {
+      "ordinal": 592,
+      "section": "测试",
+      "title": "responses",
+      "url": "https://github.com/getsentry/responses"
+    },
+    {
+      "ordinal": 593,
+      "section": "测试",
+      "title": "VCR.py",
+      "url": "https://github.com/kevin1024/vcrpy"
+    },
+    {
+      "ordinal": 594,
+      "section": "测试",
+      "title": "mocket",
+      "url": "https://github.com/mindflayer/python-mocket"
+    },
+    {
+      "ordinal": 595,
+      "section": "测试",
+      "title": "factoryboy",
+      "url": "https://github.com/rbarrois/factoryboy"
+    },
+    {
+      "ordinal": 596,
+      "section": "测试",
+      "title": "mixer",
+      "url": "https://github.com/klen/mixer"
+    },
+    {
+      "ordinal": 597,
+      "section": "测试",
+      "title": "modelmommy",
+      "url": "https://github.com/vandersonmota/modelmommy"
+    },
+    {
+      "ordinal": 598,
+      "section": "测试",
+      "title": "coverage",
+      "url": "https://pypi.python.org/pypi/coverage"
+    },
+    {
+      "ordinal": 599,
+      "section": "测试",
+      "title": "Codecov",
+      "url": "https://codecov.io/"
+    },
+    {
+      "ordinal": 600,
+      "section": "测试",
+      "title": "faker",
+      "url": "http://www.joke2k.net/faker/"
+    },
+    {
+      "ordinal": 601,
+      "section": "测试",
+      "title": "fake2db",
+      "url": "https://github.com/emirozer/fake2db"
+    },
+    {
+      "ordinal": 602,
+      "section": "测试",
+      "title": "mimesis",
+      "url": "https://github.com/lk-geimfari/mimesis"
+    },
+    {
+      "ordinal": 603,
+      "section": "测试",
+      "title": "radar",
+      "url": "https://pypi.python.org/pypi/radar"
+    },
+    {
+      "ordinal": 604,
+      "section": "测试",
+      "title": "FuckIt.py",
+      "url": "https://github.com/ajalt/fuckitpy"
+    },
+    {
+      "ordinal": 605,
+      "section": "渗透测试",
+      "title": "fsociety",
+      "url": "https://github.com/Manisso/fsociety"
+    },
+    {
+      "ordinal": 606,
+      "section": "渗透测试",
+      "title": "setoolkit",
+      "url": "https://github.com/trustedsec/social-engineer-toolkit"
+    },
+    {
+      "ordinal": 607,
+      "section": "渗透测试",
+      "title": "sqlmap",
+      "url": "https://github.com/sqlmapproject/sqlmap"
+    },
+    {
+      "ordinal": 608,
+      "section": "代码分析和 Lint 工具",
+      "title": "coala",
+      "url": "http://coala-analyzer.org/"
+    },
+    {
+      "ordinal": 609,
+      "section": "代码分析和 Lint 工具",
+      "title": "code2flow",
+      "url": "https://github.com/scottrogowski/code2flow"
+    },
+    {
+      "ordinal": 610,
+      "section": "代码分析和 Lint 工具",
+      "title": "pycallgraph",
+      "url": "https://github.com/gak/pycallgraph"
+    },
+    {
+      "ordinal": 611,
+      "section": "代码分析和 Lint 工具",
+      "title": "pysonar2",
+      "url": "https://github.com/yinwang0/pysonar2"
+    },
+    {
+      "ordinal": 612,
+      "section": "代码分析和 Lint 工具",
+      "title": "prospector",
+      "url": "https://github.com/PyCQA/prospector"
+    },
+    {
+      "ordinal": 613,
+      "section": "代码分析和 Lint 工具",
+      "title": "vulture",
+      "url": "https://github.com/jendrikseipp/vulture"
+    },
+    {
+      "ordinal": 614,
+      "section": "代码分析和 Lint 工具",
+      "title": "Flake8",
+      "url": "https://pypi.python.org/pypi/flake8"
+    },
+    {
+      "ordinal": 615,
+      "section": "代码分析和 Lint 工具",
+      "title": "awesome-flake8-extensions",
+      "url": "https://github.com/DmytroLitvinov/awesome-flake8-extensions"
+    },
+    {
+      "ordinal": 616,
+      "section": "代码分析和 Lint 工具",
+      "title": "Pylint",
+      "url": "https://www.pylint.org/"
+    },
+    {
+      "ordinal": 617,
+      "section": "代码分析和 Lint 工具",
+      "title": "YAPF",
+      "url": "https://github.com/google/yapf"
+    },
+    {
+      "ordinal": 618,
+      "section": "代码分析和 Lint 工具",
+      "title": "pylama",
+      "url": "https://pylama.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 619,
+      "section": "代码分析和 Lint 工具",
+      "title": "wemake-python-styleguide",
+      "url": "https://github.com/wemake-services/wemake-python-styleguide"
+    },
+    {
+      "ordinal": 620,
+      "section": "代码分析和 Lint 工具",
+      "title": "autopep8",
+      "url": "https://github.com/hhatto/autopep8"
+    },
+    {
+      "ordinal": 621,
+      "section": "代码分析和 Lint 工具",
+      "title": "black",
+      "url": "https://github.com/ambv/black"
+    },
+    {
+      "ordinal": 622,
+      "section": "代码分析和 Lint 工具",
+      "title": "isort",
+      "url": "https://github.com/timothycrosley/isort"
+    },
+    {
+      "ordinal": 623,
+      "section": "代码分析和 Lint 工具",
+      "title": "awesome-python-typing",
+      "url": "https://github.com/typeddjango/awesome-python-typing"
+    },
+    {
+      "ordinal": 624,
+      "section": "代码分析和 Lint 工具",
+      "title": "mypy",
+      "url": "http://mypy-lang.org/"
+    },
+    {
+      "ordinal": 625,
+      "section": "代码分析和 Lint 工具",
+      "title": "pyre-check",
+      "url": "https://github.com/facebook/pyre-check"
+    },
+    {
+      "ordinal": 626,
+      "section": "代码分析和 Lint 工具",
+      "title": "typeshed",
+      "url": "https://github.com/python/typeshed"
+    },
+    {
+      "ordinal": 627,
+      "section": "代码分析和 Lint 工具",
+      "title": "MonkeyType",
+      "url": "https://github.com/Instagram/MonkeyType"
+    },
+    {
+      "ordinal": 628,
+      "section": "代码分析和 Lint 工具",
+      "title": "pyannotate",
+      "url": "https://github.com/dropbox/pyannotate"
+    },
+    {
+      "ordinal": 629,
+      "section": "代码分析和 Lint 工具",
+      "title": "pytype",
+      "url": "https://github.com/google/pytype"
+    },
+    {
+      "ordinal": 630,
+      "section": "调试工具",
+      "title": "ipdb",
+      "url": "https://pypi.python.org/pypi/ipdb"
+    },
+    {
+      "ordinal": 631,
+      "section": "调试工具",
+      "title": "pudb",
+      "url": "https://pypi.python.org/pypi/pudb"
+    },
+    {
+      "ordinal": 632,
+      "section": "调试工具",
+      "title": "pdb++",
+      "url": "https://github.com/antocuni/pdb"
+    },
+    {
+      "ordinal": 633,
+      "section": "调试工具",
+      "title": "pyringe",
+      "url": "https://github.com/google/pyringe"
+    },
+    {
+      "ordinal": 634,
+      "section": "调试工具",
+      "title": "wdb",
+      "url": "https://github.com/Kozea/wdb"
+    },
+    {
+      "ordinal": 635,
+      "section": "调试工具",
+      "title": "winpdb",
+      "url": "http://winpdb.org/"
+    },
+    {
+      "ordinal": 636,
+      "section": "调试工具",
+      "title": "lptrace",
+      "url": "https://github.com/khamidou/lptrace"
+    },
+    {
+      "ordinal": 637,
+      "section": "调试工具",
+      "title": "manhole",
+      "url": "https://github.com/ionelmc/python-manhole"
+    },
+    {
+      "ordinal": 638,
+      "section": "调试工具",
+      "title": "pyringe",
+      "url": "https://github.com/google/pyringe"
+    },
+    {
+      "ordinal": 639,
+      "section": "调试工具",
+      "title": "python-hunter",
+      "url": "https://github.com/ionelmc/python-hunter"
+    },
+    {
+      "ordinal": 640,
+      "section": "调试工具",
+      "title": "lineprofiler",
+      "url": "https://github.com/rkern/lineprofiler"
+    },
+    {
+      "ordinal": 641,
+      "section": "调试工具",
+      "title": "Memory Profiler",
+      "url": "http://pypi.python.org/pypi/memory_profiler"
+    },
+    {
+      "ordinal": 642,
+      "section": "调试工具",
+      "title": "profiling",
+      "url": "https://github.com/what-studio/profiling"
+    },
+    {
+      "ordinal": 643,
+      "section": "调试工具",
+      "title": "py-spy",
+      "url": "https://github.com/benfred/py-spy"
+    },
+    {
+      "ordinal": 644,
+      "section": "调试工具",
+      "title": "pyflame",
+      "url": "https://github.com/uber/pyflame"
+    },
+    {
+      "ordinal": 645,
+      "section": "调试工具",
+      "title": "vprof",
+      "url": "https://github.com/nvdv/vprof"
+    },
+    {
+      "ordinal": 646,
+      "section": "调试工具",
+      "title": "pyelftools",
+      "url": "https://github.com/eliben/pyelftools"
+    },
+    {
+      "ordinal": 647,
+      "section": "调试工具",
+      "title": "python-statsd",
+      "url": "https://github.com/WoLpH/python-statsd"
+    },
+    {
+      "ordinal": 648,
+      "section": "调试工具",
+      "title": "django-debug-toolbar",
+      "url": "https://github.com/django-debug-toolbar/django-debug-toolbar"
+    },
+    {
+      "ordinal": 649,
+      "section": "调试工具",
+      "title": "django-devserver",
+      "url": "https://github.com/dcramer/django-devserver"
+    },
+    {
+      "ordinal": 650,
+      "section": "调试工具",
+      "title": "flask-debugtoolbar",
+      "url": "https://github.com/mgood/flask-debugtoolbar"
+    },
+    {
+      "ordinal": 651,
+      "section": "调试工具",
+      "title": "icecream",
+      "url": "https://github.com/gruns/icecream"
+    },
+    {
+      "ordinal": 652,
+      "section": "科学计算和数据分析",
+      "title": "astropy",
+      "url": "http://www.astropy.org/"
+    },
+    {
+      "ordinal": 653,
+      "section": "科学计算和数据分析",
+      "title": "bcbio-nextgen",
+      "url": "https://github.com/chapmanb/bcbio-nextgen"
+    },
+    {
+      "ordinal": 654,
+      "section": "科学计算和数据分析",
+      "title": "bccb",
+      "url": "https://github.com/chapmanb/bcbb"
+    },
+    {
+      "ordinal": 655,
+      "section": "科学计算和数据分析",
+      "title": "Biopython",
+      "url": "http://biopython.org/wiki/MainPage"
+    },
+    {
+      "ordinal": 656,
+      "section": "科学计算和数据分析",
+      "title": "blaze",
+      "url": "http://blaze.readthedocs.org/en/latest/index.html"
+    },
+    {
+      "ordinal": 657,
+      "section": "科学计算和数据分析",
+      "title": "cclib",
+      "url": "http://cclib.github.io/"
+    },
+    {
+      "ordinal": 658,
+      "section": "科学计算和数据分析",
+      "title": "NetworkX",
+      "url": "https://networkx.github.io/"
+    },
+    {
+      "ordinal": 659,
+      "section": "科学计算和数据分析",
+      "title": "Neupy",
+      "url": "http://neupy.com/pages/home.html"
+    },
+    {
+      "ordinal": 660,
+      "section": "科学计算和数据分析",
+      "title": "NumPy",
+      "url": "http://www.numpy.org/"
+    },
+    {
+      "ordinal": 661,
+      "section": "科学计算和数据分析",
+      "title": "Open Babel",
+      "url": "http://openbabel.org/wiki/MainPage"
+    },
+    {
+      "ordinal": 662,
+      "section": "科学计算和数据分析",
+      "title": "Open Mining",
+      "url": "https://github.com/mining/mining"
+    },
+    {
+      "ordinal": 663,
+      "section": "科学计算和数据分析",
+      "title": "orange",
+      "url": "http://orange.biolab.si/"
+    },
+    {
+      "ordinal": 664,
+      "section": "科学计算和数据分析",
+      "title": "Pandas",
+      "url": "http://pandas.pydata.org/"
+    },
+    {
+      "ordinal": 665,
+      "section": "科学计算和数据分析",
+      "title": "PyDy",
+      "url": "http://www.pydy.org/"
+    },
+    {
+      "ordinal": 666,
+      "section": "科学计算和数据分析",
+      "title": "PyMC",
+      "url": "https://github.com/pymc-devs/pymc3"
+    },
+    {
+      "ordinal": 667,
+      "section": "科学计算和数据分析",
+      "title": "RDKit",
+      "url": "http://www.rdkit.org/"
+    },
+    {
+      "ordinal": 668,
+      "section": "科学计算和数据分析",
+      "title": "SciPy",
+      "url": "http://www.scipy.org/"
+    },
+    {
+      "ordinal": 669,
+      "section": "科学计算和数据分析",
+      "title": "statsmodels",
+      "url": "https://github.com/statsmodels/statsmodels"
+    },
+    {
+      "ordinal": 670,
+      "section": "科学计算和数据分析",
+      "title": "SymPy",
+      "url": "https://github.com/sympy/sympy"
+    },
+    {
+      "ordinal": 671,
+      "section": "科学计算和数据分析",
+      "title": "zipline",
+      "url": "https://github.com/quantopian/zipline"
+    },
+    {
+      "ordinal": 672,
+      "section": "科学计算和数据分析",
+      "title": "Bayesian-belief-networks",
+      "url": "https://github.com/eBay/bayesian-belief-networks"
+    },
+    {
+      "ordinal": 673,
+      "section": "科学计算和数据分析",
+      "title": "AWS Data Wrangler",
+      "url": "https://github.com/awslabs/aws-data-wrangler"
+    },
+    {
+      "ordinal": 674,
+      "section": "科学计算和数据分析",
+      "title": "Optimus",
+      "url": "https://github.com/ironmussa/Optimus"
+    },
+    {
+      "ordinal": 675,
+      "section": "科学计算和数据分析",
+      "title": "Colour",
+      "url": "http://colour-science.org/"
+    },
+    {
+      "ordinal": 676,
+      "section": "科学计算和数据分析",
+      "title": "Karate Club",
+      "url": "https://github.com/benedekrozemberczki/karateclub"
+    },
+    {
+      "ordinal": 677,
+      "section": "科学计算和数据分析",
+      "title": "NIPY",
+      "url": "http://nipy.org"
+    },
+    {
+      "ordinal": 678,
+      "section": "科学计算和数据分析",
+      "title": "ObsPy",
+      "url": "https://github.com/obspy/obspy/wiki/"
+    },
+    {
+      "ordinal": 679,
+      "section": "科学计算和数据分析",
+      "title": "QuTiP",
+      "url": "http://qutip.org/"
+    },
+    {
+      "ordinal": 680,
+      "section": "科学计算和数据分析",
+      "title": "SimPy",
+      "url": "https://gitlab.com/team-simpy/simpy"
+    },
+    {
+      "ordinal": 681,
+      "section": "数据可视化",
+      "title": "matplotlib",
+      "url": "http://matplotlib.org/"
+    },
+    {
+      "ordinal": 682,
+      "section": "数据可视化",
+      "title": "bokeh",
+      "url": "https://github.com/bokeh/bokeh"
+    },
+    {
+      "ordinal": 683,
+      "section": "数据可视化",
+      "title": "ggplot",
+      "url": "https://github.com/yhat/ggplot"
+    },
+    {
+      "ordinal": 684,
+      "section": "数据可视化",
+      "title": "plotly",
+      "url": "https://plot.ly/python/"
+    },
+    {
+      "ordinal": 685,
+      "section": "数据可视化",
+      "title": "pyecharts",
+      "url": "https://github.com/chenjiandongx/pyecharts"
+    },
+    {
+      "ordinal": 686,
+      "section": "数据可视化",
+      "title": "pygal",
+      "url": "http://www.pygal.org/en/latest/"
+    },
+    {
+      "ordinal": 687,
+      "section": "数据可视化",
+      "title": "pygraphviz",
+      "url": "https://pypi.python.org/pypi/pygraphviz"
+    },
+    {
+      "ordinal": 688,
+      "section": "数据可视化",
+      "title": "PyQtGraph",
+      "url": "http://www.pyqtgraph.org/"
+    },
+    {
+      "ordinal": 689,
+      "section": "数据可视化",
+      "title": "SnakeViz",
+      "url": "http://jiffyclub.github.io/snakeviz/"
+    },
+    {
+      "ordinal": 690,
+      "section": "数据可视化",
+      "title": "vincent",
+      "url": "https://github.com/wrobstory/vincent"
+    },
+    {
+      "ordinal": 691,
+      "section": "数据可视化",
+      "title": "VisPy",
+      "url": "http://vispy.org/"
+    },
+    {
+      "ordinal": 692,
+      "section": "数据可视化",
+      "title": "Altair",
+      "url": "https://github.com/altair-viz/altair"
+    },
+    {
+      "ordinal": 693,
+      "section": "数据可视化",
+      "title": "bqplot",
+      "url": "https://github.com/bloomberg/bqplot"
+    },
+    {
+      "ordinal": 694,
+      "section": "数据可视化",
+      "title": "Cartopy",
+      "url": "https://github.com/SciTools/cartopy"
+    },
+    {
+      "ordinal": 695,
+      "section": "数据可视化",
+      "title": "Dash",
+      "url": "https://plot.ly/products/dash/"
+    },
+    {
+      "ordinal": 696,
+      "section": "数据可视化",
+      "title": "awesome-dash",
+      "url": "https://github.com/Acrotrend/awesome-dash"
+    },
+    {
+      "ordinal": 697,
+      "section": "数据可视化",
+      "title": "diagrams",
+      "url": "https://github.com/mingrammer/diagrams"
+    },
+    {
+      "ordinal": 698,
+      "section": "数据可视化",
+      "title": "plotnine",
+      "url": "https://github.com/has2k1/plotnine"
+    },
+    {
+      "ordinal": 699,
+      "section": "数据可视化",
+      "title": "PyGraphviz",
+      "url": "https://pypi.org/project/pygraphviz/"
+    },
+    {
+      "ordinal": 700,
+      "section": "数据可视化",
+      "title": "Seaborn",
+      "url": "https://github.com/mwaskom/seaborn"
+    },
+    {
+      "ordinal": 701,
+      "section": "计算机视觉",
+      "title": "OpenCV",
+      "url": "http://opencv.org/"
+    },
+    {
+      "ordinal": 702,
+      "section": "计算机视觉",
+      "title": "pyocr",
+      "url": "https://github.com/jflesch/pyocr"
+    },
+    {
+      "ordinal": 703,
+      "section": "计算机视觉",
+      "title": "pytesseract",
+      "url": "https://github.com/madmaze/pytesseract"
+    },
+    {
+      "ordinal": 704,
+      "section": "计算机视觉",
+      "title": "SimpleCV",
+      "url": "http://simplecv.org/"
+    },
+    {
+      "ordinal": 705,
+      "section": "计算机视觉",
+      "title": "EasyOCR",
+      "url": "https://github.com/JaidedAI/EasyOCR"
+    },
+    {
+      "ordinal": 706,
+      "section": "计算机视觉",
+      "title": "Face Recognition",
+      "url": "https://github.com/ageitgey/face_recognition"
+    },
+    {
+      "ordinal": 707,
+      "section": "计算机视觉",
+      "title": "Kornia",
+      "url": "https://github.com/kornia/kornia/"
+    },
+    {
+      "ordinal": 708,
+      "section": "计算机视觉",
+      "title": "tesserocr",
+      "url": "https://github.com/sirfz/tesserocr"
+    },
+    {
+      "ordinal": 709,
+      "section": "深度学习",
+      "title": "Caffe",
+      "url": "http://caffe.berkeleyvision.org"
+    },
+    {
+      "ordinal": 710,
+      "section": "深度学习",
+      "title": "Caffe2",
+      "url": "https://caffe2.ai/"
+    },
+    {
+      "ordinal": 711,
+      "section": "深度学习",
+      "title": "keras",
+      "url": "https://keras.io/"
+    },
+    {
+      "ordinal": 712,
+      "section": "深度学习",
+      "title": "MXNet",
+      "url": "http://mxnet.incubator.apache.org/"
+    },
+    {
+      "ordinal": 713,
+      "section": "深度学习",
+      "title": "Pytorch",
+      "url": "http://pytorch.org/"
+    },
+    {
+      "ordinal": 714,
+      "section": "深度学习",
+      "title": "SerpentAI",
+      "url": "https://github.com/SerpentAI/SerpentAI"
+    },
+    {
+      "ordinal": 715,
+      "section": "深度学习",
+      "title": "Theano",
+      "url": "https://github.com/Theano/Theano"
+    },
+    {
+      "ordinal": 716,
+      "section": "深度学习",
+      "title": "TensorFlow",
+      "url": "http://tensorflow.org/"
+    },
+    {
+      "ordinal": 717,
+      "section": "深度学习",
+      "title": "skflow",
+      "url": "https://github.com/tensorflow/skflow"
+    },
+    {
+      "ordinal": 718,
+      "section": "深度学习",
+      "title": "hebel",
+      "url": "https://github.com/hannes-brt/hebel"
+    },
+    {
+      "ordinal": 719,
+      "section": "深度学习",
+      "title": "pydeep",
+      "url": "https://github.com/andersbll/deeppy"
+    },
+    {
+      "ordinal": 720,
+      "section": "机器学习",
+      "title": "Crab",
+      "url": "https://github.com/muricoca/crab"
+    },
+    {
+      "ordinal": 721,
+      "section": "机器学习",
+      "title": "NuPIC",
+      "url": "https://github.com/numenta/nupic"
+    },
+    {
+      "ordinal": 722,
+      "section": "机器学习",
+      "title": "pattern",
+      "url": "https://github.com/clips/pattern"
+    },
+    {
+      "ordinal": 723,
+      "section": "机器学习",
+      "title": "PyBrain",
+      "url": "https://github.com/pybrain/pybrain"
+    },
+    {
+      "ordinal": 724,
+      "section": "机器学习",
+      "title": "Pylearn2",
+      "url": "https://github.com/lisa-lab/pylearn2"
+    },
+    {
+      "ordinal": 725,
+      "section": "机器学习",
+      "title": "python-recsys",
+      "url": "https://github.com/ocelma/python-recsys"
+    },
+    {
+      "ordinal": 726,
+      "section": "机器学习",
+      "title": "scikit-learn",
+      "url": "http://scikit-learn.org/"
+    },
+    {
+      "ordinal": 727,
+      "section": "机器学习",
+      "title": "vowpalporpoise",
+      "url": "https://github.com/josephreisinger/vowpalporpoise"
+    },
+    {
+      "ordinal": 728,
+      "section": "机器学习",
+      "title": "gym",
+      "url": "https://github.com/openai/gym"
+    },
+    {
+      "ordinal": 729,
+      "section": "机器学习",
+      "title": "H2O",
+      "url": "https://github.com/h2oai/h2o-3"
+    },
+    {
+      "ordinal": 730,
+      "section": "机器学习",
+      "title": "Metrics",
+      "url": "https://github.com/benhamner/Metrics"
+    },
+    {
+      "ordinal": 731,
+      "section": "机器学习",
+      "title": "vowpalporpoise",
+      "url": "https://github.com/josephreisinger/vowpal_porpoise"
+    },
+    {
+      "ordinal": 732,
+      "section": "机器学习",
+      "title": "xgboost",
+      "url": "https://github.com/dmlc/xgboost"
+    },
+    {
+      "ordinal": 733,
+      "section": "机器学习",
+      "title": "MindsDB",
+      "url": "https://github.com/mindsdb/mindsdb"
+    },
+    {
+      "ordinal": 734,
+      "section": "推荐系统",
+      "title": "annoy",
+      "url": "https://github.com/spotify/annoy"
+    },
+    {
+      "ordinal": 735,
+      "section": "推荐系统",
+      "title": "fastFM",
+      "url": "https://github.com/ibayer/fastFM"
+    },
+    {
+      "ordinal": 736,
+      "section": "推荐系统",
+      "title": "implicit",
+      "url": "https://github.com/benfred/implicit"
+    },
+    {
+      "ordinal": 737,
+      "section": "推荐系统",
+      "title": "libffm",
+      "url": "https://github.com/guestwalk/libffm"
+    },
+    {
+      "ordinal": 738,
+      "section": "推荐系统",
+      "title": "lightfm",
+      "url": "https://github.com/lyst/lightfm"
+    },
+    {
+      "ordinal": 739,
+      "section": "推荐系统",
+      "title": "spotlight",
+      "url": "https://github.com/maciejkula/spotlight"
+    },
+    {
+      "ordinal": 740,
+      "section": "推荐系统",
+      "title": "Surprise",
+      "url": "https://github.com/NicolasHug/Surprise"
+    },
+    {
+      "ordinal": 741,
+      "section": "推荐系统",
+      "title": "tensorrec",
+      "url": "https://github.com/jfkirk/tensorrec"
+    },
+    {
+      "ordinal": 742,
+      "section": "分布式计算",
+      "title": "dpark",
+      "url": "https://github.com/douban/dpark"
+    },
+    {
+      "ordinal": 743,
+      "section": "分布式计算",
+      "title": "dumbo",
+      "url": "https://github.com/klbostee/dumbo"
+    },
+    {
+      "ordinal": 744,
+      "section": "分布式计算",
+      "title": "luigi",
+      "url": "https://github.com/spotify/luigi"
+    },
+    {
+      "ordinal": 745,
+      "section": "分布式计算",
+      "title": "mrjob",
+      "url": "https://github.com/Yelp/mrjob"
+    },
+    {
+      "ordinal": 746,
+      "section": "分布式计算",
+      "title": "dask",
+      "url": "https://github.com/dask/dask"
+    },
+    {
+      "ordinal": 747,
+      "section": "分布式计算",
+      "title": "PySpark",
+      "url": "http://spark.apache.org/docs/latest/programming-guide.html"
+    },
+    {
+      "ordinal": 748,
+      "section": "分布式计算",
+      "title": "Ray",
+      "url": "https://github.com/ray-project/ray/"
+    },
+    {
+      "ordinal": 749,
+      "section": "分布式计算",
+      "title": "faust",
+      "url": "https://github.com/robinhood/faust"
+    },
+    {
+      "ordinal": 750,
+      "section": "分布式计算",
+      "title": "streamparse",
+      "url": "https://github.com/Parsely/streamparse"
+    },
+    {
+      "ordinal": 751,
+      "section": "分布式计算",
+      "title": "mars",
+      "url": "https://github.com/mars-project/mars"
+    },
+    {
+      "ordinal": 752,
+      "section": "函数式编程",
+      "title": "CyToolz",
+      "url": "https://github.com/pytoolz/cytoolz/"
+    },
+    {
+      "ordinal": 753,
+      "section": "函数式编程",
+      "title": "fn.py",
+      "url": "https://github.com/kachayev/fn.py"
+    },
+    {
+      "ordinal": 754,
+      "section": "函数式编程",
+      "title": "funcy",
+      "url": "https://github.com/Suor/funcy"
+    },
+    {
+      "ordinal": 755,
+      "section": "函数式编程",
+      "title": "Toolz",
+      "url": "https://github.com/pytoolz/toolz"
+    },
+    {
+      "ordinal": 756,
+      "section": "函数式编程",
+      "title": "Coconut",
+      "url": "https://github.com/evhub/coconut"
+    },
+    {
+      "ordinal": 757,
+      "section": "函数式编程",
+      "title": "more-itertools",
+      "url": "https://github.com/erikrose/more-itertools"
+    },
+    {
+      "ordinal": 758,
+      "section": "函数式编程",
+      "title": "returns",
+      "url": "https://github.com/dry-python/returns"
+    },
+    {
+      "ordinal": 759,
+      "section": "第三方 API",
+      "title": "apache-libcloud",
+      "url": "https://libcloud.apache.org/"
+    },
+    {
+      "ordinal": 760,
+      "section": "第三方 API",
+      "title": "boto3",
+      "url": "https://github.com/boto/boto3"
+    },
+    {
+      "ordinal": 761,
+      "section": "第三方 API",
+      "title": "django-wordpress",
+      "url": "https://github.com/sunlightlabs/django-wordpress/"
+    },
+    {
+      "ordinal": 762,
+      "section": "第三方 API",
+      "title": "facebook-sdk",
+      "url": "https://github.com/mobolic/facebook-sdk"
+    },
+    {
+      "ordinal": 763,
+      "section": "第三方 API",
+      "title": "facepy",
+      "url": "https://github.com/jgorset/facepy"
+    },
+    {
+      "ordinal": 764,
+      "section": "第三方 API",
+      "title": "gmail",
+      "url": "https://github.com/charlierguo/gmail"
+    },
+    {
+      "ordinal": 765,
+      "section": "第三方 API",
+      "title": "google-api-python-client",
+      "url": "https://github.com/google/google-api-python-client"
+    },
+    {
+      "ordinal": 766,
+      "section": "第三方 API",
+      "title": "gspread",
+      "url": "https://github.com/burnash/gspread"
+    },
+    {
+      "ordinal": 767,
+      "section": "第三方 API",
+      "title": "twython",
+      "url": "https://github.com/ryanmcgrath/twython"
+    },
+    {
+      "ordinal": 768,
+      "section": "DevOps 工具",
+      "title": "Ansible",
+      "url": "https://github.com/ansible/ansible"
+    },
+    {
+      "ordinal": 769,
+      "section": "DevOps 工具",
+      "title": "SaltStack",
+      "url": "https://github.com/saltstack/salt"
+    },
+    {
+      "ordinal": 770,
+      "section": "DevOps 工具",
+      "title": "OpenStack",
+      "url": "http://www.openstack.org/"
+    },
+    {
+      "ordinal": 771,
+      "section": "DevOps 工具",
+      "title": "Docker Compose",
+      "url": "https://docs.docker.com/compose/"
+    },
+    {
+      "ordinal": 772,
+      "section": "DevOps 工具",
+      "title": "Fabric",
+      "url": "http://www.fabfile.org/"
+    },
+    {
+      "ordinal": 773,
+      "section": "DevOps 工具",
+      "title": "cuisine",
+      "url": "https://github.com/sebastien/cuisine"
+    },
+    {
+      "ordinal": 774,
+      "section": "DevOps 工具",
+      "title": "Fabtools",
+      "url": "https://github.com/ronnix/fabtools"
+    },
+    {
+      "ordinal": 775,
+      "section": "DevOps 工具",
+      "title": "gitapi",
+      "url": "https://bitbucket.org/haard/gitapi"
+    },
+    {
+      "ordinal": 776,
+      "section": "DevOps 工具",
+      "title": "hgapi",
+      "url": "https://bitbucket.org/haard/hgapi"
+    },
+    {
+      "ordinal": 777,
+      "section": "DevOps 工具",
+      "title": "honcho",
+      "url": "https://github.com/nickstenning/honcho"
+    },
+    {
+      "ordinal": 778,
+      "section": "DevOps 工具",
+      "title": "pexpect",
+      "url": "https://github.com/pexpect/pexpect"
+    },
+    {
+      "ordinal": 779,
+      "section": "DevOps 工具",
+      "title": "psutil",
+      "url": "https://github.com/giampaolo/psutil"
+    },
+    {
+      "ordinal": 780,
+      "section": "DevOps 工具",
+      "title": "supervisor",
+      "url": "https://github.com/Supervisor/supervisor"
+    },
+    {
+      "ordinal": 781,
+      "section": "DevOps 工具",
+      "title": "cloudinit",
+      "url": "https://cloudinit.readthedocs.io/en/latest/"
+    },
+    {
+      "ordinal": 782,
+      "section": "DevOps 工具",
+      "title": "pyinfra",
+      "url": "https://github.com/Fizzadar/pyinfra"
+    },
+    {
+      "ordinal": 783,
+      "section": "DevOps 工具",
+      "title": "honcho",
+      "url": "https://github.com/nickstenning/honcho"
+    },
+    {
+      "ordinal": 784,
+      "section": "DevOps 工具",
+      "title": "BorgBackup",
+      "url": "https://www.borgbackup.org/"
+    },
+    {
+      "ordinal": 785,
+      "section": "DevOps 工具",
+      "title": "docker-compose",
+      "url": "https://docs.docker.com/compose/"
+    },
+    {
+      "ordinal": 786,
+      "section": "任务调度",
+      "title": "APScheduler",
+      "url": "http://apscheduler.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 787,
+      "section": "任务调度",
+      "title": "django-schedule",
+      "url": "https://github.com/thauber/django-schedule"
+    },
+    {
+      "ordinal": 788,
+      "section": "任务调度",
+      "title": "doit",
+      "url": "http://pydoit.org/"
+    },
+    {
+      "ordinal": 789,
+      "section": "任务调度",
+      "title": "gunnery",
+      "url": "https://github.com/gunnery/gunnery"
+    },
+    {
+      "ordinal": 790,
+      "section": "任务调度",
+      "title": "Joblib",
+      "url": "http://pythonhosted.org/joblib/index.html"
+    },
+    {
+      "ordinal": 791,
+      "section": "任务调度",
+      "title": "Plan",
+      "url": "https://github.com/fengsp/plan"
+    },
+    {
+      "ordinal": 792,
+      "section": "任务调度",
+      "title": "schedule",
+      "url": "https://github.com/dbader/schedule"
+    },
+    {
+      "ordinal": 793,
+      "section": "任务调度",
+      "title": "Spiff",
+      "url": "https://github.com/knipknap/SpiffWorkflow"
+    },
+    {
+      "ordinal": 794,
+      "section": "任务调度",
+      "title": "TaskFlow",
+      "url": "http://docs.openstack.org/developer/taskflow/"
+    },
+    {
+      "ordinal": 795,
+      "section": "任务调度",
+      "title": "Airflow",
+      "url": "https://airflow.apache.org/"
+    },
+    {
+      "ordinal": 796,
+      "section": "任务调度",
+      "title": "Prefect",
+      "url": "https://github.com/PrefectHQ/prefect"
+    },
+    {
+      "ordinal": 797,
+      "section": "外来函数接口",
+      "title": "cffi",
+      "url": "https://pypi.python.org/pypi/cffi"
+    },
+    {
+      "ordinal": 798,
+      "section": "外来函数接口",
+      "title": "ctypes",
+      "url": "https://docs.python.org/2/library/ctypes.html"
+    },
+    {
+      "ordinal": 799,
+      "section": "外来函数接口",
+      "title": "PyCUDA",
+      "url": "https://mathema.tician.de/software/pycuda/"
+    },
+    {
+      "ordinal": 800,
+      "section": "外来函数接口",
+      "title": "SWIG",
+      "url": "http://www.swig.org/Doc1.3/Python.html"
+    },
+    {
+      "ordinal": 801,
+      "section": "重构",
+      "title": "Bicycle Repair Man",
+      "url": "http://bicyclerepair.sourceforge.net/"
+    },
+    {
+      "ordinal": 802,
+      "section": "重构",
+      "title": "Bowler",
+      "url": "https://pybowler.io/"
+    },
+    {
+      "ordinal": 803,
+      "section": "重构",
+      "title": "Rope",
+      "url": "https://github.com/python-rope/rope"
+    },
+    {
+      "ordinal": 804,
+      "section": "高性能",
+      "title": "Cython",
+      "url": "http://cython.org/"
+    },
+    {
+      "ordinal": 805,
+      "section": "高性能",
+      "title": "CLPython",
+      "url": "https://github.com/metawilm/cl-python"
+    },
+    {
+      "ordinal": 806,
+      "section": "高性能",
+      "title": "Grumpy",
+      "url": "https://github.com/google/grumpy"
+    },
+    {
+      "ordinal": 807,
+      "section": "高性能",
+      "title": "IronPython",
+      "url": "https://github.com/IronLanguages/ironpython3"
+    },
+    {
+      "ordinal": 808,
+      "section": "高性能",
+      "title": "Jython",
+      "url": "https://hg.python.org/jython"
+    },
+    {
+      "ordinal": 809,
+      "section": "高性能",
+      "title": "MicroPython",
+      "url": "https://github.com/micropython/micropython"
+    },
+    {
+      "ordinal": 810,
+      "section": "高性能",
+      "title": "Pyjion",
+      "url": "https://github.com/Microsoft/Pyjion"
+    },
+    {
+      "ordinal": 811,
+      "section": "高性能",
+      "title": "Numba",
+      "url": "http://numba.pydata.org/"
+    },
+    {
+      "ordinal": 812,
+      "section": "高性能",
+      "title": "PeachPy",
+      "url": "https://github.com/Maratyszcza/PeachPy"
+    },
+    {
+      "ordinal": 813,
+      "section": "高性能",
+      "title": "PyPy",
+      "url": "http://pypy.org/"
+    },
+    {
+      "ordinal": 814,
+      "section": "高性能",
+      "title": "Pyston",
+      "url": "https://github.com/dropbox/pyston"
+    },
+    {
+      "ordinal": 815,
+      "section": "高性能",
+      "title": "Stackless Python",
+      "url": "https://bitbucket.org/stackless-dev/stackless/overview"
+    },
+    {
+      "ordinal": 816,
+      "section": "微软的 Windows 平台",
+      "title": "Python(x,y)",
+      "url": "http://python-xy.github.io/"
+    },
+    {
+      "ordinal": 817,
+      "section": "微软的 Windows 平台",
+      "title": "pythonlibs",
+      "url": "http://www.lfd.uci.edu/~gohlke/pythonlibs/"
+    },
+    {
+      "ordinal": 818,
+      "section": "微软的 Windows 平台",
+      "title": "PythonNet",
+      "url": "https://github.com/pythonnet/pythonnet"
+    },
+    {
+      "ordinal": 819,
+      "section": "微软的 Windows 平台",
+      "title": "PyWin32",
+      "url": "https://sourceforge.net/projects/pywin32/"
+    },
+    {
+      "ordinal": 820,
+      "section": "微软的 Windows 平台",
+      "title": "WinPython",
+      "url": "https://winpython.github.io/"
+    },
+    {
+      "ordinal": 821,
+      "section": "网络可视化和 SDN",
+      "title": "Mininet",
+      "url": "http://mininet.org/"
+    },
+    {
+      "ordinal": 822,
+      "section": "网络可视化和 SDN",
+      "title": "POX",
+      "url": "https://github.com/noxrepo/pox"
+    },
+    {
+      "ordinal": 823,
+      "section": "网络可视化和 SDN",
+      "title": "Pyretic",
+      "url": "http://frenetic-lang.org/pyretic/"
+    },
+    {
+      "ordinal": 824,
+      "section": "网络可视化和 SDN",
+      "title": "SDX Platform",
+      "url": "https://github.com/sdn-ixp/internet2award"
+    },
+    {
+      "ordinal": 825,
+      "section": "网络可视化和 SDN",
+      "title": "NRU",
+      "url": "http://ryu.readthedocs.io/en/latest/"
+    },
+    {
+      "ordinal": 826,
+      "section": "网络可视化和 SDN",
+      "title": "napalm",
+      "url": "https://github.com/napalm-automation/napalm"
+    },
+    {
+      "ordinal": 827,
+      "section": "硬件",
+      "title": "ino",
+      "url": "http://inotool.org/"
+    },
+    {
+      "ordinal": 828,
+      "section": "硬件",
+      "title": "Pyro",
+      "url": "http://pyrorobotics.com/"
+    },
+    {
+      "ordinal": 829,
+      "section": "硬件",
+      "title": "PyUserInput",
+      "url": "https://github.com/SavinaRoja/PyUserInput"
+    },
+    {
+      "ordinal": 830,
+      "section": "硬件",
+      "title": "scapy",
+      "url": "https://github.com/secdev/scapy"
+    },
+    {
+      "ordinal": 831,
+      "section": "硬件",
+      "title": "wifi",
+      "url": "https://wifi.readthedocs.org/en/latest/"
+    },
+    {
+      "ordinal": 832,
+      "section": "硬件",
+      "title": "Pingo",
+      "url": "http://www.pingo.io/"
+    },
+    {
+      "ordinal": 833,
+      "section": "硬件",
+      "title": "keyboard",
+      "url": "https://github.com/boppreh/keyboard"
+    },
+    {
+      "ordinal": 834,
+      "section": "硬件",
+      "title": "mouse",
+      "url": "https://github.com/boppreh/mouse"
+    },
+    {
+      "ordinal": 835,
+      "section": "兼容性",
+      "title": "Python-Future",
+      "url": "http://python-future.org/index.html"
+    },
+    {
+      "ordinal": 836,
+      "section": "兼容性",
+      "title": "Six",
+      "url": "https://pypi.python.org/pypi/six"
+    },
+    {
+      "ordinal": 837,
+      "section": "兼容性",
+      "title": "modernize",
+      "url": "https://github.com/PyCQA/modernize"
+    },
+    {
+      "ordinal": 838,
+      "section": "算法和设计模式",
+      "title": "algorithms",
+      "url": "https://github.com/keon/algorithms"
+    },
+    {
+      "ordinal": 839,
+      "section": "算法和设计模式",
+      "title": "python-ds",
+      "url": "https://github.com/prabhupant/python-ds"
+    },
+    {
+      "ordinal": 840,
+      "section": "算法和设计模式",
+      "title": "sortedcontainers",
+      "url": "https://github.com/grantjenks/python-sortedcontainers"
+    },
+    {
+      "ordinal": 841,
+      "section": "算法和设计模式",
+      "title": "TheAlgorithms",
+      "url": "https://github.com/TheAlgorithms/Python"
+    },
+    {
+      "ordinal": 842,
+      "section": "算法和设计模式",
+      "title": "PyPattyrn",
+      "url": "https://github.com/tylerlaberge/PyPattyrn"
+    },
+    {
+      "ordinal": 843,
+      "section": "算法和设计模式",
+      "title": "python-patterns",
+      "url": "https://github.com/faif/python-patterns"
+    },
+    {
+      "ordinal": 844,
+      "section": "算法和设计模式",
+      "title": "transitions",
+      "url": "https://github.com/pytransitions/transitions"
+    },
+    {
+      "ordinal": 845,
+      "section": "内置类的增强版实现",
+      "title": "attrs",
+      "url": "https://github.com/python-attrs/attrs"
+    },
+    {
+      "ordinal": 846,
+      "section": "内置类的增强版实现",
+      "title": "bidict",
+      "url": "https://github.com/jab/bidict"
+    },
+    {
+      "ordinal": 847,
+      "section": "内置类的增强版实现",
+      "title": "Box",
+      "url": "https://github.com/cdgriffith/Box"
+    },
+    {
+      "ordinal": 848,
+      "section": "内置类的增强版实现",
+      "title": "dataclasses",
+      "url": "https://docs.python.org/3/library/dataclasses.html"
+    },
+    {
+      "ordinal": 849,
+      "section": "内置类的增强版实现",
+      "title": "DottedDict",
+      "url": "https://github.com/carlosescri/DottedDict"
+    },
+    {
+      "ordinal": 850,
+      "section": "机器人",
+      "title": "PythonRobotics",
+      "url": "https://github.com/AtsushiSakai/PythonRobotics"
+    },
+    {
+      "ordinal": 851,
+      "section": "机器人",
+      "title": "rospy",
+      "url": "http://wiki.ros.org/rospy"
+    },
+    {
+      "ordinal": 852,
+      "section": "聊天工具",
+      "title": "errbot",
+      "url": "https://github.com/errbotio/errbot/"
+    },
+    {
+      "ordinal": 853,
+      "section": "编辑器插件和 IDE",
+      "title": "elpy",
+      "url": "https://github.com/jorgenschaefer/elpy"
+    },
+    {
+      "ordinal": 854,
+      "section": "编辑器插件和 IDE",
+      "title": "anaconda",
+      "url": "https://github.com/DamnWidget/anaconda"
+    },
+    {
+      "ordinal": 855,
+      "section": "编辑器插件和 IDE",
+      "title": "SublimeJEDI",
+      "url": "https://github.com/srusskih/SublimeJEDI"
+    },
+    {
+      "ordinal": 856,
+      "section": "编辑器插件和 IDE",
+      "title": "jedi-vim",
+      "url": "https://github.com/davidhalter/jedi-vim"
+    },
+    {
+      "ordinal": 857,
+      "section": "编辑器插件和 IDE",
+      "title": "python-mode",
+      "url": "https://github.com/python-mode/python-mode"
+    },
+    {
+      "ordinal": 858,
+      "section": "编辑器插件和 IDE",
+      "title": "YouCompleteMe",
+      "url": "https://github.com/Valloric/YouCompleteMe"
+    },
+    {
+      "ordinal": 859,
+      "section": "编辑器插件和 IDE",
+      "title": "PTVS",
+      "url": "https://github.com/Microsoft/PTVS"
+    },
+    {
+      "ordinal": 860,
+      "section": "编辑器插件和 IDE",
+      "title": "Python",
+      "url": "https://marketplace.visualstudio.com/items?itemName=ms-python.python"
+    },
+    {
+      "ordinal": 861,
+      "section": "编辑器插件和 IDE",
+      "title": "PyCharm",
+      "url": "https://www.jetbrains.com/pycharm/"
+    },
+    {
+      "ordinal": 862,
+      "section": "编辑器插件和 IDE",
+      "title": "spyder",
+      "url": "https://github.com/spyder-ide/spyder"
+    },
+    {
+      "ordinal": 863,
+      "section": "企业级应用集成",
+      "title": "Zato",
+      "url": "https://zato.io"
+    },
+    {
+      "ordinal": 864,
+      "section": "GraphQL",
+      "title": "graphene",
+      "url": "https://github.com/graphql-python/graphene/"
+    },
+    {
+      "ordinal": 865,
+      "section": "GraphQL",
+      "title": "tartiflette-aiohttp",
+      "url": "https://github.com/tartiflette/tartiflette-aiohttp/"
+    },
+    {
+      "ordinal": 866,
+      "section": "GraphQL",
+      "title": "tartiflette-asgi",
+      "url": "https://github.com/tartiflette/tartiflette-asgi/"
+    },
+    {
+      "ordinal": 867,
+      "section": "GraphQL",
+      "title": "tartiflette",
+      "url": "https://tartiflette.io"
+    },
+    {
+      "ordinal": 868,
+      "section": "股票金融",
+      "title": "QUANTAXIS",
+      "url": "https://github.com/QUANTAXIS/QUANTAXIS"
+    },
+    {
+      "ordinal": 869,
+      "section": "股票金融",
+      "title": "abu",
+      "url": "https://github.com/bbfamily/abu"
+    },
+    {
+      "ordinal": 870,
+      "section": "股票金融",
+      "title": "Hikyuu Quant",
+      "url": "https://github.com/fasiondog/hikyuu"
+    },
+    {
+      "ordinal": 871,
+      "section": "股票金融",
+      "title": "vnpy",
+      "url": "https://github.com/vnpy/vnpy"
+    },
+    {
+      "ordinal": 872,
+      "section": "杂项",
+      "title": "blinker",
+      "url": "https://github.com/jek/blinker"
+    },
+    {
+      "ordinal": 873,
+      "section": "杂项",
+      "title": "boltons",
+      "url": "https://github.com/mahmoud/boltons"
+    },
+    {
+      "ordinal": 874,
+      "section": "杂项",
+      "title": "itsdangerous",
+      "url": "https://github.com/pallets/itsdangerous"
+    },
+    {
+      "ordinal": 875,
+      "section": "杂项",
+      "title": "magenta",
+      "url": "https://github.com/magenta/magenta"
+    },
+    {
+      "ordinal": 876,
+      "section": "杂项",
+      "title": "pluginbase",
+      "url": "https://github.com/mitsuhiko/pluginbase"
+    },
+    {
+      "ordinal": 877,
+      "section": "杂项",
+      "title": "tryton",
+      "url": "http://www.tryton.org/"
+    }
+  ]
+}

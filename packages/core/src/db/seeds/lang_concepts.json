@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "collected_at": "2026-10-19",
+  "_notes": {
+    "source_discipline": "⚠️ §3.7 纪律：概念层内容**全部由本仓自撰**，一个字都不从教程搬（runoob / xinliangnote / walter201230 / awesome-* 一律只作「延伸阅读」外链，不入内容）。本文件是自撰内容的**元数据**（slug / 标题 / 摘要 / 挂接映射），三段正文在 lang_topic_content.json。",
+    "why_eight": "8 个共通概念按 §6.3-5 的「按真实使用面挑」口径定，**可复算**：两门 runoob inventory 里**都有独立条目**且语义同层。逐条对应见每个 concept 的 lang_topics 字段。",
+    "not_a_mapping_table": "⚠️ lang_topics 字段是**概念 → 两门知识点的挂接映射**（一个概念跨两门共用一份内容），**不是** §3.6 的 8 站与附件 21 段那套「不做逐格映射」的两套阶段（DL-50 管的是后者）。",
+    "content_level": "8 个共通概念全部 'full' —— §3.7.1 定「共通概念 8 个写满（步骤 ＋ 样例 ＋ 原理解析）」。语言专有条目是 'headline'（一句话要点 ＋ 外部出处链接），那是 P1.5 之后的补齐队列。",
+    "attach_note": "⚠️ 库里**没有** concept ↔ topic 的关联表（§3.1 的 17 张表里没有）。挂接靠两处：① 本文件的 lang_topics 字段（构建期事实）② lang_topics.summary 里回写的一句概念摘要（运行期可查）。三段内容**只**挂概念（ref_kind='concept'），不复制到 topic 侧 —— 那正是 DL-15 断的事。"
+  },
+  "items": [
+    {
+      "slug": "function",
+      "title": "函数",
+      "summary": "把一段有名字、可重复调用的逻辑封装成一个单元，靠参数接收输入、靠返回值交出结果。",
+      "content_level": "full",
+      "lang_topics": {
+        "python": "python3-function",
+        "go": "go-functions"
+      }
+    },
+    {
+      "slug": "conditional",
+      "title": "条件语句",
+      "summary": "按布尔表达式的结果在若干条路径中选一条执行，是程序里最基础的分流机制。",
+      "content_level": "full",
+      "lang_topics": {
+        "python": "python3-conditional-statements",
+        "go": "go-decision-making"
+      }
+    },
+    {
+      "slug": "loop",
+      "title": "循环语句",
+      "summary": "让一段代码按条件重复执行，用固定的结构表达「对一批对象做同一件事」。",
+      "content_level": "full",
+      "lang_topics": {
+        "python": "python3-loop",
+        "go": "go-loops"
+      }
+    },
+    {
+      "slug": "data-type",
+      "title": "数据类型",
+      "summary": "一组值在内存里的共同约定 —— 存什么形状、占多少空间、能对它做哪些操作。",
+      "content_level": "full",
+      "lang_topics": {
+        "python": "python3-data-type",
+        "go": "go-data-types"
+      }
+    },
+    {
+      "slug": "operator",
+      "title": "运算符",
+      "summary": "作用在操作数上的符号，把两个值按某种规则合成一个新值，或给出判断结果。",
+      "content_level": "full",
+      "lang_topics": {
+        "python": "python3-basic-operators",
+        "go": "go-operators"
+      }
+    },
+    {
+      "slug": "type-conversion",
+      "title": "类型转换",
+      "summary": "把一个值从一种类型转成另一种类型，是不同类型之间协作时必须显式跨过的一道关口。",
+      "content_level": "full",
+      "lang_topics": {
+        "python": "python3-type-conversion",
+        "go": "go-type-casting"
+      }
+    },
+    {
+      "slug": "error-handling",
+      "title": "错误处理",
+      "summary": "程序出错时不让整个进程崩溃、而是把错误变成可被处理的值或控制流的一整套约定。",
+      "content_level": "full",
+      "lang_topics": {
+        "python": "python3-errors-execptions",
+        "go": "go-error-handling"
+      }
+    },
+    {
+      "slug": "regular-expression",
+      "title": "正则表达式",
+      "summary": "用一套小型语言描述「文本长什么样」的模式，用来在字符串里查找、替换、抽取符合形状的片段。",
+      "content_level": "full",
+      "lang_topics": {
+        "python": "python3-reg-expressions",
+        "go": "go-regex"
+      }
+    }
+  ]
+}

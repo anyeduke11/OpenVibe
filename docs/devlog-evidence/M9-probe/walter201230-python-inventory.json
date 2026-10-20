@@ -1,0 +1,661 @@
+{
+  "_readme": "walter201230/Python 教程目录（GitHub 仓库树）。⚠️ 只存标题与 URL，正文一个字未取（spec §3.2 版权与漂移约束）。",
+  "source": "https://github.com/walter201230/Python",
+  "collected_at": "2026-10-20",
+  "collect_method": "由 scripts/collect-m9-github-sources.ts 采集：GitHub git/trees API（recursive）→ 只取 .md blob → 自然序排序 → section 按「parent-dir」取 → 标题保留原名 → 链接为 GitHub 文件页（路径逐段百分号编码）",
+  "counts": {
+    "total": 101,
+    "unique_urls": 101,
+    "sections": {
+      "Article/PythonBasis/python0": 1,
+      "Article/PythonBasis/python1": 5,
+      "Article/PythonBasis/python2": 7,
+      "Article/PythonBasis/python3": 3,
+      "Article/PythonBasis/python4": 3,
+      "Article/PythonBasis/python5": 4,
+      "Article/PythonBasis/python6": 6,
+      "Article/PythonBasis/python7": 6,
+      "Article/PythonBasis/python8": 10,
+      "Article/PythonBasis/python9": 6,
+      "Article/PythonBasis/python10": 7,
+      "Article/PythonBasis/python11": 5,
+      "Article/PythonBasis/python12": 6,
+      "Article/PythonBasis/python13": 4,
+      "Article/PythonBasis/python14": 8,
+      "Article/PythonBasis/python15": 1,
+      "Article/PythonBasis/python16": 1,
+      "Article/PythonBasis/python17": 1,
+      "Article/PythonBasis/python18": 1,
+      "Article/PythonBasis/python19": 1,
+      "Article/PythonBasis/python20": 1,
+      "Article/PythonBasis/python21": 1,
+      "Article/PythonBasis/python22": 1,
+      "Article/PythonBasis/python23": 1,
+      "Article/PythonBasis/python24": 1,
+      "Article/PythonBasis/python25": 1,
+      "Article/PythonBasis/python26": 1,
+      "Article/PythonBasis/python27": 1,
+      "Article/PythonBasis/python28": 1,
+      "Article/codeSpecification": 4,
+      "Article": 1,
+      "(根)": 1
+    }
+  },
+  "link_probe": {
+    "method": "GitHub git/trees API 的一次响应（文件在树里 ⇒ blob 链接必然可达）· 101 条",
+    "result": "101/101 条在树里",
+    "failed": []
+  },
+  "caveats": [
+    "本清单的链接存在性由 **GitHub git/trees API 的那一次响应**证明（文件在树里 ⇒ blob 链接必然可达）；**刻意不发 144 个 HEAD** —— 无信息增量且会撞 GitHub 限流（实测连跑几轮后本机 HEAD/GET 均 20s 无响应）",
+    "GitHub API 匿名限流 60 次/小时；本脚本一次最多 8 个请求，设 GITHUB_TOKEN 可放宽"
+  ],
+  "items": [
+    {
+      "ordinal": 1,
+      "section": "Article/PythonBasis/python0",
+      "title": "WhyStudyPython",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python0/WhyStudyPython.md"
+    },
+    {
+      "ordinal": 2,
+      "section": "Article/PythonBasis/python1",
+      "title": "IDE",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python1/IDE.md"
+    },
+    {
+      "ordinal": 3,
+      "section": "Article/PythonBasis/python1",
+      "title": "Installation",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python1/Installation.md"
+    },
+    {
+      "ordinal": 4,
+      "section": "Article/PythonBasis/python1",
+      "title": "Introduction",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python1/Introduction.md"
+    },
+    {
+      "ordinal": 5,
+      "section": "Article/PythonBasis/python1",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python1/Preface.md"
+    },
+    {
+      "ordinal": 6,
+      "section": "Article/PythonBasis/python1",
+      "title": "The_first_procedure",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python1/The_first_procedure.md"
+    },
+    {
+      "ordinal": 7,
+      "section": "Article/PythonBasis/python2",
+      "title": "Grammar",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python2/Grammar.md"
+    },
+    {
+      "ordinal": 8,
+      "section": "Article/PythonBasis/python2",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python2/Preface.md"
+    },
+    {
+      "ordinal": 9,
+      "section": "Article/PythonBasis/python2",
+      "title": "StringCoding",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python2/StringCoding.md"
+    },
+    {
+      "ordinal": 10,
+      "section": "Article/PythonBasis/python2",
+      "title": "Type_conversion",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python2/Type_conversion.md"
+    },
+    {
+      "ordinal": 11,
+      "section": "Article/PythonBasis/python2",
+      "title": "Type_of_data",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python2/Type_of_data.md"
+    },
+    {
+      "ordinal": 12,
+      "section": "Article/PythonBasis/python2",
+      "title": "Variable",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python2/Variable.md"
+    },
+    {
+      "ordinal": 13,
+      "section": "Article/PythonBasis/python2",
+      "title": "print",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python2/print.md"
+    },
+    {
+      "ordinal": 14,
+      "section": "Article/PythonBasis/python3",
+      "title": "List",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python3/List.md"
+    },
+    {
+      "ordinal": 15,
+      "section": "Article/PythonBasis/python3",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python3/Preface.md"
+    },
+    {
+      "ordinal": 16,
+      "section": "Article/PythonBasis/python3",
+      "title": "tuple",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python3/tuple.md"
+    },
+    {
+      "ordinal": 17,
+      "section": "Article/PythonBasis/python4",
+      "title": "Dict",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python4/Dict.md"
+    },
+    {
+      "ordinal": 18,
+      "section": "Article/PythonBasis/python4",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python4/Preface.md"
+    },
+    {
+      "ordinal": 19,
+      "section": "Article/PythonBasis/python4",
+      "title": "Set",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python4/Set.md"
+    },
+    {
+      "ordinal": 20,
+      "section": "Article/PythonBasis/python5",
+      "title": "Cycle",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python5/Cycle.md"
+    },
+    {
+      "ordinal": 21,
+      "section": "Article/PythonBasis/python5",
+      "title": "Example",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python5/Example.md"
+    },
+    {
+      "ordinal": 22,
+      "section": "Article/PythonBasis/python5",
+      "title": "If",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python5/If.md"
+    },
+    {
+      "ordinal": 23,
+      "section": "Article/PythonBasis/python5",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python5/Preface.md"
+    },
+    {
+      "ordinal": 24,
+      "section": "Article/PythonBasis/python6",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python6/1.md"
+    },
+    {
+      "ordinal": 25,
+      "section": "Article/PythonBasis/python6",
+      "title": "2",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python6/2.md"
+    },
+    {
+      "ordinal": 26,
+      "section": "Article/PythonBasis/python6",
+      "title": "3",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python6/3.md"
+    },
+    {
+      "ordinal": 27,
+      "section": "Article/PythonBasis/python6",
+      "title": "4",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python6/4.md"
+    },
+    {
+      "ordinal": 28,
+      "section": "Article/PythonBasis/python6",
+      "title": "5",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python6/5.md"
+    },
+    {
+      "ordinal": 29,
+      "section": "Article/PythonBasis/python6",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python6/Preface.md"
+    },
+    {
+      "ordinal": 30,
+      "section": "Article/PythonBasis/python7",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python7/1.md"
+    },
+    {
+      "ordinal": 31,
+      "section": "Article/PythonBasis/python7",
+      "title": "2",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python7/2.md"
+    },
+    {
+      "ordinal": 32,
+      "section": "Article/PythonBasis/python7",
+      "title": "3",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python7/3.md"
+    },
+    {
+      "ordinal": 33,
+      "section": "Article/PythonBasis/python7",
+      "title": "4",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python7/4.md"
+    },
+    {
+      "ordinal": 34,
+      "section": "Article/PythonBasis/python7",
+      "title": "5",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python7/5.md"
+    },
+    {
+      "ordinal": 35,
+      "section": "Article/PythonBasis/python7",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python7/Preface.md"
+    },
+    {
+      "ordinal": 36,
+      "section": "Article/PythonBasis/python8",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python8/1.md"
+    },
+    {
+      "ordinal": 37,
+      "section": "Article/PythonBasis/python8",
+      "title": "2",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python8/2.md"
+    },
+    {
+      "ordinal": 38,
+      "section": "Article/PythonBasis/python8",
+      "title": "3",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python8/3.md"
+    },
+    {
+      "ordinal": 39,
+      "section": "Article/PythonBasis/python8",
+      "title": "4",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python8/4.md"
+    },
+    {
+      "ordinal": 40,
+      "section": "Article/PythonBasis/python8",
+      "title": "5",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python8/5.md"
+    },
+    {
+      "ordinal": 41,
+      "section": "Article/PythonBasis/python8",
+      "title": "6",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python8/6.md"
+    },
+    {
+      "ordinal": 42,
+      "section": "Article/PythonBasis/python8",
+      "title": "7",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python8/7.md"
+    },
+    {
+      "ordinal": 43,
+      "section": "Article/PythonBasis/python8",
+      "title": "8",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python8/8.md"
+    },
+    {
+      "ordinal": 44,
+      "section": "Article/PythonBasis/python8",
+      "title": "9",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python8/9.md"
+    },
+    {
+      "ordinal": 45,
+      "section": "Article/PythonBasis/python8",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python8/Preface.md"
+    },
+    {
+      "ordinal": 46,
+      "section": "Article/PythonBasis/python9",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python9/1.md"
+    },
+    {
+      "ordinal": 47,
+      "section": "Article/PythonBasis/python9",
+      "title": "2",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python9/2.md"
+    },
+    {
+      "ordinal": 48,
+      "section": "Article/PythonBasis/python9",
+      "title": "3",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python9/3.md"
+    },
+    {
+      "ordinal": 49,
+      "section": "Article/PythonBasis/python9",
+      "title": "4",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python9/4.md"
+    },
+    {
+      "ordinal": 50,
+      "section": "Article/PythonBasis/python9",
+      "title": "5",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python9/5.md"
+    },
+    {
+      "ordinal": 51,
+      "section": "Article/PythonBasis/python9",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python9/Preface.md"
+    },
+    {
+      "ordinal": 52,
+      "section": "Article/PythonBasis/python10",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python10/1.md"
+    },
+    {
+      "ordinal": 53,
+      "section": "Article/PythonBasis/python10",
+      "title": "2",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python10/2.md"
+    },
+    {
+      "ordinal": 54,
+      "section": "Article/PythonBasis/python10",
+      "title": "3",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python10/3.md"
+    },
+    {
+      "ordinal": 55,
+      "section": "Article/PythonBasis/python10",
+      "title": "4",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python10/4.md"
+    },
+    {
+      "ordinal": 56,
+      "section": "Article/PythonBasis/python10",
+      "title": "5",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python10/5.md"
+    },
+    {
+      "ordinal": 57,
+      "section": "Article/PythonBasis/python10",
+      "title": "6",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python10/6.md"
+    },
+    {
+      "ordinal": 58,
+      "section": "Article/PythonBasis/python10",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python10/Preface.md"
+    },
+    {
+      "ordinal": 59,
+      "section": "Article/PythonBasis/python11",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python11/1.md"
+    },
+    {
+      "ordinal": 60,
+      "section": "Article/PythonBasis/python11",
+      "title": "2",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python11/2.md"
+    },
+    {
+      "ordinal": 61,
+      "section": "Article/PythonBasis/python11",
+      "title": "3",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python11/3.md"
+    },
+    {
+      "ordinal": 62,
+      "section": "Article/PythonBasis/python11",
+      "title": "4",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python11/4.md"
+    },
+    {
+      "ordinal": 63,
+      "section": "Article/PythonBasis/python11",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python11/Preface.md"
+    },
+    {
+      "ordinal": 64,
+      "section": "Article/PythonBasis/python12",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python12/1.md"
+    },
+    {
+      "ordinal": 65,
+      "section": "Article/PythonBasis/python12",
+      "title": "2",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python12/2.md"
+    },
+    {
+      "ordinal": 66,
+      "section": "Article/PythonBasis/python12",
+      "title": "3",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python12/3.md"
+    },
+    {
+      "ordinal": 67,
+      "section": "Article/PythonBasis/python12",
+      "title": "4",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python12/4.md"
+    },
+    {
+      "ordinal": 68,
+      "section": "Article/PythonBasis/python12",
+      "title": "5",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python12/5.md"
+    },
+    {
+      "ordinal": 69,
+      "section": "Article/PythonBasis/python12",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python12/Preface.md"
+    },
+    {
+      "ordinal": 70,
+      "section": "Article/PythonBasis/python13",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python13/1.md"
+    },
+    {
+      "ordinal": 71,
+      "section": "Article/PythonBasis/python13",
+      "title": "2",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python13/2.md"
+    },
+    {
+      "ordinal": 72,
+      "section": "Article/PythonBasis/python13",
+      "title": "3",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python13/3.md"
+    },
+    {
+      "ordinal": 73,
+      "section": "Article/PythonBasis/python13",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python13/Preface.md"
+    },
+    {
+      "ordinal": 74,
+      "section": "Article/PythonBasis/python14",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python14/1.md"
+    },
+    {
+      "ordinal": 75,
+      "section": "Article/PythonBasis/python14",
+      "title": "2",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python14/2.md"
+    },
+    {
+      "ordinal": 76,
+      "section": "Article/PythonBasis/python14",
+      "title": "3",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python14/3.md"
+    },
+    {
+      "ordinal": 77,
+      "section": "Article/PythonBasis/python14",
+      "title": "4",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python14/4.md"
+    },
+    {
+      "ordinal": 78,
+      "section": "Article/PythonBasis/python14",
+      "title": "5",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python14/5.md"
+    },
+    {
+      "ordinal": 79,
+      "section": "Article/PythonBasis/python14",
+      "title": "6",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python14/6.md"
+    },
+    {
+      "ordinal": 80,
+      "section": "Article/PythonBasis/python14",
+      "title": "Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python14/Preface.md"
+    },
+    {
+      "ordinal": 81,
+      "section": "Article/PythonBasis/python14",
+      "title": "常用的正则表达式",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python14/%E5%B8%B8%E7%94%A8%E7%9A%84%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F.md"
+    },
+    {
+      "ordinal": 82,
+      "section": "Article/PythonBasis/python15",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python15/1.md"
+    },
+    {
+      "ordinal": 83,
+      "section": "Article/PythonBasis/python16",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python16/1.md"
+    },
+    {
+      "ordinal": 84,
+      "section": "Article/PythonBasis/python17",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python17/1.md"
+    },
+    {
+      "ordinal": 85,
+      "section": "Article/PythonBasis/python18",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python18/1.md"
+    },
+    {
+      "ordinal": 86,
+      "section": "Article/PythonBasis/python19",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python19/1.md"
+    },
+    {
+      "ordinal": 87,
+      "section": "Article/PythonBasis/python20",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python20/1.md"
+    },
+    {
+      "ordinal": 88,
+      "section": "Article/PythonBasis/python21",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python21/1.md"
+    },
+    {
+      "ordinal": 89,
+      "section": "Article/PythonBasis/python22",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python22/1.md"
+    },
+    {
+      "ordinal": 90,
+      "section": "Article/PythonBasis/python23",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python23/1.md"
+    },
+    {
+      "ordinal": 91,
+      "section": "Article/PythonBasis/python24",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python24/1.md"
+    },
+    {
+      "ordinal": 92,
+      "section": "Article/PythonBasis/python25",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python25/1.md"
+    },
+    {
+      "ordinal": 93,
+      "section": "Article/PythonBasis/python26",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python26/1.md"
+    },
+    {
+      "ordinal": 94,
+      "section": "Article/PythonBasis/python27",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python27/1.md"
+    },
+    {
+      "ordinal": 95,
+      "section": "Article/PythonBasis/python28",
+      "title": "1",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/PythonBasis/python28/1.md"
+    },
+    {
+      "ordinal": 96,
+      "section": "Article/codeSpecification",
+      "title": "codeSpecification_Preface",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/codeSpecification/codeSpecification_Preface.md"
+    },
+    {
+      "ordinal": 97,
+      "section": "Article/codeSpecification",
+      "title": "codeSpecification_first",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/codeSpecification/codeSpecification_first.md"
+    },
+    {
+      "ordinal": 98,
+      "section": "Article/codeSpecification",
+      "title": "codeSpecification_second",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/codeSpecification/codeSpecification_second.md"
+    },
+    {
+      "ordinal": 99,
+      "section": "Article/codeSpecification",
+      "title": "codeSpecification_third",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/codeSpecification/codeSpecification_third.md"
+    },
+    {
+      "ordinal": 100,
+      "section": "Article",
+      "title": "index",
+      "url": "https://github.com/walter201230/Python/blob/master/Article/index.md"
+    },
+    {
+      "ordinal": 101,
+      "section": "(根)",
+      "title": "README",
+      "url": "https://github.com/walter201230/Python/blob/master/README.md"
+    }
+  ]
+}

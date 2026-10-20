@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "source_url": "https://www.runoob.com/python3/python3-tutorial.html",
-  "collected_at": "2026-10-18",
+  "collected_at": "2026-10-20",
   "_notes": {
-    "stage_id": "全部 0 —— §3.6 「站数与每站知识点数本轮不定死」，P1d 实测归类",
-    "kind": "全部 'language' —— DL-13 要求 ~36% 应为 'library'，P1.4 实测归类",
+    "stage_id": "P1.7 分站（§3.6 的 8 站，Python 视角）：python 侧 45 条 language 类条目已分站；库级条目（kind='library'）stage_id 恒为 0（不进站列表，DL-12）。站名：语法基础 / 数据结构 / 函数与模块 / 面向对象 / 异常与文件 / 并发 / Web 框架 / 数据与部署",
+    "kind": "P1.4 重打 · 严格库级 30 条 = 35.7%（spec §1.4 第 100 行已于 2026-10-20 订正为 30 条 = 35.7%；P1.7 修「<语言> 模块」误判后差 1，现已闭合，仍在 DL-13 的 [34%, 38%] 区间内） · 分类器见 packages/core/src/db/m9-classify-lang-topics.ts",
     "summary": "空 —— P1.5 概念层三段内容填入"
   },
   "items": [
@@ -17,8 +17,8 @@
       "ref_url": "https://www.runoob.com/python3/python3-tutorial.html",
       "ref_title": "Python3 教程",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -26,11 +26,11 @@
       "title": "Python3 简介",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-intro.html",
+      "ref_url": "https://www.runoob.com/python3/python3-intro.html",
       "ref_title": "Python3 简介",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -38,11 +38,11 @@
       "title": "Python3 环境搭建",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-install.html",
+      "ref_url": "https://www.runoob.com/python3/python3-install.html",
       "ref_title": "Python3 环境搭建",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -50,11 +50,11 @@
       "title": "Python3 Pycharm",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python-pycharm-usage.html",
+      "ref_url": "https://www.runoob.com/python3/python-pycharm-usage.html",
       "ref_title": "Python3 Pycharm",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -62,11 +62,11 @@
       "title": "Python3 VScode",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python-vscode-setup.html",
+      "ref_url": "https://www.runoob.com/python3/python-vscode-setup.html",
       "ref_title": "Python3 VScode",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -74,10 +74,10 @@
       "title": "Python3 基础语法",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-basic-syntax.html",
+      "ref_url": "https://www.runoob.com/python3/python3-basic-syntax.html",
       "ref_title": "Python3 基础语法",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -85,11 +85,11 @@
       "slug": "python3-data-type",
       "title": "Python3 基本数据类型",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-data-type.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/python3/python3-data-type.html",
       "ref_title": "Python3 基本数据类型",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -97,11 +97,11 @@
       "slug": "python3-type-conversion",
       "title": "Python3 数据类型转换",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-type-conversion.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/python3/python3-type-conversion.html",
       "ref_title": "Python3 数据类型转换",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -113,7 +113,7 @@
       "ref_url": "https://www.runoob.com/python3/python3-interpreter.html",
       "ref_title": "Python3 解释器",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -125,7 +125,7 @@
       "ref_url": "https://www.runoob.com/python3/python3-comment.html",
       "ref_title": "Python3 注释",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -134,10 +134,10 @@
       "title": "Python3 运算符",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-basic-operators.html",
+      "ref_url": "https://www.runoob.com/python3/python3-basic-operators.html",
       "ref_title": "Python3 运算符",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -149,7 +149,7 @@
       "ref_url": "https://www.runoob.com/python3/python3-number.html",
       "ref_title": "Python3 数字(Number)",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -157,11 +157,11 @@
       "slug": "python3-string",
       "title": "Python3 字符串",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 1,
       "ref_url": "https://www.runoob.com/python3/python3-string.html",
       "ref_title": "Python3 字符串",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -169,11 +169,11 @@
       "slug": "python3-list",
       "title": "Python3 列表",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 1,
       "ref_url": "https://www.runoob.com/python3/python3-list.html",
       "ref_title": "Python3 列表",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -181,11 +181,11 @@
       "slug": "python3-tuple",
       "title": "Python3 元组",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-tuple.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/python3/python3-tuple.html",
       "ref_title": "Python3 元组",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -193,11 +193,11 @@
       "slug": "python3-dictionary",
       "title": "Python3 字典",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-dictionary.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/python3/python3-dictionary.html",
       "ref_title": "Python3 字典",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -205,11 +205,11 @@
       "slug": "python3-set",
       "title": "Python3 集合",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-set.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/python3/python3-set.html",
       "ref_title": "Python3 集合",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -221,7 +221,7 @@
       "ref_url": "https://www.runoob.com/python3/python3-conditional-statements.html",
       "ref_title": "Python3 条件控制",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -233,7 +233,7 @@
       "ref_url": "https://www.runoob.com/python3/python3-loop.html",
       "ref_title": "Python3 循环语句",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -242,10 +242,10 @@
       "title": "Python3 编程第一步",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-step1.html",
+      "ref_url": "https://www.runoob.com/python3/python3-step1.html",
       "ref_title": "Python3 编程第一步",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -253,11 +253,11 @@
       "slug": "python-comprehensions",
       "title": "Python3 推导式",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python-comprehensions.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/python3/python-comprehensions.html",
       "ref_title": "Python3 推导式",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -265,11 +265,11 @@
       "slug": "python3-iterator-generator",
       "title": "Python3 迭代器与生成器",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-iterator-generator.html",
+      "stage_id": 2,
+      "ref_url": "https://www.runoob.com/python3/python3-iterator-generator.html",
       "ref_title": "Python3 迭代器与生成器",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -277,11 +277,11 @@
       "slug": "python3-with-keyword",
       "title": "Python3 with",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-with-keyword.html",
+      "stage_id": 2,
+      "ref_url": "https://www.runoob.com/python3/python3-with-keyword.html",
       "ref_title": "Python3 with",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -289,11 +289,11 @@
       "slug": "python3-function",
       "title": "Python3 函数",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 2,
       "ref_url": "https://www.runoob.com/python3/python3-function.html",
       "ref_title": "Python3 函数",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -301,11 +301,11 @@
       "slug": "python-lambda",
       "title": "Python3 lambda（匿名函数）",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python-lambda.html",
+      "stage_id": 2,
+      "ref_url": "https://www.runoob.com/python3/python-lambda.html",
       "ref_title": "Python3 lambda（匿名函数）",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -313,11 +313,11 @@
       "slug": "python-decorators",
       "title": "Python 装饰器",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python-decorators.html",
+      "stage_id": 2,
+      "ref_url": "https://www.runoob.com/python3/python-decorators.html",
       "ref_title": "Python 装饰器",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -325,11 +325,11 @@
       "slug": "python3-data-structure",
       "title": "Python3 数据结构",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 1,
       "ref_url": "https://www.runoob.com/python3/python3-data-structure.html",
       "ref_title": "Python3 数据结构",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -337,11 +337,11 @@
       "slug": "python3-module",
       "title": "Python3 模块",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 2,
       "ref_url": "https://www.runoob.com/python3/python3-module.html",
       "ref_title": "Python3 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -349,11 +349,11 @@
       "slug": "python3-name-main",
       "title": "Python __name__",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 2,
       "ref_url": "https://www.runoob.com/python3/python3-name-main.html",
       "ref_title": "Python __name__",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -361,11 +361,11 @@
       "slug": "python3-inputoutput",
       "title": "Python3 输入和输出",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 4,
       "ref_url": "https://www.runoob.com/python3/python3-inputoutput.html",
       "ref_title": "Python3 输入和输出",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -373,11 +373,11 @@
       "slug": "python3-file-methods",
       "title": "Python3 File",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-file-methods.html",
+      "stage_id": 4,
+      "ref_url": "https://www.runoob.com/python3/python3-file-methods.html",
       "ref_title": "Python3 File",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -385,11 +385,11 @@
       "slug": "python3-os-file-methods",
       "title": "Python3 OS",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python3-os-file-methods.html",
+      "stage_id": 4,
+      "ref_url": "https://www.runoob.com/python3/python3-os-file-methods.html",
       "ref_title": "Python3 OS",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -397,11 +397,11 @@
       "slug": "python3-errors-execptions",
       "title": "Python3 错误和异常",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 4,
       "ref_url": "https://www.runoob.com/python3/python3-errors-execptions.html",
       "ref_title": "Python3 错误和异常",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -409,11 +409,11 @@
       "slug": "python3-class",
       "title": "Python3 面向对象",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 3,
       "ref_url": "https://www.runoob.com/python3/python3-class.html",
       "ref_title": "Python3 面向对象",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -421,11 +421,11 @@
       "slug": "python3-namespace-scope",
       "title": "Python3 命名空间/作用域",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 2,
       "ref_url": "https://www.runoob.com/python3/python3-namespace-scope.html",
       "ref_title": "Python3 命名空间/作用域",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -437,19 +437,19 @@
       "ref_url": "https://www.runoob.com/python3/python-venv.html",
       "ref_title": "Python 虚拟环境的创建",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
       "slug": "python-type-hints",
       "title": "Python 类型注解",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 2,
       "ref_url": "https://www.runoob.com/python3/python-type-hints.html",
       "ref_title": "Python 类型注解",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -461,19 +461,19 @@
       "ref_url": "https://www.runoob.com/python3/python3-stdlib.html",
       "ref_title": "Python3 标准库概览",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
       "slug": "python3-examples",
       "title": "Python3 实例",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 3,
       "ref_url": "https://www.runoob.com/python3/python3-examples.html",
       "ref_title": "Python3 实例",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -485,19 +485,19 @@
       "ref_url": "https://www.runoob.com/quiz/python-quiz.html",
       "ref_title": "Python 测验",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
       "slug": "python3-reg-expressions",
       "title": "Python3 正则表达式",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 4,
       "ref_url": "https://www.runoob.com/python3/python3-reg-expressions.html",
       "ref_title": "Python3 正则表达式",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -505,11 +505,11 @@
       "slug": "python3-cgi-programming",
       "title": "Python3 CGI编程",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 6,
       "ref_url": "https://www.runoob.com/python3/python3-cgi-programming.html",
       "ref_title": "Python3 CGI编程",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -518,11 +518,11 @@
       "title": "Python MySQL - mysql-connector 驱动",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python-mysql-connector.html",
+      "ref_url": "https://www.runoob.com/python3/python-mysql-connector.html",
       "ref_title": "Python MySQL - mysql-connector 驱动",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -533,19 +533,19 @@
       "ref_url": "https://www.runoob.com/python3/python3-mysql.html",
       "ref_title": "Python3 MySQL 数据库连接 - PyMySQL 驱动",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
       "slug": "python3-socket",
       "title": "Python3 网络编程",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 6,
       "ref_url": "https://www.runoob.com/python3/python3-socket.html",
       "ref_title": "Python3 网络编程",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -553,11 +553,11 @@
       "slug": "python3-smtp",
       "title": "Python3 SMTP发送邮件",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 6,
       "ref_url": "https://www.runoob.com/python3/python3-smtp.html",
       "ref_title": "Python3 SMTP发送邮件",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -565,11 +565,11 @@
       "slug": "python3-multithreading",
       "title": "Python3 多线程",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 5,
       "ref_url": "https://www.runoob.com/python3/python3-multithreading.html",
       "ref_title": "Python3 多线程",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -581,8 +581,8 @@
       "ref_url": "https://www.runoob.com/python3/python3-xml-processing.html",
       "ref_title": "Python3 XML 解析",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -593,19 +593,19 @@
       "ref_url": "https://www.runoob.com/python3/python3-json.html",
       "ref_title": "Python3 JSON 数据解析",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
       "slug": "python3-date-time",
       "title": "Python3 日期和时间",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 4,
       "ref_url": "https://www.runoob.com/python3/python3-date-time.html",
       "ref_title": "Python3 日期和时间",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -613,11 +613,11 @@
       "slug": "python3-built-in-functions",
       "title": "Python3 内置函数",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 1,
       "ref_url": "https://www.runoob.com/python3/python3-built-in-functions.html",
       "ref_title": "Python3 内置函数",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -629,8 +629,8 @@
       "ref_url": "https://www.runoob.com/python3/python-mongodb.html",
       "ref_title": "Python MongoDB",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -638,22 +638,22 @@
       "title": "Python3 urllib",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com/python-urllib.html",
+      "ref_url": "https://www.runoob.com/python3/python-urllib.html",
       "ref_title": "Python3 urllib",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
       "slug": "python-uwsgi",
       "title": "Python uWSGI 安装配置",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 6,
       "ref_url": "https://www.runoob.com/python3/python-uwsgi.html",
       "ref_title": "Python uWSGI 安装配置",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -661,11 +661,11 @@
       "slug": "python3-pip",
       "title": "Python3 pip",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 7,
       "ref_url": "https://www.runoob.com/python3/python3-pip.html",
       "ref_title": "Python3 pip",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -677,8 +677,8 @@
       "ref_url": "https://www.runoob.com/python3/python-operator.html",
       "ref_title": "Python3 operator 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -689,8 +689,8 @@
       "ref_url": "https://www.runoob.com/python3/python-math.html",
       "ref_title": "Python math 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -701,8 +701,8 @@
       "ref_url": "https://www.runoob.com/python3/python-requests.html",
       "ref_title": "Python requests 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -713,8 +713,8 @@
       "ref_url": "https://www.runoob.com/python3/python-random.html",
       "ref_title": "Python random 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -725,8 +725,8 @@
       "ref_url": "https://www.runoob.com/python3/python-openai.html",
       "ref_title": "Python OpenAI",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -737,19 +737,19 @@
       "ref_url": "https://www.runoob.com/python3/python3-resources.html",
       "ref_title": "Python 有用的资源",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
       "slug": "python-ai-draw",
       "title": "Python AI 绘画",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 7,
       "ref_url": "https://www.runoob.com/python3/python-ai-draw.html",
       "ref_title": "Python AI 绘画",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -761,8 +761,8 @@
       "ref_url": "https://www.runoob.com/python3/python-statistics.html",
       "ref_title": "Python statistics 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -773,19 +773,19 @@
       "ref_url": "https://www.runoob.com/python3/python-hashlib.html",
       "ref_title": "Python hashlib 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
       "slug": "python-qt",
       "title": "Python 量化",
       "summary": "",
-      "stage_id": 0,
+      "stage_id": 7,
       "ref_url": "https://www.runoob.com/python3/python-qt.html",
       "ref_title": "Python 量化",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -797,8 +797,8 @@
       "ref_url": "https://www.runoob.com/python3/python-pyecharts.html",
       "ref_title": "Python pyecharts 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -809,8 +809,8 @@
       "ref_url": "https://www.runoob.com/python3/python-selenium.html",
       "ref_title": "Python selenium 库",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -821,8 +821,8 @@
       "ref_url": "https://www.runoob.com/python3/python-spider-beautifulsoup.html",
       "ref_title": "Python 爬虫 - BeautifulSoup",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -833,8 +833,8 @@
       "ref_url": "https://www.runoob.com/python3/python-scrapy.html",
       "ref_title": "Python Scrapy 库",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -845,8 +845,8 @@
       "ref_url": "https://www.runoob.com/python3/python-markdown2html.html",
       "ref_title": "Python Markdown 生成 HTML",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -857,8 +857,8 @@
       "ref_url": "https://www.runoob.com/python3/python-sys.html",
       "ref_title": "Python sys 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -869,8 +869,8 @@
       "ref_url": "https://www.runoob.com/python3/python-pickle.html",
       "ref_title": "Python Pickle 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -881,8 +881,8 @@
       "ref_url": "https://www.runoob.com/python3/python-subprocess.html",
       "ref_title": "Python subprocess 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -893,8 +893,8 @@
       "ref_url": "https://www.runoob.com/python3/python-queue.html",
       "ref_title": "Python queue 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -905,8 +905,8 @@
       "ref_url": "https://www.runoob.com/python3/python-stringio.html",
       "ref_title": "Python StringIO 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -917,8 +917,8 @@
       "ref_url": "https://www.runoob.com/python3/python-logging.html",
       "ref_title": "Python logging 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -929,8 +929,8 @@
       "ref_url": "https://www.runoob.com/python3/python-datetime.html",
       "ref_title": "Python datetime 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -941,8 +941,8 @@
       "ref_url": "https://www.runoob.com/python3/python-re.html",
       "ref_title": "Python re 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -953,8 +953,8 @@
       "ref_url": "https://www.runoob.com/python3/python-csv.html",
       "ref_title": "Python csv 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -965,8 +965,8 @@
       "ref_url": "https://www.runoob.com/python3/python-treading.html",
       "ref_title": "Python threading 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -977,8 +977,8 @@
       "ref_url": "https://www.runoob.com/python3/python-asyncio.html",
       "ref_title": "Python asyncio 模块",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -989,8 +989,8 @@
       "ref_url": "https://www.runoob.com/python3/python-pyqt.html",
       "ref_title": "Python PyQt",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "python",
@@ -1001,7 +1001,7 @@
       "ref_url": "https://www.runoob.com/python3/python3-for.html",
       "ref_title": "Python for 循环",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -1013,7 +1013,7 @@
       "ref_url": "https://www.runoob.com/python3/python3-while.html",
       "ref_title": "Python while 循环",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     }
   ]

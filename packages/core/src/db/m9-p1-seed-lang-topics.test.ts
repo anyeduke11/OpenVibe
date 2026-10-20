@@ -3,8 +3,8 @@
 //
 // 断四件事：
 //   ① 两份 seed 都成功 import：84 + 34 = 118 行入 `lang_topics`（DL-14「两门都在」
-//      ＋ 计划 §6.2 P1 出口「lang_topics 节点数 = 78」**预验**，本轮是 118，
-//      P1.4 后约 78 是 36% 标 library 后的「DAG 内数」—— 本测试只对**总行数**做硬卡）。
+//      ＋ 计划 §6.2 P1 出口「lang_topics 节点数 = 72」**预验**，本轮是 118，
+//      72 是标 library 后的「DAG 内数」（Python 45 ＋ Go 27）—— 本测试只对**总行数**做硬卡）。
 //   ② DL-01：所有行的 `source_checked_at` 非空（仓内不得有缺取证日的条目）。
 //   ③ DL-02：seed 文件只含标题与 URL，**正文零进仓**（用一句 runoob 教程正文
 //      片段做注入式反向断言：把它当作 body_md 之类的字段值插入 ⇒ seed loader
@@ -60,7 +60,9 @@ describe('M9 P1.2 / P1.3 · runoob python3 84 + go 34 入 lang_topics', () => {
     } catch (err) {
       try {
         h.close()
-      } catch {}
+      } catch {
+        // 已关闭过：二次 close 抛错是预期的，忽略（不遮蔽原始异常）
+      }
       throw err
     }
   })
@@ -82,7 +84,9 @@ describe('M9 P1.2 / P1.3 · runoob python3 84 + go 34 入 lang_topics', () => {
     } catch (err) {
       try {
         h.close()
-      } catch {}
+      } catch {
+        // 已关闭过：二次 close 抛错是预期的，忽略（不遮蔽原始异常）
+      }
       throw err
     }
   })
@@ -127,7 +131,9 @@ describe('M9 P1.2 / P1.3 · runoob python3 84 + go 34 入 lang_topics', () => {
       } catch (err) {
         try {
           h.close()
-        } catch {}
+        } catch {
+          // 已关闭过：二次 close 抛错是预期的，忽略（不遮蔽原始异常）
+        }
         throw err
       }
     } finally {
@@ -153,7 +159,9 @@ describe('M9 P1.2 / P1.3 · runoob python3 84 + go 34 入 lang_topics', () => {
     } catch (err) {
       try {
         h.close()
-      } catch {}
+      } catch {
+        // 已关闭过：二次 close 抛错是预期的，忽略（不遮蔽原始异常）
+      }
       throw err
     }
   })
@@ -174,7 +182,9 @@ describe('M9 P1.2 / P1.3 · runoob python3 84 + go 34 入 lang_topics', () => {
     } catch (err) {
       try {
         h.close()
-      } catch {}
+      } catch {
+        // 已关闭过：二次 close 抛错是预期的，忽略（不遮蔽原始异常）
+      }
       throw err
     }
   })

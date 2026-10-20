@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "source_url": "https://www.runoob.com/go/go-tutorial.html",
-  "collected_at": "2026-10-18",
+  "collected_at": "2026-10-20",
   "_notes": {
-    "stage_id": "全部 0 —— §3.6 「站数与每站知识点数本轮不定死」，P1d 实测归类",
-    "kind": "全部 'language' —— DL-13 要求 ~36% 应为 'library'，P1.4 实测归类",
+    "stage_id": "P1.7 分站（§3.6 的 8 站，Python 视角）：go 侧 27 条 language 类条目已分站；库级条目（kind='library'）stage_id 恒为 0（不进站列表，DL-12）。站名：语法基础 / 数据结构 / 函数与模块 / 面向对象 / 异常与文件 / 并发 / Web 框架 / 数据与部署",
+    "kind": "P1.4 重打 · 库级 7 条（runoob Go 34 条里的教程首页 / 简介 / 环境安装 / 开发工具 / 测验 / VSCode 类，按 §1.4 第 113 行归 library，不进学习路线；§1.4 从未对 Go 做三档拆分 ⇒ 无「严格库级」口径） · 分类器见 packages/core/src/db/m9-classify-lang-topics.ts",
     "summary": "空 —— P1.5 概念层三段内容填入"
   },
   "items": [
@@ -14,11 +14,11 @@
       "title": "Go 语言教程",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-tutorial.html",
+      "ref_url": "https://www.runoob.com/go/go-tutorial.html",
       "ref_title": "Go 语言教程",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "go",
@@ -26,11 +26,11 @@
       "title": "Go 简介",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-intro.html",
+      "ref_url": "https://www.runoob.com/go/go-intro.html",
       "ref_title": "Go 简介",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "go",
@@ -38,11 +38,11 @@
       "title": "Go 语言环境安装",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-environment.html",
+      "ref_url": "https://www.runoob.com/go/go-environment.html",
       "ref_title": "Go 语言环境安装",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "go",
@@ -50,11 +50,11 @@
       "title": "Go 开发工具",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-vscode.html",
+      "ref_url": "https://www.runoob.com/go/go-vscode.html",
       "ref_title": "Go 开发工具",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "go",
@@ -62,10 +62,10 @@
       "title": "Go 语言结构",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-program-structure.html",
+      "ref_url": "https://www.runoob.com/go/go-program-structure.html",
       "ref_title": "Go 语言结构",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -74,10 +74,10 @@
       "title": "Go 语言基础语法",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-basic-syntax.html",
+      "ref_url": "https://www.runoob.com/go/go-basic-syntax.html",
       "ref_title": "Go 语言基础语法",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -85,11 +85,11 @@
       "slug": "go-data-types",
       "title": "Go 语言数据类型",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-data-types.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/go/go-data-types.html",
       "ref_title": "Go 语言数据类型",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -98,10 +98,10 @@
       "title": "Go 语言变量",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-variables.html",
+      "ref_url": "https://www.runoob.com/go/go-variables.html",
       "ref_title": "Go 语言变量",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -110,10 +110,10 @@
       "title": "Go 语言常量",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-constants.html",
+      "ref_url": "https://www.runoob.com/go/go-constants.html",
       "ref_title": "Go 语言常量",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -122,10 +122,10 @@
       "title": "Go 语言运算符",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-operators.html",
+      "ref_url": "https://www.runoob.com/go/go-operators.html",
       "ref_title": "Go 语言运算符",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -134,10 +134,10 @@
       "title": "Go 语言条件语句",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-decision-making.html",
+      "ref_url": "https://www.runoob.com/go/go-decision-making.html",
       "ref_title": "Go 语言条件语句",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -146,10 +146,10 @@
       "title": "Go 语言循环语句",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-loops.html",
+      "ref_url": "https://www.runoob.com/go/go-loops.html",
       "ref_title": "Go 语言循环语句",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -157,11 +157,11 @@
       "slug": "go-functions",
       "title": "Go 语言函数",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-functions.html",
+      "stage_id": 2,
+      "ref_url": "https://www.runoob.com/go/go-functions.html",
       "ref_title": "Go 语言函数",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -169,11 +169,11 @@
       "slug": "go-scope-rules",
       "title": "Go 语言变量作用域",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-scope-rules.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/go/go-scope-rules.html",
       "ref_title": "Go 语言变量作用域",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -181,11 +181,11 @@
       "slug": "go-arrays",
       "title": "Go 语言数组",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-arrays.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/go/go-arrays.html",
       "ref_title": "Go 语言数组",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -193,11 +193,11 @@
       "slug": "go-pointers",
       "title": "Go 语言指针",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-pointers.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/go/go-pointers.html",
       "ref_title": "Go 语言指针",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -205,11 +205,11 @@
       "slug": "go-structures",
       "title": "Go 语言结构体",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-structures.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/go/go-structures.html",
       "ref_title": "Go 语言结构体",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -217,11 +217,11 @@
       "slug": "go-slice",
       "title": "Go 语言切片(Slice)",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-slice.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/go/go-slice.html",
       "ref_title": "Go 语言切片(Slice)",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -229,11 +229,11 @@
       "slug": "go-range",
       "title": "Go 语言范围(Range)",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-range.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/go/go-range.html",
       "ref_title": "Go 语言范围(Range)",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -241,11 +241,11 @@
       "slug": "go-map",
       "title": "Go 语言 Map(集合)",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-map.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/go/go-map.html",
       "ref_title": "Go 语言 Map(集合)",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -253,11 +253,11 @@
       "slug": "go-recursion",
       "title": "Go 语言递归函数",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-recursion.html",
+      "stage_id": 2,
+      "ref_url": "https://www.runoob.com/go/go-recursion.html",
       "ref_title": "Go 语言递归函数",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -265,11 +265,11 @@
       "slug": "go-type-casting",
       "title": "Go 语言类型转换",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-type-casting.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/go/go-type-casting.html",
       "ref_title": "Go 语言类型转换",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -277,11 +277,11 @@
       "slug": "go-interfaces",
       "title": "Go 语言接口",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-interfaces.html",
+      "stage_id": 3,
+      "ref_url": "https://www.runoob.com/go/go-interfaces.html",
       "ref_title": "Go 语言接口",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -289,11 +289,11 @@
       "slug": "go-generics",
       "title": "Go 语言泛型",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-generics.html",
+      "stage_id": 2,
+      "ref_url": "https://www.runoob.com/go/go-generics.html",
       "ref_title": "Go 语言泛型",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -301,11 +301,11 @@
       "slug": "go-error-handling",
       "title": "Go 错误处理",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-error-handling.html",
+      "stage_id": 4,
+      "ref_url": "https://www.runoob.com/go/go-error-handling.html",
       "ref_title": "Go 错误处理",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -313,11 +313,11 @@
       "slug": "go-concurrent",
       "title": "Go 并发",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-concurrent.html",
+      "stage_id": 5,
+      "ref_url": "https://www.runoob.com/go/go-concurrent.html",
       "ref_title": "Go 并发",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -325,11 +325,11 @@
       "slug": "go-file-handle",
       "title": "Go 文件处理",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-file-handle.html",
+      "stage_id": 4,
+      "ref_url": "https://www.runoob.com/go/go-file-handle.html",
       "ref_title": "Go 文件处理",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -337,11 +337,11 @@
       "slug": "go-regex",
       "title": "Go 语言正则表达式",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-regex.html",
+      "stage_id": 4,
+      "ref_url": "https://www.runoob.com/go/go-regex.html",
       "ref_title": "Go 语言正则表达式",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -349,11 +349,11 @@
       "slug": "go-type-assertion",
       "title": "Go 类型断言",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-type-assertion.html",
+      "stage_id": 1,
+      "ref_url": "https://www.runoob.com/go/go-type-assertion.html",
       "ref_title": "Go 类型断言",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -361,11 +361,11 @@
       "slug": "go-inheritance",
       "title": "Go 继承",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-inheritance.html",
+      "stage_id": 3,
+      "ref_url": "https://www.runoob.com/go/go-inheritance.html",
       "ref_title": "Go 继承",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -374,11 +374,11 @@
       "title": "Go 语言开发工具",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-ide.html",
+      "ref_url": "https://www.runoob.com/go/go-ide.html",
       "ref_title": "Go 语言开发工具",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "go",
@@ -386,22 +386,22 @@
       "title": "Go 语言测验",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-quiz.html",
+      "ref_url": "https://www.runoob.com/go/go-quiz.html",
       "ref_title": "Go 语言测验",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     },
     {
       "lang": "go",
       "slug": "go-modules",
       "title": "Go Modules",
       "summary": "",
-      "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-modules.html",
+      "stage_id": 2,
+      "ref_url": "https://www.runoob.com/go/go-modules.html",
       "ref_title": "Go Modules",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
+      "source_checked_at": "2026-10-20",
       "kind": "language"
     },
     {
@@ -410,11 +410,11 @@
       "title": "使用 VSCode 开发 Go",
       "summary": "",
       "stage_id": 0,
-      "ref_url": "https://www.runoob.com//go/go-vscode.html",
+      "ref_url": "https://www.runoob.com/go/go-vscode.html",
       "ref_title": "使用 VSCode 开发 Go",
       "source_kind": "runoob",
-      "source_checked_at": "2026-10-18",
-      "kind": "language"
+      "source_checked_at": "2026-10-20",
+      "kind": "library"
     }
   ]
 }

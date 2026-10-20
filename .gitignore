@@ -37,3 +37,8 @@ Thumbs.db
 # Env
 .env
 .env.*
+
+# M9 采集写回的备份与差异快照（scripts/m9-write-guard.ts 的产物）
+# ⚠️ **刻意不落仓** —— 备份的用途是「写错了能立刻恢复」，长期历史由 git 负责；
+#   两份都留就是两份真相。落仓的事实是清单本身（+ git diff 里有同一份信息）。
+docs/devlog-evidence/M9-probe/_backup/
