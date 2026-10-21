@@ -20,9 +20,10 @@
 //
 // 模式定义里就写着「专家级」这些词 ⇒ 扫到自己是自证失败，不是发现问题。
 //   ⇒ 用 `import.meta.url` 取自身路径并跳过（与 `m9-p1d-stage-phase-guard.ts` 同款）。
-import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { join, relative } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { SOURCE_SCAN_ROOTS, walkSourceFiles } from './m9-repo-scan'
 
 /** 一条职业等级断言的命中。 */
 export interface GradeAssertionHit {
@@ -127,47 +128,11 @@ export function findGradeAssertionsInText(text: string): { pattern: string; line
   return out
 }
 
-/** 要扫的源码根（相对仓库根）。 */
-export const GRADE_GUARD_ROOTS: readonly string[] = [
-  'apps/web/src',
-  'apps/server/src',
-  'apps/cli/src',
-  'packages/shared/src',
-  'packages/core/src',
-]
-
-/** 扫哪些扩展名。 */
-const SCAN_EXTENSIONS = ['.ts', '.tsx']
+/** 要扫的源码根 —— 与 P2 的文案守卫**同一个单源**（`m9-repo-scan.ts`）。 */
+export const GRADE_GUARD_ROOTS: readonly string[] = SOURCE_SCAN_ROOTS
 
 /** 本守卫自身（**不扫自己** —— 模式定义里就写着那些词）。 */
 const SELF_FILE = fileURLToPath(import.meta.url)
-
-function walk(dir: string, out: string[]): void {
-  let entries: string[]
-  try {
-    entries = readdirSync(dir)
-  } catch {
-    return
-  }
-  for (const name of entries) {
-    const full = join(dir, name)
-    let st: ReturnType<typeof statSync>
-    try {
-      st = statSync(full)
-    } catch {
-      continue
-    }
-    if (st.isDirectory()) {
-      if (name === 'node_modules' || name === 'dist' || name === 'build') continue
-      walk(full, out)
-      continue
-    }
-    if (!SCAN_EXTENSIONS.some((ext) => name.endsWith(ext))) continue
-    // ⚠️ 测试文件不扫 —— 变异腿的样本里**故意**写着那些形态
-    if (name.endsWith('.test.ts') || name.endsWith('.test.tsx')) continue
-    out.push(full)
-  }
-}
 
 /**
  * 全仓扫职业等级断言。
@@ -176,25 +141,21 @@ function walk(dir: string, out: string[]): void {
  */
 export function findGradeAssertions(repoRoot: string): GradeAssertionHit[] {
   const out: GradeAssertionHit[] = []
-  for (const root of GRADE_GUARD_ROOTS) {
-    const files: string[] = []
-    walk(join(repoRoot, root), files)
-    for (const file of files) {
-      if (file === SELF_FILE) continue
-      let content: string
-      try {
-        content = readFileSync(file, 'utf8')
-      } catch {
-        continue
-      }
-      for (const hit of findGradeAssertionsInText(content)) {
-        out.push({
-          file: relative(repoRoot, file),
-          line: hit.line,
-          pattern: hit.pattern,
-          text: hit.text,
-        })
-      }
+  for (const file of walkSourceFiles(GRADE_GUARD_ROOTS, repoRoot)) {
+    if (file === SELF_FILE) continue
+    let content: string
+    try {
+      content = readFileSync(file, 'utf8')
+    } catch {
+      continue
+    }
+    for (const hit of findGradeAssertionsInText(content)) {
+      out.push({
+        file: relative(repoRoot, file),
+        line: hit.line,
+        pattern: hit.pattern,
+        text: hit.text,
+      })
     }
   }
   return out

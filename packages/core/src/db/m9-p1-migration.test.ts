@@ -40,6 +40,7 @@ describe('M9 P1.1 · 0011 迁移 + §3.1 知识拓扑表', () => {
       'lang_topic_edges',
       'lang_topic_profiles',
       'lang_topic_resources',
+      'lang_topic_state',
       'lang_topic_terms',
       'lang_topics',
       'lang_vibe_resources',
