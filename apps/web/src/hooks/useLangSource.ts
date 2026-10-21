@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiJson } from '../api/client'
 import type {
+  InterpretCapability,
   LangConsentResponse,
   LangFindingsResponse,
   LangScanSummary,
+  LangSnippetsResponse,
+  SourceInterpretSummary,
 } from '@openvibe/shared'
 import { LANG_STALE_TIME } from './useLangRoadmap'
 
@@ -26,6 +29,59 @@ export function useLangFindings() {
     queryKey: ['lang-findings'],
     queryFn: () => apiJson<LangFindingsResponse>('/api/lang/findings'),
     staleTime: LANG_STALE_TIME,
+  })
+}
+
+/**
+ * 读所有命中的**本地片段**（T1 硬要求：勾选前要看到**将要发送的确切内容**）。
+ *
+ * ⚠️ **一次读完**（不是逐条点开）—— 勾选框旁边必须一直有内容，
+ *   否则用户是在盲签。
+ */
+export function useLangSnippets(projectId: string | null) {
+  return useQuery({
+    queryKey: ['lang-snippets', projectId ?? ''],
+    queryFn: () =>
+      apiJson<LangSnippetsResponse>(
+        `/api/lang/snippets?project=${encodeURIComponent(projectId ?? '')}`,
+      ),
+    enabled: projectId !== null && projectId !== '',
+    staleTime: LANG_STALE_TIME,
+  })
+}
+
+/**
+ * AI 解读**能不能用**（DL-08）。
+ *
+ * ⚠️ **不可用 ⇒ 界面不渲染 T2 区**（不是渲染一个失败态）——
+ *   「没配 AI」与「跑挂了」是两件事，混起来会让用户以为 AI 坏了。
+ */
+export function useLangInterpretCapability() {
+  return useQuery({
+    queryKey: ['lang-interpret-capability'],
+    queryFn: () => apiJson<InterpretCapability>('/api/lang/interpret/capability'),
+    staleTime: LANG_STALE_TIME,
+  })
+}
+
+/**
+ * 解读**勾选过的**片段（DL-18：只有勾过的才入参）。
+ *
+ * ⚠️ 这是**写操作**（会出网 ＋ 写台账）⇒ mutation。
+ */
+export function useLangInterpret(projectId: string | null) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (findingIds: readonly number[]) =>
+      apiJson<SourceInterpretSummary>('/api/lang/interpret', {
+        method: 'POST',
+        body: { project_id: projectId ?? '', finding_ids: findingIds },
+      }),
+    onSuccess: () => {
+      // ⚠️ 解读**不改掌握度**（§3.8 三条线第 3 条）⇒ 路线不用失效；
+      //   但台账多了一行 ⇒ 本地状态刷新（设置页的计数会变）
+      void qc.invalidateQueries({ queryKey: ['lang-source-shares'] })
+    },
   })
 }
 

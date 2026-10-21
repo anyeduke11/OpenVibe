@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { APP_NAME, SCHEMA_VERSION } from '@openvibe/shared'
-import { openDatabase, type SqliteDatabase } from '@openvibe/core'
+import { openDatabase, type SourceInterpretRunner, type SqliteDatabase } from '@openvibe/core'
 import { registerAuth } from './plugins/auth'
 import { registerErrors } from './plugins/errors'
 import { registerAgentRoutes } from './routes/agent'
@@ -13,6 +13,7 @@ import { registerPackRoutes } from './routes/packs'
 import { registerLocalEventsRoutes } from './routes/localEvents'
 import { registerLangRoutes } from './routes/langRoadmap'
 import { registerLangSourceRoutes } from './routes/langSource'
+import { registerLangSourceAiRoutes } from './routes/langSourceAi'
 import { registerPlaybookRoutes } from './routes/playbooks'
 import { registerProjectRoutes } from './routes/projects'
 import { type PortRouteDeps, registerPortRoutes } from './routes/ports'
@@ -42,6 +43,14 @@ export interface BuildAppOptions {
   remoteFetchImpl?: typeof fetch
   /** 本机端口监听查询实现（m5 FR-8 测试注入点；缺省走真机 lsof / netstat） */
   listListenersImpl?: PortRouteDeps['listListenersImpl']
+  /**
+   * M9 P5 的**解读 runner**（T2 的注入点）。
+   *
+   * ⚠️ **注入 `null` = 明确「没有 AI」**（界面不渲染 T2 区）；
+   *   **不注入** = 按环境变量解析（`OPENVIBE_M9_INTERPRETER`）。
+   *   ⇒ 两种「没有」要能分开，所以类型是 `runner?: ... | null` 而不是 `runner?: ...`。
+   */
+  interpretRunner?: SourceInterpretRunner | null
 }
 
 export interface BuiltApp {
@@ -85,6 +94,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerLangRoutes(app, { db })
   // M9 源码识别端点（扫描 ＋ 命中 ＋ 同意记忆 ＋ 导出清单）
   registerLangSourceRoutes(app, { db })
+  // M9 源码解读（T2）：片段读取 ＋ 能力探测 ＋ 解读（runner 可注入）
+  registerLangSourceAiRoutes(app, { db, runner: options.interpretRunner, now: options.now })
   registerPortRoutes({ db, listListenersImpl: options.listListenersImpl })(app)
   registerTaskRoutes(app, deps)
   registerDevLogRoutes(app, deps)

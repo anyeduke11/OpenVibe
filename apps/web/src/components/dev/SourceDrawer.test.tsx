@@ -21,7 +21,7 @@ import { SourceDrawer } from './SourceDrawer'
  * ⇒ 测的是**界面形态**（DL-20 那条本来就是「界面形态已跑」那一档），
  *   数据链路由 `apps/server/test/langSource.api.test.ts` 断。
  */
-const { ROWS, SUMMARY } = vi.hoisted(() => ({
+const { ROWS, SUMMARY, SNIPPETS, CAPABILITY, INTERPRET } = vi.hoisted(() => ({
   ROWS: [
     {
       id: 1,
@@ -78,6 +78,52 @@ const { ROWS, SUMMARY } = vi.hoisted(() => ({
     unknown_slugs: [],
     states_updated: 2,
   },
+  // ⚠️ T1 硬要求：勾选前要看到「将要发送的确切内容」⇒ 片段**常驻显示**
+  SNIPPETS: [
+    {
+      finding_id: 1,
+      path: 'cmd/app/main.go',
+      start_line: 40,
+      end_line: 44,
+      // ⚠️ 窗口里**不含**另一条命中的那行（否则「两档不混」那支的断言会被
+      //   **上下文**而不是**归属**触发 —— 那是两种不同的错）
+      lines: ['func main() {', '\tgo func() { fmt.Println("hi") }()', '}'],
+      topic_slug: 'go-concurrent',
+      topic_title: 'Go 并发',
+    },
+    {
+      finding_id: 2,
+      path: 'cmd/app/main.go',
+      start_line: 48,
+      end_line: 51,
+      // ⚠️ **读不到** ⇒ 界面必须禁用它的勾选框（看不见内容就不许勾）
+      lines: null,
+      topic_slug: 'go-concurrent',
+      topic_title: 'Go 并发',
+    },
+  ],
+  CAPABILITY: { available: true, runner_id: 'fake-runner' },
+  INTERPRET: {
+    status: 'ok',
+    project_id: 'p1',
+    fragment_count: 1,
+    item_count: 1,
+    risk_count: 1,
+    divergence_count: 1,
+    divergences: [
+      { topic_slug: 'go-concurrent', deterministic_state: 'unused', ai_state: 'mastered' },
+    ],
+    items: [
+      {
+        topic_slug: 'go-concurrent',
+        summary: '这里起了一个 goroutine',
+        risks: ['goroutine 没有等待，可能泄漏'],
+        claim_state: 'mastered',
+      },
+    ],
+    input_hash: 'abcdef0123456789',
+    failure_reason: null,
+  },
 }))
 
 vi.mock('../../hooks/useLangSource', () => ({
@@ -89,6 +135,13 @@ vi.mock('../../hooks/useLangSource', () => ({
   useLangConsentMutations: () => ({
     set: { mutate: () => undefined },
     clear: { mutate: () => undefined },
+  }),
+  useLangSnippets: () => ({ data: { snippets: SNIPPETS } }),
+  useLangInterpretCapability: () => ({ data: CAPABILITY }),
+  useLangInterpret: () => ({
+    mutate: () => undefined,
+    isPending: false,
+    data: INTERPRET,
   }),
 }))
 
@@ -163,5 +216,51 @@ describe('M9 P4.4 · DL-20 扫描模式显式可见', () => {
     const dialog = open('p1')
     const link = within(dialog).getByRole('link', { name: /导出清单/ }) as HTMLAnchorElement
     expect(link.getAttribute('href')).toBe('/api/lang/source/export?project=p1')
+  })
+})
+
+describe('M9 P5 · T1 硬要求：勾选前要看到「将要发送的确切内容」', () => {
+  it('⑨ 每条命中都**常驻显示**它的片段正文（不是点开才有）', () => {
+    const dialog = open('p1')
+    expect(within(dialog).getAllByText('将要发送的内容').length).toBeGreaterThan(0)
+    // ⚠️ 正文真的在 DOM 里（不是一句描述）
+    // ⚠️ 用 `getAllByText`：同一段文字在**片段正文**与**模式串**两处都出现
+    expect(
+      within(dialog).getAllByText(/go func\(\) \{ fmt\.Println\("hi"\) \}\(\)/).length,
+    ).toBeGreaterThan(0)
+  })
+
+  it('⑩ ⚠️ **读不到内容**的命中 ⇒ 勾选框**禁用**（看不见内容就不许勾）', () => {
+    const dialog = open('p1')
+    const boxes = within(dialog).getAllByRole('checkbox') as HTMLInputElement[]
+    const readable = boxes.filter((b) => !b.disabled)
+    const unreadable = boxes.filter((b) => b.disabled)
+    expect(readable.length).toBeGreaterThan(0)
+    expect(unreadable.length).toBeGreaterThan(0)
+    expect(within(dialog).getByText(/读不到这个片段/)).toBeTruthy()
+  })
+})
+
+describe('M9 P5 · DL-08 / DL-09 · T2 解读区', () => {
+  it('⑪ AI 可用 ⇒ T2 区渲染（有解读按钮 ＋ 提示）', () => {
+    const dialog = open('p1')
+    const region = within(dialog).getByRole('region', { name: 'AI 解读' })
+    expect(within(region).getByRole('button', { name: /解读勾选的片段/ })).toBeTruthy()
+    expect(within(region).getByText(/只把你勾过的片段发出去/)).toBeTruthy()
+  })
+
+  it('⑫ ⚠️ DL-09：分歧**两处并列**（判定层的说法 ＋ AI 的声称都要显示）', () => {
+    const dialog = open('p1')
+    const region = within(dialog).getByRole('region', { name: 'AI 解读' })
+    // ⚠️ 两边都在
+    expect(within(region).getByText(/确定性层：unused/)).toBeTruthy()
+    expect(within(region).getByText(/AI 声称：mastered/)).toBeTruthy()
+  })
+
+  it('⑬ 解读结果与风险点都显示（**只展示不留存** ⇒ 结果在界面上）', () => {
+    const dialog = open('p1')
+    const region = within(dialog).getByRole('region', { name: 'AI 解读' })
+    expect(within(region).getByText('这里起了一个 goroutine')).toBeTruthy()
+    expect(within(region).getByText(/goroutine 没有等待，可能泄漏/)).toBeTruthy()
   })
 })

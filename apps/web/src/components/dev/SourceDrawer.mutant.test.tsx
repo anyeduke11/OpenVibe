@@ -19,7 +19,7 @@ import { SourceDrawer } from './SourceDrawer'
  * 然后跑**与生产断言逐字相同**的那条检查 ⇒ 它必须红。
  * **若这里还是绿的，说明正支那条断言根本抓不住「静默回退」这种实现。**
  */
-const { ROWS, SUMMARY } = vi.hoisted(() => ({
+const { ROWS, SUMMARY, SNIPPETS } = vi.hoisted(() => ({
   ROWS: [
     {
       id: 1,
@@ -62,6 +62,17 @@ const { ROWS, SUMMARY } = vi.hoisted(() => ({
     unknown_slugs: [],
     states_updated: 2,
   },
+  SNIPPETS: [
+    {
+      finding_id: 1,
+      path: 'cmd/app/main.go',
+      start_line: 40,
+      end_line: 42,
+      lines: ['func main() {', 'go func() { fmt.Println("hi") }()', '}'],
+      topic_slug: 'go-concurrent',
+      topic_title: 'Go 并发',
+    },
+  ],
 }))
 
 vi.mock('@openvibe/shared', async (importOriginal) => {
@@ -83,6 +94,10 @@ vi.mock('../../hooks/useLangSource', () => ({
     set: { mutate: () => undefined },
     clear: { mutate: () => undefined },
   }),
+  useLangSnippets: () => ({ data: { snippets: SNIPPETS } }),
+  // ⚠️ **变异：AI 不可用** ⇒ T2 区**不渲染**（DL-08 的形态）
+  useLangInterpretCapability: () => ({ data: { available: false, runner_id: null } }),
+  useLangInterpret: () => ({ mutate: () => undefined, isPending: false, data: undefined }),
 }))
 
 afterEach(cleanup)
@@ -106,5 +121,26 @@ describe('M9 P4.4 · DL-20 变异腿（模式标签恒空 ⇒ 静默回退）', 
     // 告警还在（它走的是另一处渲染）⇒ 缺陷不是「没提示」，是「**看不出用的哪条路**」
     expect(within(dialog).getAllByText(/未检测到 Go 工具链/).length).toBeGreaterThan(0)
     expect(within(dialog).queryByText('启发式模式')).toBeNull()
+  })
+})
+
+describe('M9 P5 · DL-08 变异腿（AI 不可用 ⇒ T2 区不渲染）', () => {
+  it('变异体下，生产断言「AI 可用时 T2 区必须渲染」必须红', () => {
+    render(<SourceDrawer open onOpenChange={() => undefined} projectId="p1" />)
+    const dialog = screen.getByRole('dialog')
+
+    // ⚠️ **生产断言（与 `SourceDrawer.test.tsx` 的 ⑪ 逐字相同）**：
+    //   AI 可用 ⇒ T2 区渲染。它在变异体下必须**取不到**。
+    expect(() => within(dialog).getByRole('region', { name: 'AI 解读' })).toThrow()
+    expect(within(dialog).queryByRole('region', { name: 'AI 解读' })).toBeNull()
+  })
+
+  it('变异体下，**T0/T1 仍然照常**（DL-08 的主体：AI 挂了不影响确定性层）', () => {
+    render(<SourceDrawer open onOpenChange={() => undefined} projectId="p1" />)
+    const dialog = screen.getByRole('dialog')
+
+    // ⚠️ 命中列表 ＋ 勾选框 ＋ 片段内容**都还在**
+    expect(within(dialog).getAllByRole('checkbox').length).toBeGreaterThan(0)
+    expect(within(dialog).getAllByText('将要发送的内容').length).toBeGreaterThan(0)
   })
 })

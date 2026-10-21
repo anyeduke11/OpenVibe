@@ -378,4 +378,53 @@ export {
   type ScanServiceResult,
 } from './services/m9-source-service'
 
+// ── M9 P5 · T2 源码解读（runner 契约 ＋ 装配 ＋ 分歧 ＋ 台账）────────────────
+export {
+  CommandInterpretRunner,
+  InterpretRunnerError,
+  INTERPRET_STATUS_LABELS,
+  commandExists,
+  runnerFromEnv,
+  type CommandRunnerOptions,
+  type InterpretFailureReason,
+  type SourceInterpretRunner,
+} from './source-ai/runner'
+
+export {
+  EXTERNAL_PATH_PLACEHOLDER,
+  PROJECT_ROOT_PLACEHOLDER,
+  hasAbsolutePath,
+  redactAbsolutePaths,
+} from './source-ai/redact'
+
+export {
+  SNIPPET_CONTEXT_LINES,
+  SNIPPET_MAX_BYTES,
+  SNIPPET_MAX_FILES,
+  SNIPPET_MAX_LINES,
+  readSnippet,
+  readSnippets,
+  type SnippetWindow,
+} from './source-ai/snippet'
+
+export {
+  assembleInterpretRequest,
+  type AssembleInterpretOptions,
+  type InterpretCandidate,
+} from './source-ai/assemble'
+
+export { divergenceText, findDivergences } from './source-ai/divergence'
+
+export {
+  fingerprintRequest,
+  recordInterpretCall,
+  type InterpretCallRecord,
+} from './source-ai/ledger'
+
+export {
+  interpretCapability,
+  interpretSourceFindings,
+  type InterpretOptions,
+} from './source-ai/interpret-service'
+
 export const CORE_VERSION = '0.0.0'

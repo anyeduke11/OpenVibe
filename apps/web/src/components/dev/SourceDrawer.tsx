@@ -1,10 +1,23 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { Icon } from '../ui/icons'
 import { btnGhost, btnPrimary, noteCls, noteTitleCls, tagCls } from '../ui/styles'
-import { useLangConsent, useLangConsentMutations, useLangFindings, useLangScan } from '../../hooks/useLangSource'
+import {
+  useLangConsent,
+  useLangConsentMutations,
+  useLangFindings,
+  useLangInterpret,
+  useLangInterpretCapability,
+  useLangScan,
+  useLangSnippets,
+} from '../../hooks/useLangSource'
 import { describeScannerMode } from '@openvibe/shared'
-import type { LangScanSummary, SourceFindingRow } from '@openvibe/shared'
+import type {
+  LangScanSummary,
+  SourceFindingRow,
+  SourceInterpretSummary,
+  SourceSnippet,
+} from '@openvibe/shared'
 
 /**
  * M9 v1.6 **P4.4 · 源码识别抽屉**（`m9-dev-language-roadmap.md` §3.8 / §3.10 · dev-plan §6.10 P4.4）
@@ -49,6 +62,22 @@ const L = {
   export: '导出清单',
   exportHint: '清单里的每一条都能用 grep 复现。',
   ticked: (n: number, total: number) => `已勾 ${String(n)} / ${String(total)} 条`,
+  // ── T1 硬要求：勾选前要看到「将要发送的确切内容」────────────────────────
+  sending: '将要发送的内容',
+  unreadable: '读不到这个片段（文件可能已删除或无法读取）—— 看不到内容就不许勾。',
+  // ── T2（AI 解读）────────────────────────────────────────────────────
+  interpretTitle: 'AI 解读',
+  interpretHint: '只把你勾过的片段发出去；解读结果只显示，不留存。',
+  interpretRun: '解读勾选的片段',
+  interpretRunning: '解读中…',
+  interpretNone: '还没有勾选任何片段。',
+  interpretFailed: '解读失败',
+  interpretUnavailable: '解读不可用',
+  interpretOk: '已解读',
+  divergenceTitle: '与确定性层的分歧',
+  divergenceNone: '没有分歧：AI 的说法与判定层一致。',
+  riskTitle: '风险点',
+  risksNone: '没有指出风险点。',
 } as const
 
 export interface SourceDrawerProps {
@@ -63,10 +92,23 @@ export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProp
   const consent = useLangConsent(projectId)
   const scan = useLangScan()
   const consentMutations = useLangConsentMutations(projectId ?? '')
+  // ⚠️ T1 硬要求：勾选前要看到「将要发送的确切内容」⇒ 片段**一次读完**并常驻显示
+  const snippets = useLangSnippets(projectId)
+  // ⚠️ DL-08：**不可用就不渲染 T2 区**（不是渲染一个失败态）
+  const capability = useLangInterpretCapability()
+  const interpret = useLangInterpret(projectId)
   const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set())
+  // ⚠️ **用户动过没有** —— 用来分辨「这次是记忆带过去的」与「用户自己勾的」（§3.9 的二分）
+  const [touched, setTouched] = useState(false)
 
   const rows: SourceFindingRow[] = findings.data?.findings ?? []
   const summary: LangScanSummary | undefined = scan.data
+
+  const snippetById = useMemo(() => {
+    const map = new Map<number, SourceSnippet>()
+    for (const s of snippets.data?.snippets ?? []) map.set(s.finding_id, s)
+    return map
+  }, [snippets.data])
 
   const confirmed = useMemo(
     () => rows.filter((r) => r.confidence === 'confirmed'),
@@ -75,6 +117,7 @@ export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProp
   const possible = useMemo(() => rows.filter((r) => r.confidence === 'possible'), [rows])
 
   const toggle = (key: string): void => {
+    setTouched(true)
     setTicked((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
@@ -85,6 +128,21 @@ export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProp
 
   const rememberAll = consent.data?.remember_all ?? false
   const remembered = consent.data?.remembered_at !== null && consent.data?.remembered_at !== undefined
+
+  // ⚠️ §3.9：「记住全发」要**真的**预勾选（否则记忆只是台账里的一行字，没有行为）
+  //   ⇒ 「记住全不发」＝ 保持全不勾（默认就是）⇒ 两者都在这一处落地。
+  useEffect(() => {
+    if (touched) return
+    if (!remembered || !rememberAll) return
+    const readable = rows
+      .filter((r) => {
+        const sn = snippetById.get(r.id)
+        return sn !== undefined && sn.lines !== null
+      })
+      .map((r) => `${r.id}`)
+    if (readable.length === 0) return
+    setTicked(new Set(readable))
+  }, [remembered, rememberAll, rows, snippetById, touched])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -221,6 +279,7 @@ export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProp
                   rows={confirmed}
                   ticked={ticked}
                   onToggle={toggle}
+                  snippets={snippetById}
                 />
                 {possible.length > 0 ? (
                   <FindingGroup
@@ -228,10 +287,23 @@ export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProp
                     rows={possible}
                     ticked={ticked}
                     onToggle={toggle}
+                    snippets={snippetById}
                   />
                 ) : null}
               </>
             )}
+
+            {/* ⚠️ T2（AI 解读）—— **不可用就不渲染**（DL-08） */}
+            {capability.data?.available === true ? (
+              <InterpretPanel
+                tickedCount={ticked.size}
+                pending={interpret.isPending}
+                onRun={() => {
+                  interpret.mutate([...ticked].map((k) => Number(k)))
+                }}
+                result={interpret.data}
+              />
+            ) : null}
           </>
         )}
         </div>
@@ -245,8 +317,10 @@ function FindingGroup(props: {
   rows: readonly SourceFindingRow[]
   ticked: ReadonlySet<string>
   onToggle: (key: string) => void
+  /** 命中 id → 本地片段（**T1 硬要求**：内容常驻在勾选框旁边） */
+  snippets: ReadonlyMap<number, SourceSnippet>
 }) {
-  const { title, rows, ticked, onToggle } = props
+  const { title, rows, ticked, onToggle, snippets } = props
   if (rows.length === 0) return null
   return (
     <section className="flex flex-col gap-1.5" aria-label={title}>
@@ -256,32 +330,141 @@ function FindingGroup(props: {
       <ul className="flex flex-col gap-1">
         {rows.map((r) => {
           const key = `${r.id}`
+          const snippet = snippets.get(r.id)
+          // ⚠️ **读不到内容 ⇒ 不许勾**（§3.8 T1 硬要求：用户要在**看到全文**的前提下勾选）
+          const readable = snippet !== undefined && snippet.lines !== null
           return (
             <li
               key={key}
-              className="flex items-start gap-2 rounded-md border border-line bg-panel px-2.5 py-2"
+              className="flex flex-col gap-1.5 rounded-md border border-line bg-panel px-2.5 py-2"
             >
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={ticked.has(key)}
-                onChange={() => {
-                  onToggle(key)
-                }}
-                aria-label={`${r.file_rel_path}:${String(r.line)}`}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm text-ink">
-                  {`${r.file_rel_path}:${String(r.line)}:${String(r.col)}`}
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={ticked.has(key)}
+                  disabled={!readable}
+                  onChange={() => {
+                    onToggle(key)
+                  }}
+                  aria-label={`${r.file_rel_path}:${String(r.line)}`}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm text-ink">
+                    {`${r.file_rel_path}:${String(r.line)}:${String(r.col)}`}
+                  </span>
+                  <span className="block text-[11.5px] text-ink-muted">
+                    {`${r.topic_title} · «${r.matched_pattern}»`}
+                  </span>
                 </span>
-                <span className="block text-[11.5px] text-ink-muted">
-                  {`${r.topic_title} · «${r.matched_pattern}»`}
-                </span>
-              </span>
+              </div>
+              {/* ⚠️ T1 硬要求：显示「将要发送的确切内容」 */}
+              {readable ? (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[11px] text-ink-faint">{L.sending}</span>
+                  <pre className="mono overflow-x-auto rounded bg-panel-sunk px-2 py-1 text-[11.5px] text-ink-body">
+                    {(snippet.lines ?? []).map((line, i) => `${String((snippet.start_line ?? 1) + i)}: ${line}`).join('\n')}
+                  </pre>
+                </div>
+              ) : (
+                <span className="text-[11.5px] text-warn">{L.unreadable}</span>
+              )}
             </li>
           )
         })}
       </ul>
+    </section>
+  )
+}
+
+/**
+ * T2 · **AI 解读区**（P5.1 / P5.3 · DL-09 / DL-16 / DL-18）
+ *
+ * ## ⚠️ **只在 AI 可用时才渲染**
+ *
+ * DL-08：「AI 不可用时确定性层照常工作」⇒ 不可用时**整个区不出现**
+ * （不是出现一个「解读失败」—— 「没配 AI」与「跑挂了」是两件事）。
+ *
+ * ## ⚠️ 分歧必须**两处并列**（DL-09）
+ *
+ * 确定性层的判定 ＋ AI 的声称**同时显示**。只说「有分歧」是不够的 ——
+ * 用户要能自己看出差在哪。
+ */
+function InterpretPanel(props: {
+  tickedCount: number
+  pending: boolean
+  onRun: () => void
+  result: SourceInterpretSummary | undefined
+}) {
+  const { tickedCount, pending, onRun, result } = props
+  return (
+    <section className="flex flex-col gap-1.5" aria-label={L.interpretTitle}>
+      <h3 className="text-xs font-medium text-ink-muted">{L.interpretTitle}</h3>
+      <p className="text-[11.5px] text-ink-faint">{L.interpretHint}</p>
+      <div className="flex items-center gap-2">
+        <button
+          className={btnPrimary}
+          type="button"
+          disabled={pending || tickedCount === 0}
+          onClick={onRun}
+        >
+          <Icon name="sparkle" size={13} />
+          {pending ? L.interpretRunning : L.interpretRun}
+        </button>
+        {tickedCount === 0 ? (
+          <span className="text-[11.5px] text-ink-faint">{L.interpretNone}</span>
+        ) : null}
+      </div>
+
+      {result !== undefined ? (
+        <div className="flex flex-col gap-1.5">
+          {result.status === 'failed' ? (
+            <div className={noteCls('warn')}>
+              <strong className={noteTitleCls}>{L.interpretFailed}</strong>
+              <p className="text-[11.5px]">{result.failure_reason ?? ''}</p>
+            </div>
+          ) : null}
+
+          {result.items.length > 0 ? (
+            <ul className="flex flex-col gap-1">
+              {result.items.map((item, i) => (
+                <li
+                  key={`${item.topic_slug}-${String(i)}`}
+                  className="flex flex-col gap-0.5 rounded-md border border-line bg-panel px-2.5 py-2"
+                >
+                  <span className="text-sm text-ink">{item.summary}</span>
+                  <span className="text-[11.5px] text-ink-muted">
+                    {`${item.topic_slug}`}
+                  </span>
+                  <span className="text-[11.5px] text-ink-muted">
+                    {`${L.riskTitle}：${
+                      item.risks.length > 0 ? item.risks.join('；') : L.risksNone
+                    }`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+
+          {/* ⚠️ DL-09：分歧**为 0 也要显示**（P5 出口：分歧标注为 0 时仍能显示） */}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11.5px] text-ink-muted">
+              {`${L.divergenceTitle}（${String(result.divergence_count)}）`}
+            </span>
+            {result.divergences.length === 0 ? (
+              <span className="text-[11.5px] text-ink-faint">{L.divergenceNone}</span>
+            ) : (
+              <ul className="flex flex-col gap-0.5">
+                {result.divergences.map((d) => (
+                  <li key={d.topic_slug} className="text-[11.5px] text-warn">
+                    {`${d.topic_slug} —— 确定性层：${d.deterministic_state}；AI 声称：${d.ai_state}`}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

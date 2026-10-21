@@ -310,6 +310,7 @@ P0 → P1 → P1b ┬→ P1c
 > - **P4 判据测试**（**64 支**）：core 扫描 12（DL-17 正支＋变异腿 · DL-19 夹具＋真实样本＋变异腿）＋ core 落库 17（DL-21 ＋ DL-22 **真跑 grep** ＋ DL-23 ＋ 迁移与表结构）＋ server 端点 17 ＋ web 抽屉 8（DL-20 ＋ 默认全不勾 ＋ 两档不混）＋ web 抽屉**变异腿** 2（模式标签恒空 ⇒ 生产断言当场红）＋ web 设置页 3（DL-21 的设置页清除）＋ 仓根表闸 5（含**变异腿**：真建一张规格外的表 ⇒ 闸红）。
 > - **⚠️ 本轮修掉的真缺陷**：① Go 助手写了不存在的 `ast.RecvStmt` ⇒ **编译失败**（改为 `*ast.AssignStmt` ＋ `token.ARROW` 判定，并新增 `reportTarget` 报 `<-ch` 表达式）；② `hitKey` 用错字段名（`pattern_id` vs `spec_id`）⇒ 所有命中塌成同一个 `undefined` 命名空间、⊇ 比较**看着有违规其实是键算错了**；③ 导出清单的**模式串只在扫描侧 BRE 安全化** ⇒ 手工塞进库的脏值会让用户的 `grep` **报语法错** ⇒ 已在**导出侧再兜一道**（`exportGrepPattern`，并配守卫自证：脏值确实含危险字符）。
 > - **⚠️ 本轮未做**：**T1 的「勾选 → 出网」那一段**（勾选只落在**组件本地 state**，**没有**接到 P0 的 `assembleAiCallPayload` 出网入口 —— 那是 P5 的活）；⚠️ `lang_topic_findings` **无项目列**（见上）⇒ 多项目场景下命中互相覆盖，属**规格缺口**，未自行加列。
+> - ⚠️ **P5 补正（2026-10-21）**：上一条的「勾选 → 出网」**已由 P5 补上** —— 但**不是**接到 P0 的 `assembleAiCallPayload`（那是**文件粒度**），而是 P5 另建的**片段粒度**装配器 `assembleInterpretRequest`（`packages/core/src/source-ai/assemble.ts`）⇒ **两处不是同一道闸**（§5.5：一个片段是粒度上限，不是「一个文件」），**共用的只有路径口径**（都用 P0 的 `toRelativePath`）。⇒ **P4 的 §3.8 T1 硬要求（「出网前必须展示将要发送的确切内容」）也在 P5 补齐**（抽屉一次读完片段并常驻显示，读不到内容的命中**勾选框禁用**）。⚠️ 「`lang_topic_findings` 无项目列」这条**规格缺口仍然未闭合**（P5 未自行加列）。
 
 ### 6.11 M9-P5 源码 T2（AI 解读）（**3 人日** · ⚠️ P4 三条待裁未闭合则本期待排）
 
@@ -318,6 +319,19 @@ P0 → P1 → P1b ┬→ P1c
 - **P5.3** 与确定性层分歧显式标注 / **DL-09** / P2, P4 / 1
 - **P5.4** `ai_recommend_call` 台账（只存指纹与计数） / **DL-08** / P5.1 / 0.5
 - **P5 出口**：AI 不可用时仍能跑（DL-08）+ 分歧标注为 0 时仍能显示（DL-09 注入式）
+
+> ✅ **P5 已产出**（本轮 · 2026-10-21）：
+> - **P5.1** —— 解读面板（`apps/web/src/components/dev/SourceDrawer.tsx` 的 T2 区）＋ **T1 的硬要求补齐**：§3.8 要求「出网前必须展示**将要发送的确切内容**」⇒ 抽屉**一次读完**每条命中的本地片段（`GET /api/lang/snippets`）并**常驻显示**在勾选框旁边；⚠️ **读不到内容的命中 ⇒ 勾选框禁用**（看不见内容就不许勾，否则「勾选」是在盲签）。T2 区**只在 AI 可用时渲染**（DL-08）。
+> - **P5.2** —— 出网前替换绝对路径（`packages/core/src/source-ai/redact.ts`）：**项目内**的绝对路径 ⇒ **相对路径**（不丢信息也不泄露目录结构）；**项目外**的 ⇒ `<外部路径>`；⚠️ **正文也要脱敏**（只改路径字段不够 —— `log_path = "/Users/…/app.log"` 照样出网）。⚠️ **脱敏顺序固定**：先项目根 ⇒ 再家目录 ⇒ 最后剩下的绝对路径（此时它们**不可能**是项目内的）。
+> - **P5.3** —— 与确定性层的**分歧显式标注**（`divergence.ts`，**纯函数**）：判定层是**权威**，AI 的 `claim_state` 只用于比对；分歧里**两处并列**（`确定性层：X` / `AI 声称：Y`），**分歧数为 0 也要显示**（P5 出口条件）。⚠️ 「AI 没声称」与「说了且一致」都**不算**分歧。
+> - **P5.4** —— `ai_recommend_call` 台账（`packages/core/src/source-ai/ledger.ts`）：payload **按白名单逐键构造**（9 键，与 `AGENT_PAYLOAD_KEYS` 逐字一致）⇒ **只存指纹与计数**（正文进 sha256 指纹，不进台账）。⚠️ **不新增表** —— 这个 kind 早就在迁移 0010 的 CHECK 闭集里（**声明态、写入点属 AI 增强层**）⇒ P5 成了它的**第一个生产写入点**，**表数仍是十七张**。
+> - **⚠️ 补上 §3.9 的「出网计数」**：`lang_source_shares`（P4 建表、P4 没有出网所以一直是空的）⇒ P5 是**第一次真的出网**，每次出网写一行（`topic_id_count` / `snippet_count` / `consent_source`）。⚠️ **`consent_source` 在服务端推导**（不采信客户端说法）：记忆是「全发」且这次发的**正是全部可勾命中** ⇒ `remembered`；「全不发」且**一条都没发** ⇒ `remembered`；其余 ⇒ `explicit_tick`。
+> - **⚠️ 补上 §3.9 的「记忆要真的有行为」**：P4 的「记住全发」只是**记了一行**（抽屉并没有据此预勾选）⇒ P5 让它**真的预勾**（可读的命中全勾；「记住全不发」保持全不勾）⇒ 记忆从「台账里的一行字」变成**行为**。
+> - **runner 契约（P5 的关键分界）**：**可注入**的 `SourceInterpretRunner`（`interpret(request) → result`）。⚠️ **仓内不硬编任何 provider**：① owner 的口径是「不直接接 LLM API，语义层通过 AI Agent 做」；② M3 的 FR-6.3 同款（走 Pi，**不接 LLM API**）；③ dev-plan §9 合计段落明写「⚠️ **不含 Pi 接入本身**」⇒ M9 交付**契约 ＋ 降级 ＋ 台账 ＋ 界面**，provider 由宿主接。**命令适配器**的契约是「**stdin 收 JSON、stdout 出 JSON**」（M3 FR-6.3.2：必须结构化输出，不解析自然语言），**零依赖**，任何遵守这个契约的东西都能当 runner。⚠️ **配置来源是环境变量**（`OPENVIBE_M9_INTERPRETER` ＋ `_MODEL` ＋ `_PROVIDER`）⇒ 没配 = AI 不可用 = 确定性层照常。
+> - **端点**（`apps/server/src/routes/langSourceAi.ts`，四个）：`GET /api/lang/snippet`（单条，本地读）· `GET /api/lang/snippets`（批量，一次读完）· `GET /api/lang/interpret/capability`（AI 可用性）· `POST /api/lang/interpret`（解读）。
+> - **⚠️ 本轮修掉的两个真缺陷**：① **命令适配器用了 `execFile`** —— 它**没有 `input` 选项**（那是 `execFileSync` 才有的）⇒ 子进程会收到**空 stdin**，契约成了「只出不进」⇒ 已改用 P4 已有的 `runWithStdin`（`spawn` 管管道）；② **片段形状里没有 `finding_id`** ⇒ 台账的 `consent_source` 只能拿**行号**当代理（两个片段可能同行）⇒ 已把 `finding_id` 贯穿到契约里。
+> - **P5 出口复算**：**AI 不可用时仍能跑**（DL-08）—— 注入必失败的 runner ⇒ `status=failed` ＋ 台账记 error ＋ **确定性层前后逐字相等**；**分歧标注为 0 时仍能显示**（DL-09 注入式）—— `divergence_count=0` 时摘要里仍有这个数，界面显示「没有分歧」。
+> - **P5 判据测试**：core 15 支（DL-18 正支＋2 条变异腿 · DL-16 正支＋变异腿 · DL-08 正支＋2 条变异腿 · DL-09 正支＋2 条变异腿 · §3.9 出网计数 2 支）＋ server 12 支（含**真起一个子进程**跑命令适配器：入参真的送到了、输出真的被解析、坏输出被归一成失败）＋ web 抽屉 13 支（新增 5 支：片段常驻显示 ＋ 读不到即禁用 ＋ T2 区渲染 ＋ 分歧两处并列 ＋ 结果与风险点）＋ web 抽屉**变异腿** 4 支（新增 DL-08 那条）。
 
 ---
 
@@ -334,17 +348,17 @@ P0 → P1 → P1b ┬→ P1c
 | DL-05 | P2.2 | 不得出现「你已掌握」 | **已产出**（P2 · `packages/core/src/db/m9-p2-guards.ts`）—— 全仓（`apps/*/src` ＋ `packages/*/src`）**0 命中**；被禁形态两条：「你已掌握」（§3.3 末段）与「未触及」三个字（§6.3 第 2 条）。⚠️ **扫前先去注释** —— 规则说明里**必须能引用**被禁形态（「界面不得出现「你已掌握」」这句话本身是必需的）⇒ 扫原文会把规则判红；⚠️ 扫的是**去注释后的整段文本**而不是「字符串字面量集合」⇒ JSX 文本（`<p>你已掌握</p>` 里的字是 JSXText 不是字面量）也照样被抓到。⚠️ **守卫自证**：注入「你已掌握这个知识点」当场被报出；反证「规则说明里引用这些词」与三态正常文案均不命中 |
 | DL-06 | P1.1 | 挂接不反向写 terms | 已产出（P1.8 · m9-topic-terms.ts） |
 | DL-07 | P2.2 | 冷门知识点显示文案 | **已产出**（P2 · `packages/shared/src/m9-state.ts` ＋ `packages/core/src/db/m9-p2-state.ts`）—— 零证据知识点 ⇒ 状态 `unused` ⇒ 文案「**本项目未涉及**」（§6.3 第 2 条）；冷门补充说明「本项目永远可能用不到它（冷门知识点）」也落成常量（`COLD_TOPIC_NOTE`）。⚠️ **状态图覆盖全部知识点**（`readTopicStateMap` 把没有证据行的知识点也填成 `unused`）⇒ 界面永远拿得到文案，不会有空白。⚠️ **文案纪律**：「你已掌握」与「未触及」三个字都不许进文案（同 DL-05 的守卫） |
-| DL-08 | P5.4 | AI 不可用时确定性层照常 | 未开工 |
-| DL-09 | P5.3 | AI 结果不得绕过判定层 | 未开工 |
+| DL-08 | P5.4 | AI 不可用时确定性层照常 | **已产出**（P5 · `packages/core/src/source-ai/interpret-service.ts` ＋ `apps/server/src/routes/langSourceAi.ts`）—— **runner 是可注入的**（`SourceInterpretRunner`）⇒ 「注入必失败的 runner」这条判据**可执行**：失败被**归一**成 `InterpretRunnerError` ⇒ 台账记 `result='error'` ＋ 原因，界面显示「解读失败」，而**确定性层一字未改**（解读**从不写** `lang_topic_state`，由测试断言前后逐字相等）。⚠️ **「不可用」与「失败」是两件事**：没配 runner ⇒ `status=unavailable`、**不出网、不写台账**、界面**不渲染 T2 区**；配了但跑挂了 ⇒ `status=failed` ＋ 台账有一行。⚠️ **变异腿实跑**：`vi.mock` 把能力改成不可用 ⇒ 生产断言「T2 区必须渲染」当场红（`SourceDrawer.mutant.test.tsx`） |
+| DL-09 | P5.3 | AI 结果不得绕过判定层 | **已产出**（P5 · `packages/core/src/source-ai/divergence.ts` ＋ `apps/web/src/components/dev/SourceDrawer.tsx`）—— 判定层是**权威**（§3.8 三条线第 3 条：解读结果**不自动入库** ⇒ 本模块**从不写** `lang_topic_state`），AI 的 `claim_state` **只用于比对**。⚠️ **两处并列**：分歧里同时给出「确定性层：X」与「AI 声称：Y」，界面两处都显示。⚠️ **「AI 没声称」与「说了且一致」都不是分歧**（不凭空多出分歧）；⚠️ **分歧数为 0 时也要显示**（P5 出口条件：分歧标注为 0 时仍能显示，不许空白）。⚠️ **变异腿实跑**：把判定改成「只比计数」⇒ 当场红 |
 | DL-10 | P3.1 | 新增页面零字面色阶 | **已产出**（P3 · `apps/web/src/components/dev/` ＋ `apps/web/src/pages/DevAbilityPage.tsx`）—— 全部颜色走 `index.css` 的语义 token；⚠️ 由 `tests/design-tokens.test.ts` 四道闸实测（**零字面色阶** ＋ 裸 hex 只住 token 源 ＋ 用到的语义色都已声明 ＋ 声明的都被引用），本轮复跑 4 支全绿、token 仍 **29 支** |
 | DL-11 | P3.1/P3.7 | 形制登记进 DESIGN.md | **已产出**（P3.7 · `DESIGN.md`）—— ① **`.tag` 形制**（**36 处 / 15 个文件**此前在用却**从未登记** ⇒ 本轮补上，含 mono 变体与「状态一律走 chip」的分工）；② **状态 chip 六形制**（默认 ＝ 中性的 `panel-sunk` 底，其余五形制 ＝ soft 三件套）＋ **M9 掌握度三态的落法**（未涉及＝默认 / 在用＝accent / 掌握＝ok，文案取自 `MASTERY_STATE_LABELS`）。⚠️ 同批**按实现订正**了 chip 描述（字号 11px、默认形制底色）—— 描述与实现分叉时**实现是已交付的事实** |
 | DL-12 | P1.1 | 库级条目不进学习路线 | 已产出（P1.7 · m9-p1-7-topic-stages.ts）⚠️ 见附注① |
 | DL-13 | P1.4 | 清单带 kind 且可复算 | 已产出（P1.4 · m9-classify-lang-topics.ts） |
 | DL-14 | P1.2/P1.3 | 两门数据都在且可筛选 | 已产出（P1.8 · m9-topic-filter.ts） |
 | DL-15 | P1.5 | 概念层跨语言复用 | 已产出（P1.5 · m9-p1-5-concept-content.ts） |
-| DL-16 | P0.3 | 源码片段不得进台账 | 已产出（P0 · tests/m9-discipline.test.ts） |
+| DL-16 | P0.3 | 源码片段不得进台账 | **两侧都已产出** —— ① **P0 侧**（`tests/m9-discipline.test.ts`）：禁列扫描器接上 `lang_*` 命名空间；② **P5 侧**（`packages/core/src/source-ai/ledger.ts`）：`ai_recommend_call` 的 payload **按白名单逐键构造**（9 个键，与 `AGENT_PAYLOAD_KEYS` 逐字一致）⇒ **没有** `content`/`text`/`fragments`/`path` 这类容器 ⇒ 源码正文**在类型上就进不来**（正文进**指纹**，不进台账）。⚠️ **失败也要记**（`result='error'` ＋ `failureReason`）——「没出网」不记（那是 `unavailable`），「出了网但挂了」必须记（FR-9：不可复算的东西要可追责） |
 | DL-17 | P4.1 | T0 不依赖 AI | **已产出**（P4 · `packages/core/src/source-scan/` ＋ `services/m9-source-service.ts`）—— 扫描链路**零 AI 依赖**（源码守卫扫 `fetch(` 与 `openai|anthropic|ai_recommend|chat.completions|llm` ⇒ **0 命中**）⇒ 「AI 不可用时 T0 照常工作」是**结构上**成立的（没有依赖可失败）。⚠️ **变异腿实跑**：往 `scan.ts` 插一个 `fetch('https://api.openai.com/v1/chat/completions')` ⇒ 守卫当场报出两条 |
-| DL-18 | P0.4 | 未勾选片段不得出网 | 已产出（P0 · tests/m9-discipline.test.ts） |
+| DL-18 | P0.4 | 未勾选片段不得出网 | **两侧都已产出** —— ① **P0 侧**（`tests/m9-discipline.test.ts`）：文件粒度的装配器（`assembleAiCallPayload`）；② **P5 侧**（`packages/core/src/source-ai/assemble.ts` ＋ `redact.ts`）：**片段粒度**（§5.5：「一个片段」是粒度上限，不是「一个文件」）—— 勾一条**只发那一条**，同一个文件里的别的命中**不发**；⚠️ **两处不是同一道闸、也不该合并**（合并会把片段粒度退化成文件粒度 ⇒ 正是 §5.5 禁止的形态），**共用的只有路径口径**（相对化 ＋ 越界判定都用 P0 的 `toRelativePath`）。⚠️ **正文里的绝对路径也要脱敏**（只改路径字段不够：`log_path = "/Users/…/app.log"` 照样出网）⇒ 项目内路径变**相对路径**、项目外路径变 `<外部路径>`。⚠️ **入参捕获**是唯一可执行形态（进程内假 runner 把入参截下来） |
 | DL-19 | P4.2 | Go 回退只降精度不减结果 | **已产出**（P4 · `packages/core/src/source-scan/subset-check.ts` ＋ `go-scanner.ts`）—— **parser ⊇ 正则**在两处实测 **0 违规**：① 夹具（`packages/core/src/fixtures/m9`）；② **真实样本**（Go 标准库 `src/net/http`，107 个 .go 文件）。判定式 `findSubsetViolations` 是**纯函数**（吃两个集合、不做 I/O）。⚠️ **变异腿实跑**：给 `go-struct` 配一条比解析器判定更宽的正则（`\bstruct\b|\binterface\b`）⇒ ⊇ 立刻被打破。⚠️ **本轮在标准库样本上抓到 9 处真违规**（全是 `go-funclit`：正则把**函数类型**（`map[string]func(T){`）误当函数字面量）⇒ 已**删掉该正则**（宁可少报不错报，§3.8.2 允许的「精度下降」）—— ⚠️ **函数字面量与函数类型在文本上不可区分**，这是那条正则配不出来的根因 |
 | DL-20 | P4.2 | 回退必须显式告知 | **已产出**（P4 · `apps/web/src/components/dev/SourceDrawer.tsx` ＋ `packages/shared/src/m9-source-scan.ts`）—— 界面**每一门语言一行模式说明**（`完整解析（工具链版本）` / `启发式模式` / `未扫描`）＋ **回退 notice 必须出现在界面上**（CLI 同步显示）。⚠️ **模式文案只留一处**（`describeScannerMode`）⇒ 抽屉、CLI、将来的导出清单共用。⚠️ **变异腿实跑**：`vi.mock` 把 `describeScannerMode` 换成恒 `''` ⇒ **生产断言当场红**（`SourceDrawer.mutant.test.tsx`，变异体独占一份文件 —— `vi.mock` 按文件生效） |
 | DL-21 | P4.5 | 「记住不发」清除后回到全不勾 | **已产出**（P4 · `packages/core/src/db/m9-source-scan.ts` ＋ `apps/web/src/components/settings/SourceConsentSection.tsx`）—— 记忆**按项目**（全局记忆会让一个项目的授权泄漏到另一个项目）＋ **清除＝删行**（不是把 `remember_all` 置 0：置 0 会留下「曾经记住过」的残影）⇒ 读回来是 `null`（**没有行 ＝ 没有记忆**）⇒ 下次扫描回到全不勾。**设置页有逐项目的清除入口**（DL-21 原文要求的「设置页清除」）＋ 抽屉里也有。⚠️ **变异腿实跑**：只清字段不删行 ⇒ 判定式当场报出「清除没生效」 |
