@@ -20,6 +20,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
+  SOURCE_INTERPRET_SCHEMA_VERSION,
   type SourceInterpretRequest,
   type SourceInterpretResult,
   type MasteryState,
@@ -120,6 +121,8 @@ function capturingRunner(
         model: 'fake-model',
         provider: 'fake-provider',
         ...result,
+        // ⚠️ **契约版本**（增强 3）：默认回当前版本（测试要造「版本不对」时显式覆盖）
+        schema_version: result.schema_version ?? SOURCE_INTERPRET_SCHEMA_VERSION,
       }
     },
   }

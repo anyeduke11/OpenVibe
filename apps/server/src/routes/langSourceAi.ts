@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { AppError } from '@openvibe/shared'
+import { AppError, SourceInterpretSummary } from '@openvibe/shared'
 import {
+  formatInterpretMarkdown,
   interpretCapability,
   interpretSourceFindings,
   readFindings,
@@ -58,6 +59,17 @@ const InterpretBody = z.object({
   finding_ids: z.array(z.number().int().positive()),
 })
 
+/** 导出请求（**只带结果**，不带片段正文 —— 那些压根没进这个形状）。 */
+const InterpretExportBody = z.object({
+  summary: SourceInterpretSummary,
+})
+
+/** 文件名里只留安全字符（项目 id 可能带斜杠等）。 */
+function safeFileName(value: string): string {
+  const cleaned = value.replace(/[^A-Za-z0-9_-]+/gu, '-').replace(/^-+|-+$/gu, '')
+  return cleaned === '' ? 'project' : cleaned
+}
+
 export function registerLangSourceAiRoutes(
   app: FastifyInstance,
   deps: LangSourceAiRouteDeps,
@@ -85,17 +97,21 @@ export function registerLangSourceAiRoutes(
     if (hit === undefined) {
       throw new AppError('NOT_FOUND', '这条命中不在最近一次扫描里')
     }
-    const snippet = readSnippet(root, hit.file_rel_path, hit.line)
-    if (snippet === null) {
+    const read = readSnippet(root, hit.file_rel_path, hit.line)
+    if (read.window === null) {
       // ⚠️ **读不到就如实说读不到**（文件被删了 / 读不了）—— 不编内容，也不假装空
-      throw new AppError('NOT_FOUND', '读不到这个片段（文件可能已删除或无法读取）')
+      //   ⇒ 并把**原因**带出去（界面要能区分「文件没了」与「行号越界」）
+      throw new AppError('NOT_FOUND', '读不到这个片段（文件可能已删除或无法读取）', {
+        reason: read.failure ?? 'unreadable',
+      })
     }
     return {
       finding_id: hit.id,
-      path: snippet.path,
-      start_line: snippet.start_line,
-      end_line: snippet.end_line,
-      lines: snippet.lines,
+      path: read.window.path,
+      start_line: read.window.start_line,
+      end_line: read.window.end_line,
+      lines: read.window.lines,
+      failure: null,
       topic_slug: hit.topic_slug,
       topic_title: hit.topic_title,
     }
@@ -119,13 +135,16 @@ export function registerLangSourceAiRoutes(
     const windows = readSnippets(root, findings)
     return {
       snippets: findings.map((f) => {
-        const w = windows.get(f.id)
+        const read = windows.get(f.id)
+        const w = read?.window
         return {
           finding_id: f.id,
           path: f.file_rel_path,
           start_line: w?.start_line ?? null,
           end_line: w?.end_line ?? null,
           lines: w?.lines ?? null,
+          // ⚠️ **读不到的原因**（界面据此显示不同的提示，不是同一个兜底）
+          failure: w === undefined ? null : read?.failure ?? null,
           topic_slug: f.topic_slug,
           topic_title: f.topic_title,
         }
@@ -155,5 +174,32 @@ export function registerLangSourceAiRoutes(
       }
       throw err
     }
+  })
+
+  // ⚠️ **导出是用户主动动作**（增强 4）：结果**不写库**，产物落在用户自己的磁盘上。
+  //   ⇒ 脱敏在**服务端**做（不采信客户端说「我已经脱敏了」）。
+  app.post('/api/lang/interpret/export', async (req, reply) => {
+    const parsed = InterpretExportBody.safeParse(req.body)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', '解读结果不合法')
+    }
+    const summary = parsed.data.summary
+    let root: string
+    try {
+      root = readProjectRoot(deps.db, summary.project_id)
+    } catch (err) {
+      if (err instanceof SourceServiceError) {
+        throw new AppError('VALIDATION_ERROR', err.message, { reason: err.reason })
+      }
+      throw err
+    }
+    const text = formatInterpretMarkdown(summary, { projectRoot: root })
+    const filename = `m9-interpret-${safeFileName(summary.project_id)}.md`
+    return reply
+      .header('content-type', 'text/markdown; charset=utf-8')
+      .header('content-disposition', `attachment; filename="${filename}"`)
+      // ⚠️ **文件名由服务端给**（前端不重复实现清洗规则 ⇒ 口径只留一处）
+      .header('x-m9-filename', filename)
+      .send(text)
   })
 }

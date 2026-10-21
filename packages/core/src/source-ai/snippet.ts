@@ -24,6 +24,7 @@
  */
 import { readFileSync, statSync } from 'node:fs'
 import { isAbsolute, join, resolve, sep } from 'node:path'
+import type { SnippetFailureReason } from '@openvibe/shared'
 
 /** 片段窗口（一段本地源码）。 */
 export interface SnippetWindow {
@@ -35,6 +36,19 @@ export interface SnippetWindow {
   end_line: number
   /** 窗口内的正文（**逐行**；⚠️ 未脱敏 —— 这是**本地展示**用的） */
   lines: string[]
+}
+
+/**
+ * 一次片段读取的**结果**。
+ *
+ * ⚠️ `window` 与 `failure` **互斥**：读到了就没有失败原因，读不到就必须有原因
+ *   （「读不到」而不说为什么，等于让用户自己去猜）。
+ */
+export interface SnippetReadResult {
+  /** 读到的窗口（读不到时为 `null`） */
+  window: SnippetWindow | null
+  /** 读不到的原因（读到时为 `null`） */
+  failure: SnippetFailureReason | null
 }
 
 /** 读取窗口的默认上下行数。 */
@@ -61,18 +75,18 @@ export const SNIPPET_MAX_FILES = 100
  *
  * @param root 项目根（绝对路径）
  * @param rows 要读的命中（`id` ＋ 相对路径 ＋ 行号）
- * @returns id → 窗口（读不到的是 `null`）
+ * @returns id → 读取结果（读不到时 `window` 为 `null` 且 `failure` 说明了原因）
  */
 export function readSnippets(
   root: string,
   rows: readonly { id: number; file_rel_path: string; line: number }[],
-): Map<number, SnippetWindow | null> {
-  const out = new Map<number, SnippetWindow | null>()
+): Map<number, SnippetReadResult> {
+  const out = new Map<number, SnippetReadResult>()
   for (const r of rows.slice(0, SNIPPET_MAX_FILES)) {
     out.set(r.id, readSnippet(root, r.file_rel_path, r.line))
   }
   for (const r of rows.slice(SNIPPET_MAX_FILES)) {
-    out.set(r.id, null)
+    out.set(r.id, { window: null, failure: 'not_loaded' })
   }
   return out
 }
@@ -80,43 +94,61 @@ export function readSnippets(
 /**
  * 读命中行附近的一段源码（**本地读**）。
  *
+ * ## ⚠️ 为什么失败要**给原因**，而不是回 `null`
+ *
+ * 只回 `null` 的话，界面只能说「读不到」⇒ 用户分不清是文件被删了、
+ * 还是文件被改短了（行号越界）、还是当前项目根与扫描时不是同一个
+ * ⇒ 这几种情况用户该做的动作完全不同（重新扫描 / 换项目 / 缩小范围）。
+ *
+ * ⚠️ **行号越界不再夹逼**：命中行号来自扫描时的事实，文件被改短了就该**如实说**
+ *   —— 夹到文件末尾等于把**另一行**当成命中行给用户看（那是在骗人）。
+ *
  * @param root 项目根（绝对路径）
  * @param relPath 相对项目根的路径
- * @param line 命中行（1 起；越界会被夹逼）
+ * @param line 命中行（1 起）
  * @param opts 窗口上下行数
- * @returns 读不到时返回 `null`（**不抛** —— 界面要能显示「读不到」而不是整页崩）
+ * @returns 读取结果（读不到时 `window` 为 `null`、`failure` 给出原因）
  */
 export function readSnippet(
   root: string,
   relPath: string,
   line: number,
   opts: { before?: number; after?: number } = {},
-): SnippetWindow | null {
-  if (!isAbsolute(root)) return null
-  if (relPath === '' || isAbsolute(relPath)) return null
+): SnippetReadResult {
+  if (!isAbsolute(root)) return { window: null, failure: 'unreadable' }
+  if (relPath === '' || isAbsolute(relPath)) return { window: null, failure: 'out_of_project' }
   // ⚠️ `..` 一律拒（越界读文件是最危险的形态）
-  if (relPath.split(/[\\/]/u).includes('..')) return null
+  if (relPath.split(/[\\/]/u).includes('..')) {
+    return { window: null, failure: 'out_of_project' }
+  }
 
   const abs = resolve(join(root, relPath))
   const rootNorm = root.endsWith(sep) ? root.slice(0, -1) : root
-  if (abs !== rootNorm && !abs.startsWith(rootNorm + sep)) return null
+  if (abs !== rootNorm && !abs.startsWith(rootNorm + sep)) {
+    return { window: null, failure: 'out_of_project' }
+  }
 
   let stat
   try {
     stat = statSync(abs)
   } catch {
-    return null
+    return { window: null, failure: 'file_missing' }
   }
-  if (!stat.isFile() || stat.size > SNIPPET_MAX_BYTES) return null
+  if (!stat.isFile()) return { window: null, failure: 'file_missing' }
+  if (stat.size > SNIPPET_MAX_BYTES) return { window: null, failure: 'too_large' }
 
   let text: string
   try {
     text = readFileSync(abs, 'utf8')
   } catch {
-    return null
+    return { window: null, failure: 'unreadable' }
   }
   const all = text.split('\n')
-  const hit = Math.min(Math.max(Math.floor(line), 1), Math.max(all.length, 1))
+  // ⚠️ **行号越界 ⇒ 如实报**（不夹逼：夹了就是把别的行当成命中行给用户看）
+  if (!Number.isFinite(line) || line < 1 || line > all.length) {
+    return { window: null, failure: 'line_out_of_range' }
+  }
+  const hit = Math.floor(line)
   const before = opts.before ?? SNIPPET_CONTEXT_LINES
   const after = opts.after ?? SNIPPET_CONTEXT_LINES
   const start = Math.max(1, hit - before)
@@ -124,9 +156,12 @@ export function readSnippet(
   // ⚠️ 窗口过长 ⇒ 从**命中行**往两边收（保证命中行在窗口里）
   const cappedStart = Math.max(start, end - SNIPPET_MAX_LINES + 1)
   return {
-    path: relPath,
-    start_line: cappedStart,
-    end_line: end,
-    lines: all.slice(cappedStart - 1, end),
+    window: {
+      path: relPath,
+      start_line: cappedStart,
+      end_line: end,
+      lines: all.slice(cappedStart - 1, end),
+    },
+    failure: null,
   }
 }

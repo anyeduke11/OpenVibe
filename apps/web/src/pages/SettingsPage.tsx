@@ -10,6 +10,7 @@ import {
 import { LocalLedgerSection } from '../components/settings/LocalLedgerSection'
 import { AgentSettingsSection } from '../components/settings/AgentSettingsSection'
 import { SourceConsentSection } from '../components/settings/SourceConsentSection'
+import { SourceShareSection } from '../components/settings/SourceShareSection'
 import { sys } from '../i18n/lane-system'
 import { btnGhost, proseCls, skelCls } from '../components/ui/styles'
 import { Icon } from '../components/ui/icons'
@@ -76,6 +77,8 @@ export function SettingsPage() {
         <AgentSettingsSection />
         {/* M9 P4.5：源码授权记忆（DL-21 的清除入口在这里） */}
         <SourceConsentSection />
+        {/* M9 增强 1：源码出网记录（**只读**；与记忆区相邻但语义不同 —— 记忆管「下次」，这里记「已发生」） */}
+        <SourceShareSection />
         <ReadabilitySection />
       </div>
     </div>

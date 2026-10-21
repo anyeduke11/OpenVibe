@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { apiJson } from '../api/client'
+import { apiJson, apiRaw } from '../api/client'
 import type {
   InterpretCapability,
   LangConsentResponse,
@@ -80,7 +80,43 @@ export function useLangInterpret(projectId: string | null) {
     onSuccess: () => {
       // ⚠️ 解读**不改掌握度**（§3.8 三条线第 3 条）⇒ 路线不用失效；
       //   但台账多了一行 ⇒ 本地状态刷新（设置页的计数会变）
-      void qc.invalidateQueries({ queryKey: ['lang-source-shares'] })
+      void qc.invalidateQueries({ queryKey: ['lang-share-summary'] })
+    },
+  })
+}
+
+/**
+ * 把这次解读**导出**成 Markdown（**用户主动动作** · 增强 4）。
+ *
+ * ## ⚠️ 导出**不写库**
+ *
+ * §3.8 三条线第 3 条：解读结果**不自动入库** ⇒ 导出的产物落在**用户自己的磁盘**上，
+ * 不进本机数据库、也不外传（§3.8 的「只展示不留存」在**本机状态**里的形态）。
+ *
+ * ## ⚠️ 脱敏在**服务端**做
+ *
+ * 客户端不负责脱敏（客户端说「我已经脱敏了」不可信）⇒ 服务端导出前再过一遍。
+ */
+export function useLangInterpretExport() {
+  return useMutation({
+    mutationFn: async (summary: SourceInterpretSummary) => {
+      const res = await apiRaw('/api/lang/interpret/export', {
+        method: 'POST',
+        body: { summary },
+      })
+      // ⚠️ **文件名由服务端给**（清洗规则只留一处）
+      const name = res.headers.get('x-m9-filename') ?? 'm9-interpret.md'
+      const blob = await res.blob()
+      // ⚠️ 没有 `createObjectURL` 的环境（jsdom 等）⇒ 跳过下载这一步（请求已经发出）
+      if (typeof URL.createObjectURL !== 'function') return
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = name
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
     },
   })
 }

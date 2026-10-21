@@ -144,15 +144,16 @@ export async function interpretSourceFindings(
   /** **可勾**的命中 id（读得到正文的那批） */
   const tickableIds = new Set<number>()
   for (const f of findings) {
-    const snippet = windows.get(f.id)
-    if (snippet === null || snippet === undefined) continue
+    const read = windows.get(f.id)
+    // ⚠️ **读不到的那条不算「可勾」**（界面也禁用了它的勾选框 ⇒ 两边一致）
+    if (read === undefined || read.window === null) continue
     tickableIds.add(f.id)
     if (!ticked.has(f.id)) continue
     candidates.push({
       id: f.id,
       path: f.file_rel_path,
       line: f.line,
-      content: snippet.lines.join('\n'),
+      content: read.window.lines.join('\n'),
       topic_slug: f.topic_slug,
       topic_title: f.topic_title,
     })

@@ -28,7 +28,7 @@
  */
 import { toRelativePath } from '../services/m9-payload'
 import { redactAbsolutePaths } from './redact'
-import type { SourceInterpretRequest } from '@openvibe/shared'
+import { SOURCE_INTERPRET_SCHEMA_VERSION, type SourceInterpretRequest } from '@openvibe/shared'
 
 /** 一条待装配的片段（**已带上正文**）。 */
 export interface InterpretCandidate {
@@ -87,5 +87,6 @@ export function assembleInterpretRequest(
   const topics = [...new Map(fragments.map((f) => [f.topic_slug, f.topic_title])).entries()]
     .map(([slug, title]) => ({ slug, title }))
     .sort((a, b) => a.slug.localeCompare(b.slug))
-  return { fragments, topics }
+  // ⚠️ **带上契约版本**（增强 3）—— 宿主侧必须原样带回，否则应用侧判「版本对不上」
+  return { schema_version: SOURCE_INTERPRET_SCHEMA_VERSION, fragments, topics }
 }

@@ -26,6 +26,19 @@ import { z } from 'zod'
 import { MasteryStateSchema } from './schemas/lang'
 
 /**
+ * **T2 解读契约的版本号**（增强 3）。
+ *
+ * ⚠️ **为什么要有版本号**：契约是「宿主侧实现、应用侧消费」的**双边约定**——
+ *   宿主换掉 Pi、换掉包装脚本、或改字段名时，应用侧**无从察觉**，
+ *   失败会以「解析出错」的面貌出现（分不清「工具挂了」与「版本对不上」）。
+ * ⇒ 请求与响应**各带一个**版本号，适配器解析后**先比版本**，
+ *   再谈字段校验 ⇒ 不兼容有**自己的**失败原因（`version_mismatch`）。
+ *
+ * ⚠️ **改契约就要改这个数**，并同步 dev-plan 的台账。
+ */
+export const SOURCE_INTERPRET_SCHEMA_VERSION = 1
+
+/**
  * 送出去的一条片段（**只含勾选过的**）。
  *
  * ⚠️ `path` 必须是**相对项目根**的路径；`content` 是**脱敏后**的片段正文
@@ -49,6 +62,8 @@ export type SourceInterpretFragment = z.infer<typeof SourceInterpretFragment>
 
 /** 送出去的请求（**结构化**，不解析自然语言 —— M3 FR-6.3.2 同款纪律）。 */
 export const SourceInterpretRequest = z.object({
+  /** ⚠️ 契约版本（**必填**）—— 宿主侧要原样带回（见 `SOURCE_INTERPRET_SCHEMA_VERSION`） */
+  schema_version: z.number().int(),
   /** 只含勾选过的片段（DL-18 第一道） */
   fragments: z.array(SourceInterpretFragment),
   /** 这次要解读的知识点（slug → 标题） */
@@ -76,6 +91,8 @@ export type SourceInterpretItem = z.infer<typeof SourceInterpretItem>
 
 /** 解读结果（**只展示不留存**）。 */
 export const SourceInterpretResult = z.object({
+  /** ⚠️ 契约版本（**必填**）—— 与请求里的版本不一致 ⇒ `version_mismatch` */
+  schema_version: z.number().int(),
   items: z.array(SourceInterpretItem),
   /** 模型标识（台账用） */
   model: z.string(),
@@ -140,6 +157,33 @@ export const InterpretCapability = z.object({
 export type InterpretCapability = z.infer<typeof InterpretCapability>
 
 /**
+ * 片段**读不到**的原因（界面据此说明「为什么读不到」）。
+ *
+ * ⚠️ **为什么要枚举化**：只回一个 `null` 的话，界面只能说「读不到」，
+ *   用户分不清是「文件被删了」「文件被改短了（行号越界）」「路径越出了项目」
+ *   还是「这次批量太多、这条没加载」⇒ 四种情况对用户的动作完全不同
+ *   （重新扫描 / 换项目 / 等一等 / 缩小范围）。
+ *
+ * ⚠️ **不许塌成一个兜底分支**：界面上四种原因必须显示**不同的文案**
+ *   （有变异腿守着：把映射改成同一个文案 ⇒ 生产断言当场红）。
+ */
+export const SnippetFailureReason = z.enum([
+  /** 文件不在了（删了 / 移走了） */
+  'file_missing',
+  /** 路径越出了项目根（当前项目根与扫描时不是同一个） */
+  'out_of_project',
+  /** 命中行号超出了文件现在的行数（文件被改短了） */
+  'line_out_of_range',
+  /** 文件超过读取上限（不读） */
+  'too_large',
+  /** 读不了（权限 / 编码 / 其它 IO 错误） */
+  'unreadable',
+  /** 这次批量读取的上限到了，这条**没读**（后面还有） */
+  'not_loaded',
+])
+export type SnippetFailureReason = z.infer<typeof SnippetFailureReason>
+
+/**
  * 一条命中的**本地片段**（命中行 ＋ 上下文）。
  *
  * ⚠️ `lines` 为 `null` = **读不到**（文件被删了 / 读不了）⇒
@@ -154,6 +198,8 @@ export const SourceSnippet = z.object({
   end_line: z.number().int().nullable(),
   /** 片段正文（逐行）；`null` = 读不到 */
   lines: z.array(z.string()).nullable(),
+  /** ⚠️ 读不到的原因（`lines` 为 `null` 时才有值） */
+  failure: SnippetFailureReason.nullable(),
   topic_slug: z.string(),
   topic_title: z.string(),
 })

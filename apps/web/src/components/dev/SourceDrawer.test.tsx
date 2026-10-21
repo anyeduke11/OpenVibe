@@ -21,7 +21,7 @@ import { SourceDrawer } from './SourceDrawer'
  * ⇒ 测的是**界面形态**（DL-20 那条本来就是「界面形态已跑」那一档），
  *   数据链路由 `apps/server/test/langSource.api.test.ts` 断。
  */
-const { ROWS, SUMMARY, SNIPPETS, CAPABILITY, INTERPRET } = vi.hoisted(() => ({
+const { ROWS, SUMMARY, SNIPPETS, CAPABILITY, INTERPRET, EXPORT_MUTATE } = vi.hoisted(() => ({
   ROWS: [
     {
       id: 1,
@@ -98,11 +98,14 @@ const { ROWS, SUMMARY, SNIPPETS, CAPABILITY, INTERPRET } = vi.hoisted(() => ({
       end_line: 51,
       // ⚠️ **读不到** ⇒ 界面必须禁用它的勾选框（看不见内容就不许勾）
       lines: null,
+      // ⚠️ **增强 2**：读不到要**说清为什么**（不是笼统的「读不到」）
+      failure: 'file_missing' as const,
       topic_slug: 'go-concurrent',
       topic_title: 'Go 并发',
     },
   ],
   CAPABILITY: { available: true, runner_id: 'fake-runner' },
+  EXPORT_MUTATE: vi.fn(),
   INTERPRET: {
     status: 'ok',
     project_id: 'p1',
@@ -138,6 +141,7 @@ vi.mock('../../hooks/useLangSource', () => ({
   }),
   useLangSnippets: () => ({ data: { snippets: SNIPPETS } }),
   useLangInterpretCapability: () => ({ data: CAPABILITY }),
+  useLangInterpretExport: () => ({ mutate: EXPORT_MUTATE, isPending: false }),
   useLangInterpret: () => ({
     mutate: () => undefined,
     isPending: false,
@@ -237,7 +241,25 @@ describe('M9 P5 · T1 硬要求：勾选前要看到「将要发送的确切内�
     const unreadable = boxes.filter((b) => b.disabled)
     expect(readable.length).toBeGreaterThan(0)
     expect(unreadable.length).toBeGreaterThan(0)
-    expect(within(dialog).getByText(/读不到这个片段/)).toBeTruthy()
+  })
+
+  it('⑭ ⚠️ **增强 2**：读不到时显示的是**具体原因**（不是笼统的「读不到」）', () => {
+    const dialog = open('p1')
+    // ⚠️ **生产断言**（与 `SourceDrawer.mutant.test.tsx` 里那条逐字相同）：
+    //   这条命中的失败原因是「文件不在了」⇒ 界面必须说这件事。
+    expect(within(dialog).getByText(/文件已经不在了/)).toBeTruthy()
+  })
+})
+
+describe('M9 增强 4 · 解读结果可导出（用户主动动作）', () => {
+  it('⑮ T2 区有「保存这次解读」按钮，点了就把当次结果交给导出', () => {
+    const dialog = open('p1')
+    const region = within(dialog).getByRole('region', { name: 'AI 解读' })
+    const button = within(region).getByRole('button', { name: /保存这次解读/ })
+    fireEvent.click(button)
+    // ⚠️ 导出**拿到的是当次结果**（不是空、不是别的东西）
+    expect(EXPORT_MUTATE).toHaveBeenCalled()
+    expect(EXPORT_MUTATE.mock.calls[0]?.[0]).toMatchObject({ status: 'ok', project_id: 'p1' })
   })
 })
 

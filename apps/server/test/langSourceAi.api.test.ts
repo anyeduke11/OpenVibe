@@ -25,6 +25,7 @@ import {
   type SourceInterpretRunner,
 } from '@openvibe/core'
 import type { SourceInterpretRequest, SourceInterpretResult } from '@openvibe/shared'
+import { SOURCE_INTERPRET_SCHEMA_VERSION } from '@openvibe/shared'
 import { buildApp } from '../src/app'
 
 const TOKEN = 'test-token'
@@ -125,7 +126,12 @@ function capturingRunner(): SourceInterpretRunner & { captured: SourceInterpretR
     captured,
     async interpret(request: SourceInterpretRequest): Promise<SourceInterpretResult> {
       captured.push(request)
-      return { items: [], model: 'fake-model', provider: 'fake-provider' }
+      return {
+        schema_version: SOURCE_INTERPRET_SCHEMA_VERSION,
+        items: [],
+        model: 'fake-model',
+        provider: 'fake-provider',
+      }
     },
   }
 }
@@ -263,7 +269,7 @@ describe('M9 P5 · 命令适配器（stdin 收 JSON、stdout 出 JSON）', () =>
       [
         '#!/bin/sh',
         `cat > ${JSON.stringify(captured)}`,
-        `printf '%s' '{"items":[{"topic_slug":"python-logging","summary":"在导入日志模块","risks":[],"claim_state":null}],"model":"m","provider":"p"}'`,
+        `printf '%s' '{"schema_version":1,"items":[{"topic_slug":"python-logging","summary":"在导入日志模块","risks":[],"claim_state":null}],"model":"m","provider":"p"}'`,
         '',
       ].join('\n'),
     )
@@ -271,6 +277,7 @@ describe('M9 P5 · 命令适配器（stdin 收 JSON、stdout 出 JSON）', () =>
 
     const runner = new CommandInterpretRunner({ cmd: script, model: 'm', provider: 'p' })
     const result = await runner.interpret({
+      schema_version: SOURCE_INTERPRET_SCHEMA_VERSION,
       fragments: [
         {
           finding_id: 1,
@@ -295,13 +302,45 @@ describe('M9 P5 · 命令适配器（stdin 收 JSON、stdout 出 JSON）', () =>
     const dir = mkdtempSync(join(tmpdir(), 'ov-m9-runner-bad-'))
     dirs.push(dir)
     const script = join(dir, 'bad-runner.sh')
-    writeFileSync(script, `#!/bin/sh\nprintf '%s' '{"items":"不是数组"}'\n`)
+    // ⚠️ **版本号是对的** ⇒ 这一支断的才是「字段不合契约」（版本不对有单独一支）
+    writeFileSync(
+      script,
+      `#!/bin/sh\nprintf '%s' '{"schema_version":1,"items":"不是数组"}'\n`,
+    )
     chmodSync(script, 0o755)
 
     const runner = new CommandInterpretRunner({ cmd: script, model: 'm', provider: 'p' })
     await expect(
-      runner.interpret({ fragments: [], topics: [] }),
+      runner.interpret({
+        schema_version: SOURCE_INTERPRET_SCHEMA_VERSION,
+        fragments: [],
+        topics: [],
+      }),
     ).rejects.toThrow(/不合契约/u)
+  })
+
+  it('⚠️ **版本号对不上** ⇒ 归一成「版本不匹配」（不是笼统的「不合契约」）', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ov-m9-runner-ver-'))
+    dirs.push(dir)
+    const script = join(dir, 'old-runner.sh')
+    writeFileSync(
+      script,
+      `#!/bin/sh\nprintf '%s' '{"schema_version":0,"items":[],"model":"m","provider":"p"}'\n`,
+    )
+    chmodSync(script, 0o755)
+
+    const runner = new CommandInterpretRunner({ cmd: script, model: 'm', provider: 'p' })
+    let reason: string | undefined
+    try {
+      await runner.interpret({
+        schema_version: SOURCE_INTERPRET_SCHEMA_VERSION,
+        fragments: [],
+        topics: [],
+      })
+    } catch (e) {
+      reason = (e as { reason?: string }).reason
+    }
+    expect(reason).toBe('runner-version-mismatch')
   })
 
   it('命令不存在 ⇒ 归一成「找不到」（不是崩掉）', async () => {
@@ -310,6 +349,80 @@ describe('M9 P5 · 命令适配器（stdin 收 JSON、stdout 出 JSON）', () =>
       model: 'm',
       provider: 'p',
     })
-    await expect(runner.interpret({ fragments: [], topics: [] })).rejects.toThrow(/找不到解读命令/u)
+    await expect(
+      runner.interpret({
+        schema_version: SOURCE_INTERPRET_SCHEMA_VERSION,
+        fragments: [],
+        topics: [],
+      }),
+    ).rejects.toThrow(/找不到解读命令/u)
+  })
+})
+
+describe('M9 增强 1 · GET /api/lang/source/share-summary（出网计数可读）', () => {
+  it('① 出网之后 ⇒ 汇总里有这个项目与次数', async () => {
+    const h = await makeHarness(capturingRunner())
+    const dir = makeProject()
+    const ids = seed(h.handle.db, dir)
+    await post(h, '/api/lang/interpret', { project_id: 'p1', finding_ids: ids })
+
+    const res = await get(h, '/api/lang/source/share-summary')
+    expect(res.statusCode).toBe(200)
+    const body = res.json() as {
+      summaries: { project_id: string; share_count: number; snippet_total: number }[]
+    }
+    expect(body.summaries).toHaveLength(1)
+    expect(body.summaries[0]?.project_id).toBe('p1')
+    expect(body.summaries[0]?.share_count).toBe(1)
+    expect(body.summaries[0]?.snippet_total).toBe(2)
+  })
+
+  it('② 没有出网 ⇒ 空数组（不是空对象）', async () => {
+    const h = await makeHarness(null)
+    const res = await get(h, '/api/lang/source/share-summary')
+    expect(res.json()).toEqual({ summaries: [] })
+  })
+})
+
+describe('M9 增强 4 · POST /api/lang/interpret/export（解读结果导出）', () => {
+  it('① 导出的是 markdown，**产物里没有绝对路径**（脱敏在服务端做）', async () => {
+    const h = await makeHarness(null)
+    const dir = makeProject()
+    seed(h.handle.db, dir)
+
+    const res = await post(h, '/api/lang/interpret/export', {
+      summary: {
+        status: 'ok',
+        project_id: 'p1',
+        fragment_count: 1,
+        item_count: 1,
+        risk_count: 1,
+        divergence_count: 0,
+        divergences: [],
+        items: [
+          {
+            topic_slug: 'python-logging',
+            summary: `这个文件在 ${dir}/app.py 里`,
+            risks: [`日志写到了 ${dir}/app.log`],
+            claim_state: null,
+          },
+        ],
+        input_hash: 'abc123',
+        failure_reason: null,
+      },
+    })
+
+    expect(res.statusCode).toBe(200)
+    expect(String(res.headers['content-type'])).toContain('text/markdown')
+    // ⚠️ **文件名由服务端给**（前端不重复实现清洗规则）
+    expect(res.headers['x-m9-filename']).toBe('m9-interpret-p1.md')
+    expect(res.body).toContain('# 源码解读结果')
+    expect(res.body).not.toContain(dir)
+  })
+
+  it('② 摘要不合法 ⇒ 422（不许拿半截数据糊弄出一份文件）', async () => {
+    const h = await makeHarness(null)
+    const res = await post(h, '/api/lang/interpret/export', { summary: { status: 'ok' } })
+    expect(res.statusCode).toBe(422)
   })
 })

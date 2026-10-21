@@ -8,10 +8,13 @@ import {
   useLangFindings,
   useLangInterpret,
   useLangInterpretCapability,
+  useLangInterpretExport,
   useLangScan,
   useLangSnippets,
 } from '../../hooks/useLangSource'
 import { describeScannerMode } from '@openvibe/shared'
+import { snippetFailureText } from './sourceFailureText'
+import { toast } from '../ui/Toaster'
 import type {
   LangScanSummary,
   SourceFindingRow,
@@ -64,7 +67,8 @@ const L = {
   ticked: (n: number, total: number) => `已勾 ${String(n)} / ${String(total)} 条`,
   // ── T1 硬要求：勾选前要看到「将要发送的确切内容」────────────────────────
   sending: '将要发送的内容',
-  unreadable: '读不到这个片段（文件可能已删除或无法读取）—— 看不到内容就不许勾。',
+  // ⚠️ **「读不到」的原因文案不在这里** —— 它在 `sourceFailureText.ts`
+  //   （口径只留一处：每种原因有各自的文案，塌成一个兜底就是缺陷）。
   // ── T2（AI 解读）────────────────────────────────────────────────────
   interpretTitle: 'AI 解读',
   interpretHint: '只把你勾过的片段发出去；解读结果只显示，不留存。',
@@ -78,6 +82,12 @@ const L = {
   divergenceNone: '没有分歧：AI 的说法与判定层一致。',
   riskTitle: '风险点',
   risksNone: '没有指出风险点。',
+  // ── 导出（增强 4）──────────────────────────────────────────────────
+  exportInterpret: '保存这次解读',
+  exporting: '保存中…',
+  exportInterpretHint: '保存成 Markdown 文件（不进数据库）。',
+  exportDone: '已保存到你的下载目录。',
+  exportFailed: '保存失败。',
 } as const
 
 export interface SourceDrawerProps {
@@ -97,6 +107,8 @@ export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProp
   // ⚠️ DL-08：**不可用就不渲染 T2 区**（不是渲染一个失败态）
   const capability = useLangInterpretCapability()
   const interpret = useLangInterpret(projectId)
+  // ⚠️ 增强 4：导出是**用户主动动作**（结果不写库，产物落在用户自己的磁盘上）
+  const exportInterpret = useLangInterpretExport()
   const [ticked, setTicked] = useState<ReadonlySet<string>>(() => new Set())
   // ⚠️ **用户动过没有** —— 用来分辨「这次是记忆带过去的」与「用户自己勾的」（§3.9 的二分）
   const [touched, setTouched] = useState(false)
@@ -302,6 +314,19 @@ export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProp
                   interpret.mutate([...ticked].map((k) => Number(k)))
                 }}
                 result={interpret.data}
+                exporting={exportInterpret.isPending}
+                onExport={() => {
+                  const result = interpret.data
+                  if (result === undefined) return
+                  exportInterpret.mutate(result, {
+                    onSuccess: () => {
+                      toast(L.exportDone)
+                    },
+                    onError: () => {
+                      toast(L.exportFailed)
+                    },
+                  })
+                }}
               />
             ) : null}
           </>
@@ -367,7 +392,10 @@ function FindingGroup(props: {
                   </pre>
                 </div>
               ) : (
-                <span className="text-[11.5px] text-warn">{L.unreadable}</span>
+                // ⚠️ 增强 2：**说清为什么读不到**（不是一句「读不到」）
+                <span className="text-[11.5px] text-warn">
+                  {snippetFailureText(snippet?.failure)}
+                </span>
               )}
             </li>
           )
@@ -395,8 +423,11 @@ function InterpretPanel(props: {
   pending: boolean
   onRun: () => void
   result: SourceInterpretSummary | undefined
+  /** 导出（增强 4） */
+  exporting: boolean
+  onExport: () => void
 }) {
-  const { tickedCount, pending, onRun, result } = props
+  const { tickedCount, pending, onRun, result, exporting, onExport } = props
   return (
     <section className="flex flex-col gap-1.5" aria-label={L.interpretTitle}>
       <h3 className="text-xs font-medium text-ink-muted">{L.interpretTitle}</h3>
@@ -462,6 +493,20 @@ function InterpretPanel(props: {
                 ))}
               </ul>
             )}
+          </div>
+
+          {/* ⚠️ 增强 4：**保存这次解读**（用户主动动作；结果不写库） */}
+          <div className="flex items-center gap-2">
+            <button
+              className={btnGhost}
+              type="button"
+              disabled={exporting}
+              onClick={onExport}
+            >
+              <Icon name="dl" size={13} />
+              {exporting ? L.exporting : L.exportInterpret}
+            </button>
+            <span className="text-[11.5px] text-ink-faint">{L.exportInterpretHint}</span>
           </div>
         </div>
       ) : null}

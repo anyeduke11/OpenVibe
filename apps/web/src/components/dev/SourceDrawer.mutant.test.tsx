@@ -35,6 +35,21 @@ const { ROWS, SUMMARY, SNIPPETS } = vi.hoisted(() => ({
       confidence: 'confirmed' as const,
       scanner_mode: 'parser' as const,
     },
+    {
+      // ⚠️ **读不到的那一条**（增强 2 的变异腿需要它在列表里，否则失败原因不会出现在界面上）
+      id: 2,
+      scan_id: 1_730_000_000_000,
+      topic_id: 42,
+      topic_slug: 'go-concurrent',
+      topic_title: 'Go 并发',
+      lang: 'go' as const,
+      file_rel_path: 'cmd/app/main.go',
+      line: 50,
+      col: 2,
+      matched_pattern: 'defer resp.Body.Close()',
+      confidence: 'possible' as const,
+      scanner_mode: 'heuristic' as const,
+    },
   ],
   SUMMARY: {
     project_id: 'p1',
@@ -69,6 +84,18 @@ const { ROWS, SUMMARY, SNIPPETS } = vi.hoisted(() => ({
       start_line: 40,
       end_line: 42,
       lines: ['func main() {', 'go func() { fmt.Println("hi") }()', '}'],
+      failure: null,
+      topic_slug: 'go-concurrent',
+      topic_title: 'Go 并发',
+    },
+    {
+      finding_id: 2,
+      path: 'cmd/app/main.go',
+      start_line: 48,
+      end_line: 51,
+      // ⚠️ **读不到**（失败原因要**具体**，否则下面的变异腿是恒红而不是"变异导致红"）
+      lines: null,
+      failure: 'file_missing',
       topic_slug: 'go-concurrent',
       topic_title: 'Go 并发',
     },
@@ -97,7 +124,14 @@ vi.mock('../../hooks/useLangSource', () => ({
   useLangSnippets: () => ({ data: { snippets: SNIPPETS } }),
   // ⚠️ **变异：AI 不可用** ⇒ T2 区**不渲染**（DL-08 的形态）
   useLangInterpretCapability: () => ({ data: { available: false, runner_id: null } }),
+  useLangInterpretExport: () => ({ mutate: () => undefined, isPending: false }),
   useLangInterpret: () => ({ mutate: () => undefined, isPending: false, data: undefined }),
+}))
+
+// ⚠️ **变异（增强 2）**：把「读不到的原因」**塌成一个笼统的兜底文案**
+//   ⇒ 界面分不清「文件被删了」与「路径越界」，用户也不知道该做什么。
+vi.mock('./sourceFailureText', () => ({
+  snippetFailureText: () => '读不到这个片段。',
 }))
 
 afterEach(cleanup)
@@ -142,5 +176,26 @@ describe('M9 P5 · DL-08 变异腿（AI 不可用 ⇒ T2 区不渲染）', () =>
     // ⚠️ 命中列表 ＋ 勾选框 ＋ 片段内容**都还在**
     expect(within(dialog).getAllByRole('checkbox').length).toBeGreaterThan(0)
     expect(within(dialog).getAllByText('将要发送的内容').length).toBeGreaterThan(0)
+  })
+})
+
+describe('M9 增强 2 · 变异腿（失败原因塌成一个笼统兜底）', () => {
+  it('变异体下，生产断言「必须显示**具体原因**」必须红', () => {
+    render(<SourceDrawer open onOpenChange={() => undefined} projectId="p1" />)
+    const dialog = screen.getByRole('dialog')
+
+    // ⚠️ **生产断言（与 `SourceDrawer.test.tsx` 的 ⑭ 逐字相同）**：
+    //   这条命中的失败原因是「文件不在了」⇒ 界面必须说这件事。
+    expect(() => within(dialog).getByText(/文件已经不在了/)).toThrow()
+    expect(within(dialog).queryByText(/文件已经不在了/)).toBeNull()
+  })
+
+  it('变异体下，**笼统兜底出现了**（证明变异真的改了文本，不是恒红）', () => {
+    render(<SourceDrawer open onOpenChange={() => undefined} projectId="p1" />)
+    const dialog = screen.getByRole('dialog')
+
+    // ⚠️ **守卫自证**：变异若没生效，上面那条会**恒红**（正支也红）⇒
+    //   这里断言「变后的文本确实出现在界面上」。
+    expect(within(dialog).getAllByText('读不到这个片段。').length).toBeGreaterThan(0)
   })
 })

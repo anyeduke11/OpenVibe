@@ -35,6 +35,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { runWithStdin } from '../source-scan/run-with-stdin'
 import {
+  SOURCE_INTERPRET_SCHEMA_VERSION,
   SourceInterpretRequest,
   SourceInterpretResult,
   type InterpretStatus,
@@ -48,6 +49,8 @@ export type InterpretFailureReason =
   | 'runner-timeout'
   | 'runner-invalid-json'
   | 'runner-invalid-schema'
+  /** ⚠️ **契约版本对不上**（增强 3）—— 与「输出坏了」是**两件事**，要能分开 */
+  | 'runner-version-mismatch'
   | 'runner-failed'
 
 /** runner 抛出的错（**归一** ⇒ 上层只处理一种形状）。 */
@@ -170,6 +173,19 @@ export class CommandInterpretRunner implements SourceInterpretRunner {
       parsed = JSON.parse(stdout)
     } catch {
       throw new InterpretRunnerError('runner-invalid-json', '解读命令的输出不是合法 JSON')
+    }
+    // ⚠️ **先比版本，再谈字段**（增强 3）——
+    //   版本对不上 ⇒ 归一成**自己的**失败原因，而不是笼统的「不合 schema」
+    //   （后者会让人误判成「工具坏了」，实际是「契约变了」）。
+    const version =
+      typeof parsed === 'object' && parsed !== null
+        ? (parsed as { schema_version?: unknown }).schema_version
+        : undefined
+    if (version !== SOURCE_INTERPRET_SCHEMA_VERSION) {
+      throw new InterpretRunnerError(
+        'runner-version-mismatch',
+        `解读契约版本对不上（期望 ${String(SOURCE_INTERPRET_SCHEMA_VERSION)}，收到 ${String(version ?? '缺失')}）`,
+      )
     }
     const result = SourceInterpretResult.safeParse(parsed)
     if (!result.success) {

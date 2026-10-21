@@ -171,6 +171,8 @@ export {
   seedTopicProfiles,
   type M9ProfileSeedResult,
 } from './db/m9-p1d-seed-profiles'
+export { readStageTracks } from './db/m9-p1f-stage-tracks'
+export { type StageTrackRow } from './db/m9-p1f-stage-guards'
 export {
   findLayeringViolations,
   findEmptyRequiredViolations,
@@ -362,13 +364,24 @@ export {
   clearConsent,
   recordShare,
   readShares,
+  readShareSummary,
   buildExportText,
   type ConsentRow,
   type FindingRow,
   type FindingRowInput,
   type SaveFindingsResult,
   type ShareRow,
+  type ShareSummaryRow,
 } from './db/m9-source-scan'
+
+// ── M9 P1e / P1f 的读端（模式表 + 资源挂接反查 + 点亮的知识点）────────────
+export {
+  readLitTopicIds,
+  readResourcesWithTopics,
+  readTopicProfiles,
+  readTopicStages,
+  type ResourceWithTopics,
+} from './db/m9-mode-read'
 
 export {
   runProjectScan,
@@ -404,6 +417,7 @@ export {
   SNIPPET_MAX_LINES,
   readSnippet,
   readSnippets,
+  type SnippetReadResult,
   type SnippetWindow,
 } from './source-ai/snippet'
 
@@ -414,6 +428,11 @@ export {
 } from './source-ai/assemble'
 
 export { divergenceText, findDivergences } from './source-ai/divergence'
+
+export {
+  formatInterpretMarkdown,
+  type ExportInterpretOptions,
+} from './source-ai/export'
 
 export {
   fingerprintRequest,

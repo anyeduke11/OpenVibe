@@ -307,6 +307,57 @@ export function readShares(db: SqliteDatabase, projectId: string): ShareRow[] {
   return rows.sort((a, b) => b.id - a.id)
 }
 
+/** 一个项目的**出网汇总**（界面据此显示「出网过几次」）。 */
+export interface ShareSummaryRow {
+  project_id: string
+  /** 出网次数 */
+  share_count: number
+  /** 累计发出去的片段条数 */
+  snippet_total: number
+  /** 累计涉及的知识点条数 */
+  topic_total: number
+  /** 最近一次出网时刻 */
+  last_shared_at: string
+  /** 其中「当次勾的」次数 */
+  explicit_tick_count: number
+  /** 其中「因为记住了而默认勾的」次数 */
+  remembered_count: number
+}
+
+/**
+ * 读**全部**项目的出网汇总（按项目聚合）。
+ *
+ * ## ⚠️ 为什么单独一个读端（而不是复用 `readAllConsents` 的列表）
+ *
+ * 出网**不等于**被记住过：用户当次勾了片段发出去、但没点「记住」⇒
+ * 这一笔在 `lang_source_shares` 里，却**不在** `lang_source_consent` 里
+ * ⇒ 若把计数挂在那张表的项目列表上，**当次授权的出网会整段消失**。
+ *
+ * ## ⚠️ 清除记忆**不改变**这个计数
+ *
+ * 两者语义不同：记忆是「下次的默认选择」，出网是「已经发生的事实」
+ * ⇒ 清除记忆不撤销历史，也不该改历史数字（§3.9）。
+ */
+export function readShareSummary(db: SqliteDatabase): ShareSummaryRow[] {
+  const rows = db
+    .prepare(
+      `SELECT project_id,
+              COUNT(*) AS share_count,
+              COALESCE(SUM(snippet_count), 0) AS snippet_total,
+              COALESCE(SUM(topic_id_count), 0) AS topic_total,
+              MAX(created_at) AS last_shared_at,
+              COALESCE(SUM(CASE WHEN consent_source = 'explicit_tick' THEN 1 ELSE 0 END), 0)
+                AS explicit_tick_count,
+              COALESCE(SUM(CASE WHEN consent_source = 'remembered' THEN 1 ELSE 0 END), 0)
+                AS remembered_count
+         FROM lang_source_shares
+        GROUP BY project_id`,
+    )
+    .all() as ShareSummaryRow[]
+  // ⚠️ 排序在 JS 里做（与 `readAllConsents` 同款；不依赖 SQL 的排序稳定性）
+  return rows.sort((a, b) => a.project_id.localeCompare(b.project_id))
+}
+
 // ───────────────────────── 导出清单（§3.10 · DL-22 / DL-23）─────────────────────────
 
 /** shell 单引号转义（`'` ⇒ `'\''`）。 */

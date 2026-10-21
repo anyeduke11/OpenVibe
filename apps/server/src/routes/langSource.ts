@@ -7,6 +7,7 @@ import {
   readAllConsents,
   readConsent,
   readFindings,
+  readShareSummary,
   readShares,
   recordShare,
   runProjectScan,
@@ -155,5 +156,11 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
     // ⚠️ **只存计数**（§3.9）：不存片段内容、不存文件路径
     recordShare(deps.db, { ...parsed.data, created_at: now() })
     return { recorded: true }
+  })
+
+  // ⚠️ 出网汇总（**只读**）：界面据此显示「出网过几次」
+  //   ⇒ 与「记忆列表」**分开**：当次勾了但没记住的出网，也必须在这里看得见。
+  app.get('/api/lang/source/share-summary', async () => {
+    return { summaries: readShareSummary(deps.db) }
   })
 }

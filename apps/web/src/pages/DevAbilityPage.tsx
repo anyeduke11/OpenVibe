@@ -10,6 +10,7 @@ import { PracticePrinciples } from '../components/dev/PracticePrinciples'
 import { useLangRoadmap, useLangTopic } from '../hooks/useLangRoadmap'
 import { useProjectList } from '../hooks/useProjects'
 import { SourceDrawer } from '../components/dev/SourceDrawer'
+import { ModeOnboardingPanel, ModePanels } from '../components/dev/ModePanels'
 import { LANG_CODES, LANGUAGE_ASPECTS, type LangCode } from '@openvibe/shared'
 
 /**
@@ -119,6 +120,9 @@ export function DevAbilityPage() {
         </div>
       </div>
 
+      {/* M9 P1e：首次进入的一次性提问（§3.19 —— **首屏**问一次，答过就不再问） */}
+      <ModeOnboardingPanel projectId={projectId} />
+
       {/* 首屏：两门语言各一张卡片（§3.5） */}
       <div className="mt-4 flex flex-wrap gap-2.5">
         {LANG_CODES.map((code) => {
@@ -217,6 +221,9 @@ export function DevAbilityPage() {
           </div>
         </div>
       ) : null}
+
+      {/* M9 P1e / P1f：模式选择的后果（转档 · 阶段轨道 · 资源模式标记） */}
+      <ModePanels lang={lang} projectId={projectId} />
 
       <SourceDrawer open={drawerOpen} onOpenChange={setDrawerOpen} projectId={projectId} />
     </div>

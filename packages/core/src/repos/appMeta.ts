@@ -19,6 +19,18 @@ export const APP_META_KEYS = {
    * 重复开关会导致两处状态不一致 —— 用户改了一处发现另一处没变。
    */
   agentWriteEnabled: 'agentWriteEnabled',
+  /**
+   * M9 P1e 的**学习模式选择**（`m9-dev-language-roadmap.md` §3.19）。
+   *
+   * ⚠️ **刻意不进 `lang_*`** —— §3.19 第 3 条明写「选项属用户偏好，
+   *   **不得写进 `lang_topic_state`，也不得进 `lang_profiles` 派生任何状态**」：
+   *   一旦模式选择能影响状态，速成就又变成「更容易点亮」的路径。
+   * ⇒ 它进 `app_meta`（跨进程共享的 KV 归口），**不进**任何 `lang_` 表。
+   *
+   * ⚠️ **值是 JSON 字面量**（`'\"vibe\"'` / `'\"master\"'` / `null`）——
+   *   `AppMetaRepo.read` 会 `JSON.parse`，所以这里存的是**带引号的字符串**。
+   */
+  langModeChoice: 'langModeChoice',
 } as const
 
 export class AppMetaRepo {
