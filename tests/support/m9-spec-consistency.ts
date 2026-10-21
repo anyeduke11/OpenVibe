@@ -152,7 +152,7 @@ function overviewRows(lines: string[]): OverviewRow[] {
 }
 
 /** §3.1 代码块里的表名（`grep -c '^lang_'` 的复算）。 */
-function spec31TableNames(lines: string[]): { name: string; line: number }[] {
+export function spec31TableNames(lines: string[]): { name: string; line: number }[] {
   const sec = sectionRange(lines, '### 3.1 数据模型')
   if (!sec) return []
   const out: { name: string; line: number }[] = []

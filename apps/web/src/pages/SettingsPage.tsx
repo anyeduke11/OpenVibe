@@ -9,6 +9,7 @@ import {
 } from '../components/settings/SettingsSections'
 import { LocalLedgerSection } from '../components/settings/LocalLedgerSection'
 import { AgentSettingsSection } from '../components/settings/AgentSettingsSection'
+import { SourceConsentSection } from '../components/settings/SourceConsentSection'
 import { sys } from '../i18n/lane-system'
 import { btnGhost, proseCls, skelCls } from '../components/ui/styles'
 import { Icon } from '../components/ui/icons'
@@ -73,6 +74,8 @@ export function SettingsPage() {
         <CliSection />
         {/* 第 7 区（可读性与设计系统）的**同级**新一区，不并入其中（m8-agent-panel.md FR-5.5.1） */}
         <AgentSettingsSection />
+        {/* M9 P4.5：源码授权记忆（DL-21 的清除入口在这里） */}
+        <SourceConsentSection />
         <ReadabilitySection />
       </div>
     </div>

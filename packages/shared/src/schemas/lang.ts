@@ -115,3 +115,78 @@ export type TopicDeltaOut = z.infer<typeof TopicDeltaOut>
 export type TopicResourceOut = z.infer<typeof TopicResourceOut>
 export type TopicTermOut = z.infer<typeof TopicTermOut>
 export type TopicDetailOut = z.infer<typeof TopicDetailOut>
+
+/**
+ * M9「源码识别」的 API 契约（`m9-dev-language-roadmap.md` §3.8 / §3.9 / §3.10 · dev-plan §6.10 P4）。
+ *
+ * ⚠️ **扫描结果与命中列表是两种形状，不合并**：
+ * - `LangScanSummary` = 一次扫描的**账**（走了哪条路、命中多少、有没有告警）；
+ * - `SourceFindingRow` = 落库后的命中行（带知识点标题，给界面显示）。
+ * ⇒ 扫描端点**不回**命中列表（避免同一份数据两种形状），界面扫完再读 `/api/lang/findings`。
+ */
+
+/** 一条命中（`lang_topic_findings` 的一行 ＋ 知识点信息）。 */
+export const SourceFindingRow = z.object({
+  id: z.number().int(),
+  scan_id: z.number().int(),
+  topic_id: z.number().int(),
+  topic_slug: z.string(),
+  topic_title: z.string(),
+  lang: LangCodeSchema,
+  /** **相对**项目根的路径（DL-23：绝不出现绝对路径） */
+  file_rel_path: z.string(),
+  line: z.number().int(),
+  col: z.number().int(),
+  /** 可 grep 的字面串（DL-22） */
+  matched_pattern: z.string(),
+  confidence: z.enum(['confirmed', 'possible']),
+  scanner_mode: z.enum(['parser', 'heuristic']),
+})
+export type SourceFindingRow = z.infer<typeof SourceFindingRow>
+
+/** 某门语言这一侧的扫描情况（⚠️ `mode = null` = 这一侧**没扫成**，不是「没命中」）。 */
+export const LangScanInfo = z.object({
+  lang: LangCodeSchema,
+  mode: z.enum(['parser', 'heuristic']).nullable(),
+  toolchain: z.string().nullable(),
+  file_count: z.number().int(),
+  hit_count: z.number().int(),
+  notice: z.string().nullable(),
+})
+export type LangScanInfo = z.infer<typeof LangScanInfo>
+
+/** `POST /api/lang/scan` 的出参。 */
+export const LangScanSummary = z.object({
+  project_id: z.string(),
+  scan_id: z.number().int(),
+  languages: z.array(LangScanInfo),
+  /** ⚠️ 显式告警（空数组 = 没有告警，不是「未知」） */
+  warnings: z.array(z.string()),
+  written: z.number().int(),
+  unknown_slugs: z.array(z.string()),
+  states_updated: z.number().int(),
+})
+export type LangScanSummary = z.infer<typeof LangScanSummary>
+
+/** `GET /api/lang/findings` 的出参。 */
+export const LangFindingsResponse = z.object({
+  findings: z.array(SourceFindingRow),
+})
+export type LangFindingsResponse = z.infer<typeof LangFindingsResponse>
+
+/** `GET|POST /api/lang/source/consent` 的出参。 */
+export const LangConsentResponse = z.object({
+  remember_all: z.boolean(),
+  remembered_at: z.string().nullable(),
+  shares: z.array(
+    z.object({
+      id: z.number().int(),
+      project_id: z.string(),
+      topic_id_count: z.number().int(),
+      snippet_count: z.number().int(),
+      created_at: z.string(),
+      consent_source: z.enum(['explicit_tick', 'remembered']),
+    }),
+  ),
+})
+export type LangConsentResponse = z.infer<typeof LangConsentResponse>

@@ -12,6 +12,7 @@ import { registerNavCountRoutes } from './routes/navCounts'
 import { registerPackRoutes } from './routes/packs'
 import { registerLocalEventsRoutes } from './routes/localEvents'
 import { registerLangRoutes } from './routes/langRoadmap'
+import { registerLangSourceRoutes } from './routes/langSource'
 import { registerPlaybookRoutes } from './routes/playbooks'
 import { registerProjectRoutes } from './routes/projects'
 import { type PortRouteDeps, registerPortRoutes } from './routes/ports'
@@ -82,6 +83,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerProjectRoutes(app, deps)
   // M9「开发能力」页读端（站列 ＋ 当前层 ＋ 详情）
   registerLangRoutes(app, { db })
+  // M9 源码识别端点（扫描 ＋ 命中 ＋ 同意记忆 ＋ 导出清单）
+  registerLangSourceRoutes(app, { db })
   registerPortRoutes({ db, listListenersImpl: options.listListenersImpl })(app)
   registerTaskRoutes(app, deps)
   registerDevLogRoutes(app, deps)

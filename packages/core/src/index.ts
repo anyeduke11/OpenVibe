@@ -315,4 +315,67 @@ export {
   type TopicDetailRow,
 } from './db/m9-roadmap-read'
 
+export {
+  scanProjectSource,
+  modeOf,
+  splitByConfidence,
+  type ScanProjectOptions,
+} from './source-scan/scan'
+
+export {
+  detectGoToolchain,
+  ensureGoHelper,
+  scanGoHeuristic,
+  scanGoParser,
+  type GoHit,
+  type GoScanOutput,
+  type GoToolchain,
+} from './source-scan/go-scanner'
+
+export {
+  scanPython,
+  parseNodeSpec,
+  SourceScanError,
+  type PythonSpec,
+  type PythonHit,
+  type PythonScanOutput,
+} from './source-scan/python-scanner'
+
+export {
+  listSourceFiles,
+  SCAN_SKIP_DIRS,
+  DEFAULT_MAX_FILES,
+  type FileListing,
+} from './source-scan/files'
+
+export { stripGoComments } from './source-scan/go-comments'
+export { breSafePattern, resolvePatternText } from './source-scan/pattern-text'
+export { runWithStdin, type RunResult } from './source-scan/run-with-stdin'
+
+export {
+  saveFindings,
+  readFindings,
+  findingsToEvidence,
+  readConsent,
+  readAllConsents,
+  setConsent,
+  clearConsent,
+  recordShare,
+  readShares,
+  buildExportText,
+  type ConsentRow,
+  type FindingRow,
+  type FindingRowInput,
+  type SaveFindingsResult,
+  type ShareRow,
+} from './db/m9-source-scan'
+
+export {
+  runProjectScan,
+  exportFindingsText,
+  readProjectRoot,
+  SourceServiceError,
+  type ScanServiceResult,
+} from './services/m9-source-service'
+
 export const CORE_VERSION = '0.0.0'

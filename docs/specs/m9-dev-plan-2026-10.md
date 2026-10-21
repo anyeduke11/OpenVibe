@@ -297,6 +297,20 @@ P0 → P1 → P1b ┬→ P1c
 - **P4.6** `lang_source_shares` 计数（consent_source 二分） / - / P4.5 / 0.5
 - **P4 出口**：(a) 夹具全跑过；(b) 真实项目样本上 DL-19 parser ⊇ 正则；(c) DL-22 grep 复现 100%
 
+> ✅ **P4 已产出**（本轮 · 2026-10-21）：
+> - **P4.1** —— Python `ast` 扫描器：`packages/core/src/source-scan/python-scanner.ts`，**起 `python3 -c <内嵌 ast 脚本>`**（零 npm 依赖）；CLI 入口 `scripts/scan-m9-source.ts`（dev-plan 指定路径）**只读不写库**。⚠️ **没有 python3 ⇒ 显式失败、不静默少扫**（§3.8 只给 Go 定义了回退路径 ⇒ Python 侧没有合法回退）。⚠️ **模式登记表落 `packages/shared/src/m9-source-patterns.ts`**（知识点 ↔ 代码模式，**单源**：Python 13 条 ＋ Go 13 条）—— ⚠️ **规格里没有「代码模式」这一列**（§3.1 的 `lang_topics` 十一列里没有）⇒ 模式表**随代码走**（同 §3.22 四块静态内容的处置），代价是它与 `lang_topics` 会分叉 ⇒ 由**孤儿检查**钉住（每个 `topic_slug` 必须在种子里存在）。⚠️ **模式覆盖 26/78 个语言级知识点**（其余如「环境搭建」「pip」源码里本无痕迹）⇒ 「扫不到」是诚实结果，不是漏扫。
+> - **P4.2** —— Go 双路径：`go/parser` 优先（`packages/core/src/source-scan/goparse/main.go`，**只用标准库** · `go.mod` 零 require · 按内容哈希缓存到 tmpdir）＋ 正则回退（**先抹注释与字符串**，`stripGoComments` 保留长度与换行 ⇒ 行号仍准）；**回退必须显式告警**（§3.8.2 第 1 条）⇒ CLI 与抽屉都显示 notice（DL-20）。
+> - **P4.3** —— 迁移 `0016_lang_source_scan.sql`：`lang_topic_findings`（**九列逐字取自 §3.10** ＋ `confidence`/`scanner_mode` 的 CHECK 兜底）＋ `lang_source_consent` ＋ `lang_source_shares`；⚠️ **P4 不新增表**（三张表都在 §3.1 的十七张里）⇒「表不越界」由 `tests/m9-source-tables.test.ts` 断（库里的 `lang_*` 表必须都在 §3.1 名单内 ＋ **缺口显式记账**：目前只差 `lang_topic_requests`，属 §3.11 增强③，不在 P4 范围）。
+> - **P4.4** —— 抽屉 `apps/web/src/components/dev/SourceDrawer.tsx`（`variant="sheet"`）：**扫描模式显式可见**（DL-20）＋ **两档不混**（已确认 / 可能分节）＋ **默认全不勾** ＋ 记忆三选一 ＋ 清除记忆 ＋ 导出清单链接（`/api/lang/source/export?project=…`）。
+> - **P4.5 / P4.6** —— 记忆按项目（`lang_source_consent`）＋ **清除＝删行**（不是置 0：置 0 会留下「曾经记住过」的残影）＋ 设置页「源码授权记忆」区（**逐项目可清**，DL-21 要求的「设置页清除」入口）；出网台账 `lang_source_shares` **只存计数**（`consent_source ∈ {explicit_tick, remembered}`，**不存片段、不存路径**）。
+> - **端点**（`apps/server/src/routes/langSource.ts`，七个）：`POST /api/lang/scan`（**只回扫描的账，不回命中列表**）/ `GET /api/lang/findings`（**不带项目参数** —— 命中只属于最近一次扫描）/ `GET|POST|DELETE /api/lang/source/consent` / `GET /api/lang/source/consents` / `GET /api/lang/source/export`（attachment）/ `POST /api/lang/source/share`。
+> - **⚠️ 本轮各取一个方向的规格张力**（**未改规格**）：① **DL-22 与 §3.10 的内在张力** —— spec 举例 `matched_pattern` = `'ast.Call'`（**不是可 grep 的字面串**），而 DL-22 要求 `grep -n '<matched_pattern>'` 必须命中它声称的 `file:line` ⇒ 本轮落库的是**命中的源码文本**（**BRE 安全化后**：遇 `\ * [ ] ^ $ | & # ~` 即截断，保留的仍是**原文前缀** ⇒ grep 必然命中那一行），**规范模式名另存模式表**供界面显示。② **`lang_topic_findings` 没有项目列**（§3.10 字段清单里没有）⇒ 命中只属于**最近一次扫描**（扫了项目 B 会覆盖项目 A 的命中）—— **不主动加列**（0011 迁移纪律：字段逐字取自规格）。③ **`scan_id` 没有对应的表**（§3.10 列了它，十七张表里没有「扫描」表）⇒ 做成**分组键**（扫描时刻毫秒数），不建外键、不加表。
+> - **⚠️ 真实样本的来源（如实登记）** —— DL-19 的真实样本用 **Go 标准库源码树**（`go env GOROOT` 的 `src/net/http`，107 个 .go 文件）＋ **仓内真实 Python 构建脚本**（`packages/core/src/db/seeds/_build/*.py`，4 个 · 1973 行）；⚠️ dev-plan §5 第 2 条给的候选（「`packages/adapters/src/adapters.test.ts` 用过的 fixture 仓库」）**经查不存在**（该测试文件里没有任何 fixture 仓库）⇒ §8 的 R4 风险**本轮以这两个来源消解**。
+> - **P4 出口复算**：(a) **夹具全跑过** —— Python 走 parser（Python 3.15.0 · 2 文件 **43 条**）＋ Go 走 parser（go1.24.5 · 2 文件 **44 条**），`warnings` 为空；(b) **真实项目样本上 DL-19 parser ⊇ 正则** —— 夹具 ＋ Go 标准库 `net/http` 两处实测 **0 违规**（⚠️ 本轮在标准库样本上**抓到 9 处真违规**（全是 `go-funclit`）：正则把**函数类型**（`map[string]func(T){`）误当函数字面量 ⇒ 已**删掉 `go-funclit` 的正则** —— 宁可少报不错报，§3.8.2 允许的「精度下降」）；(c) **DL-22 grep 复现 100%** —— `packages/core/src/db/m9-source-scan.test.ts` 里**真起 `grep` 子进程**逐项核对命中的行号 == 清单声称的行号。
+> - **P4 判据测试**（**64 支**）：core 扫描 12（DL-17 正支＋变异腿 · DL-19 夹具＋真实样本＋变异腿）＋ core 落库 17（DL-21 ＋ DL-22 **真跑 grep** ＋ DL-23 ＋ 迁移与表结构）＋ server 端点 17 ＋ web 抽屉 8（DL-20 ＋ 默认全不勾 ＋ 两档不混）＋ web 抽屉**变异腿** 2（模式标签恒空 ⇒ 生产断言当场红）＋ web 设置页 3（DL-21 的设置页清除）＋ 仓根表闸 5（含**变异腿**：真建一张规格外的表 ⇒ 闸红）。
+> - **⚠️ 本轮修掉的真缺陷**：① Go 助手写了不存在的 `ast.RecvStmt` ⇒ **编译失败**（改为 `*ast.AssignStmt` ＋ `token.ARROW` 判定，并新增 `reportTarget` 报 `<-ch` 表达式）；② `hitKey` 用错字段名（`pattern_id` vs `spec_id`）⇒ 所有命中塌成同一个 `undefined` 命名空间、⊇ 比较**看着有违规其实是键算错了**；③ 导出清单的**模式串只在扫描侧 BRE 安全化** ⇒ 手工塞进库的脏值会让用户的 `grep` **报语法错** ⇒ 已在**导出侧再兜一道**（`exportGrepPattern`，并配守卫自证：脏值确实含危险字符）。
+> - **⚠️ 本轮未做**：**T1 的「勾选 → 出网」那一段**（勾选只落在**组件本地 state**，**没有**接到 P0 的 `assembleAiCallPayload` 出网入口 —— 那是 P5 的活）；⚠️ `lang_topic_findings` **无项目列**（见上）⇒ 多项目场景下命中互相覆盖，属**规格缺口**，未自行加列。
+
 ### 6.11 M9-P5 源码 T2（AI 解读）（**3 人日** · ⚠️ P4 三条待裁未闭合则本期待排）
 
 - **P5.1** 解读面板（只对勾选过的片段入参） / **DL-16** / P4 / 1
@@ -329,13 +343,13 @@ P0 → P1 → P1b ┬→ P1c
 | DL-14 | P1.2/P1.3 | 两门数据都在且可筛选 | 已产出（P1.8 · m9-topic-filter.ts） |
 | DL-15 | P1.5 | 概念层跨语言复用 | 已产出（P1.5 · m9-p1-5-concept-content.ts） |
 | DL-16 | P0.3 | 源码片段不得进台账 | 已产出（P0 · tests/m9-discipline.test.ts） |
-| DL-17 | P4.1 | T0 不依赖 AI | 未开工 |
+| DL-17 | P4.1 | T0 不依赖 AI | **已产出**（P4 · `packages/core/src/source-scan/` ＋ `services/m9-source-service.ts`）—— 扫描链路**零 AI 依赖**（源码守卫扫 `fetch(` 与 `openai|anthropic|ai_recommend|chat.completions|llm` ⇒ **0 命中**）⇒ 「AI 不可用时 T0 照常工作」是**结构上**成立的（没有依赖可失败）。⚠️ **变异腿实跑**：往 `scan.ts` 插一个 `fetch('https://api.openai.com/v1/chat/completions')` ⇒ 守卫当场报出两条 |
 | DL-18 | P0.4 | 未勾选片段不得出网 | 已产出（P0 · tests/m9-discipline.test.ts） |
-| DL-19 | P4.2 | Go 回退只降精度不减结果 | 未开工 |
-| DL-20 | P4.2 | 回退必须显式告知 | 未开工 |
-| DL-21 | P4.5 | 「记住不发」清除后回到全不勾 | 未开工 |
-| DL-22 | P4.4 | 导出清单可 grep 复现 | 未开工 |
-| DL-23 | P4.3 | 导出清单不含绝对路径 | 未开工 |
+| DL-19 | P4.2 | Go 回退只降精度不减结果 | **已产出**（P4 · `packages/core/src/source-scan/subset-check.ts` ＋ `go-scanner.ts`）—— **parser ⊇ 正则**在两处实测 **0 违规**：① 夹具（`packages/core/src/fixtures/m9`）；② **真实样本**（Go 标准库 `src/net/http`，107 个 .go 文件）。判定式 `findSubsetViolations` 是**纯函数**（吃两个集合、不做 I/O）。⚠️ **变异腿实跑**：给 `go-struct` 配一条比解析器判定更宽的正则（`\bstruct\b|\binterface\b`）⇒ ⊇ 立刻被打破。⚠️ **本轮在标准库样本上抓到 9 处真违规**（全是 `go-funclit`：正则把**函数类型**（`map[string]func(T){`）误当函数字面量）⇒ 已**删掉该正则**（宁可少报不错报，§3.8.2 允许的「精度下降」）—— ⚠️ **函数字面量与函数类型在文本上不可区分**，这是那条正则配不出来的根因 |
+| DL-20 | P4.2 | 回退必须显式告知 | **已产出**（P4 · `apps/web/src/components/dev/SourceDrawer.tsx` ＋ `packages/shared/src/m9-source-scan.ts`）—— 界面**每一门语言一行模式说明**（`完整解析（工具链版本）` / `启发式模式` / `未扫描`）＋ **回退 notice 必须出现在界面上**（CLI 同步显示）。⚠️ **模式文案只留一处**（`describeScannerMode`）⇒ 抽屉、CLI、将来的导出清单共用。⚠️ **变异腿实跑**：`vi.mock` 把 `describeScannerMode` 换成恒 `''` ⇒ **生产断言当场红**（`SourceDrawer.mutant.test.tsx`，变异体独占一份文件 —— `vi.mock` 按文件生效） |
+| DL-21 | P4.5 | 「记住不发」清除后回到全不勾 | **已产出**（P4 · `packages/core/src/db/m9-source-scan.ts` ＋ `apps/web/src/components/settings/SourceConsentSection.tsx`）—— 记忆**按项目**（全局记忆会让一个项目的授权泄漏到另一个项目）＋ **清除＝删行**（不是把 `remember_all` 置 0：置 0 会留下「曾经记住过」的残影）⇒ 读回来是 `null`（**没有行 ＝ 没有记忆**）⇒ 下次扫描回到全不勾。**设置页有逐项目的清除入口**（DL-21 原文要求的「设置页清除」）＋ 抽屉里也有。⚠️ **变异腿实跑**：只清字段不删行 ⇒ 判定式当场报出「清除没生效」 |
+| DL-22 | P4.4 | 导出清单可 grep 复现 | **已产出**（P4 · `packages/core/src/db/m9-source-scan.ts` ＋ `packages/core/src/source-scan/pattern-text.ts`）—— **真跑 grep**：导出后逐项起 `grep` 子进程，核对它命中的行号 == 清单声称的行号（不是只断言清单结构）。⚠️ 落库的 `matched_pattern` 是**可 grep 的字面串**（BRE 安全化后的**源码文本**）—— 规格举例的 `'ast.Call'` 那种**节点名不可 grep** ⇒ **规范模式名另存模式表**供界面显示。⚠️ **导出侧再兜一道**（`exportGrepPattern`）⇒ 库里的脏值不会让用户的命令报语法错；**守卫自证**：脏值确实含 BRE 危险字符 |
+| DL-23 | P4.3 | 导出清单不含绝对路径 | **已产出**（P4 · `packages/core/src/source-scan/` ＋ `packages/core/src/db/m9-source-scan.ts`）—— 命中**产生的那一刻**就是相对路径（扫描侧）＋ 导出全文搜家目录 / `/Users/` / `/home/` **0 命中**。⚠️ **守卫自证**：注入一条绝对路径必被报出 —— 防线是「**绝对路径根本进不来**」，不是「导出时过滤掉」 |
 | DL-24 | P1.6 | since_version 影响条目报出 | 已产出（P1.6 · m9-concept-deltas.ts） |
 | DL-25 | P0.1/P0.2/P2.1 | 源码证据封顶 active | **两侧都已产出** —— ① **P0 侧**（P0 · tests/m9-discipline.test.ts）：四支夹具的字面事实（20 次同一段 / 单独特征），见附注②；② **P2 侧**（P2 · `packages/shared/src/m9-state.ts` ＋ `packages/core/src/db/m9-p2-state.test.ts`）：封顶与去重**写进代码**（§3.13）—— `source_hit` 证据在场 ⇒ 状态上限 `active`，任何组合都到不了 `mastered`；同一出处只计 1 次。⚠️ **P2 出口腿实跑**：真实 DAG 上给**每一个**知识点都喂上四支夹具的源码证据 ⇒ **0 个**到 `mastered`（比「只喂一个知识点」更能暴露封顶被删）。⚠️ **如实登记**：去重规则在**状态层被封顶遮蔽**（去掉去重而留着封顶，输出逐字不变）⇒ 它的真正落点是**计数层**（`countEvidence` 对同一出处的 20 次命中只计 1），本轮有一支「登记腿」把这个事实钉住 |
 | DL-26 | P1.1 | §3.1 表数可复算 | 已产出（P1.7 · m9-p1-7-topic-stages.test.ts） |
@@ -387,7 +401,7 @@ P0 → P1 → P1b ┬→ P1c
 | R1 | **#6 待裁 W3 末不定** | 中 | P1d 全员停工 5+ 天 | W2 末发提醒（见 §10）；W3 末设硬截止 |
 | R2 | **#8 待裁 W6 末不定** | 中 | P1f 全员停工 3 天 | W5 末发提醒；W5 中就提早把两种读法（精通+子集 vs 加第四档）的取舍都准备好让 owner 选 |
 | R3 | **附件 21 段抽取脚本挂掉** | 低 | P1d.1 卡住 | 脚本已就位在 `/tmp/dump.mjs`，本计划 W1 落仓到 `scripts/extract-guide-resources.mjs` |
-| R4 | **真实 Go/Python 项目样本找不到** | 中 | P4 的 DL-19/DL-22 只能证明对夹具成立 | W6 前在 P1 阶段就开始物色；候选：awesome-go 子模块 / 标准库 + 本仓 `packages/core` |
+| R4 | ~~**真实 Go/Python 项目样本找不到**~~ | ✅ **已消解**（2026-10-21 · P4） | — | ✅ **P4 已用真实样本**：Go ＝ **标准库源码树**（`go env GOROOT` 的 `src/net/http`，107 个 .go 文件）＋ Python ＝ **本仓真实构建脚本**（`packages/core/src/db/seeds/_build/*.py`，4 个 · 1973 行）⇒ DL-19 在真实样本上实测 **0 违规**。⚠️ 原候选「awesome-go 子模块 / `packages/adapters/src/adapters.test.ts` 用过的 fixture 仓库」**经查不存在**（该测试文件里没有任何 fixture 仓库） |
 | R5 | **`DESIGN.md` 编辑需 owner** | 中 | P3 chip 全部要等 | 开工前就发请求（见 §5.1），不要到 P3 才催 |
 | R6 | **Pi 接入不到位** | 高 | P5 全期待排 | P5 写在 W8 末，**且「Pi 接入」本身不在本计划**；W7 末复审 P5 是否真要排进 W8 还是推到 v1.7 |
 | R7 | **网络不通** | 高（已实锤） | DL-01/29/30 资源取证日恒 NULL | 不强求；DL-01 已写明「owner 提供的来源首取证日恒为 NULL」是允许的；用 `verified_by='owner_guide'` 标记 |

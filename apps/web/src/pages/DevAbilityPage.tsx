@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { cardBodyCls, cardCls, cardHeadCls, h1Cls, h1SubCls } from '../components/ui/styles'
+import { btnSecondary, cardBodyCls, cardCls, cardHeadCls, h1Cls, h1SubCls } from '../components/ui/styles'
 import { Icon } from '../components/ui/icons'
 import { StageColumn } from '../components/dev/StageColumn'
 import { TopicLayer } from '../components/dev/TopicLayer'
@@ -8,6 +8,8 @@ import { DualPlanTimeline } from '../components/dev/DualPlanTimeline'
 import { LanguageCompare } from '../components/dev/LanguageCompare'
 import { PracticePrinciples } from '../components/dev/PracticePrinciples'
 import { useLangRoadmap, useLangTopic } from '../hooks/useLangRoadmap'
+import { useProjectList } from '../hooks/useProjects'
+import { SourceDrawer } from '../components/dev/SourceDrawer'
 import { LANG_CODES, LANGUAGE_ASPECTS, type LangCode } from '@openvibe/shared'
 
 /**
@@ -43,6 +45,9 @@ const L = {
   compare: '两门对照',
   principles: '练习原则',
   loadFailed: '路线读不出来——先确认本机库已播种 M9 知识点。',
+  project: '项目',
+  projectNone: '不指定项目（按全库汇总）',
+  source: '源码里的用法',
 } as const
 
 /**
@@ -60,10 +65,13 @@ export function DevAbilityPage() {
   const [lang, setLang] = useState<LangCode | null>(null)
   const [stageNo, setStageNo] = useState<number | null>(null)
   const [topicId, setTopicId] = useState<number | null>(null)
+  const [projectId, setProjectId] = useState<string | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
+  const projects = useProjectList('active')
   const views = {
-    python: useLangRoadmap('python'),
-    go: useLangRoadmap('go'),
+    python: useLangRoadmap('python', projectId ?? undefined),
+    go: useLangRoadmap('go', projectId ?? undefined),
   }
   const current = lang === null ? null : views[lang].data ?? null
   const detail = useLangTopic(topicId)
@@ -75,8 +83,41 @@ export function DevAbilityPage() {
 
   return (
     <div className="px-7 py-6">
-      <h1 className={h1Cls}>{L.title}</h1>
-      <p className={h1SubCls}>{L.sub}</p>
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="min-w-0">
+          <h1 className={h1Cls}>{L.title}</h1>
+          <p className={h1SubCls}>{L.sub}</p>
+        </div>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1.5 text-[11.5px] text-ink-muted">
+            {L.project}
+            <select
+              className="rounded-sm border border-line-strong bg-panel px-2 py-1 text-[13px] text-ink-body"
+              value={projectId ?? ''}
+              onChange={(e) => {
+                setProjectId(e.target.value === '' ? null : e.target.value)
+              }}
+            >
+              <option value="">{L.projectNone}</option>
+              {(projects.data?.items ?? []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className={btnSecondary}
+            type="button"
+            onClick={() => {
+              setDrawerOpen(true)
+            }}
+          >
+            <Icon name="search" size={13} />
+            {L.source}
+          </button>
+        </div>
+      </div>
 
       {/* 首屏：两门语言各一张卡片（§3.5） */}
       <div className="mt-4 flex flex-wrap gap-2.5">
@@ -176,6 +217,8 @@ export function DevAbilityPage() {
           </div>
         </div>
       ) : null}
+
+      <SourceDrawer open={drawerOpen} onOpenChange={setDrawerOpen} projectId={projectId} />
     </div>
   )
 }
