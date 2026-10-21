@@ -73,6 +73,10 @@ export const EXTERNAL_LAYER_FILES = [
   // ⚠️ **P1d 的附件分期抽取脚本** —— 采集链的一环（附件 HTML → 21 段种子）
   //   ⇒ 按同款纪律进扫描范围（正文抽取器痕迹 / 键访问取正文 / 成段散文）。
   'scripts/extract-m9-guide-phases.ts',
+  // ⚠️ **P1f 的配套方案阶段轨道抽取脚本** —— 采集链的一环（配套方案 HTML → 6 行种子）
+  //   ⇒ 按同款纪律进扫描范围（正文抽取器痕迹 / 键访问取正文 / 成段散文）。
+  'scripts/extract-m9-stage-tracks.ts',
+  'packages/core/src/db/seeds/lang_stage_tracks.json',
   'packages/core/src/db/seeds/_build/build-lang-topics-from-inventory.py',
 ] as const
 
@@ -404,6 +408,28 @@ export const EXTERNAL_FILE_SCHEMAS: Record<string, ExternalFileSchema> = {
     //   其余字段（`outcome` 最长 67 · `title` 最长 27）照旧受 80 约束。
     metadataMaxLen: { points: 100 },
   },
+  // ⚠️ **P1f 的成长阶段 × 轨道 6 行** —— 阶段名/周期/源 mode/源 modeName/要点**逐字取自配套方案**
+  //   （§1.7 第 ② 条）⇒ 外部源派生 ⇒ 照常扫。
+  //   ⚠️ `mode_name` 最长 28 字符、`goals` 最长 49、`period` 最长 24 ⇒ **不必放宽上限**。
+  'packages/core/src/db/seeds/lang_stage_tracks.json': {
+    topLevel: ['_notes', 'collected_at', 'items', 'schemaVersion'],
+    itemKeys: [
+      'goals',
+      'lang',
+      'mode_name',
+      'period',
+      'source_mode',
+      'stage_id',
+      'stage_name',
+    ],
+    notesKeys: [
+      'collect_method',
+      'eight_cells_six_rows',
+      'profile_derivation',
+      'source',
+      'stage2_contradiction',
+    ],
+  },
 }
 
 /**
@@ -431,6 +457,7 @@ export const EXTERNAL_DIR_CLOSURE: Record<string, string[]> = {
     'lang_concepts.json',
     'lang_profile_phases.json',
     'lang_resources.json',
+    'lang_stage_tracks.json',
     'lang_topic_content.json',
     'lang_topic_edges.json',
     'lang_topic_resources.json',

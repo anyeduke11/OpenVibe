@@ -20,3 +20,15 @@ export type LangProfile = 'master' | 'familiar' | 'vibe'
 
 /** 三个取值的固定顺序（精通 / 熟悉 / 速成）。 */
 export const LANG_PROFILES: readonly LangProfile[] = ['master', 'familiar', 'vibe']
+
+/**
+ * 三种模式的中文名（**界面口径的唯一出处**）。
+ *
+ * ⚠️ 别处不许另写一份 —— 模式名出现在转档弹层、阶段卡片、onboarding、资源标记
+ *   四处，各写各的必然漂移（「速成」与「了解 · 速成」混用是典型）。
+ */
+export const PROFILE_LABELS: Record<LangProfile, string> = {
+  master: '精通',
+  familiar: '熟悉',
+  vibe: '速成',
+}

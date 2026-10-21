@@ -34,10 +34,11 @@ describe('UT-MIGRATION-01 · migration 只前进且幂等', () => {
       '0011_lang_topics',
       '0012_lang_resources',
       '0013_lang_profiles',
+      '0014_lang_stage_tracks',
     ])
     expect(migrate(db)).toEqual([])
     const count = (db.prepare('SELECT COUNT(*) AS c FROM schema_migrations').get() as { c: number }).c
-    expect(count).toBe(13)
+    expect(count).toBe(14)
     db.close()
     rmSync(dir, { recursive: true, force: true })
   })
@@ -124,7 +125,7 @@ const MIGRATIONS_DIR = fileURLToPath(new URL('./migrations', import.meta.url))
 /** 0007 一笔建的四张表（m8-ledger-schema.test.ts 的同一份清单） */
 const FOUR_TABLES = ['local_events', 'agent_sessions', 'agent_ingests', 'requirements'] as const
 
-/** 八支迁移的版本号，逐字取自 migrations/ 目录下的文件名（去掉 .sql） */
+/** 全部迁移的版本号，逐字取自 migrations/ 目录下的文件名（去掉 .sql） */
 const ALL_VERSIONS = [
   '0001_init',
   '0002_app_meta_telemetry',
@@ -139,6 +140,7 @@ const ALL_VERSIONS = [
   '0011_lang_topics',
   '0012_lang_resources',
   '0013_lang_profiles',
+  '0014_lang_stage_tracks',
 ]
 
 /** 存量行的记账时间戳：刻意早于 0007 落库（2026-10-14），好断言「旧行没被重写」 */
@@ -253,6 +255,7 @@ describe('CORE-EVT-01 · 0007 升级的既有库两径（local-event-ledger §7-
         '0011_lang_topics',
         '0012_lang_resources',
         '0013_lang_profiles',
+        '0014_lang_stage_tracks',
       ])
       expect(ledgerRows(legacy.db).map((r) => r.version)).toEqual(ALL_VERSIONS)
       // 旧记账行没被重写（新行的时间戳严格晚于存量行）
@@ -300,6 +303,7 @@ describe('CORE-EVT-01 · 0007 升级的既有库两径（local-event-ledger §7-
         '0011_lang_topics',
         '0012_lang_resources',
         '0013_lang_profiles',
+        '0014_lang_stage_tracks',
       ])
       expect(ledgerRows(legacy.db).map((r) => r.version)).toEqual(ALL_VERSIONS)
       expect(tableNames(legacy.db)).toContain('playbooks')

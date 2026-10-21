@@ -1,0 +1,89 @@
+{
+  "_notes": {
+    "source": "配套方案《Agent 评测专家成才方案》的 §4「成长路线：四阶段可打卡训练」的 tracks 数组",
+    "collect_method": "按阶段对象读 name/period，按 tracks 数组读 lang/mode/modeName/goals；八个字段逐字入库。",
+    "eight_cells_six_rows": "八格对照面（4 阶段 × 2 语言）⇒ 落库 6 行：阶段 0/1 的 Go 在源文档里没有该轨道，不建行。",
+    "stage2_contradiction": "阶段 2 的 Python 在源文档里是 mode:mas 而 modeName:熟悉 → 精通，两个字段都照抄，矛盾留在数据里。",
+    "profile_derivation": "profile/required/is_default 三列由装载器现算（不在种子里），口径只留一处。"
+  },
+  "collected_at": "2026-10-21",
+  "schemaVersion": 1,
+  "items": [
+    {
+      "stage_id": 0,
+      "stage_name": "阶段 0 · 基础与入场",
+      "period": "第 1–3 个月 · 看懂舞台，拿到入场券",
+      "lang": "python",
+      "source_mode": "vibe",
+      "mode_name": "了解 · 速成（Vibe Coding）",
+      "goals": [
+        "不背语法：能看懂 AI 生成的脚本在做什么、会读报错、会把报错回贴给 AI 迭代",
+        "会运行项目、懂目录结构、会 pip install 第三方库、会基础 Git 操作",
+        "边做边查：3–7 天直接做一个小项目（如批量整理错题本表格）"
+      ]
+    },
+    {
+      "stage_id": 1,
+      "stage_name": "阶段 1 · 评测基本功",
+      "period": "第 4–9 个月 · 从凭感觉到可复现",
+      "lang": "python",
+      "source_mode": "fam",
+      "mode_name": "熟悉",
+      "goals": [
+        "独立读写代码：变量/控制流/函数/模块/异常/虚拟环境/包管理",
+        "能用 json、pandas、pathlib 批量处理题库，用 pytest 验证脚本正确性",
+        "能看懂 traceback 并定位行号，会用断点/print 调试"
+      ]
+    },
+    {
+      "stage_id": 2,
+      "stage_name": "阶段 2 · Agent 专项",
+      "period": "第 10–15 个月 · 核心差异化",
+      "lang": "python",
+      "source_mode": "mas",
+      "mode_name": "熟悉 → 精通（写 checker / 流水线）",
+      "goals": [
+        "掌握 requests/httpx、异步 asyncio、类型注解与数据类，能写 CLI 评测脚本",
+        "把「跑题→采集轨迹→checker 判分→汇总指标」串成可重复运行的流水线",
+        "会用 pytest + 固定 mock 数据保证 checker 自身正确"
+      ]
+    },
+    {
+      "stage_id": 2,
+      "stage_name": "阶段 2 · Agent 专项",
+      "period": "第 10–15 个月 · 核心差异化",
+      "lang": "go",
+      "source_mode": "vibe",
+      "mode_name": "了解 · 速成（选学）",
+      "goals": [
+        "读懂云原生生态（K8s/容器/CLI 工具多为 Go）的报错与工程结构",
+        "会 go run、go build、go mod 管理依赖；能看懂评测服务的简单代码",
+        "高性能后端/云原生/并发压测方向再继续加深，其他方向了解即可"
+      ]
+    },
+    {
+      "stage_id": 3,
+      "stage_name": "阶段 3 · 专家化",
+      "period": "第 16–24 个月 · 从接任务到定标准",
+      "lang": "python",
+      "source_mode": "mas",
+      "mode_name": "精通",
+      "goals": [
+        "异步并发、包结构、类型系统、测试与 CI 能支撑团队级评测基建",
+        "能设计采样/环境/指标/报告自动化方案，供多人复用"
+      ]
+    },
+    {
+      "stage_id": 3,
+      "stage_name": "阶段 3 · 专家化",
+      "period": "第 16–24 个月 · 从接任务到定标准",
+      "lang": "go",
+      "source_mode": "fam",
+      "mode_name": "熟悉（云原生方向选学）",
+      "goals": [
+        "熟悉 goroutine/channel、标准库、测试与工程规范，能写并发压测与小服务",
+        "理解为什么高并发评测环境、容器与云原生工具多为 Go 生态；不做该方向可停留在了解"
+      ]
+    }
+  ]
+}

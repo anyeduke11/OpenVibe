@@ -11,9 +11,10 @@
 //    不得反向写）—— 由「没有」这样的 NOT-PRESENT 断言守护，参见 `text` 字段验证。
 //
 // ⚠️ P1.1 之后，DL-26 的「17 张表」事实**只对 spec 文本成立**（`grep -c '^lang_'`
-//   于 §3.1 仍得 17）；数据库里**当前只有 11 张**（0011 建 6 张 ＋ 0012 建 3 张 ＋
-//   **0013 建 2 张**：模式与阶段三张表里的 `lang_profile_phases` / `lang_topic_profiles`）。
-//   剩余 6 张（`lang_topic_state` / `lang_stage_tracks` / `lang_topic_findings` /
+//   于 §3.1 仍得 17）；数据库里**当前只有 12 张**（0011 建 6 张 ＋ 0012 建 3 张 ＋
+//   **0013 建 2 张** ＋ **0014 建 1 张**：模式与阶段那三张表现在齐了 ——
+//   `lang_profile_phases` / `lang_topic_profiles` / `lang_stage_tracks`）。
+//   剩余 5 张（`lang_topic_state` / `lang_topic_findings` /
 //   `lang_topic_requests` / `lang_source_consent` / `lang_source_shares`）由后续迁移补齐。
 //   **M9 自检脚本的 DL-26 检查的是 spec，不检查 DB**，
 //   因为「DB 表数」随迁移节奏变化，而 spec 是「目标态」，不能混。
@@ -21,7 +22,7 @@ import { describe, it, expect } from 'vitest'
 import { newDb } from '../test-support/new-db'
 
 describe('M9 P1.1 · 0011 迁移 + §3.1 知识拓扑表', () => {
-  it('0011 / 0012 / 0013 干净应用：11 张 lang_* 表都在库（DL-26 的 DB 分支）', () => {
+  it('0011 / 0012 / 0013 / 0014 干净应用：12 张 lang_* 表都在库（DL-26 的 DB 分支）', () => {
     const h = newDb()
     const tables = h.db
       .prepare(
@@ -34,6 +35,7 @@ describe('M9 P1.1 · 0011 迁移 + §3.1 知识拓扑表', () => {
       'lang_concepts',
       'lang_profile_phases',
       'lang_resources',
+      'lang_stage_tracks',
       'lang_topic_content',
       'lang_topic_edges',
       'lang_topic_profiles',

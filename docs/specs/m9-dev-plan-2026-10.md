@@ -226,12 +226,26 @@ P0 → P1 → P1b ┬→ P1c
 
 ### 6.7 M9-P1f 阶段联动层（**3 人日** · ⚠️ #8 须 W6 末定）
 
-- **P1f.1** `lang_stage_tracks` 照抄配套方案 8 行（阶段 0/1 不建 Go 行） / **DL-40** / P1d / 0.5
+- **P1f.1** `lang_stage_tracks` 照抄配套方案 **八格对照面**（落库 **6 行** · 阶段 0/1 不建 Go 行） / **DL-40** / P1d / 0.5
 - **P1f.2** 模式推荐值由阶段推导（自选降级为覆盖） / **DL-40** / P1f.1, #8 / 1
 - **P1f.3** Python 主线/Go 选学文案 + Go 默认收起 / **DL-40** / P1f.1 / 0.5
 - **P1f.4** 深链锚点 `#mode-*` 优先于 onboarding 默认（带 hashchange） / **DL-43** / P1e / 0.5
 - **P1f.5** `lang_vibe_resources` 11 条纳入 DL-30 巡检（已在 P1c.2 写过，此处确认 4 个新 seed 已落）/ **DL-41** / P1f.1 / 0.5
-- **P1f 出口**：8 行 tracks（阶段 0/1 Go 行数 = 0） + 三个 #mode-* 深链各自落位 + DL-42 职业等级断言守卫注入即报
+- **P1f 出口**：**6 行** tracks（八格对照面 · 阶段 0/1 Go 行数 = 0） + 三个 #mode-* 深链各自落位 + DL-42 职业等级断言守卫注入即报
+
+> ✅ **P1f 已产出**（本轮）：
+> - **P1f.1** —— `scripts/extract-m9-stage-tracks.ts`（**零第三方依赖**，从配套方案 §4 每个阶段对象的 `tracks` 数组抽 6 行）＋ 种子 `packages/core/src/db/seeds/lang_stage_tracks.json`（**6 行** · 逐字）。脚本自带**六道自检**（阶段数 4 · 轨道行数 6 · 阶段 0/1 无 Go · 阶段 2/3 每语言各 1 条 · 每行 `goals` ≥ 2 条 · **阶段 2 的矛盾仍在**）＋ **与 spec §1.7 第 ② 条八格逐格对账**；支持 `--check`（只对账不写盘）。⚠️ **附件路径走命令行参数**（仓内零本机路径）。⚠️ **取块必须按方括号配对计数**（`tracks` 里嵌着 `goals` 与 `links` 两个数组，取第一个 `]` 会截断）。
+> - **⚠️ 不越 §6.3 第 9 条的线** —— 第 9 条的「只做外链，不入库」说的是配套方案那 **155 KB 评测专业域**（能力矩阵 / BARS / 四种评价方式 / SOP / 数据集选型）；本轮入库的只有**编程轨道**（阶段名 / 周期 / 语言 / 模式 / 要点，即 §1.7 取的那 5 条编程相关口径之一）。**阶段出口（`pass` 字段那类「评测能力」指标）与任何「职业等级」数据一条不入库** —— §1.7 第 ③ 条与 §3.21 第 4 条明写「开发能力绝不能声称能判断『你到了 L1』」⇒ DL-42 守卫守的正是这条边界。
+> - **规格先订正（0011 迁移纪律：先订正规格再落列）** —— ① spec §3.1 与 §3.21 的 `lang_stage_tracks` schema 补齐**源文档逐字列**（`stage_name` / `period` / `source_mode` / `mode_name` / `goals` / `note`）；② spec §1.7 第 ② 条阶段 0 的 Python 格由「速成」订正为「**了解 · 速成**」（与源文档 `modeName` 及同表阶段 2 的 Go 格一致）；③ 「8 行 tracks」改为「**八格对照面 ⇒ 落库 6 行**」—— 原文自相矛盾（不建 Go 行 ⇒ 最多 6 行）；④ spec §9 的 P1f 行与合计说明里的「八行 / 8 行」同批订正。
+> - **P1f.2** —— 模式推荐值由阶段推导（`recommendedProfileForStage`，取 `is_default=1` 的那行 ⇒ **Go 不参与默认**，否则两门等权并排，正是 §3.21 第 1 条要拆掉的东西）。⚠️ **自选降级为覆盖**：推荐值只是一个默认值，另外两档轨道仍在表里、仍可切过去。
+> - **P1f.3** —— `apps/web/src/components/dev/StageTracks.tsx`（Python 带「**主线**」、Go 带「**选学**」＋ 写清适用方向；**Go 默认收起**，但**收起的那一行可点** —— DL-14 不变，收起的是**默认落点**不是把 Go 从产品里拿掉；阶段 0/1 **不渲染 Go 那一块**，不造「本阶段无 Go 轨道」的空卡；阶段 2 的 Python 显示派生出的「**熟悉**」**并把标注显示出来**，不把「熟悉 → 精通」当第三档摆出来）。
+> - **P1f.4** —— `apps/web/src/components/dev/ModeDeepLink.tsx` ＋ `packages/shared/src/m9-stage.ts` 的 `resolveProfileFromHash`。**URL 片段优先于 §3.19 的 onboarding 默认模式**（用户是**从别人给的链接进来的**，那个链接指向哪一档就该落哪一档）；带 `hashchange` 跟随（同文档内切档不改路由）；提示条**只在深链命中时**出现（直接进入时不加这行噪音）。
+> - **P1f.5** —— **确认**（不是新建）：`lang_vibe_resources` 11 条已在库（P1c.2 已落 · tools 6 ＋ tuts 5），`PROBE_TABLE_NAMES` 已含该表 ⇒ DL-30 的失效纪律对它**同样成立**（巡检所需四列 `last_status_code` / `consecutive_fails` / `alive` / `last_checked_at` 都在）。
+> - **DL-40 三道闸** —— `packages/core/src/db/m9-p1f-stage-guards.ts`：库↔源**逐格**相等 ＋ 库↔spec §1.7 八格**逐格**相等 ＋ **反证腿**（阶段 0/1 的 `lang='go'` 行数必须 **= 0**）。⚠️ **断的是「那些行根本不存在」**，不是「那些行 `required=0`」—— 后者正是本判据要防的那种「建了空行再标 0」的做法。
+> - **DL-42 守卫** —— `packages/core/src/db/m9-p1f-grade-guard.ts`：界面不得出现越过编程证据的职业等级断言。⚠️ **只认「对人的主语 ＋ 断言」结构**（主语必须是「你/您/用户/学员」，且中间段与前缀不得带否定/疑问标记）⇒ 规则说明里**引用**「你已达成 L1」是**必须能写出来的**。⚠️ **反向判据必须自证**：注入一条必被报出。
+> - **阶段 2 的 Python：矛盾留在数据里，不替 owner 裁** —— 源文档 `mode:"mas"`（精通）却叫「熟悉 → 精通」⇒ §6.3 第 8 条待裁前**实现里不许偷偷选一个**：派生取「**熟悉**」**并带 `note` 标注**（spec §3.21 第 3 条的原话「如实暴露缺口，也比假装枚举够用强」）；两个源字段 `source_mode` 与 `mode_name` **都逐字保留**。⚠️ **§6.3 第 8 条仍是待裁**，裁定后本轮这一格的 `profile` 会变。
+> - **计算层落 `@openvibe/shared`**（`m9-stage.ts`）—— `deriveStageTrack` 是 `profile` / `required` / `is_default` / `note` 四条派生规则的**唯一定义处**；core 侧只负责把源逐字字段入库 ＋ 调它现算 ⇒ **派生不落种子**（口径会随 §6.3 第 8 条裁定而改，落进种子就变成快照）。
+> - **P1f 出口复算**：`npx vitest run packages/core/src/db/m9-p1f-stage-tracks.test.ts`（14 支）＋ `npx vitest run packages/shared/src/m9-stage.test.ts`（21 支）＋ `npx vitest run apps/web/src/components/dev/ModeDeepLink.test.tsx`（9 支）＋ `npx vitest run apps/web/src/components/dev/ModeDeepLink.mutant.test.tsx`（4 支）＋ `npx vitest run apps/web/src/components/dev/StageTracks.test.tsx`（13 支）
 
 ### 6.8 M9-P2 掌握度推导（**2 人日**）
 
@@ -316,10 +330,10 @@ P0 → P1 → P1b ┬→ P1c
 | DL-37 | P1e.1 | 转档起始站 = 映射结果 | **已产出**（P1e · `packages/shared/src/m9-mode-interaction.ts` ＋ `apps/web/src/components/dev/ModeTransferPanel.tsx`）—— 映射**查表不维护**（站位取 `lang_topics.stage_id`，不建对照表）；**集合相等**（不是计数相等 —— 计数相等但成员错位也必须被抓到）；**只给位置不给结论**（界面文本**不含「已完成第 … 站」**）；一条都没点亮时显示**完整站数**（Python **8** 站 / Go **6** 站），不许空白或 0。⚠️ **变异腿实跑**：抽掉**任意一条**映射（逐条抽，不只试一条）⇒ 闸当场红；**真改代码**的腿：源码里塞一条硬编码 slug ⇒ 「不建对照表」闸红 |
 | DL-38 | P1e.2 | 跳过与选速成逐字一致 | **已产出**（P1e · `apps/web/src/components/dev/ModeOnboarding.tsx`）—— **「跳过」与「速成」走同一个代码入口** ⇒ 渲染逐字相同成为**结构上必然**（断言用**同一份 DOM 快照**比对，不是比几个字段相等）；首屏**只出现一个主动作**（速成）；精通/熟悉**折叠成一行**且**常驻可点**（§3.19 第 4 条）。⚠️ **反证实跑**：作答题落点不进 `lang_topic_state` / 不进 `computeState()` 入参（源码守卫）＋ 作答前后已点亮状态不变。⚠️ **变异腿实跑**：把「折叠」写成「隐藏」⇒ 生产断言当场红（`ModeOnboarding.hidden-mutant.test.tsx`） |
 | DL-39 | P1e.3 | 资源标记 = 必学集反查 | **已产出**（P1e · `apps/web/src/components/dev/ResourceModeChip.tsx` ＋ `packages/shared/src/m9-mode-interaction.ts`）—— **由必学集合反查派生**，与转档**共用同一个 `isRequiredIn`**（判定式在代码里**只出现一次**，守卫数过）；**只有两档**（`ResourceModeLabel` 用类型收死，**「熟悉用」第三档不存在**）。⚠️ **变异腿实跑**：清空某条资源的挂接 ⇒ 标记翻成「仅扩展阅读」并判红；标记**随模式切换即时重算**（换 profile 即变，不要求刷新） |
-| DL-40 | P1f.1/P1f.2 | 阶段轨道逐格相等（8 行） | 未开工（#8 决后） |
-| DL-41 | P1f.5 | 11 条速成专区在库 | 已产出（P1b · m9-p1b-resources.test.ts）—— 11 条在库（tools 6 ＋ tuts 5）、不与主清单混表、无分类/费用/阶段/精选列 |
-| DL-42 | P1f.1 | 不得出现职业等级断言 | 未开工 |
-| DL-43 | P1f.4 | 深链落档（#mode-* 优先） | 未开工 |
+| DL-40 | P1f.1/P1f.2 | 阶段轨道逐格相等（**6 行**） | **已产出**（P1f · `packages/core/src/db/m9-p1f-stage-guards.ts`）—— 库↔源**逐格**相等（8 个源字段逐条比，不是比计数）＋ 库↔spec §1.7 八格**逐格**相等（两侧走**同一个**归一化）；**八格对照面 ⇒ 落库 6 行**（阶段 0/1 的 Go 在源文档里没有该轨道 ⇒ **不建行**，不是建行再标 `required=0`）。⚠️ **反证腿实跑**：给阶段 0 补一条 Go 行并标 `required=0` ⇒ 反证闸当场红（断的是「那些行根本不存在」，不是「那些行 `required=0`」）；删掉阶段 2 的 Go 行 ⇒ 主条与 spec 条两条闸同时红。⚠️ **阶段 2 的 Python 矛盾不替 owner 裁**：派生取「熟悉」＋ `note` 标注，两个源字段逐字保留（§6.3 第 8 条仍待裁） |
+| DL-41 | P1f.5 | 11 条速成专区在库 | **已产出**（P1b · m9-p1b-resources.test.ts）—— 11 条在库（tools 6 ＋ tuts 5）、不与主清单混表、无分类/费用/阶段/精选列。⚠️ **P1f.5 是确认不是新建**：P1c.2 已把这 11 条落库、且 `PROBE_TABLE_NAMES` 已含 `lang_vibe_resources` ⇒ DL-30 的失效纪律（单次失败不判死 · 连续两次标灰不删）对它**同样成立**；巡检所需四列 `last_status_code` / `consecutive_fails` / `alive` / `last_checked_at` 都在 |
+| DL-42 | P1f.1 | 不得出现职业等级断言 | **已产出**（P1f · `packages/core/src/db/m9-p1f-grade-guard.ts`）—— 界面不得出现越过编程证据的职业等级断言；全仓（`apps/*/src` ＋ `packages/*/src`）**0 命中**。⚠️ **只认「对人的主语 ＋ 断言」结构**（主语必须是「你/您/用户/学员」，且中间段与前缀不得带否定/疑问标记）⇒ 规则说明里**引用**「你已达成 L1」是**必须能写出来的**。⚠️ **反向判据必须自证**：注入「你已经达成 L1…」当场被报出；反证「本模块不判断你是否达到专家级」**不算命中**（守卫跳过自身与 `*.test.ts`） |
+| DL-43 | P1f.4 | 深链落档（#mode-* 优先） | **已产出**（P1f · `apps/web/src/components/dev/ModeDeepLink.tsx` ＋ `packages/shared/src/m9-stage.ts`）—— 三个锚点 `#mode-vibe` / `#mode-master` / `#mode-familiar` **各自落位**（落位 = 单一，不是三档并排）；**URL 片段优先于** §3.19 的 onboarding 默认模式（用户是**从别人给的链接进来的**，那个链接指向哪一档就该落哪一档）；`hashchange` 跟随（同文档内切档不改路由）；提示条**只在深链命中时**出现。⚠️ **变异腿实跑**：`vi.mock` 把 `resolveProfileFromHash` 换成恒 `null` ⇒ 三个锚点全落默认档 ⇒ **生产断言当场红**（`ModeDeepLink.mutant.test.tsx`，变异体独占一份文件 —— `vi.mock` 按文件生效） |
 | DL-44 | §11.1 | §0 数字与正文一致 | 可立刻开工（§3.1 内部已由 P1.7 覆盖，§0 速览↔正文待 §11.1） |
 | DL-45 | §11.1 | 判据标注与 §10.2 不矛盾 | **可立刻开工** |
 | DL-46 | §11.1 | 台账卡住哪期与 §9 依赖一致 | **可立刻开工** |
