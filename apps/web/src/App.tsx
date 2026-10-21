@@ -18,6 +18,10 @@ const LibraryPage = lazy(() =>
   import('./pages/LibraryPage').then((m) => ({ default: m.LibraryPage })),
 )
 const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default: m.TermsPage })))
+// M9「开发能力」页（§3.5 · dev-plan §6.9 P3）
+const DevAbilityPage = lazy(() =>
+  import('./pages/DevAbilityPage').then((m) => ({ default: m.DevAbilityPage })),
+)
 const PlaybooksPage = lazy(() =>
   import('./pages/PlaybooksPage').then((m) => ({ default: m.PlaybooksPage })),
 )
@@ -44,6 +48,7 @@ export function App() {
         <Route index element={<WorkbenchPage />} />
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/dev" element={<DevAbilityPage />} />
         <Route path="/playbooks" element={<PlaybooksPage />} />
         <Route path="/skills" element={<SkillsPage />} />
         <Route path="/flows" element={<FlowsPage />} />

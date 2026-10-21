@@ -109,9 +109,14 @@ components:
     activeBackgroundColor: "{colors.accent-soft}"
   chip:
     textColor: "{colors.ink-muted}"
-    backgroundColor: "{colors.panel-2}"
+    backgroundColor: "{colors.panel-sunk}"
     borderColor: "{colors.line}"
     rounded: "{rounded.full}"
+  tag:
+    textColor: "{colors.ink-muted}"
+    backgroundColor: "{colors.panel-2}"
+    borderColor: "{colors.line-hair}"
+    rounded: "{rounded.sm}"
   table-header:
     textColor: "{colors.ink-faint}"
     borderColor: "{colors.line}"
@@ -228,7 +233,9 @@ motion:
 - **button-secondary**：`panel` 底 + `line-strong` 描边 + `ink-body` 字；hover `panel-2` + 描边加深。
 - **button-ghost**：透明底 + `ink-muted` 字；hover `panel-2` + `ink`。
 - **button-danger（破坏动作）**：`danger-soft` 底 + `danger-line` 描边 + `danger` 字；hover 转 `danger` 实心 + `panel` 字；**点击后必须二次确认并给出影响范围**。与 primary 永不同时出现在同一动作上。
-- **chip**：`full` 圆角 + 11.5px 行高 1.7；六形制（默认/`accent`/`ok`/`warn`/`danger`/`info`），每形制都是「soft 底 + 同色系 line + 同色系 solid 字」三件套，**永远配图标 + 文字**。可按压的筛选 chip 用 `aria-pressed`，选中态转 `accent-soft` + `accent-deep`。
+- **chip（状态）**：`full` 圆角 + **11px** 行高 1.7；**六形制** ＝ 默认 / `accent` / `ok` / `warn` / `danger` / `info`。⚠️ **默认形制是中性形制**（`panel-sunk` 底 + `line` 描边 + `ink-muted` 字），**不是**「soft 底」三件套；其余五形制才是「soft 底 + 同色系 line + 同色系 solid 字」。**永远配图标 + 文字**（颜色不单独承载语义）。可按压的筛选 chip 用 `aria-pressed`，选中态转 `accent-soft` + `accent-deep`。
+  - **M9 掌握度三态的落法**（`m9-dev-language-roadmap.md` §3.3，2026-10-21 登记）：「本项目未涉及」＝ **默认形制**（中性）／「本项目用到过」＝ `accent`／「掌握」＝ `ok`。⚠️ 三态文案取自 `@openvibe/shared` 的 `MASTERY_STATE_LABELS`（**口径只留一处**，界面不另写）；⚠️ **不得出现「你已掌握」**——这套推断只认得出「用过」。
+- **tag（元信息标签）**：`sm` 圆角 + **11.5px** 行高 1.7 + `panel-2` 底 + `line-hair` 描边 + `ink-muted` 字；**纯文字、无状态语气**——装的是 `v5` / `pkg@ver` / 平台名 / 变量名这类**没有状态语义**的元信息。⚠️ **状态一律走 chip**（要图标），不要用 tag 承载状态；`.mono` 变体（`tagMonoCls`）用于指纹 / 路径 / 命令。**2026-10-21 登记**（M9-P3.7）——本形制早就在仓里用了 **36 处 / 15 个文件**，此前**从未登记**，本轮补上。
 - **input / field**：`panel` 底 + `line-strong` 描边 + `sm` 圆角；focus 时描边转 `accent` + 3px `accent-soft` 光晕（这是全站唯一允许的"光晕"，且是同色相低透明）；前缀图标色 `ink-faint`；mono 变体用于指纹/路径/命令。
 - **tabs（segmented）**：`panel-2` 槽 + `line` 描边 + `sm` 圆角；选中段 `panel` 底 + `shadow-1` + `ink` 字。**注入冲突处置**用它：选中段即"处置决定"，**段数由数据给**——`DRIFT` 三档（以包为准 / 保留本地 / 跳过）、`CONFLICT` 只两档（以包为准 / 跳过；本包从未拥有该文件，"保留本地"无从成立），不硬写三档（取数 `packages/core/src/inject/planner.ts` 的 `RULES`，细则见 `docs/specs/m6-standard-pack.md` FR-7.5）。默认选中项**待 owner 裁定**（队列 **㉕**，`docs/decisions.md`；现为「保留本地」，而 CLI 已发布行为是 `overwrite` ⇒ 界面预选与「CLI 默认」必须同屏并列，响应不改 `defaultDecision` 一个字）。
 - **ledger-table（台账表）**：表头 11.5px `ink-faint` + `line` 底线；行 `line-hair` 分隔；数字列 `tabular-nums` 右对齐；状态列 = 图标 + 文字 + chip（一致 `ok` / 漂移 `warn` / 新增 `info` / 失败 `danger`）。
@@ -323,3 +330,4 @@ V2 颜色 token 共 **29 支**（V1 为 40 支），双主题各一份；原型�
 | 2026-10-01 | `ink-faint` 由原型 #806E5A 改深为 **#75634C** | 原型在自己的 `panel-2` / `panel-sunk` 底上只有 4.36 / 4.00——换肤若原样照抄会新造 sub-AA；改值后四底最低 4.71，代价是 faint 与 muted 的间距收窄 |
 | 2026-10-01 | 断点沿用 Tailwind 默认档，就近映射原型的 1080/900/560 → `lg/md/sm` | 仓内已有 38 处响应式变体，为 5–8% 的像素差新增 `--breakpoint-*` 并重写不划算；折叠语义逐条照搬 |
 | 2026-10-01 | 阴影改为「scrim 的 color-mix」三级 token | 保住暗块「只允许 `--color-*`」这条不变量：阴影随主题自动换浓淡，暗块不需要 `--shadow-*` 覆盖 |
+| 2026-10-21 | **`.tag` 形制登记进本文档**（M9-P3.7）；同批**按实现订正 chip 描述**：默认形制是中性的 `panel-sunk` 底（不是「soft 三件套」）、字号 **11px**（11.5px 是 `.tag` 的） | `.tag` 早就在仓里用了 **36 处 / 15 个文件**却**从未登记**，`m9-dev-language-roadmap.md` §3.5 把它点名为「本仓已有的待办缺口」；⚠️ **描述与实现分叉时，实现是已交付的事实** ⇒ 文档向 `apps/web/src/components/ui/styles.ts` 的 `CHIP_TONES` / `tagCls` 对齐，而不是反过来改 39 处调用点的观感 |

@@ -29,6 +29,8 @@ const NAV: { group: string; items: { to: string; label: string; icon: IconName; 
     items: [
       { to: '/library', label: nav.library, icon: 'doc', count: (c) => c.prompts },
       { to: '/terms', label: nav.terms, icon: 'book', count: (c) => c.terms },
+      // M9 开发能力（§3.5：紧随「术语」之后 —— 两者互链最密）
+      { to: '/dev', label: nav.devAbility, icon: 'compass' },
       { to: '/playbooks', label: nav.playbooks, icon: 'sparkle', count: (c) => c.playbooks },
       { to: '/skills', label: nav.skills, icon: 'box', count: (c) => c.skills },
       { to: '/flows', label: nav.flows, icon: 'flow', count: (c) => c.flows },

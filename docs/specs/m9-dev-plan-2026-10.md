@@ -276,6 +276,17 @@ P0 → P1 → P1b ┬→ P1c
 - **P3.7** `DESIGN.md` 登记 `.tag` 形制（owner 任务） / **DL-11** / - / 0.5
 - **P3 出口**：设计系统四道闸（design-tokens.test.ts）依旧全绿 + 新增 chip 形制登记进 DESIGN.md
 
+> ✅ **P3 已产出**（本轮 · 2026-10-21）：
+> - **P3.1** —— 侧栏 `assets` 组**紧随「术语」之后**新增「开发能力」（图标 `compass`）＋ 路由 `/dev`（懒加载）；⚠️ 侧栏项文案放 `i18n/core.ts` 的 `nav.devAbility`，**没往 `i18n/zh.ts` 加键**（新组件一律就地定义文案常量，照 `TermFilterBar` 的 `L` 惯例）。
+> - **P3.2** —— 站列（`StageColumn`，竖排 8 站 ＋ 站号**从 1 起**）＋ DAG 当前层（`TopicLayer`）＋ 三态 chip（`MasteryChip`，文案取自 P2 的 `MASTERY_STATE_LABELS`）＋ 完整度标记（`CompletenessMark`）；⚠️ 派生口径只落一处（`packages/shared/src/m9-roadmap.ts` 的 `deriveCurrentStage` / `stationCompleteness` / `stageNoOf`）。
+> - **P3.3** —— 详情页（`TopicDetail`）：三段（缺段**不渲染**）＋ 差异 ＋ 外链 ＋ 术语挂接；⚠️ 冷门说明常驻（`COLD_TOPIC_NOTE`，§6.3 第 2 条）。
+> - **P3.4 / P3.5 / P3.6** —— 三块静态面板：双修规划 **9 段**（精通 5 ＋ 熟悉 4，**照抄不推导**）／语言对照 **8 维** ＋ 选学顺序 **3 条**／练习原则 **6 条**（**不做可勾选清单**）。⚠️ 内容落 `packages/shared/src/m9-panels.ts`（**不建表**、随代码走），并配**逐格对账 spec §3.22** 的闸（`m9-panels.test.ts` 11 支）。
+> - **P3.7** —— `DESIGN.md` 登记 `.tag` 形制 ＋ 状态 chip 六形制 ＋ M9 三态落法（见下方 DL-11 行）。
+> - **本轮补的最小读接口**（计划未写，但页面不能是空壳）：`packages/core/src/db/m9-roadmap-read.ts`（`readRoadmap` / `readStates` / `readTopicDetail`）＋ 两个 GET 端点（`/api/lang/roadmap` · `/api/lang/topics/:id`）＋ `packages/shared/src/schemas/lang.ts` 的 zod 契约 ＋ `apps/web/src/hooks/useLangRoadmap.ts`。
+> - **⚠️ 本轮各取一个方向的规格张力**（**未改规格**）：① **「你在第 M 站」规格无公式**（§3.5 只写了这句话，§2.3 说「由 ①② 推出」却没写怎么推）⇒ 按 §3.18 的站位语义取「**已点亮知识点的最大站号；一个都没点亮 ⇒ 第 1 站**」，文案只写「**你站到第 M 站**」不写「已完成第 M 站」。② **知识点 → 概念的挂接在库里没有结构化列**（`lang_concepts` 无挂接列，§3.1 也没列）⇒ 沿用 P1.5 装载器的落法（`lang_topics.summary` 的「**【概念层】标题：**」前缀）还原，还原不出就没有差异条目（**不编**）；⚠️ 前缀被改则挂接丢失（已知脆弱点）。③ **四块静态内容「不建表」** ⇒ 内容随代码走（`m9-panels.ts`），不落库、不进 DAG、不参与掌握度。
+> - **⚠️ 本轮未挂载**：P1e/P1f 的既有组件（`ModeOnboarding` / `ModeTransferPanel` / `ResourceModeChip` / `StageTracks`）**仍未挂进页面** —— 它们要 `lang_topic_profiles` 的模式必学集，而本轮读端**没提供 profile 过滤** ⇒ 模式切换（精通/熟悉/速成）与转档弹层**未接线**；源码解读抽屉属 P4。
+> - **P3 出口复算**：P3 相关 **72 支**全绿 —— 侧栏 4（`AppShell.nav.test.tsx` · P3.1）＋ 路线与详情 12（`Roadmap.test.tsx`）＋ 静态面板 12（`StaticPanels.test.tsx`）＋ 派生口径 10（`m9-roadmap.test.ts`）＋ 面板内容对账 11（`m9-panels.test.ts`）＋ 读端 16（`m9-roadmap-read.test.ts`）＋ 端点 7（`langRoadmap.api.test.ts`）；⚠️ 全量 **137 文件 / 1700 支**全绿；⚠️ **设计四闸 4 支全绿** ＋ **token 仍 29 支**；⚠️ 测试当场抓到一处真缺陷（`deriveCurrentStage` 在「一个都没点亮」时返回 0，应为第 1 站）⇒ 已修并补变异腿。
+
 ### 6.10 M9-P4 源码 T0 ＋ T1（**5 人日**）
 
 - **P4.1** Python `ast` 扫描器（`scripts/scan-m9-source.ts`） / **DL-17** / P1 / 1
@@ -311,8 +322,8 @@ P0 → P1 → P1b ┬→ P1c
 | DL-07 | P2.2 | 冷门知识点显示文案 | **已产出**（P2 · `packages/shared/src/m9-state.ts` ＋ `packages/core/src/db/m9-p2-state.ts`）—— 零证据知识点 ⇒ 状态 `unused` ⇒ 文案「**本项目未涉及**」（§6.3 第 2 条）；冷门补充说明「本项目永远可能用不到它（冷门知识点）」也落成常量（`COLD_TOPIC_NOTE`）。⚠️ **状态图覆盖全部知识点**（`readTopicStateMap` 把没有证据行的知识点也填成 `unused`）⇒ 界面永远拿得到文案，不会有空白。⚠️ **文案纪律**：「你已掌握」与「未触及」三个字都不许进文案（同 DL-05 的守卫） |
 | DL-08 | P5.4 | AI 不可用时确定性层照常 | 未开工 |
 | DL-09 | P5.3 | AI 结果不得绕过判定层 | 未开工 |
-| DL-10 | P3.1 | 新增页面零字面色阶 | 未开工 |
-| DL-11 | P3.1/P3.7 | 形制登记进 DESIGN.md | 未开工 |
+| DL-10 | P3.1 | 新增页面零字面色阶 | **已产出**（P3 · `apps/web/src/components/dev/` ＋ `apps/web/src/pages/DevAbilityPage.tsx`）—— 全部颜色走 `index.css` 的语义 token；⚠️ 由 `tests/design-tokens.test.ts` 四道闸实测（**零字面色阶** ＋ 裸 hex 只住 token 源 ＋ 用到的语义色都已声明 ＋ 声明的都被引用），本轮复跑 4 支全绿、token 仍 **29 支** |
+| DL-11 | P3.1/P3.7 | 形制登记进 DESIGN.md | **已产出**（P3.7 · `DESIGN.md`）—— ① **`.tag` 形制**（**36 处 / 15 个文件**此前在用却**从未登记** ⇒ 本轮补上，含 mono 变体与「状态一律走 chip」的分工）；② **状态 chip 六形制**（默认 ＝ 中性的 `panel-sunk` 底，其余五形制 ＝ soft 三件套）＋ **M9 掌握度三态的落法**（未涉及＝默认 / 在用＝accent / 掌握＝ok，文案取自 `MASTERY_STATE_LABELS`）。⚠️ 同批**按实现订正**了 chip 描述（字号 11px、默认形制底色）—— 描述与实现分叉时**实现是已交付的事实** |
 | DL-12 | P1.1 | 库级条目不进学习路线 | 已产出（P1.7 · m9-p1-7-topic-stages.ts）⚠️ 见附注① |
 | DL-13 | P1.4 | 清单带 kind 且可复算 | 已产出（P1.4 · m9-classify-lang-topics.ts） |
 | DL-14 | P1.2/P1.3 | 两门数据都在且可筛选 | 已产出（P1.8 · m9-topic-filter.ts） |

@@ -11,6 +11,7 @@ import { registerFlowTemplateRoutes } from './routes/flowTemplates'
 import { registerNavCountRoutes } from './routes/navCounts'
 import { registerPackRoutes } from './routes/packs'
 import { registerLocalEventsRoutes } from './routes/localEvents'
+import { registerLangRoutes } from './routes/langRoadmap'
 import { registerPlaybookRoutes } from './routes/playbooks'
 import { registerProjectRoutes } from './routes/projects'
 import { type PortRouteDeps, registerPortRoutes } from './routes/ports'
@@ -79,6 +80,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   registerPackRoutes(app, deps)
   registerLocalEventsRoutes(app, { db, now: options.now })
   registerProjectRoutes(app, deps)
+  // M9「开发能力」页读端（站列 ＋ 当前层 ＋ 详情）
+  registerLangRoutes(app, { db })
   registerPortRoutes({ db, listListenersImpl: options.listListenersImpl })(app)
   registerTaskRoutes(app, deps)
   registerDevLogRoutes(app, deps)

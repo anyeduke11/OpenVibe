@@ -25,6 +25,8 @@ export const nav = {
   growth: '成长与统计',
   library: '提示词库',
   terms: '术语库',
+  // M9「开发能力」（§3.5：assets 组里紧随「术语」之后）
+  devAbility: '开发能力',
   playbooks: '技巧库',
   skills: 'Skill',
   flows: '流程模板',

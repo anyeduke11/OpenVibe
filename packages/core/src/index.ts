@@ -307,4 +307,12 @@ export {
   type ReplaceLinkWrite,
 } from './inject'
 
+export {
+  readRoadmap,
+  readTopicDetail,
+  readStates,
+  CONCEPT_MOUNT_PREFIX,
+  type TopicDetailRow,
+} from './db/m9-roadmap-read'
+
 export const CORE_VERSION = '0.0.0'
