@@ -32,17 +32,17 @@
 
 ## 3. 数据与核心概念
 
-**现测基线**（采样 2026-10-03，树 `54789b8` 的工作树；每条可复算）：
+**现测基线**（**行集稳定，计数一律现跑** —— 不写死任何一次份数，理由同 FR-1.4 与 FR-4.1；**复算命令列即口径**）：
 
 | 量 | 值 | 复算命令 |
 |---|---|---|
-| DEV 条目数 | **96** | `grep -cE '^## \[DEV-[0-9]{4}\]' DEV_LOG.md` |
-| CHECK 条目数 | **0** | `grep -cE 'CHECK-[0-9]{4}' DEV_LOG.md` |
-| 队列行数 | **33** | `grep -cE '^\| [①-⑳㉑-㉟]' docs/decisions.md` |
-| specs 份数／有版本行 | **12／12** | `ls docs/specs/*.md \| wc -l`；`grep -lE '^\| 版本 \|' docs/specs/*.md \| wc -l` |
-| `docs:check` 是否已存在 | **否** | `ls scripts/ \| grep -c docs` → 0（根 `package.json` 的 scripts 里亦无 `docs:check`） |
+| DEV 条目数 | **现跑** | `grep -cE '^## \[DEV-[0-9]{4}\]' DEV_LOG.md` |
+| CHECK 条目数 | **0**（未闭合项见 §8.2 待裁③） | `grep -cE 'CHECK-[0-9]{4}' DEV_LOG.md` |
+| 队列行数 | **现跑** | `python3 -c "import re;print(sum(1 for l in open('docs/decisions.md',encoding='utf-8') if re.match(r'^\| ([①-㉟]+) +\|', l)))"`（**禁用 BSD grep 的多字节区间写法**，见 FR-2.4） |
+| specs 份数／有版本行 | **现跑**（两数必须相等才算绿，见 FR-4.1 的分式口径） | `ls docs/specs/*.md \| wc -l`；`grep -lE '^\| 版本 \|' docs/specs/*.md \| wc -l` |
+| `docs:check` 是否已存在 | **是**（`scripts/docs-check.ts` ＋ 根 `package.json` 的 `docs:check` 脚本） | `ls scripts/ \| grep -c docs` |
 | `docs/queue.yaml` | **不存在** | `ls docs/queue.yaml` |
-| 表格里含未转义竖线的行数 | **本轮曾为 5 行、现已 0** | 用户级 skill 的电池检查 8（python 走表，把 `\|` 先换 `\x00` 再数列） |
+| 表格里含未转义竖线的行数 | **见基线文件**（`docs/docs-check-baseline.json` 的 FR-4.2 两条登记） | 命中由 `docs:check` 报出；**此处不复制计数**（计数单源在基线文件） |
 
 **「CHECK = 0」这一条不是我的发现**，是分析文 §11 表末行登记的事实缺口：`docs/tasks.md` §1 要求「每 40 轮一份 CHECK 报告」，全仓一条没有。分析文的评语我原文引用其结论而不重复其论证：**一条不执行的规则比没有规则更坏**，它会让人以为被遵守了。⇒ FR-5 必须把「CHECK 段是否存在」做成**可裁定的两种合法态之一**，而不是继续挂着一条没人执行的规则（§8.2 待裁③）。
 

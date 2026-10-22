@@ -22,7 +22,7 @@
  * 即使用户把绝对路径当参数传进来，输出里也**不会**出现它。
  */
 import { resolve } from 'node:path'
-import { scanProjectSource } from '../packages/core/src/source-scan/scan.ts'
+import { scanProjectSource } from '../packages/core/src/source-scan/scan'
 
 const args = process.argv.slice(2)
 const json = args.includes('--json')

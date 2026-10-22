@@ -20,11 +20,11 @@ npx openvibe-cli sync ~/your-project --pack default            # ② 把预置�
 npx openvibe-cli diff ~/your-project                           # ③ 看有没有漂移（0=一致，2=有改动）
 ```
 
-> **`openvibe-cli` 尚未在 npm 上线**（v0.1.0 发布的最后一步，registry 实测 404）。
+> **`openvibe-cli` 尚未在 npm 上线**（v0.1.0 发布的最后一步；registry 于 2026-10-22 复测仍 404）。
 > 上线前两条装法：① 从 [release v0.1.0](https://github.com/anyeduke11/OpenVibe/releases/tag/v0.1.0) 下载 `openvibe-cli-0.1.0.tgz`，`npm i -g ./openvibe-cli-0.1.0.tgz`（该资产的体积 / sha256 / 36 条清单见发布说明「测量口径」）；② 源码构建：`pnpm install && pnpm pkg:cli` → `cd apps/cli/pkg && npm pack` →
 > `npm i -g openvibe-cli-0.1.0.tgz`（cwd 仍在上一步的 `apps/cli/pkg`，故路径不带前缀）。之后命令同上（全局装过就不必每行带 `npx`）；**装后跑通五命令这件事未在干净机复验**，见发布说明「本版本未验证的事」。
 
-第 ① 步首启会把 **109 条术语 / 3 套流程模板 / 21 条精选提示词**播进本地库，并自动组装出一个 `default` 标准包
+第 ① 步首启会把 **109 条术语 / 7 套流程模板 / 21 条精选提示词 / 13 条技巧**播进本地库，并自动组装出一个 `default` 标准包
 ——不用先建库再对着空界面发呆。第 ② 步默认先给预览表、要你确认，覆盖任何已有文件前会先备份。跑完你会得到：
 
 | 写入的文件 | 谁读它 |
@@ -45,11 +45,12 @@ npx openvibe-cli diff ~/your-project                           # ③ 看有没�
 
 | 现状 | OpenVibe 的答案 |
 |---|---|
-| 提示词躺在聊天记录里，规则散落各个项目 | 五类资产统一入库：提示词 / 术语 / Skill 台账 / 流程模板 / 标准包 |
+| 提示词躺在聊天记录里，规则散落各个项目 | 各类资产统一入库：提示词 / 术语 / 技巧 / Skill 台账 / 流程模板 / 标准包 |
 | 每人喂给 AI 的规则质量天差地别 | 标准包一键注入，同一套标准跨助手、跨项目 |
 | 踩过的坑、发明的词没有沉淀载体 | 术语库 + 技巧库，带来源反链 |
 | AI 编码项目流程随意、质量靠运气 | 可裁剪的流程模板 + 检查清单 + 开发/检查日志 |
 | 手改的规则会被工具无声覆盖 | `diff` 报漂移，冲突三选一（以包为准 / 保留本地 / 跳过），覆盖前必定备份 |
+| 想系统学一门技术，知识点散在各处、进度无处落 | 开发能力页：语言知识点站位图 + 两门语言对照 + 学习资源清单（M9） |
 
 **核心闭环（标准化飞轮）**：
 
@@ -65,13 +66,18 @@ npx openvibe-cli diff ~/your-project                           # ③ 看有没�
 
 | 路由 | 干什么 |
 |---|---|
+| `/` | 工作台：首启向导、标准化飞轮统计、本机自证层 |
 | `/library` | 提示词库：文件夹树 + 过滤器 + 双栏编辑器，版本历史/diff/回滚，四形态导入导出 |
 | `/terms` | 术语库：拼音与英文双序搜索、多选、`TERMS.md` 实时预览 |
+| `/dev` | 开发能力：语言知识点站位图 ＋ 两门语言对照 ＋ 源码解读抽屉（M9） |
+| `/resources` | 学习资源：可筛选的资源清单，每条带模式标记（速成 / 精通） |
+| `/playbooks` | 技巧库：记录真实场景的做法与反例，导出 `PLAYBOOKS.md` |
 | `/skills` | Skill 台账：扫描本机 skill 目录与项目规则文件并登记 |
-| `/flows` | 流程模板：三套内置模板只读，复制成自己的再裁剪阶段 |
+| `/flows` | 流程模板：七套内置模板只读，复制成自己的再裁剪阶段 |
 | `/projects` | 项目工作台：阶段条 + 看板拖拽（键盘/按钮同效）+ 开发日志 + 回流入口 + 注入状态 |
 | `/packs` | 标准包：五步向导组包、预览即产物（与导出字节一致）、导出历史与 bundle 下载 |
-| `/settings` | 设置：数据目录、种子重播、备份说明、遥测开关、向导重播 |
+| `/growth` | 成长与统计：阶段向量、越级入口与毕业信号（信号未采集时如实标注「待采集」） |
+| `/settings` | 设置：数据目录、种子重播、备份说明、遥测开关、向导重播、解读服务多份配置、来源成本台账 |
 
 **CLI**
 
@@ -108,7 +114,7 @@ openvibe clean <dir> [--yes]              退场：删当前 lock 登记且未�
         apps/cli  薄客户端：只做传输 + 交互 + 文件 IO，业务逻辑不在它身上
 ```
 
-- 只有一个运行时依赖：`better-sqlite3`（原生模块不能打包），其余全部内联进单文件 `cli.js`（约 3.5 MB）。
+- 只有一个运行时依赖：`better-sqlite3`（原生模块不能打包），其余全部内联进单文件 `cli.js`（采样 2026-10-22 跑 `pnpm pkg:cli` 实测 **5079.46 kB**）。
 - 数据是**一个 SQLite 文件**，没有服务、没有账号、没有后台常驻。
 - CLI 断网可用：`sync --file bundle.json` / `--dir` 走离线注入，不需要起 serve。
 
@@ -174,10 +180,11 @@ OpenVibe 的 agent 接入是**三件事**，边界刻意收得很窄 —— agen
   **不会被「顺手加进闭集」**。要加列是产品决定，不是 agent 的权限。
 
 **CLI 侧**：`openvibe ask <问题>`（七个闭集关键词，**不接 LLM**，输出确定性）、`openvibe status [目录]`、
-`openvibe session log`（回流一条日志）。这三只全部经 HTTP，**CLI 进程从不直接打开数据库**。
+`openvibe session log`（回流一条日志）、`openvibe requirement add`（送一条需求进服务端待确认队列）。
+这四只全部经 HTTP，**CLI 进程从不直接打开数据库**。
 
 **每类事件都留在本机台账里**（见上一节），CLI 每次运行也记一条 `cli_agent_command_run`。
-本机事件台账的 18 类 kind 与匿名遥测那三类**严格不同名** —— agent 的活动不会被混进遥测白名单。
+本机事件台账的 23 类 kind 与匿名遥测那三类**严格不同名** —— agent 的活动不会被混进遥测白名单。
 
 ### 本机事件台账：和匿名遥测是两件不同的事
 
@@ -189,7 +196,7 @@ OpenVibe 的 agent 接入是**三件事**，边界刻意收得很窄 —— agen
 | 关掉之后 | 不入队、零外联 | **照样记**。关遥测对它没有任何影响 |
 | 去向 | 开关打开后会发到 owner 自部署的端点 | **不出网**。表只在本机 SQLite 里，没有上传通道 |
 | 能不能清 | 随遥测设置走 | 设置页「本机事件台账 → 清空」，**一次性全删，不可撤销** |
-| 记什么 | 固定三类事件，五段固定字段 | 18 类事件（建资产、改资产、勾清单项、注入结果……），只记 id 与枚举值 |
+| 记什么 | 固定三类事件，五段固定字段 | 23 类事件（建资产、改资产、勾清单项、注入结果……），只记 id 与枚举值 |
 
 两者的 kind 闭集**严格不同名**，这是有意的：名字混在一起会让「关了遥测就没记录」这个误解被界面坐实。
 
@@ -253,8 +260,8 @@ npm / npx 用户走 `prebuild-install` 按平台与 Node ABI 取预编译包，�
 ```bash
 git clone https://github.com/anyeduke11/OpenVibe && cd OpenVibe
 pnpm install                # pnpm ≥ 10，corepack enable 即可
-pnpm lint && pnpm typecheck && pnpm test        # 476 用例 / 55 文件（unit / integration / cli / web-jsdom 四层；采样 2026-09-29 17:40 本机 @ `93bb697`（`[DEV-0061]` 那笔的树）：lint 与 typecheck 零输出，test 476 passed / 0 skipped。支数随提交变动，以 pnpm test 汇总行为准）
-pnpm seed:check && pnpm bundle:check            # 另两道门禁：种子数量与构成配额、Web 体积闸门（入口 293.16 kB ≤ 300 kB）
+pnpm lint && pnpm typecheck && pnpm test        # 2084 用例 / 162 文件（unit / integration / cli / web 四层；采样 2026-10-22 本机 @ `a30268d`：lint 与 typecheck 零输出，test 162 文件 / 2084 支全绿，耗时 126s。支数随提交变动，以 pnpm test 汇总行为准）
+pnpm seed:check && pnpm bundle:check            # 另两道门禁：种子数量与构成配额、Web 体积闸门（入口 268.27 kB ≤ 300 kB）
 pnpm pkg:cli                                    # 产出发布暂存目录 apps/cli/pkg/
 cd apps/cli/pkg && npm pack                     # → openvibe-cli-<版本>.tgz，可 npm i -g 它
 ```
@@ -274,14 +281,19 @@ docs/
 ├── prototypes/                     早期视觉原型（可交互 HTML，含三套暖系方案对比）
 ├── DEV-00NN 证据                   docs/devlog-evidence/：真机走查驱动器 + 日志，可对 HEAD 复跑
 ├── analysis-*.md                   专题深度分析：analysis-2026-10-02-first-principles.md 是 PRD 第 10 章（v0.2.0 重构）的唯一证据源，全部数字与复算命令在那里
-└── specs/                          逐模块规格（输入输出、边界、验收标准）
+└── specs/                          逐模块规格（输入输出、边界、验收标准；以下为节选，完整清单见目录）
     ├── m1-prompt-library.md   m2-skill-registry.md   m3-glossary.md
     ├── m5-project-flow.md     m6-standard-pack.md    m6-cli-injection.md
-    └── seed-content.md        onboarding.md
+    ├── m7-team-collab.md      m8-agent-bridge.md     m8-agent-panel.md
+    ├── seed-content.md        onboarding.md          m4-playbook.md
+    └── m9-dev-language-roadmap.md  m9-dev-plan-2026-10.md   ← 开发能力线（M9）
 ```
 
 里程碑：P0 文档定稿 → T1 脚手架 → T2 存储核心 → T3 提示词库 → T4 术语库 → T5 项目流程 →
-T6 组包导出 → T7 CLI 注入 → T8 种子全量 + 开箱体验 → **T9 飞轮 E2E + 发布（当前）**。
+T6 组包导出 → T7 CLI 注入 → T8 种子全量 + 开箱体验 → T9 飞轮 E2E → v0.1.0 发布（2026-09）。
+其后是 v0.2.0 重构线（[PRD.md](https://github.com/anyeduke11/OpenVibe/blob/main/docs/PRD.md) 第 10 章 RF0–RF5）＋ M8 Agent 接入（第 11 章）＋
+M9 开发能力线（`docs/specs/m9-dev-language-roadmap.md`）；任务号与出口判据单源在
+`docs/dev-plan.md` 与 `docs/specs/m9-dev-plan-2026-10.md`。
 细节见 [DEV_LOG.md](https://github.com/anyeduke11/OpenVibe/blob/main/DEV_LOG.md)。
 
 ## 许可

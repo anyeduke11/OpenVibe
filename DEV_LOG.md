@@ -2812,3 +2812,54 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
 **为何前两项合并成一条**：若拆成两条（一条管检索面数、一条管凭据），判据数变 9 **当场触发复审**。
 两者针对的是同一缺陷类（「否定式现状断言没有留下复算入口」），合并是诚实计数而非规避 ——
 拆开数只是让数字好看。
+
+---
+
+## [DEV-0107] 2026-10-22 · M9 增强 1–5 落地 ＋ 复核轮：多 provider 并存 / 成本台账 / 守卫补洞
+
+- **时间**: 2026-10-22
+- **类型**: 功能开发（M9 v1.6 增强批次 ＋ 复核轮）
+- **关联文件**: `packages/core/src/source-ai/`、`packages/core/src/db/m9-time-window-guard.ts`、`apps/server/src/routes/`、`apps/web/src/components/settings/`、`packages/shared/src/`、`docs/specs/m9-dev-language-roadmap.md`、`docs/specs/m9-dev-plan-2026-10.md`、`vitest.config.ts`
+- **问题描述**: owner 2026-10-22 提了五条增强：① 落库的「解读来源」看不出**是哪一家答的**；② 解读服务只能配一份，换一家就得覆盖旧配置；③ 时间派生量守卫看不见 JS 侧的相对窗口（`LocalEventsRepo.summary` 那个事故现场被漏掉）；④ 成本台账没有 token 口径；⑤ 规格与落库口径漂移（首屏两选项 vs 落库三档）。复核轮又发现 `unit` / `web` 两层默认 5s 闸在机器负载高峰期产生**环境型红**。
+- **实现思路**: 走「**零新增表**」路线 —— 增强 1/4 在既有 `0018` 迁移上加三列，而不是另起一张表。增强 2 把 `app_meta.langInterpretProvider` 从**单条**升级为**集合**（`{providers, default_provider_id}`），并把「选谁」的口径收进**唯一一处** `selectProviderEntry`（显式 `provider_id` → 按 `project_id` 绑定 → 默认）；读端**认旧形状**（包成单元素集合）保证老配置连其钥匙串 key 都不丢。增强 3 的修法是**按整段 SQL 取表名**（`findSqlRelativeNows` ＋ `STRING_LITERAL_PATTERN`）而不是逐行取 —— 逐行取正是「看不见事故现场」的成因。
+- **核心变更**:
+  - 增强 1/4：迁移 `0018_lang_share_provider.sql` 加三列（`provider` / `model` / `usage_total_tokens`，**零新增表**）；`readShareByProvider` 读端；`GET /api/lang/source/share-by-provider`；摘要增 `provider` / `usage`（**兼容扩展，不升契约版本号**）；HTTP 与 Pi 两路用量归一；台账记「**配置的那家**」；导出件与抽屉显示「谁答的 ＋ 多少 token」。
+  - 增强 2：`app_meta.langInterpretProvider` 升级为 `{providers, default_provider_id}`；读端认旧形状（`LEGACY_PROVIDER_ID='default'`）；选择口径唯一一处 `selectProviderEntry`；钥匙串账号按 id 分（`api-key:<id>`，老配置沿用 `api-key`）；端点 `/provider`（单数）→ `/providers`（复数）；`capability?provider_id=`；`POST /api/lang/interpret` 支持 `provider_id`；设置页改成多份列表 ＋ 选中编辑 ＋ 新增/删除/设为默认，保存一次 PUT 整份集合。
+  - 增强 3：`m9-time-window-guard.ts` 的 SQL 表名改为**按整段 SQL 取**（`findSqlRelativeNows` ＋ `STRING_LITERAL_PATTERN`）；测试侧也 `stripComments`；夹具方法名 `summary` → `fixtureSummary` 防自我命中；补「现场看得见」判据。
+  - 增强 5：spec §3.9 加三列与取值口径；新增 §3.21.1「落库三档 ≠ 首屏两选项」；§5.3 补记多份并存。
+  - 复核轮（提交 `a30268d`）：`vitest.config.ts` 把 `unit` / `web` 两层 `testTimeout` 由默认 5s 抬到 **20s**（沿用仓内 `integration` 20s / `cli` 30s 先例）。⚠️ 抬的是**闸口**不是功能红线：实测最慢仍有 3x 余量，真卡死仍会红。
+- **测试验证**:
+  - 测试命令: `npx vitest run --maxWorkers=3`（**全量单独跑，不与 `bundle:check` 并发** —— 并发会因机器过载产出几十支环境型假红）
+  - 验证结果: 全量 **162 文件 / 2084 支全绿**（提交态复跑两次：70.5s 与 142s）；四处 `tsc` 零错（`packages/shared` / `packages/core` / `apps/server` / `apps/web`）；`eslint` 零错；`npx tsx scripts/docs-check.ts` **error 0 · warning 133**（＝基线，基线文件未动）；`npm run bundle:check` 入口 **268.27 kB** ≤ 300 kB / 46 chunk，最大 347.45 kB ≤ 500 kB；`npx tsx scripts/seed-check.ts` 通过；外部内容扫描 0；spec 一致性 3 ＋ 变异腿 21 ＋ design-tokens 4 ＋ 表闸 5 全绿。
+  - 复算命令: `grep -cE '^## \[DEV-[0-9]{4}\]' DEV_LOG.md`；`git diff --name-only <分叉点>..HEAD -- tests/golden/ content/seed/`
+- **潜在风险**:
+  ① `provider` / `model` 两列取自 **runner 身上的事实**（配置的那家），不是「实际应答方」—— 将来若接了转派/负载均衡，这两列会失真，届时要改成由 runner 回传；
+  ② 端点由 `/provider` 改名为 `/providers` 属**破坏性变更**，老调用方会 404（老**配置**的数据仍兼容，因为读端认旧形状）；
+  ③ `testTimeout` 抬到 20s 后，**真卡死的用例要 20s 才红** ⇒ 全量最坏耗时变长（实测 142s），CI 上要留意上限；
+  ④ 增强 3 的守卫仍只认**相对窗口的文本形态**，换一种写法（拼出 SQL 字符串再执行）仍能绕过 —— 这是文本型守卫的固有上限，本轮收不口。
+
+---
+
+## [DEV-0108] 2026-10-22 · 知识库整洁：README 补路由与实数 / 治理基线表去写死 / 记忆重组
+
+- **时间**: 2026-10-22
+- **类型**: 文档治理（知识库整洁；除一处让既有命令真跑通外，不含业务功能）
+- **关联文件**: `README.md`、`docs/specs/docs-governance-check.md`、`scripts/scan-m9-source.ts`、`DEV_LOG.md`
+- **问题描述**: owner 2026-10-22 指令「对整个代码仓库进行整洁」。开账时的**实测**清单（不是印象）：① `README.md` 的功能一览只列 7 条路由，**漏了 `/`（工作台）、`/dev`、`/resources`、`/playbooks`、`/growth` 五条**，且全文「M9 / 开发能力 / 学习路线」**0 命中**；② README 里的数全部过期（用例「476 / 55 文件」、入口「293.16 kB」、首启「3 套流程模板」、`cli.js`「约 3.5 MB」）；③ 治理规格的「现测基线」表写着 **`docs:check` 是否已存在＝否**（实为**是**），且「队列行数 33」那行的复算命令正是 **FR-2.4 明文禁用**的 BSD 多字节区间写法；④ **`pnpm typecheck` 当前跑不过**（根 tsconfig 报 TS5097，来自 `scripts/scan-m9-source.ts` 的 `.ts` 扩展名导入），而 README 首屏把它写成了门禁；⑤ agent 记忆 `MEMORY.md` **858 行 / 38 条流水式条目**，条目互相重复、检索成本高。
+- **实现思路**: 原则是**减优于加、合并优于追加、删除优于保留**。对文档：凡**点时快照**就补采样日与树；凡**会漂移的计数**就改成「现跑」而不是刷成新数 —— 治理规格自己的 FR-1.4 与 FR-4.1 早就写了「任何总数一律现跑」，那张表没照做 ⇒ 本轮让它照做。对记忆：把 38 条按主题合并成 **7 个 topic 文件**，`MEMORY.md` 改成**索引**（一行 gist ＋ 指针），细节只存一份（口径单源）。
+- **核心变更**:
+  - `README.md`：功能一览补 `/`、`/dev`、`/resources`、`/playbooks`、`/growth` 五条；「它解决什么」加一行 M9 能力线；「五类资产」改为不写死的「各类资产」（＋ 技巧）；首启播报改为 **109 术语 / 7 流程模板 / 21 提示词 / 13 技巧**（实测 `content/seed/*.json`）；「从源码开始」刷新为 **2084 用例 / 162 文件**（采样 2026-10-22 ＠ `a30268d`）、入口 **268.27 kB**、四层写 `unit / integration / cli / web`；`cli.js` 体积改为实测 **5079.46 kB**；本机事件台账 kind 由「18 类」订正为 **23 类**（`LOCAL_EVENT_KINDS` 实测 23：13 台账 ＋ 6 Agent ＋ 4 `lang_*`）；npm 404 一句补复测日 2026-10-22；M8 段补 `openvibe requirement add`（此前漏记）；文档地图补 M9 两份 spec 并标「节选」；里程碑行删掉过期的「（当前）」并接上 v0.2.0 重构线与 M8 / M9。
+  - `docs/specs/docs-governance-check.md` §3「现测基线」表：DEV 条目数 / 队列行数 / specs 份数三行改为**现跑**（不再写死）；`docs:check 是否已存在` 订正为 **是**；队列行数的复算命令换成 **python3** 口径（FR-2.4 禁用的正是原来那条）；未转义竖线那行改为指向基线文件（**计数单源在基线文件**，不复制）。
+  - `scripts/scan-m9-source.ts`：导入去掉 `.ts` 扩展名（`scan.ts` → `scan`）⇒ 根 `tsc` 的 TS5097 消失，**`pnpm typecheck` 恢复为零错**；`tsx` 运行路径不受影响（已实测脚本仍扫出 211 条命中）。
+  - agent 记忆：新建 7 个 topic 文件（判据与闸 / 规格与文档 / 工作树与提交 / 工具与环境 / 假红分类 / 表与静态守卫 / 界面形态）；`MEMORY.md` 由 858 行改为 **82 行索引**（旧版由工具自动归档到 `archive/2026-10-22/MEMORY.md`，可回溯）。
+- **测试验证**:
+  - 测试命令: `npx tsc --noEmit -p tsconfig.json`；`npx vitest run --maxWorkers=3`；`npx tsx scripts/docs-check.ts`；`npm run bundle:check`；`npx tsx scripts/seed-check.ts`；`npm run pkg:cli`；`grep -nE "今天|昨天|刚刚|最近" README.md CLAUDE.md`
+  - 验证结果: 根 `tsc` **0 error**（改前 1 错）；全量 **162 文件 / 2084 支全绿**；`docs:check` **error 0 · warning 133 · 基线内 133**；`bundle:check` 入口 **268.27 kB** ≤ 300 kB / 46 chunk，最大 **347.45 kB** ≤ 500 kB；`seed:check` 通过（terms ≥100 / templates=7 / prompts=21 / playbooks ≥10）；`pkg:cli` 实测 `cli.js` **5079.46 kB / 772 个模块内联 / 0 条 esbuild 警告**；`npm view openvibe-cli` registry **404**（复核 README 那句仍成立）；`README.md` 与 `CLAUDE.md` 的**相对时间词 0 命中**；README 列的 17 个路径与 8 条 CLI 命令**逐条实测存在**。
+  - **一次真实的失败与处置**（值得留档）：首轮全量跑出 **1 支红** —— `tests/publish-manifest.test.ts` 的 **SCRIPT-PKG-05**（包内 README 相对路径死链闸）报 `expected [ 'docs/PRD.md', 'docs/dev-plan.md' ] to deeply equal []`。原因是我在里程碑行新加了两条 `./docs/...` 相对链接，而**发布包里没有 `docs/` 树**（包里只有 `README.md` / `LICENSE` / `package.json` / `dist/` / `assets/readme/`）⇒ 那两条在 npm 上就是死链。处置：改用**绝对 GitHub 链接**（与 README 既有文风一致，且对发布包才语义正确）。⇒ 这条闸不是摆设，它当场抓到了本轮自己新写的路径。
+  - 复算命令: `grep -cE '^## \[DEV-[0-9]{4}\]' DEV_LOG.md`；`ls docs/specs/*.md | wc -l`；`grep -cE "path=\"/" apps/web/src/App.tsx`
+- **潜在风险**:
+  ① `README.md` 里的用例数与入口体积**仍会随提交漂移** —— 已附采样日与树并保留「以 `pnpm test` 汇总行为准」，但读者若只看数字仍可能误读，下次发布应再刷一次；
+  ② 治理基线表改成「现跑」后，**失去了「2026-10-03 那个快照」的历史对照** —— 原值仍留在 FR-1.4 与 §8.2 待裁③ 正文里，未删；
+  ③ `scripts/scan-m9-source.ts` 的导入去扩展名是**运行时路径形态**的改动：已实测 `tsx` 正常、`tsc` 正常，但**没有**在其它打包器（单独 esbuild/tsup 打包该脚本）下验证过；
+  ④ 记忆重组后**旧版只存在于 `archive/2026-10-22/MEMORY.md`**（工具自动归档），本轮新建的 topic 文件同样只在当前 profile 下 —— 换 `activeDataDir` 不会跟过去；
+  ⑤ 本轮**未动** `docs/dev-plan.md` / `docs/decisions.md` / `docs/tasks.md`（并行会话禁区）⇒ 那三份文件里的过期数字本轮仍未订正；`docs/specs/` 里的相对时间（多为叙事性用法）本轮**刻意未改** —— 改 spec 正文须同升版本行（FR-4.3），为措辞而升版成本不对称。
