@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiJson, apiRaw } from '../api/client'
 import type {
   InterpretCapability,
-  InterpretProviderKind,
-  InterpretProviderView,
+  InterpretProviderCollectionSave,
+  InterpretProviderCollectionView,
   LangConsentResponse,
   LangFindingsResponse,
   LangScanSummary,
@@ -67,11 +67,28 @@ export function useLangSnippets(projectId: string | null) {
  *
  * ⚠️ **不可用 ⇒ 界面不渲染 T2 区**（不是渲染一个失败态）——
  *   「没配 AI」与「跑挂了」是两件事，混起来会让用户以为 AI 坏了。
+ *
+ * ## ⚠️ `providerId` 的三态（**多份 provider 并存** · owner 2026-10-22 增强 2）
+ *
+ * | 入参 | 探测哪一份 |
+ * |---|---|
+ * | `undefined` | **当前该用的那一份**（服务端按「项目绑定 → 默认」的顺序选） |
+ * | `'p-xxx'` | **指定那一份**（`?provider_id=p-xxx`） |
+ * | `null` | **不探测**（界面上还没选中任何一份） |
  */
-export function useLangInterpretCapability() {
+export function useLangInterpretCapability(providerId?: string | null) {
+  const id = providerId ?? ''
+  const explicit = id !== ''
   return useQuery({
-    queryKey: ['lang-interpret-capability'],
-    queryFn: () => apiJson<InterpretCapability>('/api/lang/interpret/capability'),
+    queryKey: ['lang-interpret-capability', id],
+    queryFn: () =>
+      apiJson<InterpretCapability>(
+        explicit
+          ? `/api/lang/interpret/capability?provider_id=${encodeURIComponent(id)}`
+          : '/api/lang/interpret/capability',
+      ),
+    // ⚠️ `null` = 「还没选中」⇒ 不发请求（否则会白探测一次「当前那一份」）
+    enabled: providerId !== null,
     staleTime: LANG_STALE_TIME,
   })
 }
@@ -194,41 +211,36 @@ export function useLangConsentMutations(projectId: string) {
 }
 
 /**
- * **AI 解读 provider 配置**（owner 2026-10-22 裁决一：设置页手动调控）。
+ * **AI 解读 provider 配置**（**集合**语义 · owner 2026-10-22 增强 2）。
+ *
+ * ## ⚠️ 端点是**复数** `/api/lang/interpret/providers`
+ *
+ * 旧路径（单数 `/api/lang/interpret/provider`）**已删**。
+ *
+ * ## ⚠️ 保存是**一次 PUT 整份集合**，不是逐份 PUT
+ *
+ * 逐份 PUT 表达不了「删掉哪一份」⇒ 集合语义只能整份落库。
  *
  * ## ⚠️ `api_key` 的语义：**缺省 = 保持原值**，**空串 = 清除**
  *
  * 读端**只回显末 4 位**（回显不了全文）⇒ 若把「缺省」当成「清空」，
  * 用户改一下模型名就会把 key 抹掉 ⇒ 想清 key 必须**显式**传空串。
  */
-export interface LangProviderSaveInput {
-  enabled: boolean
-  kind: InterpretProviderKind
-  cmd: string
-  args: string[]
-  endpoint: string
-  model: string
-  provider: string
-  /** 缺省 = 保持原值；空串 = 清除 */
-  api_key?: string
-  timeout_ms: number
-}
-
 export function useLangProviderConfig() {
   const qc = useQueryClient()
   const query = useQuery({
-    queryKey: ['lang-interpret-provider'],
-    queryFn: () => apiJson<InterpretProviderView>('/api/lang/interpret/provider'),
+    queryKey: ['lang-interpret-providers'],
+    queryFn: () => apiJson<InterpretProviderCollectionView>('/api/lang/interpret/providers'),
     staleTime: LANG_STALE_TIME,
   })
   const save = useMutation({
-    mutationFn: (input: LangProviderSaveInput) =>
-      apiJson<InterpretProviderView>('/api/lang/interpret/provider', {
+    mutationFn: (input: InterpretProviderCollectionSave) =>
+      apiJson<InterpretProviderCollectionView>('/api/lang/interpret/providers', {
         method: 'PUT',
         body: input,
       }),
     onSuccess: (d) => {
-      void qc.invalidateQueries({ queryKey: ['lang-interpret-provider'] })
+      void qc.invalidateQueries({ queryKey: ['lang-interpret-providers'] })
       // ⚠️ **能力也会变**（换了命令 / 端点 / key ⇒ 可用性不同）⇒ 一并失效
       void qc.invalidateQueries({ queryKey: ['lang-interpret-capability'] })
       return d

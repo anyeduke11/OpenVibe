@@ -22,7 +22,11 @@
 // HTTP runner 与 Pi 包装脚本**问模型的必须是同一句话** ——
 // 否则「同一份代码在两种接入下得到不同解读」，且没人查得出来。
 
-import { SOURCE_INTERPRET_SCHEMA_VERSION, type SourceInterpretRequest } from './m9-source-ai'
+import {
+  SOURCE_INTERPRET_SCHEMA_VERSION,
+  type SourceInterpretRequest,
+  type SourceInterpretUsage,
+} from './m9-source-ai'
 
 /**
  * 把请求变成「要模型照着做的说明」。
@@ -91,6 +95,14 @@ export interface PiEventDigest {
   aborted: boolean
   /** 读到的事件类型序列（**只含类型名**） */
   eventTypes: string[]
+  /**
+   * **用量**（**已归一到通用形状**；`null` = 事件流里没有）。
+   *
+   * ⚠️ **Pi 的用量形状与 OpenAI 兼容那套不一样**（`input`/`output`/`totalTokens`
+   *   外加 `cacheRead`/`cacheWrite`/`reasoning` 与一个 `cost`）⇒ **在这里归一**
+   *   ⇒ 界面与台账只有一种口径。
+   */
+  usage: SourceInterpretUsage | null
 }
 
 /**
@@ -122,6 +134,7 @@ export function digestPiEventStream(ndjson: string): PiEventDigest {
   let aborted = false
   let turnEndText: string | null = null
   let lastMessageText: string | null = null
+  let usage: SourceInterpretUsage | null = null
 
   for (const raw of ndjson.split('\n')) {
     const line = raw.trim()
@@ -134,10 +147,15 @@ export function digestPiEventStream(ndjson: string): PiEventDigest {
       continue
     }
     if (typeof event !== 'object' || event === null) continue
-    const e = event as { type?: unknown; message?: unknown; aborted?: unknown }
+    const e = event as { type?: unknown; message?: unknown; aborted?: unknown; usage?: unknown }
     if (typeof e.type === 'string') eventTypes.push(e.type)
 
     if (e.type === 'agent_settled' && e.aborted === true) aborted = true
+
+    // ⚠️ **用量取「最后一个非零的」** —— Pi 的流式事件里前几条 usage 是 0
+    //   （还没吐字），最后一条才是累计值。
+    const u = usageOf(e.usage)
+    if (u !== null) usage = u
 
     const text = assistantTextOf(e.message)
     if (text === null) continue
@@ -150,7 +168,25 @@ export function digestPiEventStream(ndjson: string): PiEventDigest {
     text: turnEndText ?? lastMessageText,
     aborted,
     eventTypes,
+    usage,
   }
+}
+
+/**
+ * Pi 的 usage ⇒ **通用形状**（`null` = 这一条没有用量，或全是 0）。
+ *
+ * ⚠️ **只取三个数**：送进去的、吐出来的、合计 —— 其余（缓存命中、思考 token、成本）
+ *   本仓**没有对应的计价口径** ⇒ 记进来就是「一个没人解释的数字」。
+ */
+function usageOf(raw: unknown): SourceInterpretUsage | null {
+  if (typeof raw !== 'object' || raw === null) return null
+  const u = raw as { input?: unknown; output?: unknown; totalTokens?: unknown }
+  const input = typeof u.input === 'number' ? Math.max(0, Math.trunc(u.input)) : 0
+  const output = typeof u.output === 'number' ? Math.max(0, Math.trunc(u.output)) : 0
+  const total =
+    typeof u.totalTokens === 'number' ? Math.max(0, Math.trunc(u.totalTokens)) : input + output
+  if (total === 0 && input === 0 && output === 0) return null
+  return { prompt_tokens: input, completion_tokens: output, total_tokens: total }
 }
 
 /**

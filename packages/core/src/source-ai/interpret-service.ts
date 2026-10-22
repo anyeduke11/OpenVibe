@@ -192,6 +192,8 @@ export async function interpretSourceFindings(
     return {
       status: 'unavailable',
       project_id: opts.projectId,
+      // ⚠️ **没有 provider**（压根没有 runner ⇒ 谁也没答）
+      provider: '',
       fragment_count: 0,
       item_count: 0,
       risk_count: 0,
@@ -199,6 +201,7 @@ export async function interpretSourceFindings(
       divergences: [],
       items: [],
       input_hash: null,
+      usage: null,
       failure_reason: null,
     }
   }
@@ -208,6 +211,8 @@ export async function interpretSourceFindings(
     return {
       status: 'ok',
       project_id: opts.projectId,
+      // ⚠️ **没发出去 ⇒ 谁也没答** ⇒ provider 留空（不许写「当前那家」冒充）
+      provider: '',
       fragment_count: 0,
       item_count: 0,
       risk_count: 0,
@@ -215,6 +220,7 @@ export async function interpretSourceFindings(
       divergences: [],
       items: [],
       input_hash: null,
+      usage: null,
       failure_reason: null,
     }
   }
@@ -231,12 +237,17 @@ export async function interpretSourceFindings(
       items,
       deterministicStatesBySlug(db, opts.projectId),
     )
+    // ⚠️ **台账记「配置的那家」而不是「模型自报的那家」** ——
+    //   `result.model` / `result.provider` 是**模型的自述**（可能是猜的），
+    //   而 runner 身上那两个是**配好的**（事实）⇒ 台账要记事实。
+    const runnerModel = opts.runner.model
+    const runnerProvider = opts.runner.provider
     recordInterpretCall(
       db,
       {
         projectId: opts.projectId,
-        model: result.model,
-        provider: result.provider,
+        model: runnerModel,
+        provider: runnerProvider,
         inputHash,
         candidateCount: request.fragments.length,
         passedCount: items.length,
@@ -262,10 +273,15 @@ export async function interpretSourceFindings(
       created_at: now().toISOString(),
       consent_source: consentSourceFromDetail(consentDetail),
       consent_detail: consentDetail,
+      // ⚠️ **台账带 provider / 模型 / 用量**（§3.9 末段 · 增强 1 与 4）
+      provider: runnerProvider,
+      model: runnerModel,
+      usage_total_tokens: result.usage?.total_tokens ?? null,
     })
     return {
       status: 'ok',
       project_id: opts.projectId,
+      provider: runnerProvider,
       fragment_count: request.fragments.length,
       item_count: items.length,
       risk_count: riskCount,
@@ -273,6 +289,7 @@ export async function interpretSourceFindings(
       divergences,
       items,
       input_hash: inputHash,
+      usage: result.usage ?? null,
       failure_reason: null,
     }
   } catch (err) {
@@ -300,6 +317,8 @@ export async function interpretSourceFindings(
     return {
       status: 'failed',
       project_id: opts.projectId,
+      // ⚠️ **失败也是那一家答的**（它出了网、它跑挂了）⇒ 记它
+      provider: opts.runner.provider,
       fragment_count: request.fragments.length,
       item_count: 0,
       risk_count: 0,
@@ -307,6 +326,7 @@ export async function interpretSourceFindings(
       divergences: [],
       items: [],
       input_hash: inputHash,
+      usage: null,
       failure_reason: message,
     }
   }

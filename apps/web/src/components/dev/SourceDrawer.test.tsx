@@ -125,6 +125,8 @@ const { ROWS, SUMMARY, SNIPPETS, CAPABILITY, INTERPRET, EXPORT_MUTATE } = vi.hoi
       },
     ],
     input_hash: 'abcdef0123456789',
+    provider: 'sensenova',
+    usage: { prompt_tokens: 1200, completion_tokens: 340, total_tokens: 1540 },
     failure_reason: null,
   },
 }))

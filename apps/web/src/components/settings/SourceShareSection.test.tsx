@@ -57,11 +57,21 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function mockSummary(items: unknown[], daily: unknown[] = []): void {
+function mockSummary(
+  items: unknown[],
+  daily: unknown[] = [],
+  byProvider: unknown[] = [],
+): void {
   fetchMock.mockImplementation(async (url: string) => {
     requestedUrls.push(String(url))
     if (String(url).includes('/api/lang/source/share-daily')) {
       return new Response(JSON.stringify({ daily }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
+    if (String(url).includes('/api/lang/source/share-by-provider')) {
+      return new Response(JSON.stringify({ groups: byProvider }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       })
@@ -174,5 +184,76 @@ describe('M9 增强 1 · 设置页「源码出网记录」区', () => {
     })
     expect(await screen.findByText('2026-10-21')).toBeTruthy()
     expect(screen.getByText(/记忆带过去 1 次 · 自己又全勾 0 次 · 用户自己勾 1 次/)).toBeTruthy()
+  })
+  it('⑤ ⚠️ **按 provider 分组**是折叠的，展开后才请求（**显式绝对窗口**）', async () => {
+    mockSummary(SUMMARIES)
+    renderSection()
+
+    await waitFor(() => expect(screen.getByText('出网 3 次')).toBeTruthy())
+    // ⚠️ **默认不请求**（不展开就不该发）
+    expect(requestedUrls.some((u) => u.includes('share-by-provider'))).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: '展开按 provider 分组' }))
+    await waitFor(() => {
+      expect(requestedUrls.some((u) => u.includes('share-by-provider?from='))).toBe(true)
+    })
+  })
+
+  it('⑥ ⚠️ **分组表显示「哪一家 ＋ 哪个模型 ＋ 几次 ＋ 多少 token」**', async () => {
+    mockSummary(SUMMARIES, [], [
+      {
+        provider: 'sensenova',
+        model: 'deepseek-v4-flash',
+        share_count: 2,
+        snippet_total: 5,
+        usage_total_tokens: 200,
+        usage_known_count: 2,
+      },
+    ])
+    renderSection()
+
+    fireEvent.click(screen.getByRole('button', { name: '展开按 provider 分组' }))
+    expect(await screen.findByText('sensenova')).toBeTruthy()
+    expect(screen.getByText('deepseek-v4-flash')).toBeTruthy()
+    expect(screen.getByText('出网 2 次')).toBeTruthy()
+    expect(screen.getByText('用量 200 token')).toBeTruthy()
+  })
+
+  it('⑦ ⚠️ **「未知」那一组必须显示出来**（provider 改过 ⇒ 改之前出的网没有标识）', async () => {
+    mockSummary(SUMMARIES, [], [
+      {
+        provider: '',
+        model: '',
+        share_count: 1,
+        snippet_total: 1,
+        usage_total_tokens: null,
+        usage_known_count: 0,
+      },
+    ])
+    renderSection()
+
+    fireEvent.click(screen.getByRole('button', { name: '展开按 provider 分组' }))
+    // ⚠️ **不许并进现在这家** ⇒ 必须有一行叫「未知」
+    expect(await screen.findByText('未知')).toBeTruthy()
+    // ⚠️ **没有用量 ⇒ 说「用量未知」，不是「用量 0 token」**
+    expect(screen.getByText('用量未知')).toBeTruthy()
+  })
+
+  it('⑧ ⚠️ **部分已知 ⇒ 说清「已知 N/M 次」**（不许把不知道的当 0）', async () => {
+    mockSummary(SUMMARIES, [], [
+      {
+        provider: 'agnes',
+        model: 'agnes-3.0-flash',
+        share_count: 3,
+        snippet_total: 4,
+        usage_total_tokens: 100,
+        usage_known_count: 1,
+      },
+    ])
+    renderSection()
+
+    fireEvent.click(screen.getByRole('button', { name: '展开按 provider 分组' }))
+    expect(await screen.findByText('agnes')).toBeTruthy()
+    expect(screen.getByText(/（已知 1\/3 次）/)).toBeTruthy()
   })
 })

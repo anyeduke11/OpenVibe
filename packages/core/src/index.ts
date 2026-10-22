@@ -393,6 +393,7 @@ export {
   recordShare,
   readShares,
   readShareSummary,
+  readShareByProvider,
   readShareDaily,
   buildExportText,
   type ConsentRow,
@@ -486,18 +487,25 @@ export {
 
 export {
   DEFAULT_PROVIDER_CONFIG,
+  LEGACY_PROVIDER_ID,
   apiKeyStorageDetail,
   capabilityOf,
   isLocalEndpoint,
   isValidEndpoint,
+  keychainAccount,
+  providerCollectionView,
   providerConfigView,
-  readProviderConfig,
+  providerEntryView,
+  readProviderCollection,
   resolveApiKey,
   resolveProvider,
   resolveProviderRunner,
   runnerFromProviderConfig,
-  writeProviderConfig,
+  selectProviderEntry,
+  writeProviderCollection,
   type ProviderResolution,
+  type ProviderSelection,
+  type ProviderSelectionResult,
 } from './source-ai/provider-config'
 
 export const CORE_VERSION = '0.0.0'

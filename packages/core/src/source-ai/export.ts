@@ -71,6 +71,14 @@ export function formatInterpretMarkdown(
   lines.push(`- 与确定性层的分歧：${String(summary.divergence_count)} 条`)
   // ⚠️ 指纹**不含正文**（正文进 sha256，不进台账，也不进这里）⇒ 可以放心导出
   lines.push(`- 入参指纹：${summary.input_hash ?? '（无）'}`)
+  // ⚠️ **谁答的**（增强 4：provider 可以多份并存 ⇒ 复盘第一问题就是「哪家答的」）
+  lines.push(`- 解读方：${summary.provider.trim() === '' ? '（未知）' : summary.provider}`)
+  // ⚠️ **用量**（**只落计数** —— 数字，不是内容 ⇒ 可以放心导出）
+  if (summary.usage !== null) {
+    lines.push(
+      `- 用量：输入 ${String(summary.usage.prompt_tokens)} token，输出 ${String(summary.usage.completion_tokens)} token，合计 ${String(summary.usage.total_tokens)} token`,
+    )
+  }
   if (summary.failure_reason !== null) {
     lines.push(`- 失败原因：${safe(summary.failure_reason, root)}`)
   }

@@ -5,27 +5,30 @@ import {
   capabilityOf,
   formatInterpretMarkdown,
   interpretSourceFindings,
-  providerConfigView,
+  keychainAccount,
+  providerCollectionView,
   readFindings,
-  readProviderConfig,
+  readProviderCollection,
   readProjectRoot,
   readSnippet,
   readSnippets,
-  resolveApiKey,
   resolveProvider,
   resolveProviderRunner,
-  writeProviderConfig,
+  writeProviderCollection,
   SourceServiceError,
   type SourceInterpretRunner,
   type SqliteDatabase,
 } from '@openvibe/core'
 import {
-  KEYCHAIN_ACCOUNT,
   KEYCHAIN_SERVICE,
   realKeychainStore,
   type KeychainStore,
 } from '@openvibe/core'
-import { InterpretProviderConfig, type InterpretProviderConfig as InterpretProviderConfigType } from '@openvibe/shared'
+import {
+  InterpretProviderCollectionSave,
+  type InterpretProviderEntry as InterpretProviderEntryType,
+  type InterpretProviderKeyStorage,
+} from '@openvibe/shared'
 
 /**
  * M9「源码解读」（T2）端点（`m9-dev-language-roadmap.md` §3.8 / §5.5 / §7 DL-08 / DL-09 ·
@@ -34,6 +37,8 @@ import { InterpretProviderConfig, type InterpretProviderConfig as InterpretProvi
  * 端点清单：
  * - `GET  /api/lang/snippet` —— 读命中行附近的**本地源码**（T1 硬要求：勾选前要看到全文）；
  * - `GET  /api/lang/interpret/capability` —— AI 是否可用（界面据此决定**要不要渲染 T2 区**）；
+ * - `GET  /api/lang/interpret/providers` —— **多份** provider 配置（脱敏视图）；
+ * - `PUT  /api/lang/interpret/providers` —— **整份覆盖**那多份配置；
  * - `POST /api/lang/interpret` —— 解读**勾选过的**片段。
  *
  * ## ⚠️ `/api/lang/snippet` 是**本地读**，不是出网
@@ -47,6 +52,14 @@ import { InterpretProviderConfig, type InterpretProviderConfig as InterpretProvi
  * `OPENVIBE_M9_INTERPRETER_PROVIDER`。
  * ⚠️ **没配 ⇒ AI 不可用** ⇒ 界面**不渲染** T2 区（DL-08），
  *   而不是渲染一个「失败」态 —— 「没配」与「跑挂了」是两件事。
+ *
+ * ## ⚠️ 增强 2：**多份 provider 配置并存**（owner 2026-10-22）
+ *
+ * - 端点从 `/api/lang/interpret/provider`（单数）改成 `/api/lang/interpret/providers`（复数）
+ *   —— 出参/入参都是**集合**（`{ providers: [...], default_provider_id }`）。
+ * - **选哪一份**（口径在 core 的 `selectProviderEntry`，此处只透传）：
+ *   **显式 `provider_id` → 按 `project_id` 绑定 → 默认那一份**。
+ * - **每份各有一把 key** ⇒ 钥匙串项**按配置 id 分账号**（`keychainAccount`）。
  */
 
 export interface LangSourceAiRouteDeps {
@@ -72,6 +85,14 @@ const ProjectQuery = z.object({
   project: z.string().min(1),
 })
 
+/** 能力探测的查询参数（**两个都可选**）。 */
+const CapabilityQuery = z.object({
+  /** 显式探测哪一份（**优先级最高**） */
+  provider_id: z.string().optional(),
+  /** 按项目选（**次之**） */
+  project_id: z.string().optional(),
+})
+
 const InterpretBody = z.object({
   project_id: z.string().min(1),
   finding_ids: z.array(z.number().int().positive()),
@@ -82,6 +103,12 @@ const InterpretBody = z.object({
    *   服务端仍然按**自己算出来的**勾选集合出网 ⇒ 这里撒谎最多让审计分类失真。
    */
   user_touched: z.boolean().optional(),
+  /**
+   * **用哪一份配置**（增强 2；**缺省** = 按项目选 → 默认那一份）。
+   *
+   * ⚠️ **选了哪一份是服务端的事实** ⇒ 台账里记的是**那一份的** provider/模型。
+   */
+  provider_id: z.string().optional(),
 })
 
 /** 导出请求（**只带结果**，不带片段正文 —— 那些压根没进这个形状）。 */
@@ -89,24 +116,55 @@ const InterpretExportBody = z.object({
   summary: SourceInterpretSummary,
 })
 
-/**
- * 保存 provider 配置的请求体（**`api_key` 可缺省** ⇒ 缺省＝保持原值）。
- *
- * ⚠️ 其它字段**必填**（整份覆盖，不做增量合并 —— 免得出现「半截配置」）。
- *
- * ⚠️ **`api_key_storage` 不在请求体里** —— 它是**服务端算出来的事实**
- *   （这台机器有没有钥匙串 ⇒ key 落在哪），不是客户端能声明的东西。
- *   ⚠️ 若让客户端传，客户端漏传就会把一把**明文 key 说成在钥匙串里**（撒谎）。
- */
-const ProviderSaveBody = z.object({
-  ...InterpretProviderConfig.omit({ api_key_storage: true }).shape,
-  api_key: z.string().optional(),
-})
-
 /** 文件名里只留安全字符（项目 id 可能带斜杠等）。 */
 function safeFileName(value: string): string {
   const cleaned = value.replace(/[^A-Za-z0-9_-]+/gu, '-').replace(/^-+|-+$/gu, '')
   return cleaned === '' ? 'project' : cleaned
+}
+
+/**
+ * **key 的三种情形**（**口径只留一处** —— 多份并存时每一份都走这一个函数）。
+ *
+ * | 客户端给的东西 | 落成什么 |
+ * |---|---|
+ * | **缺省**（字段没有） | **保持原值**（改一下模型名不该把 key 抹掉） |
+ * | **空串** | **清除**（⇒ 钥匙串里那一项也要删，不然是「删了但还在」） |
+ * | **新 key** | 先试**系统钥匙串** ⇒ 不成才**降级为明文**（降级必须如实标出来） |
+ *
+ * @param submitted 客户端提交的那把（`undefined` = 缺省）
+ * @param current 这一份**当前**的配置（新的那份没有「原值」）
+ * @param keychain 钥匙串后端
+ */
+async function applyKeyState(
+  submitted: string | undefined,
+  current: InterpretProviderEntryType,
+  keychain: KeychainStore,
+): Promise<{ api_key: string; api_key_storage: InterpretProviderKeyStorage }> {
+  if (submitted === undefined) {
+    return { api_key: current.api_key, api_key_storage: current.api_key_storage }
+  }
+  if (submitted.trim() === '') {
+    await keychain.remove(KEYCHAIN_SERVICE, keychainAccount(current.id))
+    return { api_key: '', api_key_storage: 'none' }
+  }
+  const secret = submitted.trim()
+  const written = await keychain.store(KEYCHAIN_SERVICE, keychainAccount(current.id), secret)
+  if (written.ok) {
+    // ⚠️ **钥匙串模式：配置里**不留** key 本身**（只留一个标记）
+    return { api_key: '', api_key_storage: 'keychain' }
+  }
+  // ⚠️ **降级**：本机没有可用的钥匙串 ⇒ key 只能明文存 ⇒ **必须如实标出来**
+  return { api_key: secret, api_key_storage: 'inline' }
+}
+
+/** 端点必须像 URL（配错的东西不该等到「真跑一次」才暴露）。 */
+function endpointLooksLikeUrl(endpoint: string): boolean {
+  try {
+    const u = new URL(endpoint)
+    return u.protocol === 'http:' || u.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 export function registerLangSourceAiRoutes(
@@ -120,9 +178,16 @@ export function registerLangSourceAiRoutes(
    * 没注入 ⇒ 看**设置页配的**（配置优先）⇒ 再回退环境变量（`resolveProviderRunner` 内）。
    *
    * ⚠️ **是异步的** —— key 可能在**系统钥匙串**里 ⇒ 读它要起子进程。
+   *
+   * @param sel 选哪一份（**显式 id → 按项目 → 默认**）
    */
-  const resolveRunner = async (): Promise<SourceInterpretRunner | null> =>
-    deps.runner === undefined ? await resolveProviderRunner(deps.db, process.env, keychain) : deps.runner
+  const resolveRunner = async (sel: {
+    providerId?: string
+    projectId?: string
+  }): Promise<SourceInterpretRunner | null> =>
+    deps.runner === undefined
+      ? await resolveProviderRunner(deps.db, process.env, keychain, sel)
+      : deps.runner
 
   app.get('/api/lang/snippet', async (req) => {
     const parsed = SnippetQuery.safeParse(req.query)
@@ -199,7 +264,7 @@ export function registerLangSourceAiRoutes(
     }
   })
 
-  app.get('/api/lang/interpret/capability', async () => {
+  app.get('/api/lang/interpret/capability', async (req) => {
     // ⚠️ **注入优先**（测试注入的 runner 直接算「可用」）；
     //   没注入 ⇒ 走配置层探测（**三档 ＋ 人话原因** —— 设置页要告诉用户「为什么不可用」）。
     if (deps.runner !== undefined) {
@@ -209,87 +274,110 @@ export function registerLangSourceAiRoutes(
         detail: deps.runner === null ? 'AI 解读不可用' : 'AI 解读可用',
       })
     }
-    return capabilityOf(await resolveProvider(deps.db))
+    const parsed = CapabilityQuery.safeParse(req.query ?? {})
+    const sel = {
+      providerId: parsed.success ? parsed.data.provider_id : undefined,
+      projectId: parsed.success ? parsed.data.project_id : undefined,
+    }
+    return capabilityOf(await resolveProvider(deps.db, process.env, keychain, sel))
   })
 
-  // ============ provider 配置（owner 2026-10-22 裁决一：手动调控）============
+  // ============ provider 配置（owner 2026-10-22 裁决一：手动调控 ＋ 增强 2：多份并存）============
 
   /**
-   * 读 provider 配置（**脱敏视图** —— key 只给末 4 位）。
+   * 读 provider 配置集合（**脱敏视图** —— key 只给末 4 位）。
    *
-   * ⚠️ **读端永不回显 key 全文**：视图形状里**装不下**全文（`InterpretProviderView`）
+   * ⚠️ **读端永不回显 key 全文**：视图形状里**装不下**全文
    *   ⇒ 这件事在类型上就发生不了。
    */
-  app.get('/api/lang/interpret/provider', async () => {
-    const { config } = readProviderConfig(deps.db)
-    // ⚠️ **实际那把 key**（可能来自系统钥匙串）⇒ 视图要显示它的末 4 位
-    const apiKey = await resolveApiKey(config, keychain)
-    return providerConfigView(config, apiKey)
+  app.get('/api/lang/interpret/providers', async () => {
+    const { collection } = readProviderCollection(deps.db)
+    // ⚠️ **每份的 key 各自解析**（各有各的钥匙串项）⇒ 视图要显示各自那一把的末 4 位
+    return providerCollectionView(collection, keychain)
   })
 
   /**
-   * 写 provider 配置（**整份覆盖**；`api_key` 除外）。
+   * 写 provider 配置集合（**整份覆盖**；`api_key` 除外）。
    *
    * ⚠️ **`api_key` 缺省 = 保持原值**，**空串 = 清除** ——
    *   因为读端**只回显末 4 位**（回显不了全文）⇒ 若「缺省」被当成「清空」，
    *   用户改一下模型名就会把 key 抹掉。
    *   ⇒ 想清 key 要**显式**传空串。
    */
-  app.put('/api/lang/interpret/provider', async (req) => {
-    const parsed = ProviderSaveBody.safeParse(req.body)
+  app.put('/api/lang/interpret/providers', async (req) => {
+    const parsed = InterpretProviderCollectionSave.safeParse(req.body)
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', 'provider 配置不合法')
     }
-    const current = readProviderConfig(deps.db).config
-    const next: InterpretProviderConfigType = {
-      ...current,
-      ...parsed.data,
-      // ⚠️ **下面三行由「key 的三种情形」决定**（不许用请求体里的值）
-      api_key: '',
-      api_key_storage: 'none',
+    if (parsed.data.providers.length === 0) {
+      throw new AppError('VALIDATION_ERROR', '至少要留一份 provider 配置')
     }
 
-    // ---- key 的三种情形（**口径只留一处**）----
-    const submitted = parsed.data.api_key
-    if (submitted === undefined) {
-      // ① **缺省 = 保持原值**（改一下模型名不该把 key 抹掉）
-      next.api_key = current.api_key
-      next.api_key_storage = current.api_key_storage
-    } else if (submitted.trim() === '') {
-      // ② **空串 = 清除** ⇒ 钥匙串里那一项也要删（不然是「删了但还在」）
-      next.api_key = ''
-      next.api_key_storage = 'none'
-      await keychain.remove(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT)
-    } else {
-      // ③ **新 key** ⇒ 先试系统钥匙串 ⇒ 不成才降级为明文
-      const secret = submitted.trim()
-      const written = await keychain.store(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT, secret)
-      if (written.ok) {
-        // ⚠️ **钥匙串模式：配置里**不留** key 本身**（只留一个标记）
-        next.api_key = ''
-        next.api_key_storage = 'keychain'
-      } else {
-        // ⚠️ **降级**：本机没有可用的钥匙串 ⇒ key 只能明文存 ⇒ **必须如实标出来**
-        next.api_key = secret
-        next.api_key_storage = 'inline'
+    const current = readProviderCollection(deps.db).collection
+    const currentById = new Map(current.providers.map((p) => [p.id, p]))
+    const usedIds = new Set<string>()
+
+    const entries: InterpretProviderEntryType[] = []
+    for (const item of parsed.data.providers) {
+      // ---- id：空 ⇒ 服务端生成；重复 ⇒ 拒绝（id 是「哪一份」的锚）----
+      let id = item.id.trim()
+      if (id === '') {
+        let n = 1
+        id = `p-${String(n)}`
+        while (usedIds.has(id)) {
+          n += 1
+          id = `p-${String(n)}`
+        }
       }
+      if (usedIds.has(id)) {
+        throw new AppError('VALIDATION_ERROR', `provider 配置的 id 重复了（${id}）`)
+      }
+      usedIds.add(id)
+
+      const prev = currentById.get(id)
+      const base: InterpretProviderEntryType = {
+        enabled: item.enabled,
+        kind: item.kind,
+        cmd: item.cmd,
+        args: [...item.args],
+        endpoint: item.endpoint,
+        model: item.model,
+        provider: item.provider,
+        api_key: '',
+        api_key_storage: 'none',
+        timeout_ms: item.timeout_ms,
+        id,
+        name: item.name,
+        projects: [...item.projects],
+      }
+      // ---- key 的三种情形（**口径只留一处**）----
+      const keyState = await applyKeyState(item.api_key, prev ?? base, keychain)
+      const next: InterpretProviderEntryType = { ...base, ...keyState }
+
+      if (next.kind === 'openai_http' && next.endpoint.trim() !== '') {
+        // ⚠️ **端点必须像 URL** —— 不校验的话，配错的东西会等到「真跑一次」才暴露
+        if (!endpointLooksLikeUrl(next.endpoint.trim())) {
+          throw new AppError('VALIDATION_ERROR', '端点必须是一个 http:// 或 https:// 地址')
+        }
+      }
+      entries.push(next)
     }
-    if (next.kind === 'openai_http' && next.endpoint.trim() !== '') {
-      // ⚠️ **端点必须像 URL** —— 不校验的话，配错的东西会等到「真跑一次」才暴露
-      let ok = false
-      try {
-        const u = new URL(next.endpoint.trim())
-        ok = u.protocol === 'http:' || u.protocol === 'https:'
-      } catch {
-        ok = false
-      }
-      if (!ok) {
-        throw new AppError('VALIDATION_ERROR', '端点必须是一个 http:// 或 https:// 地址')
-      }
-    }
-    writeProviderConfig(deps.db, next)
-    // ⚠️ 回显的是**实际那把 key**的末 4 位（降级时就是明文那一把）
-    return providerConfigView(next, next.api_key_storage === 'keychain' ? await resolveApiKey(next, keychain) : next.api_key)
+
+    // ⚠️ **默认那一份必须存在** —— 不存在就落到第一份（**绝不指向空气**）
+    const wantedDefault = parsed.data.default_provider_id.trim()
+    const defaultProviderId =
+      wantedDefault !== '' && entries.some((e) => e.id === wantedDefault)
+        ? wantedDefault
+        : (entries[0]?.id ?? '')
+
+    writeProviderCollection(deps.db, {
+      providers: entries,
+      default_provider_id: defaultProviderId,
+    })
+    return providerCollectionView(
+      { providers: entries, default_provider_id: defaultProviderId },
+      keychain,
+    )
   })
 
   app.post('/api/lang/interpret', async (req) => {
@@ -301,7 +389,10 @@ export function registerLangSourceAiRoutes(
       return await interpretSourceFindings(deps.db, {
         projectId: parsed.data.project_id,
         findingIds: parsed.data.finding_ids,
-        runner: await resolveRunner(),
+        runner: await resolveRunner({
+          providerId: parsed.data.provider_id,
+          projectId: parsed.data.project_id,
+        }),
         now,
         userTouched: parsed.data.user_touched === true,
       })

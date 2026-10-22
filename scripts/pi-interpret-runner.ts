@@ -254,6 +254,8 @@ async function main(): Promise<void> {
     schema_version: SOURCE_INTERPRET_SCHEMA_VERSION,
     model: target.model ?? 'unknown',
     provider: target.provider ?? 'unknown',
+    // ⚠️ **用量**（事件流里归一好的；没有就不带这一列 ⇒ 它是**可选**的）
+    ...(digest.usage === null ? {} : { usage: digest.usage }),
   }
   const result = SourceInterpretResult.safeParse(merged)
   if (!result.success) {

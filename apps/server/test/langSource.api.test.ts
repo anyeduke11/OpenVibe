@@ -384,3 +384,78 @@ describe('M9 · GET /api/lang/source/share-daily（按日出网的分类计数�
     expect(body.daily[0]?.self_ticked_count).toBe(1)
   })
 })
+
+describe('M9 · GET /api/lang/source/share-by-provider（按 provider 分组的台账）', () => {
+  it('⚠️ **`from` / `to` 必填**（不给相对窗口 ⇒ 不随日历漂移）', async () => {
+    const h = await makeHarness()
+    const res = await get(h, '/api/lang/source/share-by-provider')
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('日期格式不对 ⇒ 422', async () => {
+    const h = await makeHarness()
+    const res = await get(h, '/api/lang/source/share-by-provider?from=2026-10-20&to=not-a-date')
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('`from` 晚于 `to` ⇒ 422（不静默返回空）', async () => {
+    const h = await makeHarness()
+    const res = await get(h, '/api/lang/source/share-by-provider?from=2026-10-22&to=2026-10-20')
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('按 provider ＋ 模型分组，次数与用量逐字相加', async () => {
+    const h = await makeHarness()
+    addProject(h.handle.db, 'p1', null)
+    h.handle.db
+      .prepare(
+        `INSERT INTO lang_source_shares
+           (project_id, topic_id_count, snippet_count, created_at, consent_source, consent_detail,
+            provider, model, usage_total_tokens)
+         VALUES ('p1', 2, 3, '2026-10-20T01:00:00.000Z', 'explicit_tick', 'no_memory', 'sensenova', 'deepseek-v4-flash', 150),
+                ('p1', 1, 2, '2026-10-20T02:00:00.000Z', 'explicit_tick', 'no_memory', 'sensenova', 'deepseek-v4-flash', 50),
+                ('p1', 1, 1, '2026-10-20T03:00:00.000Z', 'explicit_tick', 'no_memory', 'agnes', 'agnes-3.0-flash', 30)`,
+      )
+      .run()
+    const res = await get(h, '/api/lang/source/share-by-provider?from=2026-10-20&to=2026-10-21')
+    expect(res.statusCode).toBe(200)
+    const body = res.json() as {
+      groups: {
+        provider: string
+        model: string
+        share_count: number
+        snippet_total: number
+        usage_total_tokens: number | null
+        usage_known_count: number
+      }[]
+    }
+    expect(body.groups).toHaveLength(2)
+    const sensenova = body.groups.find((g) => g.provider === 'sensenova')
+    expect(sensenova?.model).toBe('deepseek-v4-flash')
+    expect(sensenova?.share_count).toBe(2)
+    expect(sensenova?.snippet_total).toBe(5)
+    expect(sensenova?.usage_total_tokens).toBe(200)
+    expect(sensenova?.usage_known_count).toBe(2)
+  })
+
+  it('⚠️ **「未知」那一组不许消失**（provider 改过 ⇒ 改之前出的网没有标识）', async () => {
+    const h = await makeHarness()
+    addProject(h.handle.db, 'p1', null)
+    h.handle.db
+      .prepare(
+        `INSERT INTO lang_source_shares
+           (project_id, topic_id_count, snippet_count, created_at, consent_source, consent_detail)
+         VALUES ('p1', 1, 1, '2026-10-20T01:00:00.000Z', 'explicit_tick', 'no_memory')`,
+      )
+      .run()
+    const res = await get(h, '/api/lang/source/share-by-provider?from=2026-10-20&to=2026-10-21')
+    const body = res.json() as {
+      groups: { provider: string; share_count: number; usage_total_tokens: number | null; usage_known_count: number }[]
+    }
+    expect(body.groups).toHaveLength(1)
+    expect(body.groups[0]?.provider).toBe('')
+    // ⚠️ **没有用量 ⇒ 合计是 null，不是 0**
+    expect(body.groups[0]?.usage_total_tokens).toBeNull()
+    expect(body.groups[0]?.usage_known_count).toBe(0)
+  })
+})

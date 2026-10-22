@@ -89,6 +89,27 @@ export const SourceInterpretItem = z.object({
 })
 export type SourceInterpretItem = z.infer<typeof SourceInterpretItem>
 
+/**
+ * 一次解读的**用量**（token 计数）。
+ *
+ * ⚠️ **只有计数，没有正文**（DL-16 同族）：用量是**数**，不是内容 ⇒
+ *   它进台账不违反「片段不得进台账」。
+ *
+ * ⚠️ **两家的口径不一样，在适配器里归一**：
+ *   - OpenAI 兼容接口：`{ prompt_tokens, completion_tokens, total_tokens }`；
+ *   - Pi 事件流：`{ input, output, totalTokens }`（还有 cacheRead / cacheWrite / reasoning）。
+ *   ⇒ 归一到**这一份**形状 ⇒ 界面与台账只有一种口径。
+ */
+export const SourceInterpretUsage = z.object({
+  /** 送进去的 token 数 */
+  prompt_tokens: z.number().int().nonnegative(),
+  /** 模型吐出来的 token 数 */
+  completion_tokens: z.number().int().nonnegative(),
+  /** 合计 */
+  total_tokens: z.number().int().nonnegative(),
+})
+export type SourceInterpretUsage = z.infer<typeof SourceInterpretUsage>
+
 /** 解读结果（**只展示不留存**）。 */
 export const SourceInterpretResult = z.object({
   /** ⚠️ 契约版本（**必填**）—— 与请求里的版本不一致 ⇒ `version_mismatch` */
@@ -98,6 +119,14 @@ export const SourceInterpretResult = z.object({
   model: z.string(),
   /** provider 标识（台账用） */
   provider: z.string(),
+  /**
+   * **用量**（**可选** —— runner 拿不到就是没有）。
+   *
+   * ⚠️ **这是兼容扩展 ⇒ 不升契约版本号**：旧 runner 不带这一列照样通过校验
+   *   ⇒ 升版本会把用户已有的包装脚本全部判成 `runner-version-mismatch`。
+   *   ⇒ **版本号只留给不兼容的改动**。
+   */
+  usage: SourceInterpretUsage.optional(),
 })
 export type SourceInterpretResult = z.infer<typeof SourceInterpretResult>
 
@@ -128,6 +157,13 @@ export type InterpretStatus = z.infer<typeof InterpretStatus>
 export const SourceInterpretSummary = z.object({
   status: InterpretStatus,
   project_id: z.string(),
+  /**
+   * **这次是哪个 provider 答的**（**空串** = 未知 / 没有 provider）。
+   *
+   * ⚠️ **为什么要带它**：provider 一旦可多份（多份配置并存），
+   *   「哪一家答的」就是**复盘的第一问题** ⇒ 不带它就没法按 provider 聚合。
+   */
+  provider: z.string(),
   /** 送出去的片段条数 */
   fragment_count: z.number().int(),
   /** 解读回来的条数 */
@@ -142,6 +178,12 @@ export const SourceInterpretSummary = z.object({
   items: z.array(SourceInterpretItem),
   /** 台账里的入参指纹（**不含正文**） */
   input_hash: z.string().nullable(),
+  /**
+   * **用量**（`null` = runner 没给）。
+   *
+   * ⚠️ **只落计数**（DL-16 同族）—— 台账里出现的是数字，不是任何内容。
+   */
+  usage: SourceInterpretUsage.nullable(),
   /** 失败原因（失败/不可用时才有） */
   failure_reason: z.string().nullable(),
 })
@@ -331,6 +373,81 @@ export const InterpretProviderView = z.object({
   timeout_ms: z.number().int(),
 })
 export type InterpretProviderView = z.infer<typeof InterpretProviderView>
+
+// ============ 多份 provider 配置并存（owner 2026-10-22 增强 2）============
+
+/**
+ * **一份** provider 配置（**多份并存**时每份带 id）。
+ *
+ * ⚠️ **为什么每份要带 id**：多份并存时，「改哪一份」「用哪一份」「钥匙串里取哪一把」
+ *   全都靠 id 定位 ⇒ 没有 id 就没有「哪一份」。
+ *
+ * ⚠️ **`projects` 是「绑定到哪些项目」**（**空数组 = 通用**，任何项目都能用它）——
+ *   这是「按项目选」的落点。
+ */
+export const InterpretProviderEntry = InterpretProviderConfig.extend({
+  /** 稳定标识（多份并存 ⇒ 用来选、用来定位钥匙串项；**空串 ⇒ 由服务端生成**） */
+  id: z.string().default(''),
+  /** 显示名（用户自己起的；空串 ⇒ 界面回退显示 provider/模型名） */
+  name: z.string().default(''),
+  /** 绑定到哪些项目（**空数组 = 通用**） */
+  projects: z.array(z.string()).default([]),
+})
+export type InterpretProviderEntry = z.infer<typeof InterpretProviderEntry>
+
+/**
+ * provider 配置的**集合**（多份并存 ＋ 一个默认）。
+ *
+ * ⚠️ **存在 `app_meta.langInterpretProvider` 里**（**同一个键**，不是新键）——
+ *   老配置是**单条对象** ⇒ 读端认出旧形状并**包成单元素集合**（老配置不许丢）。
+ */
+export const InterpretProviderCollection = z.object({
+  /** 所有配置（**顺序即界面顺序**） */
+  providers: z.array(InterpretProviderEntry),
+  /** 默认那一份的 id（**空串 = 没有默认**） */
+  default_provider_id: z.string(),
+})
+export type InterpretProviderCollection = z.infer<typeof InterpretProviderCollection>
+
+/** 一份配置的**对外视图**（脱敏 ＋ 绑定信息）。 */
+export const InterpretProviderEntryView = InterpretProviderView.extend({
+  id: z.string(),
+  name: z.string(),
+  projects: z.array(z.string()),
+})
+export type InterpretProviderEntryView = z.infer<typeof InterpretProviderEntryView>
+
+/** 集合的**对外视图**（读端出参）。 */
+export const InterpretProviderCollectionView = z.object({
+  providers: z.array(InterpretProviderEntryView),
+  default_provider_id: z.string(),
+})
+export type InterpretProviderCollectionView = z.infer<typeof InterpretProviderCollectionView>
+
+/**
+ * **保存**用的集合（入参）。
+ *
+ * ⚠️ **`api_key_storage` 不在入参里** —— 它是**服务端算出来的事实**
+ *   （这台机器有没有钥匙串 ⇒ key 落在哪），不是客户端能声明的东西。
+ *
+ * ⚠️ **`api_key` 缺省 = 保持原值**，**空串 = 清除**（三态口径见 core 的配置层）。
+ */
+export const InterpretProviderEntrySave = InterpretProviderConfig.omit({
+  api_key_storage: true,
+}).extend({
+  id: z.string().default(''),
+  name: z.string().default(''),
+  projects: z.array(z.string()).default([]),
+  api_key: z.string().optional(),
+})
+export type InterpretProviderEntrySave = z.infer<typeof InterpretProviderEntrySave>
+
+/** 保存用的集合（入参）。 */
+export const InterpretProviderCollectionSave = z.object({
+  providers: z.array(InterpretProviderEntrySave),
+  default_provider_id: z.string(),
+})
+export type InterpretProviderCollectionSave = z.infer<typeof InterpretProviderCollectionSave>
 
 /**
  * provider 的**能力探测**结果 ⇒ **就是 `InterpretCapability`**（口径单处）。

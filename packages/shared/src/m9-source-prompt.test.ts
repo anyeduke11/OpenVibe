@@ -150,3 +150,50 @@ describe('M9 P1g · Pi 事件流 ⇒ 最终 assistant 正文', () => {
     expect(digest.eventTypes).not.toContain('收到')
   })
 })
+
+// ---------------------------------------------------------------------------
+// 增强 4 · Pi 事件流里的用量（**成本台账的来源**）
+// ---------------------------------------------------------------------------
+
+describe('M9 增强 4 · Pi 事件流里的用量（归一到通用形状）', () => {
+  it('① ⚠️ **取最后一个非零的 usage**（流式前几条是 0，最后一条才是累计值）', () => {
+    const stream = [
+      '{"type":"message_update","usage":{"input":0,"output":0,"totalTokens":0}}',
+      '{"type":"message_update","usage":{"input":100,"output":0,"totalTokens":100}}',
+      '{"type":"message_update","usage":{"input":100,"output":50,"totalTokens":150}}',
+      '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"text","text":"收到"}]}}',
+    ].join('\n')
+    const digest = digestPiEventStream(stream)
+    expect(digest.usage).toEqual({
+      prompt_tokens: 100,
+      completion_tokens: 50,
+      total_tokens: 150,
+    })
+  })
+
+  it('② 事件流里**没有 usage** ⇒ `null`（**不是 0** —— 「不知道」与「0 token」是两件事）', () => {
+    expect(digestPiEventStream(REAL_EVENT_STREAM).usage).toBeNull()
+  })
+
+  it('③ ⚠️ **全是 0 的 usage 也不算数**（前几条就是全 0 ⇒ 不能当成「用了 0 token」）', () => {
+    const stream = '{"type":"message_update","usage":{"input":0,"output":0,"totalTokens":0}}'
+    expect(digestPiEventStream(stream).usage).toBeNull()
+  })
+
+  it('④ ⚠️ **没有 `totalTokens`** ⇒ 合计自己算（`input + output`）', () => {
+    const stream = '{"type":"message_update","usage":{"input":10,"output":5}}'
+    expect(digestPiEventStream(stream).usage).toEqual({
+      prompt_tokens: 10,
+      completion_tokens: 5,
+      total_tokens: 15,
+    })
+  })
+
+  it('⑤ ⚠️ **坏 JSON 行不影响用量**（坏行跳过，不是整体失败）', () => {
+    const stream = [
+      'not json at all',
+      '{"type":"message_update","usage":{"input":7,"output":3,"totalTokens":10}}',
+    ].join('\n')
+    expect(digestPiEventStream(stream).usage?.total_tokens).toBe(10)
+  })
+})

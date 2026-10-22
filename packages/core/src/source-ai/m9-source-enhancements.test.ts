@@ -20,13 +20,25 @@ import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { SOURCE_INTERPRET_SCHEMA_VERSION, type SourceInterpretSummary } from '@openvibe/shared'
+import {
+  SOURCE_INTERPRET_SCHEMA_VERSION,
+  type SourceInterpretResult,
+  type SourceInterpretSummary,
+} from '@openvibe/shared'
 import { newDb } from '../test-support/new-db'
-import { recordShare, readShareSummary, setConsent, clearConsent } from '../db/m9-source-scan'
-import { deriveConsentDetail, consentSourceFromDetail } from './interpret-service'
+import type { SqliteDatabase } from '../db'
+import {
+  recordShare,
+  readShareByProvider,
+  readShareSummary,
+  saveFindings,
+  setConsent,
+  clearConsent,
+} from '../db/m9-source-scan'
+import { deriveConsentDetail, consentSourceFromDetail, interpretSourceFindings } from './interpret-service'
 import { readSnippet, readSnippets, SNIPPET_MAX_FILES } from './snippet'
 import { formatInterpretMarkdown } from './export'
-import { CommandInterpretRunner, InterpretRunnerError } from './runner'
+import { CommandInterpretRunner, InterpretRunnerError, type SourceInterpretRunner } from './runner'
 
 const dirs: string[] = []
 
@@ -260,6 +272,8 @@ describe('M9 增强 4 · 解读结果的导出（**产物不含绝对路径、�
     return {
       status: 'ok',
       project_id: 'p1',
+      // ⚠️ **provider 与用量**（增强 1/4 新增的两列）—— 导出产物里也不该有它们
+      provider: 'local',
       fragment_count: 1,
       item_count: 1,
       risk_count: 1,
@@ -276,6 +290,7 @@ describe('M9 增强 4 · 解读结果的导出（**产物不含绝对路径、�
         },
       ],
       input_hash: 'abc123',
+      usage: null,
       failure_reason: null,
     }
   }
@@ -355,5 +370,136 @@ describe('M9 增强 5 · 「记住全发」的作用域（**范围，不是快�
   it('⑥ 「全不发」记忆 ＋ 一条都没发 ⇒ 记忆起了作用', () => {
     const detail = deriveConsentDetail(false, new Set(), new Set([1, 2]), false)
     expect(detail).toBe('memory_applied')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 增强 1/4 · 解读结果的 **provider ＋ 用量**，以及它们**落进台账**
+// ---------------------------------------------------------------------------
+
+describe('M9 增强 1/4 · 摘要带 provider 与用量，台账落三列', () => {
+  /** 一个项目 ＋ 一条命中（指向真实存在的文件）。 */
+  function seedProject(db: SqliteDatabase, root: string): number {
+    db.prepare(
+      `INSERT INTO projects (id, name, stages_snapshot, status, local_path, created_at, updated_at)
+       VALUES ('p1', '测试项目', '[]', 'active', ?, '2026-10-21T00:00:00.000Z', '2026-10-21T00:00:00.000Z')`,
+    ).run(root)
+    db.prepare(
+      `INSERT INTO lang_topics (lang, slug, title, summary, stage_id, kind)
+       VALUES ('go', 'go-concurrent', 'Go 并发', '', 5, 'language')`,
+    ).run()
+    // ⚠️ 知识点行只是给命中挂 FK（命中要指到一条知识点）
+    db.prepare('SELECT id FROM lang_topics WHERE slug = ?').get('go-concurrent')
+    saveFindings(db, 1, 'p1', [
+      {
+        topic_slug: 'go-concurrent',
+        file_rel_path: 'main.go',
+        line: 1,
+        col: 1,
+        matched_pattern: 'go func() { fmt.Println("hi") }()',
+        confidence: 'confirmed',
+        scanner_mode: 'parser',
+      },
+    ])
+    const finding = db
+      .prepare('SELECT id FROM lang_topic_findings WHERE project_id = ?')
+      .get('p1') as { id: number }
+    return finding.id
+  }
+
+  /**
+   * 一个假 runner。
+   *
+   * ⚠️ **runner 上的 provider/model 与它返回的结果里的 provider/model 故意不同**
+   *   ⇒ 用来证明「台账记的是**配置的那家**（runner 身上的），不是模型自述的」。
+   */
+  function fakeRunner(usage: SourceInterpretResult['usage']): SourceInterpretRunner {
+    return {
+      id: 'fake-runner',
+      model: 'deepseek-v4-flash',
+      provider: 'sensenova',
+      interpret: async () => ({
+        schema_version: SOURCE_INTERPRET_SCHEMA_VERSION,
+        items: [
+          {
+            topic_slug: 'go-concurrent',
+            summary: '这里起了一个 goroutine',
+            risks: [],
+            claim_state: 'mastered',
+          },
+        ],
+        model: '模型自述的名字',
+        provider: '模型自述的厂家',
+        ...(usage === undefined ? {} : { usage }),
+      }),
+    }
+  }
+
+  it('① ⚠️ 摘要带 **provider ＋ 用量**（**取 runner 配的那家**，不是模型自述的）', async () => {
+    const h = newDb()
+    const dir = makeProject({ 'main.go': 'package main\n' })
+    const findingId = seedProject(h.db, dir)
+    const summary = await interpretSourceFindings(h.db, {
+      projectId: 'p1',
+      findingIds: [findingId],
+      runner: fakeRunner({ prompt_tokens: 1200, completion_tokens: 340, total_tokens: 1540 }),
+      now: () => new Date('2026-10-21T00:00:00.000Z'),
+    })
+    // ⚠️ **provider 是 runner 配的那家**（模型自述的「模型自述的厂家」不算数）
+    expect(summary.provider).toBe('sensenova')
+    expect(summary.usage?.total_tokens).toBe(1540)
+  })
+
+  it('② ⚠️ **台账落三列**（provider / model / 用量）', async () => {
+    const h = newDb()
+    const dir = makeProject({ 'main.go': 'package main\n' })
+    const findingId = seedProject(h.db, dir)
+    await interpretSourceFindings(h.db, {
+      projectId: 'p1',
+      findingIds: [findingId],
+      runner: fakeRunner({ prompt_tokens: 1200, completion_tokens: 340, total_tokens: 1540 }),
+      now: () => new Date('2026-10-21T00:00:00.000Z'),
+    })
+    const row = h.db
+      .prepare('SELECT provider, model, usage_total_tokens FROM lang_source_shares WHERE project_id = ?')
+      .get('p1') as { provider: string; model: string; usage_total_tokens: number | null }
+    expect(row.provider).toBe('sensenova')
+    expect(row.model).toBe('deepseek-v4-flash')
+    expect(row.usage_total_tokens).toBe(1540)
+  })
+
+  it('③ ⚠️ **runner 没给用量** ⇒ 台账落 `NULL`（**不是 0** —— 「不知道」与「0 token」是两件事）', async () => {
+    const h = newDb()
+    const dir = makeProject({ 'main.go': 'package main\n' })
+    const findingId = seedProject(h.db, dir)
+    const summary = await interpretSourceFindings(h.db, {
+      projectId: 'p1',
+      findingIds: [findingId],
+      runner: fakeRunner(undefined),
+      now: () => new Date('2026-10-21T00:00:00.000Z'),
+    })
+    expect(summary.usage).toBeNull()
+    const row = h.db
+      .prepare('SELECT usage_total_tokens FROM lang_source_shares WHERE project_id = ?')
+      .get('p1') as { usage_total_tokens: number | null }
+    expect(row.usage_total_tokens).toBeNull()
+  })
+
+  it('④ ⚠️ **按 provider 分组读回来**（增强 1 的分组视图：同一家聚到一行）', async () => {
+    const h = newDb()
+    const dir = makeProject({ 'main.go': 'package main\n' })
+    const findingId = seedProject(h.db, dir)
+    await interpretSourceFindings(h.db, {
+      projectId: 'p1',
+      findingIds: [findingId],
+      runner: fakeRunner({ prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 }),
+      now: () => new Date('2026-10-21T00:00:00.000Z'),
+    })
+    const rows = readShareByProvider(h.db, '2026-10-01', '2026-10-25')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.provider).toBe('sensenova')
+    expect(rows[0]?.model).toBe('deepseek-v4-flash')
+    expect(rows[0]?.share_count).toBe(1)
+    expect(rows[0]?.usage_total_tokens).toBe(15)
   })
 })

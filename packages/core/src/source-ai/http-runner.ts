@@ -5,6 +5,7 @@ import {
   SourceInterpretResult,
   stripJsonFence,
   type SourceInterpretResult as SourceInterpretResultType,
+  type SourceInterpretUsage,
 } from '@openvibe/shared'
 import { InterpretRunnerError, type SourceInterpretRunner } from './runner'
 
@@ -167,8 +168,29 @@ export class HttpInterpretRunner implements SourceInterpretRunner {
     if (!result.success) {
       throw new InterpretRunnerError('runner-invalid-schema', '解读服务返回的内容不合契约')
     }
-    return result.data
+    // ⚠️ **用量是可选的**（有的服务不返回 `usage`）⇒ 拿不到就是没有，不算失败
+    const usage = extractUsage(body)
+    return usage === null ? result.data : { ...result.data, usage }
   }
+}
+
+/**
+ * 从 chat/completions 的响应里取**用量**。
+ *
+ * ⚠️ **形状不统一就当没有** —— 有的服务返回 `prompt_tokens`，有的返回 `input_tokens`；
+ *   猜错会让台账里出现**假的数字** ⇒ 只认 OpenAI 兼容那一种，其余一律 `null`。
+ */
+export function extractUsage(body: unknown): SourceInterpretUsage | null {
+  if (typeof body !== 'object' || body === null) return null
+  const usage = (body as { usage?: unknown }).usage
+  if (typeof usage !== 'object' || usage === null) return null
+  const u = usage as { prompt_tokens?: unknown; completion_tokens?: unknown; total_tokens?: unknown }
+  if (typeof u.prompt_tokens !== 'number' || typeof u.completion_tokens !== 'number') return null
+  const prompt = Math.max(0, Math.trunc(u.prompt_tokens))
+  const completion = Math.max(0, Math.trunc(u.completion_tokens))
+  const total =
+    typeof u.total_tokens === 'number' ? Math.max(0, Math.trunc(u.total_tokens)) : prompt + completion
+  return { prompt_tokens: prompt, completion_tokens: completion, total_tokens: total }
 }
 
 /**

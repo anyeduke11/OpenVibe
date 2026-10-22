@@ -615,6 +615,85 @@ P0 → P1 → P1b ┬→ P1c
 >     ＋ web 13 支（模式面板 5 ＋ 设置页模式区 3 ＋ 资源页 5）
 >     ＋ **仓库级 8 支**（Pi 包装脚本的命令行契约，含「假 Pi」驱动）。
 
+### 6.18 owner 2026-10-22 · 增强 1–5（多 provider 并存 ＋ 成本台账 ＋ 守卫补洞）
+
+> 本轮是 owner「**对增强 1-5 项进行开发**」的执行轮：把上一轮收尾报告里的
+> **未考虑且需要增强的需求**那 5 条全部落地。
+> ⚠️ **零新增判据**（仍 50 条）· **零新增表**（仍 17 张）· **零新增待裁**（仍 9 条）
+> ⇒ 新增的守卫**全部落在实现层**；spec 只做**注记与列清单同步**（不改判据）。
+
+#### 增强 1 ＋ 增强 4 · 按 provider 分组的台账 ＋ 成本台账（spec §3.9 已同步）
+
+| 项 | 落点 |
+|---|---|
+| **台账加三列** | `lang_source_shares` ＋ `provider` / `model` / `usage_total_tokens`（迁移 `0018`，**零新增表**） |
+| **分组视图** | core `readShareByProvider`（`GROUP BY provider, model`）＋ `GET /api/lang/source/share-by-provider`（**from/to 必填**）＋ 设置页「展开按 provider 分组」 |
+| **摘要带 provider ＋ 用量** | shared `SourceInterpretSummary` 增 `provider` / `usage`（**兼容扩展 ⇒ 不升契约版本号**） |
+| **用量采集** | HTTP runner 认 OpenAI 兼容那一种形状；Pi 事件流认 `input`/`output`/`totalTokens` ⇒ **归一到同一形状** |
+| **台账记「配置的那家」** | runner 身上那两个字段（**事实**）⇒ 不采信模型自述的 |
+
+⚠️ **三处取值口径（不许含糊）**：
+> - **空串 = 未知**（provider / model）—— 无闭集就不发明闭集 ⇒ 历史行自然落空串
+>   ⇒ 分组视图**必须显示「未知」那一组**，不许并进当前那家。
+> - **`NULL` ≠ 0**（用量）—— 「这次没拿到用量」与「这次用了 0 token」是两件事
+>   ⇒ 全部未知时合计是 `null`；部分已知时界面说「已知 N/M 次」。
+> - **不碰 `local_events` 的 payload 键闭集**（M3 契约 `AGENT_PAYLOAD_KEYS`）
+>   ⇒ 用量与 provider 落在 **M9 自己的 `lang_source_shares`**。
+
+⚠️ **排序放 JS，不放 SQL**：本仓的仓级静态守卫（`tests/order-determinism.test.ts`）
+只认「末键是单列唯一键」的 `ORDER BY`；这里是**聚合**（`GROUP BY provider, model`），
+给它加裸 `id` 兜底是**取组内任意值**的坏 SQL ⇒ 改在 JS 里排（确定性等价：
+`(provider, model)` 本身就是分组键 ⇒ 组间唯一 ⇒ 排完是全序）。
+
+#### 增强 2 · 多个 provider 配置并存（按项目 / 按接口形态选）
+
+| 项 | 落点 |
+|---|---|
+| **存储形状升级** | `app_meta.langInterpretProvider`：单条对象 → `{ providers: [...], default_provider_id }`（**同一个键**） |
+| **老配置不许丢** | 读端认出旧形状 ⇒ **包成单元素集合**（id = `default`）⇒ 连它那把钥匙串 key 也不丢 |
+| **选哪一份（口径单处）** | core `selectProviderEntry`：**显式 `provider_id` → 按 `project_id` 绑定 → 默认那一份** |
+| **每份各有一把 key** | 钥匙串项**按配置 id 分账号**（`api-key:<id>`；老配置沿用 `api-key`） |
+| **端点** | `GET/PUT /api/lang/interpret/providers`（**复数**，集合语义）＋ `GET /api/lang/interpret/capability?provider_id=` ＋ `POST /api/lang/interpret` 支持 `provider_id` |
+| **界面** | 设置页「AI 解读」区改成**多份列表 ＋ 选中编辑 ＋ 新增/删除/设为默认**；保存时**一次 PUT 整份集合** |
+
+⚠️ **「按接口形态」怎么落地**：每份配置自带 `kind`（`command` / `openai_http`）
+⇒ **命令形态与兼容接口形态可以各存一份、互不覆盖**（此前切形态就得覆盖另一份）。
+⚠️ **端点从单数改成复数**（`/provider` → `/providers`）—— 仓内只有一个调用方（web）⇒ 同步改掉即可。
+⚠️ **保存仍是「整份覆盖」**（不是增量合并）⇒ 半截配置不可能出现；
+`api_key` 三态不变（**缺省 = 保持原值** / **空串 = 清除**）。
+
+#### 增强 3 · 批次 E 守卫补洞（JS 侧相对窗口 ＋ SQL 跨行取表名）
+
+| 项 | 落点 |
+|---|---|
+| **JS 形态的相对窗口** | 守卫扩到「当下时刻减去一个时长」（`Date.now() - 7 * 86_400_000` 等）⇒ 减数必须**带时间单位**才算窗口 |
+| **SQL 形态按「整段 SQL」取表名** | ⚠️ 逐行取表名 ⇒ `FROM local_events` 与 `date('now', ?)` **不同行** ⇒ 表名取不到 ⇒ **整个 use 不报** ⇒ **守卫没在守事故现场那一处** |
+| **测试侧也抹注释** | 被注释掉的造数语句**不会执行** ⇒ 不会漂 ⇒ 不该算风险 |
+| **夹具改名防自我命中** | 守卫自带夹具的方法名从 `summary` 改成 `fixtureSummary` —— 真实仓库里 `LocalEventsRepo.summary` **确实**有相对窗口 ⇒ 同名会让守卫把自己判成风险 |
+
+⚠️ **补了一支「现场看得见」的判据**：只断「全仓零风险」是不够的 ——
+零风险可能是**漏报**出来的 ⇒ 必须单独断言「那一处确实被认出来」。
+
+#### 增强 5 · spec 同步（只加注记，不改判据）
+
+| 落点 | 内容 |
+|---|---|
+| spec **§3.9** | `lang_source_shares` 列清单加三列 ＋ 取值口径（空串 = 未知 / `NULL` ≠ 0 / 只落计数） |
+| spec **§3.21.1**（新） | **落库三档 ≠ 首屏两选项**（首屏仍两个选项 ＋ 一个出口；落库放宽到三档，因为阶段 1/2 的推荐档实测就是 `familiar`） |
+| spec **§5.3** | 补记「多份 provider 配置并存」的形状与选法（老配置不许丢） |
+
+> - **本轮（增强 1–5）的整体验证**：
+>   - **全量回归**：**162 文件 / 2083 支全绿**（62 秒，`--maxWorkers=3` **单独跑**）
+>   - 四处 `tsc` 零错 ＋ `eslint` 零错
+>   - **spec 一致性 3 支 ＋ 变异腿 21 支 ＋ design-tokens 4 支 ＋ 表闸 5 支全绿**
+>     ⇒ 判据数（仍 50）、表数（仍 17）、待裁数（仍 9）**三条计数一个没动**。
+>   - **本轮新增/改写的测试**：core 25 支（分组读端 5 ＋ 排序确定性 1）＋ core 配置层 32 支（集合读写 ＋ 选择口径 ＋ 多份各一把 key）
+>     ＋ core 增强 27 支（摘要带 provider/用量 ＋ 台账落三列 ＋ 分组读回 4）
+>     ＋ shared 18 支（Pi 事件流用量归一 5）＋ server 40 支（集合端点 ＋ 能力探测按 provider ＋ 旧端点删除）
+>     ＋ server 27 支（分组端点 5）＋ web 10 支（分组表 4）＋ web 19 支（多份配置界面）
+>   - ⚠️ **仓级静态守卫抓到一处**：`ORDER BY share_count DESC, provider ASC, model ASC`
+>     被 `tests/order-determinism.test.ts` 判红 ⇒ 已改为**排序放 JS**（见上方注记）。
+
 
 
 

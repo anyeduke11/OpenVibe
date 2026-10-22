@@ -53,6 +53,18 @@ const L = {
   dailyEmpty: '这段时间没有出网记录。',
   dailyDay: (d: string) => d,
   dailyProject: (p: string) => p,
+  providerTitle: '按 provider 分组',
+  providerHint:
+    '按「哪一家 provider 答的」聚合（复盘问法：「哪一家更准、哪一家更贵」）。provider 配置改过之后，改之前出的网会归到「未知」那一组 —— 不会并进现在这家。',
+  providerOpen: '展开按 provider 分组',
+  providerClose: '收起按 provider 分组',
+  providerEmpty: '这段时间没有出网记录。',
+  /** ⚠️ **provider 标识为空 = 未知**（配置改之前出的网）⇒ 不许显示成空白 */
+  providerUnknown: '未知',
+  providerModel: (m: string) => m,
+  providerUsage: (n: number) => `用量 ${String(n)} token`,
+  providerUsageUnknown: '用量未知',
+  providerUsagePartial: (known: number, total: number) => `（已知 ${String(known)}/${String(total)} 次）`,
 } as const
 
 interface ShareSummaryItem {
@@ -67,6 +79,15 @@ interface ShareSummaryItem {
   memory_applied_count: number
   /** 细分：记忆是「全发」，但用户自己又全勾了一遍 */
   user_reticked_count: number
+}
+
+interface ShareByProviderItem {
+  provider: string
+  model: string
+  share_count: number
+  snippet_total: number
+  usage_total_tokens: number | null
+  usage_known_count: number
 }
 
 interface ShareDailyItem {
@@ -127,8 +148,62 @@ function ShareDailyTable() {
   )
 }
 
+/**
+ * **按 provider 分组**（折叠在「源码出网记录」区里 · owner 2026-10-22 增强 1）。
+ *
+ * ⚠️ **窗口是显式绝对窗口**（与「按日明细」同款）⇒ 不随日历漂移。
+ * ⚠️ **「未知」那一组必须显示出来** —— provider 配置改过 ⇒ 改之前出的网没有标识
+ *   ⇒ 悄悄并进现在这家 = 假数。
+ */
+function ShareByProviderTable() {
+  const from = utcDay(30)
+  const to = utcDay(-1)
+  const groups = useQuery({
+    queryKey: ['lang-share-by-provider', from, to],
+    queryFn: () =>
+      apiJson<{ groups: ShareByProviderItem[] }>(
+        `/api/lang/source/share-by-provider?from=${from}&to=${to}`,
+      ),
+    staleTime: 30_000,
+  })
+  const rows = groups.data?.groups ?? []
+
+  if (rows.length === 0) {
+    return <p className="text-[13px] text-ink-muted">{L.providerEmpty}</p>
+  }
+  return (
+    <ul className="mt-2 flex flex-col gap-1">
+      {rows.map((r) => (
+        <li
+          key={`${r.provider}|${r.model}`}
+          className="flex flex-wrap items-center gap-2 border-b border-line-hair pb-1 last:border-b-0"
+        >
+          <span className="mono text-[12px] text-ink">
+            {r.provider === '' ? L.providerUnknown : r.provider}
+          </span>
+          {r.model !== '' && (
+            <span className="mono text-[12px] text-ink-muted">{L.providerModel(r.model)}</span>
+          )}
+          <span className={tagCls}>{L.shareCount(r.share_count)}</span>
+          <span className="text-[11.5px] text-ink-muted">{L.snippetTotal(r.snippet_total)}</span>
+          <span className="text-[11.5px] text-ink-faint">
+            {r.usage_total_tokens === null
+              ? L.providerUsageUnknown
+              : `${L.providerUsage(r.usage_total_tokens)}${
+                  r.usage_known_count < r.share_count
+                    ? ` ${L.providerUsagePartial(r.usage_known_count, r.share_count)}`
+                    : ''
+                }`}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function SourceShareSection() {
   const [dailyOpen, setDailyOpen] = useState(false)
+  const [providerOpen, setProviderOpen] = useState(false)
   const list = useQuery({
     queryKey: ['lang-share-summary'],
     queryFn: () =>
@@ -146,14 +221,24 @@ export function SourceShareSection() {
         <span className={tagCls}>{`${String(items.length)} 个项目`}</span>
       }
       foot={
-        <button
-          type="button"
-          className={btnGhost}
-          aria-expanded={dailyOpen}
-          onClick={() => setDailyOpen((v) => !v)}
-        >
-          {dailyOpen ? L.dailyClose : L.dailyOpen}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className={btnGhost}
+            aria-expanded={dailyOpen}
+            onClick={() => setDailyOpen((v) => !v)}
+          >
+            {dailyOpen ? L.dailyClose : L.dailyOpen}
+          </button>
+          <button
+            type="button"
+            className={btnGhost}
+            aria-expanded={providerOpen}
+            onClick={() => setProviderOpen((v) => !v)}
+          >
+            {providerOpen ? L.providerClose : L.providerOpen}
+          </button>
+        </div>
       }
     >
       {items.length === 0 ? (
@@ -184,6 +269,12 @@ export function SourceShareSection() {
         <div className="mt-3 border-t border-line-hair pt-2">
           <p className="text-[12.5px] text-ink-muted">{L.dailyHint}</p>
           <ShareDailyTable />
+        </div>
+      )}
+      {providerOpen && (
+        <div className="mt-3 border-t border-line-hair pt-2">
+          <p className="text-[12.5px] text-ink-muted">{L.providerHint}</p>
+          <ShareByProviderTable />
         </div>
       )}
     </Section>

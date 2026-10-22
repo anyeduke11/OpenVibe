@@ -77,6 +77,10 @@ const L = {
   interpretNone: '还没有勾选任何片段。',
   interpretFailed: '解读失败',
   interpretOk: '已解读',
+  interpretBy: '解读方',
+  interpretByUnknown: '（未知）',
+  interpretUsage: '用量',
+  interpretUsageNone: '（这次没有用量数据）',
   divergenceTitle: '与确定性层的分歧',
   divergenceNone: '没有分歧：AI 的说法与判定层一致。',
   riskTitle: '风险点',
@@ -452,6 +456,24 @@ function InterpretPanel(props: {
 
       {result !== undefined ? (
         <div className="flex flex-col gap-1.5">
+          {/* ⚠️ **增强 4 · 谁答的 ＋ 用了多少 token** ——
+              provider 可以多份并存 ⇒ 「哪家答的」是复盘的第一问题；
+              用量只落**计数**（不是内容）⇒ 界面显示它是安全的。 */}
+          <p className="text-[11.5px] text-ink-muted">
+            <span className="font-medium text-ink-body">{L.interpretBy}</span>
+            {`：${
+              result.provider.trim() === '' ? L.interpretByUnknown : result.provider
+            }`}
+          </p>
+          <p className="text-[11.5px] text-ink-muted">
+            <span className="font-medium text-ink-body">{L.interpretUsage}</span>
+            {`：${
+              result.usage === null
+                ? L.interpretUsageNone
+                : `${String(result.usage.total_tokens)} token`
+            }`}
+          </p>
+
           {result.status === 'failed' ? (
             <div className={noteCls('warn')}>
               <strong className={noteTitleCls}>{L.interpretFailed}</strong>

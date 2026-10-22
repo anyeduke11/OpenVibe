@@ -285,6 +285,12 @@ export interface ShareRow {
   consent_source: ConsentSource
   /** ⚠️ **细分**（owner 2026-10-22）：二分之外的第三种信息 */
   consent_detail: ConsentDetail
+  /** provider 标识（**空串** = 未知 / 配之前就出的网） */
+  provider: string
+  /** 模型标识（**空串** = 未知） */
+  model: string
+  /** 用量合计（`null` = runner 没给用量） */
+  usage_total_tokens: number | null
 }
 
 /**
@@ -303,12 +309,19 @@ export function recordShare(
     created_at: string
     consent_source: ConsentSource
     consent_detail: ConsentDetail
+    /** provider 标识（**空串** = 未知） */
+    provider?: string
+    /** 模型标识（**空串** = 未知） */
+    model?: string
+    /** 用量合计（`undefined` = runner 没给用量 ⇒ 落 `NULL`） */
+    usage_total_tokens?: number | null
   },
 ): void {
   db.prepare(
     `INSERT INTO lang_source_shares
-       (project_id, topic_id_count, snippet_count, created_at, consent_source, consent_detail)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+       (project_id, topic_id_count, snippet_count, created_at, consent_source, consent_detail,
+        provider, model, usage_total_tokens)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     row.project_id,
     row.topic_id_count,
@@ -316,14 +329,109 @@ export function recordShare(
     row.created_at,
     row.consent_source,
     row.consent_detail,
+    row.provider ?? '',
+    row.model ?? '',
+    row.usage_total_tokens ?? null,
   )
+}
+
+/**
+ * **按 provider 分组**的出网汇总（§3.9 末段 · owner 2026-10-22 增强 1）。
+ *
+ * ## ⚠️ 为什么台账要按 provider 分组
+ *
+ * provider 一旦**可多份**（多份配置并存），「这次解读是哪一家做的」就是**复盘的第一问题**
+ * —— 哪一家更准？哪一家更贵？⇒ 台账只记「出了几次网」就答不了这个问题。
+ *
+ * ## ⚠️ **显式绝对窗口**（`from` / `to` 必填）
+ *
+ * 与 `readShareDaily` **同款纪律** ⇒ 不随日历漂移（这是本仓踩过的「到期变红」那个坑）。
+ *
+ * ## ⚠️ **未知那一组不许消失**
+ *
+ * provider 配置**随时会改** ⇒ 改之前出的网**没有**当时的 provider 标识 ⇒
+ * 那些行的 `provider` 是**空串** ⇒ 分组结果里**必须**有「未知」这一组，
+ * 不许悄悄并进当前那家（那会让「上一家跑了多少次」变成假数）。
+ */
+export interface ShareByProviderRow {
+  /** provider 标识（**空串** = 未知 / 配之前就出的网） */
+  provider: string
+  /** 模型标识（**空串** = 未知） */
+  model: string
+  /** 这一组的出网次数 */
+  share_count: number
+  /** 这一组累计发出去的片段条数 */
+  snippet_total: number
+  /** 这一组累计的 token（`null` = 这一组**没有一行**带用量） */
+  usage_total_tokens: number | null
+  /** 这一组里**带用量**的行数（分母：用来判断「这个合计可不可信」） */
+  usage_known_count: number
+}
+
+/**
+ * 按 provider × 模型分组读出网汇总（**显式绝对窗口**）。
+ *
+ * @param db 数据库
+ * @param from 含头，`YYYY-MM-DD`
+ * @param to **不含尾**，`YYYY-MM-DD`
+ * @param projectId 项目（可选 ⇒ 全库）
+ */
+export function readShareByProvider(
+  db: SqliteDatabase,
+  from: string,
+  to: string,
+  projectId?: string,
+): ShareByProviderRow[] {
+  const rows = db
+    .prepare(
+      `SELECT provider,
+              model,
+              COUNT(*) AS share_count,
+              COALESCE(SUM(snippet_count), 0) AS snippet_total,
+              SUM(usage_total_tokens) AS usage_total_tokens,
+              COUNT(usage_total_tokens) AS usage_known_count
+         FROM lang_source_shares
+        WHERE substr(created_at, 1, 10) >= ?
+          AND substr(created_at, 1, 10) < ?
+          AND (? IS NULL OR project_id = ?)
+        GROUP BY provider, model`,
+    )
+    .all(from, to, projectId ?? null, projectId ?? null) as {
+    provider: string
+    model: string
+    share_count: number
+    snippet_total: number
+    usage_total_tokens: number | null
+    usage_known_count: number
+  }[]
+  return rows
+    .map((r) => ({
+      provider: r.provider,
+      model: r.model,
+      share_count: Number(r.share_count),
+      snippet_total: Number(r.snippet_total),
+      usage_total_tokens: r.usage_total_tokens === null ? null : Number(r.usage_total_tokens),
+      usage_known_count: Number(r.usage_known_count),
+    }))
+    // ⚠️ **排序放 JS，不放 SQL** ——
+    //   本仓的仓级静态守卫（`tests/order-determinism.test.ts`）只认「末键是单列唯一键」
+    //   的 ORDER BY；这里是**聚合**（`GROUP BY provider, model`），
+    //   给它加裸 `id` 兜底是**取组内任意值**的坏 SQL ⇒ 改在 JS 里排。
+    //   ⚠️ 确定性等价：`(provider, model)` 本身就是分组键 ⇒ 组间唯一 ⇒ 排完是全序。
+    .sort((a, b) => {
+      if (a.share_count !== b.share_count) return b.share_count - a.share_count
+      if (a.provider !== b.provider) return a.provider < b.provider ? -1 : 1
+      if (a.model !== b.model) return a.model < b.model ? -1 : 1
+      return 0
+    })
 }
 
 /** 读该项目的出网计数（**新到旧**）。 */
 export function readShares(db: SqliteDatabase, projectId: string): ShareRow[] {
   const rows = db
     .prepare(
-      `SELECT id, project_id, topic_id_count, snippet_count, created_at, consent_source, consent_detail
+      `SELECT id, project_id, topic_id_count, snippet_count, created_at, consent_source, consent_detail,
+              provider, model, usage_total_tokens
          FROM lang_source_shares
         WHERE project_id = ?`,
     )

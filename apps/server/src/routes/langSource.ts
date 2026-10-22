@@ -7,6 +7,7 @@ import {
   readAllConsents,
   readConsent,
   readFindings,
+  readShareByProvider,
   readShareDaily,
   readShareSummary,
   readShares,
@@ -208,6 +209,36 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
     }
     return {
       daily: readShareDaily(
+        deps.db,
+        parsed.data.from,
+        parsed.data.to,
+        parsed.data.project,
+      ),
+    }
+  })
+
+  /**
+   * **按 provider 分组**的出网汇总（owner 2026-10-22 增强 1）。
+   *
+   * ⚠️ **问法**：「哪一家 provider 答了这么多次？花了多少 token？」
+   *   —— 台账只记「出了几次网」时答不了这个问题。
+   *
+   * ⚠️ **显式绝对窗口**（`from` / `to` 必填）—— 与 `share-daily` **同一个 query schema**
+   *   ⇒ 两处的窗口口径只有一处。
+   *
+   * ⚠️ **「未知」那一组会出现在结果里**（provider 配置改过 ⇒ 改之前出的网没有标识）
+   *   ⇒ 界面必须把它显示出来，不许悄悄并进当前那家。
+   */
+  app.get('/api/lang/source/share-by-provider', async (req) => {
+    const parsed = ShareDailyQuery.safeParse(req.query)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', 'from 与 to 必填（YYYY-MM-DD），project 可选')
+    }
+    if (parsed.data.from > parsed.data.to) {
+      throw new AppError('VALIDATION_ERROR', 'from 晚于 to')
+    }
+    return {
+      groups: readShareByProvider(
         deps.db,
         parsed.data.from,
         parsed.data.to,

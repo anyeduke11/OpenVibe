@@ -30,6 +30,7 @@ import {
   readAllConsents,
   readConsent,
   readFindings,
+  readShareByProvider,
   readShareDaily,
   readShares,
   recordShare,
@@ -526,5 +527,150 @@ describe('M9 · 按日出网的分类计数（审计问法：某天有多少次�
     expect(readShareDaily(db, '2026-10-19', '2026-10-21')).toHaveLength(2)
     expect(readShareDaily(db, '2026-10-19', '2026-10-21', 'p1')).toHaveLength(1)
     db.close()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 按 provider 分组的出网汇总（owner 2026-10-22 增强 1 ＋ 增强 4 的用量）
+// ---------------------------------------------------------------------------
+
+describe('M9 · 按 provider 分组的出网汇总（增强 1）', () => {
+  it('① 同一 provider 的多次出网**聚到一行**，次数与片段数逐字相加', () => {
+    const db = makeDb()
+    const { projectId } = seed(db)
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 2,
+      snippet_count: 3,
+      created_at: '2026-10-20T01:00:00.000Z',
+      consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
+      provider: 'sensenova',
+      model: 'deepseek-v4-flash',
+      usage_total_tokens: 100,
+    })
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 1,
+      snippet_count: 2,
+      created_at: '2026-10-21T01:00:00.000Z',
+      consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
+      provider: 'sensenova',
+      model: 'deepseek-v4-flash',
+      usage_total_tokens: 50,
+    })
+    const rows = readShareByProvider(db, '2026-10-01', '2026-10-25')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.provider).toBe('sensenova')
+    expect(rows[0]?.share_count).toBe(2)
+    expect(rows[0]?.snippet_total).toBe(5)
+    expect(rows[0]?.usage_total_tokens).toBe(150)
+    expect(rows[0]?.usage_known_count).toBe(2)
+  })
+
+  it('② ⚠️ **「未知」那一组不许消失**（provider 改过 ⇒ 改之前出的网没有标识）', () => {
+    const db = makeDb()
+    const { projectId } = seed(db)
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 1,
+      snippet_count: 1,
+      created_at: '2026-10-20T01:00:00.000Z',
+      consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
+      // ⚠️ **不传 provider / model** ⇒ 老行（配置变更前出的网）
+    })
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 1,
+      snippet_count: 1,
+      created_at: '2026-10-21T01:00:00.000Z',
+      consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
+      provider: 'agnes',
+      model: 'agnes-3.0-flash',
+    })
+    const rows = readShareByProvider(db, '2026-10-01', '2026-10-25')
+    expect(rows).toHaveLength(2)
+    const unknown = rows.find((r) => r.provider === '')
+    expect(unknown).toBeTruthy()
+    expect(unknown?.share_count).toBe(1)
+    // ⚠️ **没有用量 ⇒ 合计是 null，不是 0**（「0 token」与「不知道」是两件事）
+    expect(unknown?.usage_total_tokens).toBeNull()
+    expect(unknown?.usage_known_count).toBe(0)
+  })
+
+  it('③ ⚠️ **显式绝对窗口**（`[from, to)` 含头不含尾 ⇒ 不随日历漂移）', () => {
+    const db = makeDb()
+    const { projectId } = seed(db)
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 1,
+      snippet_count: 1,
+      created_at: '2026-10-20T01:00:00.000Z',
+      consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
+      provider: 'p',
+      model: 'm',
+    })
+    expect(readShareByProvider(db, '2026-10-20', '2026-10-21')).toHaveLength(1)
+    expect(readShareByProvider(db, '2026-10-20', '2026-10-20')).toHaveLength(0)
+    expect(readShareByProvider(db, '2026-10-19', '2026-10-20')).toHaveLength(0)
+  })
+
+  it('④b ⚠️ **排序是确定的**（次数降序 → provider 升序 → 模型 升序；**排序在 JS 里**）', () => {
+    const db = makeDb()
+    const { projectId } = seed(db)
+    // ⚠️ **故意让次数与字母序相反** ⇒ 只按其中一种排都会露馅
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 1,
+      snippet_count: 1,
+      created_at: '2026-10-20T01:00:00.000Z',
+      consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
+      provider: 'zeta',
+      model: 'm1',
+    })
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 1,
+      snippet_count: 1,
+      created_at: '2026-10-20T02:00:00.000Z',
+      consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
+      provider: 'alpha',
+      model: 'm2',
+    })
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 1,
+      snippet_count: 1,
+      created_at: '2026-10-20T03:00:00.000Z',
+      consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
+      provider: 'alpha',
+      model: 'm1',
+    })
+    const rows = readShareByProvider(db, '2026-10-01', '2026-10-25')
+    expect(rows.map((r) => `${r.provider}|${r.model}`)).toEqual(['alpha|m1', 'alpha|m2', 'zeta|m1'])
+  })
+
+  it('④ 按项目过滤（缺省项目 ⇒ 只看那一个项目）', () => {
+    const db = makeDb()
+    const { projectId } = seed(db)
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 1,
+      snippet_count: 1,
+      created_at: '2026-10-20T01:00:00.000Z',
+      consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
+      provider: 'p',
+      model: 'm',
+    })
+    expect(readShareByProvider(db, '2026-10-01', '2026-10-25', projectId)).toHaveLength(1)
+    expect(readShareByProvider(db, '2026-10-01', '2026-10-25', '别的项目')).toHaveLength(0)
   })
 })
