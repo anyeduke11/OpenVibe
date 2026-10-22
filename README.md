@@ -24,7 +24,8 @@ npx openvibe-cli diff ~/your-project                           # ③ 看有没�
 > 上线前两条装法：① 从 [release v0.1.0](https://github.com/anyeduke11/OpenVibe/releases/tag/v0.1.0) 下载 `openvibe-cli-0.1.0.tgz`，`npm i -g ./openvibe-cli-0.1.0.tgz`（该资产的体积 / sha256 / 36 条清单见发布说明「测量口径」）；② 源码构建：`pnpm install && pnpm pkg:cli` → `cd apps/cli/pkg && npm pack` →
 > `npm i -g openvibe-cli-0.1.0.tgz`（cwd 仍在上一步的 `apps/cli/pkg`，故路径不带前缀）。之后命令同上（全局装过就不必每行带 `npx`）；**装后跑通五命令这件事未在干净机复验**，见发布说明「本版本未验证的事」。
 
-第 ① 步首启会把 **109 条术语 / 7 套流程模板 / 21 条精选提示词 / 13 条技巧**播进本地库，并自动组装出一个 `default` 标准包
+第 ① 步首启会把 **≥100 条术语 / 7 套流程模板 / 21 条精选提示词 / ≥10 条技巧**播进本地库，并自动组装出一个 `default` 标准包
+（条数是**门槛口径**，实际条数以 `pnpm seed:check` 的现跑为准）
 ——不用先建库再对着空界面发呆。第 ② 步默认先给预览表、要你确认，覆盖任何已有文件前会先备份。跑完你会得到：
 
 | 写入的文件 | 谁读它 |
@@ -114,7 +115,7 @@ openvibe clean <dir> [--yes]              退场：删当前 lock 登记且未�
         apps/cli  薄客户端：只做传输 + 交互 + 文件 IO，业务逻辑不在它身上
 ```
 
-- 只有一个运行时依赖：`better-sqlite3`（原生模块不能打包），其余全部内联进单文件 `cli.js`（采样 2026-10-22 跑 `pnpm pkg:cli` 实测 **5079.46 kB**）。
+- 只有一个运行时依赖：`better-sqlite3`（原生模块不能打包），其余全部内联进单文件 `cli.js`（体积以 `pnpm pkg:cli` 的现跑输出为准）。
 - 数据是**一个 SQLite 文件**，没有服务、没有账号、没有后台常驻。
 - CLI 断网可用：`sync --file bundle.json` / `--dir` 走离线注入，不需要起 serve。
 
@@ -184,7 +185,7 @@ OpenVibe 的 agent 接入是**三件事**，边界刻意收得很窄 —— agen
 这四只全部经 HTTP，**CLI 进程从不直接打开数据库**。
 
 **每类事件都留在本机台账里**（见上一节），CLI 每次运行也记一条 `cli_agent_command_run`。
-本机事件台账的 23 类 kind 与匿名遥测那三类**严格不同名** —— agent 的活动不会被混进遥测白名单。
+本机事件台账的 23 类 kind（闭集以 `packages/shared/src/constants.ts` 的 `LOCAL_EVENT_KINDS` 为准）与匿名遥测那三类**严格不同名** —— agent 的活动不会被混进遥测白名单。
 
 ### 本机事件台账：和匿名遥测是两件不同的事
 
@@ -196,7 +197,7 @@ OpenVibe 的 agent 接入是**三件事**，边界刻意收得很窄 —— agen
 | 关掉之后 | 不入队、零外联 | **照样记**。关遥测对它没有任何影响 |
 | 去向 | 开关打开后会发到 owner 自部署的端点 | **不出网**。表只在本机 SQLite 里，没有上传通道 |
 | 能不能清 | 随遥测设置走 | 设置页「本机事件台账 → 清空」，**一次性全删，不可撤销** |
-| 记什么 | 固定三类事件，五段固定字段 | 23 类事件（建资产、改资产、勾清单项、注入结果……），只记 id 与枚举值 |
+| 记什么 | 固定三类事件，五段固定字段 | 台账 kind 闭集全部（建资产、改资产、勾清单项、注入结果……），只记 id 与枚举值 |
 
 两者的 kind 闭集**严格不同名**，这是有意的：名字混在一起会让「关了遥测就没记录」这个误解被界面坐实。
 
@@ -260,8 +261,10 @@ npm / npx 用户走 `prebuild-install` 按平台与 Node ABI 取预编译包，�
 ```bash
 git clone https://github.com/anyeduke11/OpenVibe && cd OpenVibe
 pnpm install                # pnpm ≥ 10，corepack enable 即可
-pnpm lint && pnpm typecheck && pnpm test        # 2084 用例 / 162 文件（unit / integration / cli / web 四层；采样 2026-10-22 本机 @ `a30268d`：lint 与 typecheck 零输出，test 162 文件 / 2084 支全绿，耗时 126s。支数随提交变动，以 pnpm test 汇总行为准）
-pnpm seed:check && pnpm bundle:check            # 另两道门禁：种子数量与构成配额、Web 体积闸门（入口 268.27 kB ≤ 300 kB）
+pnpm lint && pnpm typecheck && pnpm test        # 四层：unit / integration / cli / web
+                                                  # 支数与文件数随提交变动，**以 pnpm test 的汇总行为准**
+                                                  # （本仓 §13-8「记位置不记次数」的同款纪律：README 不写死任何一次的支数）
+pnpm seed:check && pnpm bundle:check            # 另两道门禁：种子数量与构成配额、Web 体积闸门（入口 ≤ 300 kB / 单 chunk ≤ 500 kB）
 pnpm pkg:cli                                    # 产出发布暂存目录 apps/cli/pkg/
 cd apps/cli/pkg && npm pack                     # → openvibe-cli-<版本>.tgz，可 npm i -g 它
 ```

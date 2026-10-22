@@ -2863,3 +2863,33 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   ③ `scripts/scan-m9-source.ts` 的导入去扩展名是**运行时路径形态**的改动：已实测 `tsx` 正常、`tsc` 正常，但**没有**在其它打包器（单独 esbuild/tsup 打包该脚本）下验证过；
   ④ 记忆重组后**旧版只存在于 `archive/2026-10-22/MEMORY.md`**（工具自动归档），本轮新建的 topic 文件同样只在当前 profile 下 —— 换 `activeDataDir` 不会跟过去；
   ⑤ 本轮**未动** `docs/dev-plan.md` / `docs/decisions.md` / `docs/tasks.md`（并行会话禁区）⇒ 那三份文件里的过期数字本轮仍未订正；`docs/specs/` 里的相对时间（多为叙事性用法）本轮**刻意未改** —— 改 spec 正文须同升版本行（FR-4.3），为措辞而升版成本不对称。
+
+---
+
+## [DEV-0109] 2026-10-22 · 未完成项落地：否定断言补凭据 / 相对时间清理 / 治理计数去写死 / 记忆导出进仓
+
+- **时间**: 2026-10-22
+- **类型**: 文档治理（上一轮列出的未完成项 ＋ 增强需求的落地；**不含产品行为改动**）
+- **关联文件**: `docs/specs/{docs-governance-check,growth-path,theme,adapter-fixtures,context-density,m9-dev-plan-2026-10,m4-playbook}.md`、`docs/analysis-2026-10-02-first-principles.md`、`docs/docs-check-baseline.json`、`docs/decisions.md`、`scripts/export-agent-memory.ts`、`tests/export-agent-memory.test.ts`、`docs/agent-memory/`、`CONTRIBUTING.md`、`README.md`
+- **问题描述**: owner 2026-10-22 授权「未完成部分任务落地」。上一轮列的 6 条未完成项 ＋ 5 条增强需求，本轮逐条处置。**开账先做勘查**（不凭印象）：那 11 项并行会话脏改动的 mtime 全部停在 **2026-10-19 18:30** ⇒ 并行会话已三天没动，那是**残留**不是**在制品**；且其内容实为**对已落地 M4 文档的回退**（`dev-plan §17` 整节删除、`tasks.md` T12 退回「人日未估」、`decisions.md` ⑫ 退回「已裁已落」）。
+- **实现思路**: 三条纪律贯穿本轮 —— ① **口径只留一处**：会随提交漂移的实测量改成「现跑」或**门槛口径**，不写死具体值；② 改 spec 正文**只加注记**、不升版本行（沿用 `6917179` 的先例），**判据数 50 / 表数 17 / 待裁 9 三条计数一个不动**；③ 否定式全局断言**必须自带复算凭据**，且**凭据只写一处** —— 转引它的地方**指向它**，不复制命令（复制即第二份口径）。
+- **核心变更**:
+  - **FR-11 否定断言补凭据（命中 5 → 1）**：`analysis:523` 与 `growth-path:19`（两处都转引 m4 的理由）改为指向 `m4-playbook.md` FR-5.2 的**单一复算口径**；`m4-playbook.md:25`（原始出处）指向同文件 FR-5.2；`theme.md:157` 补上实测复算命令，并修掉同文件 §3 表格里指向「§6.7」的**断指针**（该文件根本没有 §6.7 子节 ⇒ 改指「§6 第 7 条」）。**另有一处是本会话自己上轮引入的**：`m9-dev-plan-2026-10.md:674` 的「只断『全仓零风险』」被措辞表扫成否定断言（`全仓零` 命中）⇒ 改成「只断『这一处零风险』」。余下 1 处在 `dev-plan.md:1604`（并行会话禁区，只报不改）。
+  - **相对时间清理**（4 个文件 9 处）：`growth-path.md`（2 处）、`adapter-fixtures.md`（3 处）、`context-density.md`（2 处）的「今天」一律钉成「**本文成稿时（2026-10-03）**」（这三份是 v0.9 草案，「今天」的原义就是成稿那天）；`context-density.md` 的「除法今天就能算」属填充词，改为「**当场就能算**」。
+  - **治理计数去写死**：`docs-governance-check.md` §3 基线表的三个计数本轮已改「现跑」；本轮再把 **FR-2.2**（「现测：6+2+4+1+2+18 = 33 ✅」）、**§7 验收条目 b**（「33 = 6+2+4+1+2+18」）、**§3「计数自洽」概念定义**三处也改成现跑口径，并写明「队列每裁一项就增行，写死必腐」。⚠️ **带日期的历史快照不动**（PRD §10.4.1 的转引、FR-2.4 的 BSD grep 教学对照、§8.2 待裁③ 的原话）。
+  - **基线文件同步**：`docs/docs-check-baseline.json` 的 `FR-11.1|*` 登记说明由「现存 5 处」改为「**现存 1 处**」并列出已补的 4 处与补法；条件②「存量逐条补上凭据」标注为「已闭合 4/5，余 1 处在并行会话禁区」⇒ 仍走通配（不升为逐条 error）。
+  - **记忆导出进仓**（新增 `scripts/export-agent-memory.ts` ＋ `tests/export-agent-memory.test.ts` ＋ `docs/agent-memory/`）：把本机 `~/.minimax/agents/<profile>/memory/` 的 `MEMORY.md` ＋ 7 个 topic 文件**导出进仓**（38 条 / 8 文件 ＋ 生成的 README），解决「换机器 / 换 profile / 清理 profile 就丢」。**零依赖**（只用 node 内建模块）。**导出当场自证五条**：索引点名的 topic 都存在 · 每个 topic 非空且带 `Type:` · 导出件与源**逐字节相同**（sha256）· 生成的 README **零绝对路径** · 目标目录里有不认识的文件就**拒绝清理**。判据 **11 支**（用真的临时目录当源，不依赖本机状态）。
+  - **`CONTRIBUTING.md` 新增「写文档时的四条纪律」**：① 包内 README 的链接纪律（发布包里没有 `docs/` 树 ⇒ 仓内文档必须用绝对 GitHub 链接，只有 `LICENSE`/`package.json`/`assets/readme/**` 可用 `./`）—— 已有 `SCRIPT-PKG-05` 闸守着；② 不要写死会随提交漂移的实测量，给复算命令；③ 「今天/最近/现在」先问是不是现状断言；④ 否定式全局断言必须附复算凭据（FR-11）。
+  - **`README.md` 去写死**：本轮实测发现**一天内两次**因新增测试文件而使「用例 / 文件数」过期 ⇒ 按仓内 §13-8「记位置不记次数」的同款纪律，把 README 里的**点时实测量**改成**门槛口径或现跑入口**：用例数/文件数（改为「以 `pnpm test` 汇总行为准」＋ 四层说明）、入口体积（只留预算 ≤ 300 kB / ≤ 500 kB）、`cli.js` 体积（改为「以 `pnpm pkg:cli` 的现跑输出为准」）、首启种子条数（改为门槛口径 **≥100 术语 / 7 模板 / 21 提示词 / ≥10 技巧**）、台账 kind 类数（去重，保留一处并指明闭集出处）。
+  - **§2-3「roadmap 1604 行拆分」—— 已评估，本轮明确不落地**（阻塞清单可复算）：外部 §-引用 **120 处**（§3 96 / §1 15 / §7 7 / 其余 2）；**spec 内部**对 §1 的引用 **63 次、涉及 50 行**（含版本行里成串的历史 `§1.x`）；`packages/core/src/db/m9-p1f-spec.ts` 有个取数器**按字符串切本文件的 §1.7 正文**（拆文件直接打断它）；`m9-doc-numbers.ts` 的口径以 **spec §1.4** 为单源；`tests/m9-spec-consistency.test.ts` 读**全文**做 §0 ↔ 正文对账。⚠️ 且 **1500 行是本会话自定的软限，不是 owner 的硬要求** ⇒ 为满足自定软限去动 120 处引用，风险与收益严重倒挂。**前置三步**（可独立推进）：① 把 §-引用改成「文件 ＋ 节锚」的可解析形态；② 让取数逻辑按文件读而不是读单文件全文；③ owner 批准「拆分会改 §-引用形态」本身。
+- **测试验证**:
+  - 测试命令: `npx vitest run --maxWorkers=3`；`npx tsx scripts/docs-check.ts`；`npx tsc --noEmit -p tsconfig.json`；`npx eslint scripts tests`；`npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --date 2026-10-22`；`npm run bundle:check`；`npx tsx scripts/seed-check.ts`
+  - 验证结果: 全量 **163 文件 / 2095 支全绿**（132s；较上轮 +1 文件 +11 支 ＝ 新增的导出判据）；根 `tsc` **0 error**；`eslint` **零错**；`docs:check` **error 0 · warning 128 · 基线内 128**（较上轮 133 少 5 ＝ 补掉的 5 处 FR-11 命中）；FR-11 命中（未过基线）**5 → 1**；`bundle:check` 入口 **268.27 kB ≤ 300 kB** / 46 chunk；`seed:check` 通过；导出件 **38 条 / 8 文件**，且与源逐字节相同。
+  - 复算命令: `npx tsx -e "import {checkNegativeClaims} from './scripts/docs-check.ts'; ..."`（FR-11 命中数）；`grep -cE '^## \[DEV-[0-9]{4}\]' DEV_LOG.md`；`npx vitest run tests/export-agent-memory.test.ts`
+- **潜在风险**:
+  ① ⚠️ **最要紧**：工作树里那 11 项残留**实为对已落地 M4 文档的回退**（`dev-plan §17` 删除、`tasks.md` T12 退回未估、`decisions.md` ⑫ 退回已裁已落）。**下一次任何人的 `git add -A` 都会把 M4 的落地记录回退掉**。本轮对 `decisions.md` 与 `m4-playbook.md` 的两处订正**已用 hunk 级暂存单独入 commit**（暂存区只有我那 2 行，未暂存部分仍逐字等于对方那 9+/7-）；**剩余 9 项属他人成果，未提交、未改动**，请 owner 决定回退还是补做后提交。
+  ② `dev-plan.md:1604` 的 FR-11 命中**未修** —— 它在并行会话禁区，且补凭据需要先造出可判的「首启时刻无承载」复算口径（不能随手写一条凑数的命令）。
+  ③ README 的点时实测量已去掉，但**门槛口径本身**（≥100 术语 / 7 模板 / 21 提示词 / ≥10 技巧）由 `seed:check` 守；改了种子内容若越过门槛，`seed:check` 会红，README 不会 —— 这是设计如此，不是漏网。
+  ④ 记忆导出件是**点时快照**（见 `docs/agent-memory/README.md` 的「导出日」）：源改了**必须重导**，否则仓里那份与本机那份会分叉。导出命令写在导出件的 README 里，可直接复制。
+  ⑤ `docs/agent-memory/` 是**agent 的跨项目记忆**（含别的项目的教训），进的是公开仓 —— 已扫过：零本机绝对路径、零 URL、零密钥，只有三个项目昵称。若 owner 认为跨项目内容不宜公开，可整目录移出（`scripts/export-agent-memory.ts --to <别处>` 亦可）。
+  ⑥ 记忆导出的「零绝对路径」检查是**脚本自带**的，仓内文档治理闸不扫 `docs/` 的子目录 ⇒ 这条保护只存在于导出脚本内部，别处失守不会被拦。

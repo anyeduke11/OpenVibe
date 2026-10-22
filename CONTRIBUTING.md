@@ -31,6 +31,14 @@ docs/                        PRD、SPEC、设计文档（P0 产物）
 4. **文件名大小写敏感**：macOS 默认不敏感、Linux 敏感——import 路径大小写必须与磁盘一致。
 5. **shell 命令**：npm scripts 不得使用 sh 专属语法（`&&` 以外的管道/重定向/变量展开）。
 
+## 写文档时的几条纪律
+
+1. **README 里的链接**：仓库根 `README.md` 会被**原样复制进 npm 包**（`scripts/build-cli.ts`），而**发布包里没有 `docs/` 树** ⇒ 指向仓内文档的链接**必须用绝对 GitHub 链接**（`https://github.com/anyeduke11/OpenVibe/blob/main/...`）；只有 `LICENSE` / `package.json` / `assets/readme/**` 可以用 `./` 相对形式。
+   ⇒ 这条有闸守着：`tests/publish-manifest.test.ts` 的 **SCRIPT-PKG-05** 会把「包内解析不了」的相对路径判红。
+2. **不要在文档里写死会随提交漂移的实测量**（用例支数、文件数、产物体积、chunk 数）：给**复算命令**，让读者现跑；确有必要保留时，**必须带采样日与采样时的树**。这是仓内 §13-8「记位置不记次数」的同款纪律。
+3. **「今天 / 最近 / 现在」这类相对时间，先问它是不是「现状断言」**：是 ⇒ 钉成**绝对日期**或带采样日的现跑指针；叙事性用法（例如引用用户原话）可以留。
+4. **写否定式的全局断言（「全仓没有 X」）必须附复算凭据**：一条命令或一句「实测」，否则那句腐烂时没人能发现（`docs/specs/docs-governance-check.md` FR-11）。
+
 ## 提交与开发记录
 
 - 提交信息用 Conventional Commits（`feat:` / `fix:` / `docs:` / `chore:` / `test:` / `refactor:`）。

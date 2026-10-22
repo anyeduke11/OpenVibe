@@ -1,0 +1,35 @@
+---
+description: %E5%81%87%E7%BA%A2%E5%88%86%E7%B1%BB%E4%B8%8E%E5%9B%9E%E5%BD%92%E7%BA%AA%E5%BE%8B%EF%BC%9A%E7%8E%AF%E5%A2%83%E5%9E%8B%E7%BA%A2%20vs%20%E4%BB%A3%E7%A0%81%E5%9E%8B%E7%BA%A2%E7%9A%84%E5%88%A4%E5%AE%9A%E9%A1%BA%E5%BA%8F%E3%80%81%E4%BA%94%E7%A7%8D%E5%B7%B2%E5%AE%9E%E6%B5%8B%E5%BD%A2%E6%80%81%E4%B8%8E%E5%A4%84%E7%BD%AE
+---
+
+# 假红分类：环境型红 vs 代码型红（合并 5 条旧条目）
+
+Type: incident-lesson
+
+**一句话**：全量回归出现几支红时，**第一反应是分类，不是修**。假红比不红更坏 —— 人会去「修」一个没坏的东西。
+
+## 判定顺序（四步，缺一不可）
+
+1. **看错误形态**：`AssertionError` ⇒ 才考虑代码型；`Test timed out` / `spawn X ENOENT` / worker RPC 超时 ⇒ 环境型。
+2. **看耗时**：比基线高一个数量级 ⇒ 环境型（真实回归不会整体变慢 100 倍）。
+3. **看 `uptime` 的 load average**：三个数都在 30+ ⇒ 环境型（本机常驻 Lark / usernoted / CodeBuddy 等进程）。
+4. **不编辑任何文件**单独重跑 ⇒ 绿 ⇒ 判「环境型」。
+
+⚠️ **三步都指向「绿」才下环境型的结论**；只跑一次就下结论会把真回归放过去。
+
+## 五种已实测的假红形态
+
+| 形态 | 错误形态 | 根因 | 处置 |
+|---|---|---|---|
+| **机器过载** | worker RPC `Timeout calling "onTaskUpdate"`；或大量 `Test timed out in 5000ms` | 全量 vitest 与 vite build **并发**；load average 50+ | 重任务**串行**；`--maxWorkers=3`；unit/web 两层默认 5s 闸抬到 20s（见 `vitest.config.ts`） |
+| **外部工具链不在 PATH** | `spawn go ENOENT`；或断言形态自相矛盾（期望 parser 却得 heuristic） | Go 在 `/usr/local/go/bin`、Homebrew 在 `/opt/homebrew/bin`，**都不在**非交互 shell 的默认 PATH | 每条命令前 `export PATH="/usr/local/go/bin:/opt/homebrew/bin:$PATH"`（本仓 node 在 `/opt/homebrew/bin`） |
+| **并发编辑的中间态** | 全仓扫描型守卫报命中（它读的是文件系统某一瞬间） | 后台跑回归时**同时**改了源文件 | 回归与编辑**不并发**；后台跑时只读仓内文件 |
+| **日历漂移到期红** | 断言值变 `undefined`（窗口下界推走） | 生产侧用 `date('now', '-N days')`（按跑测那天算），测试把日期**写死** | 写入日期**跟随当天**；窗口边界另由**绝对窗口**判据负责 |
+| **spawnSync 冻住父进程** | 子进程访问父进程里的本机服务永远超时（`statusCode=null`，服务端收到 0 条） | `spawnSync` 阻塞父进程事件循环 | 子进程必须**异步**（`spawn` + 监听 `close`）；断言前先看服务端收到几条 |
+
+## 两个同源的一般化
+
+- **缺外部工具会改变被测行为**，不只是让测试挂掉 ⇒ 断言会以「逻辑矛盾」的面貌出现 ⇒ 极易误判为「回退逻辑坏了」。
+- **守卫读的是文件系统某一瞬间** ⇒ 那一瞬间可能正是你正在写的半成品。
+
+**apply when**：任何「全量跑出很多红」的场合；尤其当红点横跨多个不相关的模块（⇒ 不像一处改动造成的）。

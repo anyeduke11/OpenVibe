@@ -27,7 +27,7 @@
 |--------------------|------------------------|
 | 亮「暖纸」+ 暗「暖夜」**双 token 源**（`apps/web/src/index.css` 的 `@theme` 块 + `[data-theme='dark']` 覆盖块），各 **29 支颜色 token** `[V2 未落地：现库为 40 支]` | 第三套主题、用户自定义配色、每模块独立肤色 |
 | 主题切换 + **客户端 localStorage 持久化**（单键 `openvibe.theme`，值 `light\|dark`） | 服务端 `settings` 存主题（**刻意不做**：会动 `GET /settings` 响应形状 = §0.3 B 级契约面） |
-| 首帧前预涂脚本（防暗色用户闪白） | 跟随系统 `prefers-color-scheme`（实测全仓零命中，含 `matchMedia` 亦零命中 → 见 §6.7） |
+| 首帧前预涂脚本（防暗色用户闪白） | 跟随系统 `prefers-color-scheme`（实测全仓零命中，含 `matchMedia` 亦零命中 → 见 **§6 第 7 条**，该条已附复算命令） |
 | 文字/底色配对的 **AA 全表**与 `-soft` 容器使用矩阵（§4 FR-3.6） | 像素级视觉回归基线（无 golden 截图对比；主题正确性 = 四道闸 + 一次运行时自检屏 → §7.6） |
 | 两支自托管字体（Outfit / JetBrains Mono，均 OFL）+ 中文系统原生栈 | CJK webfont、Fontshare 等禁止再分发的字体源（见 §8 许可纪律） |
 | token 治理闸（`tests/design-tokens.test.ts`，四道 WEB-TOKENS 断言）+ 扩闸义务（FR-2.6） | 把 AA 对比度做进 CI（对比度矩阵由设置页第 7 区**运行时**呈现，见 m5/DESIGN.md 可读性十项；静态闸只保证「颜色单源」） |
@@ -154,7 +154,7 @@ v1.0 用 Figma 式角色名（`primary`/`surface`/`text-muted`…）写 DESIGN.m
 4. 暗块里写非 `--color-*` 声明 ⇒ 闸第 2 道红（它会剥掉注释与 `--color-*:` 行后要求残串为空）。这是**设计期就拦**而不是上线后目验。V2 的 `--shadow-*` 因此住在**亮块**（`@theme`）而非暗块，靠 `var(--color-scrim)` 间接随主题变。
 5. 引用未声明色名 ⇒ 闸第 3 道红；声明未被引用 ⇒ 闸第 4 道红（v4 会 tree-shake，留着等于没有）。**改名轮的两条可预期红**：① 只改 token 不扩 `SEMANTIC_CLASS` ⇒ 新名被判"声明未引用"；② 调用点漏改一个旧名 ⇒ 旧名被判"引用未声明"。两道都是正向拦截，不许用"先把旧 token 留着当备用"绕开。
 6. `[V2 下线]` v1.0 的「宋体切片只含 371 个码点，换 wordmark 文案须先确认新字在切片内」这条边界随衬线字标退场消失。
-7. 无系统跟随：`prefers-color-scheme` / `matchMedia` 全仓零命中。系统暗色用户首启是亮色（FR-1.5 有意为之）。
+7. 无系统跟随：`prefers-color-scheme` / `matchMedia` 全仓零命中（复算：`grep -rnE "prefers-color-scheme|matchMedia" apps/web/src packages/shared/src apps/server/src` → 0 命中，**2026-10-22 实测同值**）。系统暗色用户首启是亮色（FR-1.5 有意为之）。
 8. `[V2 改判]` `prefers-reduced-motion` 在 v1.0 是"已知未做"（V1 那唯一的落章动效对动敏感用户不可关闭）；V2 升为硬要求（FR-5.7），落地前该缺口仍在。
 9. 中文系统栈按平台不同（macOS 苹方 / Windows 雅黑 / Linux 思源或 Noto），**Windows 雅黑字重偏重**，头词的 semibold 映射需按平台微调；本机三平台目验只做过 macOS（§7.6）。V2 撤掉宋体与注音后，这条风险**只剩字重映射一维**。
 10. `[V2 改判]` v1.0 的「`--color-on-seal` 亮暗两块都声明 `#ffffff`」不再适用：V2 的 `on-accent` 亮 = `#FFFAF3`、暗 = `#1B1510`，**两侧不同值**（暗态强调提为暖金，实心块上的字必须转深才够对比）。同构性靠"两侧都有值"保证，不靠"两侧同值"。
