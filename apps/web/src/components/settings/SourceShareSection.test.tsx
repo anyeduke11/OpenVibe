@@ -28,6 +28,8 @@ const SUMMARIES = [
     last_shared_at: '2026-10-21T02:00:00.000Z',
     explicit_tick_count: 1,
     remembered_count: 2,
+    memory_applied_count: 2,
+    user_reticked_count: 0,
   },
   {
     project_id: 'p2',
@@ -37,6 +39,8 @@ const SUMMARIES = [
     last_shared_at: '2026-10-21T01:00:00.000Z',
     explicit_tick_count: 1,
     remembered_count: 0,
+    memory_applied_count: 0,
+    user_reticked_count: 0,
   },
 ]
 
@@ -86,14 +90,36 @@ describe('M9 增强 1 · 设置页「源码出网记录」区', () => {
     expect(screen.getByText('出网 1 次')).toBeTruthy()
   })
 
-  it('② 两种授权来源**分开显示**（可审计：分不清主动授权与记忆带过去就等于没审计）', async () => {
+  it('② 授权来源**细分三类分开显示**（owner 2026-10-22 裁决四：二分分不清「记忆带过去」与「用户自己全勾」）', async () => {
     mockSummary(SUMMARIES)
     renderSection()
 
     await waitFor(() => {
-      expect(screen.getByText(/当次勾选 1 次 · 记忆带过去 2 次/)).toBeTruthy()
+      // ⚠️ **三类都出现**：记忆带过去 / 自己又全勾 / 用户自己勾
+      expect(screen.getByText(/记忆带过去 2 次 · 自己又全勾 0 次 · 用户自己勾 1 次/)).toBeTruthy()
     })
-    expect(screen.getByText(/当次勾选 1 次 · 记忆带过去 0 次/)).toBeTruthy()
+    expect(screen.getByText(/记忆带过去 0 次 · 自己又全勾 0 次 · 用户自己勾 1 次/)).toBeTruthy()
+  })
+
+  it('②b ⚠️ **「自己又全勾」与「记忆带过去」是两行**（二分里它们都记成 remembered）', async () => {
+    mockSummary([
+      {
+        project_id: 'p3',
+        share_count: 3,
+        snippet_total: 9,
+        topic_total: 3,
+        last_shared_at: '2026-10-22T02:00:00.000Z',
+        explicit_tick_count: 1,
+        remembered_count: 2,
+        memory_applied_count: 1,
+        user_reticked_count: 1,
+      },
+    ])
+    renderSection()
+
+    await waitFor(() => {
+      expect(screen.getByText(/记忆带过去 1 次 · 自己又全勾 1 次 · 用户自己勾 1 次/)).toBeTruthy()
+    })
   })
 
   it('③ 取数真的打的是那个端点（URL 错 ⇒ 界面就是空的）', async () => {

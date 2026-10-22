@@ -29,13 +29,21 @@ import { tagCls } from '../ui/styles'
  */
 const L = {
   title: '源码出网记录',
-  hint: '每一次出网都记了一笔（只存条数与授权来源，不存代码内容）。「清除授权记忆」只影响下次的默认勾选，不撤销这里的历史。',
+  hint: '每一次出网都记了一笔（只存条数与授权来源，不存代码内容）。「清除授权记忆」只影响下次的默认勾选，不撤销这里的历史。计数分三类：记忆带过去 / 自己又全勾了一遍 / 用户自己勾的。',
   empty: '还没有任何出网记录。',
   shareCount: (n: number) => `出网 ${String(n)} 次`,
   snippetTotal: (n: number) => `累计 ${String(n)} 条片段`,
   lastAt: '最近',
-  explicit: (n: number) => `当次勾选 ${String(n)} 次`,
-  remembered: (n: number) => `记忆带过去 ${String(n)} 次`,
+  /**
+   * ⚠️ **三类是「细分」**（owner 2026-10-22 裁决四：加一列区分「记忆带过去」与「用户自己全勾」）。
+   *
+   * ⚠️ **「记忆带过去」这个说法在这一栏里指「记忆起了作用」**（`memory_applied`），
+   *   **不含**「用户自己又全勾了一遍」（`user_reticked`）——
+   *   两者在二分里**都**记成 `remembered`，审计时分不开 ⇒ 才有了这三类。
+   */
+  memoryApplied: (n: number) => `记忆带过去 ${String(n)} 次`,
+  userReticked: (n: number) => `自己又全勾 ${String(n)} 次`,
+  selfTicked: (n: number) => `用户自己勾 ${String(n)} 次`,
 } as const
 
 interface ShareSummaryItem {
@@ -46,6 +54,10 @@ interface ShareSummaryItem {
   last_shared_at: string
   explicit_tick_count: number
   remembered_count: number
+  /** 细分：记忆起了作用（§3.9 的 `consent_detail`） */
+  memory_applied_count: number
+  /** 细分：记忆是「全发」，但用户自己又全勾了一遍 */
+  user_reticked_count: number
 }
 
 export function SourceShareSection() {
@@ -81,7 +93,7 @@ export function SourceShareSection() {
                 {L.snippetTotal(s.snippet_total)}
               </span>
               <span className="text-[11.5px] text-ink-faint">
-                {`${L.explicit(s.explicit_tick_count)} · ${L.remembered(s.remembered_count)}`}
+                {`${L.memoryApplied(s.memory_applied_count)} · ${L.userReticked(s.user_reticked_count)} · ${L.selfTicked(s.explicit_tick_count)}`}
               </span>
               <span className="ml-auto text-[11.5px] text-ink-faint">
                 {`${L.lastAt} ${s.last_shared_at}`}
