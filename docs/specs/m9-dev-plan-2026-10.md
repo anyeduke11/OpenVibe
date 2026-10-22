@@ -683,16 +683,28 @@ P0 → P1 → P1b ┬→ P1c
 | spec **§5.3** | 补记「多份 provider 配置并存」的形状与选法（老配置不许丢） |
 
 > - **本轮（增强 1–5）的整体验证**：
->   - **全量回归**：**162 文件 / 2083 支全绿**（62 秒，`--maxWorkers=3` **单独跑**）
+>   - **全量回归**：**162 文件 / 2084 支全绿**（70.5 秒，`--maxWorkers=3` **单独跑**；
+>     收尾复核轮**同数再绿一次**（142 秒 —— 那轮机器负载高，非代码差异））
 >   - 四处 `tsc` 零错 ＋ `eslint` 零错
 >   - **spec 一致性 3 支 ＋ 变异腿 21 支 ＋ design-tokens 4 支 ＋ 表闸 5 支全绿**
 >     ⇒ 判据数（仍 50）、表数（仍 17）、待裁数（仍 9）**三条计数一个没动**。
->   - **本轮新增/改写的测试**：core 25 支（分组读端 5 ＋ 排序确定性 1）＋ core 配置层 32 支（集合读写 ＋ 选择口径 ＋ 多份各一把 key）
->     ＋ core 增强 27 支（摘要带 provider/用量 ＋ 台账落三列 ＋ 分组读回 4）
->     ＋ shared 18 支（Pi 事件流用量归一 5）＋ server 40 支（集合端点 ＋ 能力探测按 provider ＋ 旧端点删除）
->     ＋ server 27 支（分组端点 5）＋ web 10 支（分组表 4）＋ web 19 支（多份配置界面）
+>   - **本轮新增/改写的测试**（括号内是**该文件总支数**）：
+>     core 25 支（`m9-source-scan` · 分组读端 5 ＋ 排序确定性 1）＋ core 22 支（`m9-time-window-guard`）
+>     ＋ core 32 支（`provider-config` · 集合读写 ＋ 选择口径 ＋ 多份各一把 key）
+>     ＋ core 27 支（`m9-source-enhancements` · 摘要带 provider/用量 ＋ 台账落三列 ＋ 分组读回 4）
+>     ＋ shared 18 支（`m9-source-prompt` · Pi 事件流用量归一 5）
+>     ＋ server 40 支（`langSourceAi` · 集合端点 ＋ 能力探测按 provider ＋ 旧端点删除）
+>     ＋ server 27 支（`langSource` · 其中分组端点 5）
+>     ＋ web 19 支（`InterpretProviderSection` · 多份配置界面）＋ web 10 支（`SourceShareSection` · 其中分组表 4）
 >   - ⚠️ **仓级静态守卫抓到一处**：`ORDER BY share_count DESC, provider ASC, model ASC`
 >     被 `tests/order-determinism.test.ts` 判红 ⇒ 已改为**排序放 JS**（见上方注记）。
+>   - ⚠️ **收尾复核轮又抓到一处**（**环境型红**，处置沿用仓内同款先例）：
+>     本机常驻 Lark / usernoted 等进程，负载高峰（实测 `load average 84`）时
+>     **web / unit 两层**（vitest 默认 5s 闸）的用例跑到 3.8–6.6s ⇒ 越过默认 5s 判**超时**
+>     ⇒ 4 支红；**单跑同一支全绿** ⇒ 是环境型红，不是功能回归。
+>     ⇒ 已把 `unit` / `web` 两层的 `testTimeout` 抬到 **20s**（与既有 `integration` 20s /
+>     `cli` 30s **同款理由**）⇒ 同一批 9 文件 **220 支全绿** ＋ 全量 **2084 支全绿**。
+>     ⚠️ **真卡死仍会红**（20s 上限），不是把闸调松到没有闸。
 
 
 

@@ -19,6 +19,12 @@ export default defineConfig({
           name: 'unit',
           environment: 'node',
           include: ['packages/*/src/**/*.test.ts', 'tests/**/*.test.ts'],
+          // 同 integration / cli 那条理由：默认 5s 是**闸口，不是功能红线**。
+          // 本机常驻 Lark / usernoted 等进程，负载高峰（实测 load average 84）时
+          // 「真播种 ＋ 真聚合」的用例会跑到 3.8–6.6s ⇒ 越过默认 5s 判超时，
+          // 而**单跑同一支全绿** ⇒ 那是**环境型红**，不是功能回归。
+          // 抬到 20s（对实测最慢仍有 3x 余量，真卡死仍会红）。
+          testTimeout: 20_000,
         },
       },
       {
@@ -52,6 +58,10 @@ export default defineConfig({
           // 放进 app 下 vitest 找不到（owner 裁定 ⑪，2026-09-26）
           environment: 'jsdom',
           include: ['apps/web/src/**/*.test.{ts,tsx}'],
+          // 同 unit / integration / cli 那条理由：组件用例靠 `waitFor` 等渲染与取数，
+          // 机器负载高峰时它们会越过默认 5s 判**超时**（实测 4 支越界，单跑全绿 ⇒ 环境型红）。
+          // 抬到 20s：真卡死仍会红，而负载波动不再让整层变成红海。
+          testTimeout: 20_000,
         },
       },
     ],
