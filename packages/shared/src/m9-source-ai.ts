@@ -264,18 +264,41 @@ export const InterpretProviderConfig = z.object({
   /** provider 标识（台账用，如 `ollama` / `openai` / `pi`） */
   provider: z.string(),
   /**
-   * API key（**明文存 `app_meta`**）。
+   * API key（⚠️ **只有「明文降级」时这里才非空** —— 见 `api_key_storage`）。
    *
-   * ⚠️ **这是取舍，不是疏忽**：`app_meta` 是本机 SQLite 的明文 KV。
-   *   换系统钥匙串要引依赖（与「零依赖优先」相悖）⇒ 本轮先明文存，
-   *   但**读端永不回显全文**（见 `InterpretProviderView`），
-   *   且**它绝不进任何台账**（DL-16 同族：凭据不属于审计面）。
+   * ⚠️ **为什么这个字段还在**：它是**降级路径**的落点 ——
+   *   本机没有可用的系统钥匙串时，key 只能存在 `app_meta` 里
+   *   （`app_meta` 是本机 SQLite 的明文 KV）。
+   *   ⇒ **此时界面必须如实显示「以明文存」**（`api_key_storage === 'inline'`）。
+   *
+   * ⚠️ **绝不进任何台账**（DL-16 同族：凭据不属于审计面）。
    */
   api_key: z.string(),
+  /**
+   * **key 存在哪**（三档）。
+   *
+   * ⚠️ **为什么要有这一档**：光看「有没有 key」看不出**凭据落在什么保护级别下** ——
+   *   系统钥匙串（系统级保护）vs 本地数据库明文（任何能读这个库的人都能拿到），
+   *   是**两件必须让用户知道的事**。
+   *
+   * | 值 | 含义 |
+   * |---|---|
+   * | `none` | 没有 key |
+   * | `keychain` | key 在 **macOS 系统钥匙串**里 ⇒ `app_meta` **只留一个标记** |
+   * | `inline` | **降级**：本机没有可用的钥匙串 ⇒ key 以明文存在 `app_meta` 里 |
+   *
+   * ⚠️ **缺省是 `none`**（不是 `inline`）—— 老配置（没有这一列）里若 `api_key` 非空，
+   *   读端会**认成 `inline`**（那是它当初的真实处境）⇒ 见 core 的 `readProviderConfig`。
+   */
+  api_key_storage: z.enum(['none', 'keychain', 'inline']).default('none'),
   /** 超时（毫秒） */
   timeout_ms: z.number().int(),
 })
 export type InterpretProviderConfig = z.infer<typeof InterpretProviderConfig>
+
+/** key 的存储位置（三档 —— 与 `InterpretProviderConfig.api_key_storage` 同源）。 */
+export const InterpretProviderKeyStorage = z.enum(['none', 'keychain', 'inline'])
+export type InterpretProviderKeyStorage = z.infer<typeof InterpretProviderKeyStorage>
 
 /**
  * provider 配置的**对外视图**（读端出参）。
@@ -296,6 +319,15 @@ export const InterpretProviderView = z.object({
   has_api_key: z.boolean(),
   /** key 的末 4 位（没配则是空串） */
   api_key_hint: z.string(),
+  /**
+   * **key 存在哪**（`none` / `keychain` / `inline`）。
+   *
+   * ⚠️ **必须让用户看得见** —— 「key 在系统钥匙串里」与「key 明文躺在本地库里」
+   *   是**两个保护级别**，界面不说就是隐瞒。
+   */
+  api_key_storage: InterpretProviderKeyStorage,
+  /** 存储位置的**人话说明**（服务端生成 —— 「本机有没有钥匙串」是服务端的事实） */
+  api_key_storage_detail: z.string(),
   timeout_ms: z.number().int(),
 })
 export type InterpretProviderView = z.infer<typeof InterpretProviderView>

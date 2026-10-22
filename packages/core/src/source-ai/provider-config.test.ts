@@ -16,16 +16,20 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { newDb, type TestDbHandle } from '../test-support/new-db'
 import {
   DEFAULT_PROVIDER_CONFIG,
+  apiKeyStorageDetail,
   capabilityOf,
   isLocalEndpoint,
   isValidEndpoint,
   providerConfigView,
   readProviderConfig,
+  resolveApiKey,
   resolveProvider,
   resolveProviderRunner,
   writeProviderConfig,
   type ProviderResolution,
 } from './provider-config'
+import { memoryKeychainStore } from './keychain'
+import { APP_META_KEYS, AppMetaRepo } from '../repos/appMeta'
 import type { InterpretProviderConfig as InterpretProviderConfigType } from '@openvibe/shared'
 
 const dbs: TestDbHandle[] = []
@@ -65,7 +69,7 @@ describe('M9 · provider 配置层 · 读写与脱敏', () => {
 
   it('⚠️ **key 全文绝不出现在视图里**（只有 `has_api_key` ＋ 末 4 位）', () => {
     const secret = 'sk-THIS-IS-SECRET-123456'
-    const view = providerConfigView(cfg({ api_key: secret }))
+    const view = providerConfigView(cfg({ api_key: secret }), secret)
     // ⚠️ **守卫自证**：先断言「视图里确实没有全文」，否则「找不到全文」可能是**压根没 key**
     expect(view.has_api_key).toBe(true)
     expect(view.api_key_hint).toBe('3456')
@@ -76,31 +80,31 @@ describe('M9 · provider 配置层 · 读写与脱敏', () => {
   })
 
   it('没配 key 时 hint 是空串（不是 undefined —— 界面要能直接显示）', () => {
-    const view = providerConfigView(cfg())
+    const view = providerConfigView(cfg(), '')
     expect(view.has_api_key).toBe(false)
     expect(view.api_key_hint).toBe('')
   })
 })
 
 describe('M9 · provider 配置层 · 优先级（配置优先，环境变量兜底）', () => {
-  it('配置存在但**关着** ⇒ 没有 runner（**不回退环境变量**）', () => {
+  it('配置存在但**关着** ⇒ 没有 runner（**不回退环境变量**）', async () => {
     const d = db()
     writeProviderConfig(d, cfg({ enabled: false, kind: 'command', cmd: '/bin/echo' }))
     const env = { OPENVIBE_M9_INTERPRETER: '/bin/echo' } as NodeJS.ProcessEnv
-    expect(resolveProviderRunner(d, env)).toBeNull()
+    expect(await resolveProviderRunner(d, env)).toBeNull()
   })
 
-  it('配置存在且开着 ⇒ 用配置的（**环境变量被忽略**）', () => {
+  it('配置存在且开着 ⇒ 用配置的（**环境变量被忽略**）', async () => {
     const d = db()
     writeProviderConfig(d, cfg({ enabled: true, kind: 'command', cmd: '/bin/cat', provider: 'local' }))
-    const runner = resolveProviderRunner(d, { OPENVIBE_M9_INTERPRETER: '/bin/echo' } as NodeJS.ProcessEnv)
+    const runner = await resolveProviderRunner(d, { OPENVIBE_M9_INTERPRETER: '/bin/echo' } as NodeJS.ProcessEnv)
     expect(runner).not.toBeNull()
     expect(runner?.id).toBe('cat')
     expect(runner?.provider).toBe('local')
   })
 
-  it('**没配过** ⇒ 回退环境变量（保持 M3「走 Pi」与 P5 的既有行为）', () => {
-    const runner = resolveProviderRunner(db(), {
+  it('**没配过** ⇒ 回退环境变量（保持 M3「走 Pi」与 P5 的既有行为）', async () => {
+    const runner = await resolveProviderRunner(db(), {
       OPENVIBE_M9_INTERPRETER: '/bin/echo',
       OPENVIBE_M9_INTERPRETER_MODEL: 'm1',
       OPENVIBE_M9_INTERPRETER_PROVIDER: 'p1',
@@ -109,10 +113,10 @@ describe('M9 · provider 配置层 · 优先级（配置优先，环境变量兜
     expect(runner?.model).toBe('m1')
   })
 
-  it('⚠️ **配坏了也不回退环境变量**（配了要看得见，不能悄悄换一个源）', () => {
+  it('⚠️ **配坏了也不回退环境变量**（配了要看得见，不能悄悄换一个源）', async () => {
     const d = db()
     writeProviderConfig(d, cfg({ enabled: true, kind: 'command', cmd: '' }))
-    const runner = resolveProviderRunner(d, { OPENVIBE_M9_INTERPRETER: '/bin/echo' } as NodeJS.ProcessEnv)
+    const runner = await resolveProviderRunner(d, { OPENVIBE_M9_INTERPRETER: '/bin/echo' } as NodeJS.ProcessEnv)
     expect(runner).toBeNull()
   })
 })
@@ -204,5 +208,68 @@ describe('M9 · provider 配置层 · 端点判定的两个小工具', () => {
     expect(isValidEndpoint('https://api.example.com/v1')).toBe(true)
     expect(isValidEndpoint('ftp://x/y')).toBe(false)
     expect(isValidEndpoint('不是 URL')).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 批次 D · API key 走系统钥匙串（降级路径也必须被断到）
+// ---------------------------------------------------------------------------
+
+describe('M9 · provider 配置层 · key 存在哪（钥匙串 / 明文降级）', () => {
+  it('① ⚠️ **老配置**（只有明文 key、没有存储标记）⇒ 认成 `inline`（不许说成在钥匙串里）', () => {
+    const d = db()
+    // ⚠️ **手工写一份「旧版形状」**（没有 api_key_storage 那一列）
+    new AppMetaRepo(d).write(APP_META_KEYS.langInterpretProvider, {
+      enabled: true,
+      kind: 'openai_http',
+      cmd: '',
+      args: [],
+      endpoint: 'https://api.example.com/v1/chat/completions',
+      model: 'm',
+      provider: 'p',
+      api_key: 'sk-legacy-9999',
+      timeout_ms: 30_000,
+    })
+    const { config } = readProviderConfig(d)
+    expect(config.api_key_storage).toBe('inline')
+    expect(config.api_key).toBe('sk-legacy-9999')
+  })
+
+  it('② 存储位置的三档**人话说明**都非空（界面照着显示）', () => {
+    expect(apiKeyStorageDetail('keychain')).toContain('钥匙串')
+    expect(apiKeyStorageDetail('inline')).toContain('明文')
+    expect(apiKeyStorageDetail('none')).toContain('没有配置')
+  })
+
+  it('③ ⚠️ **钥匙串模式** ⇒ 实际那把 key 从钥匙串读（配置里不留全文）', async () => {
+    const store = memoryKeychainStore()
+    await store.store('svc', 'api-key', 'sk-from-keychain-1234')
+    const config = cfg({ enabled: true, api_key_storage: 'keychain', api_key: '' })
+    const key = await resolveApiKey(config, store)
+    expect(key).toBe('sk-from-keychain-1234')
+    // ⚠️ 视图里仍然只有末 4 位
+    const view = providerConfigView(config, key)
+    expect(view.has_api_key).toBe(true)
+    expect(view.api_key_hint).toBe('1234')
+    expect(view.api_key_storage).toBe('keychain')
+    expect(JSON.stringify(view)).not.toContain('from-keychain')
+  })
+
+  it('④ ⚠️ **钥匙串里读不到** ⇒ 空串（不是抛错 ⇒ 上层说「钥匙串里没有这把 key」）', async () => {
+    const store = memoryKeychainStore()
+    const key = await resolveApiKey(cfg({ api_key_storage: 'keychain' }), store)
+    expect(key).toBe('')
+  })
+
+  it('⑤ ⚠️ **降级路径**：钥匙串不可用 ⇒ 明文存（且**必须被标成 inline**）', async () => {
+    const store = memoryKeychainStore({ failWith: '本机不是 macOS' })
+    const support = await store.support()
+    expect(support.available).toBe(false)
+    const written = await store.store('svc', 'api-key', 'sk-plain-0000')
+    expect(written.ok).toBe(false)
+    // ⇒ 降级时 key 只能留在配置里（明文）⇒ 存储标记**必须**是 inline
+    const config = cfg({ api_key_storage: 'inline', api_key: 'sk-plain-0000' })
+    expect(config.api_key_storage).toBe('inline')
+    expect(providerConfigView(config, 'sk-plain-0000').api_key_storage_detail).toContain('明文')
   })
 })

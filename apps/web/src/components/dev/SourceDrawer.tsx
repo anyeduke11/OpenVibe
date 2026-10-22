@@ -76,7 +76,6 @@ const L = {
   interpretRunning: '解读中…',
   interpretNone: '还没有勾选任何片段。',
   interpretFailed: '解读失败',
-  interpretUnavailable: '解读不可用',
   interpretOk: '已解读',
   divergenceTitle: '与确定性层的分歧',
   divergenceNone: '没有分歧：AI 的说法与判定层一致。',

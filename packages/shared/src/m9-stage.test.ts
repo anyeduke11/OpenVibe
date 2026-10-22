@@ -20,8 +20,10 @@ import {
   deriveStageTrack,
   MODE_HASHES,
   recommendedProfileForStage,
+  resolveEffectiveProfile,
   resolveProfileFromHash,
   STAGE2_MIDDLE_MODE_NAME,
+  type LangProfile,
   type StageTrack,
   type StageTrackSeed,
 } from './m9-stage'
@@ -276,5 +278,63 @@ describe('M9 P1f · DL-43 深链锚点（片段优先于 onboarding 默认）', 
   it('⑥ 「熟悉」不许落到「精通」（模式档位不许串行）', () => {
     expect(resolveProfileFromHash('#mode-familiar')).not.toBe('master')
     expect(resolveProfileFromHash('#mode-master')).not.toBe('familiar')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// P1g · 阶段 → 生效模式（§3.21「默认推荐值来自阶段，用户可改」）
+// ---------------------------------------------------------------------------
+
+describe('M9 P1g · 生效模式的优先级（自选 ?? 阶段推荐 ?? 尚未选定）', () => {
+  it('① 用户自选**优先于**阶段推荐（§3.21：自选降级为覆盖手段）', () => {
+    const eff = resolveEffectiveProfile({
+      stageChoice: 3,
+      tracks: TRACKS,
+      modeChoice: 'vibe',
+    })
+    expect(eff.profile).toBe('vibe')
+    expect(eff.source).toBe('user')
+    // ⚠️ 推荐**仍然算出来**（界面要拿它提示「你覆盖了推荐」）
+    expect(eff.recommendation?.profile).toBe('master')
+    expect(eff.differsFromRecommendation).toBe(true)
+  })
+
+  it('② 没有自选 ⇒ 用阶段推荐（来源＝阶段）', () => {
+    const eff = resolveEffectiveProfile({ stageChoice: 1, tracks: TRACKS, modeChoice: null })
+    expect(eff.profile).toBe('familiar')
+    expect(eff.source).toBe('stage')
+    expect(eff.differsFromRecommendation).toBe(false)
+  })
+
+  it('③ 既没自选也没进阶段 ⇒ **尚未选定**（不替用户编一个默认）', () => {
+    const eff = resolveEffectiveProfile({ stageChoice: null, tracks: TRACKS, modeChoice: null })
+    expect(eff.profile).toBeNull()
+    expect(eff.source).toBe('unset')
+    expect(eff.recommendation).toBeNull()
+    expect(eff.differsFromRecommendation).toBe(false)
+  })
+
+  it('④ 自选与推荐**相同** ⇒ 不算覆盖（differs 为假）', () => {
+    const eff = resolveEffectiveProfile({ stageChoice: 3, tracks: TRACKS, modeChoice: 'master' })
+    expect(eff.profile).toBe('master')
+    expect(eff.source).toBe('user')
+    expect(eff.differsFromRecommendation).toBe(false)
+  })
+
+  it('⚠️ 变异腿：把优先级倒过来（阶段推荐压过用户自选）⇒ 必须被区分出来', () => {
+    const swapped = (input: {
+      stageChoice: number | null
+      tracks: readonly StageTrack[]
+      modeChoice: LangProfile | null
+    }) => {
+      // 模拟「先看阶段、再看自选」的错误实现
+      const rec = recommendedProfileForStage(input.stageChoice, input.tracks)
+      const profile = rec?.profile ?? input.modeChoice
+      return profile
+    }
+    const input = { stageChoice: 3, tracks: TRACKS, modeChoice: 'vibe' as const }
+    expect(resolveEffectiveProfile(input).profile).toBe('vibe')
+    expect(swapped(input)).toBe('master')
+    expect(swapped(input)).not.toBe(resolveEffectiveProfile(input).profile)
   })
 })

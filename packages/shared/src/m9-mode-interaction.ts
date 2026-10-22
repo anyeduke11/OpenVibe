@@ -235,6 +235,21 @@ export function computeTransferPlan(input: TransferInput): TransferPlan {
 export type ModeChoice = 'vibe' | 'master'
 
 /**
+ * **落库的学习模式**（**三档**）。
+ *
+ * ⚠️ **与 `ModeChoice` 差在哪（别混）**：
+ *   - `ModeChoice` 是**首屏那一个提问**的答案域 —— §3.19 明写「两个选项 ＋ 一个出口」
+ *     ⇒ 它**只有两档**，且**首屏组件不许扩**；
+ *   - `ProfileChoice` 是**存下来的那个选择** —— §3.21 的阶段推荐会给出「熟悉」
+ *     （阶段 1/2 的推荐档实测就是 `familiar`），用户点「改用推荐档」就会写这一档
+ *     ⇒ **落库必须能装下三档**，否则推荐档写不进去。
+ *
+ * ⚠️ **两者不是同一个东西，所以不是同一个类型** —— 混成一个会让首屏组件
+ *   的类型悄悄放宽成三档（「首屏两个选项」那条纪律就形同虚设了）。
+ */
+export type ProfileChoice = LangProfile
+
+/**
  * 首屏的**入口形态**（§3.19 的折叠纪律）。
  *
  * ⚠️ **「折叠」与「隐藏」是两件事**：

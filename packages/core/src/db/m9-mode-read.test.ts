@@ -3,6 +3,7 @@ import { newDb, type TestDbHandle } from '../test-support/new-db'
 import {
   readLitTopicIds,
   readResourcesWithTopics,
+  readVibeResourceRows,
   readTopicProfiles,
   readTopicStages,
 } from './m9-mode-read'
@@ -100,5 +101,35 @@ describe('M9 增强 6 · 模式层读端', () => {
     const h = newDb()
     seed(h)
     expect(readLitTopicIds(h.db, 'p1')).toEqual([])
+  })
+})
+
+describe('M9 · 速成专区资源的读端（§3.21 另附 11 条）', () => {
+  it('读得出那 11 条（**刻意没有维度列**）', () => {
+    const h = newDb()
+    h.db
+      .prepare(
+        `INSERT INTO lang_vibe_resources (id, "group", name, url, summary)
+         VALUES (1, 'tools', 'Cursor 官方指引', 'https://cursor.com/docs', 'AI 工具指引'),
+                (2, 'tuts', '工作流教程', 'https://example.com/tut', '端到端教程')`,
+      )
+      .run()
+    const rows = readVibeResourceRows(h.db)
+    expect(rows).toHaveLength(2)
+    expect(rows[0]?.group).toBe('tools')
+    expect(rows[0]?.alive).toBe(true)
+    expect(rows[0]?.last_checked_at).toBeNull()
+    h.db.close()
+  })
+
+  it('⚠️ **这张表没有分类/费用/阶段/精选的列**（§3.21：给它们编一套就是伪造）', () => {
+    const h = newDb()
+    const cols = (
+      h.db.prepare('PRAGMA table_info(lang_vibe_resources)').all() as { name: string }[]
+    ).map((c) => c.name)
+    for (const banned of ['category', 'price', 'tier', 'level_label', 'is_fav', 'star', 'phase_id']) {
+      expect(cols).not.toContain(banned)
+    }
+    h.db.close()
   })
 })

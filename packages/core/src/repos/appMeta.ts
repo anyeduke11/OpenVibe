@@ -32,6 +32,20 @@ export const APP_META_KEYS = {
    */
   langModeChoice: 'langModeChoice',
   /**
+   * M9 P1g 的**当前成长阶段**（`m9-dev-language-roadmap.md` §3.21）。
+   *
+   * ⚠️ **刻意不进 `lang_*`** —— 与 `langModeChoice` 同款纪律：
+   *   阶段是**用户偏好**（我处在成长路线的哪一阶段），不是语言学习状态。
+   *
+   * ⚠️ **值是 JSON 字面量**（`'0'` / `'1'` / `'2'` / `'3'` / `null`）——
+   *   `AppMetaRepo.read` 会 `JSON.parse`，所以这里存的是**带引号的字符串或 null**。
+   *
+   * ⚠️ **它只是「推荐值的来源」，不是生效模式的落点** ——
+   *   生效模式由 `resolveEffectiveProfile`（shared）现算：用户自选优先，
+   *   没有自选才用阶段推荐（§3.21「默认推荐值来自阶段，用户可改」）。
+   */
+  langStageChoice: 'langStageChoice',
+  /**
    * M9 的 **AI 解读 provider 配置**（owner 2026-10-22 裁决一「手动调控 ＋ 支持本地模型与 LLM API」）。
    *
    * ⚠️ **刻意不进 `lang_*`** —— 与 `langModeChoice` 同款纪律：

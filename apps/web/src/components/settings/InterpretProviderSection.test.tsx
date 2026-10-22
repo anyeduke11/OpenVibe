@@ -30,6 +30,8 @@ const DEFAULT_VIEW = {
   provider: '',
   has_api_key: false,
   api_key_hint: '',
+  api_key_storage: 'none',
+  api_key_storage_detail: '没有配置 key',
   timeout_ms: 30000,
 }
 
@@ -188,5 +190,49 @@ describe('M9 · 设置页「AI 解读」区', () => {
     renderSection()
     expect(await screen.findByText('配好了但用不了')).toBeTruthy()
     expect(screen.getByText(/找不到命令/)).toBeTruthy()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 批次 D · key 存在哪，界面上必须看得见
+// ---------------------------------------------------------------------------
+
+describe('M9 · 设置页「AI 解读」区 · key 的存放位置', () => {
+  it('① ⚠️ **在系统钥匙串里** ⇒ 界面上说清楚（不是明文）', async () => {
+    mockAll({
+      ...DEFAULT_VIEW,
+      enabled: true,
+      kind: 'openai_http',
+      has_api_key: true,
+      api_key_hint: '3456',
+      api_key_storage: 'keychain',
+      api_key_storage_detail: '存在 macOS 系统钥匙串里（本地数据库只留一个标记，不存 key 本身）',
+    })
+    renderSection()
+    expect(await screen.findByText('存放位置')).toBeTruthy()
+    expect(screen.getByText(/系统钥匙串/)).toBeTruthy()
+  })
+
+  it('② ⚠️ **降级成明文** ⇒ 界面必须**显眼地**说出来（不许悄悄降级）', async () => {
+    mockAll({
+      ...DEFAULT_VIEW,
+      enabled: true,
+      kind: 'openai_http',
+      has_api_key: true,
+      api_key_hint: '0000',
+      api_key_storage: 'inline',
+      api_key_storage_detail: '这台机器没有可用的系统钥匙串，key 以明文存在本地数据库里',
+    })
+    renderSection()
+    expect(await screen.findByText('key 以明文存放')).toBeTruthy()
+    expect(screen.getByText(/以明文存在本地数据库里/)).toBeTruthy()
+  })
+
+  it('③ 没配 key ⇒ **不显示**存放位置（没什么可说的）', async () => {
+    mockAll({ ...DEFAULT_VIEW, enabled: true, kind: 'openai_http' })
+    renderSection()
+    await screen.findByText('未配置')
+    expect(screen.queryByText('存放位置')).toBeNull()
+    expect(screen.queryByText('key 以明文存放')).toBeNull()
   })
 })

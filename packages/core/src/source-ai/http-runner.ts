@@ -1,10 +1,17 @@
 import {
+  buildInterpretPrompt,
   SOURCE_INTERPRET_SCHEMA_VERSION,
   SourceInterpretRequest,
   SourceInterpretResult,
+  stripJsonFence,
   type SourceInterpretResult as SourceInterpretResultType,
 } from '@openvibe/shared'
 import { InterpretRunnerError, type SourceInterpretRunner } from './runner'
+
+// ⚠️ **提示词与围栏剥离的实现住在 shared**（`@openvibe/shared` 的 `m9-source-prompt`）——
+//   HTTP runner 与 `scripts/pi-interpret-runner.ts`（Pi 包装脚本）**共用同一份**。
+//   ⇒ 这里**只转出**，不复制（复制一份就是两处口径 ⇒ 改一处就分叉）。
+export { buildInterpretPrompt, stripJsonFence }
 
 /**
  * `packages/core/src/source-ai/http-runner.ts` —— **OpenAI 兼容**的解读 runner。
@@ -61,56 +68,6 @@ function hostOf(endpoint: string): string {
   } catch {
     return '（端点格式不对）'
   }
-}
-
-/**
- * 把请求变成「要模型照着做的说明」。
- *
- * ⚠️ **格式由本仓定，模型不许自由发挥** —— 它必须回一份能被
- * `SourceInterpretResult` 校验的 JSON（DL-09 的前提是「AI 的说法」可结构化比对）。
- */
-export function buildInterpretPrompt(request: SourceInterpretRequest): string {
-  const payload = {
-    schema_version: SOURCE_INTERPRET_SCHEMA_VERSION,
-    topics: request.topics,
-    fragments: request.fragments,
-  }
-  return [
-    '你是源码解读助手。请针对给定的代码片段，逐条给出解读。',
-    '',
-    '**只输出一个 JSON 对象**，不要 markdown 围栏、不要解释性文字。',
-    'JSON 的形状必须是：',
-    '{',
-    '  "schema_version": ' + String(SOURCE_INTERPRET_SCHEMA_VERSION) + ',',
-    '  "model": "<你用的模型标识>",',
-    '  "provider": "<你所属的 provider 标识>",',
-    '  "items": [',
-    '    { "topic_slug": "<片段对应的知识点 slug>",',
-    '      "summary": "<一句话解读>",',
-    '      "risks": ["<风险点>"],',
-    '      "claim_state": null',
-    '    }',
-    '  ]',
-    '}',
-    '',
-    '⚠️ `items` 里**每一条片段都要有一条**，`topic_slug` 必须取自输入里的 slug。',
-    '⚠️ `claim_state` 只在你判断「这段代码已经掌握了」时才填 `mastered`，',
-    '   拿不准就填 `null`。',
-    '',
-    '输入：',
-    JSON.stringify(payload),
-  ].join('\n')
-}
-
-/**
- * 剥掉 markdown 围栏（```json … ``` / ``` … ```）。
- *
- * ⚠️ **只剥围栏，不动内容** —— 内容里的反引号、换行都是数据的一部分。
- */
-export function stripJsonFence(text: string): string {
-  const trimmed = text.trim()
-  const fenced = /^```[a-zA-Z0-9_-]*\s*\n([\s\S]*?)\n?```$/.exec(trimmed)
-  return fenced?.[1]?.trim() ?? trimmed
 }
 
 export class HttpInterpretRunner implements SourceInterpretRunner {

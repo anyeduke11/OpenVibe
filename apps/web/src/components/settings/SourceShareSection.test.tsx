@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { SourceShareSection } from './SourceShareSection'
 
@@ -44,7 +44,10 @@ const SUMMARIES = [
   },
 ]
 
+let requestedUrls: string[] = []
+
 beforeEach(() => {
+  requestedUrls = []
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
 })
@@ -54,8 +57,15 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function mockSummary(items: unknown[]): void {
+function mockSummary(items: unknown[], daily: unknown[] = []): void {
   fetchMock.mockImplementation(async (url: string) => {
+    requestedUrls.push(String(url))
+    if (String(url).includes('/api/lang/source/share-daily')) {
+      return new Response(JSON.stringify({ daily }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      })
+    }
     if (String(url).includes('/api/lang/source/share-summary')) {
       return new Response(JSON.stringify({ summaries: items }), {
         status: 200,
@@ -138,5 +148,31 @@ describe('M9 增强 1 · 设置页「源码出网记录」区', () => {
     await waitFor(() => {
       expect(screen.getByText('还没有任何出网记录。')).toBeTruthy()
     })
+  })
+
+  it('④ **按日明细**是折叠的，展开后才请求（**显式绝对窗口** ⇒ 不随日历漂移）', async () => {
+    mockSummary(SUMMARIES, [
+      {
+        day: '2026-10-21',
+        project_id: 'p1',
+        share_count: 2,
+        snippet_total: 8,
+        memory_applied_count: 1,
+        user_reticked_count: 0,
+        self_ticked_count: 1,
+      },
+    ])
+    renderSection()
+
+    // ⚠️ **默认不请求**（不展开就不该发）
+    await waitFor(() => expect(screen.getByText('出网 3 次')).toBeTruthy())
+    expect(requestedUrls.some((u) => u.includes('share-daily'))).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: '展开按日明细' }))
+    await waitFor(() => {
+      expect(requestedUrls.some((u) => u.includes('share-daily?from='))).toBe(true)
+    })
+    expect(await screen.findByText('2026-10-21')).toBeTruthy()
+    expect(screen.getByText(/记忆带过去 1 次 · 自己又全勾 0 次 · 用户自己勾 1 次/)).toBeTruthy()
   })
 })

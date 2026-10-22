@@ -4,10 +4,12 @@ import { Icon } from '../ui/icons'
 import { ModeOnboarding, type ModeRouteSummary } from './ModeOnboarding'
 import { ModeTransferPanel } from './ModeTransferPanel'
 import { ResourceModeChip } from './ResourceModeChip'
+import { StagePicker } from './StagePicker'
 import { StageTracks } from './StageTracks'
-import { useLangModeChoice, useLangModes } from '../../hooks/useLangRoadmap'
+import { useLangModeChoice, useLangModes, useLangStageChoice } from '../../hooks/useLangRoadmap'
 import {
   computeTransferPlan,
+  PROFILE_LABELS,
   requiredTopicIds,
   type LangCode,
   type LangProfile,
@@ -40,10 +42,14 @@ import {
  * 判据是「答过就不再问」⇒ 判据的载体是**服务端存下来的选择**，
  * 不是组件的本地 state ⇒ 刷新页面、换设备，答案都还在。
  *
- * ## ⚠️ 当前模式只有两档（§3.19 只有两个选项）
+ * ## ⚠️ 当前模式的**来源**（§3.21）
  *
- * 「熟悉」不是首屏选项（它是「以后要深入再来」里的中间态）⇒
- * 资源标记的 `profile` 取 **`master` 或 `vibe`**，不猜「熟悉」。
+ * 首屏那一个提问仍然只有两个选项（§3.19）⇒ `ModeOnboarding` 不变。
+ * 但**落库的**模式是三档 —— 因为 §3.21 的阶段推荐（阶段 1/2 实测就是「熟悉」）
+ * 经用户点「改用推荐档」后会写这一档 ⇒ 落库必须装得下。
+ *
+ * ⚠️ **生效模式由服务端算**（`effective_profile`）：用户自选 ?? 阶段推荐 ?? 尚未选定
+ *   ⇒ 界面**不自己算**这一条（前端再算一遍必然漂移）。
  */
 const L = {
   section: '学习模式与阶段',
@@ -51,9 +57,6 @@ const L = {
   transferTitle: '从速成转档',
   resourcesTitle: '资源与模式',
   resourcesHint: '每条资源标着它在当前模式下是「必学」还是「扩展阅读」。',
-  modeMaster: '精通',
-  modeVibe: '速成',
-  currentMode: (p: LangProfile): string => (p === 'master' ? L.modeMaster : L.modeVibe),
   stageTitle: (n: number): string => `阶段 ${String(n)}`,
   noStage: '这个阶段没有轨道。',
   emptyResources: '还没有资源。',
@@ -133,11 +136,16 @@ function stationCount(
 
 export function ModePanels({ lang, projectId }: ModePanelsProps) {
   const modes = useLangModes(projectId ?? undefined)
+  const choice = useLangModeChoice()
+  const stageChoice = useLangStageChoice()
   const data = modes.data
 
   if (data === undefined) return null
 
-  const currentProfile: LangProfile = data.mode_choice === 'master' ? 'master' : 'vibe'
+  // ⚠️ **生效模式由服务端算**（`effective_profile`）—— 界面**不自己算**这一条。
+  //   优先级（自选 ?? 阶段推荐 ?? 尚未选定）在 shared 的 `resolveEffectiveProfile` 里。
+  const effective = data.effective_profile
+  const currentProfile: LangProfile = effective.profile ?? 'vibe'
   const plan =
     lang === null
       ? null
@@ -149,15 +157,37 @@ export function ModePanels({ lang, projectId }: ModePanelsProps) {
           profiles: data.profiles,
         })
   const stageIds = [...new Set(data.stage_tracks.map((t) => t.stage_id))].sort((a, b) => a - b)
+  // ⚠️ **阶段名取 `is_default=1` 的那一行**（Python 主线）—— Go 侧是选学，
+  //   拿 Go 的名字当阶段名会把「可选轨道」说成阶段本身。
+  const stageNames = new Map<number, string>()
+  for (const t of data.stage_tracks) {
+    if (t.is_default === 1 && !stageNames.has(t.stage_id)) stageNames.set(t.stage_id, t.stage_name)
+  }
+  const stages = stageIds.map((id) => ({ id, name: stageNames.get(id) ?? `阶段 ${String(id)}` }))
 
   return (
     <section className={cardCls} aria-label={L.section}>
       <div className={cardHeadCls}>
         <Icon name="sparkle" size={14} className="text-ink-faint" />
         <h2 className="text-sm font-semibold text-ink">{L.section}</h2>
-        <span className={tagCls}>{L.currentMode(currentProfile)}</span>
+        <span className={tagCls}>{PROFILE_LABELS[currentProfile]}</span>
       </div>
       <div className={`${cardBodyCls} flex flex-col gap-4`}>
+        {/* ⚠️ §3.21：阶段 → 推荐档（**推荐值来自阶段，用户可改**） */}
+        <StagePicker
+          stageChoice={data.stage_choice}
+          effective={effective}
+          stages={stages}
+          pending={stageChoice.isPending || choice.isPending}
+          onPickStage={(stage) => {
+            stageChoice.mutate(stage)
+          }}
+          onUseRecommended={(profile) => {
+            // ⚠️ 「改用推荐档」= **一次显式的模式选择**（不是改阶段）
+            choice.mutate(profile)
+          }}
+        />
+
         {/* ⚠️ §3.18：转档**只给位置，不给结论** */}
         {plan !== null ? (
           <div className="flex flex-col gap-1.5">

@@ -2,12 +2,19 @@ import {
   InterpretProviderConfig,
   type InterpretCapability,
   type InterpretProviderConfig as InterpretProviderConfigType,
+  type InterpretProviderKeyStorage,
   type InterpretProviderView,
 } from '@openvibe/shared'
 import { APP_META_KEYS, AppMetaRepo } from '../repos/appMeta'
 import type { SqliteDatabase } from '../db'
 import { CommandInterpretRunner, commandExists, runnerFromEnv, type SourceInterpretRunner } from './runner'
 import { HttpInterpretRunner } from './http-runner'
+import {
+  KEYCHAIN_ACCOUNT,
+  KEYCHAIN_SERVICE,
+  realKeychainStore,
+  type KeychainStore,
+} from './keychain'
 
 /**
  * `packages/core/src/source-ai/provider-config.ts` —— **AI 解读 provider 的配置层**
@@ -48,6 +55,7 @@ export const DEFAULT_PROVIDER_CONFIG: InterpretProviderConfigType = {
   model: '',
   provider: '',
   api_key: '',
+  api_key_storage: 'none',
   timeout_ms: 30_000,
 }
 
@@ -62,7 +70,14 @@ export function readProviderConfig(db: SqliteDatabase): {
   const parsed = InterpretProviderConfig.safeParse(raw)
   // ⚠️ **坏了就回落默认值**（不抛）—— 配置坏了不该把整个设置页拖垮
   if (!parsed.success) return { config: { ...DEFAULT_PROVIDER_CONFIG }, configured: false }
-  return { config: parsed.data, configured: true }
+  // ⚠️ **老配置归一**（没有 `api_key_storage` 那一列的）——
+  //   旧版把 key **明文**存在配置里 ⇒ 它的真实处境就是 `inline`。
+  //   ⚠️ **不许默认成 `keychain`**（那会把一把明文 key 说成在钥匙串里 ⇒ 撒谎）。
+  const config = parsed.data
+  if (config.api_key_storage === 'none' && config.api_key.trim() !== '') {
+    return { config: { ...config, api_key_storage: 'inline' }, configured: true }
+  }
+  return { config, configured: true }
 }
 
 /** 写配置（**整份覆盖** —— 形状固定，不做增量合并，避免半截配置）。 */
@@ -77,9 +92,37 @@ export function writeProviderConfig(
   new AppMetaRepo(db).write(APP_META_KEYS.langInterpretProvider, parsed.data)
 }
 
-/** 脱敏视图（**key 只给末 4 位**）。 */
-export function providerConfigView(config: InterpretProviderConfigType): InterpretProviderView {
-  const key = config.api_key.trim()
+/**
+ * **存储位置的人话说明**（**界面照着显示，不另写一份**）。
+ *
+ * ⚠️ **降级时必须说清楚** —— 「以明文存在本地数据库里」这句话是这个模块存在的意义。
+ */
+export function apiKeyStorageDetail(storage: InterpretProviderKeyStorage): string {
+  if (storage === 'keychain') {
+    return '存在 macOS 系统钥匙串里（本地数据库只留一个标记，不存 key 本身）'
+  }
+  if (storage === 'inline') {
+    return '这台机器没有可用的系统钥匙串，key 以明文存在本地数据库里'
+  }
+  return '没有配置 key'
+}
+
+/**
+ * 脱敏视图（**key 只给末 4 位**）。
+ *
+ * ⚠️ **key 由调用方传进来**（不是从 config 里取）——
+ *   因为 key 可能在**系统钥匙串**里（`config.api_key` 那一刻是空的）
+ *   ⇒ 视图要显示的是「**实际那把 key**」的末 4 位。
+ *
+ * @param config 配置
+ * @param apiKey 实际那把 key（**空串** = 没有 key）
+ */
+export function providerConfigView(
+  config: InterpretProviderConfigType,
+  apiKey: string,
+): InterpretProviderView {
+  const key = apiKey.trim()
+  const storage = config.api_key_storage
   return {
     enabled: config.enabled,
     kind: config.kind,
@@ -90,8 +133,26 @@ export function providerConfigView(config: InterpretProviderConfigType): Interpr
     provider: config.provider,
     has_api_key: key !== '',
     api_key_hint: key === '' ? '' : key.slice(-4),
+    api_key_storage: storage,
+    api_key_storage_detail: apiKeyStorageDetail(storage),
     timeout_ms: config.timeout_ms,
   }
+}
+
+/**
+ * **取实际那把 key**（钥匙串或明文）。
+ *
+ * ⚠️ **钥匙串读不到 ⇒ 空串**（不是抛错）—— 上层据此说「钥匙串里没有这把 key」。
+ */
+export async function resolveApiKey(
+  config: InterpretProviderConfigType,
+  store: KeychainStore = realKeychainStore,
+): Promise<string> {
+  if (config.api_key_storage === 'keychain') {
+    const v = await store.read(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT)
+    return v === null ? '' : v.trim()
+  }
+  return config.api_key.trim()
 }
 
 /**
@@ -101,6 +162,7 @@ export function providerConfigView(config: InterpretProviderConfigType): Interpr
  */
 export function runnerFromProviderConfig(
   config: InterpretProviderConfigType,
+  apiKey: string,
 ): SourceInterpretRunner | null {
   if (!config.enabled) return null
   if (config.kind === 'command') {
@@ -120,7 +182,8 @@ export function runnerFromProviderConfig(
     endpoint,
     model: config.model.trim() === '' ? 'unknown' : config.model.trim(),
     provider: config.provider.trim() === '' ? 'unknown' : config.provider.trim(),
-    apiKey: config.api_key,
+    // ⚠️ **实际那把 key**（可能来自系统钥匙串，不是 `config.api_key`）
+    apiKey,
     timeoutMs: config.timeout_ms,
   })
 }
@@ -163,25 +226,31 @@ function providerRunner(
   config: InterpretProviderConfigType,
   configured: boolean,
   env: NodeJS.ProcessEnv,
+  apiKey: string,
 ): SourceInterpretRunner | null {
   if (!configured) return runnerFromEnv(env)
   if (!config.enabled) return null
-  return runnerFromProviderConfig(config)
+  return runnerFromProviderConfig(config, apiKey)
 }
 
 /**
- * 取当前该用的 runner（**同步**，**不做存在性检查**）。
+ * 取当前该用的 runner（**异步**，**不做存在性检查**）。
  *
- * ⚠️ **为什么解读时不做检查**：解读真跑一次就知道命令在不在
+ * ⚠️ **为什么是异步**：key 可能在**系统钥匙串**里 ⇒ 读它要起一个子进程
+ *   （`security find-generic-password`）⇒ 同步接口做不到。
+ *   ⚠️ **为什么解读时不做存在性检查**：解读真跑一次就知道命令在不在
  *   （失败会被归一成 `runner-not-found`）⇒ 没必要为了「跑一次解读」先 spawn 一次 `--version`。
  *   存在性检查只发生在**能力探测**那条路上（`resolveProvider`）。
  */
-export function resolveProviderRunner(
+export async function resolveProviderRunner(
   db: SqliteDatabase,
   env: NodeJS.ProcessEnv = process.env,
-): SourceInterpretRunner | null {
+  store: KeychainStore = realKeychainStore,
+): Promise<SourceInterpretRunner | null> {
   const { config, configured } = readProviderConfig(db)
-  return providerRunner(config, configured, env)
+  if (!configured) return runnerFromEnv(env)
+  const apiKey = await resolveApiKey(config, store)
+  return providerRunner(config, configured, env, apiKey)
 }
 
 /**
@@ -212,8 +281,12 @@ export function capabilityOf(resolution: ProviderResolution): InterpretCapabilit
 export async function resolveProvider(
   db: SqliteDatabase,
   env: NodeJS.ProcessEnv = process.env,
+  store: KeychainStore = realKeychainStore,
 ): Promise<ProviderResolution> {
   const { config, configured } = readProviderConfig(db)
+  // ⚠️ **实际那把 key**（可能来自系统钥匙串）—— 探测也要用真的那把，
+  //   否则「钥匙串里其实没有这把 key」这件事会被藏起来。
+  const apiKey = await resolveApiKey(config, store)
 
   // ---- 情形一：用户在设置页配过（**完全按配置来**，不与环境变量混）----
   if (configured) {
@@ -235,7 +308,7 @@ export async function resolveProvider(
         }
       }
       return {
-        runner: providerRunner(config, true, env),
+        runner: providerRunner(config, true, env, apiKey),
         status: 'ready',
         detail: 'AI 解读可用（命令适配器）',
       }
@@ -252,7 +325,17 @@ export async function resolveProvider(
         detail: '端点不是一个合法的 http:// 或 https:// 地址',
       }
     }
-    if (!isLocalEndpoint(endpoint) && config.api_key.trim() === '') {
+    // ⚠️ **用「实际那把 key」判**（不是 `config.api_key`）——
+    //   keychain 模式下 `config.api_key` 是空的，真正的 key 在系统钥匙串里。
+    if (!isLocalEndpoint(endpoint) && apiKey.trim() === '') {
+      // ⚠️ **「钥匙串里没有这把 key」与「压根没配 key」是两件事** ⇒ 分开说
+      if (config.api_key_storage === 'keychain') {
+        return {
+          runner: null,
+          status: 'misconfigured',
+          detail: '系统钥匙串里找不到这把 key —— 重新保存一次 API key 即可',
+        }
+      }
       return {
         runner: null,
         status: 'misconfigured',
@@ -260,7 +343,7 @@ export async function resolveProvider(
       }
     }
     return {
-      runner: providerRunner(config, true, env),
+      runner: providerRunner(config, true, env, apiKey),
       status: 'ready',
       detail: 'AI 解读可用（OpenAI 兼容接口）',
     }

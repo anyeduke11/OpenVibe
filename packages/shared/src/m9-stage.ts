@@ -139,6 +139,82 @@ export function recommendedProfileForStage(
 }
 
 // ============================================================================
+// 阶段 → 生效模式（§3.21 的「自选降级为覆盖」· **P1g**）
+// ============================================================================
+
+/**
+ * 生效模式的**来源**。
+ *
+ * ⚠️ **三种来源要分得清** —— 界面上「当前是精通」这句话，
+ *   含义随来源不同而不同：
+ *   - `user`：用户自己选的（**自选覆盖了阶段推荐**）；
+ *   - `stage`：阶段推出来的（用户没自选，默认值来自阶段 ⇒ §3.21 的正题）；
+ *   - `unset`：**既没自选、也没阶段推荐** ⇒ 尚未选定（界面须如实说「还没定」）。
+ */
+export type ProfileSource = 'user' | 'stage' | 'unset'
+
+/** 生效模式（§3.21）。 */
+export interface EffectiveProfile {
+  /** 生效的模式；`null` = **尚未选定**（既没自选也没推荐） */
+  profile: LangProfile | null
+  /** 生效来源 */
+  source: ProfileSource
+  /** 阶段推荐（`null` = 没进阶段，或该阶段没有默认轨道） */
+  recommendation: StageRecommendation | null
+  /**
+   * 生效模式与阶段推荐**不同**。
+   *
+   * ⚠️ 只有 `source === 'user'` 且推荐存在时才可能为真 ⇒
+   *   它就是「**你覆盖了阶段推荐**」这件事的判定式（界面据此提示）。
+   */
+  differsFromRecommendation: boolean
+}
+
+/**
+ * **算生效模式**（§3.21：「默认推荐值来自阶段，用户可改」）。
+ *
+ * ⚠️ **优先级只有三档，顺序不许换**：
+ *   ① **用户自选优先**（`modeChoice` 非空 ⇒ 生效）—— §3.21 原文「自选不该被删，
+ *      而该**降级为覆盖手段**」⇒ 用户选过就一定是他选的那档；
+ *   ② 否则用**阶段推荐**（`recommendedProfileForStage`）；
+ *   ③ 两者都没有 ⇒ `unset`（**不替用户编一个默认**）。
+ *
+ * ⚠️ **刻意不返回「缺省精通」** —— 那一档是**界面渲染时**的兜底，
+ *   属显示口径；混进本函数会让「尚未选定」变成「已经是精通」，
+ *   而 §3.19 的提问屏正是靠「还没定」来触发的。
+ *
+ * @param input.stageChoice 用户选的阶段（`null` = 还没进阶段）
+ * @param input.tracks 全部阶段轨道行
+ * @param input.modeChoice 用户自选的模式（`null` = 还没自选）
+ */
+export function resolveEffectiveProfile(input: {
+  stageChoice: number | null
+  tracks: readonly StageTrack[]
+  modeChoice: LangProfile | null
+}): EffectiveProfile {
+  const recommendation = recommendedProfileForStage(input.stageChoice, input.tracks)
+
+  if (input.modeChoice !== null) {
+    return {
+      profile: input.modeChoice,
+      source: 'user',
+      recommendation,
+      differsFromRecommendation:
+        recommendation !== null && recommendation.profile !== input.modeChoice,
+    }
+  }
+  if (recommendation !== null) {
+    return {
+      profile: recommendation.profile,
+      source: 'stage',
+      recommendation,
+      differsFromRecommendation: false,
+    }
+  }
+  return { profile: null, source: 'unset', recommendation: null, differsFromRecommendation: false }
+}
+
+// ============================================================================
 // 深链锚点（§3.21 第 5 条 · DL-43）
 // ============================================================================
 

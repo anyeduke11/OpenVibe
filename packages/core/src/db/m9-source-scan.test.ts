@@ -30,6 +30,7 @@ import {
   readAllConsents,
   readConsent,
   readFindings,
+  readShareDaily,
   readShares,
   recordShare,
   saveFindings,
@@ -445,5 +446,85 @@ describe('M9 P4 · 迁移与表结构', () => {
       db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]
     ).map((t) => t.name)
     for (const t of created) expect(tables).toContain(t)
+  })
+})
+
+describe('M9 · 按日出网的分类计数（审计问法：某天有多少次是用户自己全勾的）', () => {
+  it('按 UTC 日 ＋ 项目聚合，三类计数分得开', () => {
+    const db = makeDb()
+    const { projectId } = seed(db)
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 2,
+      snippet_count: 3,
+      created_at: '2026-10-20T01:00:00.000Z',
+      consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
+    })
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 1,
+      snippet_count: 2,
+      created_at: '2026-10-20T02:00:00.000Z',
+      consent_source: 'remembered',
+      consent_detail: 'memory_applied',
+    })
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 1,
+      snippet_count: 1,
+      created_at: '2026-10-21T02:00:00.000Z',
+      consent_source: 'remembered',
+      consent_detail: 'user_reticked',
+    })
+    const rows = readShareDaily(db, '2026-10-20', '2026-10-22')
+    expect(rows).toHaveLength(2)
+    const d20 = rows.find((r) => r.day === '2026-10-20')
+    expect(d20?.share_count).toBe(2)
+    expect(d20?.memory_applied_count).toBe(1)
+    expect(d20?.self_ticked_count).toBe(1)
+    expect(d20?.snippet_total).toBe(5)
+    const d21 = rows.find((r) => r.day === '2026-10-21')
+    expect(d21?.user_reticked_count).toBe(1)
+    db.close()
+  })
+
+  it('⚠️ **窗口是显式绝对窗口**（`[from, to)` 含头不含尾 ⇒ 不随日历漂移）', () => {
+    const db = makeDb()
+    const { projectId } = seed(db)
+    recordShare(db, {
+      project_id: projectId,
+      topic_id_count: 1,
+      snippet_count: 1,
+      created_at: '2026-10-20T00:00:00.000Z',
+      consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
+    })
+    // ⚠️ `to` 不含尾 ⇒ 2026-10-20 那行**不在**结果里
+    expect(readShareDaily(db, '2026-10-20', '2026-10-20')).toHaveLength(0)
+    expect(readShareDaily(db, '2026-10-19', '2026-10-21')).toHaveLength(1)
+    db.close()
+  })
+
+  it('只给一个项目 ⇒ 只看它的（不给 ⇒ 全部项目）', () => {
+    const db = makeDb()
+    seed(db)
+    db.prepare(
+      `INSERT INTO projects (id, name, stages_snapshot, status, created_at, updated_at)
+       VALUES ('p2', '第二个项目', '[]', 'active', '2026-10-21T00:00:00.000Z', '2026-10-21T00:00:00.000Z')`,
+    ).run()
+    for (const p of ['p1', 'p2']) {
+      recordShare(db, {
+        project_id: p,
+        topic_id_count: 1,
+        snippet_count: 1,
+        created_at: '2026-10-20T00:00:00.000Z',
+        consent_source: 'explicit_tick',
+        consent_detail: 'no_memory',
+      })
+    }
+    expect(readShareDaily(db, '2026-10-19', '2026-10-21')).toHaveLength(2)
+    expect(readShareDaily(db, '2026-10-19', '2026-10-21', 'p1')).toHaveLength(1)
+    db.close()
   })
 })

@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { apiJson } from '../../api/client'
 import { Section } from './SettingsSections'
 import { tagCls } from '../ui/styles'
+import { btnGhost } from '../ui/styles'
 
 /**
  * 设置页的**「源码出网记录」**区（增强 1 · dev-plan §6.11 后的增强项）。
@@ -44,6 +46,13 @@ const L = {
   memoryApplied: (n: number) => `记忆带过去 ${String(n)} 次`,
   userReticked: (n: number) => `自己又全勾 ${String(n)} 次`,
   selfTicked: (n: number) => `用户自己勾 ${String(n)} 次`,
+  dailyTitle: '按日明细',
+  dailyHint: '按 UTC 日聚合的出网分类计数（审计问法：「这个月有多少次是用户自己全勾的」）。',
+  dailyOpen: '展开按日明细',
+  dailyClose: '收起按日明细',
+  dailyEmpty: '这段时间没有出网记录。',
+  dailyDay: (d: string) => d,
+  dailyProject: (p: string) => p,
 } as const
 
 interface ShareSummaryItem {
@@ -60,7 +69,66 @@ interface ShareSummaryItem {
   user_reticked_count: number
 }
 
+interface ShareDailyItem {
+  day: string
+  project_id: string
+  share_count: number
+  snippet_total: number
+  memory_applied_count: number
+  user_reticked_count: number
+  self_ticked_count: number
+}
+
+/** UTC 日（与 `shared/utils.ts` 的 `dayOf` 同口径 —— 不另写一个本机日形态）。 */
+function utcDay(offsetDays = 0): string {
+  const t = Date.now() - offsetDays * 86_400_000
+  return new Date(t).toISOString().slice(0, 10)
+}
+
+/**
+ * **按日明细**（折叠在「源码出网记录」区里）。
+ *
+ * ⚠️ **窗口是显式绝对窗口**（`from` / `to` 传给服务端）——
+ *   不给「近 N 天」那种相对窗口：相对 `date('now')` 的读端会**随日历漂移**。
+ *   ⚠️ 默认的 30 天只是**默认窗口**（跟着今天走是 UI 的正常行为，不是判据）。
+ */
+function ShareDailyTable() {
+  const from = utcDay(30)
+  const to = utcDay(-1)
+  const daily = useQuery({
+    queryKey: ['lang-share-daily', from, to],
+    queryFn: () =>
+      apiJson<{ daily: ShareDailyItem[] }>(
+        `/api/lang/source/share-daily?from=${from}&to=${to}`,
+      ),
+    staleTime: 30_000,
+  })
+  const rows = daily.data?.daily ?? []
+
+  if (rows.length === 0) {
+    return <p className="text-[13px] text-ink-muted">{L.dailyEmpty}</p>
+  }
+  return (
+    <ul className="mt-2 flex flex-col gap-1">
+      {rows.map((r) => (
+        <li
+          key={`${r.day}-${r.project_id}`}
+          className="flex flex-wrap items-center gap-2 border-b border-line-hair pb-1 last:border-b-0"
+        >
+          <span className="mono text-[12px] text-ink">{L.dailyDay(r.day)}</span>
+          <span className="mono text-[12px] text-ink-muted">{L.dailyProject(r.project_id)}</span>
+          <span className={tagCls}>{L.shareCount(r.share_count)}</span>
+          <span className="text-[11.5px] text-ink-faint">
+            {`${L.memoryApplied(r.memory_applied_count)} · ${L.userReticked(r.user_reticked_count)} · ${L.selfTicked(r.self_ticked_count)}`}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function SourceShareSection() {
+  const [dailyOpen, setDailyOpen] = useState(false)
   const list = useQuery({
     queryKey: ['lang-share-summary'],
     queryFn: () =>
@@ -76,6 +144,16 @@ export function SourceShareSection() {
       hint={L.hint}
       aside={
         <span className={tagCls}>{`${String(items.length)} 个项目`}</span>
+      }
+      foot={
+        <button
+          type="button"
+          className={btnGhost}
+          aria-expanded={dailyOpen}
+          onClick={() => setDailyOpen((v) => !v)}
+        >
+          {dailyOpen ? L.dailyClose : L.dailyOpen}
+        </button>
       }
     >
       {items.length === 0 ? (
@@ -101,6 +179,12 @@ export function SourceShareSection() {
             </li>
           ))}
         </ul>
+      )}
+      {dailyOpen && (
+        <div className="mt-3 border-t border-line-hair pt-2">
+          <p className="text-[12.5px] text-ink-muted">{L.dailyHint}</p>
+          <ShareDailyTable />
+        </div>
       )}
     </Section>
   )

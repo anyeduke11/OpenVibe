@@ -47,10 +47,33 @@ export interface ResourceCatalogRow {
   is_fav: boolean
   /** §3.14 的失效巡检结果（false ⇒ 已标灰） */
   alive: boolean
+  /** §3.14 的巡检日（**巡检日 ≠ 取证日** —— 「核实过」是快照不是结论） */
+  last_checked_at: string | null
+  /** §3.14 的连续失败次数（连续 2 次失败 ⇒ 标灰不删） */
+  consecutive_fails: number
   /** 这条资源挂接了哪些知识点（反查） */
   topic_ids: number[]
   /** 挂接知识点的标题（点开标记时逐条列出） */
   topic_titles: { id: number; title: string }[]
+}
+
+/**
+ * **速成专区的资源行**（`lang_vibe_resources` · §3.21 另附 11 条）。
+ *
+ * ⚠️ **刻意没有分类 / 费用 / 阶段 / 精选 / 星数** —— 这 11 条在附件里**根本没有**这些维度，
+ *   给它们各编一套就是伪造（§3.21 原话）⇒ **筛选器对这张表不适用**。
+ * ⇒ 因此它们在资源页是**独立分区**，只受**关键字**（通用搜索，不是维度）影响。
+ */
+export interface VibeResourceRow {
+  id: number
+  /** 'tools'（AI 工具官方指引 6 条）| 'tuts'（工作流教程 5 条） */
+  group: string
+  name: string
+  url: string
+  summary: string
+  alive: boolean
+  last_checked_at: string | null
+  consecutive_fails: number
 }
 
 /** 资源页的筛选条件。 */
@@ -61,6 +84,14 @@ export interface ResourceCatalogFilter {
   category?: string
   /** 语言（`lang`） */
   lang?: string
+  /** 费用（`price`） */
+  price?: string
+  /** 界面语言（`lang_label`） */
+  langLabel?: string
+  /** 失效巡检筛选（'all' = 不筛） */
+  alive?: 'all' | 'alive' | 'dead'
+  /** 只看精选 */
+  favOnly?: boolean
   /** 模式标记筛选（'all' = 不筛） */
   mode?: 'all' | ResourceModeLabel
   /** 当前模式（决定「本模式必学」怎么算） */
@@ -108,12 +139,21 @@ export function filterResourceCatalog(
   const q = filter.q === undefined ? '' : normalize(filter.q)
   const category = filter.category === undefined ? '' : filter.category.trim()
   const lang = filter.lang === undefined ? '' : filter.lang.trim()
+  const price = filter.price === undefined ? '' : filter.price.trim()
+  const langLabel = filter.langLabel === undefined ? '' : filter.langLabel.trim()
+  const alive = filter.alive === undefined ? 'all' : filter.alive
+  const favOnly = filter.favOnly === true
   const mode = filter.mode === undefined ? 'all' : filter.mode
 
   const out: ResourceCatalogItem[] = []
   for (const row of rows) {
     if (category !== '' && row.category !== category) continue
     if (lang !== '' && row.lang !== lang) continue
+    if (price !== '' && row.price !== price) continue
+    if (langLabel !== '' && row.lang_label !== langLabel) continue
+    if (alive === 'alive' && !row.alive) continue
+    if (alive === 'dead' && row.alive) continue
+    if (favOnly && !row.is_fav) continue
     if (q !== '') {
       const haystack = normalize(`${row.name} ${row.summary} ${row.url}`)
       if (!haystack.includes(q)) continue
@@ -123,4 +163,20 @@ export function filterResourceCatalog(
     out.push({ ...row, mode_label: label })
   }
   return out
+}
+
+/**
+ * 速成专区资源的筛选（**只有关键字**）。
+ *
+ * ⚠️ **为什么只有关键字**（§3.21）：这 11 条在附件里**没有**分类 / 费用 / 阶段 / 精选 / 星数
+ *   ⇒ 给它们编一套筛选维度就是伪造 ⇒ **维度筛选对这张表不适用**。
+ *   ⚠️ 但**关键字是搜索，不是维度**（它匹配的是「用户要找什么」）⇒ 允许它同时作用于两组。
+ */
+export function filterVibeResources(
+  rows: readonly VibeResourceRow[],
+  q: string | undefined,
+): VibeResourceRow[] {
+  const needle = q === undefined ? '' : normalize(q)
+  if (needle === '') return [...rows]
+  return rows.filter((r) => normalize(`${r.name} ${r.summary} ${r.url}`).includes(needle))
 }

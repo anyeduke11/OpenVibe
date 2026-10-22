@@ -27,6 +27,7 @@ import type {
   ResourceCatalogRow,
   TopicProfileLite,
   TopicStageLite,
+  VibeResourceRow,
 } from '@openvibe/shared'
 
 /**
@@ -163,7 +164,8 @@ export function readResourcesWithTopics(db: SqliteDatabase, limit = 20): Resourc
 export function readResourceCatalogRows(db: SqliteDatabase): ResourceCatalogRow[] {
   const resources = db
     .prepare(
-      `SELECT id, name, url, summary, category, lang, price, lang_label, tier, is_fav, alive
+      `SELECT id, name, url, summary, category, lang, price, lang_label, tier, is_fav, alive,
+              last_checked_at, consecutive_fails
          FROM lang_resources
         ORDER BY id ASC`,
     )
@@ -179,6 +181,8 @@ export function readResourceCatalogRows(db: SqliteDatabase): ResourceCatalogRow[
     tier: string
     is_fav: number
     alive: number
+    last_checked_at: string | null
+    consecutive_fails: number
   }[]
   const links = db.prepare('SELECT topic_id, resource_id FROM lang_topic_resources').all() as {
     topic_id: number
@@ -209,6 +213,9 @@ export function readResourceCatalogRows(db: SqliteDatabase): ResourceCatalogRow[
       tier: r.tier,
       is_fav: r.is_fav === 1,
       alive: r.alive === 1,
+      // ⚠️ **巡检日 ≠ 取证日**（§3.14：「核实过」是快照，不是结论）
+      last_checked_at: r.last_checked_at,
+      consecutive_fails: r.consecutive_fails,
       // ⚠️ **排序放 JS**（复合主键表不能在 SQL 里 ORDER BY）
       topic_ids: topicIds,
       topic_titles: topicIds
@@ -216,6 +223,46 @@ export function readResourceCatalogRows(db: SqliteDatabase): ResourceCatalogRow[
         .map((id) => ({ id, title: titleById.get(id) as string })),
     }
   })
+}
+
+/**
+ * 读**速成专区**的资源行（`lang_vibe_resources` · §3.21 另附 11 条）。
+ *
+ * ⚠️ **刻意没有维度列** —— 这 11 条在附件里没有分类 / 费用 / 阶段 / 精选 / 星数
+ *   ⇒ 给它们编一套就是伪造 ⇒ 资源页里它们是**独立分区**，**筛选器不适用**
+ *   （只受关键字搜索影响，那不是维度）。
+ *
+ * ⚠️ **失效巡检与主表同款**（§3.21 末段：这张表更容易烂，恰恰更该巡检）。
+ *
+ * ⚠️ **排序**：按 `id`（单列唯一键 ⇒ 允许 ORDER BY）。
+ */
+export function readVibeResourceRows(db: SqliteDatabase): VibeResourceRow[] {
+  const rows = db
+    .prepare(
+      `SELECT id, "group", name, url, summary, alive, last_checked_at, consecutive_fails
+         FROM lang_vibe_resources
+        ORDER BY id ASC`,
+    )
+    .all() as {
+    id: number
+    group: string
+    name: string
+    url: string
+    summary: string
+    alive: number
+    last_checked_at: string | null
+    consecutive_fails: number
+  }[]
+  return rows.map((r) => ({
+    id: r.id,
+    group: r.group,
+    name: r.name,
+    url: r.url,
+    summary: r.summary,
+    alive: r.alive === 1,
+    last_checked_at: r.last_checked_at,
+    consecutive_fails: r.consecutive_fails,
+  }))
 }
 
 /**

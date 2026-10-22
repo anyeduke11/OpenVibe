@@ -11,12 +11,19 @@ import {
   readProjectRoot,
   readSnippet,
   readSnippets,
+  resolveApiKey,
   resolveProvider,
   resolveProviderRunner,
   writeProviderConfig,
   SourceServiceError,
   type SourceInterpretRunner,
   type SqliteDatabase,
+} from '@openvibe/core'
+import {
+  KEYCHAIN_ACCOUNT,
+  KEYCHAIN_SERVICE,
+  realKeychainStore,
+  type KeychainStore,
 } from '@openvibe/core'
 import { InterpretProviderConfig, type InterpretProviderConfig as InterpretProviderConfigType } from '@openvibe/shared'
 
@@ -48,6 +55,12 @@ export interface LangSourceAiRouteDeps {
   runner?: SourceInterpretRunner | null
   /** 参照时刻（**注入测试用**） */
   now?: () => Date
+  /**
+   * **钥匙串后端**（**注入优先**；没注入则用真的 macOS `security`）。
+   *
+   * ⚠️ **单测必须注入内存实现** —— 否则测试会去动用户**真实的**系统钥匙串。
+   */
+  keychain?: KeychainStore
 }
 
 const SnippetQuery = z.object({
@@ -80,9 +93,13 @@ const InterpretExportBody = z.object({
  * 保存 provider 配置的请求体（**`api_key` 可缺省** ⇒ 缺省＝保持原值）。
  *
  * ⚠️ 其它字段**必填**（整份覆盖，不做增量合并 —— 免得出现「半截配置」）。
+ *
+ * ⚠️ **`api_key_storage` 不在请求体里** —— 它是**服务端算出来的事实**
+ *   （这台机器有没有钥匙串 ⇒ key 落在哪），不是客户端能声明的东西。
+ *   ⚠️ 若让客户端传，客户端漏传就会把一把**明文 key 说成在钥匙串里**（撒谎）。
  */
 const ProviderSaveBody = z.object({
-  ...InterpretProviderConfig.shape,
+  ...InterpretProviderConfig.omit({ api_key_storage: true }).shape,
   api_key: z.string().optional(),
 })
 
@@ -97,12 +114,15 @@ export function registerLangSourceAiRoutes(
   deps: LangSourceAiRouteDeps,
 ): void {
   const now = deps.now ?? (() => new Date())
+  const keychain = deps.keychain ?? realKeychainStore
   /**
    * runner 解析：**注入优先**；注入的 `null` 表示「明确没有」；
    * 没注入 ⇒ 看**设置页配的**（配置优先）⇒ 再回退环境变量（`resolveProviderRunner` 内）。
+   *
+   * ⚠️ **是异步的** —— key 可能在**系统钥匙串**里 ⇒ 读它要起子进程。
    */
-  const resolveRunner = (): SourceInterpretRunner | null =>
-    deps.runner === undefined ? resolveProviderRunner(deps.db) : deps.runner
+  const resolveRunner = async (): Promise<SourceInterpretRunner | null> =>
+    deps.runner === undefined ? await resolveProviderRunner(deps.db, process.env, keychain) : deps.runner
 
   app.get('/api/lang/snippet', async (req) => {
     const parsed = SnippetQuery.safeParse(req.query)
@@ -202,7 +222,9 @@ export function registerLangSourceAiRoutes(
    */
   app.get('/api/lang/interpret/provider', async () => {
     const { config } = readProviderConfig(deps.db)
-    return providerConfigView(config)
+    // ⚠️ **实际那把 key**（可能来自系统钥匙串）⇒ 视图要显示它的末 4 位
+    const apiKey = await resolveApiKey(config, keychain)
+    return providerConfigView(config, apiKey)
   })
 
   /**
@@ -222,7 +244,35 @@ export function registerLangSourceAiRoutes(
     const next: InterpretProviderConfigType = {
       ...current,
       ...parsed.data,
-      api_key: parsed.data.api_key === undefined ? current.api_key : parsed.data.api_key,
+      // ⚠️ **下面三行由「key 的三种情形」决定**（不许用请求体里的值）
+      api_key: '',
+      api_key_storage: 'none',
+    }
+
+    // ---- key 的三种情形（**口径只留一处**）----
+    const submitted = parsed.data.api_key
+    if (submitted === undefined) {
+      // ① **缺省 = 保持原值**（改一下模型名不该把 key 抹掉）
+      next.api_key = current.api_key
+      next.api_key_storage = current.api_key_storage
+    } else if (submitted.trim() === '') {
+      // ② **空串 = 清除** ⇒ 钥匙串里那一项也要删（不然是「删了但还在」）
+      next.api_key = ''
+      next.api_key_storage = 'none'
+      await keychain.remove(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT)
+    } else {
+      // ③ **新 key** ⇒ 先试系统钥匙串 ⇒ 不成才降级为明文
+      const secret = submitted.trim()
+      const written = await keychain.store(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT, secret)
+      if (written.ok) {
+        // ⚠️ **钥匙串模式：配置里**不留** key 本身**（只留一个标记）
+        next.api_key = ''
+        next.api_key_storage = 'keychain'
+      } else {
+        // ⚠️ **降级**：本机没有可用的钥匙串 ⇒ key 只能明文存 ⇒ **必须如实标出来**
+        next.api_key = secret
+        next.api_key_storage = 'inline'
+      }
     }
     if (next.kind === 'openai_http' && next.endpoint.trim() !== '') {
       // ⚠️ **端点必须像 URL** —— 不校验的话，配错的东西会等到「真跑一次」才暴露
@@ -238,7 +288,8 @@ export function registerLangSourceAiRoutes(
       }
     }
     writeProviderConfig(deps.db, next)
-    return providerConfigView(next)
+    // ⚠️ 回显的是**实际那把 key**的末 4 位（降级时就是明文那一把）
+    return providerConfigView(next, next.api_key_storage === 'keychain' ? await resolveApiKey(next, keychain) : next.api_key)
   })
 
   app.post('/api/lang/interpret', async (req) => {
@@ -250,7 +301,7 @@ export function registerLangSourceAiRoutes(
       return await interpretSourceFindings(deps.db, {
         projectId: parsed.data.project_id,
         findingIds: parsed.data.finding_ids,
-        runner: resolveRunner(),
+        runner: await resolveRunner(),
         now,
         userTouched: parsed.data.user_touched === true,
       })

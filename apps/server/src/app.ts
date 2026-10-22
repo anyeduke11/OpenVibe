@@ -1,7 +1,12 @@
 import { randomBytes } from 'node:crypto'
 import Fastify, { type FastifyInstance } from 'fastify'
 import { APP_NAME, SCHEMA_VERSION } from '@openvibe/shared'
-import { openDatabase, type SourceInterpretRunner, type SqliteDatabase } from '@openvibe/core'
+import {
+  openDatabase,
+  type KeychainStore,
+  type SourceInterpretRunner,
+  type SqliteDatabase,
+} from '@openvibe/core'
 import { registerAuth } from './plugins/auth'
 import { registerErrors } from './plugins/errors'
 import { registerAgentRoutes } from './routes/agent'
@@ -51,6 +56,12 @@ export interface BuildAppOptions {
    *   ⇒ 两种「没有」要能分开，所以类型是 `runner?: ... | null` 而不是 `runner?: ...`。
    */
   interpretRunner?: SourceInterpretRunner | null
+  /**
+   * **钥匙串后端**（**注入优先**；没注入则用真的 macOS `security`）。
+   *
+   * ⚠️ **单测必须注入内存实现** —— 否则测试会去动用户**真实的**系统钥匙串。
+   */
+  keychain?: KeychainStore
 }
 
 export interface BuiltApp {
@@ -95,7 +106,12 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   // M9 源码识别端点（扫描 ＋ 命中 ＋ 同意记忆 ＋ 导出清单）
   registerLangSourceRoutes(app, { db })
   // M9 源码解读（T2）：片段读取 ＋ 能力探测 ＋ 解读（runner 可注入）
-  registerLangSourceAiRoutes(app, { db, runner: options.interpretRunner, now: options.now })
+  registerLangSourceAiRoutes(app, {
+    db,
+    runner: options.interpretRunner,
+    now: options.now,
+    keychain: options.keychain,
+  })
   registerPortRoutes({ db, listListenersImpl: options.listListenersImpl })(app)
   registerTaskRoutes(app, deps)
   registerDevLogRoutes(app, deps)

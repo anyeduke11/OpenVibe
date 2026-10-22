@@ -171,7 +171,35 @@ export {
   seedTopicProfiles,
   type M9ProfileSeedResult,
 } from './db/m9-p1d-seed-profiles'
+export {
+  findHardCodedDateUses,
+  findRelativeWindowUses,
+  findTimeDriftRisks,
+  splitTestBlocks,
+  type HardCodedDateUse,
+  type RelativeWindowUse,
+  type SourceFile,
+  type TestBlock,
+  type TimeDriftRisk,
+} from './db/m9-time-window-guard'
+export {
+  KEYCHAIN_ACCOUNT,
+  KEYCHAIN_SERVICE,
+  memoryKeychainStore,
+  realKeychainStore,
+  type KeychainStore,
+  type KeychainSupport,
+  type KeychainWriteResult,
+} from './source-ai/keychain'
 export { readStageTracks } from './db/m9-p1f-stage-tracks'
+export {
+  LANG_STAGE_IDS,
+  readStageChoice,
+  writeStageChoice,
+  readModeChoice,
+  readEffectiveProfile,
+  readEffectiveProfileOr,
+} from './db/m9-stage-choice'
 export { type StageTrackRow } from './db/m9-p1f-stage-guards'
 export {
   findLayeringViolations,
@@ -365,6 +393,7 @@ export {
   recordShare,
   readShares,
   readShareSummary,
+  readShareDaily,
   buildExportText,
   type ConsentRow,
   type FindingRow,
@@ -381,6 +410,7 @@ export {
   readResourcesWithTopics,
   readTopicProfiles,
   readTopicStages,
+  readVibeResourceRows,
   type ResourceWithTopics,
 } from './db/m9-mode-read'
 
@@ -456,11 +486,13 @@ export {
 
 export {
   DEFAULT_PROVIDER_CONFIG,
+  apiKeyStorageDetail,
   capabilityOf,
   isLocalEndpoint,
   isValidEndpoint,
   providerConfigView,
   readProviderConfig,
+  resolveApiKey,
   resolveProvider,
   resolveProviderRunner,
   runnerFromProviderConfig,

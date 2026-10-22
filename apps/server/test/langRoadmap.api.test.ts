@@ -250,3 +250,74 @@ describe('M9 · GET /api/lang/resources（owner 2026-10-22：独立资源页 ＋
     expect(res.statusCode).toBe(422)
   })
 })
+
+describe('M9 · GET /api/lang/resources · 更多筛选维度 ＋ 速成专区分区', () => {
+  function seedExtra(db: TestDbHandle['db']): void {
+    db.prepare(
+      `INSERT INTO lang_topics (id, lang, slug, title, summary, stage_id, kind)
+       VALUES (1, 'python', 'py-a', '知识点 A', '', 0, 'language')`,
+    ).run()
+    db.prepare(
+      `INSERT INTO lang_topic_profiles (topic_id, profile, depth, required, rank, est_minutes)
+       VALUES (1, 'master', 'full', 1, 1, 60)`,
+    ).run()
+    db.prepare(
+      `INSERT INTO lang_resources
+         (id, lang, name, url, category, tier, level_label, price, lang_label, is_fav, summary,
+          last_checked_at, consecutive_fails, alive)
+       VALUES (1, 'python', '免费中文课', 'https://example.com/1', 'course', 'a', '0', 'free', 'zh', 1,
+               '免费的', '2026-10-20', 0, 1),
+              (2, 'python', '付费英文课', 'https://example.com/2', 'course', 'b', '1', 'paid', 'en', 0,
+               '付费的', '2026-10-18', 2, 0)`,
+    ).run()
+    db.prepare(
+      `INSERT INTO lang_vibe_resources (id, "group", name, url, summary, last_checked_at)
+       VALUES (1, 'tools', 'Cursor 官方指引', 'https://cursor.com/docs', 'AI 工具指引', '2026-10-19')`,
+    ).run()
+  }
+
+  it('**费用 / 界面语言 / 失效 / 精选**四个维度都能筛', async () => {
+    const h = await makeHarness()
+    seedExtra(h.handle.db)
+    const price = await api(h, '/api/lang/resources?price=free')
+    expect((price.json() as { resources: { id: number }[] }).resources.map((r) => r.id)).toEqual([1])
+    const label = await api(h, '/api/lang/resources?lang_label=en')
+    expect((label.json() as { resources: { id: number }[] }).resources.map((r) => r.id)).toEqual([2])
+    const dead = await api(h, '/api/lang/resources?alive=dead')
+    expect((dead.json() as { resources: { id: number }[] }).resources.map((r) => r.id)).toEqual([2])
+    const fav = await api(h, '/api/lang/resources?fav=1')
+    expect((fav.json() as { resources: { id: number }[] }).resources.map((r) => r.id)).toEqual([1])
+  })
+
+  it('每条带**巡检信息**（巡检日 ＋ 连续失败次数）', async () => {
+    const h = await makeHarness()
+    seedExtra(h.handle.db)
+    const res = await api(h, '/api/lang/resources')
+    const body = res.json() as {
+      resources: { id: number; last_checked_at: string | null; consecutive_fails: number }[]
+    }
+    const dead = body.resources.find((r) => r.id === 2)
+    expect(dead?.last_checked_at).toBe('2026-10-18')
+    expect(dead?.consecutive_fails).toBe(2)
+  })
+
+  it('⚠️ **速成专区是独立分区**：只受关键字影响，**维度筛选不作用**（§3.21）', async () => {
+    const h = await makeHarness()
+    seedExtra(h.handle.db)
+    // ⚠️ **用「分类 = course」筛**：主清单被筛掉，但**速成专区那 11 条不该被编造维度**
+    const res = await api(h, '/api/lang/resources?category=course')
+    const body = res.json() as { resources: { id: number }[]; vibe_resources: { id: number }[] }
+    expect(body.resources.map((r) => r.id)).toEqual([1, 2])
+    // 速成专区**不受**分类筛选影响（它没有分类这个维度）
+    expect(body.vibe_resources.map((r) => r.id)).toEqual([1])
+  })
+
+  it('速成专区**受关键字影响**（关键字是搜索，不是维度）', async () => {
+    const h = await makeHarness()
+    seedExtra(h.handle.db)
+    const res = await api(h, '/api/lang/resources?q=cursor')
+    const body = res.json() as { resources: { id: number }[]; vibe_resources: { id: number }[] }
+    expect(body.resources).toHaveLength(0)
+    expect(body.vibe_resources.map((r) => r.id)).toEqual([1])
+  })
+})

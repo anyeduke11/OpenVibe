@@ -22,6 +22,19 @@ const PROFILES = [
   { topic_id: 2, profile: 'master', required: 0, rank: 2, est_minutes: 10 },
 ]
 
+const VIBE = [
+  {
+    id: 1,
+    group: 'tools',
+    name: 'Cursor 官方指引',
+    url: 'https://cursor.com/docs',
+    summary: 'AI 工具官方指引',
+    alive: true,
+    last_checked_at: '2026-10-19',
+    consecutive_fails: 0,
+  },
+]
+
 const RESOURCES = [
   {
     id: 1,
@@ -35,6 +48,8 @@ const RESOURCES = [
     tier: 'a',
     is_fav: false,
     alive: true,
+    last_checked_at: '2026-10-20',
+    consecutive_fails: 0,
     topic_ids: [1],
     topic_titles: [{ id: 1, title: '知识点 A' }],
     mode_label: '本模式必学',
@@ -51,6 +66,8 @@ const RESOURCES = [
     tier: 'b',
     is_fav: false,
     alive: true,
+    last_checked_at: '2026-10-18',
+    consecutive_fails: 2,
     topic_ids: [],
     topic_titles: [],
     mode_label: '仅扩展阅读',
@@ -80,6 +97,7 @@ function mockCatalog(resources: unknown[] = RESOURCES): void {
         profiles: PROFILES,
         total: resources.length,
         resources,
+        vibe_resources: VIBE,
       }),
       { status: 200, headers: { 'content-type': 'application/json' } },
     )
@@ -141,9 +159,62 @@ describe('M9 · 学习资源页', () => {
     mockCatalog()
     renderPage()
     await screen.findByText('Python 官方文档')
-    // 只有「模式标记」筛选（全部 / 两档），**没有**模式切换器
-    expect(screen.getByRole('button', { name: '全部' })).toBeTruthy()
+    // ⚠️ 只有「模式**标记**」筛选（两档），**没有**模式切换器
+    //   （「全部」有两个 ⇒ 不断言它，改断**不该存在**的模式切换按钮）
     expect(screen.queryByRole('button', { name: '精通' })).toBeNull()
     expect(screen.queryByRole('button', { name: '速成' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '熟悉' })).toBeNull()
+    // 模式标记那组是**两档**（§3.20 / DL-39：不许有第三档）
+    // ⚠️ 两档的标签在筛选按钮与每条资源的 chip 上都会出现 ⇒ 用 getAllByRole
+    expect(screen.getAllByRole('button', { name: '本模式必学' }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: '仅扩展阅读' }).length).toBeGreaterThan(0)
+  })
+
+  it('⚠️ **速成专区是独立分区**（有分组标签 ＋ 与主清单分开）', async () => {
+    mockCatalog()
+    renderPage()
+    expect(await screen.findByText('速成专区')).toBeTruthy()
+    expect(await screen.findByText('Cursor 官方指引')).toBeTruthy()
+    // ⚠️ 「AI 工具官方指引」既是摘要又是分组标签 ⇒ 页面上出现两次（不断言恰好一次）
+    expect((await screen.findAllByText('AI 工具官方指引')).length).toBeGreaterThan(0)
+  })
+
+  it('**失效巡检信息**看得见（巡检日 ＋ 连续失败次数）', async () => {
+    mockCatalog()
+    renderPage()
+    expect(await screen.findByText(/上次巡检 2026-10-18 · 连着失败 2 次/)).toBeTruthy()
+    expect(await screen.findByText(/上次巡检 2026-10-20$/)).toBeTruthy()
+  })
+
+  it('**只看失效 / 只看精选**都进请求', async () => {
+    mockCatalog()
+    renderPage()
+    await screen.findByText('Python 官方文档')
+    fireEvent.click(screen.getByRole('button', { name: '已失效' }))
+    await waitFor(() => {
+      expect(requestedUrls.some((u) => u.includes('alive=dead'))).toBe(true)
+    })
+    fireEvent.click(screen.getByRole('button', { name: '只看精选' }))
+    await waitFor(() => {
+      expect(requestedUrls.some((u) => u.includes('fav=1'))).toBe(true)
+    })
+  })
+
+  it('**费用 / 界面语言**筛选都进请求', async () => {
+    mockCatalog()
+    renderPage()
+    await screen.findByText('Python 官方文档')
+    fireEvent.change((await screen.findByLabelText('费用')) as HTMLSelectElement, {
+      target: { value: 'paid' },
+    })
+    await waitFor(() => {
+      expect(requestedUrls.some((u) => u.includes('price=paid'))).toBe(true)
+    })
+    fireEvent.change((await screen.findByLabelText('界面语言')) as HTMLSelectElement, {
+      target: { value: 'en' },
+    })
+    await waitFor(() => {
+      expect(requestedUrls.some((u) => u.includes('lang_label=en'))).toBe(true)
+    })
   })
 })

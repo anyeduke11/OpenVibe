@@ -341,3 +341,46 @@ describe('M9 P4 · §3.9 · 出网计数', () => {
     expect(body.shares[0]).toMatchObject({ snippet_count: 7, consent_source: 'remembered' })
   })
 })
+
+describe('M9 · GET /api/lang/source/share-daily（按日出网的分类计数）', () => {
+  it('⚠️ **`from` / `to` 必填**（不给「近 N 天」那种相对窗口 ⇒ 不随日历漂移）', async () => {
+    const h = await makeHarness()
+    const res = await get(h, '/api/lang/source/share-daily')
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('日期格式不对 ⇒ 422', async () => {
+    const h = await makeHarness()
+    const res = await get(h, '/api/lang/source/share-daily?from=2026-10-20&to=not-a-date')
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('`from` 晚于 `to` ⇒ 422（不静默返回空）', async () => {
+    const h = await makeHarness()
+    const res = await get(h, '/api/lang/source/share-daily?from=2026-10-22&to=2026-10-20')
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('按 UTC 日聚合，三类计数分得开', async () => {
+    const h = await makeHarness()
+    addProject(h.handle.db, 'p1', null)
+    h.handle.db
+      .prepare(
+        `INSERT INTO lang_source_shares
+           (project_id, topic_id_count, snippet_count, created_at, consent_source, consent_detail)
+         VALUES ('p1', 2, 3, '2026-10-20T01:00:00.000Z', 'explicit_tick', 'no_memory'),
+                ('p1', 1, 2, '2026-10-20T02:00:00.000Z', 'remembered', 'memory_applied')`,
+      )
+      .run()
+    const res = await get(h, '/api/lang/source/share-daily?from=2026-10-20&to=2026-10-21')
+    expect(res.statusCode).toBe(200)
+    const body = res.json() as {
+      daily: { day: string; share_count: number; memory_applied_count: number; self_ticked_count: number }[]
+    }
+    expect(body.daily).toHaveLength(1)
+    expect(body.daily[0]?.day).toBe('2026-10-20')
+    expect(body.daily[0]?.share_count).toBe(2)
+    expect(body.daily[0]?.memory_applied_count).toBe(1)
+    expect(body.daily[0]?.self_ticked_count).toBe(1)
+  })
+})

@@ -7,6 +7,7 @@ import {
   readAllConsents,
   readConsent,
   readFindings,
+  readShareDaily,
   readShareSummary,
   readShares,
   recordShare,
@@ -47,6 +48,19 @@ const ScanBody = z.object({
 const ConsentBody = z.object({
   project_id: z.string().min(1),
   remember_all: z.boolean(),
+})
+
+/**
+ * 按日出网的查询参数（**显式绝对窗口**）。
+ *
+ * ⚠️ **`from` / `to` 必填** —— 不提供「近 N 天」那种相对窗口：
+ *   相对 `date('now')` 的读端会**随日历漂移**（本仓已有教训：
+ *   `LocalEventsRepo.summary` 的读端把写死日期的测试推成了「到期变红」）。
+ */
+const ShareDailyQuery = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, 'from 必须是 YYYY-MM-DD'),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, 'to 必须是 YYYY-MM-DD'),
+  project: z.string().min(1).optional(),
 })
 
 const ShareBody = z.object({
@@ -175,5 +189,30 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
   //   ⇒ 与「记忆列表」**分开**：当次勾了但没记住的出网，也必须在这里看得见。
   app.get('/api/lang/source/share-summary', async () => {
     return { summaries: readShareSummary(deps.db) }
+  })
+
+  /**
+   * **按日**的出网分类计数（审计问法：「这个月有多少次是用户自己全勾的」）。
+   *
+   * ⚠️ **`from` / `to` 必填**（显式绝对窗口）—— 不给「近 N 天」那种相对窗口：
+   *   相对 `date('now')` 的读端会随日历漂移（测试与报表都踩过这个坑）。
+   * ⚠️ `[from, to)` 含头不含尾，与 `summaryInWindow` 同口径。
+   */
+  app.get('/api/lang/source/share-daily', async (req) => {
+    const parsed = ShareDailyQuery.safeParse(req.query)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', 'from 与 to 必填（YYYY-MM-DD），project 可选')
+    }
+    if (parsed.data.from > parsed.data.to) {
+      throw new AppError('VALIDATION_ERROR', 'from 晚于 to')
+    }
+    return {
+      daily: readShareDaily(
+        deps.db,
+        parsed.data.from,
+        parsed.data.to,
+        parsed.data.project,
+      ),
+    }
   })
 }

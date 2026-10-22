@@ -1,6 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon, type IconName } from '../ui/icons'
-import { btnGhost, btnPrimary, chipTone, inputCls, labelCls, segCls, segItemCls, skelCls, type ChipTone } from '../ui/styles'
+import {
+  btnGhost,
+  btnPrimary,
+  chipTone,
+  inputCls,
+  labelCls,
+  noteCls,
+  noteTitleCls,
+  segCls,
+  segItemCls,
+  skelCls,
+  type ChipTone,
+} from '../ui/styles'
 import { Section } from './SettingsSections'
 import { useLangInterpretCapability, useLangProviderConfig } from '../../hooks/useLangSource'
 import type { InterpretProviderKind } from '@openvibe/shared'
@@ -52,6 +64,8 @@ const L = {
   apiKeyHint: '本机接口通常留空；云端接口填上。留空表示保持原值，不会覆盖已配置的 key。',
   apiKeyConfigured: (hint: string) => `已配置（末 ${hint}）`,
   apiKeyNone: '未配置',
+  keyStorageLabel: '存放位置',
+  keyStoragePlainTitle: 'key 以明文存放',
   clearKey: '清除 key',
   timeout: '超时（毫秒）',
   save: '保存',
@@ -326,6 +340,25 @@ export function InterpretProviderSection() {
                 </div>
               </div>
             </>
+          )}
+
+          {/* ⚠️ **key 存在哪必须让用户看见**（批次 D）——
+              「在系统钥匙串里」与「明文躺在本地库里」是两个保护级别，
+              界面不说就是隐瞒。降级那一档更要显眼。 */}
+          {view?.has_api_key === true && (
+            <div className={view.api_key_storage === 'inline' ? noteCls('warn') : undefined}>
+              {view.api_key_storage === 'inline' ? (
+                <>
+                  <strong className={noteTitleCls}>{L.keyStoragePlainTitle}</strong>
+                  {view.api_key_storage_detail}
+                </>
+              ) : (
+                <p className="text-xs text-ink-muted">
+                  <span className="font-medium text-ink-body">{L.keyStorageLabel}</span>
+                  {`：${view.api_key_storage_detail}`}
+                </p>
+              )}
+            </div>
           )}
 
           <div>

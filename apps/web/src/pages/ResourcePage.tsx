@@ -59,6 +59,15 @@ const L = {
   categoryAll: '全部分类',
   lang: '语言',
   langAll: '全部语言',
+  price: '费用',
+  priceAll: '全部费用',
+  langLabel: '界面语言',
+  langLabelAll: '全部界面语言',
+  alive: '有效状态',
+  aliveAll: '全部',
+  aliveOk: '可访问',
+  aliveDead: '已失效',
+  fav: '只看精选',
   mode: '模式标记',
   modeAll: '全部',
   empty: '没有符合条件的资源。',
@@ -67,6 +76,13 @@ const L = {
   modeLabels: { master: '精通', familiar: '熟悉', vibe: '速成' } as const,
   count: (n: number) => `${String(n)} 条`,
   total: (n: number) => `共 ${String(n)} 条`,
+  /** 失效巡检（§3.14：「核实过」是快照，不是结论 ⇒ 要显示**巡检日**而不是取证日） */
+  checkedAt: (d: string) => `上次巡检 ${d}`,
+  failStreak: (n: number) => `连着失败 ${String(n)} 次`,
+  notChecked: '还没巡检过',
+  vibeTitle: '速成专区',
+  vibeHint: '这 11 条是速成专区的独立清单，**没有**分类、费用、阶段、精选这些维度（附件里就没有）⇒ 上面那些筛选只作用于主清单，这里只受关键字影响。',
+  vibeGroupLabels: { tools: 'AI 工具官方指引', tuts: '工作流教程' } as Record<string, string>,
   categoryLabels: {
     official: '官方',
     github: 'GitHub',
@@ -84,10 +100,24 @@ export function ResourcePage() {
   const [q, setQ] = useState('')
   const [category, setCategory] = useState('')
   const [lang, setLang] = useState('')
+  const [price, setPrice] = useState('')
+  const [langLabel, setLangLabel] = useState('')
+  const [alive, setAlive] = useState<'all' | 'alive' | 'dead'>('all')
+  const [fav, setFav] = useState(false)
   const [mode, setMode] = useState<'all' | '本模式必学' | '仅扩展阅读'>('all')
 
-  const { data, isPending, isError } = useLangResources({ q, category, lang, mode })
+  const { data, isPending, isError } = useLangResources({
+    q,
+    category,
+    lang,
+    price,
+    lang_label: langLabel,
+    alive,
+    fav,
+    mode,
+  })
   const resources = data?.resources ?? []
+  const vibeResources = data?.vibe_resources ?? []
   const profile = data?.profile ?? 'master'
 
   return (
@@ -151,6 +181,68 @@ export function ResourcePage() {
           </select>
         </div>
         <div>
+          <label className={labelCls} htmlFor="m9-res-price">
+            {L.price}
+          </label>
+          <select
+            id="m9-res-price"
+            className={inputCls}
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+          >
+            <option value="">{L.priceAll}</option>
+            <option value="free">{L.priceLabels.free}</option>
+            <option value="paid">{L.priceLabels.paid}</option>
+            <option value="mix">{L.priceLabels.mix}</option>
+          </select>
+        </div>
+        <div>
+          <label className={labelCls} htmlFor="m9-res-lang-label">
+            {L.langLabel}
+          </label>
+          <select
+            id="m9-res-lang-label"
+            className={inputCls}
+            value={langLabel}
+            onChange={(e) => setLangLabel(e.target.value)}
+          >
+            <option value="">{L.langLabelAll}</option>
+            <option value="zh">{L.langLabelLabels.zh}</option>
+            <option value="en">{L.langLabelLabels.en}</option>
+            <option value="bi">{L.langLabelLabels.bi}</option>
+          </select>
+        </div>
+        <div>
+          <span className={labelCls}>{L.alive}</span>
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                ['all', L.aliveAll],
+                ['alive', L.aliveOk],
+                ['dead', L.aliveDead],
+              ] as const
+            ).map(([value, text]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={alive === value}
+                className={alive === value ? filterChipActiveCls : filterChipCls}
+                onClick={() => setAlive(value)}
+              >
+                {text}
+              </button>
+            ))}
+            <button
+              type="button"
+              aria-pressed={fav}
+              className={fav ? filterChipActiveCls : filterChipCls}
+              onClick={() => setFav((v) => !v)}
+            >
+              {L.fav}
+            </button>
+          </div>
+        </div>
+        <div>
           <span className={labelCls}>{L.mode}</span>
           <div className="flex flex-wrap gap-1.5">
             {(['all', ...RESOURCE_MODE_LABELS] as const).map((value) => (
@@ -182,6 +274,10 @@ export function ResourcePage() {
               setQ('')
               setCategory('')
               setLang('')
+              setPrice('')
+              setLangLabel('')
+              setAlive('all')
+              setFav(false)
               setMode('all')
             }}
           >
@@ -215,7 +311,18 @@ export function ResourcePage() {
                   <span className={tagCls}>{L.langLabels[r.lang] ?? r.lang}</span>
                   <span className={tagCls}>{L.priceLabels[r.price] ?? r.price}</span>
                   <span className={tagCls}>{L.langLabelLabels[r.lang_label] ?? r.lang_label}</span>
+                  {r.is_fav && <span className={tagCls}>精选</span>}
                   {!r.alive && <span className={tagCls}>已失效</span>}
+                  {/* ⚠️ **巡检日 ≠ 取证日**（§3.14）：只标「已失效」用户不知道什么时候失效的 */}
+                  <span className="text-[11.5px] text-ink-faint">
+                    {r.last_checked_at === null
+                      ? L.notChecked
+                      : `${L.checkedAt(r.last_checked_at)}${
+                          r.consecutive_fails > 0
+                            ? ` · ${L.failStreak(r.consecutive_fails)}`
+                            : ''
+                        }`}
+                  </span>
                 </div>
               </div>
               <div className="shrink-0">
@@ -229,6 +336,52 @@ export function ResourcePage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* ⚠️ **速成专区是独立分区**（§3.21）：这 11 条**没有**分类/费用/阶段/精选维度
+          ⇒ 维度筛选对它们**不适用**（给它们编一套就是伪造）⇒ 只受关键字影响。 */}
+      {vibeResources.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-ink">{L.vibeTitle}</h2>
+          <p className={`${proseCls} text-[13px] leading-relaxed text-ink-muted`}>{L.vibeHint}</p>
+          <ul className="flex flex-col">
+            {vibeResources.map((r) => (
+              <li
+                key={`vibe-${String(r.id)}`}
+                className={`${rowCls} flex flex-wrap items-start gap-x-3 gap-y-1.5 py-2.5 last:border-b-0`}
+              >
+                <div className="min-w-0 flex-1">
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[14px] font-medium text-accent hover:underline"
+                  >
+                    {r.name}
+                  </a>
+                  {r.summary !== '' && (
+                    <p className={`${proseCls} mt-0.5 text-[12.5px] leading-relaxed text-ink-muted`}>
+                      {r.summary}
+                    </p>
+                  )}
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <span className={tagCls}>{L.vibeGroupLabels[r.group] ?? r.group}</span>
+                    {!r.alive && <span className={tagCls}>已失效</span>}
+                    <span className="text-[11.5px] text-ink-faint">
+                      {r.last_checked_at === null
+                        ? L.notChecked
+                        : `${L.checkedAt(r.last_checked_at)}${
+                            r.consecutive_fails > 0
+                              ? ` · ${L.failStreak(r.consecutive_fails)}`
+                              : ''
+                          }`}
+                    </span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   )

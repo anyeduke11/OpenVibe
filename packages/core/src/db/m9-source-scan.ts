@@ -353,6 +353,83 @@ export interface ShareSummaryRow {
 }
 
 /**
+ * **按日**的出网分类计数（审计常用问法：「这个月有多少次是用户自己全勾的」）。
+ *
+ * ⚠️ **窗口是显式绝对窗口**（`from` / `to` 由调用方给）⇒ **不随日历漂移**
+ *   （相对 `date('now')` 的窗口会「到期变红」，本仓已有教训）。
+ *
+ * ⚠️ **日戳取 `created_at` 的 UTC 日**（`substr(created_at,1,10)`）
+ *   —— 与 `dayOf`（`shared/utils.ts`）同口径，**不另写一个本机日形态**。
+ */
+export interface ShareDailyRow {
+  /** UTC 日（`YYYY-MM-DD`） */
+  day: string
+  project_id: string
+  /** 当天的出网次数 */
+  share_count: number
+  /** 当天发出去的片段条数 */
+  snippet_total: number
+  /** 其中「记忆起了作用」的次数 */
+  memory_applied_count: number
+  /** 其中「用户自己又全勾了一遍」的次数 */
+  user_reticked_count: number
+  /** 其中「用户自己勾的」的次数（无记忆的主动勾 ＋ 部分勾） */
+  self_ticked_count: number
+}
+
+/**
+ * 读按日聚合的出网分类计数。
+ *
+ * @param from 含头（`YYYY-MM-DD`）
+ * @param to **不含尾**（`YYYY-MM-DD`）—— 与 `summaryInWindow` 的 `[from, to)` 口径一致
+ * @param projectId 只看某个项目（不给 ⇒ 全部项目）
+ */
+export function readShareDaily(
+  db: SqliteDatabase,
+  from: string,
+  to: string,
+  projectId?: string,
+): ShareDailyRow[] {
+  const rows = db
+    .prepare(
+      `SELECT substr(created_at, 1, 10) AS day,
+              project_id,
+              COUNT(*) AS share_count,
+              COALESCE(SUM(snippet_count), 0) AS snippet_total,
+              COALESCE(SUM(CASE WHEN consent_detail = 'memory_applied' THEN 1 ELSE 0 END), 0)
+                AS memory_applied_count,
+              COALESCE(SUM(CASE WHEN consent_detail = 'user_reticked' THEN 1 ELSE 0 END), 0)
+                AS user_reticked_count,
+              COALESCE(SUM(CASE WHEN consent_source = 'explicit_tick' THEN 1 ELSE 0 END), 0)
+                AS self_ticked_count
+         FROM lang_source_shares
+        WHERE substr(created_at, 1, 10) >= ?
+          AND substr(created_at, 1, 10) < ?
+          AND (? IS NULL OR project_id = ?)
+        GROUP BY day, project_id
+        ORDER BY day DESC, project_id ASC`,
+    )
+    .all(from, to, projectId ?? null, projectId ?? null) as {
+    day: string
+    project_id: string
+    share_count: number
+    snippet_total: number
+    memory_applied_count: number
+    user_reticked_count: number
+    self_ticked_count: number
+  }[]
+  return rows.map((r) => ({
+    day: r.day,
+    project_id: r.project_id,
+    share_count: Number(r.share_count),
+    snippet_total: Number(r.snippet_total),
+    memory_applied_count: Number(r.memory_applied_count),
+    user_reticked_count: Number(r.user_reticked_count),
+    self_ticked_count: Number(r.self_ticked_count),
+  }))
+}
+
+/**
  * 读**全部**项目的出网汇总（按项目聚合）。
  *
  * ## ⚠️ 为什么单独一个读端（而不是复用 `readAllConsents` 的列表）

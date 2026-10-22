@@ -13,7 +13,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   filterResourceCatalog,
+  filterVibeResources,
   type ResourceCatalogRow,
+  type VibeResourceRow,
 } from './m9-resource-catalog'
 import type { TopicProfileLite } from './m9-mode-interaction'
 
@@ -36,6 +38,8 @@ function row(over: Partial<ResourceCatalogRow> = {}): ResourceCatalogRow {
     tier: 'a',
     is_fav: false,
     alive: true,
+    last_checked_at: null,
+    consecutive_fails: 0,
     topic_ids: [1],
     topic_titles: [{ id: 1, title: '知识点一' }],
     ...over,
@@ -44,7 +48,7 @@ function row(over: Partial<ResourceCatalogRow> = {}): ResourceCatalogRow {
 
 const ROWS: ResourceCatalogRow[] = [
   row({ id: 1, name: 'Python 官方文档', url: 'https://docs.python.org', category: 'official', lang: 'python', tier: 'a', topic_ids: [1] }),
-  row({ id: 2, name: 'Go Tour', url: 'https://go.dev/tour', category: 'course', lang: 'go', tier: 'b', topic_ids: [2] }),
+  row({ id: 2, name: 'Go Tour', url: 'https://go.dev/tour', category: 'course', lang: 'go', lang_label: 'en', tier: 'b', topic_ids: [2] }),
   row({ id: 3, name: '刷题仓库', url: 'https://github.com/example/practice', category: 'github', lang: 'python', tier: 'c', topic_ids: [] }),
 ]
 
@@ -131,5 +135,83 @@ describe('M9 · 资源页筛选（shared 纯函数）', () => {
     expect(out).toHaveLength(1)
     // ⚠️ **守卫自证**：先断言「三行的 tier 确实不同」否则「筛出 1 条」可能只是巧合
     expect(new Set(ROWS.map((r) => r.tier)).size).toBe(3)
+  })
+
+  it('**费用筛选** ⇒ 只留该费用档', () => {
+    const out = filterResourceCatalog(ROWS, { profile: 'master', profiles: PROFILES, price: 'free' })
+    expect(out).toHaveLength(3)
+    const paid = filterResourceCatalog(
+      [row({ id: 9, price: 'paid' })],
+      { profile: 'master', profiles: PROFILES, price: 'paid' },
+    )
+    expect(paid.map((r) => r.id)).toEqual([9])
+  })
+
+  it('**界面语言筛选** ⇒ 只留该语言标签', () => {
+    const out = filterResourceCatalog(ROWS, { profile: 'master', profiles: PROFILES, langLabel: 'zh' })
+    expect(out.map((r) => r.id)).toEqual([1, 3])
+  })
+
+  it('**失效筛选**：只看可访问 / 只看已失效', () => {
+    const rows = [row({ id: 1, alive: true }), row({ id: 2, alive: false })]
+    expect(
+      filterResourceCatalog(rows, { profile: 'master', profiles: PROFILES, alive: 'alive' }).map((r) => r.id),
+    ).toEqual([1])
+    expect(
+      filterResourceCatalog(rows, { profile: 'master', profiles: PROFILES, alive: 'dead' }).map((r) => r.id),
+    ).toEqual([2])
+    expect(
+      filterResourceCatalog(rows, { profile: 'master', profiles: PROFILES, alive: 'all' }),
+    ).toHaveLength(2)
+  })
+
+  it('**只看精选** ⇒ 非精选的全部滤掉', () => {
+    const rows = [row({ id: 1, is_fav: true }), row({ id: 2, is_fav: false })]
+    expect(
+      filterResourceCatalog(rows, { profile: 'master', profiles: PROFILES, favOnly: true }).map((r) => r.id),
+    ).toEqual([1])
+  })
+})
+
+describe('M9 · 速成专区资源（§3.21：独立分区 · 筛选器不适用）', () => {
+  const VIBE: VibeResourceRow[] = [
+    {
+      id: 1,
+      group: 'tools',
+      name: 'Cursor 官方指引',
+      url: 'https://cursor.com/docs',
+      summary: 'AI 工具官方指引',
+      alive: true,
+      last_checked_at: '2026-10-20',
+      consecutive_fails: 0,
+    },
+    {
+      id: 2,
+      group: 'tuts',
+      name: '工作流教程',
+      url: 'https://example.com/tut',
+      summary: '端到端教程',
+      alive: true,
+      last_checked_at: null,
+      consecutive_fails: 0,
+    },
+  ]
+
+  it('**只有关键字**作用于它（分类/费用/阶段/精选这些维度对这张表不适用）', () => {
+    expect(filterVibeResources(VIBE, undefined)).toHaveLength(2)
+    expect(filterVibeResources(VIBE, 'cursor').map((r) => r.id)).toEqual([1])
+    expect(filterVibeResources(VIBE, '教程').map((r) => r.id)).toEqual([2])
+  })
+
+  it('⚠️ **空关键字 ⇒ 全部留下**（不是空数组）', () => {
+    expect(filterVibeResources(VIBE, '  ')).toHaveLength(2)
+  })
+
+  it('⚠️ **速成专区行里没有维度字段**（规格 §3.21：刻意不带）', () => {
+    // ⚠️ **守卫自证**：用类型断言之外的方式确认——它的键里没有 category / price / tier
+    const keys = Object.keys(VIBE[0] as unknown as Record<string, unknown>)
+    expect(keys).not.toContain('category')
+    expect(keys).not.toContain('price')
+    expect(keys).not.toContain('tier')
   })
 })

@@ -161,3 +161,165 @@ describe('M9 增强 6 · POST /api/lang/modes/choice（§3.19 只问一次）', 
     expect(res.statusCode).toBe(422)
   })
 })
+
+// ---------------------------------------------------------------------------
+// P1g · §3.21 阶段 → 推荐模式（阶段选择的落点 ＋ 生效模式的优先级）
+// ---------------------------------------------------------------------------
+
+/** 阶段 1 的 Python 轨道（推荐档＝「熟悉」）＋ 阶段 3 的 Python 轨道（推荐档＝「精通」）。 */
+function seedTracks(h: TestDbHandle): void {
+  h.db
+    .prepare(
+      `INSERT INTO lang_stage_tracks
+         (stage_id, lang, source_mode, mode_name, profile, stage_name, period, goals, required, is_default, note)
+       VALUES (1, 'python', 'fam', '熟悉', 'familiar', '阶段 1 · 评测基本功', '第 4–9 个月', '[]', 1, 1, NULL)`,
+    )
+    .run()
+  h.db
+    .prepare(
+      `INSERT INTO lang_stage_tracks
+         (stage_id, lang, source_mode, mode_name, profile, stage_name, period, goals, required, is_default, note)
+       VALUES (3, 'python', 'mas', '精通', 'master', '阶段 3 · 专家化', '第 16–24 个月', '[]', 1, 1, NULL)`,
+    )
+    .run()
+}
+
+describe('M9 P1g · POST /api/lang/modes/stage（§3.21 阶段选择的落点）', () => {
+  it('① 记一次阶段 ⇒ 读回来是同一个值（**持久化**，落 app_meta）', async () => {
+    const h = await makeHarness()
+    seedTracks(h.handle)
+
+    const post = await h.app.inject({
+      method: 'POST',
+      url: '/api/lang/modes/stage',
+      headers: { authorization: `Bearer ${TOKEN}` },
+      payload: { stage: 1 },
+    })
+    expect(post.statusCode).toBe(200)
+
+    const res = await h.app.inject({
+      method: 'GET',
+      url: '/api/lang/modes',
+      headers: { authorization: `Bearer ${TOKEN}` },
+    })
+    const body = res.json() as { stage_choice: number | null }
+    expect(body.stage_choice).toBe(1)
+  })
+
+  it('② ⚠️ 阶段选择**不进 `lang_*`**（§3.19 第 3 条的同款纪律）', async () => {
+    const h = await makeHarness()
+    seedTracks(h.handle)
+
+    const before = h.handle.db.prepare('SELECT COUNT(*) AS n FROM lang_topic_state').get() as {
+      n: number
+    }
+    await h.app.inject({
+      method: 'POST',
+      url: '/api/lang/modes/stage',
+      headers: { authorization: `Bearer ${TOKEN}` },
+      payload: { stage: 1 },
+    })
+    const after = h.handle.db.prepare('SELECT COUNT(*) AS n FROM lang_topic_state').get() as {
+      n: number
+    }
+    expect(after.n).toBe(before.n)
+    const meta = h.handle.db
+      .prepare("SELECT value FROM app_meta WHERE key = 'langStageChoice'")
+      .get() as { value: string } | undefined
+    expect(meta?.value).toBe('1')
+  })
+
+  it('③ 越界阶段 ⇒ 422（不是静默忽略）', async () => {
+    const h = await makeHarness()
+    const res = await h.app.inject({
+      method: 'POST',
+      url: '/api/lang/modes/stage',
+      headers: { authorization: `Bearer ${TOKEN}` },
+      payload: { stage: 9 },
+    })
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('④ ⚠️ 选阶段**不会**改掉用户已自选的模式（自选优先，§3.21）', async () => {
+    const h = await makeHarness()
+    seedTracks(h.handle)
+    await h.app.inject({
+      method: 'POST',
+      url: '/api/lang/modes/choice',
+      headers: { authorization: `Bearer ${TOKEN}` },
+      payload: { choice: 'vibe' },
+    })
+    await h.app.inject({
+      method: 'POST',
+      url: '/api/lang/modes/stage',
+      headers: { authorization: `Bearer ${TOKEN}` },
+      payload: { stage: 3 },
+    })
+
+    const res = await h.app.inject({
+      method: 'GET',
+      url: '/api/lang/modes',
+      headers: { authorization: `Bearer ${TOKEN}` },
+    })
+    const body = res.json() as {
+      effective_profile: { profile: string; source: string; differs_from_recommendation: boolean }
+    }
+    expect(body.effective_profile.profile).toBe('vibe')
+    expect(body.effective_profile.source).toBe('user')
+    // ⚠️ 推荐仍然是「精通」⇒ 界面据此提示「你覆盖了推荐」
+    expect(body.effective_profile.differs_from_recommendation).toBe(true)
+  })
+})
+
+describe('M9 P1g · 生效模式（阶段推荐 ⇒ 用户可改）', () => {
+  it('① 没有自选 ⇒ 生效档来自阶段推荐（阶段 1 ⇒ 熟悉）', async () => {
+    const h = await makeHarness()
+    seedTracks(h.handle)
+    await h.app.inject({
+      method: 'POST',
+      url: '/api/lang/modes/stage',
+      headers: { authorization: `Bearer ${TOKEN}` },
+      payload: { stage: 1 },
+    })
+
+    const res = await h.app.inject({
+      method: 'GET',
+      url: '/api/lang/modes',
+      headers: { authorization: `Bearer ${TOKEN}` },
+    })
+    const body = res.json() as {
+      effective_profile: { profile: string; source: string }
+    }
+    expect(body.effective_profile.profile).toBe('familiar')
+    expect(body.effective_profile.source).toBe('stage')
+  })
+
+  it('② ⚠️ 「熟悉」这一档**能落库**（阶段推荐可能落在它身上）', async () => {
+    const h = await makeHarness()
+    const post = await h.app.inject({
+      method: 'POST',
+      url: '/api/lang/modes/choice',
+      headers: { authorization: `Bearer ${TOKEN}` },
+      payload: { choice: 'familiar' },
+    })
+    expect(post.statusCode).toBe(200)
+    const meta = h.handle.db
+      .prepare("SELECT value FROM app_meta WHERE key = 'langModeChoice'")
+      .get() as { value: string } | undefined
+    expect(meta?.value).toBe('"familiar"')
+  })
+
+  it('③ 既没自选也没进阶段 ⇒ 尚未选定（**不是**默默按精通算）', async () => {
+    const h = await makeHarness()
+    const res = await h.app.inject({
+      method: 'GET',
+      url: '/api/lang/modes',
+      headers: { authorization: `Bearer ${TOKEN}` },
+    })
+    const body = res.json() as {
+      effective_profile: { profile: string | null; source: string }
+    }
+    expect(body.effective_profile.profile).toBeNull()
+    expect(body.effective_profile.source).toBe('unset')
+  })
+})

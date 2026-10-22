@@ -22,6 +22,8 @@ import type { FastifyInstance } from 'fastify'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
 import {
   CommandInterpretRunner,
+  memoryKeychainStore,
+  type KeychainStore,
   type SourceInterpretRunner,
 } from '@openvibe/core'
 import type { SourceInterpretRequest, SourceInterpretResult } from '@openvibe/shared'
@@ -50,9 +52,15 @@ afterEach(() => {
   }
 })
 
-async function makeHarness(runner: SourceInterpretRunner | null | undefined): Promise<Harness> {
+/**
+ * ⚠️ **钥匙串一律注入内存实现** —— 测试**绝不能**动用户真实的系统钥匙串。
+ */
+async function makeHarness(
+  runner: SourceInterpretRunner | null | undefined,
+  keychain: KeychainStore = memoryKeychainStore(),
+): Promise<Harness> {
   const handle = newDb()
-  const { app } = await buildApp({ db: handle.db, token: TOKEN, interpretRunner: runner })
+  const { app } = await buildApp({ db: handle.db, token: TOKEN, interpretRunner: runner, keychain })
   const harness = { app, handle }
   openHandles.push(harness)
   return harness
@@ -197,6 +205,8 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
       provider: '',
       has_api_key: false,
       api_key_hint: '',
+      api_key_storage: 'none',
+      api_key_storage_detail: '没有配置 key',
       timeout_ms: 30000,
     })
   })
@@ -549,5 +559,99 @@ describe('M9 增强 4 · POST /api/lang/interpret/export（解读结果导出）
     const h = await makeHarness(null)
     const res = await post(h, '/api/lang/interpret/export', { summary: { status: 'ok' } })
     expect(res.statusCode).toBe(422)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 批次 D · API key 走系统钥匙串（降级路径也要被断到）
+// ---------------------------------------------------------------------------
+
+describe('M9 · provider 配置 · key 存在哪（钥匙串 / 明文降级）', () => {
+  const BASE = {
+    enabled: true,
+    kind: 'openai_http',
+    cmd: '',
+    args: [],
+    endpoint: 'https://api.example.com/v1/chat/completions',
+    model: 'm1',
+    provider: 'cloud',
+    timeout_ms: 30000,
+  }
+
+  it('① ⚠️ 写 key ⇒ **进系统钥匙串**，配置里**不留全文**', async () => {
+    const store = memoryKeychainStore()
+    const h = await makeHarness(undefined, store)
+    const saved = await put(h, '/api/lang/interpret/provider', { ...BASE, api_key: 'sk-keychain-1234' })
+    expect(saved.statusCode).toBe(200)
+    const body = saved.json() as { has_api_key: boolean; api_key_hint: string; api_key_storage: string }
+    expect(body.has_api_key).toBe(true)
+    expect(body.api_key_hint).toBe('1234')
+    expect(body.api_key_storage).toBe('keychain')
+    // ⚠️ **钥匙串里真的有了**
+    expect(store.items.get('api-key')).toBe('sk-keychain-1234')
+    // ⚠️ **数据库里没有全文**
+    const raw = h.handle.db
+      .prepare("SELECT value FROM app_meta WHERE key = 'langInterpretProvider'")
+      .get() as { value: string }
+    expect(raw.value).not.toContain('sk-keychain-1234')
+  })
+
+  it('② ⚠️ **降级**：本机没有钥匙串 ⇒ 明文存 ＋ **如实标成 inline**', async () => {
+    const store = memoryKeychainStore({ failWith: '本机不是 macOS ⇒ 没有系统钥匙串可用' })
+    const h = await makeHarness(undefined, store)
+    const saved = await put(h, '/api/lang/interpret/provider', { ...BASE, api_key: 'sk-plain-0000' })
+    const body = saved.json() as { api_key_storage: string; api_key_storage_detail: string }
+    expect(body.api_key_storage).toBe('inline')
+    // ⚠️ **界面必须能看出「以明文存」**
+    expect(body.api_key_storage_detail).toContain('明文')
+  })
+
+  it('③ ⚠️ 清除 key ⇒ **钥匙串里那一项也删掉**（不是「删了但还在」）', async () => {
+    const store = memoryKeychainStore()
+    const h = await makeHarness(undefined, store)
+    await put(h, '/api/lang/interpret/provider', { ...BASE, api_key: 'sk-keychain-1234' })
+    expect(store.items.get('api-key')).toBe('sk-keychain-1234')
+    await put(h, '/api/lang/interpret/provider', { ...BASE, api_key: '' })
+    expect(store.items.get('api-key')).toBeUndefined()
+  })
+
+  it('④ ⚠️ **key 缺省 = 保持原值** ⇒ 钥匙串里那一把**不动**', async () => {
+    const store = memoryKeychainStore()
+    const h = await makeHarness(undefined, store)
+    await put(h, '/api/lang/interpret/provider', { ...BASE, api_key: 'sk-keychain-1234' })
+    await put(h, '/api/lang/interpret/provider', { ...BASE, model: 'm2' })
+    expect(store.items.get('api-key')).toBe('sk-keychain-1234')
+    const res = await get(h, '/api/lang/interpret/provider')
+    const body = res.json() as { has_api_key: boolean; api_key_hint: string; api_key_storage: string }
+    expect(body.has_api_key).toBe(true)
+    expect(body.api_key_hint).toBe('1234')
+    expect(body.api_key_storage).toBe('keychain')
+  })
+
+  it('⑤ ⚠️ 读端**永远不回显全文**（钥匙串模式下也是）', async () => {
+    const store = memoryKeychainStore()
+    const h = await makeHarness(undefined, store)
+    await put(h, '/api/lang/interpret/provider', { ...BASE, api_key: 'sk-SUPER-SECRET-9999' })
+    const res = await get(h, '/api/lang/interpret/provider')
+    expect(res.body).not.toContain('SUPER-SECRET')
+    expect(res.body).toContain('9999')
+  })
+
+  it('⑥ ⚠️ 客户端**不许声明**存储位置（那是服务端算出来的事实）', async () => {
+    const h = await makeHarness(undefined)
+    const res = await put(h, '/api/lang/interpret/provider', {
+      ...BASE,
+      api_key: 'sk-abc-1111',
+      api_key_storage: 'keychain',
+    })
+    // ⚠️ 多余字段被剥掉（zod 默认 strip）⇒ 不报错，但**也不采信**
+    expect(res.statusCode).toBe(200)
+    const body = res.json() as { api_key_storage: string }
+    expect(body.api_key_storage).toBe('keychain')
+    // ⚠️ 它确实进了钥匙串（因为服务端自己判断），但**不是**因为客户端这么说
+    const raw = h.handle.db
+      .prepare("SELECT value FROM app_meta WHERE key = 'langInterpretProvider'")
+      .get() as { value: string }
+    expect(raw.value).not.toContain('sk-abc-1111')
   })
 })
