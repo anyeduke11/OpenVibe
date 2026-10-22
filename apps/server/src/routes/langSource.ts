@@ -54,6 +54,10 @@ const ShareBody = z.object({
   topic_id_count: z.number().int().min(0),
   snippet_count: z.number().int().min(0),
   consent_source: z.enum(['explicit_tick', 'remembered']),
+  /** ⚠️ 细分（owner 2026-10-22）；不传 ⇒ 按「没有记忆的纯用户主动」记 */
+  consent_detail: z
+    .enum(['memory_applied', 'user_reticked', 'user_partial', 'no_memory', 'unknown'])
+    .optional(),
 })
 
 const ProjectQuery = z.object({
@@ -88,9 +92,14 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
     }
   })
 
-  app.get('/api/lang/findings', async () => {
-    // ⚠️ **不带项目参数** —— `lang_topic_findings` 没有项目列（§3.10）⇒ 命中只属于最近一次扫描
-    return { findings: readFindings(deps.db) }
+  app.get('/api/lang/findings', async (req) => {
+    const parsed = ProjectQuery.safeParse(req.query)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', 'project 必填')
+    }
+    // ⚠️ **按项目读**（owner 2026-10-22）：命中表现在每个项目各存一份
+    //   ⇒ 不带项目参数就分不清是谁的命中。
+    return { findings: readFindings(deps.db, parsed.data.project) }
   })
 
   app.get('/api/lang/source/consent', async (req) => {
@@ -154,7 +163,11 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
       throw new AppError('VALIDATION_ERROR', 'share 载荷不合法')
     }
     // ⚠️ **只存计数**（§3.9）：不存片段内容、不存文件路径
-    recordShare(deps.db, { ...parsed.data, created_at: now() })
+    recordShare(deps.db, {
+      ...parsed.data,
+      created_at: now(),
+      consent_detail: parsed.data.consent_detail ?? 'no_memory',
+    })
     return { recorded: true }
   })
 

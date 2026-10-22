@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiJson, apiRaw } from '../api/client'
 import type {
   InterpretCapability,
+  InterpretProviderKind,
+  InterpretProviderView,
   LangConsentResponse,
   LangFindingsResponse,
   LangScanSummary,
@@ -24,10 +26,20 @@ import { LANG_STALE_TIME } from './useLangRoadmap'
  *
  * ⚠️ **不带项目参数** —— 命中只属于「最近一次扫描」（`lang_topic_findings` 没有项目列）。
  */
-export function useLangFindings() {
+/**
+ * 读**某个项目**最近一次扫描的命中。
+ *
+ * ⚠️ **项目是必填参数**（owner 2026-10-22）：命中表现在每个项目各存一份
+ *   ⇒ 不给项目就读不出「是谁的命中」。
+ */
+export function useLangFindings(projectId: string | null) {
   return useQuery({
-    queryKey: ['lang-findings'],
-    queryFn: () => apiJson<LangFindingsResponse>('/api/lang/findings'),
+    queryKey: ['lang-findings', projectId ?? ''],
+    queryFn: () =>
+      apiJson<LangFindingsResponse>(
+        `/api/lang/findings?project=${encodeURIComponent(projectId ?? '')}`,
+      ),
+    enabled: projectId !== null && projectId !== '',
     staleTime: LANG_STALE_TIME,
   })
 }
@@ -68,14 +80,20 @@ export function useLangInterpretCapability() {
  * 解读**勾选过的**片段（DL-18：只有勾过的才入参）。
  *
  * ⚠️ 这是**写操作**（会出网 ＋ 写台账）⇒ mutation。
+ *
+ * @param userTouched 用户**动过**勾选没有（owner 2026-10-22：只影响台账的分类）
  */
 export function useLangInterpret(projectId: string | null) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (findingIds: readonly number[]) =>
+    mutationFn: (input: { findingIds: readonly number[]; userTouched?: boolean }) =>
       apiJson<SourceInterpretSummary>('/api/lang/interpret', {
         method: 'POST',
-        body: { project_id: projectId ?? '', finding_ids: findingIds },
+        body: {
+          project_id: projectId ?? '',
+          finding_ids: input.findingIds,
+          user_touched: input.userTouched === true,
+        },
       }),
     onSuccess: () => {
       // ⚠️ 解读**不改掌握度**（§3.8 三条线第 3 条）⇒ 路线不用失效；
@@ -139,8 +157,7 @@ export function useLangScan() {
 }
 
 /** 读该项目的「记住我的选择」＋ 出网计数。 */
-export function useLangConsent(projectId: string | null) {
-  return useQuery({
+export function useLangConsent(projectId: string | null) {  return useQuery({
     queryKey: ['lang-consent', projectId ?? ''],
     queryFn: () =>
       apiJson<LangConsentResponse>(
@@ -174,4 +191,48 @@ export function useLangConsentMutations(projectId: string) {
     onSuccess: invalidate,
   })
   return { set, clear }
+}
+
+/**
+ * **AI 解读 provider 配置**（owner 2026-10-22 裁决一：设置页手动调控）。
+ *
+ * ## ⚠️ `api_key` 的语义：**缺省 = 保持原值**，**空串 = 清除**
+ *
+ * 读端**只回显末 4 位**（回显不了全文）⇒ 若把「缺省」当成「清空」，
+ * 用户改一下模型名就会把 key 抹掉 ⇒ 想清 key 必须**显式**传空串。
+ */
+export interface LangProviderSaveInput {
+  enabled: boolean
+  kind: InterpretProviderKind
+  cmd: string
+  args: string[]
+  endpoint: string
+  model: string
+  provider: string
+  /** 缺省 = 保持原值；空串 = 清除 */
+  api_key?: string
+  timeout_ms: number
+}
+
+export function useLangProviderConfig() {
+  const qc = useQueryClient()
+  const query = useQuery({
+    queryKey: ['lang-interpret-provider'],
+    queryFn: () => apiJson<InterpretProviderView>('/api/lang/interpret/provider'),
+    staleTime: LANG_STALE_TIME,
+  })
+  const save = useMutation({
+    mutationFn: (input: LangProviderSaveInput) =>
+      apiJson<InterpretProviderView>('/api/lang/interpret/provider', {
+        method: 'PUT',
+        body: input,
+      }),
+    onSuccess: (d) => {
+      void qc.invalidateQueries({ queryKey: ['lang-interpret-provider'] })
+      // ⚠️ **能力也会变**（换了命令 / 端点 / key ⇒ 可用性不同）⇒ 一并失效
+      void qc.invalidateQueries({ queryKey: ['lang-interpret-capability'] })
+      return d
+    },
+  })
+  return { query, save }
 }

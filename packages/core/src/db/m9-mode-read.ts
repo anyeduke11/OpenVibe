@@ -22,7 +22,12 @@
  */
 import type { SqliteDatabase } from '../db'
 import { readTopicStateMap } from './m9-p2-state'
-import type { LangProfile, TopicProfileLite, TopicStageLite } from '@openvibe/shared'
+import type {
+  LangProfile,
+  ResourceCatalogRow,
+  TopicProfileLite,
+  TopicStageLite,
+} from '@openvibe/shared'
 
 /**
  * 读全部「知识点 × 模式」行（`lang_topic_profiles`）。
@@ -138,6 +143,79 @@ export function readResourcesWithTopics(db: SqliteDatabase, limit = 20): Resourc
           .map((id) => ({ id, title: titleById.get(id) as string })),
       }
     })
+}
+
+/**
+ * 读资源页要用的**全量**资源行（`lang_resources` ＋ 挂接反查）。
+ *
+ * ⚠️ **为什么与 `readResourcesWithTopics` 分开**：那个函数是「界面上展示一小节」
+ *   （`limit = 20`）；资源页要**全量**（89 条）才能筛选 ⇒ 两个口径两个函数，
+ *   **不靠「把 limit 传大」糊弄**（那个 limit 还被既有界面当「一小节」的语义用）。
+ *
+ * ⚠️ **排序**：主查询按 `id`（单列唯一键 ⇒ 允许 ORDER BY）；
+ *   挂接关系表是**复合主键** ⇒ **不在 SQL 里排**（守卫的兜底键白名单只认单列唯一键），
+ *   排序放 JS。
+ *
+ * ⚠️ **只读 `lang_resources`**，**不含 `lang_vibe_resources`**（速成专区 11 条）——
+ *   那 11 条没有 `category` / `lang` 维度（§1.7 明写：硬塞进主表会给它们编一套
+ *   不存在的筛选维度）⇒ 混进同一份筛选结果就是骗人。
+ */
+export function readResourceCatalogRows(db: SqliteDatabase): ResourceCatalogRow[] {
+  const resources = db
+    .prepare(
+      `SELECT id, name, url, summary, category, lang, price, lang_label, tier, is_fav, alive
+         FROM lang_resources
+        ORDER BY id ASC`,
+    )
+    .all() as {
+    id: number
+    name: string
+    url: string
+    summary: string
+    category: string
+    lang: string
+    price: string
+    lang_label: string
+    tier: string
+    is_fav: number
+    alive: number
+  }[]
+  const links = db.prepare('SELECT topic_id, resource_id FROM lang_topic_resources').all() as {
+    topic_id: number
+    resource_id: number
+  }[]
+  const byResource = new Map<number, number[]>()
+  for (const l of links) {
+    const list = byResource.get(l.resource_id) ?? []
+    list.push(l.topic_id)
+    byResource.set(l.resource_id, list)
+  }
+  const titles = db.prepare('SELECT id, title FROM lang_topics').all() as {
+    id: number
+    title: string
+  }[]
+  const titleById = new Map<number, string>(titles.map((t) => [t.id, t.title]))
+  return resources.map((r) => {
+    const topicIds = (byResource.get(r.id) ?? []).sort((a, b) => a - b)
+    return {
+      id: r.id,
+      name: r.name,
+      url: r.url,
+      summary: r.summary,
+      category: r.category,
+      lang: r.lang,
+      price: r.price,
+      lang_label: r.lang_label,
+      tier: r.tier,
+      is_fav: r.is_fav === 1,
+      alive: r.alive === 1,
+      // ⚠️ **排序放 JS**（复合主键表不能在 SQL 里 ORDER BY）
+      topic_ids: topicIds,
+      topic_titles: topicIds
+        .filter((id) => titleById.has(id))
+        .map((id) => ({ id, title: titleById.get(id) as string })),
+    }
+  })
 }
 
 /**

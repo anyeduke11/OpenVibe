@@ -25,6 +25,34 @@ import type { LangCode } from './m9-roadmap'
 /** 扫描走的是哪条路（§3.8.2 第 1 条）。 */
 export type ScannerMode = 'parser' | 'heuristic'
 
+/**
+ * 出网台账的**授权来源**（§3.9 的二分）。
+ *
+ * ⚠️ **二分保留不动**（既有判据与既有读法都依赖它）⇒ 细分另开一列。
+ */
+export type ConsentSource = 'explicit_tick' | 'remembered'
+
+/**
+ * 出网台账的授权来源**细分**（§3.9 · owner 2026-10-22 裁定「加一列区分」）。
+ *
+ * ⚠️ **为什么二分不够**：「因为记住了而全勾」与「用户自己又全勾了一遍」
+ *   在二分里**都**是 `remembered`（集合相同）⇒ 事后审计分不清这两种情况。
+ *
+ * | 取值 | 含义 |
+ * |---|---|
+ * | `memory_applied` | 记忆起了作用（全发记忆 ＋ 发了全部 / 全不发记忆 ＋ 一条没发） |
+ * | `user_reticked` | 记忆是「全发」，但**用户自己又全勾了一遍**（依赖客户端「动过没有」的上报） |
+ * | `user_partial` | 用户自己勾了一部分（不是记忆带过去的） |
+ * | `no_memory` | 没有记忆，纯用户主动 |
+ * | `unknown` | **历史行**（细分列之前写的行） |
+ */
+export type ConsentDetail =
+  | 'memory_applied'
+  | 'user_reticked'
+  | 'user_partial'
+  | 'no_memory'
+  | 'unknown'
+
 /** 命中的可信度（§3.8.2 第 2 条：两档不混）。 */
 export type ScanConfidence = 'confirmed' | 'possible'
 

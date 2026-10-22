@@ -55,6 +55,19 @@ export const chipTone = (tone: ChipTone): string => `${chipCls} ${CHIP_TONES[ton
 export const chipPressed = 'border-accent-line bg-accent-soft text-accent-deep'
 
 /**
+ * **筛选 chip**（M9 资源页 · owner 2026-10-22 的「支持筛选」）。
+ *
+ * ⚠️ **为什么单独两个而不是直接用 `chipCls`**：筛选 chip 是**可按压的**
+ * （DESIGN.md：可按压的筛选 chip 用 `aria-pressed`，选中态转 `accent-soft` ＋ `accent-deep`），
+ * 而 `chipCls` 是**状态 chip**（图标 ＋ 文字 ＋ 颜色三通道）⇒ 两者形状不同、职责不同。
+ *
+ * ⚠️ **类组合只此一处**：调用点不许再拼一遍圆角/描边/字号
+ * （拼一遍就等于多一份口径 ⇒ 两处会漂）。
+ */
+export const filterChipCls = 'rounded-full border border-line px-2.5 py-1 text-[12px] text-ink-muted'
+export const filterChipActiveCls = `${filterChipCls} ${chipPressed}`
+
+/**
  * note 四态（DESIGN.md note）：`*-soft` 底 + `*-line` 描边 + 加粗标题行 + `ink-body` 正文。
  * 与 chip 的分工：note 承载成段说明，chip 承载单点状态。
  */

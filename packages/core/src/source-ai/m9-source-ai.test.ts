@@ -80,7 +80,7 @@ function seed(db: ReturnType<typeof newDb>['db'], localPath: string): { projectI
 
 /** 落两条命中（同一文件、不同行）⇒ 用来验「片段粒度」。 */
 function seedFindings(db: ReturnType<typeof newDb>['db']): number[] {
-  saveFindings(db, 1, [
+  saveFindings(db, 1, 'p1', [
     {
       topic_slug: 'python-logging',
       file_rel_path: 'app.py',

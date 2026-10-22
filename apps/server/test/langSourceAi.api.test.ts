@@ -71,6 +71,15 @@ function post(h: Harness, url: string, payload: unknown) {
   })
 }
 
+function put(h: Harness, url: string, payload: unknown) {
+  return h.app.inject({
+    method: 'PUT',
+    url,
+    headers: { authorization: `Bearer ${TOKEN}` },
+    payload: payload as never,
+  })
+}
+
 /** 一个真实的项目目录（正文里**故意**放一条绝对路径）。 */
 function makeProject(): string {
   const dir = mkdtempSync(join(tmpdir(), 'ov-m9-ai-api-'))
@@ -102,14 +111,14 @@ function seed(db: TestDbHandle['db'], localPath: string): number[] {
   ).run()
   db.prepare(
     `INSERT INTO lang_topic_findings
-       (scan_id, topic_id, file_rel_path, line, col, matched_pattern, confidence, scanner_mode)
-     VALUES (1, (SELECT id FROM lang_topics WHERE slug = 'python-logging'),
+       (scan_id, topic_id, project_id, file_rel_path, line, col, matched_pattern, confidence, scanner_mode)
+     VALUES (1, (SELECT id FROM lang_topics WHERE slug = 'python-logging'), 'p1',
              'app.py', 1, 1, 'import logging', 'confirmed', 'parser')`,
   ).run()
   db.prepare(
     `INSERT INTO lang_topic_findings
-       (scan_id, topic_id, file_rel_path, line, col, matched_pattern, confidence, scanner_mode)
-     VALUES (1, (SELECT id FROM lang_topics WHERE slug = 'python-logging'),
+       (scan_id, topic_id, project_id, file_rel_path, line, col, matched_pattern, confidence, scanner_mode)
+     VALUES (1, (SELECT id FROM lang_topics WHERE slug = 'python-logging'), 'p1',
              'app.py', 6, 5, 'logging.info("hi")', 'confirmed', 'parser')`,
   ).run()
   const rows = db.prepare('SELECT id FROM lang_topic_findings ORDER BY id').all() as { id: number }[]
@@ -141,13 +150,129 @@ describe('M9 P5 · GET /api/lang/interpret/capability', () => {
     const h = await makeHarness(null)
     const res = await get(h, '/api/lang/interpret/capability')
     expect(res.statusCode).toBe(200)
-    expect(res.json()).toEqual({ available: false, runner_id: null })
+    // ⚠️ **三档 ＋ 人话原因**（owner 2026-10-22 裁决一：设置页要告诉用户「为什么不可用」）
+    expect(res.json()).toEqual({
+      available: false,
+      runner_id: null,
+      status: 'unconfigured',
+      detail: 'AI 解读不可用',
+    })
   })
 
   it('有 runner ⇒ available=true ＋ runner_id', async () => {
     const h = await makeHarness(capturingRunner())
     const res = await get(h, '/api/lang/interpret/capability')
-    expect(res.json()).toEqual({ available: true, runner_id: 'fake-runner' })
+    expect(res.json()).toEqual({
+      available: true,
+      runner_id: 'fake-runner',
+      status: 'ready',
+      detail: 'AI 解读可用',
+    })
+  })
+})
+
+describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调控）', () => {
+  const BASE = {
+    enabled: true,
+    kind: 'command',
+    cmd: '/bin/echo',
+    args: [],
+    endpoint: '',
+    model: 'm1',
+    provider: 'local',
+    timeout_ms: 30000,
+  }
+
+  it('读配置 ⇒ 回到**默认视图**（默认关、没配 key）', async () => {
+    const h = await makeHarness(undefined)
+    const res = await get(h, '/api/lang/interpret/provider')
+    expect(res.statusCode).toBe(200)
+    expect(res.json()).toEqual({
+      enabled: false,
+      kind: 'command',
+      cmd: '',
+      args: [],
+      endpoint: '',
+      model: '',
+      provider: '',
+      has_api_key: false,
+      api_key_hint: '',
+      timeout_ms: 30000,
+    })
+  })
+
+  it('写进去读得出来', async () => {
+    const h = await makeHarness(undefined)
+    const saved = await put(h, '/api/lang/interpret/provider', BASE)
+    expect(saved.statusCode).toBe(200)
+    const res = await get(h, '/api/lang/interpret/provider')
+    expect(res.json()).toMatchObject({ enabled: true, kind: 'command', cmd: '/bin/echo', model: 'm1' })
+  })
+
+  it('⚠️ **key 缺省 = 保持原值**（读端回显不了全文 ⇒ 缺省不能当成清空）', async () => {
+    const h = await makeHarness(undefined)
+    await put(h, '/api/lang/interpret/provider', { ...BASE, kind: 'openai_http', api_key: 'sk-keep-me-1234' })
+    // ⚠️ 再写一次，**不带** api_key
+    await put(h, '/api/lang/interpret/provider', { ...BASE, kind: 'openai_http', model: 'm2' })
+    const res = await get(h, '/api/lang/interpret/provider')
+    const body = res.json() as { has_api_key: boolean; api_key_hint: string; model: string }
+    expect(body.model).toBe('m2')
+    expect(body.has_api_key).toBe(true)
+    expect(body.api_key_hint).toBe('1234')
+  })
+
+  it('⚠️ **key 显式传空串 ⇒ 清除**', async () => {
+    const h = await makeHarness(undefined)
+    await put(h, '/api/lang/interpret/provider', { ...BASE, kind: 'openai_http', api_key: 'sk-gone-5678' })
+    await put(h, '/api/lang/interpret/provider', { ...BASE, kind: 'openai_http', api_key: '' })
+    const res = await get(h, '/api/lang/interpret/provider')
+    expect((res.json() as { has_api_key: boolean }).has_api_key).toBe(false)
+  })
+
+  it('⚠️ **key 全文绝不出现在读端出参里**', async () => {
+    const h = await makeHarness(undefined)
+    await put(h, '/api/lang/interpret/provider', { ...BASE, kind: 'openai_http', api_key: 'sk-SUPER-SECRET-9999' })
+    const res = await get(h, '/api/lang/interpret/provider')
+    expect(res.body).not.toContain('SUPER-SECRET')
+  })
+
+  it('端点不是合法 URL ⇒ **422**（不等到真跑一次才暴露）', async () => {
+    const h = await makeHarness(undefined)
+    const res = await put(h, '/api/lang/interpret/provider', {
+      ...BASE,
+      kind: 'openai_http',
+      endpoint: '不是 URL',
+    })
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('⚠️ **配了能用的命令 ⇒ 能力三档是 ready**（且 available 与 status 自洽）', async () => {
+    const h = await makeHarness(undefined)
+    await put(h, '/api/lang/interpret/provider', BASE)
+    const res = await get(h, '/api/lang/interpret/capability')
+    const body = res.json() as { available: boolean; status: string; detail: string }
+    expect(body.status).toBe('ready')
+    expect(body.available).toBe(true)
+    expect(body.detail).not.toBe('')
+  })
+
+  it('⚠️ **命令找不到 ⇒ misconfigured**（不是「不可用」那种笼统说法）', async () => {
+    const h = await makeHarness(undefined)
+    await put(h, '/api/lang/interpret/provider', { ...BASE, cmd: 'definitely-not-a-real-cmd-xyz' })
+    const res = await get(h, '/api/lang/interpret/capability')
+    const body = res.json() as { available: boolean; status: string; detail: string }
+    expect(body.status).toBe('misconfigured')
+    expect(body.available).toBe(false)
+    expect(body.detail).toContain('找不到命令')
+  })
+
+  it('⚠️ **关了开关 ⇒ unconfigured**（不是 misconfigured：没配 ≠ 配坏了）', async () => {
+    const h = await makeHarness(undefined)
+    await put(h, '/api/lang/interpret/provider', { ...BASE, enabled: false })
+    const res = await get(h, '/api/lang/interpret/capability')
+    const body = res.json() as { available: boolean; status: string; detail: string }
+    expect(body.status).toBe('unconfigured')
+    expect(body.available).toBe(false)
   })
 })
 

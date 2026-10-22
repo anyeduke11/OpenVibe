@@ -2,18 +2,23 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { AppError, SourceInterpretSummary } from '@openvibe/shared'
 import {
+  capabilityOf,
   formatInterpretMarkdown,
-  interpretCapability,
   interpretSourceFindings,
+  providerConfigView,
   readFindings,
+  readProviderConfig,
   readProjectRoot,
   readSnippet,
   readSnippets,
-  runnerFromEnv,
+  resolveProvider,
+  resolveProviderRunner,
+  writeProviderConfig,
   SourceServiceError,
   type SourceInterpretRunner,
   type SqliteDatabase,
 } from '@openvibe/core'
+import { InterpretProviderConfig, type InterpretProviderConfig as InterpretProviderConfigType } from '@openvibe/shared'
 
 /**
  * M9「源码解读」（T2）端点（`m9-dev-language-roadmap.md` §3.8 / §5.5 / §7 DL-08 / DL-09 ·
@@ -57,11 +62,28 @@ const ProjectQuery = z.object({
 const InterpretBody = z.object({
   project_id: z.string().min(1),
   finding_ids: z.array(z.number().int().positive()),
+  /**
+   * 用户**动过**勾选没有（owner 2026-10-22）。
+   *
+   * ⚠️ **只影响台账的分类**，不影响「发了什么」——
+   *   服务端仍然按**自己算出来的**勾选集合出网 ⇒ 这里撒谎最多让审计分类失真。
+   */
+  user_touched: z.boolean().optional(),
 })
 
 /** 导出请求（**只带结果**，不带片段正文 —— 那些压根没进这个形状）。 */
 const InterpretExportBody = z.object({
   summary: SourceInterpretSummary,
+})
+
+/**
+ * 保存 provider 配置的请求体（**`api_key` 可缺省** ⇒ 缺省＝保持原值）。
+ *
+ * ⚠️ 其它字段**必填**（整份覆盖，不做增量合并 —— 免得出现「半截配置」）。
+ */
+const ProviderSaveBody = z.object({
+  ...InterpretProviderConfig.shape,
+  api_key: z.string().optional(),
 })
 
 /** 文件名里只留安全字符（项目 id 可能带斜杠等）。 */
@@ -75,9 +97,12 @@ export function registerLangSourceAiRoutes(
   deps: LangSourceAiRouteDeps,
 ): void {
   const now = deps.now ?? (() => new Date())
-  /** runner 解析：**注入优先**；注入的 `null` 表示「明确没有」；没注入 ⇒ 看环境变量。 */
+  /**
+   * runner 解析：**注入优先**；注入的 `null` 表示「明确没有」；
+   * 没注入 ⇒ 看**设置页配的**（配置优先）⇒ 再回退环境变量（`resolveProviderRunner` 内）。
+   */
   const resolveRunner = (): SourceInterpretRunner | null =>
-    deps.runner === undefined ? runnerFromEnv() : deps.runner
+    deps.runner === undefined ? resolveProviderRunner(deps.db) : deps.runner
 
   app.get('/api/lang/snippet', async (req) => {
     const parsed = SnippetQuery.safeParse(req.query)
@@ -93,7 +118,9 @@ export function registerLangSourceAiRoutes(
       }
       throw err
     }
-    const hit = readFindings(deps.db).find((f) => f.id === parsed.data.finding_id)
+    const hit = readFindings(deps.db, parsed.data.project).find(
+      (f) => f.id === parsed.data.finding_id,
+    )
     if (hit === undefined) {
       throw new AppError('NOT_FOUND', '这条命中不在最近一次扫描里')
     }
@@ -131,7 +158,7 @@ export function registerLangSourceAiRoutes(
       }
       throw err
     }
-    const findings = readFindings(deps.db)
+    const findings = readFindings(deps.db, parsed.data.project)
     const windows = readSnippets(root, findings)
     return {
       snippets: findings.map((f) => {
@@ -153,7 +180,65 @@ export function registerLangSourceAiRoutes(
   })
 
   app.get('/api/lang/interpret/capability', async () => {
-    return interpretCapability(resolveRunner())
+    // ⚠️ **注入优先**（测试注入的 runner 直接算「可用」）；
+    //   没注入 ⇒ 走配置层探测（**三档 ＋ 人话原因** —— 设置页要告诉用户「为什么不可用」）。
+    if (deps.runner !== undefined) {
+      return capabilityOf({
+        runner: deps.runner,
+        status: deps.runner === null ? 'unconfigured' : 'ready',
+        detail: deps.runner === null ? 'AI 解读不可用' : 'AI 解读可用',
+      })
+    }
+    return capabilityOf(await resolveProvider(deps.db))
+  })
+
+  // ============ provider 配置（owner 2026-10-22 裁决一：手动调控）============
+
+  /**
+   * 读 provider 配置（**脱敏视图** —— key 只给末 4 位）。
+   *
+   * ⚠️ **读端永不回显 key 全文**：视图形状里**装不下**全文（`InterpretProviderView`）
+   *   ⇒ 这件事在类型上就发生不了。
+   */
+  app.get('/api/lang/interpret/provider', async () => {
+    const { config } = readProviderConfig(deps.db)
+    return providerConfigView(config)
+  })
+
+  /**
+   * 写 provider 配置（**整份覆盖**；`api_key` 除外）。
+   *
+   * ⚠️ **`api_key` 缺省 = 保持原值**，**空串 = 清除** ——
+   *   因为读端**只回显末 4 位**（回显不了全文）⇒ 若「缺省」被当成「清空」，
+   *   用户改一下模型名就会把 key 抹掉。
+   *   ⇒ 想清 key 要**显式**传空串。
+   */
+  app.put('/api/lang/interpret/provider', async (req) => {
+    const parsed = ProviderSaveBody.safeParse(req.body)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', 'provider 配置不合法')
+    }
+    const current = readProviderConfig(deps.db).config
+    const next: InterpretProviderConfigType = {
+      ...current,
+      ...parsed.data,
+      api_key: parsed.data.api_key === undefined ? current.api_key : parsed.data.api_key,
+    }
+    if (next.kind === 'openai_http' && next.endpoint.trim() !== '') {
+      // ⚠️ **端点必须像 URL** —— 不校验的话，配错的东西会等到「真跑一次」才暴露
+      let ok = false
+      try {
+        const u = new URL(next.endpoint.trim())
+        ok = u.protocol === 'http:' || u.protocol === 'https:'
+      } catch {
+        ok = false
+      }
+      if (!ok) {
+        throw new AppError('VALIDATION_ERROR', '端点必须是一个 http:// 或 https:// 地址')
+      }
+    }
+    writeProviderConfig(deps.db, next)
+    return providerConfigView(next)
   })
 
   app.post('/api/lang/interpret', async (req) => {
@@ -167,6 +252,7 @@ export function registerLangSourceAiRoutes(
         findingIds: parsed.data.finding_ids,
         runner: resolveRunner(),
         now,
+        userTouched: parsed.data.user_touched === true,
       })
     } catch (err) {
       if (err instanceof SourceServiceError) {

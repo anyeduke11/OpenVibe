@@ -31,6 +31,19 @@ export const APP_META_KEYS = {
    *   `AppMetaRepo.read` 会 `JSON.parse`，所以这里存的是**带引号的字符串**。
    */
   langModeChoice: 'langModeChoice',
+  /**
+   * M9 的 **AI 解读 provider 配置**（owner 2026-10-22 裁决一「手动调控 ＋ 支持本地模型与 LLM API」）。
+   *
+   * ⚠️ **刻意不进 `lang_*`** —— 与 `langModeChoice` 同款纪律：
+   *   它是**用户偏好**（我打算用哪个模型解释源码），不是语言学习状态。
+   *
+   * ⚠️ **值是 JSON 对象**（`InterpretProviderConfig` 的形状）⇒ 读回时按 schema 校验，
+   *   **坏了就回落默认值**（`AppMetaRepo.read` 的容错 + 本层的 schema 校验，两道）。
+   *
+   * ⚠️ **API key 在这里明文落库** —— 这是取舍（`app_meta` 是本机明文 SQLite）；
+   *   补偿手段是**读端永不回显全文**（视图里只有 `has_api_key` ＋ 末 4 位）。
+   */
+  langInterpretProvider: 'langInterpretProvider',
 } as const
 
 export class AppMetaRepo {

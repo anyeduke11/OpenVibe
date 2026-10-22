@@ -11,6 +11,7 @@ import { LocalLedgerSection } from '../components/settings/LocalLedgerSection'
 import { AgentSettingsSection } from '../components/settings/AgentSettingsSection'
 import { SourceConsentSection } from '../components/settings/SourceConsentSection'
 import { SourceShareSection } from '../components/settings/SourceShareSection'
+import { InterpretProviderSection } from '../components/settings/InterpretProviderSection'
 import { LangModeSection } from '../components/settings/LangModeSection'
 import { sys } from '../i18n/lane-system'
 import { btnGhost, proseCls, skelCls } from '../components/ui/styles'
@@ -82,6 +83,8 @@ export function SettingsPage() {
         <SourceConsentSection />
         {/* M9 增强 1：源码出网记录（**只读**；与记忆区相邻但语义不同 —— 记忆管「下次」，这里记「已发生」） */}
         <SourceShareSection />
+        {/* M9（owner 2026-10-22 裁决一）：AI 解读 provider 的**手动调控**入口 */}
+        <InterpretProviderSection />
         <ReadabilitySection />
       </div>
     </div>

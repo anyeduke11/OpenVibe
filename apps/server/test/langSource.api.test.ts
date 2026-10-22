@@ -171,7 +171,7 @@ describe('M9 P4 · GET /api/lang/findings', () => {
     addTopics(h.handle.db)
     await post(h, '/api/lang/scan', { project_id: 'p1' })
 
-    const res = await get(h, '/api/lang/findings')
+    const res = await get(h, '/api/lang/findings?project=p1')
 
     expect(res.statusCode).toBe(200)
     const body = res.json() as { findings: { file_rel_path: string }[] }
@@ -182,13 +182,30 @@ describe('M9 P4 · GET /api/lang/findings', () => {
     }
   })
 
-  it('⚠️ **不带项目参数**（命中只属于最近一次扫描，§3.10 没有项目列）', async () => {
+  it('⚠️ **不带项目参数 ⇒ 422**（owner 2026-10-22：命中按项目隔离，必须显式给项目）', async () => {
     const h = await makeHarness()
     const res = await get(h, '/api/lang/findings')
-    expect(res.statusCode).toBe(200)
-    // 带了项目参数也不该报错（参数被忽略，不猜）
-    const withParam = await get(h, '/api/lang/findings?project=p1')
-    expect(withParam.statusCode).toBe(200)
+    expect(res.statusCode).toBe(422)
+  })
+
+  it('⚠️ **多项目互不覆盖**（owner 2026-10-22 加项目列的**目的**）', async () => {
+    const h = await makeHarness()
+    const dirA = makePyProject()
+    const dirB = makePyProject()
+    addProject(h.handle.db, 'p1', dirA)
+    addProject(h.handle.db, 'p2', dirB)
+    addTopics(h.handle.db)
+
+    await post(h, '/api/lang/scan', { project_id: 'p1' })
+    const afterA = await get(h, '/api/lang/findings?project=p1')
+    expect((afterA.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
+
+    // ⚠️ 扫第二个项目 ⇒ **第一个项目的命中不许被清掉**
+    await post(h, '/api/lang/scan', { project_id: 'p2' })
+    const stillA = await get(h, '/api/lang/findings?project=p1')
+    const nowB = await get(h, '/api/lang/findings?project=p2')
+    expect((stillA.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
+    expect((nowB.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
   })
 })
 

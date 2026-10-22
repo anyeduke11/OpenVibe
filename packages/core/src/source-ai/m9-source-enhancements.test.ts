@@ -23,7 +23,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { SOURCE_INTERPRET_SCHEMA_VERSION, type SourceInterpretSummary } from '@openvibe/shared'
 import { newDb } from '../test-support/new-db'
 import { recordShare, readShareSummary, setConsent, clearConsent } from '../db/m9-source-scan'
-import { deriveConsentSource } from './interpret-service'
+import { deriveConsentDetail, consentSourceFromDetail } from './interpret-service'
 import { readSnippet, readSnippets, SNIPPET_MAX_FILES } from './snippet'
 import { formatInterpretMarkdown } from './export'
 import { CommandInterpretRunner, InterpretRunnerError } from './runner'
@@ -65,6 +65,7 @@ describe('M9 增强 1 · 出网汇总可读（`lang_source_shares` 的聚合）'
       snippet_count: 5,
       created_at: '2026-10-21T01:00:00.000Z',
       consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
     })
     recordShare(h.db, {
       project_id: 'p1',
@@ -72,6 +73,7 @@ describe('M9 增强 1 · 出网汇总可读（`lang_source_shares` 的聚合）'
       snippet_count: 3,
       created_at: '2026-10-21T02:00:00.000Z',
       consent_source: 'remembered',
+      consent_detail: 'memory_applied',
     })
     recordShare(h.db, {
       project_id: 'p2',
@@ -79,6 +81,7 @@ describe('M9 增强 1 · 出网汇总可读（`lang_source_shares` 的聚合）'
       snippet_count: 1,
       created_at: '2026-10-21T03:00:00.000Z',
       consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
     })
 
     const rows = readShareSummary(h.db)
@@ -111,6 +114,7 @@ describe('M9 增强 1 · 出网汇总可读（`lang_source_shares` 的聚合）'
       snippet_count: 4,
       created_at: '2026-10-21T01:00:00.000Z',
       consent_source: 'remembered',
+      consent_detail: 'memory_applied',
     })
 
     clearConsent(h.db, 'p1')
@@ -311,25 +315,45 @@ describe('M9 增强 4 · 解读结果的导出（**产物不含绝对路径、�
 // ───────── 增强 5：「记住全发」记的是范围，不是快照 ─────────
 
 describe('M9 增强 5 · 「记住全发」的作用域（**范围，不是快照**）', () => {
-  it('① 记忆是「全发」＋ 这次发了**全部**可勾命中 ⇒ `remembered`', () => {
+  it('① 记忆是「全发」＋ 这次发了**全部**可勾命中 ⇒ 记忆起了作用', () => {
     const sent = new Set([1, 2, 3])
     const all = new Set([1, 2, 3])
-    expect(deriveConsentSource(true, sent, all)).toBe('remembered')
+    const detail = deriveConsentDetail(true, sent, all, false)
+    expect(detail).toBe('memory_applied')
+    expect(consentSourceFromDetail(detail)).toBe('remembered')
   })
 
-  it('② 记忆是「全发」但**只发了一部分** ⇒ `explicit_tick`（用户改过 ⇒ 算他主动的）', () => {
+  it('② 记忆是「全发」但**只发了一部分** ⇒ 用户自己选的（不是记忆带过去的）', () => {
     const sent = new Set([1, 2])
     const all = new Set([1, 2, 3])
-    expect(deriveConsentSource(true, sent, all)).toBe('explicit_tick')
+    const detail = deriveConsentDetail(true, sent, all, false)
+    expect(detail).toBe('user_partial')
+    expect(consentSourceFromDetail(detail)).toBe('explicit_tick')
   })
 
-  it('③ **新增了一条命中**、这次只发了旧的 ⇒ `explicit_tick`（**没覆盖全部**就不算记忆带过去的）', () => {
+  it('③ **新增了一条命中**、这次只发了旧的 ⇒ 没覆盖全部 ⇒ 不算记忆带过去的', () => {
     const sent = new Set([1, 2])
     const all = new Set([1, 2, 3])
-    expect(deriveConsentSource(true, sent, all)).toBe('explicit_tick')
+    expect(deriveConsentDetail(true, sent, all, false)).toBe('user_partial')
   })
 
-  it('④ 没有记忆 ⇒ 一律 `explicit_tick`', () => {
-    expect(deriveConsentSource(null, new Set([1]), new Set([1, 2]))).toBe('explicit_tick')
+  it('④ 没有记忆 ⇒ 纯用户主动', () => {
+    const detail = deriveConsentDetail(null, new Set([1]), new Set([1, 2]), false)
+    expect(detail).toBe('no_memory')
+    expect(consentSourceFromDetail(detail)).toBe('explicit_tick')
+  })
+
+  it('⑤ ⚠️ **owner 2026-10-22 要的那条区分**：记忆是「全发」＋ 用户**自己又全勾了一遍** ⇒ `user_reticked`', () => {
+    const sent = new Set([1, 2, 3])
+    const all = new Set([1, 2, 3])
+    const detail = deriveConsentDetail(true, sent, all, true)
+    // ⚠️ **二分不变**（集合相同 ⇒ 仍是 remembered），**细分**才分得开
+    expect(detail).toBe('user_reticked')
+    expect(consentSourceFromDetail(detail)).toBe('remembered')
+  })
+
+  it('⑥ 「全不发」记忆 ＋ 一条都没发 ⇒ 记忆起了作用', () => {
+    const detail = deriveConsentDetail(false, new Set(), new Set([1, 2]), false)
+    expect(detail).toBe('memory_applied')
   })
 })

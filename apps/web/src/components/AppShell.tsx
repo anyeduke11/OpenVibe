@@ -18,6 +18,15 @@ import { btnGhost } from './ui/styles'
  * 3. **主题切换全站唯一入口在顶栏**（DESIGN.md Layout），侧栏不再放第二个。
  */
 
+/**
+ * 「学习资源」的导航文案（**就地定义**，不往 `i18n/` 加键）。
+ *
+ * ⚠️ **为什么不加 i18n 键**：仓库约定「新组件就地定义文案常量」；
+ *   这一项是**新增的导航项**，文案只在这一处出现 ⇒ 就地定义即可。
+ *   ⚠️ **其余导航项仍走 `nav.*`** —— 不动既有结构（i18n 键一多就成第二份口径）。
+ */
+const RESOURCES_LABEL = '学习资源'
+
 /** 四组八项（DESIGN.md Layout）。count 走单端点 `/api/nav-counts`，不是七个请求。 */
 const NAV: { group: string; items: { to: string; label: string; icon: IconName; count?: (c: Counts) => number }[] }[] = [
   {
@@ -31,6 +40,9 @@ const NAV: { group: string; items: { to: string; label: string; icon: IconName; 
       { to: '/terms', label: nav.terms, icon: 'book', count: (c) => c.terms },
       // M9 开发能力（§3.5：紧随「术语」之后 —— 两者互链最密）
       { to: '/dev', label: nav.devAbility, icon: 'compass' },
+      // M9 学习资源（owner 2026-10-22：独立资源页；⚠️ **必须排在「开发能力」之后** ——
+      //   导航判据要求「开发能力」紧随「术语库」，插在前面会把那条判据弄红）
+      { to: '/resources', label: RESOURCES_LABEL, icon: 'list' },
       { to: '/playbooks', label: nav.playbooks, icon: 'sparkle', count: (c) => c.playbooks },
       { to: '/skills', label: nav.skills, icon: 'box', count: (c) => c.skills },
       { to: '/flows', label: nav.flows, icon: 'flow', count: (c) => c.flows },

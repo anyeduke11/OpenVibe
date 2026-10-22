@@ -98,7 +98,7 @@ export interface SourceDrawerProps {
 }
 
 export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProps) {
-  const findings = useLangFindings()
+  const findings = useLangFindings(projectId)
   const consent = useLangConsent(projectId)
   const scan = useLangScan()
   const consentMutations = useLangConsentMutations(projectId ?? '')
@@ -311,7 +311,11 @@ export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProp
                 tickedCount={ticked.size}
                 pending={interpret.isPending}
                 onRun={() => {
-                  interpret.mutate([...ticked].map((k) => Number(k)))
+                  interpret.mutate({
+                    findingIds: [...ticked].map((k) => Number(k)),
+                    // ⚠️ 用户**动过**勾选没有（owner 2026-10-22：只影响台账的分类）
+                    userTouched: touched,
+                  })
                 }}
                 result={interpret.data}
                 exporting={exportInterpret.isPending}

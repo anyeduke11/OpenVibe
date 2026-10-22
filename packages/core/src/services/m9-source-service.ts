@@ -111,6 +111,7 @@ export async function runProjectScan(
   const saved = saveFindings(
     db,
     scan.scan_id,
+    projectId,
     scan.findings.map((f) => ({
       topic_slug: f.topic_slug,
       file_rel_path: f.file_rel_path,
@@ -124,7 +125,9 @@ export async function runProjectScan(
 
   // ⚠️ 旧的源码证据先剔掉（见文件头），只保留清单/技能/任务三类行为证据
   const existing = loadPersistedEvidence(db, projectId)
-  const sourceEvidence = findingsToEvidence(readFindings(db))
+  // ⚠️ **按项目取源码证据**（owner 2026-10-22）：命中表现在每个项目各存一份
+  //   ⇒ 不按项目过滤的话，别的项目的命中会算进这个项目的掌握度（跨项目污染）。
+  const sourceEvidence = findingsToEvidence(readFindings(db, projectId))
   const merged = new Map<number, TopicEvidence[]>()
   for (const [topicId, list] of existing) {
     const kept = list.filter((e) => e.kind !== 'source_hit')
@@ -153,7 +156,8 @@ export async function runProjectScan(
  * @param projectId 项目 id
  */
 export function exportFindingsText(db: SqliteDatabase, projectId: string): string {
-  const rows = readFindings(db)
+  // ⚠️ **按项目读**（owner 2026-10-22）：命中表现在每个项目各存一份
+  const rows = readFindings(db, projectId)
   const scanId = rows.length > 0 ? (rows[0] as FindingRow).scan_id : 0
   return buildExportText(projectId, scanId, rows)
 }

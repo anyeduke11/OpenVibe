@@ -44,7 +44,8 @@ import {
   type SourceInterpretRunner,
 } from './runner'
 import type {
-  InterpretCapability,
+  ConsentDetail,
+  ConsentSource,
   MasteryState,
   SourceInterpretSummary,
 } from '@openvibe/shared'
@@ -59,48 +60,73 @@ export interface InterpretOptions {
   runner: SourceInterpretRunner | null
   /** 参照时刻（**注入** ⇒ 台账的时间可复现） */
   now?: () => Date
-}
-
-/** 能力探测（界面据此决定**要不要渲染 T2 区**）。 */
-export function interpretCapability(runner: SourceInterpretRunner | null): InterpretCapability {
-  if (runner === null) return { available: false, runner_id: null }
-  return { available: true, runner_id: runner.id }
+  /**
+   * 用户**动过**勾选没有（客户端上报 · owner 2026-10-22）。
+   *
+   * ⚠️ **只影响台账的分类**，不影响「发了什么」—— 服务端仍然按**自己算出来的**
+   *   勾选集合出网 ⇒ 客户端在这里撒谎，最多让审计分类失真，不会让它多发一条。
+   */
+  userTouched?: boolean
 }
 
 /**
- * 推导这一次出网的 `consent_source`（§3.9 的二分）。
+ * ⚠️ **能力探测不在这里**（2026-10-22 移走）。
+ *
+ * 以前这里是 `interpretCapability(runner)` ⇒ 只有「可用 / 不可用」两档。
+ * 现在「为什么不可用」也是用户要看的东西（设置页要告诉用户是没填、填错、还是服务没起）
+ * ⇒ 探测改由 `provider-config.ts` 的 `resolveProvider` 承担，
+ * 形状由 `capabilityOf` **一处**构造（`available` 是 `status` 的布尔投影）。
+ */
+
+/**
+ * 推导这一次出网的**授权来源细分**（§3.9 · owner 2026-10-22）。
  *
  * ⚠️ **在服务端推导，不采信客户端的说法** —— 客户端说「这是记忆带过去的」，
  *   而服务端知道记忆里到底记的是什么 ⇒ 口径只留一处，也不给「谎报」留缝。
  *
  * | 情形 | 判定 |
  * |---|---|
- * | 记忆是「全发」，而这次发出去的**正是全部命中** | `remembered` |
- * | 记忆是「全不发」，而这次**一条都没发** | `remembered` |
- * | 其余（含没有记忆、只发了一部分、自己改过） | `explicit_tick` |
+ * | 没有记忆 | `no_memory` |
+ * | 记忆是「全发」，这次发出去的**正是全部命中**，且**用户没动过勾选** | `memory_applied` |
+ * | 记忆是「全发」，这次发出去的**正是全部命中**，但**用户动过勾选** | `user_reticked` |
+ * | 其余（只发了一部分 / 有全发记忆但一条没发） | `user_partial` |
+ * | 记忆是「全不发」，而这次**一条都没发** | `memory_applied` |
  *
- * ⚠️ 「记忆是全发 ＋ 用户自己又全勾了一遍」与「记忆带过去的」**不可区分**
- *   （集合相同）⇒ 统一记 `remembered` —— 两者在审计上是一回事。
+ * ⚠️ **「记忆是全发 ＋ 用户自己又全勾了一遍」与「记忆带过去的」现在可区分了**
+ *   （owner 2026-10-22）—— 但这个区分**依赖客户端上报「用户动过没有」**
+ *   ⇒ 台账里**两个字段都记**（服务端的二分判定 ＋ 细分）⇒ 两者可交叉核对。
  *
  * @param rememberAll 记忆里的 `remember_all`（`null` = 没有记忆）
  * @param sentIds 这次送出去的命中 id
- * @param allIds 全部命中的 id
+ * @param allIds 全部**可勾**命中（读得到正文的那批）的 id
+ * @param userTouched 用户**动过**勾选没有（客户端上报；只是分类事实，不影响「发了什么」）
  */
-export function deriveConsentSource(
+export function deriveConsentDetail(
   rememberAll: boolean | null,
   sentIds: ReadonlySet<number>,
   allIds: ReadonlySet<number>,
-): 'explicit_tick' | 'remembered' {
-  if (rememberAll === null) return 'explicit_tick'
+  userTouched: boolean,
+): ConsentDetail {
+  if (rememberAll === null) return 'no_memory'
   if (rememberAll) {
-    // 「全发」记忆 ⇒ 送出去的**覆盖了全部命中** ⇒ 视为「记忆带过去的」
-    if (sentIds.size === allIds.size && [...sentIds].every((id) => allIds.has(id))) {
-      return 'remembered'
-    }
-    return 'explicit_tick'
+    // 「全发」记忆 ⇒ 送出去的**覆盖了全部可勾命中** 才算「记忆起了作用」
+    const coversAll = sentIds.size === allIds.size && [...sentIds].every((id) => allIds.has(id))
+    if (!coversAll) return 'user_partial'
+    return userTouched ? 'user_reticked' : 'memory_applied'
   }
-  // 「全不发」记忆 ⇒ 一条都没发 ⇒ 视为「记忆带过去的」
-  return sentIds.size === 0 ? 'remembered' : 'explicit_tick'
+  // 「全不发」记忆 ⇒ 一条都没发 ⇒ 视为「记忆起了作用」
+  return sentIds.size === 0 ? 'memory_applied' : 'user_partial'
+}
+
+/**
+ * 细分 ⇒ 二分（§3.9 末段那个「两类必须可区分」）。
+ *
+ * ⚠️ **二分保留不动**（既有判据与既有读法都依赖它）⇒
+ *   `user_reticked` 在二分里仍是 `remembered`（集合相同），
+ *   细分信息由**另一列**承载。
+ */
+export function consentSourceFromDetail(detail: ConsentDetail): ConsentSource {
+  return detail === 'memory_applied' || detail === 'user_reticked' ? 'remembered' : 'explicit_tick'
 }
 
 /** 确定性层的状态（**按 slug** —— 界面与分歧都按 slug 说话）。 */
@@ -136,7 +162,8 @@ export async function interpretSourceFindings(
 
   // ① 装配入参（只留勾选过的 ＋ 相对化 ＋ 脱敏）
   const ticked = new Set(opts.findingIds)
-  const findings = readFindings(db)
+  // ⚠️ **按项目读命中**（owner 2026-10-22）：命中表现在每个项目各存一份
+  const findings = readFindings(db, opts.projectId)
   // ⚠️ **一次读完**（与 `/api/lang/snippets` 同一口径、同一个上限）
   //   ⇒ 界面能勾的与服务端能发的**是同一批**（两边都读不到的那条，两边都不可用）
   const windows = readSnippets(root, findings)
@@ -222,16 +249,19 @@ export async function interpretSourceFindings(
     )
     // ⚠️ **每一次出网都要计数**（§3.9：`lang_source_shares` 是 M9 自建的出网台账）
     //   ⇒ P5 是**第一次真的出网** ⇒ 这一笔必须落，否则那张表永远是空的。
+    const consentDetail = deriveConsentDetail(
+      readConsent(db, opts.projectId)?.remember_all ?? null,
+      new Set(request.fragments.map((f) => f.finding_id)),
+      tickableIds,
+      opts.userTouched === true,
+    )
     recordShare(db, {
       project_id: opts.projectId,
       topic_id_count: request.topics.length,
       snippet_count: request.fragments.length,
       created_at: now().toISOString(),
-      consent_source: deriveConsentSource(
-        readConsent(db, opts.projectId)?.remember_all ?? null,
-        new Set(request.fragments.map((f) => f.finding_id)),
-        tickableIds,
-      ),
+      consent_source: consentSourceFromDetail(consentDetail),
+      consent_detail: consentDetail,
     })
     return {
       status: 'ok',

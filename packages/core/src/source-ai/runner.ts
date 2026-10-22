@@ -10,10 +10,17 @@
  *
  * 三条理由，每条都有出处：
  *
- * 1. **本仓没有、也不该有模型客户端** —— owner 的技术口径是「不直接接 LLM API，
- *    语义层通过 AI Agent 做」；M3 的 FR-6.3 同款（「不接 LLM API，走 Pi」）。
- * 2. **Pi 接入不在 M9 的人日内**（dev-plan §9 合计段落：「⚠️ 不含 Pi 接入本身」）
- *    ⇒ M9 交付**契约 ＋ 降级 ＋ 台账 ＋ 界面**，provider 由宿主接。
+ * 1. ~~本仓没有、也不该有模型客户端~~ —— ⚠️ **owner 2026-10-22 更新了这条口径**：
+ *    原口径是「不直接接 LLM API，语义层通过 AI Agent 做」，
+ *    而本轮裁决一明确「**增加手动调控设置**」且「**支持本地模型和 LLM API 接入**」
+ *    ⇒ 现在有**两种** runner 形态：
+ *    **命令适配器**（agent CLI，如 Pi 的包装脚本）＋
+ *    **OpenAI 兼容 HTTP**（本机模型与云端 API **同一种协议**，见 `http-runner.ts`）。
+ *    ⚠️ **但「可注入」这条一个字没改** —— 内置客户端只是**其中一种实现**；
+ *    判据 DL-08 的「注入必失败的 runner」仍要有缝可注。
+ * 2. **具体接哪家 provider 仍不在 M9 的人日内**（dev-plan §9 合计段落：
+ *    「⚠️ 不含 Pi 接入本身」）⇒ M9 交付**契约 ＋ 降级 ＋ 台账 ＋ 界面**，
+ *    provider 由用户在**设置页手动配**（或由宿主接）。
  * 3. **DL-08 的判据形态就是「注入必失败的 runner」** —— 只有存在可注入的缝，
  *    这条判据才**可执行**；内置客户端的话，「必失败的 runner」无处可注。
  *
@@ -94,6 +101,15 @@ export async function commandExists(cmd: string): Promise<boolean> {
 export interface CommandRunnerOptions {
   /** 命令（**不含参数**，参数一律由 `--version` 探测后省略） */
   cmd: string
+  /**
+   * 命令的参数（**逐个给，不是一整串 shell 命令**）。
+   *
+   * ⚠️ **为什么参数要分开**（owner 2026-10-22 裁决一「手动调控」带来的）：
+   *   Pi 这类 CLI 通常要 `pi run --json` 之类 ⇒ 光有命令名不够。
+   *   ⚠️ **但绝不接受整串命令行** —— 那样等于开了命令注入的口子
+   *   （一串 `; rm -rf …` 就能被当参数执行）。
+   */
+  args?: string[]
   /** 模型标识 */
   model: string
   /** provider 标识 */
@@ -120,10 +136,12 @@ export class CommandInterpretRunner implements SourceInterpretRunner {
   readonly model: string
   readonly provider: string
   private readonly cmd: string
+  private readonly args: string[]
   private readonly timeoutMs: number
 
   constructor(opts: CommandRunnerOptions) {
     this.cmd = opts.cmd
+    this.args = opts.args ?? []
     this.model = opts.model
     this.provider = opts.provider
     this.timeoutMs = opts.timeoutMs ?? 30_000
@@ -141,7 +159,7 @@ export class CommandInterpretRunner implements SourceInterpretRunner {
       // ⚠️ **必须用 `runWithStdin`**（不是 `execFile`）——
       //   `execFile` **没有 `input` 选项**（那是 `execFileSync` 才有的）⇒
       //   子进程会收到**空 stdin**，契约就成了「只出不进」。
-      const res = await runWithStdin(this.cmd, [], payload, {
+      const res = await runWithStdin(this.cmd, this.args, payload, {
         timeoutMs: this.timeoutMs,
         maxBuffer: 8 * 1024 * 1024,
       })

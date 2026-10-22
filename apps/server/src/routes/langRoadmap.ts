@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import {
   AppError,
+  filterResourceCatalog,
   LangCodeSchema,
   type LangCodeOut,
   type ModeChoice,
@@ -10,6 +11,7 @@ import {
   APP_META_KEYS,
   AppMetaRepo,
   readLitTopicIds,
+  readResourceCatalogRows,
   readResourcesWithTopics,
   readRoadmap,
   readStageTracks,
@@ -57,6 +59,26 @@ const ModeChoiceBody = z.object({
 /** 模式相关的读端参数（`project` 可选：没有项目就没有「已点亮」）。 */
 const ModesQuery = z.object({
   project: z.string().min(1).optional(),
+})
+
+/**
+ * 资源页的读端参数（owner 2026-10-22 裁定「独立资源页 ＋ 支持筛选」）。
+ *
+ * ⚠️ **筛选维度只有四个**：关键字 · 分类 · 语言 · 模式标记。
+ *   ⚠️ **没有 `tier`** —— `tier` 是「它在路线里排第几」（必要性矩阵的轴），
+ *   而 `category` 才是「资源是什么形态」（规格 §3.1 明写：两套维度不能混）。
+ */
+const ResourceCatalogQuery = z.object({
+  /** 当前模式（缺省 ⇒ 取用户的选择，再缺省 ⇒ 精通） */
+  profile: z.enum(['master', 'familiar', 'vibe']).optional(),
+  /** 关键字（名称 / 摘要 / URL） */
+  q: z.string().optional(),
+  /** 分类 */
+  category: z.string().optional(),
+  /** 语言 */
+  lang: z.string().optional(),
+  /** 模式标记筛选（'all' = 不筛） */
+  mode: z.enum(['all', '本模式必学', '仅扩展阅读']).optional(),
 })
 
 export function registerLangRoutes(app: FastifyInstance, deps: LangRouteDeps): void {
@@ -114,5 +136,43 @@ export function registerLangRoutes(app: FastifyInstance, deps: LangRouteDeps): v
     }
     new AppMetaRepo(deps.db).write(APP_META_KEYS.langModeChoice, parsed.data.choice)
     return { mode_choice: parsed.data.choice }
+  })
+
+  /**
+   * **资源页**的读端（owner 2026-10-22 裁定：独立资源页 ＋ 支持筛选）。
+   *
+   * ⚠️ **一个端点把页面要的东西都给全**（模式选择 ＋ 模式行 ＋ 资源列表）
+   *   ⇒ 页面**一次请求**就能渲染，不必先问「当前是什么模式」再问「资源有哪些」。
+   *
+   * ⚠️ **筛选是纯计算** ⇒ 它在 `@openvibe/shared` 的 `filterResourceCatalog`，
+   *   这里只负责**读行 ＋ 调用**（口径只留一处）。
+   */
+  app.get('/api/lang/resources', async (req) => {
+    const parsed = ResourceCatalogQuery.safeParse(req.query)
+    if (!parsed.success) {
+      throw new AppError('VALIDATION_ERROR', '资源筛选参数不合法')
+    }
+    const meta = new AppMetaRepo(deps.db)
+    const choice = meta.read<ModeChoice | null>(APP_META_KEYS.langModeChoice, null)
+    // ⚠️ **模式缺省时的顺序**：显式参数 → 用户的选择 → 精通。
+    //   ⚠️ 用户的「速成」选择**不能**被悄悄换成精通（那是模式选择的语义，见 §3.19）。
+    const profile = parsed.data.profile ?? (choice === 'vibe' ? 'vibe' : 'master')
+    const profiles = readTopicProfiles(deps.db)
+    const rows = readResourceCatalogRows(deps.db)
+    const items = filterResourceCatalog(rows, {
+      q: parsed.data.q,
+      category: parsed.data.category,
+      lang: parsed.data.lang,
+      mode: parsed.data.mode ?? 'all',
+      profile,
+      profiles,
+    })
+    return {
+      mode_choice: choice,
+      profile,
+      profiles,
+      total: rows.length,
+      resources: items,
+    }
   })
 }

@@ -147,12 +147,26 @@ export const SourceInterpretSummary = z.object({
 })
 export type SourceInterpretSummary = z.infer<typeof SourceInterpretSummary>
 
-/** AI 能力是否可用（界面据此决定**要不要渲染 T2 区** —— DL-08）。 */
+/**
+ * AI 能力是否可用（界面据此决定**要不要渲染 T2 区** —— DL-08）。
+ *
+ * ⚠️ **口径只此一处**（owner 2026-10-22 裁决一「手动调控」带来的扩展）：
+ *   以前只有「可用 / 不可用」两个字段，现在多了**三档状态**与**人话原因** ——
+ *   因为设置页要能告诉用户「**为什么**不可用」，
+ *   否则用户只看到「AI 不可用」，不知道是自己没填、填错了、还是服务没起。
+ *
+ * ⚠️ **`available` 与 `status` 不许各说各话**：`available` 是 `status` 的**布尔投影**
+ *   （`status === 'ready'` ⇔ `available`），由**同一处**算出来，不许各写一遍。
+ */
 export const InterpretCapability = z.object({
   /** 不可用 ⇒ 界面**不渲染** T2 区（不是渲染一个失败态） */
   available: z.boolean(),
   /** runner 标识（可用的才有） */
   runner_id: z.string().nullable(),
+  /** 三档：没配 / 配好了能用 / 配了但用不了 */
+  status: z.enum(['unconfigured', 'ready', 'misconfigured']),
+  /** 人话原因（**不许空**）—— 为什么是这一档 */
+  detail: z.string(),
 })
 export type InterpretCapability = z.infer<typeof InterpretCapability>
 
@@ -210,3 +224,87 @@ export const LangSnippetsResponse = z.object({
   snippets: z.array(SourceSnippet),
 })
 export type LangSnippetsResponse = z.infer<typeof LangSnippetsResponse>
+
+// ============ provider 配置（owner 2026-10-22 裁决一：手动调控 ＋ 支持本地模型与 LLM API）============
+
+/**
+ * provider 的**形态**（两种，各自对应一类真实接入）。
+ *
+ * ⚠️ **为什么现在有两种**（此前只有「命令适配器」一种）：
+ *   owner 2026-10-22 明确「**增加手动调控设置**」且「**支持本地模型和 LLM API 接入**」⇒
+ *   命令适配器覆盖不了「本机跑一个 OpenAI 兼容服务」与「直接调云端 API」这两种。
+ *
+ * | 形态 | 覆盖的接入方式 |
+ * |---|---|
+ * | `command` | 任何能遵守「stdin 收 JSON / stdout 出 JSON」的 CLI（Pi 的包装脚本、Mavis 的包装脚本、别的 agent CLI） |
+ * | `openai_http` | **OpenAI 兼容**的 HTTP 接口 —— 本机模型（Ollama / LM Studio / vLLM …）与云端 API **同一种协议** |
+ */
+export const InterpretProviderKind = z.enum(['command', 'openai_http'])
+export type InterpretProviderKind = z.infer<typeof InterpretProviderKind>
+
+/**
+ * provider 的**配置**（存在 `app_meta` 里；**不进任何 `lang_` 表** ——
+ * 它是用户偏好，不是语言学习状态，同 §3.19 第 3 条的纪律）。
+ *
+ * ⚠️ **字段全是标量 ＋ 一串命令参数**：没有嵌套对象 ⇒ 序列化与读回都不会出现
+ * 「半个结构」的中间态。
+ */
+export const InterpretProviderConfig = z.object({
+  /** 总闸（**默认关**）—— 关掉 ⇒ DL-08 的下限：AI 不可用，确定性层照常 */
+  enabled: z.boolean(),
+  kind: InterpretProviderKind,
+  /** `command` 形态的命令（**不含参数**） */
+  cmd: z.string(),
+  /** `command` 形态的参数（**逐个**给，不是一整串 shell 命令 —— 免得参数里能塞注入） */
+  args: z.array(z.string()),
+  /** `openai_http` 形态的端点（**完整 URL**，如 `http://127.0.0.1:11434/v1/chat/completions`） */
+  endpoint: z.string(),
+  /** 模型标识（台账用；本地模型也填，如 `qwen2.5-coder:7b`） */
+  model: z.string(),
+  /** provider 标识（台账用，如 `ollama` / `openai` / `pi`） */
+  provider: z.string(),
+  /**
+   * API key（**明文存 `app_meta`**）。
+   *
+   * ⚠️ **这是取舍，不是疏忽**：`app_meta` 是本机 SQLite 的明文 KV。
+   *   换系统钥匙串要引依赖（与「零依赖优先」相悖）⇒ 本轮先明文存，
+   *   但**读端永不回显全文**（见 `InterpretProviderView`），
+   *   且**它绝不进任何台账**（DL-16 同族：凭据不属于审计面）。
+   */
+  api_key: z.string(),
+  /** 超时（毫秒） */
+  timeout_ms: z.number().int(),
+})
+export type InterpretProviderConfig = z.infer<typeof InterpretProviderConfig>
+
+/**
+ * provider 配置的**对外视图**（读端出参）。
+ *
+ * ⚠️ **这个形状里装不下 key 全文** —— 只有 `has_api_key`（有没有）与
+ *   `api_key_hint`（末 4 位，给人眼确认「配的是不是这一把」）。
+ * ⇒ 「回显密钥」这件事在**类型上**就不可能发生，与「解读结果只展示不留存」同款纪律。
+ */
+export const InterpretProviderView = z.object({
+  enabled: z.boolean(),
+  kind: InterpretProviderKind,
+  cmd: z.string(),
+  args: z.array(z.string()),
+  endpoint: z.string(),
+  model: z.string(),
+  provider: z.string(),
+  /** 有没有配 key */
+  has_api_key: z.boolean(),
+  /** key 的末 4 位（没配则是空串） */
+  api_key_hint: z.string(),
+  timeout_ms: z.number().int(),
+})
+export type InterpretProviderView = z.infer<typeof InterpretProviderView>
+
+/**
+ * provider 的**能力探测**结果 ⇒ **就是 `InterpretCapability`**（口径单处）。
+ *
+ * ⚠️ 这里**不再另立一个类型** —— 「AI 能不能用」与「为什么不能用」
+ *   是**同一个问题**的两面，分成两个形状就会有两处口径漂移。
+ */
+export type InterpretProviderCapability = InterpretCapability
+

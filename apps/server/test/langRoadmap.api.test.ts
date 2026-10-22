@@ -156,3 +156,97 @@ describe('M9 P3 · GET /api/lang/topics/:id', () => {
     expect(res.statusCode).toBe(422)
   })
 })
+
+describe('M9 · GET /api/lang/resources（owner 2026-10-22：独立资源页 ＋ 支持筛选）', () => {
+  /** 资源页要的数据：知识点 · 模式行 · 资源 · 挂接。 */
+  function seedResources(db: TestDbHandle['db']): void {
+    db.prepare(
+      `INSERT INTO lang_topics (id, lang, slug, title, summary, stage_id, kind)
+       VALUES (1, 'python', 'py-a', '知识点 A', '', 0, 'language'),
+              (2, 'python', 'py-b', '知识点 B', '', 1, 'language')`,
+    ).run()
+    db.prepare(
+      `INSERT INTO lang_topic_profiles (topic_id, profile, depth, required, rank, est_minutes)
+       VALUES (1, 'master', 'full', 1, 1, 60),
+              (1, 'vibe', 'headline', 1, 1, 10),
+              (2, 'master', 'concept', 0, 2, NULL)`,
+    ).run()
+    db.prepare(
+      `INSERT INTO lang_resources (id, lang, name, url, category, tier, level_label, price, lang_label, summary)
+       VALUES (1, 'python', '官方文档', 'https://docs.python.org', 'official', 'a', '0', 'free', 'zh', 'Python 官方手册'),
+              (2, 'go', 'Go 入门课', 'https://go.dev/tour', 'course', 'b', '1', 'free', 'en', 'Go 官方入门'),
+              (3, 'python', '刷题仓库', 'https://github.com/example/practice', 'github', 'c', '1', 'free', 'zh', '练习题')`,
+    ).run()
+    db.prepare(
+      `INSERT INTO lang_topic_resources (topic_id, resource_id, role)
+       VALUES (1, 1, 'primary'),
+              (2, 3, 'practice')`,
+    ).run()
+  }
+
+  it('返回**全量**资源 ＋ 每条的**模式标记**（两档）', async () => {
+    const h = await makeHarness()
+    seedResources(h.handle.db)
+    const res = await api(h, '/api/lang/resources')
+    expect(res.statusCode).toBe(200)
+    const body = res.json() as {
+      total: number
+      profile: string
+      resources: { id: number; mode_label: string; topic_ids: number[] }[]
+    }
+    expect(body.total).toBe(3)
+    expect(body.profile).toBe('master')
+    expect(body.resources).toHaveLength(3)
+    // 知识点 1 在精通里是必学 ⇒ 资源 1 是「本模式必学」
+    expect(body.resources.find((r) => r.id === 1)?.mode_label).toBe('本模式必学')
+    // 资源 2 没挂知识点 ⇒ 仅扩展阅读
+    expect(body.resources.find((r) => r.id === 2)?.mode_label).toBe('仅扩展阅读')
+  })
+
+  it('**分类筛选** ⇒ 只留该分类（`total` 仍是筛选前的数）', async () => {
+    const h = await makeHarness()
+    seedResources(h.handle.db)
+    const res = await api(h, '/api/lang/resources?category=github')
+    const body = res.json() as { total: number; resources: { id: number }[] }
+    expect(body.resources.map((r) => r.id)).toEqual([3])
+    expect(body.total).toBe(3)
+  })
+
+  it('**关键字筛选**（大小写不敏感）', async () => {
+    const h = await makeHarness()
+    seedResources(h.handle.db)
+    const res = await api(h, '/api/lang/resources?q=GO')
+    const body = res.json() as { resources: { id: number }[] }
+    expect(body.resources.map((r) => r.id)).toEqual([2])
+  })
+
+  it('**模式标记筛选** ⇒ 只留该档', async () => {
+    const h = await makeHarness()
+    seedResources(h.handle.db)
+    const res = await api(h, `/api/lang/resources?mode=${encodeURIComponent('本模式必学')}`)
+    const body = res.json() as { resources: { id: number }[] }
+    expect(body.resources.map((r) => r.id)).toEqual([1])
+  })
+
+  it('⚠️ **模式缺省 ⇒ 用用户的选择**（选了速成就不能被悄悄换成精通）', async () => {
+    const h = await makeHarness()
+    seedResources(h.handle.db)
+    const chosen = await h.app.inject({
+      method: 'POST',
+      url: '/api/lang/modes/choice',
+      headers: { authorization: `Bearer ${TOKEN}` },
+      payload: { choice: 'vibe' },
+    })
+    expect(chosen.statusCode).toBe(200)
+    const res = await api(h, '/api/lang/resources')
+    const body = res.json() as { mode_choice: string | null; profile: string }
+    expect(body.mode_choice).toBe('vibe')
+    expect(body.profile).toBe('vibe')
+  })
+
+  it('筛选参数非法（如 mode 不在闭集）⇒ **422**（不静默忽略）', async () => {
+    const h = await makeHarness()
+    const res = await api(h, '/api/lang/resources?mode=%E4%B8%8D%E5%AD%98%E5%9C%A8')
+    expect(res.statusCode).toBe(422)
+  })
+})

@@ -21,6 +21,8 @@
 import type { SqliteDatabase } from '../db'
 import { exportGrepPattern } from '../source-scan/pattern-text'
 import {
+  type ConsentDetail,
+  type ConsentSource,
   type LangCode,
   type ScanConfidence,
   type ScannerMode,
@@ -77,6 +79,7 @@ export interface SaveFindingsResult {
 export function saveFindings(
   db: SqliteDatabase,
   scanId: number,
+  projectId: string,
   rows: readonly FindingRowInput[],
 ): SaveFindingsResult {
   const idBySlug = new Map<string, number>()
@@ -90,12 +93,14 @@ export function saveFindings(
   const unknown = new Set<string>()
   const insert = db.prepare(
     `INSERT INTO lang_topic_findings
-       (scan_id, topic_id, file_rel_path, line, col, matched_pattern, confidence, scanner_mode)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (scan_id, topic_id, project_id, file_rel_path, line, col, matched_pattern, confidence, scanner_mode)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
   let written = 0
   const tx = db.transaction(() => {
-    db.prepare('DELETE FROM lang_topic_findings').run()
+    // ⚠️ **只清这个项目的**（owner 2026-10-22：命中按项目隔离）
+    //   原来清的是全表 ⇒ 扫项目 B 会把项目 A 的命中一起删掉。
+    db.prepare('DELETE FROM lang_topic_findings WHERE project_id = ?').run(projectId)
     for (const r of rows) {
       const topicId = idBySlug.get(r.topic_slug)
       if (topicId === undefined) {
@@ -106,6 +111,7 @@ export function saveFindings(
       insert.run(
         scanId,
         topicId,
+        projectId,
         r.file_rel_path,
         r.line,
         r.col,
@@ -128,10 +134,22 @@ export function saveFindings(
  * ⚠️ **排序在 JS 里做**（`lang_topic_findings` 的主键是单列 `id`，
  *   但排序口径要的是 file → line ⇒ 放 JS 更直白，也与其他 M9 读端同款）。
  */
-export function readFindings(db: SqliteDatabase): FindingRow[] {
+/**
+ * 读**某个项目**最近一次扫描的命中。
+ *
+ * ⚠️ **按项目过滤**（owner 2026-10-22：命中按项目隔离）——
+ *   命中表现在每个项目各存一份 ⇒ 读端**必须**给项目 id，
+ *   否则会拿到别的项目的命中（那会让 A 项目的源码证据算到 B 项目头上）。
+ *
+ * ⚠️ **历史行（`project_id` 为空）不出现**：迁移时无法确定它们属于哪个项目
+ *   （建表时就没记）⇒ 宁可不给，也不猜。
+ */
+export function readFindings(db: SqliteDatabase, projectId: string): FindingRow[] {
   const latest = db
-    .prepare('SELECT MAX(scan_id) AS scan_id FROM lang_topic_findings')
-    .get() as { scan_id: number | null }
+    .prepare(
+      'SELECT MAX(scan_id) AS scan_id FROM lang_topic_findings WHERE project_id = ?',
+    )
+    .get(projectId) as { scan_id: number | null }
   if (latest.scan_id === null) return []
   const rows = db
     .prepare(
@@ -142,9 +160,9 @@ export function readFindings(db: SqliteDatabase): FindingRow[] {
               f.confidence AS confidence, f.scanner_mode AS scanner_mode
          FROM lang_topic_findings f
          JOIN lang_topics t ON t.id = f.topic_id
-        WHERE f.scan_id = ?`,
+        WHERE f.scan_id = ? AND f.project_id = ?`,
     )
-    .all(latest.scan_id) as FindingRow[]
+    .all(latest.scan_id, projectId) as FindingRow[]
   return rows.sort(
     (a, b) =>
       a.file_rel_path.localeCompare(b.file_rel_path) ||
@@ -264,13 +282,17 @@ export interface ShareRow {
   topic_id_count: number
   snippet_count: number
   created_at: string
-  consent_source: 'explicit_tick' | 'remembered'
+  consent_source: ConsentSource
+  /** ⚠️ **细分**（owner 2026-10-22）：二分之外的第三种信息 */
+  consent_detail: ConsentDetail
 }
 
 /**
  * 记一次出网（**只存计数**）。
  *
  * ⚠️ `consent_source` 必须能区分「当次勾的」与「因为记住了而默认勾的」（§3.9 末段）。
+ *
+ * @param consent_detail 授权来源的**细分**（owner 2026-10-22）
  */
 export function recordShare(
   db: SqliteDatabase,
@@ -279,19 +301,21 @@ export function recordShare(
     topic_id_count: number
     snippet_count: number
     created_at: string
-    consent_source: 'explicit_tick' | 'remembered'
+    consent_source: ConsentSource
+    consent_detail: ConsentDetail
   },
 ): void {
   db.prepare(
     `INSERT INTO lang_source_shares
-       (project_id, topic_id_count, snippet_count, created_at, consent_source)
-     VALUES (?, ?, ?, ?, ?)`,
+       (project_id, topic_id_count, snippet_count, created_at, consent_source, consent_detail)
+     VALUES (?, ?, ?, ?, ?, ?)`,
   ).run(
     row.project_id,
     row.topic_id_count,
     row.snippet_count,
     row.created_at,
     row.consent_source,
+    row.consent_detail,
   )
 }
 
@@ -299,7 +323,7 @@ export function recordShare(
 export function readShares(db: SqliteDatabase, projectId: string): ShareRow[] {
   const rows = db
     .prepare(
-      `SELECT id, project_id, topic_id_count, snippet_count, created_at, consent_source
+      `SELECT id, project_id, topic_id_count, snippet_count, created_at, consent_source, consent_detail
          FROM lang_source_shares
         WHERE project_id = ?`,
     )
@@ -322,6 +346,10 @@ export interface ShareSummaryRow {
   explicit_tick_count: number
   /** 其中「因为记住了而默认勾的」次数 */
   remembered_count: number
+  /** ⚠️ 细分（owner 2026-10-22）：**记忆带过去的**次数 */
+  memory_applied_count: number
+  /** ⚠️ 细分（owner 2026-10-22）：**用户自己又全勾了一遍**的次数 */
+  user_reticked_count: number
 }
 
 /**
@@ -349,7 +377,11 @@ export function readShareSummary(db: SqliteDatabase): ShareSummaryRow[] {
               COALESCE(SUM(CASE WHEN consent_source = 'explicit_tick' THEN 1 ELSE 0 END), 0)
                 AS explicit_tick_count,
               COALESCE(SUM(CASE WHEN consent_source = 'remembered' THEN 1 ELSE 0 END), 0)
-                AS remembered_count
+                AS remembered_count,
+              COALESCE(SUM(CASE WHEN consent_detail = 'memory_applied' THEN 1 ELSE 0 END), 0)
+                AS memory_applied_count,
+              COALESCE(SUM(CASE WHEN consent_detail = 'user_reticked' THEN 1 ELSE 0 END), 0)
+                AS user_reticked_count
          FROM lang_source_shares
         GROUP BY project_id`,
     )

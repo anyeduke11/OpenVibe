@@ -377,6 +377,7 @@ export {
 // ── M9 P1e / P1f 的读端（模式表 + 资源挂接反查 + 点亮的知识点）────────────
 export {
   readLitTopicIds,
+  readResourceCatalogRows,
   readResourcesWithTopics,
   readTopicProfiles,
   readTopicStages,
@@ -441,9 +442,30 @@ export {
 } from './source-ai/ledger'
 
 export {
-  interpretCapability,
   interpretSourceFindings,
   type InterpretOptions,
 } from './source-ai/interpret-service'
+
+export {
+  HttpInterpretRunner,
+  buildInterpretPrompt,
+  extractContent,
+  stripJsonFence,
+  type HttpRunnerOptions,
+} from './source-ai/http-runner'
+
+export {
+  DEFAULT_PROVIDER_CONFIG,
+  capabilityOf,
+  isLocalEndpoint,
+  isValidEndpoint,
+  providerConfigView,
+  readProviderConfig,
+  resolveProvider,
+  resolveProviderRunner,
+  runnerFromProviderConfig,
+  writeProviderConfig,
+  type ProviderResolution,
+} from './source-ai/provider-config'
 
 export const CORE_VERSION = '0.0.0'

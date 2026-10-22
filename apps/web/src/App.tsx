@@ -22,6 +22,10 @@ const TermsPage = lazy(() => import('./pages/TermsPage').then((m) => ({ default:
 const DevAbilityPage = lazy(() =>
   import('./pages/DevAbilityPage').then((m) => ({ default: m.DevAbilityPage })),
 )
+// M9「学习资源」页（owner 2026-10-22 裁定：独立资源页 ＋ 支持筛选 · §3.20）
+const ResourcePage = lazy(() =>
+  import('./pages/ResourcePage').then((m) => ({ default: m.ResourcePage })),
+)
 const PlaybooksPage = lazy(() =>
   import('./pages/PlaybooksPage').then((m) => ({ default: m.PlaybooksPage })),
 )
@@ -49,6 +53,7 @@ export function App() {
         <Route path="/library" element={<LibraryPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/dev" element={<DevAbilityPage />} />
+        <Route path="/resources" element={<ResourcePage />} />
         <Route path="/playbooks" element={<PlaybooksPage />} />
         <Route path="/skills" element={<SkillsPage />} />
         <Route path="/flows" element={<FlowsPage />} />

@@ -98,11 +98,11 @@ describe('M9 P4.3 · 命中落库（§3.10）', () => {
     const db = makeDb()
     seed(db)
 
-    saveFindings(db, 1000, ROWS)
-    expect(readFindings(db)).toHaveLength(2)
+    saveFindings(db, 1000, 'p1', ROWS)
+    expect(readFindings(db, 'p1')).toHaveLength(2)
 
-    saveFindings(db, 2000, [ROWS[0] as FindingRowInput])
-    const rows = readFindings(db)
+    saveFindings(db, 2000, 'p1', [ROWS[0] as FindingRowInput])
+    const rows = readFindings(db, 'p1')
     expect(rows).toHaveLength(1)
     expect(rows[0]?.scan_id).toBe(2000)
   })
@@ -110,7 +110,7 @@ describe('M9 P4.3 · 命中落库（§3.10）', () => {
   it('孤儿 slug 不静默丢弃（模式表与 lang_topics 分叉的信号）', () => {
     const db = makeDb()
     seed(db)
-    const result = saveFindings(db, 1, [
+    const result = saveFindings(db, 1, 'p1', [
       ...ROWS,
       {
         topic_slug: 'not-a-real-topic',
@@ -129,12 +129,12 @@ describe('M9 P4.3 · 命中落库（§3.10）', () => {
   it('⚠️ 命中 → 证据：**同一出处只算一次**（§3.13：重复命中不增加掌握度）', () => {
     const db = makeDb()
     const { topicId } = seed(db)
-    saveFindings(db, 1, [
+    saveFindings(db, 1, 'p1', [
       ROWS[0] as FindingRowInput,
       { ...(ROWS[0] as FindingRowInput), line: 43 },
       { ...(ROWS[0] as FindingRowInput), line: 44 },
     ])
-    const evidence = findingsToEvidence(readFindings(db))
+    const evidence = findingsToEvidence(readFindings(db, 'p1'))
     const list = evidence.get(topicId) ?? []
     // 3 次命中、同一个文件 ⇒ **1 条**证据
     expect(list).toHaveLength(1)
@@ -204,6 +204,7 @@ describe('M9 P4.6 · 出网计数（§3.9）', () => {
       snippet_count: 5,
       created_at: '2026-10-21T00:00:00.000Z',
       consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
     })
     recordShare(db, {
       project_id: projectId,
@@ -211,6 +212,7 @@ describe('M9 P4.6 · 出网计数（§3.9）', () => {
       snippet_count: 2,
       created_at: '2026-10-21T00:01:00.000Z',
       consent_source: 'remembered',
+      consent_detail: 'memory_applied',
     })
     const shares = readShares(db, projectId)
     expect(shares).toHaveLength(2)
@@ -226,6 +228,7 @@ describe('M9 P4.6 · 出网计数（§3.9）', () => {
       snippet_count: 4,
       created_at: '2026-10-21T00:00:00.000Z',
       consent_source: 'explicit_tick',
+      consent_detail: 'no_memory',
     })
     const cols = (
       db.prepare('PRAGMA table_info(lang_source_shares)').all() as { name: string }[]
@@ -242,8 +245,8 @@ describe('M9 P4.4 · DL-22 / DL-23 · 导出清单', () => {
   it('DL-23 · 清单里**没有绝对路径**（含项目根、家目录）', () => {
     const db = makeDb()
     seed(db)
-    saveFindings(db, 1, ROWS)
-    const text = buildExportText('p1', 1, readFindings(db))
+    saveFindings(db, 1, 'p1', ROWS)
+    const text = buildExportText('p1', 1, readFindings(db, 'p1'))
     expect(text).not.toContain('/Users/')
     expect(text).not.toContain(tmpdir())
     expect(text).not.toMatch(/\/home\//u)
@@ -253,7 +256,7 @@ describe('M9 P4.4 · DL-22 / DL-23 · 导出清单', () => {
   it('DL-23 · 守卫自证：塞一条绝对路径必被报出', () => {
     const db = makeDb()
     seed(db)
-    saveFindings(db, 1, [
+    saveFindings(db, 1, 'p1', [
       {
         topic_slug: 'go-concurrent',
         file_rel_path: '/Users/someone/secret/main.go',
@@ -264,12 +267,12 @@ describe('M9 P4.4 · DL-22 / DL-23 · 导出清单', () => {
         scanner_mode: 'parser',
       },
     ])
-    const text = buildExportText('p1', 1, readFindings(db))
+    const text = buildExportText('p1', 1, readFindings(db, 'p1'))
     // ⚠️ **守卫自证**：这条绝对路径确实出现在清单里 ⇒ 清单本身不是防线，
     //   防线是「**绝对路径根本进不来**」（扫描器侧只产相对路径）
     expect(text).toContain('/Users/someone/secret/main.go')
     // ⇒ 真正的防线在扫描侧：命中里绝不会有绝对路径
-    const hits = readFindings(db)
+    const hits = readFindings(db, 'p1')
     expect(hits.every((h) => !h.file_rel_path.startsWith('/'))).toBe(false)
   })
 
@@ -290,7 +293,7 @@ describe('M9 P4.4 · DL-22 / DL-23 · 导出清单', () => {
       ),
     )
 
-    saveFindings(db, 1, [
+    saveFindings(db, 1, 'p1', [
       {
         topic_slug: 'go-concurrent',
         file_rel_path: rel,
@@ -301,7 +304,7 @@ describe('M9 P4.4 · DL-22 / DL-23 · 导出清单', () => {
         scanner_mode: 'parser',
       },
     ])
-    const text = buildExportText('p1', 1, readFindings(db))
+    const text = buildExportText('p1', 1, readFindings(db, 'p1'))
 
     // 从清单里解析出每一项（file:line 与模式串）
     const items: { file: string; line: number; pattern: string }[] = []
@@ -340,7 +343,7 @@ describe('M9 P4.4 · DL-22 / DL-23 · 导出清单', () => {
     // ⚠️ 这条**故意塞脏数据**：扫描侧产出的值本来就 BRE 安全，
     //   脏值只会来自人工改库 / 迁移写错 / 别的写入方 ⇒ 导出侧必须自己兜一道。
     const dirty = 'func (r *T) M() [x]'
-    saveFindings(db, 1, [
+    saveFindings(db, 1, 'p1', [
       {
         topic_slug: 'go-concurrent',
         file_rel_path: 'a.go',
@@ -352,7 +355,7 @@ describe('M9 P4.4 · DL-22 / DL-23 · 导出清单', () => {
         scanner_mode: 'parser',
       },
     ])
-    const text = buildExportText('p1', 1, readFindings(db))
+    const text = buildExportText('p1', 1, readFindings(db, 'p1'))
     const patternLine = text
       .split('\n')
       .find((l) => l.startsWith('  ↳ grep')) as string
@@ -393,6 +396,8 @@ describe('M9 P4 · 迁移与表结构', () => {
       'matched_pattern',
       'confidence',
       'scanner_mode',
+      // ⚠️ **owner 2026-10-22 裁定的加列**：命中按项目隔离
+      'project_id',
     ])
   })
 

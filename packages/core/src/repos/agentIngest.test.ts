@@ -189,7 +189,13 @@ describe('台账写入点（localEvents）', () => {
 
   it('summary 按 kind × day 聚合计数', () => {
     const repo = new LocalEventsRepo(db)
-    const at = new Date('2026-10-14T00:00:00.000Z')
+    // ⚠️ **写入日期必须跟随当天，不能写死**（2026-10-22 修）：
+    // `summary(N)` 的下界是 SQLite 的 `date('now', '-N days')`，即**按跑测那天**算。
+    // 写死 '2026-10-14' 时它在 7 天窗口内 ⇒ 绿；过了 2026-10-21 窗口下界推到 10-15，
+    // 那一行被过滤掉 ⇒ `s.find(...)` 变 undefined ⇒ **这条会「到期变红」**（日历漂移型红）。
+    // 本条只负责「聚合口径」；窗口边界由 summaryInWindow 的**绝对窗口**判据负责
+    // （packages/core/src/repos/localEvents.test.ts），不依赖「今天」。
+    const at = new Date()
     repo.record({ kind: 'pack_exported' }, at)
     repo.record({ kind: 'pack_exported' }, at)
     repo.record({ kind: 'pack_composed' }, at)
