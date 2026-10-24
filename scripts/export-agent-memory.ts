@@ -25,7 +25,17 @@
  *
  * ```bash
  * npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/<profile>/memory
+ * npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/<profile>/memory --check
  * ```
+ *
+ * ## `--check` 模式（只读）：源改了但没重导 ⇒ 退出码 1
+ *
+ * 导出脚本的**自证只发生在导出当场** ⇒ 源改了之后，仓里那份会**静默过期**，
+ * 没有任何机制会发现。本模式补上这个缺口：把源与仓内导出件**逐字节**比对，
+ * 分叉即非零退出。
+ *
+ * ⚠️ **它只能在有源的本机跑**（源在 agent 的本机数据目录里，CI 上没有）⇒
+ * 这是**本机闸**，不是 CI 闸。命令已写进导出件的 README，可直接复制。
  */
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -91,6 +101,8 @@ export interface ExportOptions {
   profile: string
   /** 导出日（绝对日期，`YYYY-MM-DD`） */
   date: string
+  /** 只核对「导出件与源是否分叉」，不写任何文件 */
+  check?: boolean
 }
 
 export interface ExportResult {
@@ -131,15 +143,16 @@ function parseArgs(argv: string[]): ExportOptions {
   from = (raw.get('from') ?? '').replace(/^~\//, `${homedir()}/`)
   const toArg = raw.get('to')
   if (toArg) to = resolve(toArg)
-  profile = raw.get('profile') ?? ''
+  profile = (raw.get('profile') ?? '').replace(/^~\//, `${homedir()}/`)
   const dateArg = raw.get('date')
   if (dateArg) date = dateArg
+  const check = raw.has('check')
   if (!from) {
-    throw new Error('用法：npx tsx scripts/export-agent-memory.ts --from <记忆目录> [--to <导出目录>] [--profile <名>] [--date YYYY-MM-DD]')
+    throw new Error('用法：npx tsx scripts/export-agent-memory.ts --from <记忆目录> [--to <导出目录>] [--profile <名>] [--date YYYY-MM-DD] [--check]')
   }
   from = resolve(from)
   if (!profile) profile = basename(dirname(from))
-  return { from, to, profile, date }
+  return { from, to, profile, date, check }
 }
 
 /**
@@ -215,9 +228,108 @@ export function exportAgentMemory(opts: ExportOptions): ExportResult {
   return { files, entryCount, topicCounts, digests }
 }
 
+/* ════════════════════════════════════════════════════════ 核对（只读） */
+
+export interface SyncEntry {
+  /** 相对导出目录的路径 */
+  path: string
+  /** `same` 一致 · `diff` 内容不同 · `missing` 导出件里没有 · `extra` 源里已删 */
+  state: 'same' | 'diff' | 'missing' | 'extra'
+}
+
+export interface CheckResult {
+  entries: SyncEntry[]
+  /** 全部一致 ⇒ true */
+  inSync: boolean
+  /** 源侧文件清单（相对导出目录） */
+  sourceFiles: string[]
+}
+
+/** 列出导出目录里本脚本管的那几件（相对路径） */
+export function listExportFiles(dir: string): string[] {
+  if (!existsSync(dir)) return []
+  const out: string[] = []
+  if (existsSync(join(dir, 'MEMORY.md'))) out.push('MEMORY.md')
+  const topicsDir = join(dir, 'topics')
+  if (existsSync(topicsDir)) {
+    for (const f of readdirSync(topicsDir).filter((f) => f.endsWith('.md')).sort()) {
+      out.push(`topics/${f}`)
+    }
+  }
+  if (existsSync(join(dir, 'README.md'))) out.push('README.md')
+  return out
+}
+
+/**
+ * 核对「仓内导出件」与「源」是否分叉。**只读，不写任何文件。**
+ *
+ * ## 它挡什么
+ *
+ * 导出件是**点时快照**（这是它的设计，不是缺陷）⇒ 源改了之后，仓里那份会**静默过期**：
+ * 导出脚本只在**导出当场**自证，改源不重导则永远没人发现。
+ * ⇒ 本函数给出「一条命令可复算」的核对：源与导出件**逐字节**比对。
+ *
+ * ## README 为什么也要比
+ *
+ * README 记着**导出日 / 条目数 / 文件清单**。源改了条目数而没重导时，
+ * payload 相同但 README 的计数已经过期 ⇒ 只比 payload 会漏掉这类腐烂。
+ * 重��时**沿用 README 里记录的导出日**（而不是今天）—— 否则每次核对都会假红。
+ */
+export function checkAgentMemory(opts: ExportOptions): CheckResult {
+  const indexPath = join(opts.from, 'MEMORY.md')
+  if (!existsSync(indexPath)) throw new Error(`源目录没有 MEMORY.md：${opts.from}`)
+  const indexMd = readFileSync(indexPath, 'utf8')
+  const topicDir = join(opts.from, 'topics')
+  if (!existsSync(topicDir)) throw new Error(`源目录没有 topics/：${opts.from}`)
+  const onDisk = readdirSync(topicDir).filter((f) => f.endsWith('.md')).sort()
+
+  const sourceMap = new Map<string, string>()
+  sourceMap.set('MEMORY.md', indexMd)
+  for (const f of onDisk) sourceMap.set(`topics/${f}`, readFileSync(join(topicDir, f), 'utf8'))
+
+  const entries: SyncEntry[] = []
+  for (const [rel, body] of sourceMap) {
+    const abs = join(opts.to, rel)
+    if (!existsSync(abs)) {
+      entries.push({ path: rel, state: 'missing' })
+      continue
+    }
+    entries.push({ path: rel, state: readFileSync(abs, 'utf8') === body ? 'same' : 'diff' })
+  }
+  // 导出目录里多出来的（源已删那份）
+  for (const rel of listExportFiles(opts.to)) {
+    if (rel === 'README.md') continue
+    if (!sourceMap.has(rel)) entries.push({ path: rel, state: 'extra' })
+  }
+
+  // README：按**记录在案的导出日**重建后比对
+  const readmePath = join(opts.to, 'README.md')
+  if (!existsSync(readmePath)) {
+    entries.push({ path: 'README.md', state: 'missing' })
+  } else {
+    const existing = readFileSync(readmePath, 'utf8')
+    const recorded = /导出日 \| \*\*(\d{4}-\d{2}-\d{2})\*\*/.exec(existing)?.[1]
+    const topicCounts = parseIndexCounts(indexMd)
+    const entryCount = [...topicCounts.values()].reduce((a, b) => a + b, 0)
+    const rebuilt = buildReadme({
+      opts: { ...opts, date: recorded ?? opts.date },
+      files: [...sourceMap.keys()],
+      entryCount,
+      topicCounts,
+      names: indexTopicNames(indexMd),
+    })
+    entries.push({ path: 'README.md', state: rebuilt === existing ? 'same' : 'diff' })
+  }
+
+  return {
+    entries,
+    inSync: entries.every((e) => e.state === 'same'),
+    sourceFiles: [...sourceMap.keys()],
+  }
+}
+
 /**
  * 「半份导出」判定：目录里**只有**本脚本管的那几件（`MEMORY.md` ＋ `topics/*.md`）。
- *
  * **为什么要这一条**：上一次导出若在写 README 前失败（例如 README 自己的零绝对路径
  * 检查没过），目录里会留下半份内容而**没有标记文件** ⇒ 只认标记的话，重跑会死锁，
  * 人只能手动删目录。
@@ -273,6 +385,9 @@ ${rows}
 \`\`\`bash
 # 条目数复算：数索引表的数据行（表头与分隔行不算）
 npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/${opts.profile}/memory --date ${opts.date}
+
+# 核对「仓里这份」与「源」是否分叉（只读，不写文件；分叉即退出码 1）
+npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/${opts.profile}/memory --check
 \`\`\`
 
 ## 这份导出件的三条自证（导出脚本自跑，失败即报错）
@@ -293,12 +408,31 @@ const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLTo
 if (isMain) {
   try {
     const opts = parseArgs(process.argv.slice(2))
-    const res = exportAgentMemory(opts)
-    process.stdout.write(
-      `[export-agent-memory] 导出完成 → ${opts.to}\n` +
-        `  · profile=${opts.profile} · 导出日=${opts.date}\n` +
-        `  · 索引条目数=${res.entryCount} · 文件数=${res.files.length} + README.md\n`,
-    )
+    if (opts.check) {
+      const res = checkAgentMemory(opts)
+      for (const e of res.entries) {
+        if (e.state === 'same') continue
+        process.stdout.write(`[export-agent-memory] ✗ ${e.path}：${e.state}\n`)
+      }
+      if (!res.inSync) {
+        process.stderr.write(
+          '[export-agent-memory] 仓内导出件与源**已分叉** —— 重跑导出命令同步：\n' +
+            `  npx tsx scripts/export-agent-memory.ts --from ${opts.from} --date ${opts.date}\n`,
+        )
+        process.exitCode = 1
+      } else {
+        process.stdout.write(
+          `[export-agent-memory] ✓ 导出件与源一致（${res.entries.length} 件：payload ${res.sourceFiles.length} ＋ README）\n`,
+        )
+      }
+    } else {
+      const res = exportAgentMemory(opts)
+      process.stdout.write(
+        `[export-agent-memory] 导出完成 → ${opts.to}\n` +
+          `  · profile=${opts.profile} · 导出日=${opts.date}\n` +
+          `  · 索引条目数=${res.entryCount} · 文件数=${res.files.length} + README.md\n`,
+      )
+    }
   } catch (e) {
     process.stderr.write(`[export-agent-memory] 失败：${e instanceof Error ? e.message : String(e)}\n`)
     process.exitCode = 1

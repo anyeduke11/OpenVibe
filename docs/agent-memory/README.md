@@ -8,7 +8,7 @@
 | 项 | 值 |
 |---|---|
 | 来源 profile | **mavis** |
-| 导出日 | **2026-10-22** |
+| 导出日 | **2026-10-24** |
 | 索引条目数 | **38** |
 | 导出文件数 | **8 + 1**（本 README） |
 
@@ -28,7 +28,10 @@
 
 ```bash
 # 条目数复算：数索引表的数据行（表头与分隔行不算）
-npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --date 2026-10-22
+npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --date 2026-10-24
+
+# 核对「仓里这份」与「源」是否分叉（只读，不写文件；分叉即退出码 1）
+npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --check
 ```
 
 ## 这份导出件的三条自证（导出脚本自跑，失败即报错）

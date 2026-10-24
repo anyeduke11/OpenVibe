@@ -30,7 +30,9 @@
     "golden:update": "tsx scripts/golden-update.ts",
     "mutation:run": "tsx scripts/mutation-run.ts",
     "ownership:check": "tsx scripts/ownership-check.ts",
-    "docs:check": "tsx scripts/docs-check.ts"
+    "docs:check": "tsx scripts/docs-check.ts",
+    "docs:refs": "tsx scripts/section-ref-audit.ts",
+    "memory:check": "tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --check"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

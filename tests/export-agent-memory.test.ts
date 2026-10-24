@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import {
   absolutePathHits,
   buildReadme,
+  checkAgentMemory,
   exportAgentMemory,
   indexTopicNames,
   parseIndexCounts,
@@ -201,5 +202,50 @@ describe('README 生成（纯函数）', () => {
     expect(readme).toContain('| `topics/topic-a.md` | **2** |')
     expect(readme).toContain('| `topics/topic-b.md` | **1** |')
     expect(readme).toContain('| 索引条目数 | **3** |')
+  })
+})
+
+/**
+ * 核对模式（`--check`）：源改了但**没重导**时，仓里那份会静默过期。
+ * 这一组判据挡的就是「导出只在当场自证、事后无人复查」这个缺口。
+ */
+describe('核对模式（只读）：导出件与源是否分叉', () => {
+  function mkExported(): { from: string; to: string } {
+    const { from } = mkSource()
+    const to = mkdtempSync(join(tmpdir(), 'ov-mem-out-'))
+    tmpDirs.push(to)
+    exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })
+    return { from, to }
+  }
+
+  it('导出后核对 ⇒ 一致', () => {
+    const { from, to } = mkExported()
+    const res = checkAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })
+    expect(res.inSync).toBe(true)
+    expect(res.entries.every((e) => e.state === 'same')).toBe(true)
+  })
+
+  it('⭐ 变异腿：改源一个字 ⇒ 核对当场报 diff（证明这条闸能红）', () => {
+    const { from, to } = mkExported()
+    writeFileSync(join(from, 'topics', 'topic-a.md'), '# 甲\n\nType: pattern\n\n甲的内容改了\n', 'utf8')
+    const res = checkAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })
+    expect(res.inSync).toBe(false)
+    const hit = res.entries.find((e) => e.path === 'topics/topic-a.md')
+    expect(hit?.state).toBe('diff')
+  })
+
+  it('源删掉一个 topic ⇒ 导出目录里那份记为 extra（不是默默多出来）', () => {
+    const { from, to } = mkExported()
+    rmSync(join(from, 'topics', 'topic-b.md'), { force: true })
+    const res = checkAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })
+    expect(res.inSync).toBe(false)
+    expect(res.entries.find((e) => e.path === 'topics/topic-b.md')?.state).toBe('extra')
+  })
+
+  it('核对沿用 README 里**记录的导出日** ⇒ 不因「今天不同」而假红', () => {
+    const { from, to } = mkExported()
+    // 核对时传的 date 与记录在案的导出日不同（模拟另一天跑核对）
+    const res = checkAgentMemory({ from, to, profile: 'demo', date: '2026-11-30' })
+    expect(res.inSync).toBe(true)
   })
 })
