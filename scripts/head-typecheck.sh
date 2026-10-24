@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 在**干净的 HEAD 检出**上跑 typecheck —— 2026-10-17 补（dev-plan §4.2 DEV-0111 遗留）。
+# 在**干净的 HEAD 检出**上跑 typecheck —— 2026-10-17 补（dev-plan §4.2 DEV-0133 遗留）。
 #
 # ## 为什么需要它
 #

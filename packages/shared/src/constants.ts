@@ -259,7 +259,7 @@ export const AGENT_PAYLOAD_KEYS = Object.fromEntries(
 ) as unknown as { readonly [K in keyof typeof AGENT_PAYLOAD_SHAPE]: readonly string[] }
 
 /**
- * 2026-10-17 实测的三个结构问题，此处逐一登记（理由详见 dev-plan §4.2 的 DEV-0109）：
+ * 2026-10-17 实测的三个结构问题，此处逐一登记（理由详见 dev-plan §4.2 的 DEV-0131）：
  *
  * ## 1. 为什么收在这里，而不是跟着各自的 service 走
  *

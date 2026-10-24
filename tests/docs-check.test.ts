@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url'
 import {
   applyBaseline,
   checkDevNumbering,
+  checkDevCrossFileUniqueness,
+  collectDevShadowRegistrations,
+  checkCredentialTargets,
   checkEntrySections,
   checkFrozenSurface,
   checkProbeResults,
@@ -799,5 +802,151 @@ describe('docs-check · 探针五问结果文件（2026-10-17 owner 指令）', 
     const r = checkProbeResults(REPO_ROOT)
     expect(r.file).not.toBeNull()
     expect(r.missing).toEqual([])
+  })
+})
+
+/* ------------------------------------------------------------------ FR-1.5 */
+
+describe('docs-check · FR-1.5 变异样本（DEV 号跨文件唯一）', () => {
+  /** 造一份 DEV_LOG：`[[号, 标题]]`，标题开头带登记日期 */
+  const log = (rows: [string, string][]): string =>
+    ['# DEV_LOG', ...rows.map(([n, t]) => `## [DEV-${n}] ${t}`)].join('\n')
+
+  const doc = (lines: string[]) => [{ path: 'docs/specs/x.md', lines }]
+
+  it('干净样本：同一个号只有一处登记 ⇒ 无 error', () => {
+    const l = log([['0001', '2026-10-24 · 一件事']])
+    const files = doc(['> **DEV-0001（2026-10-24）· 同一件事**'])
+    expect(checkDevCrossFileUniqueness(l, files)).toHaveLength(0)
+  })
+
+  it('⚠️ 变异样本：同一个号在两处各有登记且日期不同 ⇒ 必须报出', () => {
+    const l = log([['0001', '2026-10-24 · 一件事']])
+    const files = doc(['> **DEV-0001（2026-10-17）· 另一件事**'])
+    const out = checkDevCrossFileUniqueness(l, files)
+    expect(out).toHaveLength(1)
+    expect(out[0]?.rule).toBe('FR-1.5')
+    expect(out[0]?.level).toBe('error')
+    expect(out[0]?.message).toContain('2026-10-17')
+    expect(out[0]?.message).toContain('2026-10-24')
+  })
+
+  it('⚠️ 变异样本：分隔形态「（2026-10-17 · DEV-0117）」必须能配对（否则撞号漏检）', () => {
+    const l = log([['0117', '2026-10-24 · 另一件事']])
+    const files = doc(['> #### ✅ Phase 0 结项登记（2026-10-17 · DEV-0117）'])
+    expect(checkDevCrossFileUniqueness(l, files)).toHaveLength(1)
+  })
+
+  it('⚠️ 采样行的日期不得挂到号上（否则造出假歧义号）', () => {
+    const l = log([['0092', '2026-10-24 · 一件事']])
+    const files = doc(['（DEV-0092；2026-10-13 20:00 / …）'])
+    expect(checkDevCrossFileUniqueness(l, files)).toHaveLength(0)
+  })
+
+  it('⚠️ 订正语里的日期不得挂到号上', () => {
+    const l = log([['0101', '2026-10-24 · 一件事']])
+    const files = doc(['（2026-10-16 订正：本行原记「❌ 不存在」，是采样早于 DEV-0101 所致）'])
+    expect(checkDevCrossFileUniqueness(l, files)).toHaveLength(0)
+  })
+
+  it('⚠️ 同一个号在同一处登记两次（同日期）⇒ 不判', () => {
+    const l = log([['0001', '2026-10-24 · 一件事']])
+    const files = doc(['> **DEV-0001（2026-10-24）· 同一件事**', '> 又提到 DEV-0001（2026-10-24）'])
+    expect(checkDevCrossFileUniqueness(l, files)).toHaveLength(0)
+  })
+
+  it('⚠️ 一个歧义号多处被引 ⇒ 只报 1 条（判的是歧义本身，不是每一处引用）', () => {
+    const l = log([['0001', '2026-10-24 · 一件事']])
+    const files = doc([
+      '> **DEV-0001（2026-10-17）· 另一件事**',
+      '> 又提到 DEV-0001（2026-10-24）',
+      '> 再提到 DEV-0001（2026-10-24）',
+    ])
+    expect(checkDevCrossFileUniqueness(l, files)).toHaveLength(1)
+  })
+
+  it('只报数面：登记散落（有带日期的登记但 DEV_LOG 无标题）⇒ 进清单', () => {
+    const l = log([['0001', '2026-10-24 · 一件事']])
+    const files = doc(['> **DEV-0002（2026-10-17）· 没进 DEV_LOG 的登记**'])
+    const shadow = collectDevShadowRegistrations(l, files)
+    expect(shadow.map((s) => s.number)).toEqual(['0002'])
+    expect(shadow[0]?.dates).toEqual(['2026-10-17'])
+  })
+
+  it('只报数面：已进 DEV_LOG 的号不算散落', () => {
+    const l = log([['0001', '2026-10-24 · 一件事']])
+    const files = doc(['> **DEV-0001（2026-10-24）· 同一件事**'])
+    expect(collectDevShadowRegistrations(l, files)).toHaveLength(0)
+  })
+})
+
+/* ------------------------------------------------------------------ FR-11.2 */
+
+describe('docs-check · FR-11.2 变异样本（否定断言的凭据指向空处）', () => {
+  const doc = (content: string) => [{ path: 'docs/specs/x.md', lines: content.split('\n') }]
+
+  it('干净样本：凭据是可复算命令 ⇒ 不报', () => {
+    const files = doc('# SPEC\n\n## 3. 目标\n\n> 全仓零实现（`grep -rni foo packages | wc -l` → 0）')
+    expect(checkCredentialTargets(files)).toHaveLength(0)
+  })
+
+  it('⚠️ 变异样本：凭据是「本文件 §N」而本文件无该节 ⇒ 必须报出', () => {
+    const files = doc('# SPEC\n\n## 3. 目标\n\n> 全仓零实现（复算口径见本文件 §7）')
+    const out = checkCredentialTargets(files)
+    expect(out).toHaveLength(1)
+    expect(out[0]?.rule).toBe('FR-11.2')
+    expect(out[0]?.level).toBe('error')
+  })
+
+  it('⚠️ 变异样本：凭据是「本文件 FR-N」而本文件无该条目 ⇒ 必须报出', () => {
+    const files = doc('# SPEC\n\n### FR-1 条目\n\n> 全仓零实现（复算口径见本文件 FR-9.3）')
+    const out = checkCredentialTargets(files)
+    expect(out).toHaveLength(1)
+    expect(out[0]?.rule).toBe('FR-11.2')
+  })
+
+  it('本文件确有该 FR 条目 ⇒ 不报', () => {
+    const files = doc('# SPEC\n\n### FR-9.3 复算口径\n\n> 全仓零实现（复算口径见本文件 FR-9.3）')
+    expect(checkCredentialTargets(files)).toHaveLength(0)
+  })
+
+  it('本文件确有该节 ⇒ 不报', () => {
+    const files = doc('# SPEC\n\n## 7. 复算口径\n\n> 全仓零实现（复算口径见本文件 §7）')
+    expect(checkCredentialTargets(files)).toHaveLength(0)
+  })
+
+  it('⚠️ 排除一：窗口里有可复算命令 ⇒ 不报（那条指针是订正段/旁证，不是凭据本身）', () => {
+    const files = doc(
+      '# SPEC\n\n## 3. 目标\n\n> 全仓零实现（旧凭据写的是见本文件 §7，现已改）\n> 复算：`grep -rni foo packages | wc -l` → 0',
+    )
+    expect(checkCredentialTargets(files)).toHaveLength(0)
+  })
+
+  it('⚠️ 排除二：引号内的指针是引述 ⇒ 不报（纠正段必须原样引出被纠正的那句话）', () => {
+    const files = doc('# SPEC\n\n## 3. 目标\n\n> 全仓零实现（旧凭据写的是「见本文件 §7」，已改）')
+    expect(checkCredentialTargets(files)).toHaveLength(0)
+  })
+
+  it('⚠️ 限定型节指针不由本闸判（那是 FR-12.1 的口径，判据口径单处）', () => {
+    const files = doc('# SPEC\n\n## 3. 目标\n\n> 全仓零实现（复算口径见 other.md §9）')
+    expect(checkCredentialTargets(files)).toHaveLength(0)
+  })
+
+  it('⚠️ 跨文件 FR 指针不由本闸判（子编号常是节内条目，实测会假红）', () => {
+    const files = doc('# SPEC\n\n## 3. 目标\n\n> 全仓零实现（复算口径见 other.md FR-5.2）')
+    expect(checkCredentialTargets(files)).toHaveLength(0)
+  })
+
+  it('⚠️ 非否定断言行不在本闸的扫描面内', () => {
+    const files = doc('# SPEC\n\n## 3. 目标\n\n> 本文件 §7 讲的是别的事')
+    expect(checkCredentialTargets(files)).toHaveLength(0)
+  })
+})
+
+describe('docs-check · FR-1.5 覆盖漏洞腿', () => {
+  it('⚠️ 同一行里同一个号被指认两个不同日期 ⇒ 必须报出（单值日期会静默丢掉前一个）', () => {
+    const log = ['# DEV_LOG', '## [DEV-0001] 2026-10-24 · 一件事'].join('\n')
+    const files = [{ path: 'docs/specs/x.md', lines: ['> DEV-0001（2026-10-17）与 DEV-0001（2026-10-24）并存'] }]
+    expect(checkDevCrossFileUniqueness(log, files)).toHaveLength(1)
   })
 })

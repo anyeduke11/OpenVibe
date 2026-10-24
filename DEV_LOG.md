@@ -3102,6 +3102,25 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   ⑤ ⚠️ **本轮改了并行会话的两个文件**：`docs/PRD-v0.2.3-v1.0-20261024.md`（未跟踪）补了两处凭据、`tests/probe-raw-check.test.ts`（未跟踪）去掉了未使用的 import ⇒ **均为定点增补**，未纳入本轮提交（那两份文件属并行会话面，本轮不代提交）。**另有两处并行会话的内容随本笔一同入库**（提交信息里已点名归属）：`docs/dev-plan.md` §1 的脚本清单增补（14 行，该会话 13:12 加的）与 `DEV_LOG.md` 的 **DEV-0117** 条目（该会话 13:2x 追加的完整条目）—— 两者都是**完整成段**的内容，且与其余改动同文件、无法在不动 index 的前提下分离（分离须在 index 上做构造，风险高于收益）⇒ 一并提交。
   ⑥ ⚠️ **对账表是对 `docs/` 主面的点时快照** ⇒ 本轮恢复了 §17、改了 dev-plan-v0.2.1、m4-playbook、PRD-v0.2.3 ⇒ 主面计数会漂 ⇒ 提交前已重跑并重生成；后续任何 `docs/` 改动都要重跑 `--verify-report`。
 
+## [DEV-0116] 补记 —— DEV 编号撞车已消解（2026-10-24 本轮）
+
+- **时间**: 2026-10-24
+- **类型**: 文档治理（**补记**：不改原登记，只把「编号撞车」这一条的处置登记下来）
+- **关联文件**: `docs/dev-plan-v0.2.1.md`、`docs/specs/m3-terms-learning.md`、`packages/shared/src/constants.ts`、`scripts/head-typecheck.sh`、`docs/devlog-evidence/phase1-exit-shots/README.md`、`docs/devlog-evidence/M8-probe/raw/REJECTED-20261017.md`、`scripts/probe-raw-check.ts`（**改号**，37 处 / 7 个文件）、`scripts/docs-check.ts`（FR-1.5 ＋ 登记散落只报数面）、`docs/specs/docs-governance-check.md`（v0.13）
+- **问题描述**: 本条是对 DEV-0116 正文「② DEV 编号撞车已登记但未消」的补记，**不改原登记**（「日志不回改」：更正只能另起一笔同号）。撞车的全貌此前只举了三个例：2026-10-17/18 那轮把 **16 条**登记直接写在 `docs/dev-plan-v0.2.1.md` 的引文里（**从未进 DEV_LOG.md**），与 DEV_LOG.md 的登记撞了 **11 个号**（0107–0115、0117、0118）⇒ 同一个号指两轮不同的登记，读者拿号去查登记会查到另一轮。
+- **实现思路**: owner 指令「DEV 编号需要跨文件唯一」⇒ 用**改号**根治，而不是靠文档说明读法：**2026-10-17/18 侧**的 11 个号迁到空号段 **DEV-0127～DEV-0137**（全仓最大号 0126，该号段实测 0 命中）；**DEV_LOG 侧（2026-10-22/24）的编号一律不动** —— 它被 `apps/cli/src/version.ts`、`scripts/build-cli.ts`、`tests/publish-manifest.test.ts`、`docs/decisions.md` 等代码与 spec 引用，动它会越界；**未撞号的 0119 / 0123–0126 也不动**（同属那批引文侧登记，但没撞号，且被并行会话的 `docs/specs/v023-*.md` 等引用）。登记的**日期与内容一字未改** —— 改的只是编号。
+- **核心变更**:
+  - **映射表**（旧号 → 新号，按 `docs/dev-plan-v0.2.1.md` 内的出现顺序重排为连续号段）：`0107→0129` `0108→0130` `0109→0131` `0110→0132` `0111→0133` `0112→0134` `0113→0135` `0114→0136` `0115→0137` `0117→0127` `0118→0128`
+  - **改动清单**：37 处 / 7 个文件 —— `docs/dev-plan-v0.2.1.md`（24 处）、`docs/specs/m3-terms-learning.md`（6 处）、`packages/shared/src/constants.ts`、`scripts/head-typecheck.sh`、`docs/devlog-evidence/phase1-exit-shots/README.md`、`docs/devlog-evidence/M8-probe/raw/REJECTED-20261017.md`、`scripts/probe-raw-check.ts`（各 1 处）。
+  - **闸**：新增 **FR-1.5**（同一个 DEV 号在仓内只能对应一个登记日期 ⇒ 判红），口径见 `docs/specs/docs-governance-check.md` §4 的 FR-1 之下；**日期必须紧邻**（采样行与订正语里的日期不得挂到号上）。另加只报数的面 **登记散落**：实测 **16** 个号有带日期的登记但 `DEV_LOG.md` 无对应标题（就是那 16 条引文侧登记）⇒ 读者拿号去 DEV_LOG.md 查会查不到；**回填与否是 owner 的动作，本轮不回填**。
+- **测试验证**:
+  - `npx tsx scripts/docs-check.ts` → **error 0**（FR-1.5 生效后仓内 0 处撞车）；`npx vitest run tests/docs-check.test.ts` → 90 支全绿（含 FR-1.5 的 9 支变异腿）。
+  - 复算命令：`grep -oE 'DEV-01(0[7-9]|1[0-5])' docs/dev-plan-v0.2.1.md | sort -u`（撞号旧号应已绝迹）；`grep -c '^## \[DEV-0138\]' DEV_LOG.md`。
+- **潜在风险**:
+  1. ⚠️ **本补记之后仍留着的一处不一致**：`DEV-0112`／`DEV-0113`／`DEV-0114` 三条正文里引用的旧号（「DEV-0112（2026-10-17）」等）**按「日志不回改」原样留着** ⇒ 读那三处会看到已不存在的号；读法以本补记的映射表为准。
+  2. ⚠️ **那 16 条引文侧登记仍未进 DEV_LOG.md**（只报数面「登记散落」已列出）⇒ 读者拿 DEV-0119 / 0123–0126 等号去 DEV_LOG.md 仍查不到 ⇒ **回填与否是 owner 的动作**。
+  3. ⚠️ **改号后 DEV_LOG 的号段出现空洞**（119–137）：FR-1.2 仍按 warning 计（通配基线）—— 空洞是「引文侧登记占号」的副作用，不是丢登记。
+
 ## [DEV-0117] 2026-10-24 · v0.2.3 六项收尾：发布说明草稿 / OM 选包参数 / 裁决同步面 / 队列留痕 ㊱ / 版本 bump 0.2.3 / 发布 runbook
 
 - **时间**: 2026-10-24
@@ -3129,3 +3148,66 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   - ③ 队列闭集扩到 ㊿ 一次到位（10 个新号位），下次跳号不再动 docs-check；但「㉟ 保留位」的语义只在 ㉞ 行与 ㊱ 行的行文里，机器无从校验保留位是否被误占——留 owner 复核。
   - ④ **本笔曾误删 ㉝ 行**（以 ㉝ 整行做替换锚点导致其被 ㊱ 覆盖），当场发现整行恢复并复核前后文；教训登记：对 decisions.md 这类「每行都是凭据」的文件，插入行的锚点必须取**目标行自身**的独有结尾，绝不能取相邻行整行。
   - ⑤ docs:check 此刻剩 1 条 error（`dev-plan-v0.2.1.md:940` 引 `decisions.md §2` 死链）属并行会话在编文件（其 [DEV-0115] 的别名表工作正在收敛该引用），本笔不越界代改。
+
+## [DEV-0138] 2026-10-24 · owner 指令四项落地：FR-1.5（DEV 号跨文件唯一）＋ FR-11.2（凭据指向空处判红）＋ 恢复体检工具 ＋ 并发写入提交前护栏
+
+- **时间**: 2026-10-24
+- **类型**: 文档治理（判据面新增两条**子项** ＋ 两个新工具 ＋ 一道 pre-commit 钩子；**不含产品行为改动**）
+- **关联文件**: `scripts/docs-check.ts`（FR-1.5 / FR-11.2 两块 ＋ 登记散落只报数面）、`tests/docs-check.test.ts`（＋19 支变异腿，现 90 支）、`scripts/restore-link-check.ts` ＋ `tests/restore-link-check.test.ts`（新增）、`scripts/concurrency-guard.ts` ＋ `tests/concurrency-guard.test.ts`（新增）、`scripts/hooks/pre-commit`（追加第二道闸，已装到 `.git/hooks/pre-commit`）、`docs/specs/docs-governance-check.md`（v0.12→v0.13）、`docs/dev-plan-v0.2.1.md`（v1.3→v1.4）、`docs/dev-plan-v0.2.1.md` ＋ `docs/specs/m3-terms-learning.md` ＋ `packages/shared/src/constants.ts` ＋ `scripts/head-typecheck.sh` ＋ `docs/devlog-evidence/**` 两处（**改号**，37 处 / 7 个文件）、`scripts/probe-raw-check.ts`（**改号 1 处**，该文件属并行会话在编面）
+- **问题描述**: owner 2026-10-24 指令四项：① DEV 编号需要跨文件唯一；② 「凭据指向空处」应当被判红；③ 「逐字恢复旧节」应自带断链体检；④ 并行会话并发写入需要提交前护栏。① 与 ② 是**判据缺口**（闸覆盖不到那一类）；③ 与 ④ 是**工具与流程缺口**（③ 的由来：2026-10-24 恢复 `docs/dev-plan.md` §17 时，「逐字取回」保证了文字一致，却没有任何检查保证恢复进来的节内指针仍然落空；④ 的由来：并行会话写 `DEV_LOG.md` 时「整文件重写 + 暂存」把对方未提交的三条正文覆盖掉，事后三条原文经三条路径穷尽仍不可恢复 —— 全程没有任何信号）。
+- **实现思路**: ① **FR-1.5** —— 判「同一个号被指认了 ≥2 个登记日期」而不是「无日期引用指向歧义号」：前者判歧义**本身**，后者只判它的**后果**（只治后果的话，新造一个撞号而恰好没人写不带日期的引用就能从闸下溜过去）。日期来源只有两处（DEV_LOG 标题 ＋ 扫描面内**紧邻**日期）；**DEV_LOG 正文不作日期来源**（正文是对登记的叙述与引述，把引述当登记是范畴错误，恰恰会造出本闸要防的假歧义）。撞号用**改号**根治：2026-10-17/18 侧的 11 个号迁到空号段 DEV-0127～DEV-0137，DEV_LOG 侧不动。② **FR-11.2** —— 判「否定断言的凭据指向空处」：只判**自指**指针形态（`本文件 §N` / `本文件 FR-N`），因为限定型节指针归 FR-12.1（口径单处），跨文件 FR 指针实测 26 处会假红；两条排除（窗口里已有可复算命令、引号内的引述）挡掉自指误报。③ **恢复体检** —— 逐字一致性 ＋ 节内 §-指针落空 ＋ 断链差，三样合成一次可复算的检查（纯函数可单测 ＋ CLI）。④ **并发护栏** —— 两道机械闸（暂存与工作树分歧 / 已暂存内容命中回退特征），装进 pre-commit，让「这次提交比磁盘旧」这件事在提交前显形。
+- **核心变更**:
+  - **FR-1.5**（`scripts/docs-check.ts`）：新增 `collectDevRefs` / `collectDevDates` / `checkDevCrossFileUniqueness` / `collectDevShadowRegistrations`。日期配对只认**紧邻**（允许一个分隔符 `· 、 ｜`），刻意排除采样行（`（DEV-0092；2026-10-13 20:00 / …）`）与订正语（`（2026-10-16 订正：…采样早于 DEV-0101 所致）`）—— 宽松邻接会造出**假的歧义号**。同一行内同号被指认多个日期时**全部保留**（用数组不用单值：单值会把前一个日期静默丢掉 ⇒ 撞车漏检）。**只报数面「登记散落」**：实测 16 个号有带日期的登记但 DEV_LOG 无标题。
+  - **FR-11.2**（同文件）：新增 `checkCredentialTargets` ＋ `collectFrIds`（只收**定义形态**：标题 / 粗体条目 / 列表条目 / 表格行首标签 —— 提及不等于条目，收了就成了永真）；节号解析复用 `section-ref-audit.ts` 的 `indexSections` 与 `classifyRef`（口径单处）。
+  - **改号**：37 处 / 7 个文件，映射见 DEV-0116 补记；登记的日期与内容一字未改。
+  - **恢复体检**（`scripts/restore-link-check.ts`，新增）：`extractSection`（按 `## §17` / `### 4.2` 形态取整节）／`diffVerbatim`（逐行严格比对，空行与行尾空白均算差异）／`collectSectionRefs`（限定型与裸型两种形态）／`linkDelta`（断链差）；判定层复用 `indexSections` 与 `classifyRef`，不重写「哪些节号算存在」。CLI：`--file/--section/--against/--json`，退出码 0 通过 / 1 不通过 / 2 用法与基准错误。
+  - **并发护栏**（`scripts/concurrency-guard.ts`，新增）：`judgeDrift`（规则 A：已暂存文件的 index 内容 ≠ 工作树内容）／`detectRollbackMarkers`（规则 B：已暂存内容命中回退特征标志）；标志清单**不复写**，直接复用 `ownership-check.ts` 的 `DEFAULT_MARKERS`，只加「自引用豁免 ＋ 既有词汇豁免」两层适配。规则 A 允许 `OPENVIBE_ALLOW_PARTIAL_STAGE=1` 显式放行，规则 B 不放行。
+  - **钩子**（`scripts/hooks/pre-commit`）：保留原有的记忆导出件闸（失败即 `exit 1`），之后追加并发护栏调用（成功静默、失败原样打印并 `exit 1`）；已装到 `.git/hooks/pre-commit`。
+  - **规格同步**：治理规格 v0.12→v0.13（§4 的 FR-1 之下加 **FR-1.5**、§4 加 **FR-11.2**、§7.2 加 w/x 两条变异腿、版本行写明本版加法）；`dev-plan-v0.2.1.md` v1.3→v1.4（0-g 行 ＋ 变更日志）。**两条都是既有 FR 之下的子项 ⇒ 判据条数仍为 8**，不触发 dev-plan §16.10 的复审线。
+- **测试验证**:
+  - `npx vitest run --maxWorkers=3` → **177 文件 / 2309 支**；**1 支失败**（首跑 3 支、复跑 1 支，同一文件）—— 全部在 `packages/core/src/db/core-db.test.ts`，成因是**并行会话**未跟踪的 `packages/core/src/db/migrations/0019_lang_seed_hash.sql`（HEAD 里没有该迁移 ⇒ 该失败**不是本轮引入**，也不在本轮白名单内）。
+  - `npx vitest run tests/docs-check.test.ts` → **90 支全绿**（含 19 支新变异腿：FR-1.5 九支 ＋ FR-11.2 九支 ＋ 一支覆盖漏洞腿）。
+  - `npx vitest run tests/concurrency-guard.test.ts` → **20 支全绿**（纯函数单测 ＋ 临时真仓库的集成测）。
+  - `npx vitest run tests/restore-link-check.test.ts` → **27 支全绿**（全部用内存夹具，一条都不读磁盘）。
+  - `npx tsc --noEmit -p tsconfig.json` → **0 error**；`npx eslint scripts tests` → **0 error**。
+  - `npx tsx scripts/docs-check.ts` → **error 0 · warning 130 · 基线内 130**（FR-1.5 与 FR-11.2 当前仓内 **0 处违规** —— 2026-10-17 侧那处唯一实例已于上一轮就地改指）。
+  - `npx tsx scripts/section-ref-audit.ts --verify-report docs/devlog-evidence/DEV-0110/section-ref-audit.md` → **对账表新鲜**（拆分影响面 21 个节号与实算一致）。
+  - `npx tsx scripts/restore-link-check.ts --file docs/dev-plan.md --section 17 --against 784a1d0` → **逐字一致**（比对 100 行零差异）· 节内落空指针 0 条 · 断链差无新增 ⇒ 退出码 0；对 §15.3（内含真实断链）跑同一命令 ⇒ 报出 `specs/onboarding.md §7` 落空、退出码 1（证明该工具**能红**不是恒绿）。
+  - `npx tsx scripts/concurrency-guard.ts` → **退出码 1**，规则 A 命中 4 个文件（并行会话自己在暂存区的 4 笔重命名，其暂存内容已比磁盘旧）—— 这正是它该拦的形态。
+  - `npm run bundle:check` → 通过（入口 268.36kB ≤ 300kB / 最大 chunk 347.45kB ≤ 500kB）；`npx tsx scripts/seed-check.ts` → 通过；`npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --check` → 9 件与源一致。
+  - 复算命令：`npx tsx scripts/docs-check.ts`；`npx vitest run tests/docs-check.test.ts tests/concurrency-guard.test.ts tests/restore-link-check.test.ts`；`grep -c 'DEV-01[2-3][0-9]' DEV_LOG.md`。
+- **潜在风险**:
+  - ① ⚠️ **规则 A 会在「按本仓推荐的正确流程操作」时同样红**：本仓的并行会话安全姿势是「构造 STAGE → stage → 把完整版写回工作树 → commit」⇒ 提交瞬间 index 与工作树必然不一致 ⇒ 护栏要求显式表态（`OPENVIBE_ALLOW_PARTIAL_STAGE=1`）。这是刻意设计的（让部分提交必须是一个**看得见的动作**），但摩擦真实存在，**是否收紧放行口径留给 owner 裁**。
+  - ② ⚠️ **规则 B 靠「该标志在上一版已存在 ⇒ 属既有词汇」这层文件级豁免压住本仓台账**（DEV_LOG.md 裸命中 48 处、decisions.md 30 处、tasks.md 3 处 ⇒ 豁免后 0）。代价是**漏报**：某文件上一版已有该标志、这一笔又在别处引入同一标志，会被一并放过（宁可漏报，不误伤台账）。
+  - ③ ⚠️ **FR-1.5 只覆盖 `docs/*.md` ＋ `docs/specs/*.md` 扫描面**：写在代码注释里的带日期登记不参与判定（那是**引用**不是登记）—— 这是取舍不是疏漏，但若将来出现「登记写在代码里」的新惯例，需同步扩面。
+  - ④ ⚠️ **那 16 条引文侧登记仍未进 DEV_LOG.md**（只报数面「登记散落」已列出）⇒ 读者拿 DEV-0119 / 0123–0126 等号去 DEV_LOG.md 仍查不到。**回填与否是 owner 的动作**，本轮按「登记散落属另一类缺陷」不代裁。
+  - ⑤ ⚠️ **恢复体检工具与 FR-12.1 有一处刻意差异**：「父节在、子项未登记」FR-12.1 判 `undecidable`，本工具判 `dangling`（对「刚恢复的节」而言那正是最该抓的错）；差异只作用于工具自己的报告与退出码，**未改动 FR-12.1 任何行为**。
+  - ⑥ ⚠️ **本笔的提交只含本轮白名单**：`DEV_LOG.md` 与 `scripts/probe-raw-check.ts` 两个**混了并行会话内容**的文件，用「构造 index 版本」的方式只提交本轮的改动（`git hash-object -w` + `git update-index --cacheinfo`，**全程不写工作树** ⇒ 不会覆盖对方未提交内容）；并行会话自己在暂存区的 4 笔重命名已从 index 撤出（其工作树内容原样保留），避免把「比磁盘旧」的暂存内容提交进去。
+
+## [DEV-0139] 2026-10-24 · v0.2.3 批次 C 第二段：CS1-v2 物理归位 ＋ CS2 第一段（三态合并）＋ RQ4 段级 diff ＋ CS4 接入生产 ＋ CS5 审计收官
+
+- **时间**: 2026-10-24
+- **类型**: 功能 + 重构（B 级 ×3：CS2 三态合并语义、RQ4 段级报文、CS4 三条 additive 路由；CS1-v2/CS5 为行为零变化的结构收敛）
+- **关联文件**: `packages/core/src/tooling/`（5 模块物理迁入 + index 转发路径改同目录）、`packages/core/src/db/m9-p1d-mode-assign.ts`、`packages/core/src/db/migrations/0019_lang_seed_hash.sql`（新增）、`packages/core/src/db/seed-merge.ts`（新增）、`packages/core/src/db/m9-p1-seed-lang-topics.ts`（三态化 + 自陈注释更新）、`packages/core/src/db/seed-merge.test.ts`（新增）、`packages/core/src/db/core-db.test.ts`（迁移清单合同 18→19）、`packages/core/src/inject/section-diff.ts`（新增）+ 同名测试、`packages/core/src/index.ts`（段级导出 + CS4 产品导出 + 摘 `InjectAskFn` 死别名）、`packages/core/src/db/{m9-topic-terms,m9-topic-filter,m9-p1b-readme}.ts`（自 tooling 迁回 db/，转产品）、`apps/server/src/routes/langRoadmap.ts`（三条路由/字段）、`apps/cli/src/commands/diff.ts` + `apps/cli/src/index.ts` + `apps/cli/test/diff-sections.test.ts`（新增）、`scripts/m9-grade-guard.ts`（新增）、`scripts/barrel-audit.ts`（新增）、`package.json`（`m9:grade-guard` / `barrel:audit`）、`tests/tooling-face.test.ts`（闸面更新）、`docs/product-lines.md`（台账刷新）
+- **问题描述**: owner 指令五件：批次 C 下一段三项（CS2/CS5/RQ4）＋ CS1 物理归位 v2 ＋ CS4 最终接入生产。基线：工具面模块物理在 db/；m9 播种器「一次性 INSERT OR IGNORE、老库不更新」（E6），且 **p1-5/p1-6/p1d-profiles 为无条件覆盖式 upsert（reseed 即静默覆盖用户手改——本段实测新发现的真隐患）**；diff 只有文件级漂移。
+- **实现思路**: ① CS1-v2 级联实测先行（5 模块的出入相对引 + 根相对导入的 scripts/tests 全图），迁移后 typecheck 0；② CS2 判「用户没动过」的机制 = **现内容重算哈希 == stored seed_hash**，无需存旧内容；`unchanged` 分支修正为**双比**（新种子==上次播种 且 现内容==上次播种）——单比会把你改过的行误判 unchanged（CS2-02 当场抓到）；0019 前老行 seed_hash 为 NULL ⇒ 一律按用户态对待，**不回填**（回填会把用户手改伪造成未改动）；③ RQ4 数据源 = 与 preview/export 同一 renderPack（POST preview），段级对比按既有 begin/end 标记切「受管块/块外自由区」，**只产报告**，五状态判定与 golden 不动；④ CS4 逐模块找自然接缝：三个转产品（迁回 db/ + 主 barrel + 路由），grade-guard 是仓库卫生守卫（扫源码非 db）⇒ 生产化 = 独立闸 `pnpm m9:grade-guard`，不硬塞 server；⑤ CS5 工具审计出**真基线**：此前「267 零消费」实为工具面家族错位，CS1 摘除后主出口 388 符号零消费仅 1（`InjectAskFn` 死别名）⇒ 首批即收官。
+- **核心变更**:
+  - **CS1-v2**：m9-source-freshness / p1b-spec / p1b-necessity / p1d-spec / time-window-guard 五模块 + 2 个测试物理迁 `tooling/`；级联修复：mode-assign→p1d-spec、necessity→external-content-scan、4 个 db/ 测试与 2 个根相对导入的 scripts/tests；tooling/index 转发改同目录。
+  - **CS2 第一段**：迁移 **0019**（10 张 lang 播种表 ADD COLUMN seed_hash，**不回填**——NULL 即「无凭据=用户态」标记）；`seed-merge.ts` 的 `mergeSeedRow` 五动作（created/unchanged/updated/user-modified/legacy-adopted）；lang_topics 播种器全量三态化（结果增可选 `updated`/`userModified` 计数，created/ignored 语义不变以保既有用例）。**第二段登记**：p1-5/p1-6/p1d-profiles 的无条件覆盖 upsert 改三态（行为变化，单独立段测）；p1b-resources 系与 p1-7 机械跟进。
+  - **RQ4**：`inject/section-diff.ts` 纯函数（受管块/块外自由区、缺标记记 missing、自由区「永不触碰」提示）；diff 命令在包侧可达时对漂移文件给段级明细（POST preview），离线降级文件级；退出码与五状态零变化。
+  - **CS4**：`topics/:id` 增 `attached_terms`；新 `GET /api/lang/topics`（filterTopics + coverage + options）；新 `GET /api/lang/resources/readme`（exportResourcesReadme，只读不写盘）；`pnpm m9:grade-guard` 闸（0 命中实测）。三模块物理迁回 db/ 并进主 barrel。
+  - **CS5**：`scripts/barrel-audit.ts`（含 as 别名与块内注释解析修正）+ `pnpm barrel:audit`；摘 `InjectAskFn` 死别名 ⇒ **主出口 388 符号零消费 0**。
+- **测试验证**:
+  - `packages/core/src/db/seed-merge.test.ts` → **6/6**：五动作矩阵（updated 覆盖并推进哈希 / user-modified 永不覆盖 / legacy 同内容补登·异内容跳过）+ 端到端 CS2-01（改种子 ⇒ reseed 生效 updated=1）/ CS2-02（用户手改 ⇒ userModified=1 且内容保留）。**CS2-02 当场抓出 unchanged 单比缺陷并修正为双比**。
+  - `section-diff.test.ts` 4/4 + `diff-sections.test.ts` 2/2（1000 行改 1 行段级可见；自由区差异不改 managed 判定；离线降级）。
+  - `core-db.test.ts` 8/8（迁移清单合同 18→19 三处期望数组 + 计数随迁）。
+  - `tooling-face.test.ts` 4/4（闸面随 CS4 更新：三模块转 PRODUCT_STAYS，DEAD_MOVED 仅 grade-guard）；`langRoadmap.api.test.ts` 等路由面 65/65 绿。
+  - `pnpm m9:grade-guard` → 0 命中；`pnpm barrel:audit` → 388 符号 / 零消费 0；`pnpm verify:matrix` 相关面不受影响。
+  - 全量 `pnpm test` → **177 文件 / 2309 用例全绿**；`pnpm typecheck` 除并行会话 15:33 新建在编文件（`scripts/restore-link-check.ts`，Dirent 类型在其编）外零错误；`pnpm docs:check` 退出码 0；lint 余 4 条全在并行会话在编文件（langRoadmap.api.test.ts）。
+  - 复算命令：`grep -rn "ON CONFLICT(bundle) DO UPDATE SET content_hash" packages/core/src --include='*.ts' | grep -v seed-registry | wc -l`（→0）；`pnpm barrel:audit | tail -1`；`pnpm m9:grade-guard`；`grep -c "0019_lang_seed_hash" packages/core/src/db/core-db.test.ts`（→4）。
+- **潜在风险**:
+  - ① CS2 第一段只接 lang_topics：其余播种表已有 seed_hash 列（0019）但播种逻辑未接 merge——第二段完成前，那些表的 reseed 行为**维持原状**（IGNORE 类不更新；覆盖类仍会覆盖用户手改——后者是真隐患，优先级最高）。
+  - ② `GET /api/lang/topics` 与 `/resources/readme` 是新公开面：未进 docs:check 的契约串闸面（无既有契约串），web 端未接消费——接口先行，UI 随学习线下一次需求。
+  - ③ RQ4 段级明细依赖 serve 可达：离线 diff 的段级能力缺失已在提示里如实声明；「段外自由区」判定按行集全等（非逐行 diff），两侧行数大时报告粒度是段级不是行级——符合 spec 判据（段名 + 行数）。
+  - ④ grade-guard 闸未进 CI 矩阵（npm script 就位，ci.yml 是 owner 的并行会话改动面）——接入 CI 留 owner 或下一段。
+  - ⑤ mergeSeedRow 的哈希键序依赖调用方按 contentColumns 固定构建 record——lang_topics 现按字面量序构建；未来接新表时列序错乱会导致假 user-modified（宁误报保护，不静默覆盖）。

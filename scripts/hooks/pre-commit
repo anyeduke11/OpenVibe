@@ -1,28 +1,31 @@
 #!/bin/sh
-# pre-commit —— agent 记忆导出件与源分叉时，拦住这次提交。
+# pre-commit —— 提交前的两道机械闸：① agent 记忆导出件与源分叉；② 并行写同一工作树的并发护栏。
 #
 # ## 为什么需要它
 #
 # 导出件是**点时快照**（这是设计，不是缺陷）⇒ 源改了之后仓里那份会**静默过期**。
 # `pnpm memory:check` 能查出来，但它**要人记得跑** ⇒ 本钩子把「记得跑」变成「提交时被拦」。
 #
+# 第二道闸（concurrency-guard）针对的是另一次真事故：并行会话共用同一工作树时，
+# 「整文件改写 + 暂存」会把别人尚未提交的正文覆盖掉，且**全程没有任何信号** ⇒
+# 护栏让「这次提交的内容比磁盘上最新内容旧」这件事在提交前显形。
+#
 # ## 安装（一次性；`.git/hooks/` 不进版本库，所以模板在仓里、钩子装到本机）
 #
 #   cp scripts/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
 #
-# ## 行为约定（**只在源存在时生效**）
+# ## 行为约定
 #
-# - 源目录不存在（CI、别人的机器、换了 profile）⇒ **放行**，绝不因为「查不到源」而拦提交。
-# - `npx` 不可用 ⇒ 放行（钩子不该在别的机器上制造麻烦）。
+# - 源目录不存在（CI、别人的机器、换了 profile）⇒ 记忆那道**放行**，绝不因为「查不到源」而拦提交。
+# - `npx` 不可用 ⇒ 整体放行（钩子不该在别的机器上制造麻烦）。
 # - 源与导出件不一致 ⇒ **拒绝提交**，并打印同步命令。
+# - 并发护栏命中 ⇒ **拒绝提交**，并打印规则、文件、原因与处置方式。
 #
-# 覆盖：可用 `AGENT_MEMORY_DIR` 环境变量指定别的 profile 的记忆目录。
+# 覆盖：可用 `AGENT_MEMORY_DIR` 环境变量指定别的 profile 的记忆目录；
+# 并发护栏的规则 A 可用 `OPENVIBE_ALLOW_PARTIAL_STAGE=1` 显式放行（规则 B 不放行）。
 set -e
 
 SRC="${AGENT_MEMORY_DIR:-$HOME/.minimax/agents/mavis/memory}"
-
-# 源不在 ⇒ 放行（不是「有问题」，是「这里没有可比的东西」）
-[ -d "$SRC" ] || exit 0
 
 # npx 不可用 ⇒ 放行
 command -v npx >/dev/null 2>&1 || exit 0
@@ -30,12 +33,25 @@ command -v npx >/dev/null 2>&1 || exit 0
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 cd "$ROOT"
 
-if npx tsx scripts/export-agent-memory.ts --from "$SRC" --check >/dev/null 2>&1; then
-  exit 0
+# ── 闸一：agent 记忆导出件与源分叉 ──
+# 源不在 ⇒ 放行（不是「有问题」，是「这里没有可比的东西」）
+if [ -d "$SRC" ]; then
+  if ! npx tsx scripts/export-agent-memory.ts --from "$SRC" --check >/dev/null 2>&1; then
+    echo "✗ 提交被拦：agent 记忆导出件（docs/agent-memory/）与源已分叉。"
+    echo "  源：$SRC"
+    echo "  同步命令：npx tsx scripts/export-agent-memory.ts --from $SRC --date $(date +%F)"
+    echo "  （只想跳过这一次：用 git commit --no-verify）"
+    exit 1
+  fi
 fi
 
-echo "✗ 提交被拦：agent 记忆导出件（docs/agent-memory/）与源已分叉。"
-echo "  源：$SRC"
-echo "  同步命令：npx tsx scripts/export-agent-memory.ts --from $SRC --date $(date +%F)"
-echo "  （只想跳过这一次：用 git commit --no-verify）"
-exit 1
+# ── 闸二：并发护栏（并行会话共用工作树时的提交前护栏）──
+# 护栏命中时必须**真正阻断提交**（exit 1），且它的输出必须让人看见
+# （它写清了哪条规则、哪些文件、为什么危险、怎么处置）⇒ 失败时原样打印，成功时不刷屏。
+GUARD_OUT="$(npx tsx scripts/concurrency-guard.ts 2>&1)" || {
+  printf '%s\n' "$GUARD_OUT"
+  echo "  （并发护栏以非零码退出；若因 npx/tsx 不可用导致，先修环境，或用 git commit --no-verify）"
+  exit 1
+}
+
+exit 0

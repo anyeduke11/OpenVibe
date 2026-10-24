@@ -70,6 +70,7 @@ import {
   auditAliasTables,
   auditScope,
   auditSectionRefs,
+  classifyRef,
   danglingMessage,
   DOC_ALIAS_FILE,
   indexSections,
@@ -149,10 +150,206 @@ export function checkDevNumbering(log: string): Finding[] {
   return out
 }
 
+/* ════════════════════════════════════════════════════════ FR-1.5 · DEV 号跨文件唯一 */
+
+/**
+ * ⚠️ **号是 FR-1.5 而不是 FR-1.3**：治理规格 §4 的 FR-1 已有 FR-1.1～FR-1.4
+ * （FR-1.3 是「违规形态必须能报」的变异腿要求，FR-1.4 是具名号集口径）⇒ 占用同号
+ * 就是两条口径管一件事。本条是 FR-1 之下**新立**的一条子项，**不计入判据条数**
+ * （dev-plan §16.10：条数 > 8 即触发复审，现为 8）。
+ */
+
+/**
+ * FR-1.5 · 同一个 DEV 号在仓内**只能对应一个登记日期**。
+ *
+ * ## 它判什么、为什么 FR-1.1 不够
+ *
+ * FR-1.1 只扫 `DEV_LOG.md` 的**标题** ⇒ 它看不见「同一个号在**别的文档**里各自成篇」。
+ * 2026-10-24 实测到的真撞车：2026-10-17/18 那轮把登记直接写在 `docs/dev-plan-v0.2.1.md`
+ * 的引文里（从未进 DEV_LOG.md），与 DEV_LOG.md 的登记撞了 **11 个号**
+ * （0107–0115、0117、0118）⇒ 同一个号指两轮不同的登记，读者拿号去查登记会查到另一轮。
+ *
+ * ## 红的口径（可证伪）
+ *
+ * **同一个号在仓内被指认了 ≥2 个不同的登记日期 ⇒ 判红。**
+ *
+ * 日期只有两个来源：① `DEV_LOG.md` 的登记标题（`## [DEV-NNNN] 2026-10-24 · …`）；
+ * ② 扫描面（`docs/*.md` ＋ `docs/specs/*.md`）里与该号**紧邻**的日期。
+ *
+ * ⚠️ **DEV_LOG.md 的正文不作日期来源**：正文是对登记的**叙述与引述**（含对别的文档
+ * 登记的原文引述，以及对撞车现象本身的登记）。把「引述」当成「一次登记」是范畴错误 ——
+ * 它恰恰会造出本闸要防的那种假歧义。代价：写在 DEV_LOG 正文里的**非标题形态**登记
+ * 不被本闸覆盖（标题形态仍覆盖，因为标题才是登记本身）。
+ *
+ * ## 「紧邻」为什么必须紧邻
+ *
+ * 宽松邻接会把无关日期挂到号上 ⇒ 造出假的歧义号 ⇒ 假红。两种实测必须排除的写法：
+ * - `（DEV-0092；2026-10-13 20:00 / …）` —— 日期属于**采样行**，不属于那个登记；
+ * - `（2026-10-16 订正：…采样早于 DEV-0101 所致）` —— 日期属于订正语，不属于登记。
+ * ⇒ 配对只认「相邻且中间无实质文字」：最多允许一个分隔符（`·` `、` `｜`）与空白。
+ *
+ * ## 已消解的撞车（2026-10-24 本轮）
+ *
+ * 11 个撞号已从 2026-10-17/18 侧迁到空号段 `DEV-0127`～`DEV-0137`；
+ * DEV_LOG 侧（2026-10-22/24）的编号**不动** —— 它被代码与 spec 引用。映射见 DEV-0116 补记。
+ */
+
+/** 一处 DEV 号引用 */
+export interface DevRef {
+  /** 四位编号 */
+  number: string
+  /**
+   * 本行与该号**紧邻**的登记日期（可能有多个）。
+   *
+   * **用数组不用单值**：同一行里同一个号被指认了两个不同日期（`DEV-0112（2026-10-17）…DEV-0112（2026-10-24）`）
+   * 本身就是一次「同号两轮」的撞车 —— 用单值会把前一个日期**静默丢掉** ⇒ 撞车漏检。
+   */
+  dates: string[]
+  path: string
+  /** 行号（1 起） */
+  line: number
+  /** 该行原文（截断） */
+  text: string
+}
+
+/** 一个号在某一天上的登记出处 */
+export interface DevDateSite {
+  date: string
+  path: string
+  line: number
+  text: string
+}
+
+/** 号在前、日期在后的紧邻配对。 */
+const DEV_DATE_AFTER_RE = /DEV-(\d{4})[（(]?\s*[·・、|]?\s*(20\d\d-\d\d-\d\d)/g
+/** 日期在前、号在后的紧邻配对。 */
+const DEV_DATE_BEFORE_RE = /(20\d\d-\d\d-\d\d)[（(]?\s*[·・、|]?\s*DEV-(\d{4})/g
+
+/**
+ * 采集扫描面内的全部 DEV 号引用，并标注哪些**紧邻**一个登记日期。
+ *
+ * 同号在同一行出现多次时，只要该行有一处紧邻日期，这一行的该号**全部**视为带日期 ——
+ * 否则「DEV-0112（2026-10-17）…DEV-0112…」这类半句会让同一个号既算带日期又算不带，
+ * 判定结果取决于同一行内的措辞，而不是取决于事实。
+ */
+export function collectDevRefs(files: { path: string; lines: string[] }[]): DevRef[] {
+  const out: DevRef[] = []
+  for (const f of files) {
+    // 行内该号被指认过的全部日期（一个号一个日期集，不是单值 —— 见 DevRef.dates）
+    const dated = new Map<string, Set<string>>()
+    const mark = (key: string, date: string): void => {
+      const set = dated.get(key) ?? new Set<string>()
+      set.add(date)
+      dated.set(key, set)
+    }
+    f.lines.forEach((line, i) => {
+      for (const m of line.matchAll(DEV_DATE_AFTER_RE)) mark(`${i}|${m[1] ?? ''}`, m[2] ?? '')
+      for (const m of line.matchAll(DEV_DATE_BEFORE_RE)) mark(`${i}|${m[2] ?? ''}`, m[1] ?? '')
+    })
+    f.lines.forEach((line, i) => {
+      for (const m of line.matchAll(/DEV-(\d{4})/g)) {
+        const number = m[1] ?? ''
+        out.push({
+          number,
+          dates: [...(dated.get(`${i}|${number}`) ?? [])].sort(),
+          path: f.path,
+          line: i + 1,
+          text: line.trim().slice(0, 120),
+        })
+      }
+    })
+  }
+  return out
+}
+
+/**
+ * 一个 DEV 号在仓内的**登记日期出处**。
+ *
+ * 登记单源：`DEV_LOG.md` 的标题（日期取标题开头；标题无日期则该号没有登记日）。
+ * 其余来源：扫描面内的带日期引用。
+ */
+export function collectDevDates(log: string, refs: DevRef[]): Map<string, DevDateSite[]> {
+  const out = new Map<string, DevDateSite[]>()
+  const add = (n: string, d: string | undefined, path: string, line: number, text: string): void => {
+    if (!d) return
+    const arr = out.get(n) ?? []
+    arr.push({ date: d, path, line, text })
+    out.set(n, arr)
+  }
+  for (const m of log.matchAll(/^## \[DEV-(\d{4})\] (.+)$/gm)) {
+    const dm = /^\s*(20\d\d-\d\d-\d\d)/.exec(m[2] ?? '')
+    add(m[1] ?? '', dm?.[1], 'DEV_LOG.md', 0, (m[2] ?? '').trim().slice(0, 80))
+  }
+  for (const r of refs) {
+    for (const d of r.dates) add(r.number, d, r.path, r.line, r.text)
+  }
+  return out
+}
+
+/**
+ * FR-1.5 的判定（纯函数）。
+ *
+ * **判「同一个号被指认了 ≥2 个不同登记日期」**，而不是判「无日期引用指向歧义号」：
+ * 后者只是歧义的**后果** —— 只治后果的话，新造一个撞号而恰好没人写不带日期的引用，
+ * 就能从闸下溜过去；前者判的是歧义本身。
+ */
+export function checkDevCrossFileUniqueness(
+  log: string,
+  files: { path: string; lines: string[] }[],
+): Finding[] {
+  const out: Finding[] = []
+  const dates = collectDevDates(log, collectDevRefs(files))
+  for (const [n, sites] of [...dates].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const distinct = [...new Set(sites.map((s) => s.date))].sort()
+    if (distinct.length < 2) continue
+    const where = distinct.map((d) => {
+      const hit = sites.find((s) => s.date === d)
+      return `${d} @ ${hit?.path ?? '?'}:${hit?.line ?? 0}`
+    })
+    out.push({
+      rule: 'FR-1.5',
+      level: 'error',
+      message: `DEV-${n} 在仓内对应 ${distinct.length} 个登记日期（${distinct.join(' / ')}）⇒ 编号跨文件不唯一`,
+      evidence: where.join(' ｜ '),
+    })
+  }
+  return out
+}
+
+/**
+ * 只报数的面：**登记散落**清单 —— 有登记日期、但 `DEV_LOG.md` 里没有对应标题的号。
+ *
+ * 这不是撞车（撞车由 FR-1.5 判红），而是**登记没进单源**：读者拿着号去 DEV_LOG.md 查，
+ * 查不到。2026-10-24 实测：2026-10-17/18 那轮把 16 条登记写在计划文的引文里，
+ * 从未进 DEV_LOG.md ⇒ 读者无从查起。本面只报数，供 owner 决定要不要回填。
+ */
+export function collectDevShadowRegistrations(
+  log: string,
+  files: { path: string; lines: string[] }[],
+): { number: string; dates: string[] }[] {
+  const registered = new Set<string>()
+  for (const m of log.matchAll(/^## \[DEV-(\d{4})\]/gm)) registered.add(m[1] ?? '')
+  const grouped = new Map<string, Set<string>>()
+  for (const r of collectDevRefs(files)) {
+    if (r.dates.length === 0 || registered.has(r.number)) continue
+    const set = grouped.get(r.number) ?? new Set<string>()
+    for (const d of r.dates) set.add(d)
+    grouped.set(r.number, set)
+  }
+  return [...grouped]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([number, dates]) => ({ number, dates: [...dates].sort() }))
+}
+
 /** 队列状态闭集（FR-2.1）。**枚举写死在代码里**，新增态必须显式改代码，不能在文档里随手造词。 */
 export const QUEUE_STATES = ['待裁', '待签', '可做待排', '部分授权', '已裁待落', '已裁已落'] as const
 
-const CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟'
+/**
+ * 队列号位闭集。2026-10-24 扩到 ㊿：㉞ 行登记「㉟ 保留给 RF1-5 的 11-a」后，v0.2.3 批次
+ * 裁决留痕跳号占 ㊱（U+32B1 区段）——原闭集止于 ㉟（U+325F），不扩则 ㊱ 行读不到，
+ * 净状态求和会假红（实测：求和 35 ≠ 行数 34）。
+ */
+const CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿'
 
 /**
  * FR-2 · 队列行状态枚举合法 ＋ 净状态计数自洽。
@@ -163,7 +360,7 @@ const CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑
 export function checkQueue(decisions: string): Finding[] {
   const out: Finding[] = []
   const lines = decisions.split('\n')
-  const rowRe = /^\|\s*([①-㉟]+)\s*\|/
+  const rowRe = /^\|\s*([①-㉟㊱-㊿]+)\s*\|/
   const rows: { id: string; state: string; line: number }[] = []
 
   // 状态列的偏移**从表头取**，不写死索引：写死 `cells[3]` 的话，
@@ -562,6 +759,124 @@ export function checkNegativeClaims(files: { path: string; lines: string[] }[]):
   return out
 }
 
+/* ════════════════════════════════════════════════════════ FR-11.2 · 凭据指向空处 */
+
+/**
+ * FR-11.2 · 否定断言的**凭据指向空处** ⇒ 判红。
+ *
+ * ## 它判什么、为什么 FR-11.1 不够
+ *
+ * FR-11.1 只断「有没有可复算入口」，**不断入口指的东西在不在** ⇒ 一条凭据可以
+ * 指向一个空处而照样通过 FR-11.1。2026-10-24 实测到的真例：
+ * `docs/specs/m4-playbook.md` 的否定断言「全仓零实现」原写「见本文件 FR-5.2」，
+ * 而该文件只有 `### FR-5` ⇒ **凭据落空，等于没凭据**（该处已于 2026-10-24 就地改指，
+ * 本条是把这一类缺陷**变成闸**，不是重复修一遍）。
+ *
+ * ## 判红的形态（**只判自指形态**）
+ *
+ * - **形态 ① · 自指节指针**：`本文件 §N` —— 本文件**没有**该节 ⇒ 判红。
+ * - **形态 ② · 自指 FR 指针**：`本文件 FR-N[.M]` —— 本文件**没有**该标识 ⇒ 判红。
+ *
+ * ## 为什么只判自指形态（口径单处，别把一件事拆成两条口径）
+ *
+ * - **限定型节指针**（`X.md §N`）落空**由 FR-12.1 判** —— 同一处再判一次就是两条口径管一件事。
+ * - **跨文件 FR 指针**（`X.md FR-N.M`）**不判**：FR 子编号常是节内有序列表条目、不是标识 ——
+ *   实测全仓 26 处 `X.md FR-N.M` 指针的父 FR 都存在、只是子编号不作标识，判它必假红。
+ * - **裸 `§N`** 不判：本仓裸 § 常指别的文档（FR-12.2 已定）。
+ *
+ * ## 两条排除（没有它们就是自指误报）
+ *
+ * - **窗口里有可复算命令 ⇒ 不判**：凭据已经成立，那条指针是订正段或旁证，不是凭据本身。
+ * - **指针在引号内（「」『』）⇒ 不判**：纠正段必须原样引出被纠正的那句话
+ *   （FR-11 的凭据窗口之所以是三行，就是为了容下这种订正段）—— 引述不是活指针。
+ */
+
+/** 凭据窗口内的「自指节指针」：`本文件 §N` / `本文件 §N.M` */
+const SELF_SECTION_RE = /本(?:文件|文档|spec|规格)(?:的)?\s*§\s*([\d]+(?:\.[\d]+)?)/g
+/** 凭据窗口内的「自指 FR 指针」：`本文件 FR-N[.M]` */
+const SELF_FR_RE = /本(?:文件|文档|spec|规格)(?:的)?\s*FR-(\d+(?:\.\d+)?)/g
+
+/**
+ * 一个文件里**定义**过的 FR 标识（`FR-N` 与 `FR-N.M`），以及它们的父号。
+ *
+ * **只收「定义形态」，不收「提及」** —— 提及不等于条目：一句话里写「见 FR-9.3」
+ * 只是引用，若把它算成「本文件有 FR-9.3」，闸就成了永真。
+ * 定义形态四种（与 FR-12.4 的子项形态同款取舍）：标题 / 粗体条目 / 列表条目 / 表格行首标签。
+ *
+ * **父号一并记入**：`FR-5.2` 被定义 ⇒ `FR-5` 也算存在（拆分口径）。
+ */
+export function collectFrIds(content: string): Set<string> {
+  const ids = new Set<string>()
+  const patterns = [
+    /^#{2,6}\s+.*?\bFR-(\d+(?:\.\d+)?)\b/gm, // 标题：### FR-5 / ### FR-5.2
+    /\*\*FR-(\d+(?:\.\d+)?)\b/g, // 粗体条目：**FR-5.2 …
+    /^\s*[-*]\s+FR-(\d+(?:\.\d+)?)\b/gm, // 列表条目：- FR-3.1 …
+    /\|\s*\*{0,2}FR-(\d+(?:\.\d+)?)\b/g, // 表格行首标签：| FR-6.1 | …
+  ]
+  for (const re of patterns) {
+    for (const m of content.matchAll(re)) {
+      const id = m[1] ?? ''
+      ids.add(id)
+      ids.add(id.split('.')[0] ?? id)
+    }
+  }
+  return ids
+}
+
+/**
+ * FR-11.2 的判定（纯函数）。
+ *
+ * 范围：**否定断言的凭据窗口**内。窗口定义与 FR-11.1 共用（`classifyNegativeClaim`），
+ * 措辞表也共用（`NEGATIVE_CLAIM_PATTERNS`）⇒ 口径单处。
+ */
+export function checkCredentialTargets(files: { path: string; lines: string[] }[]): Finding[] {
+  const out: Finding[] = []
+  for (const f of files) {
+    const content = f.lines.join('\n')
+    const index = indexSections(content)
+    const frIds = collectFrIds(content)
+    f.lines.forEach((line, i) => {
+      let hit: (typeof NEGATIVE_CLAIM_PATTERNS)[number] | undefined
+      for (const p of NEGATIVE_CLAIM_PATTERNS) {
+        if (!p.re.test(line)) continue
+        hit = p
+        break
+      }
+      if (!hit) return
+      // 凭据窗口 = 本行 ＋ 后两行（与 FR-11.1 同一份定义，见 classifyNegativeClaim）
+      const window = `${line}\n${f.lines[i + 1] ?? ''}\n${f.lines[i + 2] ?? ''}`
+      // 排除一：窗口里已有可复算命令 ⇒ 凭据成立，那条指针是订正段或旁证
+      if (EVIDENCE_HINT.test(window)) return
+      // 排除二：引号内的指针是引述，不是活指针（纠正段必须原样引出被纠正的那句话）
+      const quoted = (window.match(/[「『][^」』]*[」』]/g) ?? []).join('\n')
+      for (const m of window.matchAll(SELF_SECTION_RE)) {
+        const ref = m[1] ?? ''
+        if (quoted.includes(m[0])) continue
+        // 节号解析复用 FR-12 的同一份索引与判定（父节在、子项没登记 ⇒ 不判红）
+        if (classifyRef(ref, index) !== 'dangling') continue
+        out.push({
+          rule: 'FR-11.2',
+          level: 'error',
+          message: `否定断言的凭据指向空处：本文件无 §${ref} ⇒ 该断言没有可复算落点`,
+          evidence: `${f.path}:${i + 1}`,
+        })
+      }
+      for (const m of window.matchAll(SELF_FR_RE)) {
+        const id = m[1] ?? ''
+        if (quoted.includes(m[0])) continue
+        if (frIds.has(id)) continue
+        out.push({
+          rule: 'FR-11.2',
+          level: 'error',
+          message: `否定断言的凭据指向空处：本文件无 FR-${id} ⇒ 该断言没有可复算落点`,
+          evidence: `${f.path}:${i + 1}`,
+        })
+      }
+    })
+  }
+  return out
+}
+
 /* ════════════════════════════════════════════════════════ FR-12 */
 
 /**
@@ -741,14 +1056,25 @@ export interface Metrics {
   claimSample: ClaimSample
   /** 探针五问结果文件的存在性与填写度（不判红绿） */
   probe: { file: string | null; missing: string[]; unfilled: string[] }
+  /** FR-1.5 只报数面：登记散落清单（有带日期的登记，但 DEV_LOG.md 无对应标题） */
+  devShadow: { number: string; dates: string[] }[]
+  /**
+   * 裁决同步面（v0.2.3 增设，只报数）：spec §8.2「裁定记录」小节是否在 decisions
+   * 队列留痕。留痕判据 = decisions.md 表格里出现该 spec 文件名。**不判红绿** ——
+   * 留痕与否是 owner 的动作（裁决单源在 spec §8.2，队列是 owner 的账本），这里只
+   * 把「哪几份 spec 的裁决还没进队列」变成一个可见的数，消除「两处单源」的漂移张力。
+   */
+  rulingSync: { specs: string[]; synced: string[]; unsynced: string[] }
 }
 
-export function collectMetrics(repoRoot: string): Pick<Metrics, 'mt4' | 'mt6'> {
+export function collectMetrics(repoRoot: string): Pick<Metrics, 'mt4' | 'mt6' | 'rulingSync'> {
   const specs = readdirSync(join(repoRoot, 'docs/specs')).filter((f) => f.endsWith('.md'))
   let denominator = 0
   let numerator = 0
+  const rulingSpecs: string[] = []
   for (const f of specs) {
     const content = readFileSync(join(repoRoot, 'docs/specs', f), 'utf8')
+    if (/^### 8\.2 裁定记录/m.test(content)) rulingSpecs.push(f)
     for (const line of content.split('\n')) {
       if (!/^\|\s*[a-z0-9]+\s*\|/.test(line)) continue
       denominator++
@@ -757,6 +1083,14 @@ export function collectMetrics(repoRoot: string): Pick<Metrics, 'mt4' | 'mt6'> {
     }
   }
   const ratio = denominator === 0 ? '0/0' : `${numerator}/${denominator}`
+  let decisionsText = ''
+  try {
+    decisionsText = readFileSync(join(repoRoot, 'docs/decisions.md'), 'utf8')
+  } catch {
+    decisionsText = ''
+  }
+  const synced = rulingSpecs.filter((f) => decisionsText.includes(f))
+  const unsynced = rulingSpecs.filter((f) => !decisionsText.includes(f))
   return {
     mt4: { numerator, denominator, ratio },
     mt6: {
@@ -765,6 +1099,7 @@ export function collectMetrics(repoRoot: string): Pick<Metrics, 'mt4' | 'mt6'> {
       被引用数字vs来源: 0,
       契约串vs实现: 0,
     },
+    rulingSync: { specs: rulingSpecs, synced, unsynced },
   }
 }
 
@@ -1112,6 +1447,8 @@ export function runAll(repoRoot: string): { findings: Finding[]; metrics: Metric
   const findings: Finding[] = [
     ...checkSectionRefs(repoRoot, baseline),
     ...checkDevNumbering(log),
+    ...checkDevCrossFileUniqueness(log, docFiles),
+    ...checkCredentialTargets(docFiles),
     ...checkQueue(decisions),
     ...checkRelativeLinks(linkFiles, (p) => existsSync(p)),
     ...checkSpecVersions(specs),
@@ -1132,6 +1469,7 @@ export function runAll(repoRoot: string): { findings: Finding[]; metrics: Metric
       ...collectMetrics(repoRoot),
       claimSample: sampleClaimCredentials(repoRoot, docFiles),
       probe: checkProbeResults(repoRoot),
+      devShadow: collectDevShadowRegistrations(log, docFiles),
     },
   }
 }
@@ -1159,6 +1497,18 @@ export function render(result: { findings: Finding[]; metrics: Metrics }): strin
   out.push(`── MT4 验证覆盖比：${result.metrics.mt4.ratio}（不判红绿，只报数）`)
   out.push('── MT6 可机判漂移数（不判红绿，只报数）')
   for (const [k, v] of Object.entries(result.metrics.mt6)) out.push(`   · ${k}：${v}`)
+
+  const rs = result.metrics.rulingSync
+  out.push(
+    `── 裁决同步面：${rs.specs.length} 份 spec 有 §8.2 裁定记录，其中 ${rs.synced.length} 已在 decisions 队列留痕、${rs.unsynced.length} 未留痕（不判红绿，只报数；留痕是 owner 动作）`,
+  )
+  for (const f of rs.unsynced) out.push(`   · 未留痕：docs/specs/${f}（裁决单源在该文件 §8.2）`)
+
+  const sh = result.metrics.devShadow
+  out.push(
+    `── 登记散落面：${sh.length} 个号在文档里有带日期的登记，但 DEV_LOG.md 无对应标题（不判红绿，只报数；读者拿号去查登记会查不到）`,
+  )
+  for (const s of sh) out.push(`   · DEV-${s.number}：${s.dates.join(' / ')}`)
 
   const cs = result.metrics.claimSample
   out.push(
