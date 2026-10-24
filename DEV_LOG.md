@@ -2962,17 +2962,86 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   ⑦ **本条目所在的仓根 md 在附面，只报数不判红** ⇒ 其中提到的节号形态若落在已删节号上会被记一条断链（读结论必须回原文看）。
   ⑧ **`docs/dev-plan.md` 与 `docs/decisions.md` 等属 owner 裁定的保留区**，本轮**未改**（只登记、不代改）；保留区造成的断链与凭据缺失按原样登记在基线里。
 
-### ⚠️ DEV-0112 / DEV-0113 / DEV-0114 —— 三笔登记的**正文待补回**（2026-10-24 并发写入覆盖）
+## [DEV-0112] 2026-10-24 · v0.2.3 批次 A 开工：better-sqlite3 载入失败可读诊断（FR-3）落地
 
-> **如实登记，不伪造正文**：本会话在整理 `DEV_LOG.md` 的提交内容时，用「整文件重写」的方式构造只含本会话条目的暂存版本，**覆盖掉了并行会话当时尚未提交的 DEV-0112／DEV-0113／DEV-0114 三条正文**。
-> **已确认无法从版本库恢复**：查过 `git fsck --unreachable` 的全部游离 commit，均不含这三笔（并行会话当时尚未提交）。
-> **本占位刻意不用 `## [DEV-011n]` 标题格式** —— 用了会让该会话补回真标题时撞成**重号**（FR-1.1 判红）；不用标题格式则只留**断号**（FR-1.2 已在基线通配登记内，仅 warning）。
-> **待补内容的三笔标题（该会话补回时照此写即可）**：
-> ① `DEV-0112` 2026-10-24 · v0.2.3 批次 A 开工：better-sqlite3 载入失败可读诊断（FR-3）落地
-> ② `DEV-0113` 2026-10-24 · v0.2.3 批次 A 收尾（复验矩阵工具）＋ 批次 B 开工（openvibe verify 三方一致性核验 FR-4）
-> ③ `DEV-0114` 2026-10-24 · v0.2.3 批次 A 裁决收尾 ＋ 批次 B 收尾（OM1/OM2 落地 + 协议就绪 + 两 spec 升 v1.0）
-> **已知的正文片段（其余内容需该会话从自己的上下文补回）**：DEV-0114 内含「**批次 A 裁决②**复验平台 = macOS + Linux 容器；**裁决③**诊断文案定稿即现稿（DEV-0112 落地）」。
-> **本会话造成的损失范围仅限这三笔日志正文** —— 该会话的**代码与规格改动**（`docs/specs/v023-*.md` 等）**未受影响**，仍在工作树里。
+> **⚠️ 本条正文为「倒推重建」，不是原作者原话**：2026-10-24 两个会话并发写 `DEV_LOG.md`，本会话用「整文件重写」构造只含自己条目的暂存版本 ⇒ **覆盖掉并行会话当时尚未提交的 DEV-0112／DEV-0113／DEV-0114 三条正文**。**已穷尽所有恢复路径，均不可得**：① `git fsck --unreachable --no-reflogs` 的 75 个游离 blob 与全部游离 commit 逐个扫过，**均不含**这三笔；② 本机两个 profile 的会话存档（`~/.minimax/v2/sessions/`、`~/.minimax-agent-cn/`）搜「DEV-0114」只命中本会话自己写的占位段，**并行会话的会话记录不在本机**；③ 并行会话至今未提交，其工作树产物被覆盖的只有日志正文。⇒ 本条与后两条按**工作树里可核的产物**重建，**每条结论都指向具体文件与命令**，措辞非原作者原话。**该会话的代码与规格改动未受影响**（`docs/specs/v023-a~e-*.md`、`packages/core/src/db/native-load.ts` 等仍在工作树），本条登记的正是那些产物。
+>
+> **⚠️ 编号撞车（真缺陷，如实登记）**：`DEV-0112`～`DEV-0119` 这段号**已被 2026-10-17 那轮用过** —— 那轮的正文**从未进 DEV_LOG.md**（逐个 commit 扫过，命中数 0），而是直接登记在 `docs/dev-plan-v0.2.1.md` 的引文里（`:631`「DEV-0112（2026-10-17）…」、`:700`「DEV-0114（2026-10-17）…」、`:736`「DEV-0115（2026-10-17）…」等）。⇒ **同一个号在仓里指两轮不同的登记**：DEV_LOG.md 侧是 2026-10-24 的 v0.2.3 批次，dev-plan 引文侧是 2026-10-17 的 M8 轮。**FR-1.1 只扫 DEV_LOG.md 的标题 ⇒ 判不出这个撞车**（实测 0 违规）⇒ 属**当前闸覆盖不到的缺陷**。本轮**未改**那些引文（「日志不回改」），只在此登记并给出读法：**DEV_LOG.md 里的编号以本文件为准；dev-plan-v0.2.1.md 引文里的 2026-10-17 编号是另一套**。
+
+- **时间**: 2026-10-24
+- **类型**: 产品实现（v0.2.3 批次 A · FR-3 可读诊断面）＋ 文档治理
+- **关联文件**: `packages/core/src/db/native-load.ts`、`packages/core/src/db/native-load.test.ts`、`docs/specs/v023-a-launch.md`、`docs/PRD-v0.2.3-v1.0-20261024.md`
+- **问题描述**: CLI 启动链静态 `import @openvibe/core`（barrel）⇒ 原生模块 `better-sqlite3` 在**任何代码执行之前**就必须装好；ABI 不匹配时进程**死在模块加载期**，任何 `try/catch` 都来不及挂 ⇒ 用户看到的是**原始编译错误堆栈**，不是「怎么修」。
+- **实现思路**: 把原生模块加载**从顶层 import 改为懒加载**（首次打开数据库时才加载）⇒ ① 加载失败被收敛成一个**结构化错误**，走 `serve` 既有错误通道输出三要素（**当前平台与架构 / Node 版本与 ABI / 三条修复路径**：重装或手动触发 prebuild、切换 Node LTS、源码编译的前置条件）；② **不打开数据库的路径照常可用**（`sync --file` 等离线命令、`--help`）⇒ 原生模块损坏的机器上仍能自救。加载点**单源**（`serve` 与各命令路径共用同一入口，不两处实现）。
+- **核心变更**:
+  - 新增 `packages/core/src/db/native-load.ts`：**全仓唯一的 better-sqlite3 受控加载点**（`createRequire` ＋ 懒加载 ＋ 三要素诊断），文件头写明了「为何不是顶层 import」的机制理由。
+  - 新增 `packages/core/src/db/native-load.test.ts`：诊断的构造与三要素文案的可判用例。
+  - `apps/cli/test/native-failure.test.ts`：**真子进程**跑一次「加载失败 ⇒ 诊断输出 ⇒ 退出码非 0 ⇒ 不透出堆栈」（实测 2 支，其中 1 支是 `serve：三要素诊断 + DB_OPEN_FAILED 信封 + 退出码 1，不透出堆栈`）。
+  - 规格面：`docs/specs/v023-a-launch.md` FR-3（诊断三要素 ＋ 单源要求 ＋ 退出码非 0 ＋ 纯文本无 TTY 依赖），与 `docs/PRD-v0.2.3-v1.0-20261024.md` 第 4 章 RQ1 对齐。
+- **测试验证**:
+  - 测试命令: `npx vitest run packages/core/src/db/native-load.test.ts apps/cli/test/native-failure.test.ts`
+  - 验证结果: **13 支 + 2 支全绿**（2026-10-24 实测）；含真子进程腿 1 支（约 0.9s，非 mock）。
+  - 复算命令: `npx vitest run --maxWorkers=3`（全量回归含本批全部用例）
+- **潜在风险**:
+  ① ⚠️ **诊断文案定稿即现稿**（owner 2026-10-24 裁定，登记于 `docs/specs/v023-a-launch.md` §8.2 裁决③）—— 后续措辞改动按 B 级（人话面）走常规流程。
+  ② ⚠️ **降级存储不在本轮范围**：spec 明确「Store 端口／降级存储实现」为 Out ⇒ 解锁条件是复验矩阵显示某平台 ABI 失败率不可接受（PRD §9 反例 2），**不得**在诊断落地的同时顺手做降级。
+  ③ ⚠️ **诊断输出不得含机器标识**（隐私面，与 design §11.5 遥测白名单同款纪律）。
+  ④ ⚠️ **本条正文是倒推重建**（见文首）⇒ 原文若与本条不一致，**以工作树产物为准**，本条只负责把「做过什么、凭据在哪」登记完整。
+
+## [DEV-0113] 2026-10-24 · v0.2.3 批次 A 收尾（复验矩阵工具）＋ 批次 B 开工（openvibe verify 三方一致性核验 FR-4）
+
+> **⚠️ 倒推重建**，依据见 DEV-0112 文首同一段说明；**本条的号同样与 `docs/dev-plan-v0.2.1.md` 引文里的「DEV-0113（2026-10-17）」撞车**（读法见 DEV-0112 文首）。
+
+- **时间**: 2026-10-24
+- **类型**: 工具面（复验矩阵）＋ 产品实现（v0.2.3 批次 B · FR-4 `openvibe verify`）
+- **关联文件**: `scripts/verify-matrix.ts`、`packages/core/src/inject/verify.ts`、`packages/core/src/inject/verify.test.ts`、`apps/cli/src/commands/verify.ts`、`apps/cli/test/verify.test.ts`、`packages/shared/src/cli-commands.ts`、`docs/specs/v023-a-launch.md`、`docs/specs/v023-b-first-lap.md`
+- **问题描述**: ① 仓里全部自证体系验证的是**代码**（用例数、golden、三平台 CI），**没有一个数字验证过「有人在干净机器上装成了、用通了」** ⇒ 装包形态是 CI 覆盖不到的那一面，而它是发布的前置。② 注入侧的状态**三方一致性**（包 / lock / 磁盘）此前无人给结论 ⇒ 「这个目录现在的注入状态是否自洽」只能靠人眼比对。
+- **实现思路**: ① **命令清单单源，永不手抄**：复验矩阵的命令清单直接取自 `CLI_COMMANDS`（`packages/shared/src/cli-commands.ts`）⇒ 新增/改名命令后矩阵自动跟上（注册处由 `cliCommands.api.test.ts` 管，矩阵面由本脚本管，两处不互相抄）。② **能自动跑的跑，不能自动跑的老实标 manual**：矩阵起临时 serve ＋ 临时项目跑可自动化的本地子集，其余（需已注册项目 / 干净机安装路径）如实标 `manual` ⇒ **不把「没验」写成「验过」**。③ verify **纯函数**：所有输入由调用方采集，文件内不做任何 IO ⇒ 可判、可测。
+- **核心变更**:
+  - 新增 `scripts/verify-matrix.ts`（`pnpm verify:matrix`）：`--emit` 出矩阵 markdown 骨架（含全部命令 ＋ 离线注入行），`--run [--entry <cli.ts> | --bin <cli.js>]` 起临时 serve ＋ 临时项目跑本地子集。
+  - 新增 `packages/core/src/inject/verify.ts`：**六态**判定的纯函数（与 diff 的分工：diff 管「磁盘 vs lock」的逐文件差异，verify 管三方一致性的**完整性结论**）。spec 原四态（CONSISTENT/PARTIAL/STALE_LOCK/ORPHAN）全覆盖，另补两态（登记于本条，spec 升 v1.0 时由 owner 确认）。
+  - 新增 `apps/cli/src/commands/verify.ts`（`openvibe verify`）：退出码 0/2/1、`--json` 单对象、命令登记进 `CLI_COMMANDS` 并由漂移闸守。**渲染级比对留给 preview 集成**（登记于本条）。
+  - 测试：`packages/core/src/inject/verify.test.ts`（8 支）＋ `apps/cli/test/verify.test.ts`（10 支）。
+- **测试验证**:
+  - 测试命令: `npx vitest run packages/core/src/inject/verify.test.ts apps/cli/test/verify.test.ts`
+  - 验证结果: **8 支 + 10 支全绿**（2026-10-24 实测）；全量回归含本批全部用例。
+  - 复算命令: `pnpm verify:matrix --emit`（矩阵骨架）
+- **潜在风险**:
+  ① ⚠️ **矩阵与用例数是点时值** ⇒ 复现须以当天的命令清单为准（命令清单单源在 `CLI_COMMANDS`，不抄在矩阵里）。
+  ② ⚠️ **manual 行的含义是「没自动验」不是「验过」** ⇒ 进发布说明时不得把 manual 行算进覆盖率。
+  ③ ⚠️ **渲染级比对未做**（本条明确留给 preview 集成）⇒ verify 的结论止于「三方一致」，不含「渲染出来对不对」。
+  ④ ⚠️ **本条正文是倒推重建**（见 DEV-0112 文首）。
+
+## [DEV-0114] 2026-10-24 · v0.2.3 批次 A 裁决收尾 ＋ 批次 B 收尾（OM1/OM2 落地 + 协议就绪 + 两 spec 升 v1.0）
+
+> **⚠️ 倒推重建**，依据见 DEV-0112 文首同一段说明；**本条的号同样与 `docs/dev-plan-v0.2.1.md` 引文里的「DEV-0114（2026-10-17）」撞车**（读法见 DEV-0112 文首）。
+>
+> **已知原文片段（覆盖前仅存的一条）**：「**批次 A 裁决②**复验平台 = macOS + Linux 容器；**裁决③**诊断文案定稿即现稿（DEV-0112 落地）」—— 本条的三处裁决按工作树里的 spec 逐字对齐。
+
+- **时间**: 2026-10-24
+- **类型**: 裁定收尾（批次 A §8.2 三处待裁）＋ 产品实现（批次 B FR-5/6 OM1/OM2）＋ 规格升版
+- **关联文件**: `docs/specs/v023-a-launch.md`、`docs/specs/v023-b-first-lap.md`、`docs/devlog-evidence/v023-first-lap-protocol.md`、`apps/server/test/om.api.test.ts`、`apps/web/src/components/settings/OmSection.test.tsx`、`scripts/build-cli.ts`、`tests/publish-manifest.test.ts`
+- **问题描述**: 批次 A 的三处待裁（包名终裁 / 复验平台组合 / FR-3 诊断文案）不闭合 ⇒ 发布命令不能执行、复验矩阵不知道跑哪两个平台、诊断文案的「定稿」无单源。批次 B 的 FR-5/6（输出侧度量）没有落点 ⇒ 「输出侧到底有没有变好」无法自证。
+- **实现思路**: ① **裁定进 spec 的 §8.2（单源）**：三处待裁的裁定与理由写进 `v023-a-launch.md` §8.2，spec 因此升 **v1.0**（原为草案态）⇒ **规格即裁决记录的单源**，不另立文档。② **OM 落点按「量具不是动线」裁**：OM1/OM2 面板放**设置页「本机统计」区**，紧跟本机事件台账节 ⇒ OM 与台账同源（本机事件 ＋ injections），同区呈现让「数据从哪来」一眼可见。③ **协议与执行分离**：首圈协议文档**只写步骤与报告模板**，项目②由 owner 在启动时填（使用事实，不是设计裁定）。
+- **核心变更**:
+  - **批次 A §8.2 三处待裁全部闭合**（owner 2026-10-24 指令「批次 A 裁决收尾」授权落笔）：
+    ① **包名终裁：维持 `openvibe-cli`**，bin 仍 `openvibe`，**就此终结三次摇摆**（D17→D24→本裁决）—— 依据是 2026-10-24 复测 `npm view openvibe` 返回**无关同名包**（boxiaolanya2008，v1.0.0），D24「该名可注册」的前提被现实推翻 ⇒ publish 必 403。机械后果已执行：`scripts/build-cli.ts` 的 `PUBLISH_NAME` 改 `openvibe-cli`，`pnpm pkg:cli` 重建后 `npm pack --dry-run` 产出 `openvibe-cli-0.1.0.tgz`（82 文件 / 1.7 MB）。**FR-1.1 的「终裁前不得 publish」闸自此解除**；publish 本身仍待 owner 以 npm 凭据执行。
+    ② **复验平台组合：macOS（本机）+ Linux 容器** —— 覆盖 prebuild-install 的两条主路径；Windows 的装包形态由三平台 CI 持续覆盖用例面，其安装路径差异登记进发布说明「本版未验证的事」。
+    ③ **FR-3 诊断文案：定稿即现稿**（`packages/core/src/db/native-load.ts` 的三条修复路径措辞照准，DEV-0112 落地、DEV-0113 复验）。
+  - **批次 B §8.2 两处闭合**（owner 2026-10-24 指令「批次 B 收尾」授权落笔）：① **OM1/OM2 面板落点 = 设置页「本机统计」区**（`OmSection`，数据 `GET /api/om`）；② **dogfooding 第二个项目不是设计裁定、是使用事实**（owner 在批次 A publish 完成后指定，协议文档留空位）。
+  - **OM1/OM2 落地**：`GET /api/om`（`apps/server/test/om.api.test.ts`，4 支）＋ 设置页 `OmSection`（`apps/web/src/components/settings/OmSection.test.tsx`，2 支）—— 判据是「同输入同值可复算；空数据显式 null（面板显示**待采集**而非 0）；全程零出网」。
+  - **首圈协议就绪**：`docs/devlog-evidence/v023-first-lap-protocol.md`（状态：**就绪待执行**；执行窗口 = 批次 A 的 publish 完成之后）。
+  - **两份 spec 升 v1.0**：`docs/specs/v023-a-launch.md`（FR-3 已落地 / FR-2 工具面就绪）、`docs/specs/v023-b-first-lap.md`（FR-4 verify 已落地 / FR-5/6 OM 已落地 / FR-1/2 协议就绪）。
+- **测试验证**:
+  - 测试命令: `npx vitest run apps/server/test/om.api.test.ts apps/web/src/components/settings/OmSection.test.tsx`
+  - 验证结果: **4 支 + 2 支全绿**（2026-10-24 实测）；全量回归含本批全部用例。
+  - 复算命令: `npm view openvibe-cli version`（发布后应非 404）；`npm pack --dry-run`（产物名与体积）
+- **潜在风险**:
+  ① ⚠️ **publish 未执行**：本条只解除了「终裁前不得 publish」的闸，**实际发布仍待 owner 以 npm 凭据执行**（本机 `npm whoami` 实测 ENEEDAUTH）⇒ D15 两周证伪线**尚未开始计时**。
+  ② ⚠️ **首圈协议「就绪待执行」≠ 已执行** ⇒ 观察窗起算日 = 首圈协议启动日，不是本条日期。
+  ③ ⚠️ **Windows 装包形态仍未验证**（本条只把 macOS + Linux 定为 FR-2 的两个平台）⇒ 其差异必须进发布说明「本版未验证的事」，不得默认覆盖。
+  ④ ⚠️ **两 spec 的「本版未验证的事」不允许与 v0.1.0 原样重复** —— 已验证的必须翻转，继续未验证的必须写新理由。
+  ⑤ ⚠️ **本条正文是倒推重建**（见 DEV-0112 文首）；**批次 A 裁决②③ 的原文片段已逐字对上**（见文首），其余为按产物重建。
 
 ## [DEV-0115] 2026-10-24 · 未完成部分补齐：文档别名表（行内前缀）＋ 别名表失效判红 ＋ 对账表过期检测
 
@@ -3004,3 +3073,59 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   ④ ⚠️ **别名表的目标文件必须真实存在**（FR-12.9）⇒ 若将来拆分 `docs/dev-plan.md`，别名表里指向它的条目会**当场判红** —— 那是正确行为（别名该跟着改），但拆文件时要连带改别名表。
   ⑤ **pre-commit 钩子只在本机生效**（`.git/hooks/` 不进版本库）⇒ 换机器要重装（模板在 `scripts/hooks/pre-commit`）。
   ⑥ **保留区与并行会话面本轮未碰**：`docs/dev-plan.md` 缺 §17 造成的附面断链、`specs/m4-playbook.md:25` 的 FR-11 凭据缺失、`tests/probe-raw-check.test.ts` 的 lint 错，均属 owner 裁定或他会话范围，本轮只登记不改。
+
+## [DEV-0116] 2026-10-24 · 未完成项补齐：恢复 §17 ＋ FR-11 存量清零转判红 ＋ DEV-0112/0113/0114 倒推重建
+
+- **时间**: 2026-10-24
+- **类型**: 文档治理（owner 指令「1、补齐 2、更新 3、补齐 4、补齐 5、本地commit」的执行笔）
+- **关联文件**: `docs/dev-plan.md`、`docs/dev-plan-v0.2.1.md`、`docs/specs/m4-playbook.md`、`docs/PRD-v0.2.3-v1.0-20261024.md`、`docs/docs-check-baseline.json`、`DEV_LOG.md`、`tests/probe-raw-check.test.ts`
+- **问题描述**: 上一轮报告的「二、未完成」四项，owner 本轮逐项指派：① 补齐 DEV-0112／0113／0114 三笔正文；② 更新 `tests/probe-raw-check.test.ts` 的 lint 错；③ 补齐 `docs/dev-plan.md` 缺的 §17；④ 补齐 `specs/m4-playbook.md:25` 的 FR-11 凭据；⑤ 做完本地提交。
+- **实现思路**: **先把每项的真实状态查清再动手** —— 上一轮那四项里有两项的**前提本身就是错的**（见下方「⭐ 订正」），照着错前提做会把不该动的动了、该动的漏了。查清路径：① 恢复源用 git 对象库（`git fsck --unreachable` 逐个 blob 扫内容）与本机会话存档（两个 profile 都搜过）**穷尽恢复路径**；② §17 的原件在 `HEAD` 里（提交树 `4b42642` 的同一节），**脚本化逐字取回**，不手抄；③ 凭据的判据口径（反引号跨度内含可复算命令）先从 `scripts/docs-check.ts` 读出来，再**实跑每条命令取真实输出**，不写没跑过的数字。
+- **核心变更**:
+  - **① 恢复 §17（`docs/dev-plan.md`）**：自 `HEAD` 逐字取回 **100 行**（脚本化插入，插入后逐行 diff 校验与 HEAD 一致），插在 §16 与 §18 之间 ⇒ **§16 → §17 → §18 号位连续，编号空洞闭合**。同批把 §18.3 从「编号空洞的解释」改记为「**编号空洞已闭合**」并写明裁定来源。⚠️ 恢复的 §17 内含一处**出生即坏的跨文件指针**（原文把那处落点写成「`docs/decisions.md` 里的一处『§2 队列表』」—— 该文件只有 H1 与「净状态」两节，队列表不在任何编号节下）⇒ 就地改指「`docs/decisions.md` 的队列表（⑫ 行）」并附复算命令（`grep -c '^| ⑫ ' docs/decisions.md` → 1）⇒ FR-12.1 的断链面当场由红转绿。
+  - **② 闭合待裁 ②（`docs/dev-plan-v0.2.1.md`）**：§7 待裁表的「§17/§18 号位归属」一行改为已闭合（owner 2026-10-24 裁「恢复 §17」）⇒ 该文件**升 v1.3** ＋ 变更日志新增一行（号位裁定、FR-11 转判红、§17 指针修正三件事同记）。
+  - **③ FR-11 存量清零 ⇒ 该面转判红**：3 处裸否定断言逐条补上**可复算命令** —— `docs/dev-plan.md` 的 MT2 行（首启时刻无承载 ⇒ 复算命令 → 0 命中）、`docs/specs/m4-playbook.md` 的 §2 Out 行（⇒ 复算命令 → 0）、`docs/PRD-v0.2.3-v1.0-20261024.md` 的两处（⇒ 复算命令 → 33 命中，即「零实现」已被实装证伪）。实测 FR-11.1 由 3 处 → **0** ⇒ 基线里的 `FR-11.1|*` **通配登记清理**（基线反向检查当场报 error：「留着会让同类新问题混进去一起被放过」）⇒ **新写的裸否定断言一律红**。**FR-11 的措辞表未动**，改的只是存量处置；**判据条数仍为 8**。
+  - **④ DEV-0112／0113／0114 三笔正文补齐**：**倒推重建**（原始正文已被并发写入覆盖，三条恢复路径全部穷尽仍不可得）—— 每条结论都指向工作树里可核的文件与命令，并逐条标注「非原作者原话」；DEV-0114 的已知原文片段（批次 A 裁决②③）**逐字对上**。同时**如实登记一个真缺陷**：`DEV-0112`～`DEV-0119` 这段号**已被 2026-10-17 那轮用过**（那轮正文登记在 `docs/dev-plan-v0.2.1.md` 的引文里，从未进 DEV_LOG.md）⇒ **同一个号在仓里指两轮不同的登记**，而 **FR-1.1 只扫 DEV_LOG.md 的标题 ⇒ 判不出这个撞车**。
+  - **⑤ lint 错修复**：`tests/probe-raw-check.test.ts` 的 `mkdirSync` 未使用 ⇒ 从 `node:fs` 的 import 里去掉（**只改这一处**，该文件是并行会话的新文件，未跟踪）。
+- **⭐ 订正上一轮报告的两个错前提**:
+  ① 上一轮写「`specs/m4-playbook.md:25` 的 FR-11 凭据随保留区回退消失」—— **实测不成立**：那条凭据（2026-10-22 补的）**在**（已入库，commit `b8ed60b`），且**判据本身接受它**（该行不在实测发现里）。**真问题另有一个**：它写「见本文件 FR-5.2」，而该文件**没有 FR-5.2**（只有 `### FR-5`）⇒ **指针落空、等于没凭据**。上一轮那条结论的依据是**基线里的旧文本**（"该补已被回退"），不是实跑 ⇒ 本轮以实跑为准并订正之。
+  ② 上一轮写「`docs/dev-plan.md` 缺 §17 ⇒ DEV_LOG 指向 §17 的条目附面断链（只报数）」—— 现象属实，但**归因写成了「保留区回退」**；实情是 §17 的原件**一直都在 `HEAD` 里**，缺的只是工作树那一段 ⇒ 恢复即可，不需要任何豁免。
+- **测试验证**:
+  - 测试命令: `npx vitest run --maxWorkers=3`；`npx tsc --noEmit -p tsconfig.json`；`npx eslint scripts tests`；`npx tsx scripts/docs-check.ts`；`npx tsx scripts/section-ref-audit.ts`；`npx tsx scripts/section-ref-audit.ts --verify-report docs/devlog-evidence/DEV-0110/section-ref-audit.md`；`npm run bundle:check`；`npx tsx scripts/seed-check.ts`；`npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --check`
+  - 验证结果: 全量回归 **171 文件 / 2226 支全绿**（`npx vitest run --maxWorkers=3`，退出码 0，2026-10-24 13:11 复算）；根 `tsc --noEmit` **0 error**；`npx eslint scripts tests` **0 error**（此前那条在并行会话未跟踪文件里的未使用 import 已按 owner 指令修掉）；`docs:check` **error 0 · warning 130 · 基线内 130**（其中 FR-11.1 由 3 处 → **0**，其余分档：FR-5.1 105 / FR-6.1 10 / FR-5.2 10 / FR-4.2 3 / FR-12.1 1 / FR-1.2 1）；§-引用判定 **退出码 0**（主面断链 1 条＝已登记存量）；对账表新鲜度校验 **通过**（拆分影响面 **21** 个节号与实算一致 —— 恢复 §17 后该表当场报过一次「表里 20 个 vs 实算 21 个」不一致，重生成后转绿，这正是 FR-12.10 存在的意义）；`bundle:check` 通过（入口 268.36kB ≤ 300kB / 最大 chunk 347.45kB ≤ 500kB）；`seed:check` 通过；`memory:check` ＋ `memory:verify` 通过（导出件已随本轮记忆追加重新导出，9 件与源一致、sha256 逐件核对通过）。
+  - 复算命令: `grep -c '^| ⑫ ' docs/decisions.md`；`grep -rniE 'playbookCandidate\|extractPlaybook' packages apps \| wc -l`；`grep -rniE 'first_launch\|launched_at\|installed_at\|first_run\|首启时刻' packages/core/src/db/migrations/ packages/core/src/repos/ packages/shared/src/schemas/`
+- **潜在风险**:
+  ① ⚠️ **三笔正文是倒推重建**：结论可核（都指向文件与命令），**措辞不是原作者原话** ⇒ 若并行会话日后找回原文，以原文为准，本条只保证「做过什么、凭据在哪」被登记完整。
+  ② ⚠️ **DEV 编号撞车已登记但未消**：DEV-0112～0119 在仓里指两轮不同的登记（DEV_LOG 侧 = 2026-10-24 v0.2.3；dev-plan 引文侧 = 2026-10-17 M8）⇒ **FR-1.1 判不出**（它只扫 DEV_LOG.md 标题）⇒ 想彻底消，得给引文侧那套另立编号体系或把它们回填进 DEV_LOG.md，**两者都超出本轮范围**，留待 owner 定。
+  ③ ⚠️ **§17 恢复了，但它引用的两处回退态未恢复**：`docs/tasks.md` 的 T12 仍写「人日未估」、`docs/decisions.md` ⑫ 仍写「已裁已落」⇒ §17.4 的人日 5.2 与 `tasks.md` **暂不一致**（owner 本轮只裁了「恢复 §17」）⇒ 已在 `dev-plan.md` §18.3 与 `dev-plan-v0.2.1.md` 变更日志里写明。
+  ④ ⚠️ **FR-11 转判红后，新写的裸否定断言一律红** —— 判据没放宽（措辞表未动），但**判红面从「已登记的 3 处」扩到「以后所有」** ⇒ 后续写文档时，否定全局断言必须自带可复算命令。
+  ⑤ ⚠️ **本轮改了并行会话的两个文件**：`docs/PRD-v0.2.3-v1.0-20261024.md`（未跟踪）补了两处凭据、`tests/probe-raw-check.test.ts`（未跟踪）去掉了未使用的 import ⇒ **均为定点增补**，未纳入本轮提交（那两份文件属并行会话面，本轮不代提交）。**另有两处并行会话的内容随本笔一同入库**（提交信息里已点名归属）：`docs/dev-plan.md` §1 的脚本清单增补（14 行，该会话 13:12 加的）与 `DEV_LOG.md` 的 **DEV-0117** 条目（该会话 13:2x 追加的完整条目）—— 两者都是**完整成段**的内容，且与其余改动同文件、无法在不动 index 的前提下分离（分离须在 index 上做构造，风险高于收益）⇒ 一并提交。
+  ⑥ ⚠️ **对账表是对 `docs/` 主面的点时快照** ⇒ 本轮恢复了 §17、改了 dev-plan-v0.2.1、m4-playbook、PRD-v0.2.3 ⇒ 主面计数会漂 ⇒ 提交前已重跑并重生成；后续任何 `docs/` 改动都要重跑 `--verify-report`。
+
+## [DEV-0117] 2026-10-24 · v0.2.3 六项收尾：发布说明草稿 / OM 选包参数 / 裁决同步面 / 队列留痕 ㊱ / 版本 bump 0.2.3 / 发布 runbook
+
+- **时间**: 2026-10-24
+- **类型**: 功能 + 文档（B 级：`/api/om` 增可选 `?pack_id=`、docs:check 闭集扩到 ㊿ 与裁决同步只报数面、`CLI_VERSION` 0.1.0→0.2.3 为发布口径变更；其余为草稿/手册文档）
+- **关联文件**: `docs/release-notes/v0.2.3.md`（新增）、`docs/release-notes/v0.2.3-publish-runbook.md`（新增）、`apps/server/src/routes/settings.ts`、`apps/server/test/om.api.test.ts`、`packages/shared/src/schemas/settings.ts`、`scripts/docs-check.ts`、`docs/decisions.md`、`apps/cli/src/version.ts`、`apps/cli/package.json`
+- **问题描述**: owner 六项指令：①发布说明 v0.2.3 草稿；②OM1 选包参数；③裁决记录的队列同步助手；④decisions 队列留痕；⑤收并行会话在编失败的 9 条用例；⑥npm publish 详细操作方式。基线：OM 密度固定取最新包；队列闭集止于 ㉟；裁决留痕无队列行；发布说明只有 v0.1.0 一份且其「维护者三步」不适配本次（首发即 0.2.3 + 包名裁决 + 两平台矩阵）。
+- **实现思路**: ① 发布说明按 v0.1.0 版式（装与用 / 有什么 / 测量口径 / 已知局限 / 未验证 / 维护者），首发即 0.2.3 的口径写进头部引言；② 选包参数走既有 `AppError('NOT_FOUND')` 信封，缺省口径不变（最新建包）；③ 同步助手按本仓「只报数面」形制（FR-7/FR-8 同族，不计入 §16.10 判据数）：扫 specs 的 `### 8.2 裁定记录` 小节，对 decisions.md 做文件名包含判定，未留痕列表输出；④ 队列留痕发现 **㉟ 已被 ㉞ 行登记保留给 RF1-5 的 11-a** ⇒ 跳号占 **㊱** 并双处登记（行内 + 净状态），由此暴露 docs:check 队列号位闭集止于 ㉟ 的缺口 ⇒ 扩到 ㊿（行首正则同步改双区段，规避 U+3250 区间的非法字符类空隙）。
+- **核心变更**:
+  - `docs/release-notes/v0.2.3.md`：草稿（头部声明 publish 后定稿）——首发即 0.2.3、包名终裁引言、0.1.0 资产以来按里程碑的能力清单、测量口径表（tarball 82 文件/1.7 MB/shasum、cli.js 5,096.41 kB/775 模块）、未验证四条。
+  - `docs/release-notes/v0.2.3-publish-runbook.md`：owner 逐步操作手册——前置三闸两检查、包名/registry 复测、构建、预演、`npm publish`（含 2FA `--otp` 形态）、发布后三验证、收尾四件（D15 起点 / release 定稿与资产挂载 / README 措辞清零 / 两平台矩阵）、回退预案（72h unpublish 窗口 / deprecate）。
+  - `GET /api/om?pack_id=`：指定包密度（未知 id 404 `NOT_FOUND` 信封）；缺省口径一字未动。
+  - `scripts/docs-check.ts`：`CIRCLED` 闭集 ①–㉟ → ①–㊿（附缘由注释）；行首正则改 `[①-㉟㊱-㊿]` 双区段；新增 `rulingSync` 只报数面（输出「N 份 spec 有裁定记录，M 未留痕」+ 清单）。首跑即命中 3 份未留痕（含并行会话的 m4-playbook.md）。
+  - `docs/decisions.md`：新立 **㊱**（已裁已落，[DEV-0114/0115]）；净状态 已裁已落 18→19、上界 `①–㉞`→`①–㊱`（含跳号说明）；**㉝ 行曾被本笔误删、当场整行恢复**（教训见风险④）。
+  - 版本：`CLI_VERSION` 与 `apps/cli/package.json` 同步 0.1.0→**0.2.3**（publish-manifest 互钉测试自动跟随，10/10 绿）。
+- **测试验证**:
+  - `npx vitest run apps/server/test/om.api.test.ts` → **6/6 绿**（OM-05 指定包密度 + OM-06 未知 id 404 新增）。
+  - `pnpm docs:check`：裁决同步面输出「3 份有裁定记录，2 已留痕、1 未留痕（m4-playbook.md，并行会话所有）」；FR-2.2 净状态求和 35 = 行数 35（闭集扩展后 ㊱ 行被正确计数）。
+  - `pnpm pkg:cli` → `openvibe-cli-0.2.3.tgz`（82 文件 / 1.7 MB / shasum `6d6cc447…`）；`npx vitest run tests/publish-manifest.test.ts apps/server/test/cliCommands.api.test.ts` → 10/10 绿（版本互钉跟随 0.2.3）。
+  - 任务⑤（并行会话 9 条失败）：复跑 `tests/section-ref-audit.test.ts` → **52/52 全绿**——该会话已自行修复其别名表在编状态（其 [DEV-0115/0116] 登记在案），本笔未触碰其文件。
+  - 全量与 lint 结果见本笔提交时 CI 汇总（运行器报告为唯一权威口径）。
+  - 复算命令：`grep -n "pack_id" apps/server/src/routes/settings.ts | head -2`；`grep -n "㊱" docs/decisions.md | head -2`；`pnpm docs:check 2>&1 | grep 裁决同步面`；`node -e "console.log(require('./apps/cli/src/version.ts'))" 2>/dev/null || grep -n "CLI_VERSION" apps/cli/src/version.ts`。
+- **潜在风险**:
+  - ① 发布说明为**草稿**：测量口径表是 2026-10-24 采样，publish 当日须按 runbook 第 3/6 步复跑定稿（shasum 会因内容微变而变）。
+  - ② `?pack_id=` 与 web 面板暂未接线（面板维持缺省最新包口径）——参数是服务端先行，UI 选择器留待有真实多包使用后再做（避免为假想场景造 UI）。
+  - ③ 队列闭集扩到 ㊿ 一次到位（10 个新号位），下次跳号不再动 docs-check；但「㉟ 保留位」的语义只在 ㉞ 行与 ㊱ 行的行文里，机器无从校验保留位是否被误占——留 owner 复核。
+  - ④ **本笔曾误删 ㉝ 行**（以 ㉝ 整行做替换锚点导致其被 ㊱ 覆盖），当场发现整行恢复并复核前后文；教训登记：对 decisions.md 这类「每行都是凭据」的文件，插入行的锚点必须取**目标行自身**的独有结尾，绝不能取相邻行整行。
+  - ⑤ docs:check 此刻剩 1 条 error（`dev-plan-v0.2.1.md:940` 引 `decisions.md §2` 死链）属并行会话在编文件（其 [DEV-0115] 的别名表工作正在收敛该引用），本笔不越界代改。

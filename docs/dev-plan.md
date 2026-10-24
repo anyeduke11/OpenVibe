@@ -198,6 +198,20 @@ openvibe/
 ├── scripts/seed-review.ts（pnpm seed:review 入口：按 git 基线摊开新增词条/提示词全文，供 owner 逐条审校，D14）
 ├── scripts/bundle-check.ts（pnpm bundle:check 入口：读 dist 产物断言入口/chunk 预算）
 ├── scripts/golden-update.ts（pnpm golden:update 入口：重新生成 tests/golden/** 契约快照）
+├── scripts/failure-evidence.sh（pnpm evidence 入口：固化测试失败的现场——git 状态 + vitest 全量输出 + 两套 tsc 输出；用法 `pnpm evidence [<测试文件>] [-o 目录]`，全绿自清、失败保留现场供回放；**报障约定：跑出失败后把脚本打印的证据目录路径原样贴出**）
+├── scripts/dev-all.mjs（pnpm dev / dev:all 入口：一条命令同时起 web 与 server，Ctrl-C 会清干净孙进程）
+├── scripts/collect-m9-sources.ts（pnpm m9:collect 入口：M9 素材采集，P1.9 收口）
+├── scripts/collect-m9-github-sources.ts（pnpm m9:collect:github 入口：M9 另三源采集）
+├── scripts/m9-content-fingerprint.ts（pnpm m9:fingerprint 入口：内容指纹，验「内容未变」）
+├── scripts/check-m9-links.ts（pnpm m9:links 入口：资源链接失效巡检，逐个 HEAD）
+├── scripts/extract-m9-guide-phases.ts（pnpm m9:phases 入口：抽《Python 与 Go 系统学习指南》的分期路线）
+├── scripts/build-cli.ts（pnpm pkg:cli 入口：把 workspace CLI 打成可发布的 openvibe 单文件包）
+├── scripts/mutation-run.ts（pnpm mutation:run 入口：变异测试执行器）
+├── scripts/ownership-check.ts（pnpm ownership:check 入口：提交归属核验）
+├── scripts/docs-check.ts（pnpm docs:check 入口：文档治理闸）
+├── scripts/section-ref-audit.ts（pnpm docs:refs 入口：§-引用解析器，判定引用三态并出对账表）
+├── scripts/verify-matrix.ts（pnpm verify:matrix 入口：v0.2.3 批次 A FR-2 复验矩阵工具）
+├── scripts/export-agent-memory.ts（pnpm memory:check / memory:verify 入口：把 agent 记忆目录导出进仓）
 ├── deploy/telemetry/{worker.js,adapter-node.mjs}（匿名统计接收端：一份 CF Worker 源码 + 一层 node:http 外壳，fail-closed 白名单）
 └── .github/workflows/ci.yml
 ```
@@ -1537,6 +1551,8 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 四条开档即定的边界：
 
 1. **不另立计划文件**。再写一份 `docs/plan-v0.2.0.md` 就是给本文造第二个真源，与 §15.5 第 14、15 两行记的是同一族缺陷（版本号双源、行号指针腐烂）。RF 线的排期只在这里长。
+
+   > **⚠️ 本条已被 owner 于 2026-10-14 推翻，适用范围仅限 v0.2.1。** v0.2.0 的 RF 线仍在本文 §16 内长，**§16.2 的 27 个编号项一字不动**。v0.2.1（M8 Agent 接入层）另立 [`docs/dev-plan-v0.2.1.md`](./dev-plan-v0.2.1.md)，登记为 PRD **D34**，双向指针见本文 **§18**。推翻理由与代价（双源风险由双向指针对冲，非零成本）见该文件 §0.1 与 §9.2。
 2. **出口判据、MT 定义、周期数字一律不复制**，取数处见 16.1。本节出现的每个数字都带口径与采样点（§13-8）。
 3. **本轮 13 份规格都不构成开工依据**：9 份新建全为 v0.9 草案且头部「关联任务」格为**无**，4 份既有规格只加追加面并 bump 版本行（判级全 B，无 A）。
 4. **本节不新增裁定、不改判任何已裁项**。16.11 与 16.12 记的是缺口，处置是「登记 + 指回该谁裁」。
@@ -1599,7 +1615,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 | MT | 名称（定义单源在分析文 §9.1 对应行） | 落点 | 此刻算不算得出 | 缺的那一块 |
 |---|---|---|---|---|
 | MT1 | 有效上下文密度 | 3-1 ⇒ `context-density.md` FR-1／FR-3 | 算得出（分子分母都有现成件，估算器复用 `estimateTokens`，不新造） | 分母口径待裁（那边 §8.2①） |
-| MT2 | 首次见效时间 | 2-4 ⇒ `onboarding.md` FR-5.3 | **算不出** | 右端有源（`injections.injected_at`），左端「首启时刻」**全仓无承载** ⇒ onboarding §6 待裁①，裁前**面板不得显示 MT2** |
+| MT2 | 首次见效时间 | 2-4 ⇒ `onboarding.md` FR-5.3 | **算不出** | 右端有源（`injections.injected_at`），左端「首启时刻」**全仓无承载** ⇒ onboarding §6 待裁①，裁前**面板不得显示 MT2**（**2026-10-24 现测同值**：复算命令 `grep -rniE 'first_launch\|launched_at\|installed_at\|first_run\|首启时刻' packages/core/src/db/migrations/ packages/core/src/repos/ packages/shared/src/schemas/` → **0 命中**） |
 | MT3 | 往返成本 | 3-2 ⇒ `m6-cli-injection.md` FR-8 | 现状可数（≥3 步），目标形态要等 `update` | 否证器（分析文 §10 第 7 条）未跑 ⇒ 16.5 |
 | MT4 | 验证覆盖比 | 0-4／3-5 ⇒ `docs-governance-check.md` FR-7 | 能算，但**从未统计过** | 该 FR 自己要求「单调不降」，故**首值必须在开工那一笔采**并登记，否则没有基线可比 |
 | MT5 | 治理维护成本 | 应为 11-a（队列结构化）＋ 11-c —— **11-a 在 RF0–RF5 里没有落点**（16.11） | 半边悬空 | 「登记字节数下降而信息项不减少」需要结构化字段，而 `docs/queue.yaml` 不在任何 Phase 行里 |
@@ -1873,7 +1889,7 @@ M4 在 PRD §3.2 是资产层第四格，但它的**价值出口不在自己页�
 FR-8.3 点名三处文档落点，前两处（`m6-standard-pack.md` §3 / §6）实测存在并已改判，**第三处「`docs/dev-plan.md` §15.2 裁 ⑫ 格指向处」在本仓不存在**：
 
 - §15.2 是「版本与兼容口径」，其三行分别讲阶段名 vs 版本号、`DEFAULT_PACK_VERSION` 不触、前置关系——**没有 ⑫ 这一格**（复算 `grep -n '⑫' docs/dev-plan.md` → 仅两处命中：§9 那段 T10 的历史叙述，与 §16.14 复算口径里的「①…⑫」枚举，**都不在 §15.2**）。
-- ⑫ 的队列行真位置是 **`docs/decisions.md` §2 队列表**（`⑫ | playbookIds 的契约处理 | 已裁已落 | [DEV-0034]：非空即 422 …`），那一行才是需要随拆闸改判的地方。
+- ⑫ 的队列行真位置是 **`docs/decisions.md` 的队列表（⑫ 行）**（该文件**没有 §2** —— 队列表在 H1「待决策项队列（单源）」之下；复算 `grep -c '^| ⑫ ' docs/decisions.md` → **1**；原文 `⑫ | playbookIds 的契约处理 | 已裁已落 | [DEV-0034]：非空即 422 …`），那一行才是需要随拆闸改判的地方。
 
 **处置**：已在 `docs/decisions.md` 那一行补现状追记（状态由「已裁已落」改判为「已裁并已拆」，**原裁文本按「日志不回改」原样留着**），并把 `m4-playbook.md` FR-8.3 的落点指针改为指向 `decisions.md`。**为什么值得单列而不是顺手改掉**：这正是 §16.12 那族缺陷的第四例——**规格里的跨文件指针本身指错位置**，照着做的人会去一个不存在的格子里「同步」，找不到就以为已经同步过了，孤儿文档就此留下。**同族的判法**（供下轮复用）：动 FR-8 这类「文档半拆闸」条款时，落点清单里的每一处都要先 `grep` 证明它存在，再动手。
 
@@ -1886,3 +1902,51 @@ FR-8.3 点名三处文档落点，前两处（`m6-standard-pack.md` §3 / §6）
 | 前置③（FR-8 的 A 级凭据形态） | **本轮执行**。凭据形态在 spec §7.4 已写死，本节不复述；**归 A 级流程**（§0.3：DEV_LOG 记问题与证据 → owner 裁定 → 契约升版 → 先改基线再改实现）。**注意 PRD D25 那笔「三处同批全改」是另一条路**，本节的拆闸若与它同笔，必须在 DEV_LOG 里点名两者关系，不能合并成一笔 |
 
 **未解开的**：§15.1-9 那句「本行现在可读作允许开工」限定在「前置①未挡的那几面」——本轮把前置②③也跑完了，但**「允许开工」不等于「已收口」**：spec §7.6 的四条人工腿（截图归档）与 §7.7 的四条未验证面（win32 的 FTS 触发器与 seedHash 幂等**从未验证**、真实浏览器点击、`PLAYBOOKS.md` 被六类工具读取后的效果、多用户并发写）**本轮一条都不因代码落地而消解**。§13 DoD 的「五闸全绿」也不覆盖这四条。
+
+## §18 v0.2.1 迭代版（M8 Agent 接入层 · 2026-10-14 开档）
+
+> **本节是指针，不是内容。** v0.2.1 的全部内容在 **[`docs/dev-plan-v0.2.1.md`](./dev-plan-v0.2.1.md)**；本段只承担两件事——指路，以及交代它与 §16 的关系。
+
+### 18.1 指针
+
+| 项 | 值 |
+|---|---|
+| 计划真源 | **`docs/dev-plan-v0.2.1.md`**（v1.0，2026-10-14 开档） |
+| 范围 | **M8 · Agent 接入层**五个子面全含：A 官方 skill 包 / B 回流写入面 / C CLI 读写面 / D 聚合查询面 / E Web 直调面板 |
+| 轨道 | **独立轨道**，**不进** §16.2 的 RF 编号空间（那 27 个编号项一字不动） |
+| 上游 PRD | `docs/PRD-M8-agent-bridge-v1.0-20261013.md`（升 v1.1）＋ 本文件所属 `docs/PRD.md` 第 11 章 ＋ 附录 D **D34** |
+| 队列 | `docs/decisions.md` **㉞**（出生态＝**可做待排**，不是待裁） |
+| 工期 | **未排**——启动时点由 §16 的 **RF1-5** 决定 |
+| 规格 | `docs/specs/m8-agent-bridge.md`（B/C/D，升 v1.0）· `m8-agent-panel.md`（E，待建）· `m8-skill-bridge.md`（A，待建，阻塞于探针） |
+| 任务 | **无**——No-spec-no-task（§0.4 第 4 条）；三份 spec 落地后才申请 `tasks.md` **T14** |
+
+### 18.2 与 §16 的关系（**为什么不并进本节**）
+
+§16 开档边界第 1 条「**不另立计划文件**」已被 owner 于 2026-10-14 **推翻**，但**适用范围仅限 v0.2.1**，理由与代价见 §16 该条下的推翻记录、以及 `dev-plan-v0.2.1.md` §0.1 与 §9.2。
+
+两条轨道**互不覆盖**，但**存在一条物理依赖**，须在此写死以免误读成「两条可以并行开工」：
+
+```
+§16 RF1-1 服务层  →  §16 RF1-5 本地事件台账  →  v0.2.1 Phase 1（M8 读写核心）  →  v0.2.1 Phase 2（M8 接入面）
+```
+
+owner 裁「M8 两张表并进台账那次迁移」＋「埋点推迟到台账落地之后」两项叠加 ⇒ **台账（RF1-5）不落地，M8 连表都建不了**。**v0.2.1 与 §16 不是并行关系，是接在 §16 尾部的后半段。** 详见 `dev-plan-v0.2.1.md` §3.1。
+
+### 18.3 为什么是 §18 而不是 §17（**编号空洞已闭合**）
+
+提交树 `4b42642` 的 §17 是 **M4 技巧库开发计划**（`:1789`）。2026-10-14 的工作树里，那一节被一个**并行会话**整节删除（−103 行），同时 `docs/tasks.md` 的 T12 人日口径回退为「未估」、`docs/decisions.md` ㊫ 的状态回退为「已裁已落」——**该批回退未提交、非 v0.2.1 这轮所作**。
+
+⇒ v0.2.1 取 **§18**，避免与该会话恢复的 §17 **同号硬冲突**。
+
+**2026-10-24 owner 裁定（`dev-plan-v0.2.1.md` §7 待裁② 闭合）：§17 原样恢复。** §17 自提交树 `4b42642` **逐字取回**（100 行，未改一字），§18 仍归 v0.2.1 ⇒ **§16 → §17 → §18 号位连续，编号空洞闭合**；本段由「空洞的解释」改记为「空洞的闭合记录」。
+
+⚠️ **该批回退的其余两处仍在回退态**：\`docs/tasks.md\` 的 T12 仍写「人日未估」、\`docs/decisions.md\` ⑫ 仍写「已裁已落」——**不在本次裁定范围**（owner 2026-10-24 只裁了「恢复 §17」）⇒ §17.4 的人日 5.2 与 \`tasks.md\` 的「未估」**暂不一致**，待该批回退一并处置后再对齐。
+
+### 18.4 复算
+
+```
+grep -c 'dev-plan-v0.2.1.md' docs/dev-plan.md   # 本段指针在位
+grep -c 'dev-plan.md' docs/dev-plan-v0.2.1.md   # 反向指针在位（§9.1 的双向纪律）
+grep -n '1[-]7' docs/dev-plan.md                 # → 0，v0.2.1 未侵占 RF 编号空间
+#   ⚠️ 本行的模式用字符组 '1[-]7' 而非裸串：裸串会被本检查自己扫成命中，口径自毁（此注刻意不复写那个裸串）
+```
