@@ -61,7 +61,16 @@ jobs:
       #   登记项若某轮不再出现，基线的反向检查会报「该清理了」。
       # ⚠️ **裸引用仍需人工落笔** ⇒ 本地入口保留：`pnpm docs:refs` 出对账表与改写清单，
       #   `pnpm docs:refs --emit-alias-candidates` 出别名表候选登记表。
-      #   别名表（`docs/section-ref-aliases.json`）是**建议层**，不参与判红 ⇒ 不进 CI。
+      #   别名表（`docs/section-ref-aliases.json` / `docs/doc-aliases.json`）是**建议层**，
+      #   不参与判红（FR-12.9 只判「别名指向的**目标文件已不存在**」）。
+
+      # 对账表新鲜度：对账表是**点时快照** ⇒ 会过期 ⇒ 过期了没人发现 ⇒
+      # 有人拿过期表做「拆 docs/dev-plan.md」的决策（那正是它存在的理由）。
+      # ⚠️ **只校验「拆分影响面」**（决策相关的那一节），不比对全文 ——
+      #   全文比对会对任何文档改动都报「过期」⇒ 天天红 ⇒ 等于没有这个检查。
+      # ⚠️ 断链清单**不重复校验**：它已被上面 `docs:check` 的 FR-12.1 实时守住。
+      - name: Section ref report freshness
+        run: pnpm docs:refs --verify-report docs/devlog-evidence/DEV-0110/section-ref-audit.md
 
       # 导出件防腐（**这一半能进 CI**）：导出件的 sha256 清单入仓（docs/agent-memory/manifest.json），
       # ⇒ 导出件被手改（哪怕一个字）都会让清单对不上 ⇒ 红。

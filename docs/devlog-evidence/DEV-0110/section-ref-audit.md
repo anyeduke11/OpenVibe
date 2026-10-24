@@ -14,7 +14,7 @@
 | ├ 条目型绿 | 45 |
 | ├ 不可判（父节在、子项未登记） | 4 |
 | └ 断链（红） | 1 |
-| 裸引用（不可判，只报数） | 3257 |
+| 裸引用（不可判，只报数） | 3259 |
 | 目标文件重名而不可判 | 0 |
 
 ## 2. 断链清单
@@ -31,7 +31,7 @@
 | §18 | 6 | `docs/PRD.md:790`、`docs/decisions.md:47`、`docs/decisions.md:72`、`docs/dev-plan-v0.2.1.md:28`、`docs/dev-plan-v0.2.1.md:126`、`docs/dev-plan-v0.2.1.md:912` |
 | §0.3 | 6 | `docs/analysis-2026-10-02-first-principles.md:10`、`docs/analysis-2026-10-02-first-principles.md:804`、`docs/design.md:8`、`docs/dev-plan-v0.2.1.md:37`、`docs/specs/m8-agent-bridge.md:7`、`docs/specs/m8-agent-bridge.md:250` |
 | §0.4 | 6 | `docs/dev-plan-v0.2.1.md:10`、`docs/dev-plan-v0.2.1.md:39`、`docs/specs/m3-terms-learning.md:9`、`docs/specs/m8-agent-bridge.md:9`、`docs/specs/m8-agent-bridge.md:363`、`docs/specs/m8-agent-panel.md:9` |
-| §16 | 5 | `docs/PRD.md:790`、`docs/PRD.md:807`、`docs/decisions.md:72`、`docs/dev-plan-v0.2.1.md:22`、`docs/dev-plan-v0.2.1.md:941` |
+| §16 | 5 | `docs/PRD.md:790`、`docs/PRD.md:807`、`docs/decisions.md:72`、`docs/dev-plan-v0.2.1.md:22`、`docs/dev-plan-v0.2.1.md:942` |
 | §16.6 | 4 | `docs/PRD-M8-agent-bridge-v1.0-20261013.md:559`、`docs/decisions.md:47`、`docs/dev-plan-v0.2.1.md:11`、`docs/dev-plan-v0.2.1.md:34` |
 | §15.2 | 4 | `docs/PRD.md:617`、`docs/PRD.md:806`、`docs/dev-plan.md:1381`、`docs/specs/m4-playbook.md:102` |
 | §1.2 | 3 | `docs/PRD-M8-agent-bridge-v1.0-20261013.md:349`、`docs/PRD-M8-agent-bridge-v1.0-20261013.md:359`、`docs/specs/m8-agent-bridge.md:196` |
@@ -59,7 +59,7 @@
 | 项 | 数 |
 |---|---|
 | 限定型引用 | 91 |
-| 裸引用（不可判） | 935 |
+| 裸引用（不可判） | 941 |
 | 断链（只报数） | 6 |
 
 | 位置 | 被引 | 上下文 |

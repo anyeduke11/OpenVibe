@@ -519,6 +519,66 @@ describe('docs-check · FR-12（§-引用必须落在真实存在的节上）', 
   })
 })
 
+/* ------------------------------------------------------------------ FR-12.9 */
+
+describe('docs-check · FR-12.9（别名表登记的目标文件必须还在）', () => {
+  const tmpRoots: string[] = []
+
+  function mkRepo(files: Record<string, string>): string {
+    const root = mkdtempSync(join(tmpdir(), 'ov-alias-'))
+    tmpRoots.push(root)
+    mkdirSync(join(root, 'docs'), { recursive: true })
+    for (const [rel, content] of Object.entries(files)) {
+      const abs = join(root, 'docs', rel)
+      mkdirSync(dirname(abs), { recursive: true })
+      writeFileSync(abs, content, 'utf8')
+    }
+    return root
+  }
+
+  afterEach(() => {
+    for (const d of tmpRoots) rmSync(d, { recursive: true, force: true })
+    tmpRoots.length = 0
+  })
+
+  it('⭐ 变异腿：别名表登记的目标文件不存在 ⇒ 报 FR-12.9（证明这道闸能红）', () => {
+    const root = mkRepo({
+      'a.md': '# A\n\n见 §3。\n',
+      'b.md': '# B\n\n## 3. 某节\n',
+      'section-ref-aliases.json': JSON.stringify({ aliases: { '3': ['docs/gone.md'] } }),
+    })
+    const fs = checkSectionRefs(root)
+    expect(errorsOf(fs)).toHaveLength(1)
+    expect(fs[0]!.rule).toBe('FR-12.9')
+    expect(fs[0]!.message).toContain('docs/gone.md')
+  })
+
+  it('文档别名表登记的目标文件不存在 ⇒ 同样报 FR-12.9', () => {
+    const root = mkRepo({
+      'a.md': '# A\n\n见 §3。\n',
+      'doc-aliases.json': JSON.stringify({ aliases: { m5: 'docs/no-such-spec.md' } }),
+    })
+    const fs = checkSectionRefs(root)
+    expect(errorsOf(fs)).toHaveLength(1)
+    expect(fs[0]!.rule).toBe('FR-12.9')
+  })
+
+  it('别名表登记的目标文件**存在** ⇒ 不报（这是常态，不该红）', () => {
+    const root = mkRepo({
+      'a.md': '# A\n\n见 §3。\n',
+      'b.md': '# B\n\n## 3. 某节\n',
+      'section-ref-aliases.json': JSON.stringify({ aliases: { '3': ['docs/b.md'] } }),
+      'doc-aliases.json': JSON.stringify({ aliases: { m5: 'docs/b.md' } }),
+    })
+    expect(checkSectionRefs(root)).toEqual([])
+  })
+
+  it('别名表文件不存在 ⇒ 不报（表还没建不是错）', () => {
+    const root = mkRepo({ 'a.md': '# A\n\n见 §3。\n' })
+    expect(checkSectionRefs(root)).toEqual([])
+  })
+})
+
 /* ════════════════════════════════════════════════════════ 判据预算（元判据） */
 
 /** 造 n 条占位判据，用来把计数推过线 */

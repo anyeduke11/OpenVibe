@@ -37,5 +37,5 @@ fi
 echo "✗ 提交被拦：agent 记忆导出件（docs/agent-memory/）与源已分叉。"
 echo "  源：$SRC"
 echo "  同步命令：npx tsx scripts/export-agent-memory.ts --from $SRC --date $(date +%F)"
-echo "  （只想跳过这一次？改用 --no-verify）"
+echo "  （只想跳过这一次：用 git commit --no-verify）"
 exit 1

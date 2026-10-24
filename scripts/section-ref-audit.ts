@@ -278,6 +278,14 @@ export interface BareRef {
   context: string
   /** 行内偏移（用于「原引用 → 新指向」的定位） */
   offset: number
+  /**
+   * `§` 前**紧邻**的标识符（`m5 §7` 的 `m5`；`分析文 §4.7` 的 `分析文`）。
+   *
+   * 它是**文档别名表**的查表键 —— 也是裸引用里**最强的行内指称证据**
+   * （比「跨文件推断某节号来自哪份文档」直接得多）。
+   * 抽不到就是空串（如「见 §7」这种前面是中文虚词的）。
+   */
+  prefix?: string
 }
 
 export interface ParseResult {
@@ -341,12 +349,18 @@ export function parseSectionRefs(
     for (const mm of line.matchAll(/§\s*([0-9][0-9A-Za-z.-]*)/g)) {
       const at = mm.index ?? 0
       if (occupied.some(([s, e]) => at >= s && at < e)) continue
+      // `§` 前紧邻的标识符 ⇒ 文档别名表的查表键（先剥尾部反引号：`` `m5` §7 `` ⇒ `m5`）
+      const before = line.slice(0, at).replace(/[`'"]+\s*$/, '')
+      // ⚠️ 中文前缀要能连续（`分析文 §4.7` ⇒ `分析文`，不是 `文`）
+      const prefix =
+        /([A-Za-z][A-Za-z0-9_.-]*|[\u4e00-\u9fff][\u4e00-\u9fffA-Za-z0-9_.-]*)\s*$/.exec(before)?.[1] ?? ''
       bare.push({
         from,
         line: i + 1,
         id: mm[1] ?? '',
         context: line.trim().slice(0, 120),
         offset: at,
+        prefix,
       })
     }
   }
@@ -672,6 +686,7 @@ export function buildRewritePlan(
   bareRefs: BareRef[],
   targets: Map<string, SectionIndex>,
   aliases: AliasTable = { aliases: new Map() },
+  docAliases: DocAliasTable = { aliases: new Map() },
 ): RewritePlan {
   const suggestions: RewriteSuggestion[] = []
   const ambiguities = new Map<string, RewriteAmbiguity>()
@@ -683,7 +698,7 @@ export function buildRewritePlan(
     if (own && (classifyRef(ref.id, own) === 'heading' || classifyRef(ref.id, own) === 'item')) {
       continue
     }
-    const resolution = resolveBareRef(ref.id, ref.from, targets, aliases)
+    const resolution = resolveBareRef(ref.id, ref.from, targets, aliases, docAliases, ref.prefix ?? '')
     const resolvers = resolution.resolvers
     const where = `${ref.from}:${ref.line}`
     if (resolvers.length === 0) {
@@ -839,48 +854,48 @@ export function buildRewriteReport(
 /* ════════════════════════════════════════════════════════ 别名表 */
 
 /**
- * 别名表：一張「节号 → 来源文件」的人工登记表。
+ * 别名表：一张「节号 → 来源文件」的人工登记表。
  *
- * ## 它解決什麼
+ * ## 它解決什么
  *
- * 裸引用 `§N` 的指向不可判定 —— 同一个节号常常在多份文件裡都存在。
- * 实测（主面 `docs/`）：裸引用 3431 條，自家可解 2219、**自家不可解 980**；
- * 不可解裡「多目标」佔絕大多数 —— 机器知道 `§7` 在好幾份文件裡都有，
- * 卻不知道**这條引用指的是哪一份**。
+ * 裸引用 `§N` 的指向不可判定 —— 同一个节号常常在多份文件里都存在。
+ * 实测（主面 `docs/`）：裸引用 3431 条，自家可解 2219、**自家不可解 980**；
+ * 不可解里「多目标」佔绝大多数 —— 机器知道 `§7` 在好幾份文件里都有，
+ * 却不知道**这条引用指的是哪一份**。
  *
- * ## 判定口徑：**别名表收窄候選，任一命中即綠**
+ * ## 判定口径：**别名表收窄候选，任一命中即绿**
  *
- * 一條裸引用的候選文件集合：
+ * 一条裸引用的候选文件集合：
  *
- * | 情形 | 候選集合 |
+ * | 情形 | 候选集合 |
  * |---|---|
- * | 别名表登记了該节号 | **别名表登记的目标文件**（收窄：别处的文件不再是候選） |
+ * | 别名表登记了该节号 | **别名表登记的目标文件**（收窄：别处的文件不再是候选） |
  * | 别名表没登记 | 自家文件 |
  *
- * `resolvers` = 候選集合裡**能解**該节号的文件。
+ * `resolvers` = 候选集合里**能解**该节号的文件。
  *
- * ## 为什麼「收窄」是安全的（**假紅防護**）
+ * ## 为什么「收窄」是安全的（**假紅防护**）
  *
- * 别名表登錯 ⇒ 候選集合變小 ⇒ 要麼 resolvers 为空（退回不可解 ⇒ 漏判），
- * 要麼 resolvers 指向另一个**确实有該节号**的文件 ⇒ 限定化后仍是**綠**的。
- * ⇒ **别名表登錯只造成漏判或指錯，永遠不會讓閘報紅。**
- * 若口徑反过来（「必須命中全部登记目标」），写錯就會造出假紅 —— 方向反了。
+ * 别名表登错 ⇒ 候选集合变小 ⇒ 要么 resolvers 为空（退回不可解 ⇒ 漏判），
+ * 要么 resolvers 指向另一个**确实有该节号**的文件 ⇒ 限定化后仍是**绿**的。
+ * ⇒ **别名表登错只造成漏判或指错，永远不会让閘報紅。**
+ * 若口径反过来（「必須命中全部登记目标」），写错就会造出假紅 —— 方向反了。
  *
- * 别名表**不參與判紅**：FR-12 只判限定型引用落空，别名表只服務於
- * 「裸引用 → 限定化」的改写建議 ⇒ 它是**建議層**，不是**判據層**。
+ * 别名表**不参与判紅**：FR-12 只判限定型引用落空，别名表只服务於
+ * 「裸引用 → 限定化」的改写建议 ⇒ 它是**建议层**，不是**判据层**。
  */
 export interface AliasTable {
-  /** 节号 → 来源文件的倉內相對路徑（posix 分隔） */
+  /** 节号 → 来源文件的仓內相对路径（posix 分隔） */
   aliases: Map<string, string[]>
 }
 
-/** 别名表档案的預設位置（倉內数據档案 ⇒ 口徑單处、可入版本庫） */
+/** 别名表档案的预设位置（仓內数据档案 ⇒ 口径单处、可入版本庫） */
 export const ALIAS_FILE = 'docs/section-ref-aliases.json'
 
 /**
  * 從别名表档案（JSON）解析出别名表。
  *
- * **純函数**（只吃解析好的 JSON）—— 檢查器能直接調它，不用先造档案。
+ * **純函数**（只吃解析好的 JSON）—— 检查器能直接调它，不用先造档案。
  *
  * 形狀：`{ "aliases": { "<节号>": ["<来源档案>", ...] } }`
  */
@@ -894,53 +909,145 @@ export function parseAliases(json: { aliases?: Record<string, string[]> }): Alia
   return { aliases }
 }
 
-/** 一條裸引用的解析結果 */
+/**
+ * 文档别名表：裸引用**前缀**（缩写）→ 来源文件。
+ *
+ * ## 为什么它比「节号别名表」杠杆大得多
+ *
+ * 裸引用里的行内前缀是**最强的指称证据** —— `m5 §7` 里的 `m5` 就写在引用旁边，
+ * 而「§7 来自哪份文件」是跨文件推断。实测：裸引用 3257 条里 **1787 条（54.9%）**
+ * 带前缀，其中约 30 个是真正的文档标识（design 159 · dev-plan 142 · PRD 135 ·
+ * m6b 23 · m6a 13 · m5 13 · m3 13 · m1 12 · seed-content 11 …），
+ * 覆盖约 **620 处**；加中文的「分析文」141 处 ⇒ 合计约 **760 处**。
+ *
+ * ## 判定口径：**收窄前先验证目标**
+ *
+ * 前缀命中别名表**且目标文件确实含该节号** ⇒ 候选收窄成该目标。
+ * ⚠️ **目标不含该节号 ⇒ 不收窄**（退回机器自找）⇒ **别名写错只是静默失效**，
+ * 既不会给出错误指向，更不会假红 —— 这比「写错就指向错文件」安全一个量级。
+ *
+ * 副作用（也是要配反向检查的理由）：别名写错**看不见**（与没登记同样表现），
+ * ⇒ 必须另有「别名表失效」的报数面，否则错的别名会一直潜伏。
+ */
+export interface DocAliasTable {
+  /** 前缀 → 来源文件（仓内相对路径） */
+  aliases: Map<string, string>
+}
+
+/** 文档别名表文件的默认位置（仓内数据文件 ⇒ 口径单处、可入版本库） */
+export const DOC_ALIAS_FILE = 'docs/doc-aliases.json'
+
+/**
+ * 从文档别名表文件（JSON）解析出别名表。
+ *
+ * **纯函数**（只吃解析好的 JSON）—— 检查器能直接调它，不用先造文件。
+ *
+ * 形状：`{ "aliases": { "<前缀>": "<来源文件>" } }`
+ */
+export function parseDocAliases(json: { aliases?: Record<string, string> }): DocAliasTable {
+  const aliases = new Map<string, string>()
+  for (const [prefix, target] of Object.entries(json.aliases ?? {})) {
+    if (typeof target !== 'string' || target.length === 0) continue
+    aliases.set(prefix, target)
+  }
+  return { aliases }
+}
+
+/** 一条裸引用的解析结果 */
 export interface BareResolution {
-  /** 候選集合（别名表登记時＝登记的目标；未登记時＝全倉能解該节号的档案） */
+  /** 候选集合（别名表登记时＝登记的目标；未登记时＝全仓能解该节号的档案） */
   candidates: string[]
-  /** 候選集合裡能解該节号的档案 */
+  /** 候选集合里能解该节号的档案 */
   resolvers: string[]
-  /** 候選集合是别名表收窄的（否則是机器自找） */
+  /** 候选集合是别名表收窄的（否则是机器自找） */
   viaAlias: boolean
+  /** 候选集合是**文档别名**（行内前缀）收窄的 */
+  viaDocAlias: boolean
 }
 
 /**
- * 解析一條裸引用能指到哪。
+ * 在文档别名表里查一个前缀。
  *
- * ## 候選集合怎麼来（**别名表是收窄，不是替換**）
+ * ## 为什么需要「尾部后缀匹配」
  *
- * | 情形 | 候選集合 |
- * |---|---|
- * | 别名表登记了該节号 | **别名表登记的目标档案**（收窄：别处的档案不再是候選） |
- * | 别名表没登记 | **全倉能解該节号的档案**（机器自己找） |
+ * 中文**没有词边界** ⇒ 前缀抽取会把虚词粘在一起（`见 §7 与按 §3` 的第二个前缀
+ * 是 `与按`，不是 `按`）。而真标识是**尾部**那截（`按`、`分析文`）。
+ * ⇒ 查表时先精确匹配，未命中再**逐个缩短尾部**重试。
  *
- * 未登记時若把候選收窄成「自家」，就會丟掉「全倉唯一可解」那批本可自動建議的引用
- * ⇒ **收窄只能作用在已登记的节号上**。
+ * ⚠️ 缩短范围只对**含中文**的前缀做（ASCII token 本身已按词边界抽全，
+ * 缩短尾部反而会造出 `RD` → `PRD` 这类误命中）。
+ */
+export function lookupDocAlias(prefix: string, table: DocAliasTable): string | undefined {
+  if (!prefix) return undefined
+  const direct = table.aliases.get(prefix)
+  if (direct) return direct
+  // ⚠️ 纯 ASCII 的前缀不做缩短（ASCII token 已按词边界抽全，缩短会造出 `RD` → `PRD` 这类误命中）
+  // ⇒ 用码点判断而非正则：`no-control-regex` 不允许在字符类里写 `\x00`
+  if (Array.from(prefix).every((ch) => (ch.codePointAt(0) ?? 0) < 0x80)) return undefined
+  for (let len = prefix.length - 1; len >= 1; len--) {
+    const hit = table.aliases.get(prefix.slice(len))
+    if (hit) return hit
+  }
+  return undefined
+}
+
+/**
+ * 解析一条裸引用能指到哪。
  *
- * @param id      被引节号
- * @param from    引用所在档案（自家）
- * @param targets 全倉目标索引
- * @param aliases 别名表
+ * ## 候选集合怎么来（**收窄，且收窄前先验证**）
+ *
+ * | 优先级 | 情形 | 候选集合 |
+ * |---|---|---|
+ * | 1 | 文档别名命中前缀，**且目标确实能解**该节号 | 该目标（行内直接指称） |
+ * | 2 | 节号别名登记了该节号，**且登记目标里至少一个能解** | 登记的目标（跨文件推断） |
+ * | 3 | 以上都不成立 | **全仓能解该节号的档案**（机器自己找） |
+ *
+ * ⚠️ **1 优先于 2**：前缀是**同句上下文里的显式指称**，节号别名是跨文件经验推断。
+ *
+ * @param id         被引节号
+ * @param from       引用所在档案（自家）
+ * @param targets    全仓目标索引
+ * @param aliases    节号别名表
+ * @param docAliases 文档别名表
+ * @param prefix     `§` 前紧邻的标识符（由 `BareRef.prefix` 给出）
  */
 export function resolveBareRef(
   id: string,
   from: string,
   targets: Map<string, SectionIndex>,
   aliases: AliasTable,
+  docAliases: DocAliasTable = { aliases: new Map() },
+  prefix = '',
 ): BareResolution {
-  const aliased = aliases.aliases.get(id)
   const canResolve = (path: string): boolean => {
     const index = targets.get(path)
     if (!index) return false
     const v = classifyRef(id, index)
     return v === 'heading' || v === 'item'
   }
-  const candidates = aliased ? [...new Set(aliased)] : [...targets.keys()].filter(canResolve)
-  const resolvers = candidates.filter(canResolve)
-  return { candidates, resolvers, viaAlias: aliased !== undefined }
+
+  // 1) 文档别名：行内前缀 ⇒ 唯一目标；**目标不含该节号则不收窄**
+  const docTarget = lookupDocAlias(prefix, docAliases)
+  if (docTarget && canResolve(docTarget)) {
+    return { candidates: [docTarget], resolvers: [docTarget], viaAlias: true, viaDocAlias: true }
+  }
+
+  // 2) 节号别名：登记的目标；**一个都解不了则不收窄**
+  const aliased = aliases.aliases.get(id)
+  if (aliased) {
+    const candidates = [...new Set(aliased)]
+    const resolvers = candidates.filter(canResolve)
+    if (resolvers.length > 0) {
+      return { candidates, resolvers, viaAlias: true, viaDocAlias: false }
+    }
+  }
+
+  // 3) 机器自找：全仓能解该节号的档案
+  const candidates = [...targets.keys()].filter(canResolve)
+  return { candidates, resolvers: candidates, viaAlias: false, viaDocAlias: false }
 }
 
-/** 一个「需人工裁定来源」的节号候選 */
+/** 一个「需人工裁定来源」的节号候选 */
 export interface AliasCandidate {
   /** 节号 */
   id: string
@@ -953,26 +1060,28 @@ export interface AliasCandidate {
 }
 
 /**
- * 生成「需人工裁定来源」的节号候選表。
+ * 生成「需人工裁定来源」的节号候选表。
  *
- * ## 为什麼要这張表
+ * ## 为什么要这张表
  *
- * 机器能給的只有「`§7` 在这 3 份文件裡都有」—— 但**哪一份才是这條引用指的**，
- * 只有看上下文才知道 ⇒ 这一步**机器替不了**，只能把工作量从「逐條讀 3431 处引用」
- * 壓到「逐條讀 N 个节号的样例上下文」。
+ * 机器能给的只有「`§7` 在这 3 份文件里都有」—— 但**哪一份才是这条引用指的**，
+ * 只有看上下文才知道 ⇒ 这一步**机器替不了**，只能把工作量从「逐条读 3431 处引用」
+ * 压到「逐条读 N 个节号的样例上下文」。
  *
- * ## 涵蓋範圍
+ * ## 涵盖范围
  *
- * 只收**自家不可解**的裸引用（自家能解的本来就是同档案引用，不該限定化）。
- * 其中「唯一可解」的由 `buildRewritePlan` **全自動**覆蓋，不需要人工登记；
- * 本表把三類都列出来，是为了讓人看清**哪些还要裁**、**哪些裁不了**。
+ * 只收**自家不可解**的裸引用（自家能解的本来就是同档案引用，不该限定化）。
+ * 其中「唯一可解」的由 `buildRewritePlan` **全自动**覆盖，不需要人工登记；
+ * 本表把三类都列出来，是为了让人看清**哪些还要裁**、**哪些裁不了**。
  *
  * @param bareRefs 裸引用明細
- * @param targets  全倉目标索引
+ * @param targets  全仓目标索引
  */
 export function buildAliasCandidates(
   bareRefs: BareRef[],
   targets: Map<string, SectionIndex>,
+  aliases: AliasTable = { aliases: new Map() },
+  docAliases: DocAliasTable = { aliases: new Map() },
 ): AliasCandidate[] {
   const acc = new Map<string, AliasCandidate>()
   const seen = new Set<string>()
@@ -982,12 +1091,9 @@ export function buildAliasCandidates(
     const key = `${ref.id}|${ref.from}|${ref.line}`
     if (seen.has(key)) continue
     seen.add(key)
-    const resolvers: string[] = []
-    for (const [path, index] of targets) {
-      if (path === ref.from) continue
-      const v = classifyRef(ref.id, index)
-      if (v === 'heading' || v === 'item') resolvers.push(path)
-    }
+    // 候选集合：**已被别名表解决的**（resolvers 收窄到 1）⇒ 不再需要人工登记
+    const resolution = resolveBareRef(ref.id, ref.from, targets, aliases, docAliases, ref.prefix ?? '')
+    const resolvers = resolution.resolvers
     const entry = acc.get(ref.id) ?? { id: ref.id, count: 0, resolvers, samples: [] }
     entry.count++
     if (entry.samples.length < 4) {
@@ -998,17 +1104,17 @@ export function buildAliasCandidates(
   return [...acc.values()].sort((a, b) => b.count - a.count || a.id.localeCompare(b.id))
 }
 
-/** 候選表的三類分档（供報告與登记用） */
+/** 候选表的三类分档（供報告与登记用） */
 export interface AliasCandidateBuckets {
-  /** 唯一可解（全自動覆蓋，不需要人工登记） */
+  /** 唯一可解（全自动覆盖，不需要人工登记） */
   auto: AliasCandidate[]
   /** 多目标（需人工裁定来源） */
   needHuman: AliasCandidate[]
-  /** 全倉無可解（别名表也救不了 —— 目标档案裡根本没这个节号） */
+  /** 全仓无可解（别名表也救不了 —— 目标档案里根本没这个节号） */
   hopeless: AliasCandidate[]
 }
 
-/** 把候選表按「可解度」分三档 */
+/** 把候选表按「可解度」分三档 */
 export function bucketAliasCandidates(candidates: AliasCandidate[]): AliasCandidateBuckets {
   const auto: AliasCandidate[] = []
   const needHuman: AliasCandidate[] = []
@@ -1022,24 +1128,24 @@ export function bucketAliasCandidates(candidates: AliasCandidate[]): AliasCandid
 }
 
 /**
- * 生成别名表候選報告 Markdown（**給人登记用**）。
+ * 生成别名表候选報告 Markdown（**给人登记用**）。
  *
- * 兩节：① 需人工裁定（多目标）② 分档摘要（唯一可解 / 無可解）。
+ * 兩节：① 需人工裁定（多目标）② 分档摘要（唯一可解 / 无可解）。
  */
 export function buildAliasCandidateReport(candidates: AliasCandidate[]): string {
   const buckets = bucketAliasCandidates(candidates)
   const lines: string[] = []
-  lines.push('# §-引用别名表 · 候選登记表')
+  lines.push('# §-引用别名表 · 候选登记表')
   lines.push('')
   lines.push('> 生成方式：`npx tsx scripts/section-ref-audit.ts --emit-alias-candidates`。')
-  lines.push('> **这是給人落筆的登记表** —— 判定口徑見 `scripts/section-ref-audit.ts` 文件頭「别名表」节。')
-  lines.push('> 登记形狀：`{ "<节号>": ["<来源档案>", ...] }`（档案路徑用倉內相對路徑）。')
+  lines.push('> **这是给人落笔的登记表** —— 判定口径见 `scripts/section-ref-audit.ts` 文件头「别名表」节。')
+  lines.push('> 登记形狀：`{ "<节号>": ["<来源档案>", ...] }`（档案路径用仓內相对路径）。')
   lines.push('')
 
   lines.push('## 1. 需人工裁定来源（多目标）')
   lines.push('')
   if (buckets.needHuman.length === 0) {
-    lines.push('（無）')
+    lines.push('（无）')
   } else {
     lines.push('| 节号 | 出现处数 | 能解它的档案 | 样例上下文 |')
     lines.push('|---|---|---|---|')
@@ -1058,9 +1164,9 @@ export function buildAliasCandidateReport(candidates: AliasCandidate[]): string 
   lines.push('')
   lines.push('| 分档 | 节号数 | 说明 |')
   lines.push('|---|---|---|')
-  lines.push(`| 唯一可解（全自動覆蓋） | ${buckets.auto.length} | 只有一份档案能解 ⇒ 机器直接出建議，**不需人工登记** |`)
+  lines.push(`| 唯一可解（全自动覆盖） | ${buckets.auto.length} | 只有一份档案能解 ⇒ 机器直接出建议，**不需人工登记** |`)
   lines.push(`| 多目标（需人工裁定） | ${buckets.needHuman.length} | 多份档案都能解 ⇒ 只有看上下文能定 |`)
-  lines.push(`| 全倉無可解 | ${buckets.hopeless.length} | 没有任何档案有这个节号 ⇒ 别名表也救不了 |`)
+  lines.push(`| 全仓无可解 | ${buckets.hopeless.length} | 没有任何档案有这个节号 ⇒ 别名表也救不了 |`)
   lines.push('')
   return lines.join('\n')
 }
@@ -1135,6 +1241,121 @@ export function auditAliasEntries(
   return { active, redundant, missingTarget }
 }
 
+/**
+ * 别名表的**失效检查**（判据面 FR-12.9 的数据来源）。
+ *
+ * ## 只判一条：**登记的目标文件在仓内不存在**
+ *
+ * 这是**唯一可证伪**的失效形态：别名指向一份不存在的文档 ⇒ 它必然指错。
+ * 其余情形都**不判**：
+ *
+ * | 情形 | 为什么不判 |
+ * |---|---|
+ * | 目标文件存在，但不含被引的节号 | 逐条引用层面的事；「收窄前先验证」已让它**静默失效**，不产生错误指向 |
+ * | 某个前缀/节号当前**没被任何裸引用用到** | 前瞻性登记是正常的（先登记后使用），不是失效 |
+ * | 登记项「多余」（该节号已自家可解） | 维护性提醒，**只报数**（见 `auditAliasEntries`） |
+ *
+ * ⇒ 这条判据不会假红：文件真的没了才会红。
+ */
+export interface AliasTableIssue {
+  /** 登记的键（节号或前缀） */
+  key: string
+  /** 登记的目标文件（仓内相对路径） */
+  target: string
+  /** 目标文件不存在 */
+  missing: boolean
+}
+
+/**
+ * 检查别名表里登记的目标文件是否还在。
+ *
+ * **纯函数**（只吃解析好的数据）—— 检查器能直接调它。
+ *
+ * @param aliases    节号别名表
+ * @param docAliases 文档别名表
+ * @param targets    全仓目标索引（用来判「文件还在不在」）
+ */
+export function auditAliasTables(
+  aliases: AliasTable,
+  docAliases: DocAliasTable,
+  targets: Map<string, SectionIndex>,
+): AliasTableIssue[] {
+  const issues: AliasTableIssue[] = []
+  for (const [id, list] of aliases.aliases) {
+    for (const target of list) {
+      if (!targets.has(target)) issues.push({ key: id, target, missing: true })
+    }
+  }
+  for (const [prefix, target] of docAliases.aliases) {
+    if (!targets.has(target)) issues.push({ key: prefix, target, missing: true })
+  }
+  return issues
+}
+
+/**
+ * 校验一份对账表的**拆分影响面**是否与当前状态一致。
+ *
+ * ## 为什么只校验这一节
+ *
+ * 对账表是**点时快照**，整体比对（全文）会对任何文档改动都报「过期」
+ * ⇒ 改一行文档就要重生成表 ⇒ 这个检查会天天红，最终被忽略（= 没有检查）。
+ *
+ * 但它的三节里，**只有第 3 节是决策相关的**：「谁引用了 `docs/dev-plan.md` 的哪一节」
+ * —— 拆分前必须准确。对账表的另两节（判定摘要、断链清单）里，
+ * **断链清单已被 FR-12.1 判据实时守住**（新断链必红），摘要只是报数。
+ *
+ * ⇒ **只校验第 3 节**：它变了（引用增删）⇒ 表确实过期了；它没变 ⇒ 表仍可用。
+ *
+ * ## 判据
+ *
+ * 比「节号 + 引用处数」（**不比引用位置**：位置随任何编辑漂移，比位置会天天假红）。
+ */
+export interface ReportFreshness {
+  /** 对账表里第 3 节登记的条目数 */
+  declared: number
+  /** 当前实算的条目数 */
+  actual: number
+  /** 不一致的节号（表里有、实算没有，或反之） */
+  mismatched: string[]
+  /** 是否一致 */
+  fresh: boolean
+}
+
+/**
+ * 比对对账表的拆分影响面与实算结果。
+ *
+ * **纯函数**（只吃文本与实算数据）—— 检查器能直接调它。
+ *
+ * @param reportText 对账表全文
+ * @param actual     实算的拆分影响面：`节号 → 引用处数`
+ */
+export function verifyReportFreshness(
+  reportText: string,
+  actual: Map<string, number>,
+): ReportFreshness {
+  const declared = new Map<string, number>()
+  // 第 3 节的表格行：`| §<节号> | <处数> | <位置> |`
+  const section = reportText.split('## 3.')[1]?.split('\n## ')[0] ?? ''
+  for (const line of section.split('\n')) {
+    const m = /^\|\s*§([0-9A-Za-z.-]+)\s*\|\s*(\d+)\s*\|/.exec(line)
+    if (!m) continue
+    declared.set(m[1] ?? '', Number(m[2] ?? 0))
+  }
+  const mismatched: string[] = []
+  for (const [id, count] of declared) {
+    if (actual.get(id) !== count) mismatched.push(id)
+  }
+  for (const id of actual.keys()) {
+    if (!declared.has(id)) mismatched.push(id)
+  }
+  return {
+    declared: declared.size,
+    actual: actual.size,
+    mismatched,
+    fresh: mismatched.length === 0,
+  }
+}
+
 /* ════════════════════════════════════════════════════════ CLI */
 
 function collectMarkdown(root: string): { docs: string[]; rootFiles: string[] } {
@@ -1195,12 +1416,22 @@ function main(): number {
     ? parseAliases(JSON.parse(readFileSync(aliasAbs, 'utf8')) as { aliases?: Record<string, string[]> })
     : { aliases: new Map<string, string[]>() }
 
+  // 文档别名表：行内前缀 → 来源文件（收窄前先验证目标含该节号）
+  const docAliasIdx = args.indexOf('--doc-aliases')
+  const docAliasPath = docAliasIdx >= 0 ? (args[docAliasIdx + 1] ?? DOC_ALIAS_FILE) : DOC_ALIAS_FILE
+  const docAliasAbs = resolve(root, docAliasPath)
+  const docAliases = existsSync(docAliasAbs)
+    ? parseDocAliases(
+        JSON.parse(readFileSync(docAliasAbs, 'utf8')) as { aliases?: Record<string, string> },
+      )
+    : { aliases: new Map<string, string>() }
+
   const result = auditSectionRefs(mainDocs, targets, known)
   const aux = auditSectionRefs(auxDocs, targets, known)
 
   // 别名表候选登记表：给人落笔用，不判红绿
   if (args.includes('--emit-alias-candidates')) {
-    const candidates = buildAliasCandidates(result.bareRefs, targets)
+    const candidates = buildAliasCandidates(result.bareRefs, targets, aliases, docAliases)
     const report = buildAliasCandidateReport(candidates)
     const outIdx = args.indexOf('--write-alias-candidates')
     if (outIdx >= 0) {
@@ -1217,9 +1448,36 @@ function main(): number {
     return 0
   }
 
+  // 对账表新鲜度：校验**拆分影响面**与实算一致（点时快照会过期 ⇒ 必须能被发现）
+  const verifyIdx = args.indexOf('--verify-report')
+  if (verifyIdx >= 0) {
+    const reportPath = args[verifyIdx + 1] ?? ''
+    const abs = resolve(root, reportPath)
+    if (!existsSync(abs)) {
+      console.error(`✗ 对账表不存在：${reportPath}`)
+      return 2
+    }
+    const splitTarget = 'docs/dev-plan.md'
+    const actual = new Map<string, number>()
+    for (const f of result.findings) {
+      if (f.ref.target !== splitTarget) continue
+      actual.set(f.ref.ref, (actual.get(f.ref.ref) ?? 0) + 1)
+    }
+    const freshness = verifyReportFreshness(readFileSync(abs, 'utf8'), actual)
+    if (freshness.fresh) {
+      console.log(`✓ 对账表新鲜：拆分影响面 ${freshness.actual} 个节号与实算一致（${reportPath}）`)
+      return 0
+    }
+    console.error(`✗ 对账表已过期：拆分影响面有 ${freshness.mismatched.length} 个节号与实算不一致`)
+    console.error(`  不一致：${freshness.mismatched.join('、')}`)
+    console.error(`  表里 ${freshness.declared} 个节号 · 实算 ${freshness.actual} 个`)
+    console.error(`  重生成：npx tsx scripts/section-ref-audit.ts --write ${reportPath}`)
+    return 1
+  }
+
   // 改写清单模式：给人落笔用，不判红绿
   if (args.includes('--emit-rewrite-plan')) {
-    const plan = buildRewritePlan(result.bareRefs, targets, aliases)
+    const plan = buildRewritePlan(result.bareRefs, targets, aliases, docAliases)
     const mapIdx = args.indexOf('--map')
     const mapPath = mapIdx >= 0 ? args[mapIdx + 1] : null
     let map: Record<string, Record<string, string>> = {}

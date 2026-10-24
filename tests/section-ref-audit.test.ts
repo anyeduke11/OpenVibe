@@ -10,9 +10,12 @@ import {
   bucketAliasCandidates,
   classifyRef,
   indexSections,
+  lookupDocAlias,
   parseAliases,
+  parseDocAliases,
   parseSectionRefs,
   resolveBareRef,
+  verifyReportFreshness,
   type SectionIndex,
 } from '../scripts/section-ref-audit'
 
@@ -407,13 +410,13 @@ describe('indexSections · 「第 N 章」式顶层节（回归腿）', () => {
 /* ════════════════════════════════════════════════════════ 別名表 */
 
 describe('parseAliases · 解析別名表（純函數）', () => {
-  it('读出「節號 → 目標檔案」映射', () => {
+  it('读出「节号 → 目标档案」映射', () => {
     const table = parseAliases({ aliases: { '3': ['docs/a.md'], '7': ['docs/b.md', 'docs/c.md'] } })
     expect(table.aliases.get('3')).toEqual(['docs/a.md'])
     expect(table.aliases.get('7')).toEqual(['docs/b.md', 'docs/c.md'])
   })
 
-  it('空值 / 非字符串 / 空列表 ⇒ 該項不進表（不留空殼）', () => {
+  it('空值 / 非字符串 / 空列表 ⇒ 该项不進表（不留空殼）', () => {
     const table = parseAliases({
       aliases: {
         '3': [],
@@ -427,21 +430,21 @@ describe('parseAliases · 解析別名表（純函數）', () => {
   })
 })
 
-describe('resolveBareRef · 別名表收窄候選', () => {
+describe('resolveBareRef · 別名表收窄候选', () => {
   const targets = new Map<string, SectionIndex>([
     ['docs/a.md', indexSections('## 3. 甲\n')],
     ['docs/b.md', indexSections('## 3. 乙\n')],
     ['docs/c.md', indexSections('## 9. 丙\n')],
   ])
 
-  it('未登記 ⇒ 候選是「全倉能解該節號的檔案」（**不收窄成自家**）', () => {
+  it('未登記 ⇒ 候选是「全倉能解该节号的档案」（**不收窄成自家**）', () => {
     const r = resolveBareRef('3', 'docs/source.md', targets, { aliases: new Map() })
     expect(r.candidates.sort()).toEqual(['docs/a.md', 'docs/b.md'])
     expect(r.resolvers.sort()).toEqual(['docs/a.md', 'docs/b.md'])
     expect(r.viaAlias).toBe(false)
   })
 
-  it('已登記 ⇒ 候選被**收窄**到登記的目標（別處不再是候選）', () => {
+  it('已登記 ⇒ 候选被**收窄**到登記的目标（別处不再是候选）', () => {
     const table = parseAliases({ aliases: { '3': ['docs/a.md'] } })
     const r = resolveBareRef('3', 'docs/source.md', targets, table)
     expect(r.candidates).toEqual(['docs/a.md'])
@@ -450,20 +453,20 @@ describe('resolveBareRef · 別名表收窄候選', () => {
   })
 })
 
-describe('buildRewritePlan · 別名表把「多目標」變成「可落筆的建議」', () => {
+describe('buildRewritePlan · 別名表把「多目标」变成「可落笔的建议」', () => {
   const targets = new Map<string, SectionIndex>([
     ['docs/a.md', indexSections('## 3. 甲\n')],
     ['docs/b.md', indexSections('## 3. 乙\n')],
   ])
   const bare = [{ from: 'docs/source.md', line: 1, id: '3', context: '见 §3', offset: 0 }]
 
-  it('未登記 ⇒ 多目標 ⇒ 進「待人工確認」（機器不猜）', () => {
+  it('未登記 ⇒ 多目标 ⇒ 進「待人工確认」（机器不猜）', () => {
     const plan = buildRewritePlan(bare, targets)
     expect(plan.suggestions).toHaveLength(0)
     expect(plan.ambiguities).toHaveLength(1)
   })
 
-  it('登記後 ⇒ 唯一可解 ⇒ 出限定化建議', () => {
+  it('登記後 ⇒ 唯一可解 ⇒ 出限定化建议', () => {
     const table = parseAliases({ aliases: { '3': ['docs/a.md'] } })
     const plan = buildRewritePlan(bare, targets, table)
     expect(plan.suggestions).toHaveLength(1)
@@ -472,16 +475,16 @@ describe('buildRewritePlan · 別名表把「多目標」變成「可落筆的�
   })
 })
 
-/* ════════════════════════════════════════════════════════ ⭐ 變異腿 */
+/* ════════════════════════════════════════════════════════ ⭐ 变異腿 */
 
-describe('⭐ 變異腿 · 別名表登錯**不得**造出假紅', () => {
+describe('⭐ 变異腿 · 別名表登错**不得**造出假紅', () => {
   const targets = new Map<string, SectionIndex>([
     ['docs/a.md', indexSections('## 3. 甲\n')],
     ['docs/b.md', indexSections('## 3. 乙\n')],
   ])
   const bare = [{ from: 'docs/source.md', line: 1, id: '3', context: '见 §3', offset: 0 }]
 
-  it('登記的目標**不含**該節號 ⇒ 退回「不可解」，**不是斷鏈**', () => {
+  it('登記的目标**不含**该节号 ⇒ **不收窄**（退回机器自找），且**不得指向错的目标**', () => {
     // 变异：把登记的目标写错（指向一个没有 §3 的文件）
     const table = parseAliases({ aliases: { '3': ['docs/a.md'] } })
     const mutated = new Map<string, SectionIndex>([
@@ -489,13 +492,16 @@ describe('⭐ 變異腿 · 別名表登錯**不得**造出假紅', () => {
       ['docs/a.md', indexSections('## 4. 甲\n')], // ⇒ a.md 里没有 §3 了
     ])
     const plan = buildRewritePlan(bare, mutated, table)
-    expect(plan.suggestions).toHaveLength(0)
-    expect(plan.unresolvable).toHaveLength(1)
-    // ⭐ 关键断言：别名表写错只会让引用**退回不可解**，不会变成断链
-    expect(plan.unresolvable[0]?.id).toBe('3')
+    // ⭐ 关键断言 1：别名表写错**不会**让机器把引用指向那个错文件
+    expect(plan.suggestions[0]?.target).not.toBe('docs/a.md')
+    // ⭐ 关键断言 2：写错只是**不收窄** —— 机器退回「全仓自找」，
+    //   仍给出**唯一正确**的指向（b.md 确实是唯一能解 §3 的），信息不丢
+    expect(plan.suggestions).toHaveLength(1)
+    expect(plan.suggestions[0]?.target).toBe('docs/b.md')
+    expect(plan.unresolvable).toHaveLength(0)
   })
 
-  it('別名表登錯**不影響** FR-12 的斷鏈判定（別名表不參與判紅）', () => {
+  it('別名表登错**不影響** FR-12 的断鏈判定（別名表不參與判紅）', () => {
     const table = parseAliases({ aliases: { '3': ['docs/does-not-exist.md'] } })
     const result = auditSectionRefs(
       [{ path: 'docs/source.md', content: '裸写 §3 —— 指向未知。' }],
@@ -513,14 +519,14 @@ describe('⭐ 變異腿 · 別名表登錯**不得**造出假紅', () => {
   })
 })
 
-describe('buildAliasCandidates · 別名表候選登記表', () => {
+describe('buildAliasCandidates · 別名表候选登記表', () => {
   const targets = new Map<string, SectionIndex>([
     ['docs/a.md', indexSections('## 3. 甲\n')],
     ['docs/b.md', indexSections('## 3. 乙\n')],
     ['docs/c.md', indexSections('## 7. 丙\n')],
   ])
 
-  it('只收「自家不可解」的裸引用；唯一可解 / 多目標 / 無可解分三檔', () => {
+  it('只收「自家不可解」的裸引用；唯一可解 / 多目标 / 無可解分三档', () => {
     const bare = [
       { from: 'docs/a.md', line: 1, id: '3', context: '自家有 §3', offset: 0 },
       { from: 'docs/source.md', line: 2, id: '3', context: '多目标', offset: 0 },
@@ -536,7 +542,7 @@ describe('buildAliasCandidates · 別名表候選登記表', () => {
     expect(buckets.hopeless.map((c) => c.id)).toEqual(['99'])
   })
 
-  it('報告含「需人工裁定」與「分檔摘要」兩節', () => {
+  it('報告含「需人工裁定」與「分档摘要」兩节', () => {
     const report = buildAliasCandidateReport(
       buildAliasCandidates(
         [{ from: 'docs/source.md', line: 1, id: '3', context: '见 §3', offset: 0 }],
@@ -545,5 +551,132 @@ describe('buildAliasCandidates · 別名表候選登記表', () => {
     )
     expect(report).toContain('## 1. 需人工裁定来源（多目标）')
     expect(report).toContain('## 2. 分档摘要')
+  })
+})
+
+/* ════════════════════════════════════════════════════════ 文档别名表 */
+
+describe('parseDocAliases · 解析文档别名表（纯函数）', () => {
+  it('读出「前缀 → 来源文件」映射', () => {
+    const table = parseDocAliases({ aliases: { design: 'docs/design.md', PRD: 'docs/PRD.md' } })
+    expect(table.aliases.get('design')).toBe('docs/design.md')
+    expect(table.aliases.get('PRD')).toBe('docs/PRD.md')
+  })
+
+  it('非字符串 / 空串 ⇒ 不进表（不留空壳）', () => {
+    const table = parseDocAliases({
+      aliases: { design: '', PRD: 42 as unknown as string, m5: 'docs/specs/m5-project-flow.md' },
+    })
+    expect(table.aliases.has('design')).toBe(false)
+    expect(table.aliases.has('PRD')).toBe(false)
+    expect(table.aliases.get('m5')).toBe('docs/specs/m5-project-flow.md')
+  })
+})
+
+describe('parseSectionRefs · 抽出裸引用的行内前缀', () => {
+  const index = new Map<string, string[]>([['target.md', ['docs/specs/target.md']]])
+
+  it('`m5 §7` 的前缀是 `m5`；`分析文 §4.7` 的前缀是 `分析文`（中文可连续）', () => {
+    const { bare } = parseSectionRefs('见 m5 §7 与 分析文 §4.7。', 'docs/source.md', index)
+    expect(bare[0]?.prefix).toBe('m5')
+    expect(bare[1]?.prefix).toBe('分析文')
+  })
+
+  it('查表：中文虚词粘成串也能靠**尾部**命中真标识（`与按` → 查不到，`分析文` → 命中）', () => {
+    const table = parseDocAliases({ aliases: { m5: 'docs/m5.md', 分析文: 'docs/analysis.md' } })
+    const { bare } = parseSectionRefs('见 §7 与按 §3 与 分析文 §4。', 'docs/source.md', index)
+    expect(lookupDocAlias(bare[0]?.prefix ?? '', table)).toBeUndefined()
+    expect(lookupDocAlias(bare[1]?.prefix ?? '', table)).toBeUndefined()
+    expect(lookupDocAlias(bare[2]?.prefix ?? '', table)).toBe('docs/analysis.md')
+  })
+
+  it('反引号包裹的前缀也能抽出（`` `m5` §7 `` ⇒ `m5`）', () => {
+    const { bare } = parseSectionRefs('见 `m5` §7。', 'docs/source.md', index)
+    expect(bare[0]?.prefix).toBe('m5')
+  })
+})
+
+describe('resolveBareRef · 文档别名优先于节号别名', () => {
+  const targets = new Map<string, SectionIndex>([
+    ['docs/specs/m5.md', indexSections('## 7. 甲\n')],
+    ['docs/specs/other.md', indexSections('## 7. 乙\n')],
+    ['docs/specs/third.md', indexSections('## 7. 丙\n')],
+  ])
+
+  it('前缀命中文档别名且目标确能解 ⇒ 收窄成唯一目标', () => {
+    const docAliases = parseDocAliases({ aliases: { m5: 'docs/specs/m5.md' } })
+    const r = resolveBareRef('7', 'docs/source.md', targets, { aliases: new Map() }, docAliases, 'm5')
+    expect(r.candidates).toEqual(['docs/specs/m5.md'])
+    expect(r.resolvers).toEqual(['docs/specs/m5.md'])
+    expect(r.viaDocAlias).toBe(true)
+  })
+
+  it('⭐ 变异腿：目标**不含**该节号 ⇒ 不收窄，且**不得指向那个错目标**', () => {
+    const docAliases = parseDocAliases({ aliases: { m5: 'docs/specs/m5.md' } })
+    const mutated = new Map<string, SectionIndex>([
+      ...targets,
+      ['docs/specs/m5.md', indexSections('## 4. 甲\n')], // ⇒ m5.md 里没有 §7
+    ])
+    const r = resolveBareRef('7', 'docs/source.md', mutated, { aliases: new Map() }, docAliases, 'm5')
+    // 写错只是「不收窄」—— 机器退回全仓自找，仍给出正确指向（信息不丢）
+    expect(r.candidates).not.toContain('docs/specs/m5.md')
+    expect(r.resolvers).toContain('docs/specs/other.md')
+    expect(r.viaDocAlias).toBe(false)
+  })
+
+  it('文档别名与节号别名都命中时 ⇒ 文档别名优先（行内指称更直接）', () => {
+    const docAliases = parseDocAliases({ aliases: { m5: 'docs/specs/m5.md' } })
+    const aliases = parseAliases({ aliases: { '7': ['docs/specs/third.md'] } })
+    const r = resolveBareRef('7', 'docs/source.md', targets, aliases, docAliases, 'm5')
+    expect(r.resolvers).toEqual(['docs/specs/m5.md'])
+    expect(r.viaDocAlias).toBe(true)
+  })
+})
+
+describe('verifyReportFreshness · 对账表过期检测', () => {
+  const report = [
+    '# §-引用对账表',
+    '',
+    '## 3. 拆分影响面：谁引用了 `docs/dev-plan.md` 的哪一节',
+    '',
+    '| 被引节号 | 引用处数 | 引用位置 |',
+    '|---|---|---|',
+    '| §16 | 3 | `docs/PRD.md:7` |',
+    '| §18 | 1 | `docs/a.md:2` |',
+    '',
+    '## 4. 附面',
+    '',
+    '| §99 | 5 | 别的节 |',
+    '',
+  ].join('\n')
+
+  it('拆分影响面与实算一致 ⇒ 新鲜', () => {
+    const r = verifyReportFreshness(report, new Map([['16', 3], ['18', 1]]))
+    expect(r.fresh).toBe(true)
+    expect(r.declared).toBe(2)
+    expect(r.actual).toBe(2)
+  })
+
+  it('⭐ 变异腿：引用处数变了 ⇒ 报过期（这张表不能再直接用来做拆分决策）', () => {
+    const r = verifyReportFreshness(report, new Map([['16', 4], ['18', 1]]))
+    expect(r.fresh).toBe(false)
+    expect(r.mismatched).toContain('16')
+  })
+
+  it('新增了一个节号 ⇒ 报过期', () => {
+    const r = verifyReportFreshness(report, new Map([['16', 3], ['18', 1], ['15', 2]]))
+    expect(r.fresh).toBe(false)
+    expect(r.mismatched).toContain('15')
+  })
+
+  it('只比「节号 + 处数」：**不比引用位置**（位置随编辑漂移，比位置会天天假红）', () => {
+    const moved = report.replace('`docs/PRD.md:7`', '`docs/PRD.md:999`')
+    const r = verifyReportFreshness(moved, new Map([['16', 3], ['18', 1]]))
+    expect(r.fresh).toBe(true)
+  })
+
+  it('第 4 节（附面）里的数字**不参与**判定', () => {
+    const r = verifyReportFreshness(report, new Map([['16', 3], ['18', 1]]))
+    expect(r.declared).toBe(2)
   })
 })

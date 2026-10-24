@@ -66,10 +66,15 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { basename, dirname, join, normalize } from 'node:path'
 import {
+  ALIAS_FILE,
+  auditAliasTables,
   auditScope,
   auditSectionRefs,
   danglingMessage,
+  DOC_ALIAS_FILE,
   indexSections,
+  parseAliases,
+  parseDocAliases,
   parseKnownDangling,
   type SectionIndex,
 } from './section-ref-audit'
@@ -630,6 +635,36 @@ export function checkSectionRefs(
       level: 'warning',
       message: f.message,
       evidence: `${f.ref.from}:${f.ref.line}`,
+    })
+  }
+
+  // FR-12.9 · 别名表登记的**目标文件必须还在仓内**
+  // 口径极窄：只判「文件不存在」这一种可证伪的失效 —— 别名指向不存在的文档必然指错。
+  // ⚠️ 「目标存在但不含被引节号」**不判**（收窄前先验证已让它静默失效，不产生错误指向）。
+  const readAlias = <T>(rel: string, parse: (raw: unknown) => T, empty: T): T => {
+    const abs = join(repoRoot, rel)
+    if (!existsSync(abs)) return empty
+    return parse(JSON.parse(readFileSync(abs, 'utf8')) as never)
+  }
+  const aliasIssues = auditAliasTables(
+    readAlias(
+      ALIAS_FILE,
+      (raw) => parseAliases(raw as { aliases?: Record<string, string[]> }),
+      { aliases: new Map<string, string[]>() },
+    ),
+    readAlias(
+      DOC_ALIAS_FILE,
+      (raw) => parseDocAliases(raw as { aliases?: Record<string, string> }),
+      { aliases: new Map<string, string>() },
+    ),
+    targets,
+  )
+  for (const issue of aliasIssues) {
+    out.push({
+      rule: 'FR-12.9',
+      level: 'error',
+      message: `别名表登记的目标文件不存在：${issue.key} → ${issue.target}`,
+      evidence: issue.target,
     })
   }
   return out
