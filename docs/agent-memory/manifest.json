@@ -1,0 +1,17 @@
+{
+  "note": "agent 记忆导出件的 sha256 清单 —— 由 scripts/export-agent-memory.ts 生成，勿手改。CI 用 `pnpm memory:verify` 核对：清单与文件逐一对不上即红（抓「导出件被手改」）。⚠️ **清单不含源侧信息**：源在本机数据目录，CI 上没有 ⇒ 「源改了没重导」只能靠本机的 `pnpm memory:check` 抓。",
+  "profile": "mavis",
+  "exportedAt": "2026-10-24",
+  "entryCount": 38,
+  "files": {
+    "MEMORY.md": "bd7153be8bcd6db9e0f0b21c1f0dc18339572b5dbccf871a9e9a07996ffb446b",
+    "topics/fake-red-triage.md": "125a718afb440ecd8f3b186f5a7c7685ff0fce1116e8bf05b09e0d213b266379",
+    "topics/gate-design.md": "39440034f0af2bb482ee37dd285b1a63801b095f61635a16a46486f182833bfc",
+    "topics/git-worktree-discipline.md": "802aa2e5ad1e898ce8ba0787015e97855a4d6555bfeab5e996591f9165d88364",
+    "topics/spec-doc-discipline.md": "e20e0e8abd8fe3b40810691aa9b0e6b71590ba81f23ef8b95bd1b27251c87732",
+    "topics/sql-table-semantics.md": "79a542212778a648bbe18b85b24ab9d1282a7cb3a0069d6f991181f0b28484d4",
+    "topics/tooling-boundaries.md": "ed5c7dc154ee6935a83cff0b4f038a5cfa482d1d342687dc0379b41efbf3e7ec",
+    "topics/ui-craft.md": "a0caed8abcf57ce6be6c3b3b542436f1a8ddf0f8077387ed0dca6bf764cfca85",
+    "README.md": "f87c0e2d37bf4024097ae847617fc3e1fd1454639133d043004fd92cafa808eb"
+  }
+}

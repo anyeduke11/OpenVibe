@@ -12,6 +12,8 @@ import {
   checkQueue,
   checkRelativeLinks,
   checkNegativeClaims,
+  checkSectionRefs,
+  classifyNegativeClaim,
   checkRuleBudget,
   checkSpecVersions,
   extractGrepClaims,
@@ -385,6 +387,135 @@ describe('docs-check · FR-11 变异样本（否定式全局断言须附凭据�
     for (const phrase of ['该组件不存在', '零命中', '没有任何一列的损坏率数据', '全仓搜索过一次']) {
       expect(NEGATIVE_CLAIM_PATTERNS.some((p) => p.re.test(phrase)), phrase).toBe(false)
     }
+  })
+})
+
+/**
+ * 「限定的否定断言」与「裸否定断言」两档（2026-10-24 实测定案）。
+ *
+ * ## 为什么要两档
+ *
+ * 判据要的区分是：**宣称穷尽却没有复算入口的句子**（裸）vs **自带紧邻复算入口的句子**（有限）。
+ * 区分**不在措辞表内做**（表内做「限定词」识别必然假绿 —— 「点名被引对象」与
+ * 「点名检索面」在文本上不可分），而在**凭据窗口**做。
+ *
+ * ## ⭐ 变异腿（这组的价值全在这里）
+ *
+ * 「有限 → 裸」的翻转必须真的发生 ⇒ 证明闸**能红**；且凭据在断言**前**或**后**都算数
+ * ⇒ 证明它不是靠位置碰巧过的（自然写法「**实测**全仓零命中」把凭据放在断言之前）。
+ */
+describe('docs-check · FR-11 两档判定（有限声明 / 裸否定断言）', () => {
+  const asFiles = (content: string) => [{ path: 'docs/specs/x.md', lines: content.split('\n') }]
+
+  it('裸否定断言（无凭据）⇒ 判红，且档次是 bare', () => {
+    const lines = ['# SPEC', '', '- 全仓没有 X。', '']
+    const fs = checkNegativeClaims(asFiles(lines.join('\n')))
+    expect(errorsOf(fs)).toHaveLength(1)
+    expect(fs[0]!.message).toContain('裸否定断言')
+    expect(classifyNegativeClaim(lines, 2)).toEqual({ tier: 'bare', where: 'none' })
+  })
+
+  it('有限声明：凭据在断言**之前**（自然写法「实测全仓零命中」）⇒ 放行', () => {
+    const lines = ['- 实测全仓零命中：含 `matchMedia` 亦零命中 → 见 §6.7', '']
+    expect(checkNegativeClaims(asFiles(lines.join('\n')))).toEqual([])
+    expect(classifyNegativeClaim(lines, 0)).toEqual({ tier: 'limited', where: 'same-line' })
+  })
+
+  it('有限声明：凭据在断言**之后** ⇒ 放行', () => {
+    const lines = ['- 全仓没有 X。复算：`grep -rn X apps packages | wc -l` → 0', '']
+    expect(checkNegativeClaims(asFiles(lines.join('\n')))).toEqual([])
+    expect(classifyNegativeClaim(lines, 0)).toEqual({ tier: 'limited', where: 'same-line' })
+  })
+
+  it('有限声明：凭据折到后两行（订正段的形态）⇒ 放行，且 where 是 following-lines', () => {
+    const lines = [
+      '# SPEC',
+      '',
+      '> 原文记「**全仓没有**跑模板这个用户动作」—— 该结论是错的。',
+      '>',
+      '> 实测三处反证：`FlowsPage.tsx:59` 有 `onRun`。',
+      '',
+    ]
+    expect(checkNegativeClaims(asFiles(lines.join('\n')))).toEqual([])
+    expect(classifyNegativeClaim(lines, 2)).toEqual({ tier: 'limited', where: 'following-lines' })
+  })
+
+  it('⭐ 变异腿：把凭据删掉 ⇒ 档次从 limited 翻成 bare ⇒ 判红（证明闸能红）', () => {
+    const withEvidence = ['- 全仓没有 X。复算：`grep -rn X | wc -l` → 0', '']
+    expect(classifyNegativeClaim(withEvidence, 0).tier).toBe('limited')
+    expect(checkNegativeClaims(asFiles(withEvidence.join('\n')))).toEqual([])
+
+    const without = ['- 全仓没有 X。', '']
+    expect(classifyNegativeClaim(without, 0).tier).toBe('bare')
+    expect(errorsOf(checkNegativeClaims(asFiles(without.join('\n'))))).toHaveLength(1)
+  })
+
+  it('⭐ 变异腿：凭据挪到断言之前 ⇒ 仍是有限声明（位置无关，不是碰巧过的）', () => {
+    const after = ['- 全仓没有 X。复算：`grep -rn X | wc -l` → 0', '']
+    const before = ['- 复算：`grep -rn X | wc -l` → 0。全仓没有 X。', '']
+    expect(classifyNegativeClaim(after, 0).tier).toBe('limited')
+    expect(classifyNegativeClaim(before, 0).tier).toBe('limited')
+  })
+})
+
+/* ------------------------------------------------------------------ FR-12 */
+
+describe('docs-check · FR-12（§-引用必须落在真实存在的节上）', () => {
+  const tmpRoots: string[] = []
+
+  function mkRepo(files: Record<string, string>): string {
+    const root = mkdtempSync(join(tmpdir(), 'ov-refs-'))
+    tmpRoots.push(root)
+    mkdirSync(join(root, 'docs'), { recursive: true })
+    for (const [rel, content] of Object.entries(files)) {
+      const abs = join(root, 'docs', rel)
+      mkdirSync(dirname(abs), { recursive: true })
+      writeFileSync(abs, content, 'utf8')
+    }
+    return root
+  }
+
+  afterEach(() => {
+    while (tmpRoots.length) {
+      const d = tmpRoots.pop()
+      if (d) rmSync(d, { recursive: true, force: true })
+    }
+  })
+
+  it('限定型引用落在目标文件**存在的节**上 ⇒ 不报', () => {
+    const root = mkRepo({
+      'a.md': '# A\n\n见 `b.md` §3。\n',
+      'b.md': '# B\n\n## 3. 某节\n',
+    })
+    expect(checkSectionRefs(root)).toEqual([])
+  })
+
+  it('⭐ 变异腿：目标文件删掉那一节 ⇒ 报 FR-12.1（证明这道闸能红）', () => {
+    const root = mkRepo({
+      'a.md': '# A\n\n见 `b.md` §9。\n',
+      'b.md': '# B\n\n## 3. 某节\n',
+    })
+    const fs = checkSectionRefs(root)
+    expect(errorsOf(fs)).toHaveLength(1)
+    expect(fs[0]!.rule).toBe('FR-12.1')
+    expect(fs[0]!.message).toContain('§9')
+    expect(fs[0]!.evidence).toBe('docs/a.md:3')
+  })
+
+  it('裸引用（不带文件名）⇒ **不判红**（指向不可判定；假红比不红更坏）', () => {
+    const root = mkRepo({
+      'a.md': '# A\n\n见 §99 —— 裸写，指向不明。\n',
+      'b.md': '# B\n\n## 3. 某节\n',
+    })
+    expect(checkSectionRefs(root)).toEqual([])
+  })
+
+  it('父节在、子项未登记（可能指表格行）⇒ **不判红**', () => {
+    const root = mkRepo({
+      'a.md': '# A\n\n见 `b.md` §3.7。\n',
+      'b.md': '# B\n\n## 3. 某节\n',
+    })
+    expect(checkSectionRefs(root)).toEqual([])
   })
 })
 

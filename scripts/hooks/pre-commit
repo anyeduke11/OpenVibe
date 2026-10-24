@@ -1,0 +1,41 @@
+#!/bin/sh
+# pre-commit —— agent 记忆导出件与源分叉时，拦住这次提交。
+#
+# ## 为什么需要它
+#
+# 导出件是**点时快照**（这是设计，不是缺陷）⇒ 源改了之后仓里那份会**静默过期**。
+# `pnpm memory:check` 能查出来，但它**要人记得跑** ⇒ 本钩子把「记得跑」变成「提交时被拦」。
+#
+# ## 安装（一次性；`.git/hooks/` 不进版本库，所以模板在仓里、钩子装到本机）
+#
+#   cp scripts/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+#
+# ## 行为约定（**只在源存在时生效**）
+#
+# - 源目录不存在（CI、别人的机器、换了 profile）⇒ **放行**，绝不因为「查不到源」而拦提交。
+# - `npx` 不可用 ⇒ 放行（钩子不该在别的机器上制造麻烦）。
+# - 源与导出件不一致 ⇒ **拒绝提交**，并打印同步命令。
+#
+# 覆盖：可用 `AGENT_MEMORY_DIR` 环境变量指定别的 profile 的记忆目录。
+set -e
+
+SRC="${AGENT_MEMORY_DIR:-$HOME/.minimax/agents/mavis/memory}"
+
+# 源不在 ⇒ 放行（不是「有问题」，是「这里没有可比的东西」）
+[ -d "$SRC" ] || exit 0
+
+# npx 不可用 ⇒ 放行
+command -v npx >/dev/null 2>&1 || exit 0
+
+ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
+cd "$ROOT"
+
+if npx tsx scripts/export-agent-memory.ts --from "$SRC" --check >/dev/null 2>&1; then
+  exit 0
+fi
+
+echo "✗ 提交被拦：agent 记忆导出件（docs/agent-memory/）与源已分叉。"
+echo "  源：$SRC"
+echo "  同步命令：npx tsx scripts/export-agent-memory.ts --from $SRC --date $(date +%F)"
+echo "  （只想跳过这一次？改用 --no-verify）"
+exit 1

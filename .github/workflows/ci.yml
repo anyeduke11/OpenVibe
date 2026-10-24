@@ -50,17 +50,25 @@ jobs:
       - name: Docs check
         run: pnpm docs:check
 
-      # §-引用闸：文档里的「`dev-plan.md` §16.10」断了，肉眼要逐条读 263 处引用才看得出来。
+      # §-引用判定（`文件.md §16.10` 断没断）**已并入上面那道 `docs:check`**（判据 FR-12）——
+      # 2026-10-24 起不再单开一步：两处跑同一套判定，单开的那步只是把同一批断链数两遍。
       #
       # ⚠️ **只判「限定型」引用**（带文件名的）：裸 `§N` 的指向不可判定
       #   （`§0.3`/`§0.4` 是跨文档的书写约定，`§10.4` 指 PRD 而非本文件），
       #   把裸引用当「同文件」判会造出 600 条假红 —— 假红比不红更坏。
       # ⚠️ **红只有一个口径**：被引编号的**顶层节在目标文件里不存在**（可证伪的死链）。
-      #   已知存量登记在 scripts/section-ref-audit.ts 的 KNOWN_DANGLING；
-      #   登记项若某轮不再出现，脚本反过来报「该清理了」并以非零码退出。
-      # ⚠️ **退出码分层**：0 绿 / 1 有未登记断链或登记项已失效 / 2 用法错。
-      - name: Section ref audit
-        run: pnpm docs:refs
+      #   已知存量登记在 docs/docs-check-baseline.json（与 docs:check 共用同一份）；
+      #   登记项若某轮不再出现，基线的反向检查会报「该清理了」。
+      # ⚠️ **裸引用仍需人工落笔** ⇒ 本地入口保留：`pnpm docs:refs` 出对账表与改写清单，
+      #   `pnpm docs:refs --emit-alias-candidates` 出别名表候选登记表。
+      #   别名表（`docs/section-ref-aliases.json`）是**建议层**，不参与判红 ⇒ 不进 CI。
+
+      # 导出件防腐（**这一半能进 CI**）：导出件的 sha256 清单入仓（docs/agent-memory/manifest.json），
+      # ⇒ 导出件被手改（哪怕一个字）都会让清单对不上 ⇒ 红。
+      # ⚠️ 「源改了没重导」那一半**进不了 CI**（源在 agent 的本机数据目录里），
+      #   由本机的 `pnpm memory:check` ＋ `scripts/hooks/pre-commit` 钩子负责。
+      - name: Agent memory export manifest
+        run: pnpm memory:verify
 
       # 队列 ⑧（owner 2026-09-27 裁「只接可机判腿 + SKIP 数入断言」）：三条冒烟进常驻闸。
       # 只跑无头形态——SM-1/SM-2 的系统剪贴板腿在无头结构上不可判，驱动器把它们记成 SKIP

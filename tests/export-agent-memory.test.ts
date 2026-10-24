@@ -6,6 +6,8 @@ import {
   absolutePathHits,
   buildReadme,
   checkAgentMemory,
+  verifyManifest,
+  MANIFEST_NAME,
   exportAgentMemory,
   indexTopicNames,
   parseIndexCounts,
@@ -202,6 +204,62 @@ describe('README 生成（纯函数）', () => {
     expect(readme).toContain('| `topics/topic-a.md` | **2** |')
     expect(readme).toContain('| `topics/topic-b.md` | **1** |')
     expect(readme).toContain('| 索引条目数 | **3** |')
+  })
+})
+
+/**
+ * 清单模式（`--verify`）：导出件的 sha256 清单入仓 ⇒ 手改即红。
+ * 这一半**不需要源** ⇒ 可进 CI；「源改了没重导」那一半由 `--check` 负责。
+ */
+describe('清单模式：导出件与清单一致（可进 CI 的那一半）', () => {
+  function mkExported(): { from: string; to: string } {
+    const { from } = mkSource()
+    const to = mkdtempSync(join(tmpdir(), 'ov-mem-out-'))
+    tmpDirs.push(to)
+    exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })
+    return { from, to }
+  }
+
+  it('导出后清单核对 ⇒ 一致', () => {
+    const { to } = mkExported()
+    const res = verifyManifest(to)
+    expect(res.ok).toBe(true)
+    expect(res.changed).toEqual([])
+    expect(res.missing).toEqual([])
+    expect(res.unregistered).toEqual([])
+  })
+
+  it('⭐ 变异腿：改导出件一个字 ⇒ 清单核对报 changed（证明这道闸能红）', () => {
+    const { to } = mkExported()
+    const p = join(to, 'topics', 'topic-a.md')
+    writeFileSync(p, readFileSync(p, 'utf8') + '\n改了一个字节\n', 'utf8')
+    const res = verifyManifest(to)
+    expect(res.ok).toBe(false)
+    expect(res.changed).toContain('topics/topic-a.md')
+  })
+
+  it('删掉一个导出文件 ⇒ 报 missing', () => {
+    const { to } = mkExported()
+    rmSync(join(to, 'topics', 'topic-b.md'), { force: true })
+    const res = verifyManifest(to)
+    expect(res.ok).toBe(false)
+    expect(res.missing).toContain('topics/topic-b.md')
+  })
+
+  it('目录里多一个清单未登记的文件 ⇒ 报 unregistered', () => {
+    const { to } = mkExported()
+    writeFileSync(join(to, 'topics', 'topic-c.md'), '# 丙\n', 'utf8')
+    const res = verifyManifest(to)
+    expect(res.ok).toBe(false)
+    expect(res.unregistered).toContain('topics/topic-c.md')
+  })
+
+  it('清单文件缺失 ⇒ 报 missing（不是静默通过）', () => {
+    const { to } = mkExported()
+    rmSync(join(to, MANIFEST_NAME), { force: true })
+    const res = verifyManifest(to)
+    expect(res.ok).toBe(false)
+    expect(res.missing).toContain(MANIFEST_NAME)
   })
 })
 

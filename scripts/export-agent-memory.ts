@@ -46,6 +46,9 @@ import { fileURLToPath } from 'node:url'
 /** 导出目录的识别标记 —— 清空前必须确认它存在，否则不许动那个目录 */
 export const EXPORT_MARKER = '<!-- openvibe:agent-memory-export -->'
 
+/** 导出件清单文件名 —— 记每个导出件的 sha256，CI 可据此核对「导出件有没有被手改」 */
+export const MANIFEST_NAME = 'manifest.json'
+
 /** 索引里一条目的形状：`| 标题 | 要点 |`（表头行与分隔行不算） */
 const INDEX_ROW = /^\|\s*(?!\s*条目\s*\|)(?!\s*-{2,})(.+?)\s*\|\s*(.+?)\s*\|\s*$/
 
@@ -103,6 +106,8 @@ export interface ExportOptions {
   date: string
   /** 只核对「导出件与源是否分叉」，不写任何文件 */
   check?: boolean
+  /** 只核对「导出件与仓内清单是否一致」（不需要源 ⇒ 可进 CI） */
+  verify?: boolean
 }
 
 export interface ExportResult {
@@ -147,12 +152,13 @@ function parseArgs(argv: string[]): ExportOptions {
   const dateArg = raw.get('date')
   if (dateArg) date = dateArg
   const check = raw.has('check')
+  const verify = raw.has('verify')
   if (!from) {
-    throw new Error('用法：npx tsx scripts/export-agent-memory.ts --from <记忆目录> [--to <导出目录>] [--profile <名>] [--date YYYY-MM-DD] [--check]')
+    throw new Error('用法：npx tsx scripts/export-agent-memory.ts --from <记忆目录> [--to <导出目录>] [--profile <名>] [--date YYYY-MM-DD] [--check] [--verify]')
   }
   from = resolve(from)
   if (!profile) profile = basename(dirname(from))
-  return { from, to, profile, date, check }
+  return { from, to, profile, date, check, verify }
 }
 
 /**
@@ -225,7 +231,87 @@ export function exportAgentMemory(opts: ExportOptions): ExportResult {
   if (hits.length > 0) throw new Error(`生成的 README 含绝对路径形态：${hits.join(' , ')}`)
   writeFileSync(join(opts.to, 'README.md'), readme, 'utf8')
 
+  // ⑥ 写清单（sha256）—— CI 据此核对「导出件有没有被手改」
+  const manifest = buildManifest({
+    profile: opts.profile,
+    date: opts.date,
+    entryCount,
+    files: [...files, 'README.md'],
+    digests: { ...digests, 'README.md': sha256(readme) },
+  })
+  writeFileSync(join(opts.to, MANIFEST_NAME), manifest, 'utf8')
+
   return { files, entryCount, topicCounts, digests }
+}
+
+/** 导出件清单（纯函数）：记每个导出件的 sha256 ＋ 导出元信息 */
+export function buildManifest(input: {
+  profile: string
+  date: string
+  entryCount: number
+  files: string[]
+  digests: Record<string, string>
+}): string {
+  const lines = [
+    '{',
+    '  "note": "agent 记忆导出件的 sha256 清单 —— 由 scripts/export-agent-memory.ts 生成，勿手改。CI 用 `pnpm memory:verify` 核对：清单与文件逐一对不上即红（抓「导出件被手改」）。⚠️ **清单不含源侧信息**：源在本机数据目录，CI 上没有 ⇒ 「源改了没重导」只能靠本机的 `pnpm memory:check` 抓。",',
+    `  "profile": ${JSON.stringify(input.profile)},`,
+    `  "exportedAt": ${JSON.stringify(input.date)},`,
+    `  "entryCount": ${input.entryCount},`,
+    '  "files": {',
+  ]
+  const entries = input.files.map(
+    (f) => `    ${JSON.stringify(f)}: ${JSON.stringify(input.digests[f] ?? '')}`,
+  )
+  lines.push(entries.join(',\n'))
+  lines.push('  }')
+  lines.push('}')
+  return lines.join('\n')
+}
+
+export interface ManifestCheck {
+  /** 清单登记了但文件不存在 */
+  missing: string[]
+  /** 文件存在但 sha256 与清单不符 */
+  changed: string[]
+  /** 目录里有、清单里没登记的文件 */
+  unregistered: string[]
+  ok: boolean
+}
+
+/**
+ * 核对仓内导出件与**清单**是否一致（**只需要仓内的文件 ⇒ 可进 CI**）。
+ *
+ * ## 它挡什么
+ *
+ * 清单入仓 ⇒ 任何人手改导出件（哪怕只改一个字）都会让 sha256 对不上 ⇒ CI 立刻红。
+ * 这是「导出件防腐」里**唯一能进 CI** 的那一半；另一半「源改了没重导」需要源，
+ * 只能在本机抓（`--check`）。
+ */
+export function verifyManifest(dir: string): ManifestCheck {
+  const manifestPath = join(dir, MANIFEST_NAME)
+  if (!existsSync(manifestPath)) {
+    return { missing: [MANIFEST_NAME], changed: [], unregistered: [], ok: false }
+  }
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    files: Record<string, string>
+  }
+  const missing: string[] = []
+  const changed: string[] = []
+  const unregistered: string[] = []
+  for (const [rel, digest] of Object.entries(manifest.files)) {
+    const abs = join(dir, rel)
+    if (!existsSync(abs)) {
+      missing.push(rel)
+      continue
+    }
+    if (sha256(readFileSync(abs, 'utf8')) !== digest) changed.push(rel)
+  }
+  for (const rel of listExportFiles(dir)) {
+    if (rel === MANIFEST_NAME) continue
+    if (!(rel in manifest.files)) unregistered.push(rel)
+  }
+  return { missing, changed, unregistered, ok: missing.length === 0 && changed.length === 0 && unregistered.length === 0 }
 }
 
 /* ════════════════════════════════════════════════════════ 核对（只读） */
@@ -257,6 +343,7 @@ export function listExportFiles(dir: string): string[] {
     }
   }
   if (existsSync(join(dir, 'README.md'))) out.push('README.md')
+  if (existsSync(join(dir, MANIFEST_NAME))) out.push(MANIFEST_NAME)
   return out
 }
 
@@ -298,7 +385,7 @@ export function checkAgentMemory(opts: ExportOptions): CheckResult {
   }
   // 导出目录里多出来的（源已删那份）
   for (const rel of listExportFiles(opts.to)) {
-    if (rel === 'README.md') continue
+    if (rel === 'README.md' || rel === MANIFEST_NAME) continue
     if (!sourceMap.has(rel)) entries.push({ path: rel, state: 'extra' })
   }
 
@@ -329,18 +416,20 @@ export function checkAgentMemory(opts: ExportOptions): CheckResult {
 }
 
 /**
- * 「半份导出」判定：目录里**只有**本脚本管的那几件（`MEMORY.md` ＋ `topics/*.md`）。
+ * 「半份导出」判定：目录里**只有**本脚本管的那几件
+ * （`MEMORY.md` ＋ `topics/*.md` ＋ `manifest.json`）。
+ *
  * **为什么要这一条**：上一次导出若在写 README 前失败（例如 README 自己的零绝对路径
  * 检查没过），目录里会留下半份内容而**没有标记文件** ⇒ 只认标记的话，重跑会死锁，
  * 人只能手动删目录。
  *
- * ⚠️ 判定**很严**：只认「恰好是这两样」；多一个文件就当不是导出目录，拒绝清理。
+ * ⚠️ 判定**很严**：只认「恰好是这几样」；多一个文件就当不是导出目录，拒绝清理。
  */
 export function isPartialExport(dir: string): boolean {
   const entries = readdirSync(dir)
   // 空目录 ⇒ 没有东西可删，直接安全
   if (entries.length === 0) return true
-  const allowed = new Set(['MEMORY.md', 'topics'])
+  const allowed = new Set(['MEMORY.md', 'topics', 'manifest.json'])
   if (entries.some((e) => !allowed.has(e))) return false
   if (!entries.includes('MEMORY.md')) return false
   const topicsDir = join(dir, 'topics')
@@ -408,7 +497,19 @@ const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLTo
 if (isMain) {
   try {
     const opts = parseArgs(process.argv.slice(2))
-    if (opts.check) {
+    if (opts.verify) {
+      // **只需要仓内的文件** ⇒ 这一半可进 CI（不需要本机的源目录）
+      const res = verifyManifest(opts.to)
+      for (const f of res.missing) process.stdout.write(`[export-agent-memory] ✗ 清单登记了但文件不存在：${f}\n`)
+      for (const f of res.changed) process.stdout.write(`[export-agent-memory] ✗ 内容与清单不符：${f}\n`)
+      for (const f of res.unregistered) process.stdout.write(`[export-agent-memory] ✗ 目录里有、清单未登记的文件：${f}\n`)
+      if (!res.ok) {
+        process.stderr.write('[export-agent-memory] 导出件与清单**不一致** —— 导出件被手改，或清单没同步。\n')
+        process.exitCode = 1
+      } else {
+        process.stdout.write('[export-agent-memory] ✓ 导出件与清单一致（sha256 逐件核对）\n')
+      }
+    } else if (opts.check) {
       const res = checkAgentMemory(opts)
       for (const e of res.entries) {
         if (e.state === 'same') continue

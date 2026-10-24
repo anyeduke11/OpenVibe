@@ -32,7 +32,8 @@
     "ownership:check": "tsx scripts/ownership-check.ts",
     "docs:check": "tsx scripts/docs-check.ts",
     "docs:refs": "tsx scripts/section-ref-audit.ts",
-    "memory:check": "tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --check"
+    "memory:check": "tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --check",
+    "memory:verify": "tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --verify"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

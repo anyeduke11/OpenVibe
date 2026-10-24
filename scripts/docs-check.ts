@@ -15,14 +15,18 @@
  * | FR-2 | 队列行状态枚举合法 ＋ 净状态计数自洽 |
  * | FR-3.4 | 相对链接的目标必须真实存在（FR-3 里唯一纯可判定的一条） |
  * | FR-4 | spec 版本行存在（分式断言）＋ 列数与表头一致 ＋ 版本链单调 |
- * | FR-5 | 登记五段齐备 ＋「测试验证」段含可复算命令 |
  * | FR-6 | 触 A 契约的改动须有独立复核记录段 |
  * | FR-9 | 冻结面零 diff（`tests/golden/` **与** `content/seed/` 两面） |
  * | FR-11 | 否定式全局断言必须自带可复算凭据 |
+ * | FR-12 | §-引用必须落在目标文件**真实存在**的节上（限定型；裸引用只报数） |
  *
  * **8 ＝ 触发线**，超限即触发复审，处置是**撤回而非调松**（dev-plan §16.10）。
  * 撤回要撤具体某一条 ⇒ 候补清单预先登记在基线文件里，触线时闸直接把它打出来，
  * 见 `checkRuleBudget`。
+ *
+ * ⚠️ **FR-5 已于 2026-10-24 从判据集降级为「只报数的面」**：它本来就只报不判
+ * （待裁③ 未闭合，规格 FR-5.3 明写「只报不判」）⇒ 降级**零代价**，检查仍在跑；
+ * 腾出的名额由 FR-12 接上，判据条数仍为 8。处置依据：基线 `withdrawalCandidates[0].executed`。
  *
  * ## 四块只报数、不判红绿的面（**按 §16.10 原文不计入判据数**）
  *
@@ -30,6 +34,7 @@
  * |---|---|
  * | FR-7 | MT4 验收覆盖比 |
  * | FR-8 | MT6 可机判漂移数 |
+ * | FR-5 | 登记五段齐备 ＋「测试验证」段含可复算命令（**2026-10-24 起由判据降级为只报数面**：待裁③ 未闭合，它本来就只报不判） |
  * | `claimSample` | 否定断言的凭据命令**抽样实跑**，核对「文档说的数」与「真跑出的数」 |
  * | `probe` | 探针五问的实机跑结果文件是否存在、五问是否都有结论 |
  *
@@ -60,6 +65,14 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { basename, dirname, join, normalize } from 'node:path'
+import {
+  auditScope,
+  auditSectionRefs,
+  danglingMessage,
+  indexSections,
+  parseKnownDangling,
+  type SectionIndex,
+} from './section-ref-audit'
 
 export type Level = 'error' | 'warning'
 
@@ -444,6 +457,22 @@ export function checkReviewRecord(log: string): Finding[] {
  *
  * 措辞表刻意**窄**。实测全仓这类句子只有十来处，而泛指形态（不含「全仓/仓内/整个仓库」
  * 限定词的「不存在」「零命中」）有 135 处 —— 全收就是刷屏，而刷屏的闸会被当成噪音忽略。
+ *
+ * ## 「限定的否定断言」与「裸否定断言」的区分落在**哪里**（2026-10-24 实测定案）
+ *
+ * 判据要的区分是：**宣称穷尽却没有复算入口的句子**（裸）vs **自带紧邻复算入口的句子**（有限）。
+ * 这个区分**不在表内做**，而在**凭据窗口**做（见 `classifyNegativeClaim`）。理由有实证：
+ *
+ * ① **表内做「限定词」识别必然假绿**。候选限定词（冻结面 / 本次 / 该文件 / 范围内…）里，
+ *    「点名被引对象」与「点名检索面」在文本上不可分 ——「全仓无 `foo.ts`」里的 `foo.ts`
+ *    既是对象名也是路径形态。判成限定 ⇒ 真的裸断言漏判；判成不限定 ⇒ 白收一条。
+ * ② **「凭据必须在断言之后」也会假红**。自然写法「**实测**全仓零命中：…」把凭据放在断言
+ *    **之前**（既有判据测试里就有这一支）。按方向收紧 ⇒ 这类合法写法被误判。
+ * ③ **按句子/子句收紧同样假红**：实测 15 条命中里，**7 条**的凭据合法地落在断言之外
+ *    （转述别的文档的结论、或「引用错话并当场纠正」的订正段）⇒ 按句子收紧会一次性造出
+ *    7 条假红，而**假红比不红更坏**。
+ *
+ * ⇒ **表不动、判据不放宽**，只把两档**显式化并可测**（下面 `classifyNegativeClaim`）。
  */
 export const NEGATIVE_CLAIM_PATTERNS: { re: RegExp; label: string }[] = [
   // 刻意**不含「搜／搜索」**：「全仓搜索过一次」是在描述一个动作，不是在宣称某物不存在。
@@ -459,6 +488,40 @@ export const NEGATIVE_CLAIM_PATTERNS: { re: RegExp; label: string }[] = [
 /** 凭据判据沿用 FR-5.2 的「可复算命令」口径，另接受显式的「实测」自陈 */
 const EVIDENCE_HINT = new RegExp(RECOMPUTE_HINT.source + '|实测|现测|现查')
 
+/** 否定断言的两档 */
+export type NegativeClaimTier = 'limited' | 'bare'
+
+export interface NegativeClaimVerdict {
+  /**
+   * `limited` = **有限声明**（自带紧邻的复算凭据）—— 通过；
+   * `bare` = **裸否定断言**（宣称穷尽却没留复算入口）—— 判红。
+   */
+  tier: NegativeClaimTier
+  /** 凭据所在位置：`same-line` 同行 · `following-lines` 后续行（订正段的常见形态）· `none` 无 */
+  where: 'same-line' | 'following-lines' | 'none'
+}
+
+/**
+ * 给一条否定断言定档：**有限声明** vs **裸否定断言**。
+ *
+ * **凭据窗口 = 本行 ＋ 后两行**（为什么是三行：本仓的否定断言多写在 Markdown 块引用里，
+ * 而证据习惯折到下一两行；一行窗口会把「引用了错话并当场纠正」的段落判成无凭据，
+ * 那是**自指误报** —— 纠正段必须原样引出被纠正的那句话）。
+ *
+ * ⚠️ **窗口向前不借**：实测 `decisions.md` 的「全仓零用法」靠**同一段另一句**里的
+ * 「实测会红」蒙混过关（断言在行尾、凭据在行首几百字处）—— 那是**假绿**。
+ * 但窗口也不能收窄到「断言之后」：自然写法「**实测**全仓零命中」把凭据放在断言之前。
+ * ⇒ 现行口径是**位置无关但必须在窗内**，这条借用点已如实登记（见基线与 DEV_LOG），
+ * **不做静默收紧** —— 收紧会一次性造出 7 条假红（转述与订正段的凭据合法地在窗外）。
+ */
+export function classifyNegativeClaim(lines: string[], lineIdx: number): NegativeClaimVerdict {
+  const line = lines[lineIdx] ?? ''
+  if (EVIDENCE_HINT.test(line)) return { tier: 'limited', where: 'same-line' }
+  const following = `${lines[lineIdx + 1] ?? ''}\n${lines[lineIdx + 2] ?? ''}`
+  if (EVIDENCE_HINT.test(following)) return { tier: 'limited', where: 'following-lines' }
+  return { tier: 'bare', where: 'none' }
+}
+
 /**
  * FR-11 · 否定式全局断言必须自带可复算凭据。
  *
@@ -472,19 +535,101 @@ export function checkNegativeClaims(files: { path: string; lines: string[] }[]):
   const out: Finding[] = []
   for (const f of files) {
     f.lines.forEach((line, i) => {
-      const hit = NEGATIVE_CLAIM_PATTERNS.find((p) => p.re.test(line))
+      let hit: (typeof NEGATIVE_CLAIM_PATTERNS)[number] | undefined
+      for (const p of NEGATIVE_CLAIM_PATTERNS) {
+        if (!p.re.test(line)) continue
+        hit = p
+        break
+      }
       if (!hit) return
-      // 凭据看**本行及其后两行**。为什么是三行窗口：本仓的否定断言多写在 Markdown 块引用里，
-      // 而证据（命令或「实测」自陈）习惯折到下一两行 —— 一行窗口会把「引用了错话并当场纠正」
-      // 的段落判成无凭据，那是**自指误报**：纠正段必须原样引出被纠正的那句话。
-      const window = `${line}\n${f.lines[i + 1] ?? ''}\n${f.lines[i + 2] ?? ''}`
-      if (EVIDENCE_HINT.test(window)) return
+      // 两档判定：有限声明（自带紧邻凭据）放行；裸否定断言（无复算入口）判红。
+      // 凭据窗口 = 本行 ＋ 后两行 —— 为什么是三行、为什么不向前借，见 classifyNegativeClaim 的说明。
+      const verdict = classifyNegativeClaim(f.lines, i)
+      if (verdict.tier === 'limited') return
       out.push({
         rule: 'FR-11.1',
         level: 'error',
-        message: `${hit.label}否定断言未附可复算凭据：「${line.trim().slice(0, 46)}」`,
+        message: `${hit.label}裸否定断言未附可复算凭据：「${line.trim().slice(0, 46)}」`,
         evidence: `${f.path}:${i + 1}`,
       })
+    })
+  }
+  return out
+}
+
+/* ════════════════════════════════════════════════════════ FR-12 */
+
+/**
+ * FR-12 · §-引用必须落在目标文件**真实存在**的节上。
+ *
+ * ## 它判什么、只判什么
+ *
+ * 只判**限定型**引用（`文件.md §N`）：目标文件由仓内实际文件名反查得到。
+ * **裸 `§N` 只报数不判红** —— 它在文档头部表格里常指**别的文档**的节
+ * （`§0.3`/`§0.4` 是跨文档的书写约定，`§10.4` 指 PRD 而非本文件）；
+ * 把裸引用当「同文件」判，实测会造出 600 余条假红 —— **假红比不红更坏**。
+ *
+ * ## 红的口径（**可证伪**）
+ *
+ * 被引编号的**顶层节在目标文件里不存在** ⇒ 无歧义的死链。
+ * 父节在、子项没登记的（可能指未登记的表格行）⇒ **不判红**。
+ *
+ * ## 与既有闸的边界
+ *
+ * 本面**只判「引用落不落空」**，不判被引内容对不对 —— 后者是规格 FR-8 的 MT6 面。
+ *
+ * ## 已知存量与「该清理了」
+ *
+ * 已知存量从**基线文件**读（与独立脚本共用一份 ⇒ 口径单处），
+ * 已登记的断链**以 warning 出列**（基线命中它），
+ * ⇒ 基线的反向检查能看见它 ⇒ 它哪天不再出现时，基线会报「该清理了」。
+ *
+ * ⚠️ **不把 known 传进来会让这条能力失效**：断链会一律进 findings，
+ * 基线永远命中 ⇒ 反向检查永远看不到「它消失了」这件事。
+ *
+ * @param repoRoot 仓根
+ * @param baseline 基线（读其中 `known` 的 FR-12.1 条目）
+ */
+export function checkSectionRefs(
+  repoRoot: string,
+  baseline: { known?: Record<string, string> } = { known: {} },
+): Finding[] {
+  const targets = new Map<string, SectionIndex>()
+  const docs: { path: string; content: string }[] = []
+  const walk = (dir: string, rel: string): void => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name.startsWith('.')) continue
+      const abs = join(dir, entry.name)
+      const relPath = rel ? `${rel}/${entry.name}` : entry.name
+      if (entry.isDirectory()) {
+        walk(abs, relPath)
+        continue
+      }
+      if (!entry.name.endsWith('.md')) continue
+      const content = readFileSync(abs, 'utf8')
+      targets.set(relPath, indexSections(content))
+      if (auditScope(relPath)) docs.push({ path: relPath, content })
+    }
+  }
+  walk(join(repoRoot, 'docs'), 'docs')
+
+  const result = auditSectionRefs(docs, targets, parseKnownDangling(baseline))
+  const out: Finding[] = []
+  for (const f of result.dangling) {
+    out.push({
+      rule: 'FR-12.1',
+      level: 'error',
+      message: danglingMessage(f.ref.target, f.ref.ref),
+      evidence: `${f.ref.from}:${f.ref.line}`,
+    })
+  }
+  // 已登记的存量：以 warning 出列 ⇒ 基线命中它；若它不再出现，基线的反向检查会报「该清理了」
+  for (const f of result.knownDangling) {
+    out.push({
+      rule: 'FR-12.1',
+      level: 'warning',
+      message: f.message,
+      evidence: `${f.ref.from}:${f.ref.line}`,
     })
   }
   return out
@@ -605,10 +750,12 @@ export const JUDGMENT_RULES: { id: string; checks: string }[] = [
   { id: 'FR-2', checks: '队列行状态枚举合法 ＋ 净状态计数自洽' },
   { id: 'FR-3.4', checks: '相对链接的目标必须真实存在（FR-3 里唯一纯可判定的一条）' },
   { id: 'FR-4', checks: 'spec 版本行存在（分式断言）＋ 列数一致 ＋ 版本链单调' },
-  { id: 'FR-5', checks: '登记五段齐备 ＋「测试验证」段含可复算命令' },
   { id: 'FR-6', checks: '触 A 契约的改动须有独立复核记录段' },
   { id: 'FR-9', checks: '冻结面零 diff（tests/golden/ 与 content/seed/ 两面）' },
   { id: 'FR-11', checks: '否定式全局断言必须自带可复算凭据' },
+  // FR-5 已于 2026-10-24 按 dev-plan §16.10 的触线处置降级为「只报数的面」
+  // （它本来就只报不判 ⇒ 零代价；检查仍在跑，见基线 withdrawalCandidates[0].executed）。
+  { id: 'FR-12', checks: '§-引用必须落在目标文件真实存在的节上（限定型；裸引用只报数）' },
 ]
 
 /** dev-plan §16.10 的触发线：「规则条数 > 8 即触发复审」 */
@@ -621,6 +768,8 @@ export interface WithdrawalCandidate {
   what: string
   /** 为什么它是这个顺位的被撤对象 */
   why: string
+  /** 已执行则写明执行日与做了什么（未执行则缺省） */
+  executed?: string
 }
 
 /**
@@ -926,6 +1075,7 @@ export function runAll(repoRoot: string): { findings: Finding[]; metrics: Metric
     : { note: '（基线文件不存在：所有问题一律按 error 计）', known: {} }
 
   const findings: Finding[] = [
+    ...checkSectionRefs(repoRoot, baseline),
     ...checkDevNumbering(log),
     ...checkQueue(decisions),
     ...checkRelativeLinks(linkFiles, (p) => existsSync(p)),

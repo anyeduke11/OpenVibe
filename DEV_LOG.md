@@ -2926,3 +2926,38 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   ⑥ 记忆导出核对是**本机闸**（源在 agent 的本机数据目录，CI 上没有）⇒ **进不了 CI**，只能靠人记得跑（命令已写进导出件的 README 与 `pnpm memory:check`）。
   ⑦ 对账表是**点时快照**，且判定基于**当前工作树**（不是 HEAD）—— 文档改了要重跑重写；它不替代闸，闸是 `scripts/section-ref-audit.ts`。
   ⑧ **描述断指针的文字本身也会被扫成断链**：本条目里写着「`docs/dev-plan.md` §17」这种被引形态，附面扫到就会记一条（**附面只报数，所以不判红**）。⇒ 附面的数**随日志正文变化**，本条目因此**不写死它**（见对账表第 4 节的现跑值）。这也从侧面说明：附面报的是「文本形态」，不是「引用真的断了」—— 读附面结论必须回原文看。
+
+## [DEV-0111] 2026-10-24 · 增强部分落地开发：裸引用的可判定化（别名表）＋ 判据面合并 ＋ 导出件防腐 ＋ FR-11 两档判定
+
+- **时间**: 2026-10-24
+- **类型**: 文档治理（把上一轮报告「未考虑且需要增强的需求」五条逐条落地；**不含产品行为改动**）
+- **关联文件**: `scripts/section-ref-audit.ts`、`scripts/docs-check.ts`、`scripts/export-agent-memory.ts`、`scripts/hooks/pre-commit`、`tests/section-ref-audit.test.ts`、`tests/docs-check.test.ts`、`tests/export-agent-memory.test.ts`、`docs/section-ref-aliases.json`、`docs/docs-check-baseline.json`、`docs/specs/docs-governance-check.md`、`docs/dev-plan-v0.2.1.md`、`docs/agent-memory/`、`package.json`、`.github/workflows/ci.yml`
+- **问题描述**: owner 2026-10-24 指令「进行增强部分落地开发」—— 把上一轮列出的五条增强（① 裸引用的可判定化 ② §-引用闸并入 `docs:check` ③ 对账表直接产出改写清单 ④ 记忆导出件的自动重导防线 ⑤ FR-11 措辞表的「限定 / 裸」区分）逐条落地。owner 同时就①的档位做裁定：别名表按 **B（semi）** 档 —— 全自动 ＋ **人工登记约 55 个节号**，可判率约 80%。
+- **实现思路**: 四条纪律贯穿本轮 —— ① **假红比不红更坏**：每一条新判据都要先证明「违规时会不会有人知道」；② **口径只留一处**：别名表、已知存量、判据表各只有一份出处（别名表落仓内数据文件，已知存量落基线文件）；③ **区分落在凭据窗口，不落在措辞表内**：表内做限定词识别必然假绿；④ **登记写错的后果要被口径锁死**：别名表写错最多漏判或指错，**永不造成假红**。
+- **核心变更**:
+  - **① 裸引用的可判定化 —— 别名表（建议层，不参与判红）**：
+    - 新增仓内数据文件 `docs/section-ref-aliases.json`（登记「节号 → 来源文件」）＋ 纯函数 `parseAliases` / `resolveBareRef` / `auditAliasEntries`，CLI 增 `--aliases` 与 `--emit-alias-candidates`。
+    - **判定口径**：候选集合 = 别名表登记的目标（**收窄**），**任一命中即绿**；未登记的节号候选 = 全仓能解它的文件（**收窄只作用在已登记的节号上**，否则会丢掉「全仓唯一可解」那批本可自动建议的引用）。
+    - **只登记指向集中到单一文件的节号**（实测 40 项，覆盖 434 处）：同一节号在不同上下文指不同文件的（如 `§7`、`§11`）**一律不登记** —— 单一登记会给错建议，比不登记更坏。
+    - **反向检查**：登记项多余（该节号已自家可解）或目标文件已消失 ⇒ 报「该清理了」，**只报数不判红**。
+  - **② §-引用闸并入 `docs:check`（判据 FR-12）**：`scripts/docs-check.ts` 新增 `checkSectionRefs` 判定面（走 `auditScope` 同一扫描面）；`JUDGMENT_RULES` 撤 FR-5（降级为「只报数的面」，处置依据登记在基线 `withdrawalCandidates[0].executed`）、加 FR-12 ⇒ 判据条数仍为 **8**；已知存量从代码常量迁到**基线文件驱动**（精确登记，不是通配）⇒ 与 `docs:check` 共用一份出处。CI 里重复的独立步骤已删（两处跑同一套判定）。
+  - **③ 对账表直接产出「改写清单」模式**：`parseSectionRefs` 现返回裸引用明细；新增 `buildRewritePlan`（自家能解的不给建议、全仓唯一可解的出限定化建议、多目标的进「待人工确认」、全仓无可解的进「真·断链」桶）、`buildSplitRewriteRows`（按映射表出「旧文件＋节号 → 新文件」，无映射的进「未映射」，**不猜**）、`buildRewriteReport`；CLI 增 `--emit-rewrite-plan` / `--map` / `--write-plan`。
+  - **④ 记忆导出件的自动重导防线**：新增 `buildManifest`（sha256 清单）＋ `verifyManifest`（**只需仓内文件 ⇒ 可进 CI**：抓 missing / changed / unregistered）＋ `--verify`；新增 `scripts/hooks/pre-commit` 模板（源目录不存在或 `npx` 不可用 ⇒ **放行**；分叉 ⇒ **拒绝提交**并打印同步命令）；`package.json` 增 `memory:verify`，CI 增一步。导出件已重导（导出日 2026-10-24）。
+  - **⑤ FR-11 的「限定 / 裸」两档判定**：新增 `classifyNegativeClaim`，把否定断言分成「限定（有可复算凭据）／裸（无凭据）」两档。**措辞表未动**（4 条 pattern 原样）—— 三条实证：表内做限定词识别必然假绿；「凭据必须在断言之后」也会假红（自然写法「实测全仓零命中」把凭据放前面）；按句子/子句收紧实测会一次性造 7 条假红。⇒ **区分落在凭据窗口，不落在表内**；判据**不放宽**。
+  - **⭐ 本轮修掉的两个真缺陷**（都是「闸不红但闸是摆设」型）：
+    - **顶层节有两种写法，只认一种就是假红**：`## 2. 用户画像` 与 `## 第 2 章 · 现状量化` 都是顶层节；后者不被索引 ⇒ 索引里只有 `2.1` 而没有 `2` ⇒ 引用「§2」被误判断链。实证：`docs/PRD.md` 与 `docs/analysis-2026-10-02-first-principles.md` 的顶层节全是「第 N 章」写法。修后主面标题型绿 213 → **224**，断链数不变。
+    - **FR-12 没把 known 传进审计 ⇒ 基线的反向检查对本闸失效**：断链一律进 findings ⇒ 基线永远命中 ⇒ 「登记项不再出现」这件事基线永远看不到。修后已登记的存量以 warning 出列，基线反向检查恢复生效。
+- **实测结果**（主面 `docs/`，2026-10-24 工作树）：限定型引用 **275** ⇒ 标题型绿 **225** ＋ 条目型绿 **45** ＋ 不可判 **4** ＋ 断链 **1**（已登记存量）；裸引用 **3257**（只报数）。自家不可解的裸引用 **1031 处** ⇒ 全仓唯一可解 **193**（机器自动覆盖）＋ 多目标 **727**（需人工）＋ 全仓无可解 **111**；**别名表登记 40 项、覆盖 434 处** ⇒ 唯一可判合计 **627 处**（占自家不可解的 61%）。改写清单的限定化建议由 **209 处**增至 **622 处**，待人工确认由 **335 组**降至 **70 组**。
+- **测试验证**:
+  - 测试命令: `npx vitest run --maxWorkers=3`；`npx vitest run tests/section-ref-audit.test.ts tests/docs-check.test.ts tests/export-agent-memory.test.ts`；`npx tsc --noEmit -p tsconfig.json`；`npx eslint scripts tests`；`npx tsx scripts/docs-check.ts`；`npx tsx scripts/section-ref-audit.ts`；`npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --check`；`npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --verify`；`npm run bundle:check`；`npx tsx scripts/seed-check.ts`
+  - 验证结果: 判据测试 **39 支**（§-引用，26 → 39）＋ **66 支**（治理）＋ **20 支**（导出，11 → 20）全绿；**全量回归 165 文件 / 2168 支全绿**（29.6s）；根 `tsc` **0 error**；`eslint` 在 `scripts` 与本方测试文件上**零错**（唯一一条错在并行会话新建的 `tests/probe-raw-check.test.ts`，**不属本轮改动，未代改**）；`docs:check` **error 0 · warning 131 · 基线内 131**（较上轮 +3：FR-12 的 1 条已登记存量 ＋ FR-11 的 2 条，均来自并行会话面）；§-引用判定 **退出码 0**；`seed:check` 通过；`bundle:check` 入口 **268.27 kB ≤ 300 kB** / 46 chunk（最大 347.45 kB ≤ 500 kB）；导出件 `--check` ✓ 一致（9 件）＋ `--verify` ✓ 一致（sha256 逐件核对）。
+  - 复算命令: `npx tsx scripts/section-ref-audit.ts --json`（机器可读）；`npx tsx scripts/section-ref-audit.ts --emit-rewrite-plan`（改写清单）；`npx tsx scripts/section-ref-audit.ts --emit-alias-candidates`（别名表候选登记表）；`npx tsx scripts/section-ref-audit.ts --write docs/devlog-evidence/DEV-0110/section-ref-audit.md`（重生成对账表）
+- **潜在风险**:
+  ① ⚠️ **别名表是手工维护的表**：登记项写多了会积累死条目 ⇒ 本轮已配**反向检查**（多余 / 目标消失 ⇒ 报「该清理了」），但它**只报数不判红** ⇒ 没人跑 `pnpm docs:refs` 就看不到。
+  ② ⚠️ **别名表登记的目标是「上下文主导」的判断，不是机械推导**：本轮 40 项逐条读过出现处的上下文后裁定；其中指向最分散的通用节号（`§7`、`§11`、`§16`）**刻意不登记** ⇒ 那部分裸引用仍不可判。
+  ③ ⚠️ **别名表登错的后果是「指错」而不是「假红」**：指向另一个**确实有该节号**的文件时，限定化后仍是绿的 ⇒ 会给出语义错误的建议。**建议层出错不会让闸误报，但会误导落笔的人** —— 落笔前仍要看一眼上下文。
+  ④ ⚠️ **owner 裁定的「约 55 个节号」与实测的 40 项有差**：差额来自**指向分散**的通用节号（同一节号在不同上下文指不同文件）⇒ 任何单一登记都会给错建议。**要覆盖它们，只能逐条改写成限定型引用**（即把裸引用落笔成 `文件 §N`），这是落笔工作量，不是登记工作量。
+  ⑤ **判据条数仍为 8（已满）**：本轮新增 FR-12 的同时按预登记顺位撤了 FR-5（它本来就只报不判 ⇒ 零代价，检查仍在跑）。**下一轮再加判据仍须按清单换**。
+  ⑥ **记忆导出的「源改了没重导」那一半进不了 CI**（源在 agent 的本机数据目录）⇒ 靠本机的 `pnpm memory:check` ＋ `scripts/hooks/pre-commit` 钩子；钩子是**模板**，需手动装（`cp scripts/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`）。
+  ⑦ **本条目所在的仓根 md 在附面，只报数不判红** ⇒ 其中提到的节号形态若落在已删节号上会被记一条断链（读结论必须回原文看）。
+  ⑧ **`docs/dev-plan.md` 与 `docs/decisions.md` 等属 owner 裁定的保留区**，本轮**未改**（只登记、不代改）；保留区造成的断链与凭据缺失按原样登记在基线里。
