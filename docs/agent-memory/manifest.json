@@ -5,8 +5,8 @@
   "entryCount": 38,
   "files": {
     "MEMORY.md": "bd7153be8bcd6db9e0f0b21c1f0dc18339572b5dbccf871a9e9a07996ffb446b",
-    "topics/fake-red-triage.md": "125a718afb440ecd8f3b186f5a7c7685ff0fce1116e8bf05b09e0d213b266379",
-    "topics/gate-design.md": "39440034f0af2bb482ee37dd285b1a63801b095f61635a16a46486f182833bfc",
+    "topics/fake-red-triage.md": "58c272f1d79620b187ecc30949cc9a71921196aeda8535801db7dac9854bc748",
+    "topics/gate-design.md": "6e39a71ce71c18e1ae79322a4c4c550c1ed68077cf819eb6d109717fbc6050d6",
     "topics/git-worktree-discipline.md": "802aa2e5ad1e898ce8ba0787015e97855a4d6555bfeab5e996591f9165d88364",
     "topics/spec-doc-discipline.md": "e20e0e8abd8fe3b40810691aa9b0e6b71590ba81f23ef8b95bd1b27251c87732",
     "topics/sql-table-semantics.md": "79a542212778a648bbe18b85b24ab9d1282a7cb3a0069d6f991181f0b28484d4",
