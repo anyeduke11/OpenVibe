@@ -335,9 +335,16 @@ export const zh = {
       emptyColumn: '空',
       moveFailed: '移动失败，已恢复服务端顺序',
     },
+    extract: {
+      launch: '提取候选',
+      confirmTitle: '确认出网提取',
+      go: '提取',
+      goRemember: '提取并记住本项目',
+    },
     devlog: {
       title: '开发日志',
       tabs: { DEV: 'DEV 日志', CHECK: 'CHECK 日志' },
+      extractSection: '提取候选（M10）',
       newEntry: (type: string) => `记一条 ${type}`,
       empty: '还没有日志——按 AGENTS 规范每完成一个动作补一条',
       export: (file: string) => `导出 ${file}`,
@@ -934,6 +941,24 @@ export const zh = {
       reset: '重新显示向导',
       done: '向导标记：已完成',
       pending: '向导标记：未完成',
+    },
+    om: {
+      title: '输出侧度量（OM）',
+      aside: '本机 · 不出网 · 估算',
+      densityTitle: 'OM1 · 有效上下文密度',
+      densityEmpty: '待采集：组一个标准包后出现。',
+      densityLine: (pack: string, tokens: number, assets: number, per: string) =>
+        `包 ${pack}：受管 ${tokens} token ÷ ${assets} 项资产 ≈ ${per} token/条`,
+      top5Title: '最占上下文的产物 Top5',
+      timeTitle: 'OM2 · 首次见效时间',
+      timeEmpty: '待采集：完成一次注入后出现。',
+      timeLine: (seconds: number) =>
+        seconds < 90
+          ? `首次注入距首次使用 ${seconds} 秒`
+          : seconds < 5400
+            ? `首次注入距首次使用 ${Math.round(seconds / 60)} 分钟`
+            : `首次注入距首次使用 ${Math.round(seconds / 3600)} 小时`,
+      timeRange: '台账口径：首次本机事件 → 首次注入记录（injections 表）。',
     },
     backup: {
       title: '备份说明',

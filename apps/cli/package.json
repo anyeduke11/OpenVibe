@@ -1,6 +1,6 @@
 {
   "name": "@openvibe/cli",
-  "version": "0.1.0",
+  "version": "0.2.3",
   "private": true,
   "description": "OpenVibe（灵典）—— vibe coding 的标准化工作台：术语库/技巧库/流程模板组包，一键注入任意 AI 编程助手的项目目录",
   "keywords": [

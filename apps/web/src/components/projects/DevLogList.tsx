@@ -20,6 +20,7 @@ import {
 } from '../ui/styles'
 import { laneEngineering } from '../../i18n/lane-engineering'
 import { ReflowActions } from './ReflowActions'
+import { ExtractLauncher } from './ExtractLauncher'
 
 /** 日志列表（m5 FR-5.3）：时间倒序、类型过滤、单条展开渲染 Markdown + 回流入口 */
 export function DevLogList(props: {
@@ -124,6 +125,9 @@ export function DevLogList(props: {
             )
           })}
         </ol>
+
+        {/* M10/D：提取候选入口（总闸关着时自身不渲染——DL-08） */}
+        <ExtractLauncher projectId={props.projectId} entries={props.entries} />
       </div>
     </section>
   )

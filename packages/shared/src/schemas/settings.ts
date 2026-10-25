@@ -74,6 +74,36 @@ export const FlywheelStatsOut = z.object({
 })
 export type FlywheelStatsOut = z.infer<typeof FlywheelStatsOut>
 
+/** OM1 单包密度（v0.2.3 批次 B RQ5；全本机现算，零出网）。perAsset = managedTokens ÷ assetCount，除零为 null */
+export const OmDensityOut = z.object({
+  packId: z.string(),
+  packName: z.string(),
+  packVersion: z.string(),
+  /** 渲染产物（不含 manifest）的估算 token 合计（estimateTokens.approxTokens 口径，面板须标「估算」） */
+  managedTokens: z.number().int(),
+  /** 该包选中的资产数（四类资产条目 + 流程模板 0/1） */
+  assetCount: z.number().int(),
+  perAsset: z.number().nullable(),
+  /** 按产物文件的 token 归因 Top5（哪几个文件最占上下文） */
+  top5: z.array(z.object({ path: z.string(), tokens: z.number().int() })),
+})
+export type OmDensityOut = z.infer<typeof OmDensityOut>
+
+/**
+ * 输出侧度量两件（PRD-v0.2.3 RQ5 / OM1+OM2，GET /api/om）。
+ * OM2 首次见效时间 = 首次本机事件（台账 MIN(created_at)，M8 起无条件记）→
+ * 第一次注入（injections MIN(injected_at)）的墙钟差；任一端缺失为 null（面板显示「待采集」）。
+ */
+export const OmOut = z.object({
+  density: OmDensityOut.nullable(),
+  timeToValue: z.object({
+    firstEventAt: z.string().nullable(),
+    firstInjectionAt: z.string().nullable(),
+    seconds: z.number().int().nullable(),
+  }),
+})
+export type OmOut = z.infer<typeof OmOut>
+
 /** default 预置包的组装结论（onboarding FR-1；D-3：只有缺失才重建） */
 export const DefaultPackOutcomeOut = z.object({
   status: z.enum(['created', 'exists', 'skipped', 'failed']),

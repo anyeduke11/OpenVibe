@@ -96,14 +96,14 @@ function topLevelCommands(): RegisteredCommand[] {
 }
 
 describe('GET /api/cli/commands（CLI 命令参考）', () => {
-  it('IT-CLI-CMD-01: 200 + 九条命令（既有五条 + M8 四条），字段齐全且 risk 落在闭集内', async () => {
+  it('IT-CLI-CMD-01: 200 + 十二条命令（既有五条 + M8 四条 + v0.2.3 verify/mcp/discuss），字段齐全且 risk 落在闭集内', async () => {
     const h = await makeHarness()
     const res = await api(h, '/api/cli/commands')
     expect(res.statusCode).toBe(200)
 
     const body = res.json as CliCommandsOut
     expect(Object.keys(body)).toEqual(['items'])
-    expect(body.items).toHaveLength(9)
+    expect(body.items).toHaveLength(12)
     for (const item of body.items) {
       expect(Object.keys(item).sort()).toEqual([
         'flags',

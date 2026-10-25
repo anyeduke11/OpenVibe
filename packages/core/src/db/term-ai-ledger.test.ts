@@ -36,12 +36,12 @@ const KEYS = AGENT_PAYLOAD_KEYS.ai_recommend_call
 
 describe('P5 · FR-9.1 留痕的最小可复盘集', () => {
   it('⚠️ 台账 kind 已含 ai_recommend_call；**末尾项**是最新一轮的最近追加（M9 v1.6 P0 加 4 项后，末尾是 `lang_resource_probe`）', () => {
-    // 写死 19 + 4 = 23，扩项必须在这里被看见（与上同源）。
-    expect(LOCAL_EVENT_KINDS).toHaveLength(23)
+    // 写死 23 + 2 = 25（M10/D 批次 D 追加 2 项），扩项必须在这里被看见（与上同源）。
+    expect(LOCAL_EVENT_KINDS).toHaveLength(25)
     // ai_recommend_call 仍在内（M3 AI 那条）
     expect(LOCAL_EVENT_KINDS).toContain('ai_recommend_call')
-    // 末尾是 M9 v1.6 P0 预声明的 4 项里**最末**追加的那一项 ——「追加」这条原则没变，
-    // 只是**追加者换了**（从 M3 AI 换成 M9 P0）。
+    // 末尾仍是 M9 v1.6 P0 的 lang_resource_probe：M10/D 的两项 AI kind 挂在
+    // AGENT_AI_EVENT_KINDS 块（shared 组合序 = 台账13 + Agent8 + M9 4），不在尾部追加。
     expect(LOCAL_EVENT_KINDS[LOCAL_EVENT_KINDS.length - 1]).toBe('lang_resource_probe')
   })
 

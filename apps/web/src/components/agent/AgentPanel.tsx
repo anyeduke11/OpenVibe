@@ -3,6 +3,7 @@ import { agentZh } from '../../i18n/lane-agent'
 import { ContextPreview } from './ContextPreview'
 import { PendingIngestList } from './PendingIngestList'
 import { InstallGuide } from './InstallGuide'
+import { DiscussBlock } from './DiscussBlock'
 
 /**
  * 助手桥接面板（`m8-agent-panel.md` FR-5.1）。
@@ -38,6 +39,8 @@ export function AgentPanel(props: { projectId: string | null }) {
       {/* ① 待确认回流 */}
       <Block title={agentZh.panel.ingestTitle}>
         <PendingIngestList projectId={props.projectId} onGoToInstall={goToInstall} />
+        {/* AN2 问块（批次 E）：总闸关着自身不渲染（DL-08） */}
+        <DiscussBlock projectId={props.projectId ?? ''} />
       </Block>
 
       {/* ③ 接入指引 */}

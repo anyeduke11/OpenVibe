@@ -86,11 +86,11 @@ describe('0007 迁移与 shared 常量的双源一致性', () => {
    *   0007 / 0010 那两份**永远是历史**：它们必须是当前集的**前缀**
    *   （否则历史行会因新定义而非法）—— 那一支由下面的「历史定义必须是前缀」守着。
    */
-  it('当前 CHECK 字面量 ≡ LOCAL_EVENT_KINDS（23 项，逐字、逐序；M9 的 4 项由 0012 落地）', () => {
+  it('当前 CHECK 字面量 ≡ LOCAL_EVENT_KINDS（25 项，逐字、逐序；M10/D 的 2 项由 0021 落地）', () => {
     const current = checkLiterals('local_events', 'kind')
     expect(current).toEqual([...LOCAL_EVENT_KINDS])
     // 同时锁死 23：任何后续 commit 若改了当前定义的 CHECK，会被这条红掉。
-    expect(current).toHaveLength(23)
+    expect(current).toHaveLength(25)
   })
 
   it('kind 的 CHECK 字面量 ≡ 台账 13 ＋ Agent 6 ＋ M9 预声明 4', () => {
@@ -102,14 +102,14 @@ describe('0007 迁移与 shared 常量的双源一致性', () => {
     expect(LEDGER_EVENT_KINDS).toHaveLength(13)
     // M8 五项 ＋ M3 AI 一项（P5 新增）。⚠️ 写死计数是有意的：扩项必须在这里被看见，
     // 否则「悄悄多了一项」不会有任何人察觉。
-    expect(AGENT_EVENT_KINDS).toHaveLength(6)
-    expect(AGENT_AI_EVENT_KINDS).toEqual(['ai_recommend_call'])
+    expect(AGENT_EVENT_KINDS).toHaveLength(8)
+    expect(AGENT_AI_EVENT_KINDS).toEqual(['ai_recommend_call', 'ai_extract_call', 'ai_discuss_call'])
     // M9 v1.6 P0 预声明 4 项。⚠️ 这 4 项在 P0 还**没有被任何 `INSERT` 引用** —— 它们要靠
     // P1 写的迁移 0011 建新表（SQLite 不能 ALTER CHECK）才会真正落地；当下
     // LANG_EVENT_KINDS 只是**声明**，与 P0-pre 阶段的「禁列扫描器接 lang_* 命名空间」
     // 配套使用。
     expect(LANG_EVENT_KINDS).toHaveLength(4)
-    expect(LOCAL_EVENT_KINDS).toHaveLength(23)
+    expect(LOCAL_EVENT_KINDS).toHaveLength(25)
   })
 
   it('⚠️ 每份历史迁移的 CHECK 闭集都必须是当前集的前缀（否则历史行会因新定义而非法）', () => {

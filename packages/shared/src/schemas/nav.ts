@@ -7,8 +7,8 @@ import { CLI_COMMAND_RISKS } from '../cli-commands'
  */
 
 /**
- * 侧栏 API total（七项，M4 上线后加了 playbooks）。口径逐项登记，别让某一格与对应列表端点分叉：
- * - prompts / terms / playbooks / skills / flows / packs：对应表全量 COUNT(*)，与列表默认返回一致
+ * 侧栏七项 API total。口径逐项登记，别让某一格与对应列表端点分叉：
+ * - prompts / terms / skills / flows / packs / playbooks：对应表全量 COUNT(*)，与列表默认返回一致
  * - projects：只数非归档（`status != 'archived'`）。理由：`GET /api/projects` 默认就不返回归档
  *   （ProjectsRepo.list 的 includeArchived 默认 false，packages/core/src/repos/projects.ts:135-141），
  *   侧栏报一个列表里点不进去的数字比报错更糟。status 取值域见 migrations/0001_init.sql:92。

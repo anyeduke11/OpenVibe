@@ -18,6 +18,9 @@ import type { SqliteDatabase } from '../db'
 import { AgentIngestRepo, type AgentIngest } from '../repos/agentIngest'
 import { APP_META_KEYS, AppMetaRepo } from '../repos/appMeta'
 import { DevLogRepo } from '../repos/devlog'
+import { PlaybooksRepo } from '../repos/playbooks'
+import { PromptsRepo } from '../repos/prompts'
+import { TermsRepo } from '../repos/terms'
 import { LocalEventsRepo } from '../repos/localEvents'
 import { ProjectsRepo } from '../repos/projects'
 import { TasksRepo } from '../repos/tasks'
@@ -214,6 +217,10 @@ export function createAgentService(deps: AgentServiceDeps) {
   const devLog = new DevLogRepo(deps.db)
   const projects = new ProjectsRepo(deps.db)
   const tasks = new TasksRepo(deps.db)
+  // M10/D：三个候选 kind 的分发落点（draft 兜底 + 来源标记，spec FR-6）
+  const terms = new TermsRepo(deps.db)
+  const prompts = new PromptsRepo(deps.db)
+  const playbooks = new PlaybooksRepo(deps.db)
 
   /**
    * 分发的判定依据是 `payload_json` 的**内容**，不是 `kind` 之外的东西 ——
@@ -235,6 +242,10 @@ export function createAgentService(deps: AgentServiceDeps) {
         return publishTaskStatus(ingest)
       case 'requirement':
         return publishRequirement(ingest, now)
+      case 'term_candidate':
+      case 'prompt_candidate':
+      case 'playbook_candidate':
+        return publishCandidate(ingest)
       case 'session':
         // FR-2.8 / 2.9 / 2.1.1 三个落点**都没有 session 这一类**；`agent_sessions` 表
         // 在 0007 里建了，但全仓无任何写入路径（实测 `INSERT INTO agent_sessions` 命中 0）。
@@ -312,6 +323,50 @@ export function createAgentService(deps: AgentServiceDeps) {
    * （`ls packages/core/src/repos/` 无对应文件）。服务层持有 `deps.db`，
    * 新建 `RequirementsRepo` 超出本轮文件所有权，故在此落笔并登记。
    */
+  /**
+   * M10/D：候选分发（term/prompt/playbook_candidate 共用）。
+   * `status` 恒为各 repo 的 draft 缺省，**不接受载荷值**（对齐 requirement 的二次兜底）；
+   * 来源反链走 tags（`ai-extract` + `log:<id>`）+ term 的 source 闭集新值 `ai-extract`；
+   * 分发只发生一次（reviewIngest 首次裁决触发，重复 review 不再进来）。
+   */
+  function publishCandidate(ingest: AgentIngest): DispatchResult {
+    const p = recordOf(ingest.payload)
+    if (!p) return reject('payload 不是对象，无法落候选')
+    const title = textOf(p.title)
+    const body = textOf(p.body)
+    const logId = textOf(p.source_log_id)
+    if (title === '' || body === '') {
+      return reject('候选缺 title 或 body，无法落草稿')
+    }
+    const tags = ['ai-extract', ...(logId !== '' ? [`log:${logId}`] : [])]
+    try {
+      if (ingest.kind === 'term_candidate') {
+        terms.create({
+          zh: title,
+          definition: body,
+          tags,
+          source: 'ai-extract',
+        })
+      } else if (ingest.kind === 'prompt_candidate') {
+        prompts.create({ title, content: body, tags })
+      } else {
+        // playbook 的四段映射：scenario=标题、problem=锚定原文（日志里的问题证据句）、
+        // practice=候选正文——problem 取 quote 而非复制 body，避免一段文字填两格
+        const quote = textOf(p.quote)
+        playbooks.create({
+          scenario: title,
+          problem: quote !== '' ? quote : body,
+          practice: body,
+          source: 'ai-extract',
+          tags,
+        })
+      }
+    } catch (err) {
+      return reject(`候选落库失败：${String(err)}`)
+    }
+    return { ok: true }
+  }
+
   function publishRequirement(ingest: AgentIngest, now: string): DispatchResult {
     const p = recordOf(ingest.payload)
     if (!p) return reject('payload 不是对象，无法落 requirement')

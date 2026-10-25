@@ -20,6 +20,13 @@ export const APP_META_KEYS = {
    */
   agentWriteEnabled: 'agentWriteEnabled',
   /**
+   * M10/D 的「AI 提取总闸」（spec v023-d-ai-extract FR-10）。
+   * **默认关**（形态对齐 agentWriteEnabled：关着整批拒绝、拦在服务层）——
+   * 出网能力默认关是信任模型的延续；与 agentWriteEnabled 刻意分开两个键，
+   * 理由同款：合并会让「允许 agent 写入」与「允许 AI 出网提取」互相牵连。
+   */
+  aiExtractEnabled: 'aiExtractEnabled',
+  /**
    * M9 P1e 的**学习模式选择**（`m9-dev-language-roadmap.md` §3.19）。
    *
    * ⚠️ **刻意不进 `lang_*`** —— §3.19 第 3 条明写「选项属用户偏好，

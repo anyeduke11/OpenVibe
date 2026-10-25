@@ -61,7 +61,7 @@ const flag = (name: string, value: string, summary: string): CliCommandFlag => (
 })
 
 /**
- * 九条已注册命令的快照（apps/cli/src/index.ts 的注册处，顺序与注册处一致）。
+ * 当前条数已注册命令的快照（apps/cli/src/index.ts 的注册处，顺序与注册处一致）。
  * risk 依据：
  * - serve  = decision     ：mkdirSync 建 ~/.openvibe 三目录 + writeConfigFile 落令牌（serve.ts:89,105），
  *                           起监听服务且 --open 会拉系统浏览器（serve.ts:115-116）；不碰用户项目树、不删任何文件
@@ -137,6 +137,37 @@ export const CLI_COMMANDS: readonly CliCommandMeta[] = [
     name: 'diff',
     usage: 'openvibe diff <projectPath> [flags]',
     summary: '比对项目产物与 pack.lock.json，并探测是否有更新的导出版本',
+    flags: [],
+    risk: 'readonly',
+    writesDisk: false,
+  },
+  {
+    name: 'verify',
+    usage: 'openvibe verify <projectPath> [flags]',
+    summary:
+      '三方一致性核验：包版本 / lock / 磁盘（只读，输出 CONSISTENT / PARTIAL / ORPHAN / DISK_DRIFT / STALE_LOCK / UNMANAGED 之一）',
+    flags: [],
+    risk: 'readonly',
+    writesDisk: false,
+  },
+  {
+    name: 'discuss',
+    usage: 'openvibe discuss <question> [flags]',
+    summary: '向 AI 问本项目的问题（回答逐段标注来源：每段都可追溯到项目的真实数据）',
+    flags: [
+      flag('--project', '<id|dir>', '目标项目（id 或本地目录；缺省按当前目录解析）'),
+      flag('--fields', '<list>', '只要这些上下文段（逗号分隔）'),
+      flag('--budget', '<n>', '上下文字符预算上限'),
+      flag('--confirm', CLI_FLAG_NO_VALUE, '显式同意本次上下文出网（首次必带）'),
+      flag('--remember', CLI_FLAG_NO_VALUE, '记住本项目同意（配合 --confirm）'),
+    ],
+    risk: 'decision',
+    writesDisk: false,
+  },
+  {
+    name: 'mcp',
+    usage: 'openvibe mcp [flags]',
+    summary: '以 stdio 形态运行 MCP 服务（AI IDE 的只读上下文工具面：project_context / search_assets / pack_diff）',
     flags: [],
     risk: 'readonly',
     writesDisk: false,

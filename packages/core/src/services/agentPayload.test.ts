@@ -37,6 +37,7 @@ const SPECS_DIR = join(import.meta.dirname, '..', '..', '..', '..', 'docs', 'spe
 const SPEC_PATH = join(SPECS_DIR, 'm8-agent-bridge.md')
 const LEDGER_SPEC_PATH = join(SPECS_DIR, 'local-event-ledger.md')
 const M3_SPEC_PATH = join(SPECS_DIR, 'm3-terms-learning.md')
+const D_SPEC_PATH = join(SPECS_DIR, 'v023-d-ai-extract.md')
 
 /**
  * ⚠️ **每个 kind 绑各自的规格**（2026-10-18 · P5 落地时加）。
@@ -57,6 +58,9 @@ const KIND_SPEC: Record<string, { spec: string; marker: string }> = {
   cli_agent_command_run: { spec: SPEC_PATH, marker: '允许键' },
   agent_bridge_installed: { spec: SPEC_PATH, marker: '允许键' },
   ai_recommend_call: { spec: M3_SPEC_PATH, marker: 'FR-9.1-b' },
+  // M10/D：提取 / 问答出网台账（spec v023-d FR-8 的允许键闭集行）
+  ai_extract_call: { spec: D_SPEC_PATH, marker: '允许键' },
+  ai_discuss_call: { spec: D_SPEC_PATH, marker: '允许键' },
 }
 
 /**

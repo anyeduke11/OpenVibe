@@ -7,7 +7,7 @@ import { DevLogEvidence } from './task'
  * source 取值：openvibe-seed | manual | reflow（m4 §3 + FR-5.4）。
  * `openvibe-seed` 比 spec 多一档，为的是 seed 行可追溯——与 TERM_SOURCE_RE 同源的镜像选择。
  */
-export const PLAYBOOK_SOURCE_RE = /^(openvibe-seed|manual|reflow)$/
+export const PLAYBOOK_SOURCE_RE = /^(openvibe-seed|manual|reflow|ai-extract)$/
 
 /** 四段长度一律按 UTF-8 字节比 LIMITS（m4 §3 字节族口径，与 termDefinitionMaxBytes 同法） */
 const scenarioSchema = z.string().min(1).refine(

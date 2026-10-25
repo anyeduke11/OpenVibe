@@ -14,6 +14,9 @@ import {
 } from './commands/status'
 import { sessionLines, sessionLogAction } from './commands/session'
 import { requirementAddAction, requirementLines } from './commands/requirement'
+import { verifyAction } from './commands/verify'
+import { runMcpServer } from './commands/mcp'
+import { discussAction, discussLines } from './commands/discuss'
 import { createPrinter, ExitCode, type Printer, type ReportRow } from './output'
 import { clientFromConfig, type ApiClient } from './client'
 import { resolveConfig } from './config'
@@ -258,6 +261,63 @@ function clientFrom(global: GlobalOptions, printer: Printer) {
   return config.token === null ? undefined : clientFromConfig(config)
 }
 
+interface DiscussCmdOptions {
+  project?: string
+  fields?: string
+  budget?: number
+  confirm?: boolean
+  remember?: boolean
+}
+
+function parseBudget(raw: string): number {
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new InvalidArgumentError(`不是合法预算（正整数）：${raw}`)
+  }
+  return n
+}
+
+async function runDiscuss(question: string, opts: DiscussCmdOptions, global: GlobalOptions): Promise<void> {
+  const printer = printerFor('discuss', global)
+  try {
+    const client = clientFrom(global, printer)
+    const outcome = await discussAction(
+      {
+        question,
+        project: opts.project,
+        fields: opts.fields !== undefined ? opts.fields.split(',').map((f) => f.trim()).filter((f) => f !== '') : undefined,
+        budget: opts.budget,
+        confirm: opts.confirm,
+        remember: opts.remember,
+      },
+      client ? { client } : {},
+    )
+    for (const w of outcome.warnings) printer.warn(w)
+    for (const line of discussLines(outcome)) printer.info(line)
+    printer.result({
+      summary: {
+        ok: outcome.exitCode === 0,
+        projectId: outcome.projectId,
+        question: outcome.question,
+        status: outcome.status,
+        provider: outcome.provider,
+        answer: outcome.answer,
+        segments: outcome.segments,
+        sources: outcome.sources,
+        truncated: outcome.truncated,
+        warnings: outcome.warnings,
+        hints: outcome.hints,
+        exitCode: outcome.exitCode,
+      },
+    })
+    process.exit(outcome.exitCode)
+  } catch (e) {
+    const err = e as { code?: string; message?: string }
+    printer.fail(err.code ?? 'DISCUSS_FAILED', err.message ?? String(e))
+    process.exit(ExitCode.error)
+  }
+}
+
 interface ScanCmdOptions {
   skills?: boolean
   project?: string
@@ -346,6 +406,14 @@ async function runDiff(projectPath: string, global: GlobalOptions): Promise<void
       printer.info(
         `漂移 ${d.path}（lock ${d.expected.slice(0, 8)} → 磁盘 ${d.actual.slice(0, 8)}）`,
       )
+    // 段级差异（RQ4，只读）：漂在哪一段（受管块 / 块外自由区）+ 两侧行数
+    for (const s of outcome.sections) {
+      for (const r of s.result.regions) {
+        printer.info(
+          `段级 ${s.path} · ${r.region}：${r.status === 'same' ? '一致' : '有差异'}（包 ${r.expectedLines} 行 / 磁盘 ${r.actualLines} 行${r.missing ? ' · 磁盘缺标记' : ''}）`,
+        )
+      }
+    }
     for (const m of outcome.missing) printer.info(`缺失 ${m}`)
     for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
     printer.result({
@@ -361,6 +429,7 @@ async function runDiff(projectPath: string, global: GlobalOptions): Promise<void
         drifted: outcome.drifted,
         missing: outcome.missing,
         outdated: outcome.outdated,
+        sections: outcome.sections,
         probedOnline: outcome.probedOnline,
         hints: outcome.hints,
         exitCode: outcome.exitCode,
@@ -370,6 +439,43 @@ async function runDiff(projectPath: string, global: GlobalOptions): Promise<void
   } catch (e) {
     const err = e as { code?: string; message?: string }
     printer.fail(err.code ?? 'DIFF_FAILED', err.message ?? String(e))
+    process.exit(ExitCode.error)
+  }
+}
+
+/** `openvibe verify`（v0.2.3 批次 B FR-4）：只读核验，exitCode 0 一致 / 2 有偏差；任何实现错误退 1 */
+async function runVerify(projectPath: string, global: GlobalOptions): Promise<void> {
+  const printer = printerFor('verify', global)
+  try {
+    const client = clientFrom(global, printer)
+    const outcome = await verifyAction({ projectPath }, client ? { client } : {})
+    for (const w of outcome.warnings) printer.warn(w)
+    printer.info(`核验 ${outcome.state}：${outcome.reason}`)
+    for (const m of outcome.missing) printer.info(`缺失 ${m}`)
+    for (const d of outcome.drifted)
+      printer.info(`漂移 ${d.path}（lock ${d.expected.slice(0, 8)} → 磁盘 ${d.actual.slice(0, 8)}）`)
+    for (const o of outcome.orphan) printer.info(`未登记产物 ${o}`)
+    for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
+    printer.result({
+      summary: {
+        ok: outcome.exitCode === ExitCode.ok,
+        projectPath: outcome.projectPath,
+        lockPath: outcome.lockPath,
+        pack: outcome.pack,
+        state: outcome.state,
+        missing: outcome.missing,
+        drifted: outcome.drifted,
+        orphan: outcome.orphan,
+        newer: outcome.newer,
+        probedOnline: outcome.probedOnline,
+        hints: outcome.hints,
+        exitCode: outcome.exitCode,
+      },
+    })
+    process.exit(outcome.exitCode)
+  } catch (e) {
+    const err = e as { code?: string; message?: string }
+    printer.fail(err.code ?? 'VERIFY_FAILED', err.message ?? String(e))
     process.exit(ExitCode.error)
   }
 }
@@ -737,6 +843,36 @@ export function buildProgram(): Command {
     .argument('<projectPath>', '目标项目目录')
     .action(async (projectPath: string) => {
       await runDiff(projectPath, program.opts<GlobalOptions>())
+    })
+
+  program
+    .command('verify')
+    .description('三方一致性核验：包版本 / lock / 磁盘（只读，输出 CONSISTENT / PARTIAL / ORPHAN / DISK_DRIFT / STALE_LOCK / UNMANAGED 之一）')
+    .argument('<projectPath>', '目标项目目录')
+    .action(async (projectPath: string) => {
+      await runVerify(projectPath, program.opts<GlobalOptions>())
+    })
+
+  program
+    .command('discuss')
+    .description('向 AI 问本项目的问题（回答逐段标注来源：每段都可追溯到项目的真实数据）')
+    .argument('<question>', '问题（自由文本）')
+    .option('--project <id|dir>', '目标项目（id 或本地目录；缺省按当前目录解析）')
+    .option('--fields <list>', '只要这些上下文段（逗号分隔：stage,checklist,tasks,logs,pack,assets）')
+    .option('--budget <n>', '上下文字符预算上限', parseBudget)
+    .option('--confirm', '显式同意本次上下文出网（首次必带）')
+    .option('--remember', '记住本项目同意（配合 --confirm）')
+    .action(async (question: string, opts: DiscussCmdOptions, global) => {
+      await runDiscuss(question, opts, program.opts<GlobalOptions>() ?? global)
+    })
+
+  program
+    .command('mcp')
+    .description('以 stdio 形态运行 MCP 服务（AI IDE 的只读上下文工具面：project_context / search_assets / pack_diff）')
+    .allowExcessArguments(false)
+    .action(async () => {
+      const global = program.opts<GlobalOptions>()
+      await runMcpServer({ serverOverride: global.server, tokenOverride: global.token })
     })
 
   program

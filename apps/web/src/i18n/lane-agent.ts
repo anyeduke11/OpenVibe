@@ -98,4 +98,12 @@ export const agentZh = {
     writeLabel: '允许 agent 写入（回流）',
     defaultOffNote: '默认关闭 —— 与「只读默认」一致。关着的时候，agent 推来的条目会被整批拒绝。',
   },
+  discuss: {
+    title: '问一问本项目（AI · 逐段标注来源）',
+    placeholder: '例如：这个项目现在到哪个阶段了？下一步该做什么？',
+    ask: '提问',
+    thinking: '思考中…',
+    remember: '记住本项目的出网同意（下次免确认）',
+    truncated: '上下文超预算已裁剪——回答可能缺段。',
+  },
 } as const

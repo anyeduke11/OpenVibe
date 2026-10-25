@@ -1,6 +1,67 @@
+
+// M10/D：提取链（候选三态合并入 pending 管道；总闸/同意/预算/锚定/采纳率）
+export {
+  runExtraction,
+  extractGateOpen,
+  adoptionStats,
+  DAILY_CALL_LIMIT,
+  ADOPTION_THRESHOLD,
+  ADOPTION_WINDOW_MIN,
+  readExtractConsent,
+  listExtractConsents,
+  setExtractConsent,
+  clearExtractConsent,
+  extractCallsToday,
+  anchorCandidates,
+  type ExtractRunner,
+  type ExtractRunnerError,
+  type ExtractConsent,
+  type ExtractOutcome,
+  type ExtractServiceDeps,
+  runDiscussion,
+  splitByRefs,
+  DISCUSS_DAILY_CALL_LIMIT,
+  writeAdoptionSnapshots,
+  consecutiveLowAdoption,
+  deriveExtractConsent,
+  recordExtractShare,
+  extractUsage,
+  adoptionStatsWithHistory,
+  CONSECUTIVE_ROUNDS_TRIGGER,
+  type AdoptionStats,
+  type AdoptionKindStat,
+  type AdoptionSnapshotRow,
+  type ConsecutiveLowVerdict,
+  type AdoptionStatsWithHistory,
+} from './extract'
+export { mergeSeedRow, seedRowHash, type SeedMergeSpec, type SeedMergeAction } from './db/seed-merge'
+
+
 export { M9_FIXTURES, M9_FIXTURE_NAMES, type M9FixtureName } from "./fixtures/m9"
 // packages/core —— 领域核心：db / repos / search（R3：禁止依赖任何 app）
 export { openDatabase, defaultDbPath, openvibeHome, type SqliteDatabase } from './db'
+// CS4（v0.2.3 批次 C）：知识点-术语挂接 / 站点过滤 / 资源 README 导出 —— M9 学习线的产品面
+export {
+  listTopicTerms,
+  attachTopicTerms,
+  MAX_TERMS_PER_TOPIC,
+  type AttachResult,
+} from './db/m9-topic-terms'
+export {
+  topicFilterOptions,
+  filterTopics,
+  langCoverage,
+  type TopicRow,
+  type TopicFilter,
+  type TopicFilterOptions,
+  type LangCoverage,
+} from './db/m9-topic-filter'
+export {
+  exportResourcesReadme,
+  listReadmeRows,
+  verifyReadmeExport,
+  type ResourceReadmeRow,
+} from './db/m9-p1b-readme'
 export { migrate, nowIso } from './db/runner'
 export { runSeed, applyTermAnnotations, type SeedBundleResult } from './db/seed'
 export {
@@ -61,51 +122,6 @@ export { createContextService, type ContextServiceDeps } from './services/contex
 export { createTermRecommendService, type TermRecommendDeps } from './services/termRecommendService'
 export { createCommandRunService, CLI_COMMAND_RUN_COMMANDS, CLI_COMMAND_RUN_PAYLOAD_KEYS, type CliCommandRunCommand, type CommandRunInput, type CommandRunServiceDeps } from './services/commandRunService'
 export { assembleAiCallPayload, toRelativePath, PayloadAssemblyError, type AssembleOpts, type AiCallPayload, type SourceFragment } from './services/m9-payload'
-// P1.10 · DL-03 停更源标记 —— **采集脚本也用它**（scripts/ 走 @openvibe/core 导入）
-// ⇒ 新鲜度标记的**算法只有一处**，采集脚本与守卫不会各算各的。
-export {
-  computeFreshness,
-  yearsText,
-  parseSpecStaleSources,
-  readSpecStaleSources,
-  specSourceNameToKey,
-  validateFreshness,
-  scanSourceFreshness,
-  STALE_SOURCE_KEYS,
-  type SourceFreshness,
-  type FreshnessRule,
-  type FreshnessViolation,
-} from './db/m9-source-freshness'
-// P1b · spec §1.6.1 口径读取器 —— **提取脚本与单测共用同一份解析**
-// ⇒ 文档与实跑的对照不会「两边错得一模一样」（那会让对账闸变成同义反复）。
-export {
-  parseSpecResourceCounts,
-  specSection161,
-  type SpecResourceCounts,
-  type SpecCategoryCount,
-} from './db/m9-p1b-spec'
-// P1b · 必要性矩阵（DL-48）—— **提取脚本与单测共用同一份解析**
-export {
-  parseNecRule,
-  parseSpecDistribution,
-  parseSpecNecDistribution,
-  necessaryFor,
-  computeDistribution,
-  verifyNecessity,
-  LANG_PROFILES,
-  RESOURCE_TIERS,
-  MAIN_RESOURCE_TIERS,
-  TIER_LEGEND,
-  NECESSITY_LABEL,
-  type LangProfile,
-  type ResourceTier,
-  type MainResourceTier,
-  type Necessity,
-  type NecRule,
-  type NecDistribution,
-  type SpecNec,
-  type NecRuleViolation,
-} from './db/m9-p1b-necessity'
 // P1b · 资源层种子导入器 —— **巡检脚本的 --seed 走它**（口径只留一处）
 export {
   seedLangResources,
@@ -113,9 +129,15 @@ export {
   seedLangTopicResources,
   seedLangResourceLayer,
   type M9ResourceSeedResult,
+  RESOURCES_MERGE_SPEC,
+  VIBE_RESOURCES_MERGE_SPEC,
+  TOPIC_RESOURCES_MERGE_SPEC,
 } from './db/m9-p1b-seed-resources'
 // P1 · 知识点种子导入器 —— 巡检脚本 --seed 时用它（挂接行引用知识点）
-export { seedLangTopics, type M9SeedBundleResult } from './db/m9-p1-seed-lang-topics'
+export { seedLangTopics, type M9SeedBundleResult, LANG_TOPICS_MERGE_SPEC, M9_SEEDS_DIR } from './db/m9-p1-seed-lang-topics'
+export { seedConceptContent, type M9ConceptSeedResult, LANG_CONCEPTS_MERGE_SPEC, LANG_TOPIC_CONTENT_MERGE_SPEC } from './db/m9-p1-5-concept-content'
+export { seedConceptDeltas, type M9DeltaSeedResult, DELTAS_MERGE_SPEC } from './db/m9-p1-6-concept-deltas'
+export { seedTopicEdges, type M9EdgeSeedResult } from './db/m9-p1-7-topic-stages'
 // P1b/P1c · 失效巡检的**状态机**（§3.14 写死的那三行）—— 唯一出处
 export {
   FAIL_THRESHOLD,
@@ -172,17 +194,6 @@ export {
   type M9ProfileSeedResult,
 } from './db/m9-p1d-seed-profiles'
 export {
-  findHardCodedDateUses,
-  findRelativeWindowUses,
-  findTimeDriftRisks,
-  splitTestBlocks,
-  type HardCodedDateUse,
-  type RelativeWindowUse,
-  type SourceFile,
-  type TestBlock,
-  type TimeDriftRisk,
-} from './db/m9-time-window-guard'
-export {
   KEYCHAIN_ACCOUNT,
   KEYCHAIN_SERVICE,
   memoryKeychainStore,
@@ -214,17 +225,6 @@ export {
   type StagePhaseViolation,
 } from './db/m9-p1d-stage-phase-guard'
 export {
-  parseSpecPhaseRows,
-  parseSpecVibeStatic,
-  tallyOutcomePrefixes,
-  checkNoMappingStatements,
-  specSection3171,
-  type SpecPhaseRow,
-  type SpecVibeStatic,
-  type OutcomePrefixTally,
-  type NoMappingCheck,
-} from './db/m9-p1d-spec'
-export {
   VIBE_ABILITIES,
   VIBE_MINIMAL_KNOWLEDGE,
   VIBE_WORKFLOW,
@@ -245,7 +245,6 @@ export {
   decideInjections,
   planDecideApply,
   InjectError,
-  type AskFn as InjectAskFn,
   type DecideOptions,
   type PlanDecideApplyInput,
   type PlanDecideApplyResult,
@@ -297,6 +296,15 @@ export {
   // 一致性比对的单一规则与单一状态词表（service-layer.md FR-2）
   CONSISTENCY_STATES,
   verifyAgainstLock,
+  // 三方一致性核验的六态判定（v0.2.3 批次 B FR-4）
+  planVerify,
+  type VerifyPlan,
+  type VerifyPlanInput,
+  type VerifyState,
+  // 段级差异报告（v0.2.3 批次 C RQ4，只读；写入行为与五状态判定不动）
+  diffSections,
+  type SectionDiffResult,
+  type SectionRegion,
   type ConsistencyFile,
   type ConsistencyState,
   type DeclaredFile,

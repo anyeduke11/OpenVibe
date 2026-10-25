@@ -160,7 +160,12 @@ const AGENT_CORE_EVENT_KINDS = [
  * 顺序自然也对；但把它单列出来，是为了让「6 项」这个计数变化在 diff 里一眼可见 ——
  * 它正是 §8 待裁第 8 条说的「M8 后续还要扩 kind ⇒ 先合 P5 的 0010」那笔。
  */
-export const AGENT_AI_EVENT_KINDS = ['ai_recommend_call'] as const
+export const AGENT_AI_EVENT_KINDS = [
+  'ai_recommend_call',
+  // M10/D 批次：提取 / 问答出网台账（payload 白名单 9 键，无正文容器）
+  'ai_extract_call',
+  'ai_discuss_call',
+] as const
 
 /**
  * M9 语言学习模块的台账 kind（m9-dev-language-roadmap.md §3.14–§3.16 / §3.17.1 / §3.21）。
@@ -243,6 +248,29 @@ const AGENT_PAYLOAD_SHAPE = {
     failureReason: 'string',
     durationMs: 'number',
   },
+  // M10/D：提取 / 问答出网台账（与 ai_recommend_call 同形制——指纹 + 计数，无正文容器）
+  ai_extract_call: {
+    aiModel: 'string',
+    aiProvider: 'string',
+    inputHash: 'string',
+    candidateCount: 'number',
+    passedCount: 'number',
+    droppedCount: 'number',
+    result: 'string',
+    failureReason: 'string',
+    durationMs: 'number',
+  },
+  ai_discuss_call: {
+    aiModel: 'string',
+    aiProvider: 'string',
+    inputHash: 'string',
+    candidateCount: 'number',
+    passedCount: 'number',
+    droppedCount: 'number',
+    result: 'string',
+    failureReason: 'string',
+    durationMs: 'number',
+  },
 } as const
 
 /** 台账 payload 允许的值类型 */
@@ -254,6 +282,9 @@ export const AGENT_PAYLOAD_TYPES = AGENT_PAYLOAD_SHAPE as unknown as Record<
 >
 
 /** 台账事件的 `payload_json` **允许键闭集**（由上面的形状派生） */
+/** M10/D：内部 AI 提取链的来源标记（agent_ingests.source_platform 与候选 tags 共用） */
+export const AI_EXTRACT_SOURCE = 'ai-extract'
+
 export const AGENT_PAYLOAD_KEYS = Object.fromEntries(
   Object.entries(AGENT_PAYLOAD_SHAPE).map(([k, v]) => [k, Object.keys(v).sort()]),
 ) as unknown as { readonly [K in keyof typeof AGENT_PAYLOAD_SHAPE]: readonly string[] }
@@ -305,6 +336,10 @@ export const AGENT_INGEST_KINDS = [
   'requirement',
   'task_status',
   'check_state',
+  // M10/D 批次：LLM 候选三类（内部 AI 产出按外部 agent 待遇，pending → 人工确认）
+  'term_candidate',
+  'prompt_candidate',
+  'playbook_candidate',
 ] as const
 export type AgentIngestKind = (typeof AGENT_INGEST_KINDS)[number]
 

@@ -2,7 +2,17 @@ import type { FastifyInstance } from 'fastify'
 import {
   APP_META_KEYS,
   AppMetaRepo,
+  PacksRepo,
   TelemetryRepo,
+  estimateTokens,
+  seedConceptContent,
+  seedConceptDeltas,
+  seedLangResourceLayer,
+  seedLangTopics,
+  seedProfilePhases,
+  M9_SEEDS_DIR,
+  seedTopicEdges,
+  seedTopicProfiles,
   runSeed,
   type SeedBundleResult,
   type SqliteDatabase,
@@ -19,6 +29,7 @@ import {
   TELEMETRY_EVENTS_LIMIT_MAX,
   telemetryDay,
   telemetryOs,
+  type OmOut,
   type SeedSummary,
   type SettingsOut,
   type TelemetryAskState,
@@ -27,7 +38,9 @@ import {
   type TelemetryOs,
   type TelemetrySettingsOut,
 } from '@openvibe/shared'
-import { ensureDefaultPack } from '../lib/default-pack'
+import { AppError } from '@openvibe/shared'
+import { DEFAULT_PACK_VERSION, ensureDefaultPack } from '../lib/default-pack'
+import { renderPack } from '../lib/pack-assemble'
 import { defaultSeedDir } from '../lib/seed-dir'
 import { parseOrThrow } from '../lib/validate'
 
@@ -162,6 +175,37 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
     return { seed, defaultPack, settings: settingsView(deps) }
   })
 
+  /**
+   * C 收尾①（owner 增强项）：m9 六播种器按 CS2 合并语义统一重放。
+   * 顺序 = 依赖序：topics → concepts/content → deltas → edges → profiles → resources；
+   * 返回各 bundle 的三态计数（created/updated/ignored/userModified），供 UI 汇总。
+   * 全部本机现算、零出网、零删除（合并永不 clobber 用户态）。
+   */
+  app.post('/api/settings/reseed/m9', async () => {
+    // M9 语言线的种子目录是 core/db/seeds（采集脚本写、reseed 读），不是主通道的 content/seed
+    const dir = M9_SEEDS_DIR
+    const run = (r: { bundle: string; status: string; created: number; updated?: number; ignored?: number; userModified?: number; warnings?: string[] }): unknown => ({
+      bundle: r.bundle,
+      status: r.status,
+      created: r.created,
+      updated: r.updated ?? 0,
+      ignored: r.ignored ?? 0,
+      userModified: r.userModified ?? 0,
+      warnings: r.warnings ?? [],
+    })
+    return {
+      results: [
+        ...seedLangTopics(deps.db, dir).map(run),
+        ...seedConceptContent(deps.db, dir).map(run),
+        run(seedConceptDeltas(deps.db, dir)),
+        run(seedTopicEdges(deps.db, dir)),
+        ...seedProfilePhases(deps.db, dir).map(run),
+        ...seedTopicProfiles(deps.db).map(run),
+        ...seedLangResourceLayer(deps.db, dir).map(run),
+      ],
+    }
+  })
+
   /** 事件入队（服务端第二道闸门：开关关闭时连队列都不写，更不会有外联） */
   app.post('/api/telemetry/events', async (req) => {
     const { event, value } = parseOrThrow(TelemetryEventInput, req.body)
@@ -256,5 +300,74 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
                            AND json_array_length(d.linked_asset_ids) > 0)`,
       ),
     }
+  })
+
+  /**
+   * 输出侧度量两件（v0.2.3 批次 B RQ5，GET /api/om；全本机现算，零出网，不参与遥测）。
+   * OM1 密度：一个标准包的渲染产物（不含 manifest）估算 token ÷ 选中资产数——
+   * 缺省取最新建包（created_at 口径），`?pack_id=` 可指定（未知 id 404）；包侧渲染
+   * 走与 preview/export 同一 renderPack（字节同源）。OM2 首次见效：
+   * 台账首次事件 → injections 首次注入的墙钟差；台账被清空或从未注入 ⇒ null（面板显示待采集）。
+   */
+  app.get('/api/om', async (req): Promise<OmOut> => {
+    const askedPackId = (req.query as { pack_id?: string } | undefined)?.pack_id
+    const repo = new PacksRepo(deps.db)
+    let packRow: { id: string } | undefined
+    if (askedPackId !== undefined && askedPackId !== '') {
+      if (repo.get(askedPackId) === null) {
+        throw new AppError('NOT_FOUND', `标准包不存在: ${askedPackId}`)
+      }
+      packRow = { id: askedPackId }
+    } else {
+      packRow = deps.db
+        .prepare(`SELECT id FROM standard_packs ORDER BY created_at DESC, id DESC LIMIT 1`)
+        .get() as { id: string } | undefined
+    }
+    let density: OmOut['density'] = null
+    if (packRow) {
+      const pack = repo.get(packRow.id)
+      if (pack) {
+        const rendered = renderPack(deps.db, pack, DEFAULT_PACK_VERSION, pack.updatedAt)
+        const per = rendered.files
+          .filter((f) => f.path !== 'openvibe.pack.json')
+          .map((f) => ({ path: f.path, tokens: estimateTokens(f.content).approxTokens }))
+        const managedTokens = per.reduce((sum, p) => sum + p.tokens, 0)
+        const sel = pack.selection
+        const assetCount =
+          sel.promptIds.length +
+          sel.termIds.length +
+          sel.skillIds.length +
+          sel.playbookIds.length +
+          (sel.flowTemplateId === null ? 0 : 1)
+        density = {
+          packId: pack.id,
+          packName: pack.name,
+          packVersion: DEFAULT_PACK_VERSION,
+          managedTokens,
+          assetCount,
+          perAsset: assetCount > 0 ? Math.round((managedTokens / assetCount) * 10) / 10 : null,
+          top5: [...per].sort((a, b) => b.tokens - a.tokens).slice(0, 5),
+        }
+      }
+    }
+
+    const firstEventAt =
+      (
+        deps.db.prepare(`SELECT MIN(created_at) AS t FROM local_events`).get() as {
+          t: string | null
+        }
+      ).t ?? null
+    const firstInjectionAt =
+      (
+        deps.db.prepare(`SELECT MIN(injected_at) AS t FROM injections`).get() as {
+          t: string | null
+        }
+      ).t ?? null
+    const seconds =
+      firstEventAt !== null && firstInjectionAt !== null
+        ? Math.max(0, Math.round((Date.parse(firstInjectionAt) - Date.parse(firstEventAt)) / 1000))
+        : null
+
+    return { density, timeToValue: { firstEventAt, firstInjectionAt, seconds } }
   })
 }

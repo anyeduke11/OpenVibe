@@ -10,6 +10,8 @@ import {
 import { registerAuth } from './plugins/auth'
 import { registerErrors } from './plugins/errors'
 import { registerAgentRoutes } from './routes/agent'
+import { registerExtractRoutes } from './routes/extract'
+import type { ExtractRunner } from '@openvibe/core'
 import { registerCliCommandRoutes } from './routes/cliCommands'
 import { registerDevLogRoutes } from './routes/devlog'
 import { registerFlowTemplateRoutes } from './routes/flowTemplates'
@@ -46,6 +48,11 @@ export interface BuildAppOptions {
   settings?: Partial<SettingsRouteInput>
   /** skill 远程取数实现（DEV-0067 测试注入点；缺省全局 fetch，出站走 http-guard） */
   remoteFetchImpl?: typeof fetch
+  /** M10/D：提取链 runner 与预算的测试注入点（缺省按 provider 配置现解析） */
+  extractRunner?: ExtractRunner | null
+  extractDailyCallLimit?: number
+  /** M10/E：问答预算独立注入点 */
+  discussDailyCallLimit?: number
   /** 本机端口监听查询实现（m5 FR-8 测试注入点；缺省走真机 lsof / netstat） */
   listListenersImpl?: PortRouteDeps['listListenersImpl']
   /**
@@ -93,6 +100,13 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   // 测试无法钉住「这条事件落在哪一天」。见 lib/ledger.ts 的「为什么缺省也照记」。
   const deps: PromptRouteDeps = { db, now: options.now }
   registerAgentRoutes(app, deps)
+  registerExtractRoutes(app, {
+    db,
+    now: options.now,
+    runner: options.extractRunner,
+    dailyCallLimit: options.extractDailyCallLimit,
+    discussDailyCallLimit: options.discussDailyCallLimit,
+  })
   registerPromptRoutes(app, deps)
   registerTermRoutes(app, deps)
   registerTermRecommendationRoutes(app, deps)

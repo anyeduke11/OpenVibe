@@ -13,10 +13,12 @@ import {
   PACK_BACKUP_REL,
   PACK_LOCK_REL,
   buildPackLock,
+  diffPackLock,
   packLockJson,
   parsePackLock,
   planDecideApply,
   resolveWriteTarget,
+  summarizeDiff,
   SYNC_LOCK_STALE_MS,
   tryAcquireSyncLock,
   writeReplacingLinks,
@@ -300,6 +302,15 @@ export async function syncAction(
     oldLock = parsePackLock(lockText)
     if (!oldLock) {
       warningsOut.push('pack.lock.json 无法解析，本次按未注入处理（覆盖前仍会备份原文件）')
+    } else {
+      // verify 前置核验（FR-4.4，只读）：lock 登记的受管文件在磁盘缺失 ⇒ 疑似上次注入中断
+      const preMissing = summarizeDiff(diffPackLock(oldLock, diskReader(projectPath))).missing
+      if (preMissing.length > 0) {
+        warningsOut.push(
+          `上次注入可能中断：lock 登记 ${preMissing.length} 个文件在磁盘缺失（${preMissing.join('、')}）；` +
+            '本次按包内容重建，openvibe verify 可复查',
+        )
+      }
     }
   }
 

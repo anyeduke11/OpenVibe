@@ -3,7 +3,7 @@ import { LIMITS, TERM_DOMAINS, TERM_LEVELS, TERM_STATUS, TERMS_ORDER_BY } from '
 import { utf8ByteLength } from '../utils'
 
 /** source 取值：openvibe-seed | manual | vibe-hub | project:<项目名>（m3 §3；vibe-hub 为 DEV-0075 外部术语源溯源） */
-export const TERM_SOURCE_RE = /^(openvibe-seed|manual|vibe-hub|project:.+)$/
+export const TERM_SOURCE_RE = /^(openvibe-seed|manual|vibe-hub|ai-extract|project:.+)$/
 
 const definitionSchema = z.string().min(1).refine(
   (s) => utf8ByteLength(s) <= LIMITS.termDefinitionMaxBytes,

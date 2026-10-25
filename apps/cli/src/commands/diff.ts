@@ -3,9 +3,11 @@ import { join, resolve } from 'node:path'
 import {
   PACK_LOCK_REL,
   diffPackLock,
+  diffSections,
   parsePackLock,
   resolveWriteTarget,
   summarizeDiff,
+  type SectionDiffResult,
 } from '@openvibe/core'
 import { compareSemver, type PackExportOut, type PackLock } from '@openvibe/shared'
 import { ServerUnreachable, type ApiClient } from '../client'
@@ -61,6 +63,12 @@ export interface DiffOutcome {
    */
   foreign: { path: string; actual: string }[]
   outdated: PackOutdated | null
+  /**
+   * 段级差异（v0.2.3 批次 C RQ4，只读）：对漂移文件做「包渲染段文本 vs 磁盘段文本」
+   * 的受管块/块外自由区对比。**离线或包侧不可达时为空数组**（降级为文件级报告，
+   * 不阻塞 diff 的磁盘结论）。数据源 = 与 preview/export 同一 renderPack。
+   */
+  sections: { path: string; result: SectionDiffResult }[]
   /** 是否真的调过服务端（离线/无令牌时 false） */
   probedOnline: boolean
   warnings: string[]
@@ -167,11 +175,35 @@ export async function diffAction(options: DiffOptions, deps: DiffDeps = {}): Pro
   const hints: string[] = []
   let outdated: PackOutdated | null = null
   let probedOnline = false
+  const sections: { path: string; result: SectionDiffResult }[] = []
   if (deps.client) {
     const probe = await probeOutdated(deps.client, lock.pack)
     outdated = probe.outdated
     probedOnline = probe.probedOnline
     warnings.push(...probe.warnings)
+
+    // 段级差异（RQ4，只读）：包渲染文本来自与 preview/export 同一 renderPack；
+    // 任何失败只降级成提示，磁盘结论与退出码不受影响（与 probeOutdated 同款纪律）。
+    if (buckets.drifted.length > 0) {
+      try {
+        const preview = await deps.client.postJson<{ files: { path: string; content: string }[] }>(
+          `/api/packs/${lock.pack.id}/preview`,
+          { version: lock.pack.version },
+        )
+        const byPath = new Map(preview.files.map((f) => [f.path, f.content]))
+        const reader = diskReader(projectPath)
+        for (const d of buckets.drifted) {
+          const expected = byPath.get(d.path)
+          if (expected === undefined) continue
+          const actual = reader(d.path)
+          if (actual === null) continue
+          sections.push({ path: d.path, result: diffSections(expected, actual) })
+        }
+        if (sections.length > 0) hints.push('块外自由区的差异属于你，同步覆盖建议永远倒向保留本地（永不触碰）')
+      } catch (e) {
+        warnings.push(`段级差异不可用（${e instanceof ServerUnreachable ? `服务端不可达（${e.detail}）` : (e as Error).message ?? String(e)}）；文件级报告不受影响`)
+      }
+    }
   } else {
     hints.push('离线：未探测服务端是否有更新导出版本')
   }
@@ -202,6 +234,7 @@ export async function diffAction(options: DiffOptions, deps: DiffDeps = {}): Pro
     missing: buckets.missing,
     foreign: buckets.foreign,
     outdated,
+    sections,
     probedOnline,
     warnings,
     hints,
