@@ -3426,3 +3426,26 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   - ② spec B/C 的勘注/收口以「owner 复盘指令」为授权依据（与批次 A §8.2 先例同型）；若 owner 对六态或 CS4 去向另有裁定，按其裁定改写。
   - ③ 提交清单的分组是启发式（文件名归批），个别跨批文件（如 index.ts 承多批接线）归「其他」组——owner 提交时按 diff 内容复核归属。
   - ④ 复盘属时点审计（2026-10-25）：其后任何改动不再被本报告覆盖；发布前建议 publish 流程内再走一次 docs:check + 全量测试（runbook 已含）。
+
+## [DEV-0148] 2026-10-25 · v0.2.3 收官三件：全批次提交（4 commit）＋ 提交预检 ＋ Vibecoding 复盘协议（真回流演示验证）
+
+- **时间**: 2026-10-25
+- **类型**: 流程 + 工具（提交为版本里程碑动作；vibe:retro / v023:preflight 为新工具面）
+- **关联文件**: `scripts/v023-preflight.ts`（新增）、`scripts/vibe-retro-ingest.ts`（新增）、`docs/vibe-retro.md`（新增协议）、`docs/devlog-evidence/v023-commit-manifest.md`（v2 修正）、`docs/dev-plan.md`（§1.5 两登记）、`docs/release-notes/v0.2.3-publish-runbook.md`（+§3.5 采样位）、`package.json`（两脚本）；4 个提交（8270605/deb5a06/dea6408/8a9a881）
+- **问题描述**: owner 三指令：①直接提交（复盘缺陷①的根治）；②publish 就绪态落实（npm whoami 复测仍 ENEEDAUTH ⇒ 本体保持 owner 待办，就绪态已由 DEV-0147 全链收口）；③增强两项——提交前预检脚本 + Vibecoding 复盘设计（agent 复盘同步进 OpenVibe 系统）。
+- **实现思路**: ① **先预检后提交**：v023:preflight 三查（清单 vs 工作树对账 / 清单内存在性 / 并行在编识别）——首跑即抓出 v1 清单两缺陷（漏 79 个 M 态文件 + 收录 8 个已迁移旧路径），v2 修正后判净才提交；② 提交按批次四笔（A/B → C → D/E/F → docs/发布资产），每笔提交信息挂 DEV 号链；工作树保留并行会话在编文件零触碰；③ **Vibecoding 复盘 = OpenVibe 吃自己的狗粮**：复盘报告按「## 节」拆条 → M8 agent 桥 ingest（pending）→ Web 确认入库 → 可选 M10 提取——四步协议文档化 + 薄脚本落地。
+- **核心变更**:
+  - **提交**：`8270605`（A/B：native-load + verify 六态）、`deb5a06`（C：tooling 分离/三态合并/收拢全家）、`dea6408`（D/E/F：extract/discuss/mcp 全链 + 0021-0023）、`8a9a881`（docs：发布资产 + 五 spec + PRD + README）。提交后全量 188/2370 绿 + docs:check 0。
+  - **v023:preflight**：porcelain 定长解析（v1 的 trim+正则双重空白 bug 教训）；删除态行（tooling 迁移 8 件）标注并豁免存在性检查；清单外文件按并行在编模式分类。
+  - **vibe:retro**：`docs/vibe-retro.md` 协议（四步 + 红线对齐：agent 判断永不为事实源、幂等键 = 报告 sha+节序）+ `scripts/vibe-retro-ingest.ts`（薄编排：拆节 → ingest batch）。
+  - **runbook §3.5**：测量口径采样位（pnpm test 两行输出为唯一数字来源——2207 孤数教训的制度化）。
+- **测试验证**:
+  - **真回流演示**（起 18923 端口 serve + 建项目 + 写闸开）：首跑 `accepted 3` → **重放 `duplicate 3`（幂等验证 ✓）** → GET agent-ingests 见 3 行 pending dev_log——闭环全通；演示中系统防线两次如实拦截（模板 id 错 NOT_FOUND / 写闸默认关 422），流程自身无需专门测试即被既有 M8 套件背书。
+  - `pnpm v023:preflight` → 退出码 0（143 清单 / 150 工作树 / 清单外仅 5 个并行在编）。
+  - 全量 `pnpm test` → **188 文件 / 2370 用例全绿**（提交前后各跑一次同值）；`pnpm docs:check` 退出码 0。
+  - 复算命令：`git log --oneline -5`（见 4 笔）；`pnpm v023:preflight | tail -1`；`pnpm vibe:retro`（无参打印用法）。
+- **潜在风险**:
+  - ① 提交后 push 未做（远端 ahead 47+4）——push 属 owner 的逐次放行面（decisions ⑦ 队列纪律），不擅自推。
+  - ② vibe:retro 的拆条粒度 = 二级标题——超长节（>60k 字符截断）会丢尾；复盘报告建议一节一主题（协议文档已写骨架建议）。
+  - ③ 演示库已清理；正式使用时「确认」动作在 Web 工作台（owner 手动）——协议闭环里 AI 提取那步需总闸开 + provider 配置，属 dogfooding 面。
+  - ④ preflight 的并行在编名单是手工维护的模式串——并行会话新增文件需人工归类（无自动归属判定）。

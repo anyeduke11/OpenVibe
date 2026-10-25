@@ -40,7 +40,8 @@
     "barrel:audit": "tsx scripts/barrel-audit.ts",
     "barrel:snapshot": "tsx scripts/barrel-snapshot.ts",
     "migrate:drill": "tsx scripts/migrate-drill.ts",
-    "v023:preflight": "tsx scripts/v023-preflight.ts"
+    "v023:preflight": "tsx scripts/v023-preflight.ts",
+    "vibe:retro": "tsx scripts/vibe-retro-ingest.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

@@ -198,7 +198,7 @@ openvibe/
 ├── scripts/seed-review.ts（pnpm seed:review 入口：按 git 基线摊开新增词条/提示词全文，供 owner 逐条审校，D14）
 ├── scripts/bundle-check.ts（pnpm bundle:check 入口：读 dist 产物断言入口/chunk 预算）
 ├── scripts/golden-update.ts（pnpm golden:update 入口：重新生成 tests/golden/** 契约快照）
-├── scripts/failure-evidence.sh（pnpm evidence 入口：固化测试失败的现场——git 状态 + vitest 全量输出 + 两套 tsc 输出；用法 `pnpm evidence [<测试文件>] [-o 目录]`，全绿自清、失败保留现场供回放；**报障约定：跑出失败后把脚本打印的证据目录路径原样贴出**）
+├── scripts/failure-evidence.sh（pnpm evidence 入口：固化测试失败的现场——git 状态 + vitest 全量输出 + 两套 tsc 输出；用法 `pnpm evidence [<测试文件>] [-o 目录] [--dev DEV-NNNN]`，全绿自清、失败自动归档到 `docs/devlog-evidence/`（`--dev` 指定时归档到 `DEV-NNNN/evidence/`，`DEV-NNNN` 需为 DEV-+四位数字否则拒绝，`evidence/` 已存在时归档到 `evidence-<时间戳>/` 不覆盖且文件误建会明确报错；`-o` 指定目录时不归档，与 `--dev` 同传时打印冲突提示）；**报障约定：跑出失败后把脚本打印的证据目录路径原样贴出**）
 ├── scripts/dev-all.mjs（pnpm dev / dev:all 入口：一条命令同时起 web 与 server，Ctrl-C 会清干净孙进程）
 ├── scripts/collect-m9-sources.ts（pnpm m9:collect 入口：M9 素材采集，P1.9 收口）
 ├── scripts/collect-m9-github-sources.ts（pnpm m9:collect:github 入口：M9 另三源采集）
@@ -212,6 +212,12 @@ openvibe/
 ├── scripts/section-ref-audit.ts（pnpm docs:refs 入口：§-引用解析器，判定引用三态并出对账表）
 ├── scripts/verify-matrix.ts（pnpm verify:matrix 入口：v0.2.3 批次 A FR-2 复验矩阵工具）
 ├── scripts/export-agent-memory.ts（pnpm memory:check / memory:verify 入口：把 agent 记忆目录导出进仓）
+├── scripts/m9-grade-guard.ts（pnpm m9:grade-guard 入口：「专家级断言」卫生守卫，命中断言式文案即非零退出）
+├── scripts/barrel-audit.ts（pnpm barrel:audit 入口：主出口零消费符号审计，只审计不改写）
+├── scripts/barrel-snapshot.ts（pnpm barrel:snapshot 入口：主出口面快照落档 tests/core-main-exports.txt）
+├── scripts/migrate-drill.ts（pnpm migrate:drill 入口：0019→0022 升级路径真库演练对账，行数/内容指纹/seed_hash 不回填三判据）
+├── scripts/v023-preflight.ts（pnpm v023:preflight 入口：v0.2.3 提交清单对账——清单 vs 工作树差异 + 存在性，退出码判净）
+├── scripts/vibe-retro-ingest.ts（pnpm vibe:retro 入口：复盘报告按节拆条回流 agent 桥 pending——docs/vibe-retro.md 协议）
 ├── deploy/telemetry/{worker.js,adapter-node.mjs}（匿名统计接收端：一份 CF Worker 源码 + 一层 node:http 外壳，fail-closed 白名单）
 └── .github/workflows/ci.yml
 ```

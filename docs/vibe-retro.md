@@ -1,0 +1,43 @@
+# Vibecoding 复盘协议（agent 复盘 → OpenVibe 回流）
+
+> 定位：把「独立 agent 复盘」从一次性动作变成**可复用的 vibe coding 工作流**——
+> agent 复盘产出的结论不再只躺在聊天/DEV_LOG 里，而是**回流进 OpenVibe 系统**：
+> 作为项目的开发日志（经 M8 agent 桥 pending → 人工确认入库），并可经 M10 提取链
+> 沉淀为术语/提示词/技巧候选。OpenVibe 吃自己的狗粮，闭环自证。
+>
+> 版本：v1.0（2026-10-25，DEV-0148）；裁决依据：owner 指令「设计一个 Vibecoding 复盘，
+> 通过 agent 复盘后同步到 OpenVibe 系统中」。
+
+## 流程（四步）
+
+```
+① 复盘        独立 agent 对目标工作做四面对账（spec 验收 / 登记声称 / PRD 验收 / 横向一致）
+                —— 本仓先例：DEV-0147 的 A–F 审计（prompt 模板见 §4）
+② 产出        复盘报告 markdown（固定骨架：总评 / 逐批判定 / 遗留清单分级）
+③ 回流        pnpm vibe:retro --file <报告.md> --project <id|dir>
+                —— 把报告按「一节一条」拆成 dev_log 条目，经 POST /api/agent/ingest
+                   （kind=dev_log）落 pending 队列
+④ 确认与提取   Web 工作台待确认列表逐条裁决（published 落 dev_log_entries）；
+                可选：对已确认日志跑「提取候选」（M10）把复盘中的可复用结论变资产草稿
+```
+
+## 边界（与既有红线对齐）
+
+- agent 的判断**永远不是事实源**：ingest 一律 pending，人工确认才入库（M8 FR-2.5）。
+- 复盘报告里若含敏感路径，回流前由 ingest 脚本如实保留（dev_log 是本机库，不出网；
+  出网只发生在后续「提取」动作且受 M10 治理面管辖）。
+- 幂等：同一报告文件重放 ⇒ 幂等键相同 ⇒ duplicate，不重复落队列。
+
+## §4 复盘 agent 的 prompt 模板（起点）
+
+> 你是独立复盘审计员，对 <对象> 做「声称 vs 实际」对账。你没有参与开发，以怀疑立场核证。
+> 四面对账：① spec 验收表 vs 实现（标 ✅ 的抽查背书）② DEV_LOG 声称 vs 仓库（grep/跑测试复算）
+> ③ PRD 验收 ④ 横向一致性。产出：每批次判定（✅/◐/⏸）+ 证据（复算命令与实得值）+
+> 按严重度分级的遗留清单（真缺陷 / owner 待办 / 按设计延后）。不改任何文件。
+
+（完整版见 DEV-0147 触发词的实发 prompt。）
+
+## §5 入口
+
+- `pnpm vibe:retro --file <报告.md> [--project <id|dir>] [--type DEV|CHECK]`
+- 脚本：`scripts/vibe-retro-ingest.ts`（薄编排：解析 → 拆条 → HTTP ingest；业务全在服务端）
