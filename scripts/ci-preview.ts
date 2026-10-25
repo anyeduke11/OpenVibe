@@ -40,10 +40,10 @@ while (Date.now() < deadline) {
   await new Promise((r) => setTimeout(r, 20_000))
   const run = gh<{ status: string; conclusion: string | null }>('run', 'view', String(runId), '--json=status,conclusion')
   if (run.status === 'completed') {
-    const jobs = gh<{ name: string; conclusion: string | null }[]>(
-      'run', 'view', String(runId), '--json=jobs', '--jq=.jobs',
+    const view = gh<{ jobs: { name: string; conclusion: string | null }[] }>(
+      'run', 'view', String(runId), '--json=jobs',
     )
-    for (const j of jobs) console.log(`${j.conclusion === 'success' ? '✓' : '✗'} ${j.name}: ${j.conclusion ?? '?'}`)
+    for (const j of view.jobs) console.log(`${j.conclusion === 'success' ? '✓' : '✗'} ${j.name}: ${j.conclusion ?? '?'}`)
     if (run.conclusion === 'success') {
       console.log('✓ CI 预演全绿')
       process.exit(0)
