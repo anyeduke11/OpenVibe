@@ -25,12 +25,30 @@ import { join } from 'node:path'
 import { sha256Hex } from '../repos/util'
 import { nowIso } from './runner'
 import type { SqliteDatabase } from './index'
+import { seedRegistryUpsert } from './seed-registry'
+import { mergeSeedRow, type SeedMergeSpec } from './seed-merge'
+
+/** CS2 第二段：lang_concepts 的行级三态合并规格（键 slug；updated_at 是记账列，不入哈希、仅 INSERT 写入） */
+export const LANG_CONCEPTS_MERGE_SPEC: SeedMergeSpec = {
+  table: 'lang_concepts',
+  keyColumns: ['slug'],
+  contentColumns: ['title', 'summary', 'content_level'],
+}
+/** CS2 第二段：lang_topic_content 的逻辑键（0020 唯一索引背书；updated_at 记账列同上） */
+export const LANG_TOPIC_CONTENT_MERGE_SPEC: SeedMergeSpec = {
+  table: 'lang_topic_content',
+  keyColumns: ['ref_kind', 'ref_id', 'kind'],
+  contentColumns: ['body_md', 'content_level'],
+}
 
 export interface M9ConceptSeedResult {
   bundle: string
   status: 'skipped' | 'imported' | 'error'
   created: number
   updated: number
+  /** CS2 三态合并的可见计数：未改过/用户改过而未覆盖的行数（第二段起） */
+  ignored?: number
+  userModified?: number
   warnings: string[]
 }
 
@@ -104,10 +122,7 @@ export function seedConceptContent(db: SqliteDatabase, seedDir: string): M9Conce
     conceptUpdatedAt = parsed.collected_at || conceptUpdatedAt
     conceptResult.bundle = 'lang_concepts'
     // contentHash 登记（诊断用途）
-    db.prepare(
-      `INSERT INTO seed_registry (bundle, content_hash, imported_at) VALUES (?, ?, ?)
-       ON CONFLICT(bundle) DO UPDATE SET content_hash = excluded.content_hash, imported_at = excluded.imported_at`,
-    ).run('lang_concepts', sha256Hex(raw), nowIso())
+    seedRegistryUpsert(db, 'lang_concepts', sha256Hex(raw), nowIso())
   } catch (err) {
     conceptResult.status = 'error'
     conceptResult.warnings.push(`种子文件读取失败: lang_concepts.json — ${String(err)}`)
@@ -115,15 +130,6 @@ export function seedConceptContent(db: SqliteDatabase, seedDir: string): M9Conce
     return results
   }
 
-  const upsertConcept = db.prepare(
-    `INSERT INTO lang_concepts (slug, title, summary, content_level, updated_at)
-     VALUES (@slug, @title, @summary, @content_level, @updated_at)
-     ON CONFLICT(slug) DO UPDATE SET
-       title = excluded.title,
-       summary = excluded.summary,
-       content_level = excluded.content_level,
-       updated_at = excluded.updated_at`,
-  )
   const findTopic = db.prepare(`SELECT id, lang FROM lang_topics WHERE slug = ?`)
 
   const conceptIds = new Map<string, number>()
@@ -166,18 +172,17 @@ export function seedConceptContent(db: SqliteDatabase, seedDir: string): M9Conce
     }
     if (mountBad) continue
 
-    const before = db.prepare(`SELECT id FROM lang_concepts WHERE slug = ?`).get(it.slug) as
-      | { id: number }
-      | undefined
-    upsertConcept.run({
+    const action = mergeSeedRow(db, LANG_CONCEPTS_MERGE_SPEC, {
       slug: it.slug,
       title: it.title,
       summary: it.summary ?? '',
       content_level: it.content_level,
       updated_at: conceptUpdatedAt,
     })
-    if (before) conceptResult.updated += 1
-    else conceptResult.created += 1
+    if (action === 'created') conceptResult.created += 1
+    else if (action === 'updated') conceptResult.updated += 1
+    else conceptResult.ignored = (conceptResult.ignored ?? 0) + 1
+    if (action === 'user-modified') conceptResult.userModified = (conceptResult.userModified ?? 0) + 1
 
     const after = db.prepare(`SELECT id FROM lang_concepts WHERE slug = ?`).get(it.slug) as {
       id: number
@@ -214,27 +219,13 @@ export function seedConceptContent(db: SqliteDatabase, seedDir: string): M9Conce
     }
     contents = parsed
     contentUpdatedAt = parsed.collected_at || contentUpdatedAt
-    db.prepare(
-      `INSERT INTO seed_registry (bundle, content_hash, imported_at) VALUES (?, ?, ?)
-       ON CONFLICT(bundle) DO UPDATE SET content_hash = excluded.content_hash, imported_at = excluded.imported_at`,
-    ).run('lang_topic_content', sha256Hex(raw), nowIso())
+    seedRegistryUpsert(db, 'lang_topic_content', sha256Hex(raw), nowIso())
   } catch (err) {
     contentResult.status = 'error'
     contentResult.warnings.push(`种子文件读取失败: lang_topic_content.json — ${String(err)}`)
     results.push(contentResult)
     return results
   }
-
-  const updateContent = db.prepare(
-    `UPDATE lang_topic_content
-     SET body_md = @body_md, content_level = @content_level, updated_at = @updated_at
-     WHERE ref_kind = 'concept' AND ref_id = @ref_id AND kind = @kind`,
-  )
-  const insertContent = db.prepare(
-    `INSERT INTO lang_topic_content
-     (ref_kind, ref_id, kind, body_md, content_level, updated_at)
-     VALUES ('concept', @ref_id, @kind, @body_md, @content_level, @updated_at)`,
-  )
 
   for (const it of contents.items) {
     if (!CONTENT_KINDS.has(it.kind)) {
@@ -254,24 +245,21 @@ export function seedConceptContent(db: SqliteDatabase, seedDir: string): M9Conce
       warnings.push(`concept 未入库（content 引用了不存在的 concept_slug）: ${it.concept_slug}`)
       continue
     }
-    const info = updateContent.run({
+    const action = mergeSeedRow(db, LANG_TOPIC_CONTENT_MERGE_SPEC, {
+      ref_kind: 'concept',
+      ref_id: refId,
+      kind: it.kind,
       body_md: it.body_md,
       content_level: it.content_level,
       updated_at: contentUpdatedAt,
-      ref_id: refId,
-      kind: it.kind,
     })
-    if (info.changes > 0) {
-      contentResult.updated += 1
-    } else {
-      insertContent.run({
-        body_md: it.body_md,
-        content_level: it.content_level,
-        updated_at: contentUpdatedAt,
-        ref_id: refId,
-        kind: it.kind,
-      })
-      contentResult.created += 1
+    if (action === 'created') contentResult.created += 1
+    else if (action === 'updated') contentResult.updated += 1
+    else {
+      contentResult.ignored = (contentResult.ignored ?? 0) + 1
+      if (action === 'user-modified') {
+        contentResult.userModified = (contentResult.userModified ?? 0) + 1
+      }
     }
   }
   contentResult.status = contentResult.created + contentResult.updated > 0 ? 'imported' : 'skipped'

@@ -24,12 +24,24 @@ import { sha256Hex } from '../repos/util'
 import { nowIso } from './runner'
 import { DELTA_ASPECTS, affectedDeltas, type ConceptDelta } from './m9-concept-deltas'
 import type { SqliteDatabase } from './index'
+import { seedRegistryUpsert } from './seed-registry'
+import { mergeSeedRow, type SeedMergeSpec } from './seed-merge'
+
+/** CS2 第二段：lang_concept_deltas 的行级三态合并规格 */
+export const DELTAS_MERGE_SPEC: SeedMergeSpec = {
+  table: 'lang_concept_deltas',
+  keyColumns: ['concept_id', 'lang', 'aspect', 'since_version'],
+  contentColumns: ['summary', 'until_version'],
+}
 
 export interface M9DeltaSeedResult {
   bundle: string
   status: 'skipped' | 'imported' | 'error'
   created: number
   updated: number
+  /** CS2 三态合并的可见计数：未改过/用户改过而未覆盖的行数 */
+  ignored?: number
+  userModified?: number
   warnings: string[]
 }
 
@@ -86,14 +98,8 @@ export function seedConceptDeltas(db: SqliteDatabase, seedDir: string): M9DeltaS
   }
 
   const findConcept = db.prepare(`SELECT id FROM lang_concepts WHERE slug = ?`)
-  const upsertDelta = db.prepare(
-    `INSERT INTO lang_concept_deltas
-     (concept_id, lang, aspect, summary, since_version, until_version, supersedes)
-     VALUES (@concept_id, @lang, @aspect, @summary, @since_version, @until_version, NULL)
-     ON CONFLICT(concept_id, lang, aspect, since_version) DO UPDATE SET
-       summary = excluded.summary,
-       until_version = excluded.until_version`,
-  )
+  // CS2 第二段：第一遍的 upsert 改行级三态合并（键 = concept_id+lang+aspect+since_version；
+  // 内容列 = summary/until_version；supersedes 是第二遍按 id 回填的**链路数据**，不在内容列）。
   const findDeltaId = db.prepare(
     `SELECT id FROM lang_concept_deltas
      WHERE concept_id = ? AND lang = ? AND aspect = ? AND since_version = ?`,
@@ -129,19 +135,18 @@ export function seedConceptDeltas(db: SqliteDatabase, seedDir: string): M9DeltaS
       result.warnings.push(`concept 不存在（P1.5 未入库?）: ${it.concept_slug}`)
       return
     }
-    const existed = findDeltaId.get(concept.id, it.lang, it.aspect, it.since_version) as
-      | { id: number }
-      | undefined
-    upsertDelta.run({
+    const action = mergeSeedRow(db, DELTAS_MERGE_SPEC, {
       concept_id: concept.id,
       lang: it.lang,
       aspect: it.aspect,
       summary: it.summary,
       since_version: it.since_version,
       until_version: it.until_version,
+      supersedes: null,
     })
-    if (existed) result.updated += 1
-    else result.created += 1
+    if (action === 'created') result.created += 1
+    else if (action === 'updated') result.updated += 1
+    else result.ignored = (result.ignored ?? 0) + 1
     const row = findDeltaId.get(concept.id, it.lang, it.aspect, it.since_version) as { id: number }
     idByIndex.set(idx, row.id)
     validIndexes.push(idx)
@@ -164,10 +169,7 @@ export function seedConceptDeltas(db: SqliteDatabase, seedDir: string): M9DeltaS
     setSupersedes.run(targetId, selfId)
   })
 
-  db.prepare(
-    `INSERT INTO seed_registry (bundle, content_hash, imported_at) VALUES (?, ?, ?)
-     ON CONFLICT(bundle) DO UPDATE SET content_hash = excluded.content_hash, imported_at = excluded.imported_at`,
-  ).run('lang_concept_deltas', sha256Hex(raw), nowIso())
+  seedRegistryUpsert(db, 'lang_concept_deltas', sha256Hex(raw), nowIso())
 
   result.status = result.created + result.updated > 0 ? 'imported' : 'skipped'
   return result

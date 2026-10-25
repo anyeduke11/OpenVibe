@@ -28,7 +28,7 @@ import {
   findStageTrackViolations,
 } from './m9-p1f-stage-guards'
 import { parseSpecTrackCells } from './m9-p1f-spec'
-import { findGradeAssertions, findGradeAssertionsInText } from './m9-p1f-grade-guard'
+import { findGradeAssertions, findGradeAssertionsInText } from '../tooling/m9-p1f-grade-guard'
 import type { StageTrackSeed } from '@openvibe/shared'
 
 const SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))

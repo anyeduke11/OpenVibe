@@ -7,13 +7,13 @@
 //
 // ⚠️ 与 `seed.ts`（terms / flows / prompts / playbooks）的四点关键差别：
 //   1. **没有 user-modifiable 路径**：runoob 是采集来的清单，不是用户输入 ⇒ 没有
-//      seed_hash 比对、没有「用户改过则跳过」分支。一次性 INSERT OR IGNORE。
+//      【v0.2.3 批次 C CS2 已推翻】本播种器现走 mergeSeedRow 行级三态合并
 //   2. **stage_id 由 P1.7 的分站产物带进来**（P1.7 之前是全 0，§3.6「站数与每站
 //      知识点数本轮不定死」）：分站的单源是 `seeds/_build/build-lang-topics-stages.py`，
 //      它把 stage_id 写进这两份 seed JSON；本 loader 只负责把它带上 INSERT。
 //      ⚠️ **库级条目（kind='library'）的 stage_id 恒为 0** —— 库级不进学习路线
 //      （DL-12），站号对它们无语义占位。
-//      ⚠️ **老库不会自动更新**：`INSERT OR IGNORE` 对已入库的行不改值 ⇒ 已在
+//      【CS2 后】内容修订会在 reseed 时对「用户未改过的行」生效；老行（0019 前）按用户态对待
 //      P1.7 之前建过库的机器，stage_id 仍是旧值，须由 P1.7 的 `seedTopicEdges` 回写。
 //      ⚠️ **kind 已由 P1.4 归类完毕**（不是全 'language'）：按 §1.4 的可复算规则
 //      打成 'language' / 'library'，Python 84 条里**严格库级 30 条 = 35.7%**（DL-13；
@@ -25,17 +25,27 @@
 //      用 INSERT OR IGNORE 自然幂等，registry 只用于"上次入库过"的诊断。
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { sha256Hex } from '../repos/util'
 import { nowIso } from './runner'
 import type { SqliteDatabase } from './index'
+import { seedRegistryUpsert } from './seed-registry'
+import { mergeSeedRow, type SeedMergeSpec } from './seed-merge'
 
 export interface M9SeedBundleResult {
   bundle: string
   status: 'skipped' | 'imported' | 'error'
   created: number
   ignored: number
+  /** CS2 三态合并的可见计数：内容修订覆盖的行数（用户未改过的行）。未接 mergeSeedRow 的播种器不带 */
+  updated?: number
+  /** CS2 三态合并的可见计数：用户手改过、reseed 永不覆盖的行数。未接 mergeSeedRow 的播种器不带 */
+  userModified?: number
   warnings: string[]
 }
+
+/** M9 语言线种子的唯一目录（采集脚本写这里、reseed 重放读这里；打包面不含本目录——学习线在仓库侧运行） */
+export const M9_SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))
 
 const BUNDLES = [
   { bundle: 'lang_topics_python3', file: 'lang_topics_python3.json' },
@@ -75,12 +85,25 @@ interface LangTopicsSeed {
   items: LangTopicsSeedItem[]
 }
 
-const INSERT_SQL = `
-INSERT OR IGNORE INTO lang_topics
-  (lang, slug, title, summary, stage_id, ref_url, ref_title, source_kind, source_checked_at, kind, content_level)
-VALUES
-  (@lang, @slug, @title, @summary, @stage_id, @ref_url, @ref_title, @source_kind, @source_checked_at, @kind, @content_level)
-`
+/**
+ * lang_topics 的行级三态合并规格（v0.2.3 批次 C CS2，seed-merge.ts 单源）。
+ * 业务键 = (lang, slug)；内容列 = 参与哈希与覆盖的九列（键列与其余列不在其列）。
+ */
+export const LANG_TOPICS_MERGE_SPEC: SeedMergeSpec = {
+  table: 'lang_topics',
+  keyColumns: ['lang', 'slug'],
+  contentColumns: [
+    'title',
+    'summary',
+    'stage_id',
+    'ref_url',
+    'ref_title',
+    'source_kind',
+    'source_checked_at',
+    'kind',
+    'content_level',
+  ],
+}
 
 const EXPECTED_KINDS = new Set(['language', 'library'])
 const EXPECTED_SOURCES = new Set([
@@ -103,19 +126,21 @@ const EXPECTED_CONTENT_LEVELS = new Set(['point', 'full'])
  *   「单文件失败不阻塞」同款纪律）。
  * - 单条非 schema-level 非法（kind / source_kind / lang / slug 等越界）⇒ 计入
  *   `warnings`，**该 bundle 整体仍报 imported**。
- * - 已存在 (lang, slug) 行 ⇒ 自然被 `INSERT OR IGNORE` 跳过，计入 `ignored`。
+ * - 已存在 (lang, slug) 行 ⇒ mergeSeedRow 三态：未改过则跳过（unchanged/legacy-adopted），
+ *   内容修订则覆盖（updated），用户手改过则永不覆盖（user-modified）；后三类均计入 `ignored`。
  *
  * @returns 每份 bundle 一条结果，便于 `tests/` 里逐条断言。
  */
 export function seedLangTopics(db: SqliteDatabase, seedDir: string): M9SeedBundleResult[] {
   const results: M9SeedBundleResult[] = []
-  const insert = db.prepare(INSERT_SQL)
   for (const { bundle, file } of BUNDLES) {
     const result: M9SeedBundleResult = {
       bundle,
       status: 'skipped',
       created: 0,
       ignored: 0,
+      updated: 0,
+      userModified: 0,
       warnings: [],
     }
     let raw: string
@@ -134,14 +159,10 @@ export function seedLangTopics(db: SqliteDatabase, seedDir: string): M9SeedBundl
     }
 
     const contentHash = sha256Hex(raw)
-    const runOne = db.transaction((item: LangTopicsSeedItem): 'created' | 'ignored' => {
-      const info = insert.run(item)
-      // better-sqlite3: info.changes === 0 ⇒ INSERT OR IGNORE 跳过
-      return info.changes === 0 ? 'ignored' : 'created'
-    })
-
     let created = 0
     let ignored = 0
+    let updated = 0
+    let userModified = 0
     const warnings: string[] = []
     for (const it of parsed.items) {
       // ⭐ schema-level 校验：跑在 INSERT 前，不合法就 warn+跳过（不让 SQLite 抛）
@@ -177,22 +198,24 @@ export function seedLangTopics(db: SqliteDatabase, seedDir: string): M9SeedBundl
         continue
       }
       try {
-        const r = runOne({ ...it, content_level: contentLevel })
-        if (r === 'created') created += 1
-        else ignored += 1
+        const record = { ...it, content_level: contentLevel }
+        const action = mergeSeedRow(db, LANG_TOPICS_MERGE_SPEC, record)
+        if (action === 'created') created += 1
+        else if (action === 'updated') updated += 1
+        else if (action === 'user-modified') userModified += 1
+        else ignored += 1 // unchanged / legacy-adopted：既有「已存在即跳过」的口径
       } catch (err) {
-        warnings.push(`单条 INSERT 失败: ${it.slug} — ${String(err)}`)
+        warnings.push(`单条合并失败: ${it.slug} — ${String(err)}`)
       }
     }
     result.created = created
     result.ignored = ignored
+    result.updated = updated
+    result.userModified = userModified
     result.warnings = warnings
-    result.status = created > 0 ? 'imported' : 'skipped'
+    result.status = created + updated > 0 ? 'imported' : 'skipped'
     // 登记到 seed_registry（不参与跳过逻辑；纯诊断用途）
-    db.prepare(
-      `INSERT INTO seed_registry (bundle, content_hash, imported_at) VALUES (?, ?, ?)
-       ON CONFLICT(bundle) DO UPDATE SET content_hash = excluded.content_hash, imported_at = excluded.imported_at`,
-    ).run(bundle, contentHash, nowIso())
+    seedRegistryUpsert(db, bundle, contentHash, nowIso())
     results.push(result)
   }
   return results

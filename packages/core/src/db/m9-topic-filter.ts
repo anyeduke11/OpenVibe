@@ -18,7 +18,7 @@
 // ⚠️ **与 §3.21 的边界**：v1.6 裁定「界面两门不再等权并排，Go 默认收起」，
 //   但**DL-14 本身不变**（两门数据都在、可筛选）—— 收起的只是**默认落点**。
 //   ⇒ 本模块不表达「默认选哪门」，那属于界面层。
-import type { SqliteDatabase } from './index'
+import type { SqliteDatabase } from '../index'
 
 export type TopicKind = 'language' | 'library'
 

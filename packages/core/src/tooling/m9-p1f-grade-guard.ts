@@ -23,7 +23,7 @@
 import { readFileSync } from 'node:fs'
 import { relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { SOURCE_SCAN_ROOTS, walkSourceFiles } from './m9-repo-scan'
+import { SOURCE_SCAN_ROOTS, walkSourceFiles } from '../db/m9-repo-scan'
 
 /** 一条职业等级断言的命中。 */
 export interface GradeAssertionHit {

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type {
   FlywheelStatsOut,
   InjectionStatusOut,
+  OmOut,
   ReseedOut,
   SettingsOut,
   TelemetrySettingsOut,
@@ -28,6 +29,15 @@ export function useFlywheelStats() {
   return useQuery({
     queryKey: ['stats'],
     queryFn: () => apiJson<FlywheelStatsOut>('/api/stats'),
+    staleTime: SETTINGS_STALE_TIME,
+  })
+}
+
+/** 输出侧度量两件（v0.2.3 批次 B RQ5，GET /api/om；全本机现算，零出网） */
+export function useOm() {
+  return useQuery({
+    queryKey: ['om'],
+    queryFn: () => apiJson<OmOut>('/api/om'),
     staleTime: SETTINGS_STALE_TIME,
   })
 }

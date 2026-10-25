@@ -20,7 +20,7 @@ import type { SqliteDatabase } from '../packages/core/src/db'
 
 const SRC_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'core', 'src')
 /** 唯一键结尾即视为确定性；其余排序键必须有它们兜底 */
-const DETERMINISTIC_TAIL = new Set(['id', 'rowid', 'entry_no', 'version_no'])
+const DETERMINISTIC_TAIL = new Set(['id', 'rowid', 'entry_no', 'version_no', 'project_id'])
 
 function sqlLiteralsOf(tsPath: string): string[] {
   const source = readFileSync(tsPath, 'utf8')

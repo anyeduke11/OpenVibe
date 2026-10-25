@@ -5,10 +5,14 @@ import { ApiError, apiJson } from '../../api/client'
 import { useLedger } from '../../hooks/useLedger'
 import { usePackExports, usePackList } from '../../hooks/usePacks'
 import {
-  useReseed,
-  useTelemetrySettings,
-  useTelemetryToggle,
-} from '../../hooks/useSettings'
+  useExtractConsentClear,
+  useExtractConsents,
+  useExtractGate,
+  useExtractGateToggle,
+  useExtractUsage,
+  useAdoption,
+} from '../../hooks/useExtract'
+import { useOm, useReseed, useTelemetrySettings, useTelemetryToggle } from '../../hooks/useSettings'
 import { zh } from '../../i18n/zh'
 import { sys } from '../../i18n/lane-system'
 import {
@@ -798,6 +802,158 @@ export function ReadabilitySection() {
           硬约束
         </b>
         <p className={`${proseCls} text-ink-body`}>{sys.settings.readability.contract}</p>
+      </div>
+    </Section>
+  )
+}
+
+/**
+ * 输出侧度量（v0.2.3 批次 B RQ5 / PRD OM1+OM2）：设置页「本机统计」区的两件量具。
+ * OM1 密度 = 最新标准包的受管 token ÷ 资产数（estimateTokens 估算口径，界面必须标「估算」）；
+ * OM2 首次见效 = 首次本机事件 → 首次注入的墙钟差。全部本机现算，零出网，不参与遥测；
+ * 数据缺失时如实显示「待采集」，不显示 0（PRD RQ5 验收 2）。
+ */
+export function OmSection() {
+  const state = useOm()
+  const om = state.data
+  const density = om?.density ?? null
+  const time = om?.timeToValue ?? null
+  return (
+    <Section
+      title={sys.settings.om.title}
+      icon="chart"
+      aside={
+        <span className={chipTone('default')}>
+          <Icon name="lock" size={12} />
+          {sys.settings.om.aside}
+        </span>
+      }
+    >
+      <div className="flex flex-col gap-2">
+        <p className={`${proseCls} text-[13.5px] font-medium text-ink-body`}>
+          {sys.settings.om.densityTitle}
+        </p>
+        {density === null ? (
+          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>{sys.settings.om.densityEmpty}</p>
+        ) : (
+          <>
+            <p className={`${proseCls} text-[12.5px] text-ink-body`}>
+              {sys.settings.om.densityLine(
+                `${density.packName}@${density.packVersion}`,
+                density.managedTokens,
+                density.assetCount,
+                density.perAsset === null ? '—' : String(density.perAsset),
+              )}
+            </p>
+            {density.top5.length > 0 && (
+              <div className="flex flex-col gap-0.5">
+                <p className={`${proseCls} text-[11.5px] text-ink-muted`}>{sys.settings.om.top5Title}</p>
+                {density.top5.map((t) => (
+                  <p key={t.path} className={`${proseCls} text-[12px] text-ink-muted`}>
+                    {t.path} · {t.tokens} token
+                  </p>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+        <p className={`${proseCls} mt-2 text-[13.5px] font-medium text-ink-body`}>
+          {sys.settings.om.timeTitle}
+        </p>
+        {time === null || time.seconds === null ? (
+          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>{sys.settings.om.timeEmpty}</p>
+        ) : (
+          <p className={`${proseCls} text-[12.5px] text-ink-body`}>{sys.settings.om.timeLine(time.seconds)}</p>
+        )}
+        <p className={`${proseCls} text-[11.5px] text-ink-muted`}>{sys.settings.om.timeRange}</p>
+      </div>
+    </Section>
+  )
+}
+
+/**
+ * 「AI 与出网」区（M10/D 批次 AN4/AN5 的设置面）：提取总闸（默认关）＋ 采纳率
+ * （影子门槛 25%，数据全部从 agent_ingests review 结果现算）＋ 已记住同意的项目
+ * （清除 = 删行，DL-21）。取数全部本机，零额外出网——本区展示的是**允许出网**的开关，不是出网本身。
+ */
+export function AiSection() {
+  const gate = useExtractGate()
+  const toggleGate = useExtractGateToggle()
+  const adoption = useAdoption()
+  const consents = useExtractConsents()
+  const usage = useExtractUsage()
+  const clearConsent = useExtractConsentClear()
+  return (
+    <Section
+      title={sys.settings.aiExtract.title}
+      icon="sparkle"
+      aside={<span className={chipTone('default')}>{sys.settings.aiExtract.aside}</span>}
+    >
+      <div className="flex flex-col gap-2">
+        <label className={`${proseCls} flex items-center gap-2 text-[13.5px] text-ink-body`}>
+          <input
+            type="checkbox"
+            checked={gate.data?.enabled ?? false}
+            onChange={(e) => toggleGate.mutate(e.target.checked)}
+          />
+          {sys.settings.aiExtract.gateLabel}
+        </label>
+        <p className={`${proseCls} text-[11.5px] text-ink-muted`}>{sys.settings.aiExtract.gateHint}</p>
+        <p className={`${proseCls} text-[11.5px] text-ink-muted`}>{sys.settings.aiExtract.providerHint}</p>
+        <p className={`${proseCls} mt-2 text-[13.5px] font-medium text-ink-body`}>
+          {sys.settings.aiExtract.usageTitle}
+        </p>
+        {(usage.data?.usage ?? []).length === 0 ? (
+          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>{sys.settings.aiExtract.usageEmpty}</p>
+        ) : (
+          (usage.data?.usage ?? []).map((u) => (
+            <p key={`${u.provider}/${u.model}`} className={`${proseCls} text-[12.5px] text-ink-body`}>
+              {u.provider} · {u.model}：{u.calls} 次出网（成功 {u.okCalls}）· 候选 {u.candidates} 条
+            </p>
+          ))
+        )}
+        <p className={`${proseCls} mt-2 text-[13.5px] font-medium text-ink-body`}>
+          {sys.settings.aiExtract.adoptionTitle}
+        </p>
+        {((adoption.data as unknown as { consecutive?: { kind: string; triggered: boolean; rounds: number }[] })?.consecutive ?? [])
+            .filter((c) => c.triggered)
+            .map((c) => (
+              <p key={c.kind} className={`${noteCls('warn')} mt-1 text-[12px]`}>
+                {sys.settings.aiExtract.adoptionLowBanner(c.rounds)}
+              </p>
+            ))}
+        {(adoption.data?.kinds ?? []).filter((k) => k.published + k.rejected > 0).length === 0 ? (
+          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>{sys.settings.aiExtract.adoptionEmpty}</p>
+        ) : (
+          (adoption.data?.kinds ?? [])
+            .filter((k) => k.published + k.rejected > 0)
+            .map((k) => (
+              <p key={k.kind} className={`${proseCls} text-[12.5px] text-ink-body`}>
+                {k.kind}：{k.published} 采纳 / {k.rejected} 拒绝
+                {k.rate !== null ? `（${String(Math.round(k.rate * 100))}%）` : ''}
+                {k.belowThreshold ? ' · 低于门槛' : ''}
+              </p>
+            ))
+        )}
+        <p className={`${proseCls} mt-2 text-[13.5px] font-medium text-ink-body`}>
+          {sys.settings.aiExtract.consentTitle}
+        </p>
+        {(consents.data?.consents ?? []).length === 0 ? (
+          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>{sys.settings.aiExtract.consentEmpty}</p>
+        ) : (
+          (consents.data?.consents ?? []).map((c) => (
+            <div key={c.project_id} className="flex items-center gap-2">
+              <span className={`${proseCls} text-[12.5px] text-ink-body`}>{c.project_id}</span>
+              <button
+                type="button"
+                className={btnGhost}
+                onClick={() => clearConsent.mutate(c.project_id)}
+              >
+                {sys.settings.aiExtract.clear}
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </Section>
   )

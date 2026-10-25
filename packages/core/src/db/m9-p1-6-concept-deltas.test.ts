@@ -101,7 +101,9 @@ describe('M9 P1.6 · 语言差异层 29 条入库', () => {
   it('seed 成功 import；29 条入 lang_concept_deltas；零 warnings', () => {
     const h = newDb()
     try {
-      seedAll(h)
+      // CS2 语义：断言的是**首次**导入（seedAll 会连 deltas 一起种，二次调用会正确报 skipped）
+      seedLangTopics(h.db, SEEDS_DIR)
+      seedConceptContent(h.db, SEEDS_DIR)
       const res = seedConceptDeltas(h.db, SEEDS_DIR)
       expect(res.status).toBe('imported')
       expect(res.warnings).toEqual([])
@@ -148,7 +150,9 @@ describe('M9 P1.6 · 语言差异层 29 条入库', () => {
       seedAll(h)
       const second = seedConceptDeltas(h.db, SEEDS_DIR)
       expect(second.created).toBe(0)
-      expect(second.updated).toBe(EXPECTED_DELTAS)
+      // CS2 语义：内容未变 ⇒ 不再无条件覆盖（旧语义 updated=29），整批进入 ignored
+      expect(second.updated).toBe(0)
+      expect(second.ignored ?? 0).toBe(EXPECTED_DELTAS)
       const total = (
         h.db.prepare(`SELECT COUNT(*) AS c FROM lang_concept_deltas`).get() as { c: number }
       ).c

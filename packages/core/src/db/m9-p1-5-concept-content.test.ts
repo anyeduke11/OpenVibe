@@ -75,7 +75,8 @@ describe('M9 P1.5 · 概念层 14 个概念（8 共通 ＋ 6 语言专有）＋ 
   it('两份 seed 都成功 import；14 概念 + 42 段三段内容入库；零 warnings', () => {
     const h = newDb()
     try {
-      seedAll(h)
+      // CS2 语义：断言的是**首次**导入（seedAll 会连概念一起种，二次调用会正确报 skipped）
+      seedLangTopics(h.db, SEEDS_DIR)
       const results = seedConceptContent(h.db, SEEDS_DIR)
       expect(results.map((r) => r.bundle)).toEqual(['lang_concepts', 'lang_topic_content'])
       for (const r of results) {
@@ -241,7 +242,9 @@ describe('M9 P1.5 · 概念层 14 个概念（8 共通 ＋ 6 语言专有）＋ 
       seedAll(h)
       const second = seedConceptContent(h.db, SEEDS_DIR)
       expect(second.reduce((a, r) => a + r.created, 0)).toBe(0)
-      expect(second.reduce((a, r) => a + r.updated, 0)).toBe(EXPECTED_CONCEPTS + EXPECTED_CONTENTS)
+      // CS2 语义：内容未变 ⇒ 不再无条件覆盖（旧语义 updated=56），而是整批进入 ignored
+      expect(second.reduce((a, r) => a + r.updated, 0)).toBe(0)
+      expect(second.reduce((a, r) => a + (r.ignored ?? 0), 0)).toBe(EXPECTED_CONCEPTS + EXPECTED_CONTENTS)
       const concepts = (
         h.db.prepare(`SELECT COUNT(*) AS c FROM lang_concepts`).get() as { c: number }
       ).c
@@ -342,28 +345,21 @@ describe('M9 P1.5 · DL-15 反向变异腿（证明闸确实会红）', () => {
           )
           .get(fnConcept.id) as { body_md: string }
       ).body_md
-      h.db
-        .prepare(
-          `INSERT INTO lang_topic_content (ref_kind, ref_id, kind, body_md, content_level, updated_at)
-           VALUES ('concept', ?, 'steps', ?, 'full', '2026-10-19')`,
-        )
-        .run(condConcept.id, stepsBody)
-
-      // 闸 ② 红：唯一正文数不变，但总行数多一行且出现重复
-      const after = (
-        h.db.prepare(`SELECT COUNT(DISTINCT body_md) AS c FROM lang_topic_content`).get() as {
-          c: number
-        }
-      ).c
-      expect(after).toBe(EXPECTED_CONTENTS)
-      const dup = (
+      // ⚠️ 0020 起 (ref_kind, ref_id, kind) 有唯一索引：DB 本身就是这道闸——
+      // 同键双行在写入层即被拒（此前是先放进来再靠闸 ② 应用层查出）。
+      expect(() =>
         h.db
           .prepare(
-            `SELECT COUNT(*) AS c FROM (SELECT body_md FROM lang_topic_content GROUP BY body_md HAVING COUNT(*) > 1)`,
+            `INSERT INTO lang_topic_content (ref_kind, ref_id, kind, body_md, content_level, updated_at)
+             VALUES ('concept', ?, 'steps', ?, 'full', '2026-10-19')`,
           )
-          .get() as { c: number }
+          .run(condConcept.id, stepsBody),
+      ).toThrowError(/UNIQUE/)
+      // 行数与唯一正文数都不变（重复没能进来）
+      const after = (
+        h.db.prepare(`SELECT COUNT(*) AS c FROM lang_topic_content`).get() as { c: number }
       ).c
-      expect(dup).toBe(1)
+      expect(after).toBe(EXPECTED_CONTENTS)
       h.close()
     } catch (err) {
       try {

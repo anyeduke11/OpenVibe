@@ -11,6 +11,10 @@
     "./test-support": {
       "types": "./src/test-support/index.ts",
       "default": "./src/test-support/index.ts"
+    },
+    "./tooling": {
+      "types": "./src/tooling/index.ts",
+      "default": "./src/tooling/index.ts"
     }
   },
   "dependencies": {

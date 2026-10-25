@@ -39,7 +39,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { parseSpecResourceCounts, parseSpecNecDistribution } from '@openvibe/core'
+import { parseSpecResourceCounts, parseSpecNecDistribution } from '@openvibe/core/tooling'
 
 const REPO_ROOT = fileURLToPath(new URL('../', import.meta.url))
 const SPEC_FILE = join(REPO_ROOT, 'docs/specs/m9-dev-language-roadmap.md')

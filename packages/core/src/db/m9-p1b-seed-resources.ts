@@ -23,12 +23,36 @@ import { join } from 'node:path'
 import { sha256Hex } from '../repos/util'
 import { nowIso } from './runner'
 import type { SqliteDatabase } from './index'
+import { seedRegistryUpsert } from './seed-registry'
+import { mergeSeedRow, type SeedMergeSpec } from './seed-merge'
+
+// CS2 第二段：三张表的行级三态合并规格（键 = 各自的 UNIQUE；is_fav/star/phase_id 是
+// 用户态/登记列，仅 INSERT 写入、更新路径不触碰——收藏与星标不会被 reseed 冲掉）
+export const RESOURCES_MERGE_SPEC: SeedMergeSpec = {
+  table: 'lang_resources',
+  keyColumns: ['lang', 'name'],
+  contentColumns: ['url', 'category', 'tier', 'level_label', 'price', 'lang_label', 'summary', 'freshness', 'verified_by', 'source_checked_at'],
+}
+export const VIBE_RESOURCES_MERGE_SPEC: SeedMergeSpec = {
+  table: 'lang_vibe_resources',
+  keyColumns: ['group', 'name'],
+  contentColumns: ['url', 'summary', 'freshness', 'verified_by', 'source_checked_at'],
+}
+export const TOPIC_RESOURCES_MERGE_SPEC: SeedMergeSpec = {
+  table: 'lang_topic_resources',
+  keyColumns: ['topic_id', 'resource_id'],
+  contentColumns: ['role'],
+}
 
 export interface M9ResourceSeedResult {
   bundle: string
   status: 'skipped' | 'imported' | 'error'
   created: number
   ignored: number
+  /** CS2 三态合并的可见计数：内容修订覆盖的行数（用户未改过的行；第二段起） */
+  updated?: number
+  /** CS2 三态合并的可见计数：用户手改过、reseed 永不覆盖的行数 */
+  userModified?: number
   warnings: string[]
 }
 
@@ -87,27 +111,6 @@ const EXPECTED_ROLES = new Set(['primary', 'backup', 'practice'])
 /** §1.6.1 的 TIER 档位（主清单五档；v 专属于速成专区那张表）。 */
 const EXPECTED_TIERS = new Set(['a', 'b', 'c', 'd', 'e'])
 
-const INSERT_RESOURCE_SQL = `
-INSERT OR IGNORE INTO lang_resources
-  (lang, name, url, category, tier, level_label, price, lang_label, is_fav, star, summary, freshness,
-   phase_id, verified_by, source_checked_at)
-VALUES
-  (@lang, @name, @url, @category, @tier, @level_label, @price, @lang_label, @is_fav, @star, @summary, @freshness,
-   @phase_id, @verified_by, @source_checked_at)
-`
-
-const INSERT_VIBE_SQL = `
-INSERT OR IGNORE INTO lang_vibe_resources
-  ("group", name, url, summary, freshness, verified_by, source_checked_at)
-VALUES
-  (@group, @name, @url, @summary, @freshness, @verified_by, @source_checked_at)
-`
-
-const INSERT_LINK_SQL = `
-INSERT OR IGNORE INTO lang_topic_resources (topic_id, resource_id, role)
-VALUES (@topic_id, @resource_id, @role)
-`
-
 function emptyResult(bundle: string): M9ResourceSeedResult {
   return { bundle, status: 'skipped', created: 0, ignored: 0, warnings: [] }
 }
@@ -126,10 +129,7 @@ function readSeed<T>(seedDir: string, file: string): { parsed: SeedFile<T> | nul
 }
 
 function registerBundle(db: SqliteDatabase, bundle: string, raw: string): void {
-  db.prepare(
-    `INSERT INTO seed_registry (bundle, content_hash, imported_at) VALUES (?, ?, ?)
-     ON CONFLICT(bundle) DO UPDATE SET content_hash = excluded.content_hash, imported_at = excluded.imported_at`,
-  ).run(bundle, sha256Hex(raw), nowIso())
+  seedRegistryUpsert(db, bundle, sha256Hex(raw), nowIso())
 }
 
 /**
@@ -147,11 +147,9 @@ export function seedLangResources(db: SqliteDatabase, seedDir: string): M9Resour
     result.warnings.push(error ?? '未知错误')
     return result
   }
-  const insert = db.prepare(INSERT_RESOURCE_SQL)
-  const runOne = db.transaction((it: ResourceSeedItem): 'created' | 'ignored' => {
-    const info = insert.run(it)
-    return info.changes === 0 ? 'ignored' : 'created'
-  })
+  const runOne = db.transaction((it: ResourceSeedItem): string =>
+    mergeSeedRow(db, RESOURCES_MERGE_SPEC, { ...it }),
+  )
   let created = 0
   let ignored = 0
   for (const it of parsed.items) {
@@ -188,14 +186,18 @@ export function seedLangResources(db: SqliteDatabase, seedDir: string): M9Resour
     try {
       const r = runOne(it)
       if (r === 'created') created += 1
-      else ignored += 1
+      else if (r === 'updated') result.updated = (result.updated ?? 0) + 1
+      else {
+        ignored += 1
+        if (r === 'user-modified') result.userModified = (result.userModified ?? 0) + 1
+      }
     } catch (err) {
       result.warnings.push(`单条 INSERT 失败: ${it.name} — ${String(err)}`)
     }
   }
   result.created = created
   result.ignored = ignored
-  result.status = created > 0 ? 'imported' : 'skipped'
+  result.status = created > 0 || (result.updated ?? 0) > 0 ? 'imported' : 'skipped'
   registerBundle(db, LANG_RESOURCE_BUNDLE, raw)
   return result
 }
@@ -213,11 +215,9 @@ export function seedLangVibeResources(db: SqliteDatabase, seedDir: string): M9Re
     result.warnings.push(error ?? '未知错误')
     return result
   }
-  const insert = db.prepare(INSERT_VIBE_SQL)
-  const runOne = db.transaction((it: VibeSeedItem): 'created' | 'ignored' => {
-    const info = insert.run(it)
-    return info.changes === 0 ? 'ignored' : 'created'
-  })
+  const runOne = db.transaction((it: VibeSeedItem): string =>
+    mergeSeedRow(db, VIBE_RESOURCES_MERGE_SPEC, { ...it }),
+  )
   let created = 0
   let ignored = 0
   for (const it of parsed.items) {
@@ -232,7 +232,11 @@ export function seedLangVibeResources(db: SqliteDatabase, seedDir: string): M9Re
     try {
       const r = runOne(it)
       if (r === 'created') created += 1
-      else ignored += 1
+      else if (r === 'updated') result.updated = (result.updated ?? 0) + 1
+      else {
+        ignored += 1
+        if (r === 'user-modified') result.userModified = (result.userModified ?? 0) + 1
+      }
     } catch (err) {
       result.warnings.push(`单条 INSERT 失败: ${it.name} — ${String(err)}`)
     }
@@ -261,12 +265,13 @@ export function seedLangTopicResources(db: SqliteDatabase, seedDir: string): M9R
   }
   const findTopic = db.prepare('SELECT id FROM lang_topics WHERE lang = ? AND slug = ?')
   const findResource = db.prepare('SELECT id FROM lang_resources WHERE lang = ? AND name = ?')
-  const insert = db.prepare(INSERT_LINK_SQL)
   const runOne = db.transaction(
-    (topicId: number, resourceId: number, role: string): 'created' | 'ignored' => {
-      const info = insert.run({ topic_id: topicId, resource_id: resourceId, role })
-      return info.changes === 0 ? 'ignored' : 'created'
-    },
+    (topicId: number, resourceId: number, role: string): string =>
+      mergeSeedRow(db, TOPIC_RESOURCES_MERGE_SPEC, {
+        topic_id: topicId,
+        resource_id: resourceId,
+        role,
+      }),
   )
   let created = 0
   let ignored = 0
@@ -288,7 +293,11 @@ export function seedLangTopicResources(db: SqliteDatabase, seedDir: string): M9R
     try {
       const r = runOne(topic.id, resource.id, it.role)
       if (r === 'created') created += 1
-      else ignored += 1
+      else if (r === 'updated') result.updated = (result.updated ?? 0) + 1
+      else {
+        ignored += 1
+        if (r === 'user-modified') result.userModified = (result.userModified ?? 0) + 1
+      }
     } catch (err) {
       result.warnings.push(`单条 INSERT 失败: ${it.topic_slug} → ${it.resource_name} — ${String(err)}`)
     }

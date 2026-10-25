@@ -39,7 +39,7 @@
  *   在仓内**没有独立条目**（安装依赖落在资源与静态面板）⇒ 与 §3.17.1 的登记一致：
  *   「最小知识 7 项与知识点不是一一对应」⇒ 单独成面板，不硬映射成 DAG 节点。
  */
-import type { LangProfile } from './m9-p1d-spec'
+import type { LangProfile } from '../tooling/m9-p1d-spec'
 
 export type { LangProfile }
 

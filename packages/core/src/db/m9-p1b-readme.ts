@@ -17,7 +17,7 @@
 // ⚠️ **「零正文」不由本守卫判**：正文根本不在仓内（DL-02），拿教程正文片段当条件
 //   本身就是违规（§3.2）。⇒ 这里只查**结构与链接**，不查内容（DL-32 第 ④ 点）。
 import { writeFileSync } from 'node:fs'
-import type { SqliteDatabase } from './index'
+import type { SqliteDatabase } from '../index'
 
 /** 导出所需的一行资源（**只取导出用到的列**，不整行读出来）。 */
 export interface ResourceReadmeRow {

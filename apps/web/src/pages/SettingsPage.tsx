@@ -1,8 +1,10 @@
 import { useSettings, useOnboardingToggle } from '../hooks/useSettings'
 import {
+  AiSection,
   AppearanceSection,
   CliSection,
   LedgerSection,
+  OmSection,
   PathsSection,
   ReadabilitySection,
   TelemetrySection,
@@ -63,6 +65,10 @@ export function SettingsPage() {
             <TelemetrySection />
             {/* 真·本机台账紧跟遥测节：两节并排正是为了让「正交的两层」看得见 */}
             <LocalLedgerSection />
+            {/* OM（输出侧度量）紧跟台账节：数据同源（本机台账 + injections），同区呈现 */}
+            <OmSection />
+            {/* AI 与出网（M10/D）：总闸/采纳率/同意——同为「本机状态归口」区 */}
+            <AiSection />
           </>
         )}
       </div>

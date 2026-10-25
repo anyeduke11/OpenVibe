@@ -25,7 +25,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { parseSpecPhaseRows, tallyOutcomePrefixes, type SpecPhaseRow } from '../packages/core/src/db/m9-p1d-spec'
+import { parseSpecPhaseRows, tallyOutcomePrefixes, type SpecPhaseRow } from '../packages/core/src/tooling/m9-p1d-spec'
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SEED_PATH = join(REPO_ROOT, 'packages/core/src/db/seeds/lang_profile_phases.json')

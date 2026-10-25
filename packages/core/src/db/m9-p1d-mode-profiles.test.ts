@@ -40,7 +40,7 @@ import {
   findLayeringViolations,
   type ProfileGuardRow,
 } from './m9-p1d-profile-guards'
-import { parseSpecPhaseRows, tallyOutcomePrefixes, type SpecPhaseRow } from './m9-p1d-spec'
+import { parseSpecPhaseRows, tallyOutcomePrefixes, type SpecPhaseRow } from '../tooling/m9-p1d-spec'
 import {
   checkNoMappingStatementsStillThere,
   findStagePhaseArtifacts,
@@ -607,8 +607,10 @@ describe('M9 P1d · 模式层与现算逐行对账（口径只留一处）', () 
       seedAll(h)
       const before = readGuardRows(h.db)
       const second = seedTopicProfiles(h.db)
-      expect(second[0]!.status).toBe('imported')
+      // CS2 语义：内容未变的重装是 skipped + 整批 ignored（旧语义恒 imported）
+      expect(second[0]!.status).toBe('skipped')
       expect(second[0]!.created).toBe(0)
+      expect(second[0]!.ignored ?? 0).toBeGreaterThan(0)
       expect(readGuardRows(h.db)).toEqual(before)
       h.close()
     } catch (err) {

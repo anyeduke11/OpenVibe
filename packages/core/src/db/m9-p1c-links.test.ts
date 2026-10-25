@@ -32,7 +32,7 @@ import { newDb } from '../test-support/new-db'
 import { openDatabase } from './index'
 import { seedLangTopics } from './m9-p1-seed-lang-topics'
 import { seedLangResourceLayer } from './m9-p1b-seed-resources'
-import { parseSpecResourceCounts } from './m9-p1b-spec'
+import { parseSpecResourceCounts } from '../tooling/m9-p1b-spec'
 import { FAIL_THRESHOLD, type ProbeTransport } from './m9-p1b-probe'
 import {
   headStatusCode,

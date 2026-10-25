@@ -60,7 +60,10 @@ import {
   type InventoryDiff,
 } from './collect-m9-sources'
 import { guardedWrite, writeDiffIsEmpty, type WriteDiff } from './m9-write-guard'
-import { computeFreshness, STALE_SOURCE_KEYS, type SourceFreshness } from '@openvibe/core'
+import {
+ 
+} from '@openvibe/core'
+import { computeFreshness, STALE_SOURCE_KEYS, type SourceFreshness } from '@openvibe/core/tooling'
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const OUT_DIR = join(REPO_ROOT, 'docs', 'devlog-evidence', 'M9-probe')

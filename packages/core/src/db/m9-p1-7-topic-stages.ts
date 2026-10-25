@@ -38,6 +38,7 @@ import {
 } from './m9-topic-dag'
 import { classifyKind } from './m9-classify-lang-topics'
 import type { SqliteDatabase } from './index'
+import { seedRegistryUpsert } from './seed-registry'
 
 export interface M9EdgeSeedResult {
   bundle: string
@@ -161,10 +162,7 @@ export function seedTopicEdges(db: SqliteDatabase, seedDir: string): M9EdgeSeedR
     else result.ignored += 1
   }
 
-  db.prepare(
-    `INSERT INTO seed_registry (bundle, content_hash, imported_at) VALUES (?, ?, ?)
-     ON CONFLICT(bundle) DO UPDATE SET content_hash = excluded.content_hash, imported_at = excluded.imported_at`,
-  ).run('lang_topic_edges', sha256Hex(raw), nowIso())
+  seedRegistryUpsert(db, 'lang_topic_edges', sha256Hex(raw), nowIso())
 
   result.status = result.created + result.ignored > 0 ? 'imported' : 'skipped'
   return result

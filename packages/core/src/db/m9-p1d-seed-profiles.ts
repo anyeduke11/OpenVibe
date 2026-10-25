@@ -28,6 +28,21 @@ import { join } from 'node:path'
 import { sha256Hex } from '../repos/util'
 import { nowIso } from './runner'
 import type { SqliteDatabase } from './index'
+import { seedRegistryUpsert } from './seed-registry'
+import { mergeSeedRow, type SeedMergeSpec } from './seed-merge'
+
+/** CS2 第二段：lang_profile_phases 的行级三态合并规格（键 UNIQUE(profile,lang,ord)，0013 背书） */
+export const PROFILE_PHASES_MERGE_SPEC: SeedMergeSpec = {
+  table: 'lang_profile_phases',
+  keyColumns: ['profile', 'lang', 'ord'],
+  contentColumns: ['label', 'title', 'duration_label', 'points', 'outcome'],
+}
+/** CS2 第二段：lang_topic_profiles 的行级三态合并规格（键 ON CONFLICT(topic_id, profile)） */
+export const TOPIC_PROFILES_MERGE_SPEC: SeedMergeSpec = {
+  table: 'lang_topic_profiles',
+  keyColumns: ['topic_id', 'profile'],
+  contentColumns: ['depth', 'required', 'rank', 'est_minutes'],
+}
 import {
   assignTopicProfiles,
   type LangProfile,
@@ -40,6 +55,9 @@ export interface M9ProfileSeedResult {
   status: 'skipped' | 'imported' | 'error'
   created: number
   updated: number
+  /** CS2 三态合并的可见计数：未改过/用户改过而未覆盖的行数（第二段起） */
+  ignored?: number
+  userModified?: number
   warnings: string[]
 }
 
@@ -70,19 +88,6 @@ interface PhaseSeed {
 // ============================================================================
 // ① lang_profile_phases —— 21 段照抄附件
 // ============================================================================
-
-const PHASE_UPSERT_SQL = `
-INSERT INTO lang_profile_phases
-  (profile, lang, ord, label, title, duration_label, points, outcome)
-VALUES
-  (@profile, @lang, @ord, @label, @title, @duration_label, @points, @outcome)
-ON CONFLICT(profile, lang, ord) DO UPDATE SET
-  label = excluded.label,
-  title = excluded.title,
-  duration_label = excluded.duration_label,
-  points = excluded.points,
-  outcome = excluded.outcome
-`
 
 /**
  * 把附件分期路线的 21 段幂等并入 `lang_profile_phases`。
@@ -119,14 +124,9 @@ export function seedProfilePhases(db: SqliteDatabase, seedDir: string): M9Profil
     return [result]
   }
 
-  const upsert = db.prepare(PHASE_UPSERT_SQL)
-  const exists = db.prepare(
-    `SELECT id FROM lang_profile_phases WHERE profile = ? AND lang = ? AND ord = ?`,
-  )
-
-  const runOne = db.transaction((it: PhaseSeedItem): 'created' | 'updated' => {
-    const before = exists.get(it.profile, it.lang, it.ord)
-    upsert.run({
+  const runOne = db.transaction((it: PhaseSeedItem): string => {
+    // CS2 第二段：三态合并取代无条件覆盖（用户手改过的段 reseed 不再被冲掉）
+    return mergeSeedRow(db, PROFILE_PHASES_MERGE_SPEC, {
       profile: it.profile,
       lang: it.lang,
       ord: it.ord,
@@ -137,7 +137,6 @@ export function seedProfilePhases(db: SqliteDatabase, seedDir: string): M9Profil
       points: JSON.stringify(it.points ?? []),
       outcome: it.outcome ?? null,
     })
-    return before ? 'updated' : 'created'
   })
 
   for (const it of parsed.items) {
@@ -169,34 +168,23 @@ export function seedProfilePhases(db: SqliteDatabase, seedDir: string): M9Profil
     try {
       const r = runOne(it)
       if (r === 'created') result.created += 1
-      else result.updated += 1
+      else if (r === 'updated') result.updated += 1
+      else {
+        result.ignored = (result.ignored ?? 0) + 1
+        if (r === 'user-modified') result.userModified = (result.userModified ?? 0) + 1
+      }
     } catch (err) {
       result.warnings.push(`单条 INSERT 失败: ${it.profile}/${it.lang}/${it.ord} — ${String(err)}`)
     }
   }
   result.status = result.created + result.updated > 0 ? 'imported' : 'skipped'
-  db.prepare(
-    `INSERT INTO seed_registry (bundle, content_hash, imported_at) VALUES (?, ?, ?)
-     ON CONFLICT(bundle) DO UPDATE SET content_hash = excluded.content_hash, imported_at = excluded.imported_at`,
-  ).run('lang_profile_phases', sha256Hex(raw), nowIso())
+  seedRegistryUpsert(db, 'lang_profile_phases', sha256Hex(raw), nowIso())
   return [result]
 }
 
 // ============================================================================
 // ② lang_topic_profiles —— 234 行现算
 // ============================================================================
-
-const TOPIC_PROFILE_UPSERT_SQL = `
-INSERT INTO lang_topic_profiles
-  (topic_id, profile, depth, required, rank, est_minutes)
-VALUES
-  (@topic_id, @profile, @depth, @required, @rank, @est_minutes)
-ON CONFLICT(topic_id, profile) DO UPDATE SET
-  depth = excluded.depth,
-  required = excluded.required,
-  rank = excluded.rank,
-  est_minutes = excluded.est_minutes
-`
 
 /** 读库里全部知识点（模式层要按 lang 分组排序）。 */
 function readModeTopics(db: SqliteDatabase): ModeTopic[] {
@@ -237,15 +225,11 @@ export function seedTopicProfiles(db: SqliteDatabase): M9ProfileSeedResult[] {
   }
   const desired = assignTopicProfiles(topics)
 
-  const upsert = db.prepare(TOPIC_PROFILE_UPSERT_SQL)
-  const exists = db.prepare(
-    `SELECT 1 AS x FROM lang_topic_profiles WHERE topic_id = ? AND profile = ?`,
-  )
   const del = db.prepare(`DELETE FROM lang_topic_profiles WHERE topic_id = ? AND profile = ?`)
 
-  const runOne = db.transaction((row: TopicProfileRow): 'created' | 'updated' => {
-    const before = exists.get(row.topic_id, row.profile)
-    upsert.run({
+  const runOne = db.transaction((row: TopicProfileRow): string => {
+    // CS2 第二段：三态合并取代无条件覆盖（est_minutes/rank 的手改 reseed 不再被冲掉）
+    return mergeSeedRow(db, TOPIC_PROFILES_MERGE_SPEC, {
       topic_id: row.topic_id,
       profile: row.profile,
       depth: row.depth,
@@ -253,7 +237,6 @@ export function seedTopicProfiles(db: SqliteDatabase): M9ProfileSeedResult[] {
       rank: row.rank,
       est_minutes: row.est_minutes,
     })
-    return before ? 'updated' : 'created'
   })
 
   const keep = new Set(desired.map((r) => `${String(r.topic_id)}/${r.profile}`))
@@ -265,7 +248,11 @@ export function seedTopicProfiles(db: SqliteDatabase): M9ProfileSeedResult[] {
     try {
       const r = runOne(row)
       if (r === 'created') result.created += 1
-      else result.updated += 1
+      else if (r === 'updated') result.updated += 1
+      else {
+        result.ignored = (result.ignored ?? 0) + 1
+        if (r === 'user-modified') result.userModified = (result.userModified ?? 0) + 1
+      }
     } catch (err) {
       result.warnings.push(`单条 INSERT 失败: ${String(row.topic_id)}/${row.profile} — ${String(err)}`)
     }

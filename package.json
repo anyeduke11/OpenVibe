@@ -32,8 +32,15 @@
     "ownership:check": "tsx scripts/ownership-check.ts",
     "docs:check": "tsx scripts/docs-check.ts",
     "docs:refs": "tsx scripts/section-ref-audit.ts",
+    "m9:grade-guard": "tsx scripts/m9-grade-guard.ts",
+    "evidence": "scripts/failure-evidence.sh",
+    "verify:matrix": "tsx scripts/verify-matrix.ts",
     "memory:check": "tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --check",
-    "memory:verify": "tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --verify"
+    "memory:verify": "tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --verify",
+    "barrel:audit": "tsx scripts/barrel-audit.ts",
+    "barrel:snapshot": "tsx scripts/barrel-snapshot.ts",
+    "migrate:drill": "tsx scripts/migrate-drill.ts",
+    "v023:preflight": "tsx scripts/v023-preflight.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

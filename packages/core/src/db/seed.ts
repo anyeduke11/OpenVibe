@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import type { SqliteDatabase } from './index'
+import { seedRegistryUpsert } from './seed-registry'
 import { nowIso } from './runner'
 import { sha256Hex, stableJson } from '../repos/util'
 import { FlowTemplatesRepo } from '../repos/flows'
@@ -95,10 +96,7 @@ export function runSeed(db: SqliteDatabase, seedDir: string): SeedBundleResult[]
       }
       result.status = 'imported'
       mergeBundle(db, bundle, parsed.items, result)
-      db.prepare(
-        `INSERT INTO seed_registry (bundle, content_hash, imported_at) VALUES (?, ?, ?)
-         ON CONFLICT(bundle) DO UPDATE SET content_hash = excluded.content_hash, imported_at = excluded.imported_at`,
-      ).run(bundle, contentHash, nowIso())
+      seedRegistryUpsert(db, bundle, contentHash, nowIso())
     } catch (err) {
       result.status = 'error'
       result.warnings.push(`种子文件处理失败，已跳过: ${file} — ${String(err)}`)

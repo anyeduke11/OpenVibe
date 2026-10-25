@@ -21,7 +21,7 @@ import { join } from 'node:path'
 import { newDb } from '../test-support/new-db'
 import { seedLangTopics } from './m9-p1-seed-lang-topics'
 import { seedProfilePhases } from './m9-p1d-seed-profiles'
-import { parseSpecVibeStatic } from './m9-p1d-spec'
+import { parseSpecVibeStatic } from '../tooling/m9-p1d-spec'
 import {
   VIBE_ABILITIES,
   VIBE_EMPTY_STATE_TEXT,

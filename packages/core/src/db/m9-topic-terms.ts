@@ -20,7 +20,7 @@
 //   回流通道的写入是 M8 的面（`agent_ingests`），本轮不越权去改它。
 //   ⇒ 挂接遇到库里没有的 term ⇒ **不建行、不改 terms、报 missing**。
 import { sha256Hex } from '../repos/util'
-import type { SqliteDatabase } from './index'
+import type { SqliteDatabase } from '../index'
 
 /** §3.4：「每个知识点挂 **0~3 条**术语（稀疏是常态，§1.3）」 */
 export const MAX_TERMS_PER_TOPIC = 3

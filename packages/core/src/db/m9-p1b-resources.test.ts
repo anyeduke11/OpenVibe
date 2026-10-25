@@ -30,7 +30,7 @@ import { join } from 'node:path'
 import { newDb } from '../test-support/new-db'
 import { seedLangTopics } from './m9-p1-seed-lang-topics'
 import { seedLangResourceLayer } from './m9-p1b-seed-resources'
-import { parseSpecResourceCounts } from './m9-p1b-spec'
+import { parseSpecResourceCounts } from '../tooling/m9-p1b-spec'
 import {
   NECESSITY_LABEL,
   computeDistribution,
@@ -39,7 +39,7 @@ import {
   verifyNecessity,
   type NecDistribution,
   type ResourceTier,
-} from './m9-p1b-necessity'
+} from '../tooling/m9-p1b-necessity'
 import { FAIL_THRESHOLD, applyProbeOutcome, livenessOf, planProbeTargets, runResourceProbe } from './m9-p1b-probe'
 import { exportResourcesReadme, listReadmeRows, verifyReadmeExport } from './m9-p1b-readme'
 import { LOCAL_EVENT_KINDS } from '@openvibe/shared'
@@ -688,7 +688,7 @@ describe('DL-32 导出的 README：零本机路径 ＋ 条数一致 ＋ 每行�
   })
 })
 
-describe('0012 迁移：content_level 列 ＋ local_events 的 CHECK 扩到 23 项', () => {
+describe('0012/0021 迁移：content_level 列 ＋ local_events 的 CHECK 扩到 25 项', () => {
   it('`lang_topics.content_level` 存在、值域 {point, full}、默认 point', () => {
     const h = freshDb()
     try {
@@ -708,7 +708,7 @@ describe('0012 迁移：content_level 列 ＋ local_events 的 CHECK 扩到 23 �
     }
   })
 
-  it('`local_events` 的 kind CHECK 已是 23 项，且与 LOCAL_EVENT_KINDS 逐项相同', () => {
+  it('`local_events` 的 kind CHECK 已是 25 项，且与 LOCAL_EVENT_KINDS 逐项相同', () => {
     const h = newDb()
     try {
       const sql = (
@@ -723,7 +723,7 @@ describe('0012 迁移：content_level 列 ＋ local_events 的 CHECK 扩到 23 �
         .split(',')
         .map((s) => s.trim().replace(/^'|'$/g, ''))
         .filter((s) => s !== '')
-      expect(literals.length).toBe(23)
+      expect(literals.length).toBe(25)
       expect(literals).toEqual([...LOCAL_EVENT_KINDS])
       // 既有行仍合法（重建表复制了历史数据）
       const bad = h.db.prepare('SELECT COUNT(*) AS c FROM local_events WHERE kind NOT IN (SELECT value FROM json_each(?))').get(

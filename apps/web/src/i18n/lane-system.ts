@@ -176,6 +176,39 @@ export const sys = {
         '硬约束：任何承载文字的配对在两套主题都要 ≥4.5；3.0 只对 ≥24px 或 ≥18.66px bold 生效。ink-faint 只允许落在 canvas / panel / panel-2 / panel-sunk 四种纸底上。',
       pairCols: { pair: '配对', sample: '样例', ratio: '对比度', verdict: '判定' },
     },
+    aiExtract: {
+      title: 'AI 提取（M10）',
+      aside: '默认关 · 出网需逐项目同意',
+      gateLabel: '允许从开发日志提取候选资产（LLM）',
+      gateHint: '总闸关闭时入口不渲染、调用一律拒绝。出网前展示确切内容；候选一律进待确认队列。',
+      adoptionTitle: '采纳率（影子门槛 25%）',
+      adoptionEmpty: '待采集：候选经人工确认后出现。',
+      adoptionLowBanner: (rounds: number) => `连续 ${String(rounds)} 轮采纳率低于门槛（25%）——建议关闭提取；新项目将默认不开。`,
+      providerHint: '推理服务与「解读服务」区共用同一份配置（两线同源）；端点/密钥在那边改。',
+      usageTitle: '出网成本台账（按服务分组）',
+      usageEmpty: '还没有出网记录。',
+      consentTitle: '已记住同意的项目',
+      consentEmpty: '没有记住任何项目的同意。',
+      clear: '清除',
+    },
+    om: {
+      title: '输出侧度量（OM）',
+      aside: '本机 · 不出网 · 估算',
+      densityTitle: 'OM1 · 有效上下文密度',
+      densityEmpty: '待采集：组一个标准包后出现。',
+      densityLine: (pack: string, tokens: number, assets: number, per: string) =>
+        `包 ${pack}：受管 ${tokens} token ÷ ${assets} 项资产 ≈ ${per} token/条`,
+      top5Title: '最占上下文的产物 Top5',
+      timeTitle: 'OM2 · 首次见效时间',
+      timeEmpty: '待采集：完成一次注入后出现。',
+      timeLine: (seconds: number) =>
+        seconds < 90
+          ? `首次注入距首次使用 ${seconds} 秒`
+          : seconds < 5400
+            ? `首次注入距首次使用 ${Math.round(seconds / 60)} 分钟`
+            : `首次注入距首次使用 ${Math.round(seconds / 3600)} 小时`,
+      timeRange: '台账口径：首次本机事件 → 首次注入记录（injections 表）。',
+    },
   },
 
   palette: {

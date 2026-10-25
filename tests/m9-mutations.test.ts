@@ -29,14 +29,14 @@ import {
   checkNoMappingStatements,
   parseSpecPhaseRows,
   tallyOutcomePrefixes,
-} from '../packages/core/src/db/m9-p1d-spec'
+} from '../packages/core/src/tooling/m9-p1d-spec'
 import {
   computeDistribution,
   parseSpecNecDistribution,
   type LangProfile,
   type ResourceTier,
-} from '../packages/core/src/db/m9-p1b-necessity'
-import { parseSpecResourceCounts } from '../packages/core/src/db/m9-p1b-spec'
+} from '../packages/core/src/tooling/m9-p1b-necessity'
+import { parseSpecResourceCounts } from '../packages/core/src/tooling/m9-p1b-spec'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO = join(HERE, '..')
