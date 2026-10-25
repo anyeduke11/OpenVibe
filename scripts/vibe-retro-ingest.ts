@@ -27,6 +27,22 @@ if (file === undefined || file === '' || project === undefined || project === ''
   process.exit(1)
 }
 
+const raw = readFileSync(resolve(file), 'utf8')
+const fileHash = createHash('sha256').update(raw).digest('hex').slice(0, 16)
+
+// ── 结构化校验（docs/vibe-retro.md §5：固定复盘思考模型的六节骨架，缺则拒绝）──
+const REQUIRED_SECTIONS = ['总评', '逐批判定', '声称对照', '遗留清单', '数字复算', '复盘自评'] as const
+const wantVer = String(RETRO_SCHEMA_VERSION)
+if (!new RegExp(`^retro-schema: *${wantVer}$`, 'm').test(raw)) {
+  console.error(`⛔ 报告头缺 \`retro-schema: ${wantVer}\` 声明（docs/vibe-retro.md §5 骨架 v${wantVer}；版本常量单源在 shared/extract-prompt.ts）`)
+  process.exit(1)
+}
+const missingSections = REQUIRED_SECTIONS.filter((t) => !new RegExp(`^## ${t}\\s*$`, 'm').test(raw))
+if (missingSections.length > 0) {
+  console.error(`⛔ 复盘骨架缺 ${String(missingSections.length)} 节：${missingSections.join('、')}（固定思考模型六节，见 docs/vibe-retro.md §5）`)
+  process.exit(1)
+}
+
 // 与 CLI 同源的配置发现（serve 须在本机运行；token 走 config.json）
 import { resolveConfig } from '../apps/cli/src/config'
 import { clientFromConfig } from '../apps/cli/src/client'
@@ -43,22 +59,6 @@ const client = clientFromConfig(config)
 const projectId = /^prj_/.test(project)
   ? project
   : (await resolveProjectByPath(client, resolve(project))).project.id
-
-const raw = readFileSync(resolve(file), 'utf8')
-const fileHash = createHash('sha256').update(raw).digest('hex').slice(0, 16)
-
-// ── 结构化校验（docs/vibe-retro.md §5：固定复盘思考模型的六节骨架，缺则拒绝）──
-const REQUIRED_SECTIONS = ['总评', '逐批判定', '声称对照', '遗留清单', '数字复算', '复盘自评'] as const
-const wantVer = String(RETRO_SCHEMA_VERSION)
-if (!new RegExp(`^retro-schema: *${wantVer}$`, 'm').test(raw)) {
-  console.error(`⛔ 报告头缺 \`retro-schema: ${wantVer}\` 声明（docs/vibe-retro.md §5 骨架 v${wantVer}；版本常量单源在 shared/extract-prompt.ts）`)
-  process.exit(1)
-}
-const missingSections = REQUIRED_SECTIONS.filter((t) => !new RegExp(`^## ${t}\\s*$`, 'm').test(raw))
-if (missingSections.length > 0) {
-  console.error(`⛔ 复盘骨架缺 ${String(missingSections.length)} 节：${missingSections.join('、')}（固定思考模型六节，见 docs/vibe-retro.md §5）`)
-  process.exit(1)
-}
 
 // 按「## 」二级标题拆节（标题前的一级前言并入首条）
 const sections: { title: string; body: string }[] = []
