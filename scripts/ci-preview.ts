@@ -12,14 +12,28 @@ import { execFileSync } from 'node:child_process'
 
 const args = process.argv.slice(2)
 const refFlag = args.indexOf('--ref')
-const ref = refFlag >= 0 ? (args[refFlag + 1] ?? '') : execFileSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).trim()
+// workflow_dispatch 只认远端已有的完整 ref（分支名/完整 SHA——短 SHA 会 404）；
+// 缺省 main（对「已推的最新 main」预演；未推的 commit 本就 dispatch 不到）
+const ref = refFlag >= 0 ? (args[refFlag + 1] ?? 'main') : 'main'
 
 function gh<T>(...cli: string[]): T {
-  return JSON.parse(execFileSync('gh', cli, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })) as T
+  try {
+    return JSON.parse(execFileSync('gh', cli, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })) as T
+  } catch (e) {
+    const err = e as { stderr?: Buffer | string; message?: string }
+    const detail = typeof err.stderr === 'string' ? err.stderr : (err.stderr?.toString('utf8') ?? err.message ?? '')
+    throw new Error(`gh ${cli.join(' ')} 失败：${detail.slice(0, 300)}`)
+  }
 }
 
 console.log(`CI 预演：触发 ci.yml @ ${ref}`)
-execFileSync('gh', ['workflow', 'run', 'CI', '--ref', ref])
+try {
+  execFileSync('gh', ['workflow', 'run', 'CI', '--ref', ref])
+} catch (e) {
+  const err = e as { stderr?: Buffer }
+  console.error(`⛔ 触发失败（ref 须是远端已有的分支名/完整 SHA）：${(typeof err.stderr === 'string' ? err.stderr : err.stderr?.toString('utf8') ?? '').slice(0, 200)}`)
+  process.exit(1)
+}
 // workflow run 异步建 run——轮询找该 ref 的最新 in_progress/queued run
 let runId: number | null = null
 for (let i = 0; i < 30 && runId === null; i++) {
