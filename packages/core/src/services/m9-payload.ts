@@ -64,7 +64,9 @@ export function toRelativePath(projectRoot: string, filePath: string): string {
   // `relative` 在越界时返回以 `..` 开头的路径；**这是必须显式拦截**的。
   // 不许把越界片段送出去（即便它「在勾选列表里」）—— 越界意味着 caller 算错了根目录。
   if (rel === '' || (!rel.startsWith('..' + sep) && rel !== '..' && !rel.startsWith('..'))) {
-    return rel
+    // POSIX 归一：win 的 relative() 出反斜杠，fragment.path 是落库/API 出参——
+    // 形态必须跨平台确定（与 source-scan/files.ts 的同款归一口径）
+    return rel.split(/[\\/]/u).join('/')
   }
   throw new PayloadAssemblyError('file-outside-project')
 }

@@ -4,6 +4,9 @@
  * HTTP runner 与未来的命令适配器共用这一份——提示词漂移在这里挡住。
  */
 
+/** 复盘报告骨架版本（docs/vibe-retro.md §5 六节思考模型；脚本与 SKILL 引用此单源，升版只改这里） */
+export const RETRO_SCHEMA_VERSION = 1
+
 export const EXTRACT_SCHEMA_VERSION = 1
 
 export interface ExtractPromptLog {

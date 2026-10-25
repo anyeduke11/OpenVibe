@@ -9,6 +9,7 @@
  */
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
+import { RETRO_SCHEMA_VERSION } from '../packages/shared/src/extract-prompt'
 import { resolve } from 'node:path'
 
 const args = process.argv.slice(2)
@@ -48,8 +49,9 @@ const fileHash = createHash('sha256').update(raw).digest('hex').slice(0, 16)
 
 // ── 结构化校验（docs/vibe-retro.md §5：固定复盘思考模型的六节骨架，缺则拒绝）──
 const REQUIRED_SECTIONS = ['总评', '逐批判定', '声称对照', '遗留清单', '数字复算', '复盘自评'] as const
-if (!/^retro-schema: *1/m.test(raw)) {
-  console.error('⛔ 报告头缺 `retro-schema: 1` 声明（docs/vibe-retro.md §5 骨架 v1）')
+const wantVer = String(RETRO_SCHEMA_VERSION)
+if (!new RegExp(`^retro-schema: *${wantVer}$`, 'm').test(raw)) {
+  console.error(`⛔ 报告头缺 \`retro-schema: ${wantVer}\` 声明（docs/vibe-retro.md §5 骨架 v${wantVer}；版本常量单源在 shared/extract-prompt.ts）`)
   process.exit(1)
 }
 const missingSections = REQUIRED_SECTIONS.filter((t) => !new RegExp(`^## ${t}\\s*$`, 'm').test(raw))
