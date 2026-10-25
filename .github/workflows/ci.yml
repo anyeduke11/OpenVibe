@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch: {}   # CI 预演通道（pnpm ci:preview）——push 前对任意 HEAD 触发同矩阵
 
 jobs:
   verify:

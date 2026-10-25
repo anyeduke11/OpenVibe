@@ -218,6 +218,7 @@ openvibe/
 ├── scripts/migrate-drill.ts（pnpm migrate:drill 入口：0019→0022 升级路径真库演练对账，行数/内容指纹/seed_hash 不回填三判据）
 ├── scripts/v023-preflight.ts（pnpm v023:preflight 入口：v0.2.3 提交清单对账——清单 vs 工作树差异 + 存在性，退出码判净）
 ├── scripts/vibe-retro-ingest.ts（pnpm vibe:retro 入口：复盘报告按节拆条回流 agent 桥 pending——docs/vibe-retro.md 协议）
+├── scripts/ci-preview.ts（pnpm ci:preview 入口：workflow_dispatch 触发 ci.yml 同矩阵于任意 HEAD，push/publish 前的远端预演）
 ├── deploy/telemetry/{worker.js,adapter-node.mjs}（匿名统计接收端：一份 CF Worker 源码 + 一层 node:http 外壳，fail-closed 白名单）
 └── .github/workflows/ci.yml
 ```
