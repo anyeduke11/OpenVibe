@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import type { ProjectContextOut, ProjectOut } from '@openvibe/shared'
 import { ApiError, ServerUnreachable, type ApiClient } from '../src/client'
@@ -128,14 +130,15 @@ describe('status 的目录 → 项目解析（FR-4.1.2）', () => {
     }
     const fake = fakeClient({ get: { '/api/projects?status=all': seven } })
 
-    const err = await statusAction({ dir: '/tmp/not-a-project' }, { client: fake.client }).catch(
+    const notAProject = join(tmpdir(), 'not-a-project') // 平台无关：win 上 /tmp 字面量会与回显路径形态不一致
+    const err = await statusAction({ dir: notAProject }, { client: fake.client }).catch(
       (e: unknown) => e,
     )
 
     expect(err).toBeInstanceOf(StatusError)
     expect((err as StatusError).code).toBe('NOT_FOUND')
     const details = (err as StatusError).details as { candidates: string[]; path: string }
-    expect(details.path).toBe('/tmp/not-a-project')
+    expect(details.path).toBe(notAProject)
     expect(details.candidates).toHaveLength(MAX_CANDIDATES)
     // 码点序取前 5（默认 sort 即 UTF-16 码点序，与 shared 的 compareCodeUnit 同口径）：
     // 断言「哪两个被舍掉」，比硬编码一份手写顺序更能说明封顶这件事
@@ -189,10 +192,11 @@ describe('status 的快照', () => {
         }),
       },
     })
-    const d = await statusAction({ dir: '/w/openvibe' }, { client: drifted.client })
+    const dirArg = process.platform === 'win32' ? 'W:\\openvibe' : '/w/openvibe' // 平台形态自洽：hint 回显用户给的路径
+    const d = await statusAction({ dir: dirArg }, { client: drifted.client })
     expect(d.exitCode).toBe(ExitCode.drift)
     expect(d.snapshot.pack.drifted).toBe(true)
-    expect(d.hints.join('\n')).toContain('openvibe diff /w/openvibe')
+    expect(d.hints.join('\n')).toContain(`openvibe diff ${dirArg}`)
 
     const unknown = fakeClient({
       get: {

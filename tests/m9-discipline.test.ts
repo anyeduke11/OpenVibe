@@ -12,6 +12,7 @@
 //    任何一个 if 红，P0 就不算完成，必须先修。
 
 import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { LOCAL_EVENT_KINDS, LANG_EVENT_KINDS } from '@openvibe/shared'
 import {
@@ -97,7 +98,8 @@ describe('M9 P0.3 · DL-16 禁列扫描器接 lang_* 命名空间', () => {
 })
 
 describe('M9 P0.4 · DL-18 未勾选片段不得出网', () => {
-  const projectRoot = '/Users/duke/projects/sample'
+  // 平台无关根：写死 /Users/duke 在 CI（win/mac runner）上使相对化产物形态漂移
+  const projectRoot = resolve('m9-discipline-sample-root')
   // 三份文件：两份勾选（A、C），一份未勾选（B）。A 与 C 的 path 用相对形式传入，
   // 模拟「P4 扫描器在 repo 根下发现的源码」；B 也用相对形式。
   const files: readonly SourceFragment[] = [
@@ -117,7 +119,7 @@ describe('M9 P0.4 · DL-18 未勾选片段不得出网', () => {
   it('路径必须改成「相对 projectRoot」—— 绝对路径绝不出现在 fragments', () => {
     const out = assembleAiCallPayload({ projectRoot, files, consentIds })
     for (const f of out.fragments) {
-      expect(f.path.startsWith('/'), `${f.path} 仍含绝对路径`).toBe(false)
+      expect(f.path.includes(projectRoot), `${f.path} 仍含绝对路径`).toBe(false)
       expect(f.path.includes('/Users/'), `${f.path} 含 home 片段`).toBe(false)
     }
   })
