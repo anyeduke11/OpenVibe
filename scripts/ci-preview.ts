@@ -24,10 +24,6 @@ execFileSync('gh', ['workflow', 'run', 'CI', '--ref', ref])
 let runId: number | null = null
 for (let i = 0; i < 30 && runId === null; i++) {
   await new Promise((r) => setTimeout(r, 4000))
-  const runs = gh<{ workflow_runs: { id: number; head_sha: string; status: string }[] }>(
-    'run', 'list', '--workflow=CI', '--limit=5', '--json=databaseId,headSha,status',
-  )
-  // gh run list 的字段映射到 workflow_runs 形状（--json databaseId/headSha/status）
   const list = gh<{ databaseId: number; headSha: string; status: string }[]>(
     'run', 'list', '--workflow=CI', '--limit=5', '--json=databaseId,headSha,status',
   )
