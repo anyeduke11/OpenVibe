@@ -3482,3 +3482,14 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
 - **核心变更**: SKILL 双位部署 + scan 登记；ingest 校验门（两条拒绝路径）；ci.yml dispatch 通道 + ci-preview 脚本（gh 错误转字符串、ref 语义=远端完整 ref 缺省 main）。
 - **测试验证**: 校验门负向双验 + 正向过门；`pnpm ci:preview` 实跑全链路（run 40153023249：m9-fingerprint ✓、三平台 verify + m9-collect ✗——**存量债现状如实暴露**，非工具问题）；本地全量 188/2370 绿、lint 0、docs:check 0。
 - **潜在风险**: ① 预演结论确认存量债未清（与 DEV-0149 风险①同源）——publish 前必须清偿；② 技能部署位与真源的同步靠手工 cp（无自动同步——改进项）；③ dispatch 通道任何人可触发（仓库私有时无虞，公开后可加 actor 限制）。
+
+## [DEV-0151] 2026-10-25 · CI 存量债清偿第四批 ＋ skills:sync ＋ retro-schema 单源 ＋ publish 操作交接
+
+- **时间**: 2026-10-25
+- **类型**: 修复 + 工具（产品级路径归一 B 级；两项工具面；无对外契约变更）
+- **关联文件**: `packages/core/src/services/m9-payload.ts`（toRelativePath POSIX 归一）、`tests/m9-discipline.test.ts`、`packages/core/src/source-scan/m9-source-scan.test.ts`（Go 腿门控）、`apps/cli/test/status.test.ts`、`scripts/skills-sync.ts`（新增）、`scripts/vibe-retro-ingest.ts`（校验上移 + 版本单源）、`packages/shared/src/extract-prompt.ts`（RETRO_SCHEMA_VERSION）、`package.json`、`docs/dev-plan.md`
+- **问题描述**: owner 四项：CI Test 面清债 / publish 详细操作 / skills:sync / retro-schema 版本演进。清债经三批（DEV-0149/0150 前两批 + 本批）已消 8 条失败形态（timeout×4、ENOENT argv、D:\tmp、/w/openvibe 字面量、writepoints/commandRun/discipline 三处写死 /Users/duke）。
+- **实现思路**: ① `src\a.py` 族根因是**产品级**：`toRelativePath` 在 win 输出反斜杠，fragment.path 落库/进 API 出参——形态必须跨平台确定（与 source-scan/files.ts 同款归一口径，134 用例背书）；② Go 真实样本腿环境门控（CI runner 无 go 工具链，本地/带 Go 环境才是证据面）；③ pi-fake EFTYPE 曾试 node-shebang 方案——standalone 通过但 vitest 链路 exit 1 未收敛，**回退**并登记为「CI macOS 侧交互调试」；④ skills:sync 按 dev-plan §1.5 惯例登记；⑤ retro-schema 常量单源进 shared（升 v2 只改一处），骨架校验上移到 serve 连接之前（拒绝不依赖可达性——负向/正向双验）。
+- **核心变更**: toRelativePath `split(/[\\\\/]/).join('/')`；skills:sync/--check（diff→复制→提示 scan 刷新，实跑一致 1/漂移 0）；RETRO_SCHEMA_VERSION=1 单源；pi-runner 回退保留 sh 版（本地 8/8 绿）。
+- **测试验证**: 全量 **188/2370 绿**；lint 0；docs:check 0；骨架拒绝双验（坏报告 ⛔1、六节报告走到 serve 检查）；ci:preview run 40196925584 复验：三平台仍红但失败清单较 40153023249 缩减（timeout/ENOENT/D:\ 族已消）。
+- **剩余 CI 债登记（分域，publish 前清偿）**：① export 脱敏 '/app.py' + '' to contain '版本'（source-ai export 域）；② m8-ledger 顺序 ×2 + FR-3.4 变异 + [ …(14) ]（docs-check 深语义，本地 95/95 绿无法复现——需 CI 侧调试）；③ misconfigured/ready + runner-version-mismatch + EFTYPE（provider/runner 命令域，macOS EFTYPE 需 CI 复现）；④ source-scan 夹具形态 [ ['python','parser'] ]；⑤ prj_child 父子项目 + null/+0/null/2（context/projects 域）；⑥ m9-collect 外部源对账（网络作业，源站漂移需重collect）。
