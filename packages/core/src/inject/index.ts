@@ -24,6 +24,19 @@ export {
   type DeclaredFile,
 } from './consistency'
 export {
+  // 三方一致性核验的六态判定（v0.2.3 批次 B FR-4）
+  planVerify,
+  type VerifyPlan,
+  type VerifyPlanInput,
+  type VerifyState,
+} from './verify'
+export {
+  // 段级差异报告（v0.2.3 批次 C RQ4，只读；写入行为与五状态判定不动）
+  diffSections,
+  type SectionDiffResult,
+  type SectionRegion,
+} from './section-diff'
+export {
   INJECT_STATUSES,
   INJECT_DECISIONS,
   planInjection,
