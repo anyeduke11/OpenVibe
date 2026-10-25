@@ -7,8 +7,6 @@
 //   web 与 server 只经 HTTP 交互 ⇒ 形状必须先有出处，否则两处各写一份就会漂。
 // ② **参数校验**：`lang` 必须是 python/go；`id` 必须是正整数；知识点不存在 ⇒ 404。
 // ③ **`?project=` 真的改变状态**（掌握度永远是「某个项目的行为证据」，§2.2）。
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'

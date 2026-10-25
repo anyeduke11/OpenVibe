@@ -20,8 +20,9 @@ const src = (index: number, text: string): AnchorSource => ({ index, text })
 
 describe('anchorCandidates（QG3 幻觉防线，纯函数）', () => {
   it('quote 逐字命中 ⇒ passed；任一字符不同 ⇒ dropped（不是模糊匹配）', () => {
-    const { passed, dropped } = anchorCandidates([c()], [src(0, '日志里有原文句，就是这样。')])
-    expect(passed).toHaveLength(1)
+    const hit = anchorCandidates([c()], [src(0, '日志里有原文句，就是这样。')])
+    expect(hit.passed).toHaveLength(1)
+    expect(hit.dropped).toHaveLength(0)
     const miss = anchorCandidates([c({ quote: '原文句 ' })], [src(0, '日志里有原文句，就是这样。')])
     expect(miss.passed).toHaveLength(0)
     expect(miss.dropped[0]?.reason).toContain('锚定失败')
