@@ -3471,3 +3471,14 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   - ② langRoadmap 死导入修复触碰了并行会话登记的禁区文件——依据是「已提交基线的 CI 红」而非工作树在编面，改动仅删 3 行死导入；若该会话后续改写此文件属正常演进。
   - ③ vibe:retro 的 8 行 pending 等 owner Web 确认——「确认」是协议第④步的人工动作，AI 不代裁。
   - ④ publish 仍未发生（ENEEDAUTH）——D15 计时、首圈协议观察窗的起点继续等这把钥匙。
+
+## [DEV-0150] 2026-10-25 · 复盘三增强：retro-audit 技能化 ＋ 六节思考模型校验 ＋ ci:preview 远端预演
+
+- **时间**: 2026-10-25
+- **类型**: 工具 + 流程（skill 本机部署 + 仓内真源；脚本校验门；CI dispatch 通道；无产品行为变更）
+- **关联文件**: `~/.agents/skills/retro-audit/SKILL.md`（部署位）+ `docs/skills/retro-audit/SKILL.md`（仓内真源）、`docs/vibe-retro.md`（§5 六节模型）、`scripts/vibe-retro-ingest.ts`（前置校验门）、`scripts/ci-preview.ts`（新增）、`.github/workflows/ci.yml`（+workflow_dispatch）、`package.json`（ci:preview）、`docs/dev-plan.md`（§1.5）
+- **问题描述**: owner 三项增强指令：①复盘 agent 仓内技能化；②复盘报告结构化校验 + 固定标准复盘思考模型；③预演（CI 预演）。
+- **实现思路**: ① 技能真源进仓（`docs/skills/`，bid-master 先例：仓内存真源 + `~/.agents/skills` 是部署位），frontmatter 带 name/description/version/触发词——四面对账 + 六节骨架 + 纪律全部进 SKILL 正文；`scan --skills` 实测登记命中（发现 17 新增）。② 「固定思考模型」落为**六节骨架**（总评含可信度自估 / 逐批判定三态+证据 / 声称对照偏差表 / 遗留三级分诊 / 数字复算表 / 复盘自评）——思考被骨架约束，产出才可校验可对比；`vibe:retro` 前置门：缺 `retro-schema: 1` 头或缺任一节 ⇒ 拒绝（负向双验通过：裸报告拒于 frontmatter、半骨架拒于缺 5 节；正向六节通过走到 serve 检查）。③ ci.yml 加 `workflow_dispatch`（push 前提是 workflow 已在 main），`ci:preview` = 触发→按 event=workflow_dispatch 发现→20 分钟轮询→五 job 结论→退出码。**三处实跑修复**（短 SHA 404 / jq 输出崩溃 / 分支名与 headSha 匹配错）后全链路通。
+- **核心变更**: SKILL 双位部署 + scan 登记；ingest 校验门（两条拒绝路径）；ci.yml dispatch 通道 + ci-preview 脚本（gh 错误转字符串、ref 语义=远端完整 ref 缺省 main）。
+- **测试验证**: 校验门负向双验 + 正向过门；`pnpm ci:preview` 实跑全链路（run 40153023249：m9-fingerprint ✓、三平台 verify + m9-collect ✗——**存量债现状如实暴露**，非工具问题）；本地全量 188/2370 绿、lint 0、docs:check 0。
+- **潜在风险**: ① 预演结论确认存量债未清（与 DEV-0149 风险①同源）——publish 前必须清偿；② 技能部署位与真源的同步靠手工 cp（无自动同步——改进项）；③ dispatch 通道任何人可触发（仓库私有时无虞，公开后可加 actor 限制）。
