@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { homedir } from 'node:os'
+import { join } from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import { newDb, scanForbidden, payloadKeys, type TestDbHandle } from '@openvibe/core/test-support'
 import { LocalEventsRepo, type SqliteDatabase } from '@openvibe/core'
@@ -475,7 +476,8 @@ describe('§7-d · payload 禁列（FR-6.3）', () => {
         'prompt',
         'prm_x',
         null,
-        JSON.stringify({ assetType: 'prompt', nested: { where: '/Users/duke/work/secret-repo' } }),
+        // 动态家目录：CI runner 上同样触发「本机用户名」判定（写死 /Users/duke 只在 owner 机器绿）
+        JSON.stringify({ assetType: 'prompt', nested: { where: join(homedir(), 'work', 'secret-repo') } }),
         NOW,
         NOW_DAY,
       )

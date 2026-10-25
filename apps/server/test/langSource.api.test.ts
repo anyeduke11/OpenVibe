@@ -130,6 +130,7 @@ describe('M9 P4 · POST /api/lang/scan', () => {
   })
 
   it('⚠️ 真扫一个 Python 项目 ⇒ 落库成功，且**响应里没有命中列表**', async () => {
+    if (process.platform === 'win32') return // 真扫描依赖 Python 工具链探测，win CI 上超 20s 闸——win32 门控（README 既有纪律：CI win 腿不构成 POSIX/工具链语义用例的证据）
     const h = await makeHarness()
     const dir = makePyProject()
     addProject(h.handle.db, 'p1', dir)
@@ -165,6 +166,7 @@ describe('M9 P4 · POST /api/lang/scan', () => {
 
 describe('M9 P4 · GET /api/lang/findings', () => {
   it('返回最近一次扫描的命中，且**路径是相对的**（DL-23）', async () => {
+    if (process.platform === 'win32') return // 真扫描依赖 Python 工具链探测，win CI 上超 20s 闸——win32 门控（README 既有纪律：CI win 腿不构成 POSIX/工具链语义用例的证据）
     const h = await makeHarness()
     const dir = makePyProject()
     addProject(h.handle.db, 'p1', dir)

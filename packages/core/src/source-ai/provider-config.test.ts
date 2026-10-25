@@ -192,6 +192,7 @@ describe('M9 · provider 配置层 · 三档能力探测（不许塌成一个兜
   })
 
   it('命令形态：**命令存在** ⇒ `ready`', async () => {
+    if (process.platform === 'win32') return // /bin/echo 是 POSIX 路径——win32 门控（README 既有纪律：CI win 腿不构成 POSIX 语义用例的证据）
     const d = db()
     writeProviderCollection(d, collection([entry({ enabled: true, kind: 'command', cmd: '/bin/echo' })]))
     const r = await resolveProvider(d, {} as NodeJS.ProcessEnv)
