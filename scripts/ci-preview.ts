@@ -34,15 +34,15 @@ try {
   console.error(`⛔ 触发失败（ref 须是远端已有的分支名/完整 SHA）：${(typeof err.stderr === 'string' ? err.stderr : err.stderr?.toString('utf8') ?? '').slice(0, 200)}`)
   process.exit(1)
 }
-// workflow run 异步建 run——轮询找该 ref 的最新 in_progress/queued run
+// workflow run 异步建 run——按 event=workflow_dispatch 拿最新一条（本脚本即唯一 dispatch 源）
 let runId: number | null = null
 for (let i = 0; i < 30 && runId === null; i++) {
   await new Promise((r) => setTimeout(r, 4000))
-  const list = gh<{ databaseId: number; headSha: string; status: string }[]>(
-    'run', 'list', '--workflow=CI', '--limit=5', '--json=databaseId,headSha,status',
+  const list = gh<{ databaseId: number; status: string }[]>(
+    'run', 'list', '--workflow=CI', '--event=workflow_dispatch', '--limit=1', '--json=databaseId,status',
   )
-  const hit = list.find((r) => r.headSha.startsWith(ref) && r.status !== 'completed')
-  if (hit !== undefined) runId = hit.databaseId
+  const hit = list[0]
+  if (hit !== undefined && hit.status !== 'completed') runId = hit.databaseId
 }
 if (runId === null) {
   console.error('⛔ 未找到触发的 run（ref 不存在或 workflow 无 dispatch？）')
