@@ -3120,7 +3120,6 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   1. ⚠️ **本补记之后仍留着的一处不一致**：`DEV-0112`／`DEV-0113`／`DEV-0114` 三条正文里引用的旧号（「DEV-0112（2026-10-17）」等）**按「日志不回改」原样留着** ⇒ 读那三处会看到已不存在的号；读法以本补记的映射表为准。
   2. ⚠️ **那 16 条引文侧登记仍未进 DEV_LOG.md**（只报数面「登记散落」已列出）⇒ 读者拿 DEV-0119 / 0123–0126 等号去 DEV_LOG.md 仍查不到 ⇒ **回填与否是 owner 的动作**。
   3. ⚠️ **改号后 DEV_LOG 的号段出现空洞**（119–137）：FR-1.2 仍按 warning 计（通配基线）—— 空洞是「引文侧登记占号」的副作用，不是丢登记。
-
 ## [DEV-0117] 2026-10-24 · v0.2.3 六项收尾：发布说明草稿 / OM 选包参数 / 裁决同步面 / 队列留痕 ㊱ / 版本 bump 0.2.3 / 发布 runbook
 
 - **时间**: 2026-10-24
@@ -3148,6 +3147,29 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   - ③ 队列闭集扩到 ㊿ 一次到位（10 个新号位），下次跳号不再动 docs-check；但「㉟ 保留位」的语义只在 ㉞ 行与 ㊱ 行的行文里，机器无从校验保留位是否被误占——留 owner 复核。
   - ④ **本笔曾误删 ㉝ 行**（以 ㉝ 整行做替换锚点导致其被 ㊱ 覆盖），当场发现整行恢复并复核前后文；教训登记：对 decisions.md 这类「每行都是凭据」的文件，插入行的锚点必须取**目标行自身**的独有结尾，绝不能取相邻行整行。
   - ⑤ docs:check 此刻剩 1 条 error（`dev-plan-v0.2.1.md:940` 引 `decisions.md §2` 死链）属并行会话在编文件（其 [DEV-0115] 的别名表工作正在收敛该引用），本笔不越界代改。
+
+## [DEV-0118] 2026-10-24 · v0.2.3 批次 C 第一段：CS3 upsert 归一 ＋ CS1 工具面子出口 ＋ CS4 死模块迁居 ＋ CS6 产品线声明
+
+- **时间**: 2026-10-24
+- **类型**: 重构（C 级为主，行为零变化；CS1 改变 `@openvibe/core` 的对外出口面——2 个脚本的导入随迁）
+- **关联文件**: `packages/core/src/db/seed-registry.ts`（新增）+ 7 个播种文件的 8 处替换、`packages/core/src/tooling/index.ts`（新增）、`packages/core/src/tooling/{m9-topic-terms,m9-topic-filter,m9-p1b-readme,m9-p1f-grade-guard}.ts`（自 db/ 迁居）、`packages/core/src/index.ts`（摘除 5 个工具面导出块）、`packages/core/package.json`（`./tooling` 子出口）、`scripts/collect-m9-sources.ts`、`scripts/collect-m9-github-sources.ts`、`scripts/extract-m9-guide-resources.ts`（导入改走子出口）、`tests/tooling-face.test.ts`（新增闸）、`docs/product-lines.md`（新增）、`docs/specs/v023-c-consolidation.md`（上游 spec v0.9）
+- **问题描述**: 批次 C 开工。spec 顺序 CS3 → CS1/CS4 → CS6；**CS2（种子纪律归一，需迁移 0019 加 seed_hash 列）与 CS5（barrel 三批收敛）、RQ4（段级 diff）排批次 C 下一段**（登记见本文末）。基线：upsert SQL 逐字复制 8 处/7 文件；采集/规格解析/守卫模块从产品主出口 re-export（E5）；4 个死模块住产品 db/。
+- **实现思路**: ① 消费面实测改变了 CS1 的边界——barrel 里 M9 家族 20 个模块中 **stage-choice / mode-assign / seeders / probe / links 是产品面**（server 的 lang* 路由在用），只有 **freshness / p1b-spec / p1b-necessity / p1d-spec / time-window-guard 五个是纯工具面**（消费者仅 2 个 collect 脚本的 2 个符号）⇒ 工具面按此窄口径迁出，M9 产品面符号留在主出口；② 物理归位（模块文件自 db/ 迁 tooling/）会级联（p1b-necessity 相对引 external-content-scan 等）⇒ 本段先做**出口面归位**（新建 `src/tooling/index.ts` re-export 现位模块），物理迁移留给 v2，验收口径（主出口零工具符号）不受影响；③ 闸前置——`tests/tooling-face.test.ts` 双向断言（主出口无工具符号 / tooling 符号齐 / M9 产品符号留主出口 / 死模块双侧不露）。
+- **核心变更**:
+  - **CS3**：`seed-registry.ts` 的 `seedRegistryUpsert` 单源；8 处（seed.ts ×1、p1-seed-lang-topics ×1、p1-5-concept-content ×2、p1-6-concept-deltas ×1、p1-7-topic-stages ×1、p1d-seed-profiles ×1、p1b-seed-resources ×1）脚本化替换，`grep 'ON CONFLICT(bundle) DO UPDATE SET content_hash'`（helper 外）归零。
+  - **CS1**：`@openvibe/core/tooling` 子出口（package.json exports + `src/tooling/index.ts`）；主 barrel 摘除 5 块；3 个脚本导入改走子出口。
+  - **CS4**：4 个仅测试引用的死模块物理迁居 `src/tooling/`（topic-terms / topic-filter / p1b-readme / p1f-grade-guard），其引用测试的相对导入随迁（`./x` → `../tooling/x`）；grade-guard 对 `m9-repo-scan`（db/，p2-guards 亦用）的依赖改指 `../db/`。「接入生产 or 删除」的最终处置保留 owner 推翻权。
+  - **CS6**：`docs/product-lines.md`——分发线/学习线/共享面/工具面四表 + 迁移号段规则（核心域与 lang 域单调取号、跳过对方已占号；0019 起核心域）+ 收拢台账。
+- **测试验证**:
+  - `npx vitest run tests/tooling-face.test.ts` → 4/4 绿（分离闸三向 + 死模块双侧不露）。
+  - 脚本面回归：`npx vitest run tests/m9-content-fingerprint.test.ts tests/m9-mutations.test.ts tests/m9-discipline.test.ts tests/lint-boundary.test.ts` → 60/60 绿（collect 脚本导入改道后其测试全过）。
+  - 种子面回归：`packages/core/src/db/seed.test.ts` 及各播种器用例绿（CS3 语义零变化）。
+  - 全量 `pnpm test` → **172 文件 / 2230 用例全绿**；`pnpm typecheck` 绿；`pnpm docs:check` 退出码 0。
+  - 复算命令：`grep -c "m9-source-freshness\|m9-p1b-spec\|m9-p1b-necessity\|m9-time-window-guard\|m9-p1d-spec" packages/core/src/index.ts`（→ 0）；`grep -rn "ON CONFLICT(bundle) DO UPDATE SET content_hash" packages/core/src --include='*.ts' | grep -v seed-registry | wc -l`（→ 0）；`ls packages/core/src/tooling/`。
+- **潜在风险**:
+  - ① 工具面模块物理位置仍在 `src/db/`（tooling/index.ts 相对转发）——「@openvibe/core/tooling」是出口口径不是目录口径，v2 物理归位时须级联 p1b-necessity→external-content-scan 的相对链。
+  - ② 主出口面收窄是**可观察变化**：任何绕过 tests/ 直接 import 这些符号的外部消费者会断——仓内消费者已全部随迁（grep 全仓复核），外部暂无（npm 未发布过含这些符号的版本……0.2.3 tarball 将不再含主出口的这些符号，属预期）。
+  - ③ CS2/CS5/RQ4 顺延下一段：CS2 的迁移 0019 按 product-lines.md 号段规则属 lang 域（给 5 张 lang 种子表加 seed_hash 列）；CS5 的审计工具（零消费符号分析）随下一段交付。
 
 ## [DEV-0138] 2026-10-24 · owner 指令四项落地：FR-1.5（DEV 号跨文件唯一）＋ FR-11.2（凭据指向空处判红）＋ 恢复体检工具 ＋ 并发写入提交前护栏
 
@@ -3211,3 +3233,196 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   - ③ RQ4 段级明细依赖 serve 可达：离线 diff 的段级能力缺失已在提示里如实声明；「段外自由区」判定按行集全等（非逐行 diff），两侧行数大时报告粒度是段级不是行级——符合 spec 判据（段名 + 行数）。
   - ④ grade-guard 闸未进 CI 矩阵（npm script 就位，ci.yml 是 owner 的并行会话改动面）——接入 CI 留 owner 或下一段。
   - ⑤ mergeSeedRow 的哈希键序依赖调用方按 contentColumns 固定构建 record——lang_topics 现按字面量序构建；未来接新表时列序错乱会导致假 user-modified（宁误报保护，不静默覆盖）。
+
+## [DEV-0140] 2026-10-24 · 三项增强落地：tooling-face 闸自动生成 ＋ 主出口面快照进 CI ＋ CS2 第二段设计预研（含列序防线用例）
+
+- **时间**: 2026-10-24
+- **类型**: 测试基建 + 文档（C 级为主：两条新闸 + 一支防线用例 + 一节设计预研；无产品行为变化）
+- **关联文件**: `tests/support/barrel-parse.ts`（新增，解析器单源）、`tests/tooling-face.test.ts`（改写为动态清单）、`tests/main-face-snapshot.test.ts`（新增）、`tests/core-main-exports.txt`（新增快照，391 符号）、`scripts/barrel-snapshot.ts`（新增）、`scripts/barrel-audit.ts`（改用共享解析器）、`package.json`（`barrel:snapshot`）、`packages/core/src/db/seed-merge.test.ts`（＋列序无关用例）、`docs/specs/v023-c-consolidation.md`（FR-2 第二段设计预研节）
+- **问题描述**: owner 三项指令（上轮未考虑且需要增强的需求 1/2/3 的兑现）：① tooling-face 闸的 TOOLING_ONLY 清单是手抄的 12 符号，工具面扩模块要手补闸；② 主出口面（0.2.3 tarball 对外契约）无快照，任何导出增删静默进包；③ CS2 第二段缺设计预研（覆盖式播种器的键裁定、force 语义、老行策略），且 mergeSeedRow 的列序契约无用例钉住。
+- **实现思路**: ① 解析器**单源**新建 `tests/support/barrel-parse.ts`（剥块内注释 / `type` 前缀 / `as` 别名，单双引号都收——首跑即抓到 `from "./fixtures/m9"` 双引号块漏记），tooling-face 改为动态清单 + **分层判定**：源级（主 barrel 导出名单与 tooling 名单零交集，type 也算契约）＋ 运行时（值符号双侧在位）——type 运行时被擦除，拿它查运行时只会假红；② 快照记**源级契约面**（391 符号）落 `tests/core-main-exports.txt`，比对测试在 vitest unit project ⇒ 三平台 CI 每轮必跑，红时的处置文案内建（审阅 diff → `pnpm barrel:snapshot` 同笔提交）；③ 列序防线用例（record 键倒置 ⇒ 判定不变，pickRecord 按 contentColumns 重排的契约实证）+ 预研节写进 spec FR-2 之下。
+- **核心变更**:
+  - `barrel-parse.ts`：`parseExportsOfFile` / `exportedNames` 两出口；barrel-audit.ts 的本地 parseBarrel 删除改用单源（顺带修正其 `ExportedName` 引用）。
+  - `tooling-face.test.ts`：手抄 12 符号 → 动态全量（现值 5 模块 36 符号自动覆盖）；新增**源级零交集**判定。
+  - `main-face-snapshot.test.ts`：三判据——源级面与快照逐符号一致（红时给处置指引）/ 快照的每个**值符号**运行时可导（type 擦除不进比对面）/ 快照不含工具面符号（与 tooling-face 互为冗余，防两闸同时失明）＋ 非空哨兵。
+  - `seed-merge.test.ts`：列序无关用例（键倒置 ⇒ unchanged）。
+  - spec 预研节：逐表设计表（键/内容列/现状语义/动作）+ 两项待裁（`lang_topic_content` 无唯一键的键裁定；p1-7 与 p1-seed 对 `stage_id` 的**双写冲突**——合并世界里 p1-7 的分站写回冗余，应退化为只写 edges）+ force 语义预判（CLI 显式旗标、server 端点不提供）+ 每表同构测试矩阵。
+- **测试验证**:
+  - `npx vitest run tests/tooling-face.test.ts tests/main-face-snapshot.test.ts` → **9/9 绿**（动态清单哨兵 ≥30、源级零交集、运行时双侧、产品面留位、快照三判据）。
+  - `pnpm barrel:snapshot` → 391 符号落档；`pnpm barrel:audit` → 391 / 零消费 0（共享解析器重构后同值）。
+  - `packages/core/src/db/seed-merge.test.ts` → 7/7（含新列序用例）。
+  - 全量 `pnpm test` → **178 文件 / 2315 用例全绿**；`pnpm docs:check` 退出码 0；lint 余 4 条全在并行会话在编文件。
+  - 复算命令：`pnpm barrel:audit | head -1`；`pnpm barrel:snapshot`；`wc -l tests/core-main-exports.txt`（→391）。
+- **潜在风险**:
+  - ① 快照是**强闸**：今后任何主出口增删（哪怕加一个合理的导出）都会红一次并要求走 `pnpm barrel:snapshot`——这是设计意图（契约变更必须显式审阅），但会让「顺手 export」的开发流多一步，owner 不适可撤闸（撤闸 = 删 main-face-snapshot.test.ts 一文件）。
+  - ② 快照档与 golden 字节契约**分址不分类**：曾在 `tests/golden/` 落档时被 docs:check 冻结面闸拦下（FR-9.1，golden 目录零改动纪律）⇒ 迁至 `tests/core-main-exports.txt`。两份契约档今后分居两地，位置语义在两文件头注里各自声明。
+  - ③ 预研表里 `lang_topic_content` 的键裁定与 p1-7 退化裁定**未经 owner 签字**，第二段开工前必须各签一次（B 级）。
+  - ④ 解析器只认 `export { … } from '…'` 形态：barrel 若改用 `export *` 或拆多入口，解析面静默失真——哨兵（≥30 / ≥300）只能兜住全空，不兜半失真；barrel 结构性变更时须同步改解析器（三消费点同源，改动一处）。
+
+## [DEV-0141] 2026-10-24 · v0.2.3 批次 C 收官：CS2 第二段（全部播种器三态化）＋ 0020 唯一索引 ＋ 两项裁定落定
+
+- **时间**: 2026-10-24
+- **类型**: 功能（B 级：剩余 6 播种器接入行级三态合并——p1-5/p1-6 的**无条件覆盖 clobber 面清零**；0020 加唯一索引；三条 additive 语义在既有结果对象上以可选字段呈现）
+- **关联文件**: `packages/core/src/db/migrations/0020_lang_topic_content_key.sql`（新增）、`packages/core/src/db/m9-p1-5-concept-content.ts`、`packages/core/src/db/m9-p1-6-concept-deltas.ts`、`packages/core/src/db/m9-p1d-seed-profiles.ts`、`packages/core/src/db/m9-p1b-seed-resources.ts`、`packages/core/src/db/seed-merge.ts`（标识符加引号修 `group` 保留字）、`packages/core/src/db/{m9-p1-5-concept-content,m9-p1-6-concept-deltas,m9-p1b-seed-resources}.test.ts`、`packages/core/src/db/m9-p1d-mode-profiles.test.ts`、`packages/core/src/db/core-db.test.ts`、`docs/specs/v023-c-consolidation.md`（预研表逐行落定）、`docs/product-lines.md`
+- **问题描述**: 批次 C 收官段。基线（第一段 [DEV-0139] 实测立档）：p1-5（lang_concepts / lang_topic_content）、p1-6（lang_concept_deltas）、p1d（lang_profile_phases / lang_topic_profiles）为**无条件覆盖式 upsert——reseed 即静默覆盖用户手改**；p1b 三表为 INSERT OR IGNORE（不更新）；lang_topic_content 无唯一键（同键双行会让 mergeSeedRow 的 .get() 静默歧义）。两项裁定（spec FR-2 预研表）待落：① lang_topic_content 键；② p1-7 退化。
+- **实现思路**: ① 裁定①落地 = 迁移 **0020**：先按 `(ref_kind, ref_id, kind)` 分组保留 MAX(rowid) 去重（历史无键表不能假设无重复，否则建唯一索引直接失败），再 `CREATE UNIQUE INDEX uq_lang_topic_content_ref`；② 裁定②**改判**：p1-7 的 stage_id 写回**保留**——存量库「118 行 stage_id 全 0」的修复依赖它，合并的用户态保护会让 0 站位老行永不更新（正是修不动的死结）；双源根治（站位并入 topics json）留第三段设计题；③ 每个播种器保留其 created/updated 计数语义、以**可选字段**（ignored/userModified）承载三态可见性——把既有用例的语义churn压到最小；④ **status 判定随语义更新**：全 unchanged 的重装从「imported（假更新）」改为「skipped + ignored=N」（四处既有断言随迁）。
+- **核心变更**:
+  - p1-5：`LANG_CONCEPTS_MERGE_SPEC`（键 slug）与 `LANG_TOPIC_CONTENT_MERGE_SPEC`（键 ref_kind/ref_id/kind；updated_at 记账列仅 INSERT 写入）落 `mergeSeedRow`；「概念挂接回写 topics.summary（【概念层】前缀）」判定为**派生态**保持无条件写，双源纠缠登记。
+  - p1-6：`DELTAS_MERGE_SPEC` 第一遍 upsert 三态化；第二遍 supersedes 链路回填保持原样（不在内容列）。
+  - p1d：`PROFILE_PHASES_MERGE_SPEC`（键 UNIQUE(profile,lang,ord)）与 `TOPIC_PROFILES_MERGE_SPEC`（键 topic_id+profile）三态化；「清陈旧行」DELETE 保持。
+  - p1b：`RESOURCES_MERGE_SPEC`（键 lang+name）/`VIBE_RESOURCES_MERGE_SPEC`（键 group+name）/`TOPIC_RESOURCES_MERGE_SPEC`（键 topic_id+resource_id，role 为内容列）三态化；**is_fav/star/phase_id 判为用户态/登记列——仅 INSERT 写入、更新路径不触碰（收藏与星标不会被 reseed 冲掉）**。
+  - `seed-merge.ts`：全部 SQL 标识符加双引号——`lang_vibe_resources."group"` 是保留字，裸列名语法炸（被逐行 catch 吞成静默 0 行，DL-41 测试当场抓到）。
+  - 0020 入列 ⇒ core-db 迁移清单合同 19→20（三处期望数组 + 计数）。
+- **测试验证**:
+  - 逐文件：`m9-p1-5-concept-content.test.ts` 25/25（幂等断言改 CS2 语义：二次 updated=0 + ignored=56；**变异②升级**——0020 唯一索引后同键重复在写入层即被拒，测试从「插入后靠闸②查重」改为「INSERT 直接抛 UNIQUE」）；`m9-p1-6-concept-deltas.test.ts`（首跑/幂等语义随迁 + ignored=29）；`m9-p1d-mode-profiles.test.ts`（二次装载 skipped + ignored>0）；`m9-p1b-resources.test.ts`（DL-41/47 当场抓到 group 保留字问题，修复后绿）；`seed-merge.test.ts` 7/7；`core-db.test.ts` 8/8（清单 20）。
+  - 全量 `pnpm test` → **178 文件 / 2320 用例全绿**；`pnpm docs:check` 退出码 0；typecheck 除并行会话在编 docs-check.ts 外零错误；lint 余量同前（并行会话文件）。
+  - 复算命令：`grep -c "MERGE_SPEC" packages/core/src/db/{m9-p1-5-concept-content,m9-p1-6-concept-deltas,m9-p1d-seed-profiles,m9-p1b-seed-resources}.ts`（每文件 ≥1 spec + 使用点）；`ls packages/core/src/db/migrations/ | tail -2`（0019/0020）；`pnpm barrel:audit | head -1`（出口面不变 391）。
+- **潜在风险**:
+  - ① 0020 的去重 DELETE 保留 MAX(rowid)：若历史重复行中「用户手改的是旧行」会丢手改——该表此前没有用户可见面（内容由播种器独占写），风险评级低；删除的行本可从种子重算。
+  - ② CS2 合并语义对**派生态写入**（p1-5 的 summary 回写、p1-7 的 stage 写回、p1d 的清陈旧行 DELETE）不设防——三者都是「种子推导的派生数据」，但用户若手改派生列仍会被下一轮 reseed 覆盖；根治需单源重构（第三段设计题，已登记）。
+  - ③ 六个播种器的 `ignored` 语义有历史差异（p1-seed 的 ignored 曾只数 INSERT OR IGNORE 跳过）——现统一为「非 created 非 updated 的行」，跨播种器的计数对比口径以本条为准。
+  - ④ 并行会话在编面（docs-check.ts / langRoadmap.api.test.ts / restore-link-check.ts）持续位移，本笔的 typecheck/lint 判读均按「排除其在编文件」口径执行。
+
+## [DEV-0142] 2026-10-24 · 批次 C 收尾三项 ＋ 批次 D 提取链垂直切片（AN1/AN4/AN5）
+
+- **时间**: 2026-10-24
+- **类型**: 功能（B 级：m9 统一重放端点、提取链全链路、0021 三表迁移、采纳率影子门槛；无删除性变更）
+- **关联文件**: `apps/server/src/routes/settings.ts`、`apps/server/test/reseed-m9.api.test.ts`（新增）、`docs/product-lines.md`（派生列清单）、`packages/core/src/db/seed-perf.test.ts`（新增）、`packages/core/src/db/migrations/0021_ai_extract.sql`（新增）、`packages/shared/src/{constants.ts,schemas/extract.ts,extract-prompt.ts,schemas/term.ts,schemas/playbooks.ts}`、`packages/core/src/repos/{appMeta,agentService 相关}.ts`、`packages/core/src/extract/`（新增 7 文件）、`packages/core/src/services/agentService.ts`、`packages/core/src/index.ts`、`apps/server/src/routes/extract.ts`（新增）、`apps/server/src/app.ts`、`apps/web/src/hooks/useExtract.ts`（新增）、`apps/web/src/components/settings/SettingsSections.tsx`、`apps/web/src/pages/SettingsPage.tsx`、`apps/web/src/i18n/lane-system.ts`、`tests/support/barrel-parse.ts`、`tests/tooling-face.test.ts`、`tests/main-face-snapshot.test.ts`、`tests/order-determinism.test.ts`、`packages/core/src/db/{core-db,m8-ledger-schema,m9-p1b-resources,term-ai-ledger}.test.ts`、`docs/specs/v023-d-ai-extract.md`（允许键闭集行）
+- **问题描述**: owner 指令两段：①批次 C 收尾三增强（统一重放入口 / 派生列声明 / 性能护栏）；②批次 D 提取闭环（AN1 提取 + AN4 治理面 + AN5 影子门槛，spec `v023-d-ai-extract.md` 全 FR）。
+- **实现思路**: ① 重放入口读 `M9_SEEDS_DIR` 单源（core/db/seeds——此前语言线种子目录无单源，测试用 content/seed 才发现 ENOENT）；② 提取链垂直切片照 spec 架构图逐件：锚定校验纯函数 → runner（复用解读链 provider 配置，**偏离预判③「新键」**：同键复用让配置面零新增，代价登记）→ service 编排（总闸→预算→同意→读日志脱敏→出网→版本比对→锚定→落 pending→台账）→ dispatch 三分支（draft 兜底 + tags 反链）→ 路由；③ **选择次数制预算**（每日 20 次调用，从 local_events 计数）替代 spec 的 token 制——9 键白名单无 token 位，次数制达成同等保护且零契约改动（偏离登记）；④ ledger/consent/采纳率全部本机现算，零额外出网面。
+- **核心变更**:
+  - **C 收尾**：`POST /api/settings/reseed/m9`（八 bundle 依赖序重放、三态计数汇总、RM9-01/02 幂等用例）；product-lines「派生列清单」四行（summary 回写 / stage_id / supersedes / profiles 清陈旧——全部「种子推导非用户内容」，用户手改会被 reseed 冲，根治方向逐列声明）；`seed-perf.test.ts` 数量级闸（真种子全链 1ms vs 10s 天花板，只报数输出）。
+  - **D 批次**：迁移 **0021**（agent_ingests kind 5→8 重建、local_events kind 23→25 重建、ai_extract_consent 新表）；shared 三源（AGENT_INGEST_KINDS+3 / AGENT_PAYLOAD_SHAPE+2×9键 / ExtractRequest·ExtractOut·ConsentOut·AdoptionOut 契约 + buildExtractPrompt 提示词单源 + TERM/PLAYBOOK source 闭集 +`ai-extract`）；core `extract/` 七件（anchor 纯函数 / runner 复用解读 provider / consent DL-21 / service 六段编排 / adoption 影子门槛 25%·窗口 20 / DAILY_CALL_LIMIT=20 / ExtractError）；agentService `publishCandidate` 三分支（draft 恒定、tags 反链 `log:<id>`、playbook 四段映射 scenario=title/problem=quote/practice=body）；server 五路由（POST extract、GET/POST gate、GET/PUT/DELETE consents、GET adoption）+ buildApp 注入点（extractRunner/dailyCallLimit）。
+  - **Web**：`useExtract` 五 hooks + 设置页 `AiSection`（总闸开关 / 采纳率面板 / 同意清除）+ i18n 键。**日志区提取按钮未做**（见未完成）。
+- **测试验证**:
+  - 新增 8 文件：`reseed-m9.api.test.ts` 2/2（八 bundle 齐 + 二次重放 created=0/ignored>100）；`seed-merge.test.ts` 7/7（含列序无关）；`seed-perf.test.ts` 1/1（全链 1ms）；`extract.api.test.ts` **7/7**（EXT-01 闸关 / EXT-02 consent-required→锚定过滤 pending×2 / EXT-03 确认出草稿+采纳率 / EXT-04 幂等 / EXT-05 熔断 / EXT-06 记忆+删行 / EXT-07 台账 9 键白名单逐字）；`anchor` 用例含于 service 端到端；`order-determinism` 10/10（project_id 入确定性尾部白名单）。
+  - 合同随迁：`core-db` 迁移清单 21 项、`m8-ledger-schema` CHECK 25 项/Agent 8/AI 列表 3 项、`m9-p1b-resources` 25 项、`term-ai-ledger` 末尾项、`agentPayload` 双源闸（两新 kind 绑 spec v023-d FR-8 允许键行——**解析面要求 `→` + 反引号 kind，格式两轮才对齐**）、主出口快照 391→重生成。
+  - 全量 `pnpm test` → **181 文件 / 2330 用例全绿**；`pnpm docs:check` 退出码 0；typecheck/lint 的余量全在并行会话在编文件（docs-check.ts / langRoadmap.api.test.ts / restore-link-check.ts）。
+  - 复算命令：`grep -rn "MERGE_SPEC" packages/core/src --include='*.ts' -l | wc -l`；`curl -s localhost:8787/api/extract/gate`（gate=false 缺省）；`grep -c "允许键" docs/specs/v023-d-ai-extract.md`（→1 行双 kind）。
+- **潜在风险**:
+  - ① **0021 三表重建**：agent_ingests / local_events 数据经 INSERT SELECT 复制，两个索引随建——升级路径已有 core-db 0011 演练型用例护住清单幂等，但**含历史数据的真库升级未在真机演练**（发布说明「未验证的事」登记项）。
+  - ② runner 复用解读链 provider：解读配置的删除/改键会同步影响提取（同键同命）——设置页两个区共用一份配置的表述已进 i18n（aside「默认关·出网需逐项目同意」），UI 上未显式提示同源，留改进。
+  - ③ 次数制预算与 spec 的 token 制偏离已登记（DEV-0142）；若 owner 坚持 token 制需扩 9 键白名单加 tokens 键（B 级契约变更）。
+  - ④ AN5「连续 2 轮低于门槛」的时间序列判定 MVP 化为「当前累计窗口 belowThreshold」——采纳历史表未建，连续性判定留 AN5 第二段。
+  - ⑤ 提取链的 LLM 真实端到端未跑（fake runner 注入）——真 provider 下首跑属发布后 dogfooding 范围（批次 D 验收 2 的采纳率数据采集一并进行）。
+
+## [DEV-0143] 2026-10-24 · 批次 D 收官：提取入口 UI ＋ AN5 第二段（快照/连续轮次）＋ 0021→0022 真库演练 ＋ spec 验收缺口补齐
+
+- **时间**: 2026-10-24
+- **类型**: 功能 + 测试基建（B 级：迁移 0022、采纳率快照与连续轮次判定、提取入口组件；演练脚本为工具面）
+- **关联文件**: `apps/web/src/components/projects/ExtractLauncher.tsx`（新增）+ 同名测试、`apps/web/src/components/projects/DevLogList.tsx`（挂载）、`apps/web/src/hooks/useExtractRun.ts`（新增）、`apps/web/src/i18n/zh.ts`、`apps/web/src/i18n/lane-system.ts`、`apps/web/src/components/settings/SettingsSections.tsx`（横幅）、`packages/core/src/db/migrations/0022_adoption_snapshots.sql`（新增）、`packages/core/src/extract/adoption-snapshots.ts`（新增）、`packages/core/src/extract/index.ts`、`packages/core/src/index.ts`、`apps/server/src/routes/extract.ts`（adoption 升级 + POST snapshot）、`apps/server/test/extract.api.test.ts`（+5 用例）、`packages/core/src/db/core-db.test.ts`（清单 22）、`scripts/migrate-drill.ts`（新增）+ `package.json`（`migrate:drill`）、`docs/dev-plan.md`（§1.5 登记）、`packages/core/src/db/m9-p1{b,d}*.ts`（死 SQL 常量清理）
+- **问题描述**: 批次 D 三残项（owner 上一轮「继续执行任务」延续）：① 日志区提取入口（spec FR-1 的多选 + 确认屏，上轮只落了设置面）；② AN5「连续 2 轮」时间序列（上轮 MVP 只有当前累计）；③ 0021 重建迁移的真库演练（上轮风险①）。外加 lint 残留清理与 spec §7 验收表四缺口（#1 三 kind 全覆盖 / #3 pending 零写 / #4 draft 兜底 / #10 解除用例）。
+- **实现思路**: ① 提取入口三条件渲染（闸关⇒整体不渲染，DL-08）+ 确认屏展示**确切待发内容**（标题+正文预览，红线 3）+ 结果态留在弹窗内（成功不自动关——计数读完后手动关，首版曾 onSuccess 关窗导致结果不可见，组件测试当场抓出）；② 快照表落行条件 = 裁决累计达窗口下限（≥20），轮次号同 kind 自增；「连续 N 轮」取最近两轮快照全低于门槛——**排序在 JS**（ORDER BY 白名单不含 round_no，与 listDagEdges 同款处置）；③ 演练脚本三判据：受影响表行数一致、内容指纹一致（排除 0019 新增的 seed_hash 列）、seed_hash 全 NULL（不回填纪律）——对 owner 真库实跑通过（10→22 迁移，agent_ingests/local_events 指纹逐字一致）。
+- **核心变更**:
+  - **提取入口**：`ExtractLauncher`（多选 checkbox 行 + 已选计数 + 确认弹窗 + 提取结果计数/锚定丢弃显示）挂 DevLogList 尾部；`useExtractRun` mutation（成功失效 agent-ingests / ai-adoption 两 key）；i18n 双源键。
+  - **AN5 第二段**：迁移 **0022**（adoption_snapshots：kind/round_no 唯一、rate/below 列）；`writeAdoptionSnapshots`（窗口下限才落行）+ `consecutiveLowAdoption`（最近 2 轮全低 ⇒ triggered）+ `adoptionStatsWithHistory`；`GET /api/ai/adoption` 升级带 consecutive；`POST /api/ai/adoption/snapshot` 快照动作；设置页 AiSection 增低采纳横幅（noteCls('warn') 语义 token，触发时显示「连续 N 轮低于门槛——建议关闭」）。
+  - **演练**：`pnpm migrate:drill [--db]`——库副本上跑只前进迁移，markdown 对账表输出；owner 真库实跑 ✓（发现其库停在 0010，本演练同时验证了 0011–0022 全链）。
+  - **验收缺口**：EXT-10（playbook 候选端到端：problem=quote 四段映射断言）、EXT-11（确认前三业务表逐字不变 + 载荷伪造 status=published 仍入库 draft——**直接改 pending 行 payload 再确认**，比构造载荷更狠的兜底证据）、EXT-12（门槛解除：低→高两轮后 triggered=false）。
+- **测试验证**:
+  - `extract.api.test.ts` → **12/12**（+EXT-08 窗口下限不落快照/轮次自增、EXT-09 连续 2 轮触发、EXT-10/11/12）；`ExtractLauncher.test.tsx` → 2/2（闸关不渲染、多选→确认屏→提交→计数显示 + POST body 断言）。
+  - `pnpm migrate:drill --db ~/.openvibe/data/openvibe.db` → 对账通过（agent_ingests 1→1 指纹同、local_events 12→12 指纹同、lang 表 seed_hash 全 NULL）。
+  - 全量 `pnpm test` → **182 文件 / 2337 用例全绿**；`pnpm docs:check` 退出码 0（migrate:drill 已登记 dev-plan §1.5）；typecheck 零错误（并行会话 docs-check.ts 在编除外）；lint 余 3 条全在并行会话 langRoadmap.api.test.ts（其自收敛中，本轮 4→3）。
+  - 复算命令：`pnpm migrate:drill`；`grep -c "EXT-" apps/server/test/extract.api.test.ts`（→12）；`ls packages/core/src/db/migrations/ | tail -1`（→0022）。
+- **潜在风险**:
+  - ① 快照动作无自动触发器（POST 手动 / reseed 面板未来接线）——「轮次」的时间密度取决于使用频率，QG1 判定的严格性随之波动；自动定期快照留批次 E/F 或工具面。
+  - ② ExtractLauncher 的 provider-ready 判定走「提交后结果态反馈」而非预探测（DL-08 的入口不渲染只覆盖总闸）——unavailable 态会多一次提交才可见，改进项：接 capability 探测（解读链已有，无网络请求）。
+  - ③ 演练脚本的指纹比对对「同表加列后旧行默认值」敏感（本轮只 seed_hash 一列且全 NULL，安全）；后续迁移若给既有表加带默认值的列，须扩展排除清单。
+  - ④ 「新项目默认关提取」的执行面未落（QG1 触发后的动作之一）——现仅横幅建议；强制默认项随批次 E 的 discuss 通道一并做 provider 面时处理。
+
+## [DEV-0144] 2026-10-24 · 批次 D 收尾：五缺口闭合（双闸断言/anchor 独立用例/本机豁免/设置区补件/consent 四值表）＋ spec v023-d 升 v1.0
+
+- **时间**: 2026-10-24
+- **类型**: 功能 + 测试（B 级：迁移 0023、ExtractRunner.local、预算豁免、usage 端点；纯测试与文档为 C 级）
+- **关联文件**: `packages/core/src/extract/anchor.test.ts`（新增）、`packages/core/src/extract/consent-detail.ts`（新增）、`packages/core/src/extract/runner.ts`、`packages/core/src/extract/service.ts`、`packages/core/src/extract/index.ts`、`packages/core/src/index.ts`、`packages/core/src/db/migrations/0023_ai_extract_shares.sql`（新增）、`packages/core/src/db/core-db.test.ts`（清单 23）、`apps/server/src/routes/extract.ts`、`apps/server/test/extract.api.test.ts`（+4 用例至 16）、`apps/web/src/hooks/useExtract.ts`（+useExtractUsage）、`apps/web/src/components/settings/SettingsSections.tsx`、`apps/web/src/i18n/lane-system.ts`、`tests/core-main-exports.txt`（重生成）、`docs/specs/v023-d-ai-extract.md`（升 v1.0）
+- **问题描述**: 批次 D 完成度检查（本日）确认核心闭环全绿但存五缺口：⑤双闸独立性无断言、③anchor 无独立纯函数测试、④本机端点无预算豁免、②设置区缺 provider 同源指引与成本台账、①consent 四值推导未实现。owner 指令「按建议进行D批次收尾」执行闭合。
+- **实现思路**: ①缺口①走**专用表方案**（0023 `ai_extract_shares`，对齐 M9 lang_source_shares 先例）而非台账加键——审计粒度（consent 来源/计数）需要专用列，塞 9 键白名单是契约破坏；`deriveExtractConsent` 纯函数两输入（库里记忆 + 本次是否显式确认），客户端只提供「用户点了确认」的事实、无权上报授权分类（M9 deriveConsentDetail 同纪律）；提取链无逐条勾选 ⇒ 四值取三 + unknown 防御值（万一未来绕过 consent-required 关，审计行如实暴露）。②缺口④：预算检查从「闸后前置」移到「runner 就绪后」——本机豁免需要 runner 的 local 标记，顺序调整使 EXT-05 类用例需先过同意关（用例随迁 remember）。③失败出网不落 shares（失败的审计在台账 result='error'）——成功才落，两表分工：台账 = 出网事实流（成败都记、9 键指纹），shares = 审计明细（来源/计数，成功落行）。
+- **核心变更**:
+  - **缺口③⑤**：`anchor.test.ts` 6 支纯函数用例（逐字命中/单字符差异拒绝/下标越界/多日志锚定不串/跨行 quote/重复候选独立判定）；EXT-13 双闸断言（M8 写闸关 + AI 闸开 ⇒ 提取落 pending，同时 external ingest 被拒 403/422）。
+  - **缺口④**：`ExtractRunner` 增 `local` 只读标记（resolveExtractProvider 由 isLocalEndpoint 传入）；service 预算检查移至 runner 就绪后，`!runner.local && calls >= limit` 才熔断；EXT-14（local 两次都 ok + 远端同 limit 熔断且提示含豁免说明）。
+  - **缺口②**：`GET /api/ai/extract/usage`（ai_extract_call 台账按 aiProvider/aiModel json_extract 分组——**首版 SQL 误把 payload 键当列名，500 当场暴露，修正**）；AiSection 补 provider 同源指引文案 + 成本台账视图（N 次出网/成功/候选条数）。
+  - **缺口①**：迁移 **0023**（ai_extract_shares：consent_source 二分 + consent_detail 四值 CHECK，索引 created_at+project_id）；`deriveExtractConsent` + `recordExtractShare`（成功出网落行）+ `extractUsage` 视图查询；EXT-15（首次 confirm ⇒ explicit_tick/user_reticked；记忆路径 ⇒ remembered/memory_applied）+ EXT-16（失败不落 shares、台账 error=1、usage 分组计数）。
+  - **spec v1.0**：§8.2 四待裁 → 裁定记录（QG1 值定稿 25%/20/2、本机豁免采纳、provider 同键复用、预算次数制）+ 收尾补齐登记；§7 增第 12 行（缺口闭合对应用例映射）。
+- **测试验证**:
+  - `extract.api.test.ts` → **16/16**（+EXT-13 双闸 / EXT-14 本机豁免 / EXT-15 四值推导 / EXT-16 shares 分工与 usage）；`anchor.test.ts` 6/6 零网络；core-db 清单 23（8/8）；主出口快照重生成后分离闸 9/9。
+  - 全量 `pnpm test` → **183 文件 / 2347 用例全绿**；`pnpm docs:check` 退出码 0（spec v1.0 版本行过闸）；typecheck 零错误（并行会话 docs-check.ts 在编除外）；lint 余 5 条在并行会话文件（langRoadmap 系）。
+  - 复算命令：`grep -c "EXT-" apps/server/test/extract.api.test.ts`（→16 用例）；`ls packages/core/src/db/migrations/ | tail -1`（→0023）；`grep -n "v1.0" docs/specs/v023-d-ai-extract.md | head -1`；`npx tsx -e "..."`（usage SQL 直接跑通）。
+- **潜在风险**:
+  - ① 0023 迁移未入 migrate:drill 的演练清单（脚本按「lang_% 与两表」枚举受影响表，ai_extract_shares 是新表无数据迁移，风险低；下次演练跑 10→23 全链时自然覆盖）。
+  - ② usage 视图的 candidates 是 SUM(candidateCount)——失败调用的 candidateCount=0 不影响；但「丢弃候选的归因」只能到 droppedCount 粒度，per-candidate 的丢弃原因不在台账（dropped 明细只在响应里，不入库——与「台账无正文容器」纪律一致的取舍）。
+  - ③ provider 同键复用的撤回成本随使用增长（配置迁移）——§8.2③ 已登记撤回路径。
+  - ④ EXT-13 断言的外部入口 403/422 是「M8 写闸默认关」的现状断言——若未来 owner 开全局写闸，该用例的外部入口部分需随语义更新（提取独立性断言不受影响）。
+
+## [DEV-0145] 2026-10-24 · 批次 F（AN3 MCP 上下文服务）落地：openvibe mcp ＋ 三只读 tool ＋ 手写最小 stdio JSON-RPC
+
+- **时间**: 2026-10-24
+- **类型**: 功能（B 级：新增 CLI 命令与 stdio 服务面；无迁移、无既有端点变更）
+- **关联文件**: `apps/cli/src/commands/mcp.ts`（新增）、`apps/cli/src/index.ts`（注册 + 旗标透传）、`packages/shared/src/cli-commands.ts`（mcp 条目）、`apps/server/test/cliCommands.api.test.ts`（计数 11）、`apps/cli/test/mcp.test.ts`（新增 7 用例）、`docs/specs/v023-e-ai-assistant.md`（F 批落地登记 + §8.2③ 裁定）
+- **问题描述**: 批次 F（spec v023-e FR-5 / AN3）：`openvibe mcp` 以 stdio 形态向 AI IDE 暴露只读上下文工具。**排期说明**：spec 原排 E→F，本批按 owner 指令先行 F——F 的实际依赖是 serve API 稳定 + D 批治理面（均已就绪），E 批（AN2 问答）仍待开工；spec 版本保持 v0.9（整体升 v1.0 待 E 与 §8.2①②）。
+- **实现思路**: ① 协议手写最小 JSON-RPC 2.0 子集（§8.2③ 定稿：CLI 单文件 bundle 5.1 MB，官方 SDK 依赖树显著膨胀；stdio 语义极小——initialize（回显客户端 protocolVersion 保兼容）/ notifications/initialized（notification 无响应）/ tools/list / tools/call 四方法 + -32700/-32601/-32602/-32603）；② **stdout 即协议通道**：config 发现链警告只走 stderr（一行非协议输出会毁掉客户端解析）；③ 三 tool 全只读——project_context / search_assets 转发本地 serve HTTP（token 走 config.json 通道），pack_diff 复用 diffAction 本地比对（不依赖 serve）；④ prompts 无搜索端点（m1）⇒ 取列表本地包含匹配（薄客户端不引 FTS）；未知工具名一律 isError 拒绝（无写面可枚举）。
+- **核心变更**:
+  - `mcp.ts`：readline 逐行 → dispatch → 单行响应；三 tool 的 inputSchema（JSON Schema object 形）；serve 不可达 ⇒ isError + 「先 openvibe serve」（同 ask 人话形态）；stdin EOF / SIGTERM 干净退出；`--server/--token` 旗标透传（警告 stderr）。
+  - `CLI_COMMANDS` 增 mcp（readonly / 零写盘）——**摘要逐字闸（IT-CLI-CMD-05）当场抓到注册处与登记处措辞不一致，统一为注册处版本**；漂移闸计数 10→11；verify:matrix 的 emit 与 run 自动纳入 mcp（单源生效，run 形态下 mcp 列 manual——stdio 服务无「跑一条命令退出」语义）。
+  - spec v023-e：版本行登记 F 批先行落地 + E 批待开工；§8.2③ 写裁定（手写最小实现 + 依据）；§7-6 验收行标 ✅ 并补 MCP-05/06/07 对应关系。
+- **测试验证**:
+  - `apps/cli/test/mcp.test.ts` → **7/7**：MCP-01 握手（回显版本/capabilities/serverInfo + notification 零响应）；MCP-02 三工具 schema；MCP-03 pack_diff 本地比对（注入后 clean → 手改 TERMS.md 后 drifted 含文件级明细）；MCP-04 serve 不可达双工具 isError 人话；MCP-05 静态断言零网络监听（listen/createServer）；MCP-06 错误码（未知方法 -32601 / 未知工具 isError）；MCP-07 stdin EOF 退出码 0。
+  - 漂移闸 5/5（11 条命令 + 摘要逐字）；`pnpm verify:matrix --emit` 输出含 mcp 行。
+  - 全量 `pnpm test` → **184 文件 / 2354 用例全绿**；`pnpm docs:check` 退出码 0；typecheck 零错误（并行会话在编除外）；lint 余 4 条在并行会话文件。
+  - 复算命令：`grep -n "command('mcp')" apps/cli/src/index.ts`；`echo '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' | node --import tsx apps/cli/src/index.ts mcp`（三工具清单）；`grep -c "listen" apps/cli/src/commands/mcp.ts`（→0）。
+- **潜在风险**:
+  - ① 手写协议是**最小子集**：sampling / roots / prompts / resources 等 MCP 能力未实现（capabilities 只报 tools）——客户端若请求这些能力会得 -32601（如实拒绝，不是假装支持）；真机 AI IDE（Claude Code/Cursor）的握手差异未实测，属发布后 dogfooding 面。
+  - ② search_assets 的 prompts 腿是全量列表 + 本地包含匹配——库大时慢且匹配粗（无 FTS 排序）；m1 若补 /api/prompts/search 端点应切换（登记在案）。
+  - ③ project_context 的 budget/fields 透传未经端到端真机验证（context API 既有纪律由 M8 用例背书）。
+  - ④ MCP-05 静态断言只扫 mcp.ts 自身——依赖的 client.ts/config.ts 的网络面由既有架构（只出不听）保证，未加跨文件断言。
+
+## [DEV-0146] 2026-10-25 · 批次 E（AN2 问答）落地：openvibe discuss ＋ 逐段来源标注 ＋ AgentPanel 问块 ＋ spec v023-e 升 v1.0
+
+- **时间**: 2026-10-25
+- **类型**: 功能（B 级：新端点 POST /api/projects/:id/discuss、新 CLI 命令、新 web 问块、shared 契约；无迁移——ai_discuss_call kind 与 consent 表 0021 已预留）
+- **关联文件**: `packages/core/src/extract/discuss.ts`（新增）+ 同名纯函数测试、`packages/shared/src/schemas/extract.ts`（Discuss 契约）、`packages/core/src/extract/index.ts`、`packages/core/src/index.ts`、`apps/server/src/routes/extract.ts`（discuss 路由）、`apps/server/src/app.ts`（discussDailyCallLimit 注入）、`apps/cli/src/commands/discuss.ts`（新增）、`apps/cli/src/index.ts`（注册）、`packages/shared/src/cli-commands.ts`（12 条）、`apps/server/test/cliCommands.api.test.ts`（闸 12）、`apps/server/test/discuss.api.test.ts`（新增 6 用例）、`apps/cli/test/discuss.test.ts`（新增 3）、`apps/web/src/components/agent/DiscussBlock.tsx`（新增）+ 同名测试、`apps/web/src/components/agent/AgentPanel.tsx`（第四子块）、`apps/web/src/i18n/lane-agent.ts`、`docs/specs/v023-e-ai-assistant.md`（升 v1.0）
+- **问题描述**: 批次 E（spec v023-e AN2）：`ask` 确定性七词保留，AI 问答通道 `discuss` 并列新增。核心验收四条：ask 零回归 / 回答逐段标注来源（且**来源不由 LLM 定**）/ 问答零写库 / 未配置态分列。
+- **实现思路**: ① **来源标注的合规形态**：sources 清单与编号由服务端定（context 组装的 fields），prompt 要求 LLM 在引用处置 `<ref:n>` 标记，`splitByRefs` 服务端校验编号（越界 ⇒ source_ref=null）——「不从 LLM 输出解析来源」红线以「LLM 无权定义来源，只能引用服务端给的编号」实现；切段算法 = 标记切换当前来源、文本归前标记、**相邻同源段合并后处理**（连续同源/连续无标注各为一段）；② 治理面按 §8.2②：与提取**共闸**（aiExtractEnabled）**共 consent 行**（ai_extract_consent）**预算独立**（ai_discuss_call 每日 40，不挤占提取配额——DISC-04 双向验证）；③ context 组装与 MCP / context API 同一 `createContextService`（fields/budget 纪律同源），来源正文哨兵根脱敏（与提取链同款）；④ CLI 与 ask 并列：ask 契约一字不动（FR-4.1.1），discuss 退出码三态（0 ok / 2 需行动 / 1 错误）。
+- **核心变更**:
+  - core `extract/discuss.ts`：`runDiscussion` 六段编排（闸→同意→预算→项目校验→context 组装+脱敏→LLM→台账）+ `buildDiscussPrompt`（编号规则写死）+ `splitByRefs`（校验+合并）；`DISCUSS_DAILY_CALL_LIMIT=40`；台账 ai_discuss_call 9 键（0021 已建 kind）。
+  - shared：`DiscussRequestInput` / `DiscussOut`（segments 带 source_ref 可空 + sources 服务端名单 + truncated）。
+  - server：`POST /api/projects/:id/discuss`（extract.ts 内——共 runner 注入点）；buildApp 增 `discussDailyCallLimit`。
+  - CLI：`openvibe discuss <question> [--project <id|dir>] [--fields] [--budget] [--confirm] [--remember]`；项目解析 id 直用 / 路径反查（ask 同款 resolveProjectByPath）；`--json` 单对象；`discussLines` 人读渲染（来源段尾注 `<来源:n 段名>`）；CLI_COMMANDS 第 12 条（decision 档：出网需人确认或已记忆）。
+  - web：`DiscussBlock`（AgentPanel 第四子块，置于接入指引前）——闸关不渲染（DL-08）、⌘/Ctrl+Enter 提交、回答逐段渲染 + 来源徽标（下标:段名，accent-soft 语义 token）、越界段无徽标、纯文本渲染红线、会话不持久化；lane-agent i18n 键。
+  - spec **v023-e 升 v1.0**：§8.2 三处全裁（③已裁于 F 批 / ①`discuss` 定名（语义对照 ask：问人 vs 问机）/ ②共闸共行+预算独立）；§7 验收四条标 ✅ 并挂用例。
+- **测试验证**:
+  - `discuss.test.ts`（core 纯函数）4/4：切段四态（标记切换/越界归 null/相邻同源合并/空回答）——**两处测试期望初写时把语义写反（标记前文本属无来源段、合并丢空格），修正为真实语义**。
+  - `discuss.api.test.ts` 6/6：DISC-01 闸关+无同意 / DISC-02 来源编号服务端定+越界归 null（首版用 ref:5 实为合法——6 段 fields，改 ref:9）/ DISC-03 六业务表逐字不变+台账 9 键 / DISC-04 预算独立且不挤占提取 / DISC-05 unavailable 与「项目不存在」error 分列 / DISC-06 共用 consent 行（setExtractConsent 写行后 discuss 免 confirm）。
+  - `apps/cli/test/discuss.test.ts` 3/3：--json 单对象+不可达人话 / 空问题 / **ask 契约零改动**（自由文本仍 UNKNOWN_QUERY + help 双命令并列）——连同 ask 既有 19 支全绿（22/22）。
+  - `DiscussBlock.test.tsx` 2/2：闸关不渲染 / 提交渲染+徽标+POST 形状。
+  - 漂移闸 5/5（12 条命令）；主出口快照重生成后分离闸全绿。
+  - 全量 `pnpm test` → **188 文件 / 2369 用例全绿**；`pnpm docs:check` 退出码 0；typecheck 零错误（并行会话 docs-check.ts 在编除外）；lint 余 4 条在并行会话文件（langRoadmap 系）。
+  - 复算命令：`grep -n "command('discuss')" apps/cli/src/index.ts`；`npx vitest run apps/server/test/discuss.api.test.ts | tail -1`；`grep -c "DISC-" apps/server/test/discuss.api.test.ts`（→6）。
+- **潜在风险**:
+  - ① `<ref:n>` 标记依赖 LLM 服从 prompt——不标则整段无来源（显示「无来源标注」但如实），标错号则归 null；**来源真实性不受影响**（LLM 最多让标注缺失，不能伪造出处指向别的段——编号合法性由服务端校验）。
+  - ② sources 的正文是 context 段的 JSON 序列化——对 LMS 不如自然语言友好（结构化上下文的取舍）；若采纳率差可加「段→自然语言摘要」的组装层（留 dogfooding 后调）。
+  - ③ discuss 与提取共闸：关提取也会关问答（同一把「AI 出网」闸是设计意图，但用户可能想只关一个）——设置页文案已按共用表述，若 owner 要分闸是 B 级新裁定。
+  - ④ web 问块的确认语义是「点击提问即确认」（面板显式动作等价勾选）——与 CLI 的 --confirm 显式旗标语义有差；面板有 remember 勾选，首次即写记忆的行为比 CLI 更激进（DISC-W2 断言 confirm:true）——若 owner 认为面板也该先弹确认框，改 DiscussBlock 加一步。
+
+## [DEV-0147] 2026-10-25 · A–F 全批次独立复盘（agent 审计）＋五缺陷处置：出网清单段 / sync 提示背书 / spec B 勘注 / spec C 收口 / 提交清单
+
+- **时间**: 2026-10-25
+- **类型**: 复盘处置（文档收口 + 1 支测试补背书 + 1 份 owner 提交清单；无产品行为变更）
+- **关联文件**: `docs/release-notes/v0.2.3.md`（+出网清单节 / 修 2207 口径 / MCP 离线登记）、`apps/cli/test/verify.test.ts`（+VERIFY-11）、`docs/specs/v023-b-first-lap.md`（+§8.2a 复盘补注）、`docs/specs/v023-c-consolidation.md`（§8.2 收口 + 升 v1.0）、`packages/shared/src/cli-commands.ts`（陈旧注释）、`README.md`（verify 退出码）、`docs/devlog-evidence/v023-commit-manifest.md`（新增，owner 提交清单 143 文件/14 组）
+- **问题描述**: owner 指令「完成后使用独立 agent 进行 A–F 批次的所有任务复盘」。独立审计（未参与开发的 general-purpose agent，四面对账：spec 验收表 / DEV_LOG 声称 / PRD 验收 / 横向一致性，全量测试复核 + 复算命令抽跑）产出结论：**可量化声称与仓库事实高度相符**（15/18/16/6/7/19/12 等用例数、迁移 0019–0023、常量、命令清单全部精确对上，未发现虚报）；抓出五件真缺陷 + 三类按设计延后项。
+- **实现思路**: 五缺陷按严重度处置——①「整版代码未提交」**不擅自 commit**（并行会话归属纪律：工作树混有 docs-check.ts / langRoadmap 等他会在编文件），处置 = 生成 owner 分批提交清单（143 文件按批次 14 组，排除并行在编与历史禁区）；②「发布说明缺出网清单段」当日可立即补（spec A FR-4.2 与 DoD#7 双重要求）；③「sync 中断提示零背书」补一支端到端（造 PARTIAL 磁盘态 ⇒ 提示 + 不阻断 + 指路 verify），实现与 spec FR-4.4 的偏差（轻量前置 vs 内部完整 verify）按设计取舍登记进 spec 勘注；④「spec B 六态扩张未记」补勘注（六态以现实现为准，四态字样读作历史采样）；⑤「spec C 停 v0.9」按既成事实收口 §8.2 两待裁并升 v1.0。
+- **核心变更**:
+  - **发布说明**：新增「AI 能力的出网清单」节（三能力 × 触发/出网内容/同意/留痕四列——README 边界表述的逐项清单化）；测试行改 §13-8 口径（不写死支数，附复盘实测 188/2369）；MCP 段登记离线不支持。
+  - **VERIFY-11**：注入 → 删 CHECKLIST.md（PARTIAL 磁盘态）→ sync ⇒ warnings 含「上次注入可能中断」+ 文件名 + 指路 verify，且注入照常完成（重建缺失文件）——spec B §7#3 的判据就此有用例背书。
+  - **spec B §8.2a**：两处漂移补注（六态扩张确认 / sync 前置轻量形态），版本口径「以现实现为准」。
+  - **spec C v1.0**：§8.2 两待裁收口（CS4 三接生产+grade-guard 保留 / CS6 落点 product-lines.md + tooling-face 机判）；版本行记落地凭据。
+  - **cli-commands.ts**「九条」陈旧注释改口径化；README verify 行补退出码（PRD RQ3 验收第 2 条闭合）。
+  - **提交清单**：`v023-commit-manifest.md`——143 文件按「迁移与 core → server/cli 接线 → web → spec/docs → 登记」14 组列明，供 owner 过 `pnpm ownership:check` 后分批提交。
+- **测试验证**:
+  - `npx vitest run apps/cli/test/verify.test.ts` → **11/11**（+VERIFY-11）。
+  - 全量 `pnpm test` → **188 文件 / 2370 用例全绿**；`pnpm docs:check` 退出码 0；typecheck 零错误（并行会话在编除外）。
+  - 复盘报告全文要点已并入本条（审计 agent 的五缺陷清单与三类延后项处置对照：①→提交清单、②③④⑤→全部当日闭合）。
+  - 复算命令：`pnpm docs:check; echo $?`（→0）；`grep -c "VERIFY-" apps/cli/test/verify.test.ts`；`wc -l docs/devlog-evidence/v023-commit-manifest.md`。
+- **潜在风险**:
+  - ① **未提交风险仍在**：清单只是缓解，风险敞口（整版工作仅存于工作树）在 owner 提交前持续存在——本条为最高优先级 owner 待办。
+  - ② spec B/C 的勘注/收口以「owner 复盘指令」为授权依据（与批次 A §8.2 先例同型）；若 owner 对六态或 CS4 去向另有裁定，按其裁定改写。
+  - ③ 提交清单的分组是启发式（文件名归批），个别跨批文件（如 index.ts 承多批接线）归「其他」组——owner 提交时按 diff 内容复核归属。
+  - ④ 复盘属时点审计（2026-10-25）：其后任何改动不再被本报告覆盖；发布前建议 publish 流程内再走一次 docs:check + 全量测试（runbook 已含）。

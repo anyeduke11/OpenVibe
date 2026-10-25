@@ -31,12 +31,14 @@ const built = (): Record<string, unknown> =>
   })
 
 describe('发布暂存清单（T9a-2 · SCRIPT-PKG）', () => {
-  it('SCRIPT-PKG-01: bin 指向编译产物，包名按 D24 改回 openvibe、bin 命令不变', () => {
+  it('SCRIPT-PKG-01: bin 指向编译产物，包名按 v0.2.3 批次 A 裁决定为 openvibe-cli、bin 命令不变', () => {
     const m = built()
-    // D17 的「`openvibe` 已被占」前提于 2026-10-01 复算作废：registry 返 200 但 `versions:0`、
-    // `dist-tags:{}`，21 个历史版本号外加一个 `unpublished` 键 ⇒ 全部下架、名字可占。
-    expect(m.name).toBe('openvibe')
-    expect(JSON.stringify(m.name)).not.toContain('openvibe-cli')
+    // 包名三次摇摆（D17→D24→v0.2.3 批次 A 裁决）就此终结（spec v023-a §8.2 / DEV-0114）：
+    // D24 的「openvibe 可注册」前提于 2026-10-24 被现实再次推翻——`npm view openvibe` 返回
+    // 无关同名包（boxiaolanya2008，v1.0.0），publish 必 403 ⇒ 发布名定死 `openvibe-cli`。
+    expect(m.name).toBe('openvibe-cli')
+    // bin 命令不变：装好后命令仍是 `openvibe`（README FAQ 既有口径）
+    expect(JSON.stringify(m.bin)).toContain('openvibe')
     // 与 npm publish 的 normalize 结果一致（它会把 './dist/cli.js' 改写成 'dist/cli.js'），
     // 这样沙箱里装过的清单与 npm 上用户装到的清单是同一份
     expect(m.bin).toEqual({ openvibe: 'dist/cli.js' })

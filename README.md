@@ -87,6 +87,14 @@ openvibe serve [--port 8787] [--open]     本地 API + Web UI，首启生成配�
 openvibe sync <dir> [--pack <n[@v]>]      注入：--dry-run 零写入 / --file|--dir 离线注入 / --target 只写指定平台
 openvibe scan  [--skills | --project <d>] 扫描 skill 目录或项目规则文件并登记
 openvibe diff  <dir>                      产物 vs lock 比对 + 是否有更新版本；退出码 0 一致 / 2 漂移
+openvibe verify <dir>                     三方一致性核验（包版本 / lock / 磁盘，只读）：CONSISTENT / PARTIAL
+                                          （疑似注入中断）/ ORPHAN / DISK_DRIFT / STALE_LOCK / UNMANAGED；
+                                          退出码 0 一致 / 2 有偏差 / 1 出错
+openvibe discuss "<问题>" [--project <id|dir>]
+                                          向 AI 问本项目的问题（回答逐段标注来源，可追溯到项目真实数据；
+                                          --confirm 首次出网确认 / --remember 记住本项目）
+openvibe mcp                               stdio MCP 服务（AI IDE 只读上下文工具：project_context /
+                                          search_assets / pack_diff；无网络监听）
 openvibe clean <dir> [--yes]              退场：删当前 lock 登记且未改动的受管文件（删前一律备份）；
                                           --dry-run 只出计划零写入 / --force 连改过的一起删；
                                           退出码 0 全清 / 2 有保留或已取消（未删任何文件）/ 1 出错
@@ -186,6 +194,20 @@ OpenVibe 的 agent 接入是**三件事**，边界刻意收得很窄 —— agen
 
 **每类事件都留在本机台账里**（见上一节），CLI 每次运行也记一条 `cli_agent_command_run`。
 本机事件台账的 23 类 kind（闭集以 `packages/shared/src/constants.ts` 的 `LOCAL_EVENT_KINDS` 为准）与匿名遥测那三类**严格不同名** —— agent 的活动不会被混进遥测白名单。
+
+### AI 能力的出网边界（M10：提取 / 问答 / MCP）
+
+AI 能力默认**全关**，且每一条出网都在你确认之后：
+
+- **总闸**：设置页「AI 提取（M10）」的开关，默认关——关着时提取与问答的入口不渲染、调用一律拒绝。
+- **逐项目同意**：第一次对某个项目出网（提取或问答）须显式确认；可「记住本项目」（清除 = 删行，不留残影）。
+- **出网内容**：提取发的是所选开发日志的**脱敏正文**（绝对路径替换为占位）；问答发的是项目上下文的
+  脱敏序列化（阶段/清单/任务/日志摘要）。两者都经你配置的推理端点（本机 Ollama/LM Studio 或云端）。
+- **台账留痕**：每次真的出网记一行本机台账（9 键白名单：模型/端点/指纹/计数/结果——**无正文容器**），
+  另有出网审计行（同意来源是本次勾选还是记忆生效）。设置页「AI 与出网」区可查成本台账。
+- **AI 产出不直接入库**：提取候选一律先进待确认队列，人工确认才落草稿（术语/提示词/技巧，status=draft）；
+  问答只读零写库。
+- **MCP（`openvibe mcp`）是只读面**：三个工具全部只读、无网络监听；写操作不经 MCP 暴露。
 
 ### 本机事件台账：和匿名遥测是两件不同的事
 

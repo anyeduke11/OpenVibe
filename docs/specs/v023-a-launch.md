@@ -1,0 +1,120 @@
+# SPEC · v0.2.3 批次 A：分发解锁（G1 · 发布 + 干净机复验 + 可读诊断 + 发布工程）
+
+| 项 | 值 |
+|------|------|
+| 模块 | **v0.2.3 · 批次 A / 目标 G1**。对应 PRD `docs/PRD-v0.2.3-v1.0-20261024.md` 第 4 章的 RQ1（分发解锁）与 RQ7（发布工程与信任面）。批次 B/C/D/E/F 分别由 `v023-b-first-lap.md` / `v023-c-consolidation.md` / `v023-d-ai-extract.md` / `v023-e-ai-assistant.md` 承接 |
+| 优先级 | **P0（全版本关键路径，不可让位）**。判级构成：FR-3 为 **B**，其余为 **C**（运营动作与文档纪律）。逐项判级见 §4 各 FR 末尾；一切判级均为预判，判级权在 owner（dev-plan §0.3） |
+| 上游 | `docs/PRD-v0.2.3-v1.0-20261024.md`（§0 G1、§4 RQ1/RQ7、§7 批次 A、§9 反例 1/2）· `docs/analysis-2026-10-02-first-principles.md`（AD1 第一步：失败可读诊断；其 §8.1-2 包名三易史）· `docs/release-notes/v0.1.0.md`（「本版未验证的事」清单，本 spec 的翻转对象）· README「30 秒上手」「从源码开始」「已知局限」三节 |
+| 下游设计 | `docs/design.md` §11.5（遥测白名单，本 spec **不触碰**）· `scripts/build-cli.ts`（`PUBLISH_NAME` 单源）· `packages/shared/src/cli-commands.ts`（`CLI_COMMANDS` 单源，复验矩阵以它为命令清单口径）· `docs/tasks.md` §5（D15 证伪线：起点 = `npm publish` 成功当日，既有裁定，本 spec 只启动登记） |
+| 关联任务 | **无**（dev-plan §0.4「No spec, no task」；任务号待本 spec 裁定后在 tasks.md 另起） |
+| 版本 | **v1.0（2026-10-24）**。§8.2 三处待裁已全部闭合（owner 2026-10-24 指令「批次 A 裁决收尾」授权落笔，本节即裁决记录的单源），本 spec 升为可开工依据。FR-3 已落地（DEV-0112）；FR-2 工具面已就绪（`pnpm verify:matrix`，DEV-0113）；FR-1 的 publish 命令待 owner 以 npm 凭据执行（tarball 已按裁决名 `openvibe-cli-0.1.0.tgz` 预演就位） |
+| 采样 | 2026-10-24 本机工作树；npm registry 状态为当日现测（附录复算口径随 §3） |
+
+---
+
+## 1. 目标与用户价值
+
+- 产品当前的全部自证体系（163 文件 / 2095 用例、golden、三平台 CI）验证的是**代码**；没有一个数字验证过「有人在干净机器上装成了、用通了」。本 spec 关闭这最后一公里：**发布不是锦上添花，它是 D15 证伪线、外部信号、以及 v0.2.3 其余四个批次的合法性来源**（PRD §0 次序裁定：批次 A 不可让位）。
+- **净解锁**：① `npx openvibe-cli serve` 对新用户从「404」变为可用；② D15 两周证伪线开始计时——项目给自己造的纠错机制停止空转；③ 装包失败从「原始 ABI 堆栈」变为「平台 + Node 版本 + 三条修复路径」的可读诊断。
+- 信任面口径：对一个会写用户文件的工具，发布说明里的「复验矩阵」与「本版未验证的事」是产品承诺的一部分（README 隐私节同款纪律），不是内部流程。
+
+## 2. 范围
+
+| **In** | **Out（明确不做，写明理由与去向）** |
+|---|---|
+| `openvibe-cli` npm 发布（按 README「从源码开始」既有流程：`pnpm pkg:cli` → `apps/cli/pkg` → `npm pack` → `npm publish`） | **重开包名讨论**。包名三易其名（分析文 §8.1-2），本 spec 前置条件就是终裁一次、登记进 decisions 队列后不再议（§8.2 待裁①） |
+| 干净环境复验矩阵：**≥2 平台 × 九命令 + 离线注入**，逐条 pass/fail 归档 | **第三平台强制**。三平台 CI 已常跑全量用例；本矩阵只对「装包形态」这一 CI 覆盖不到的面负责 |
+| better-sqlite3 载入失败的可读诊断（FR-3） | **Store 端口 / 降级存储实现**（分析文 AD1 第二步）。解锁条件：复验矩阵显示某平台/ABI 失败率不可接受 ⇒ 重议，属 PRD §9 反例 2 |
+| release-notes 模板增补「复验矩阵」段（FR-4） | **bundle 体积、种子内容、契约面任何变更**（发布动作不改一行产品代码；FR-3 的诊断分支除外） |
+| README 措辞面清零（FR-5） | **遥测白名单 `TELEMETRY_EVENTS` 任何变更**（design §11.5，A/B 级隐私面） |
+| D15 计时启动登记（FR-6） | **tasks.md / decisions.md 的直接改写**——启动登记走 DEV_LOG + owner 的队列操作，本 spec 不代改 |
+
+## 3. 现状与实测基线（采样：2026-10-24）
+
+| # | 量 | 现测值 | 复算命令 |
+|---|---|---|---|
+| 1 | npm 上 `openvibe-cli` | **404** | `npm view openvibe-cli version` |
+| 2 | npm 上 `openvibe` | **存在但为无关同名包**（`boxiaolanya2008`，「AI Coding Assistant CLI」）⇒ 本产品只能用 `openvibe-cli` | `npm view openvibe description maintainers` |
+| 3 | CLI 已注册命令 | **9**：`serve` / `sync` / `scan` / `diff` / `clean` + M8 四只（`ask` / `status` / `session log` / `requirement add`）——复验矩阵的命令清单口径 | `grep -c "\.command('" apps/cli/src/index.ts` |
+| 4 | `CLI_COMMANDS` 单源漂移闸 | **存在且会红**：`apps/server/test/cliCommands.api.test.ts` 断言单源集合与 `index.ts` 注册名逐字相等 ⇒ 发布说明/复验文档列命令时以 `CLI_COMMANDS` 为准，防清单漂移 | `sed -n '99p' apps/server/test/cliCommands.api.test.ts` |
+| 5 | 发布脚本链 | `pnpm pkg:cli`（= web build + `scripts/build-cli.ts`）→ `apps/cli/pkg/` → `npm pack`；`PUBLISH_NAME` 单源在 `scripts/build-cli.ts` | `grep -n 'PUBLISH_NAME' scripts/build-cli.ts` |
+| 6 | v0.1.0 自陈未验证面 | 三条：干净机五命令未复验；装包形态只在 macOS + 单一 Node ABI 复验；看板拖拽无自动化证据（第三条与本 spec 无关，归批次 B 报告） | `grep -n '未验证' docs/release-notes/v0.1.0.md` |
+| 7 | D15 证伪线 | 起点裁定「`npm publish` 成功当日」已在 tasks.md §5 登记，**尚未开始计时**（发布未发生） | `grep -n 'npm publish' docs/tasks.md` |
+| 8 | 测试基线（诊断分支的安全网） | 163 文件 / 2095 用例全绿 | `pnpm test`（运行器报告为唯一权威口径） |
+
+## 4. 功能需求（FR）
+
+### FR-1 发布执行与包名终裁前置（**C 级**：运营动作）
+
+1. 前置：owner 对包名终裁一次并在 decisions 队列留痕（占新号，本 spec 不占号）。终裁前**不得**执行 `npm publish`。
+2. 按 README「从源码开始」既有流程执行发布；发布前在干净暂存目录跑一遍 `npm pack` 并核对 tarball 清单（体积 / 文件数 / sha256 记入发布说明，v0.1.0 既有口径）。
+3. 发布成功时刻即 D15 计时起点，当日登记 DEV_LOG（FR-6）。
+
+### FR-2 干净机复验矩阵（**C 级**：验证纪律）
+
+1. 环境：**≥2 个平台**（建议 macOS + Windows 或 Linux 容器），无全局缓存、无本仓 node_modules 残留；安装走 `npm i -g <tarball>` 与 `npx openvibe-cli --version` 两条路径各验一次。
+2. 命令清单以 `CLI_COMMANDS` 为准（基线 #3/#4）：九命令逐条跑通 + `sync --file` 离线注入一条；每条记录 pass/fail、关键输出摘录。
+3. 结果归档 `docs/devlog-evidence/`，随发布说明「复验矩阵」段引用（FR-4）。
+
+### FR-3 better-sqlite3 载入失败可读诊断（**B 级**：行为新增）
+
+1. CLI 启动链在 `require('better-sqlite3')`（或等价加载点）失败时，**不再透出原始 ABI/编译错误**，改为结构化诊断输出，必含三要素：**当前平台与架构、Node 版本与 ABI、三条修复路径**（重装/prebuild 手动触发、切换 Node LTS、源码编译前置条件）。
+2. 诊断触发时退出码非 0；诊断文案是纯文本（CLI 无 TTY 依赖）。
+3. `serve` 路径与各命令路径共享同一诊断入口（加载点单源，不两处实现）。
+
+### FR-4 发布说明「复验矩阵」段（**C 级**：模板）
+
+1. release-notes 模板新增固定段：平台 × 命令 × 结果 × 日期四列表 + 「本版未验证的事」小节（允许非空，但不允许与 v0.1.0 的未验证项原样重复——已验证的必须翻转，继续未验证的必须写新理由）。
+2. 「AI 能力的出网清单」段为 v0.2.3 发布说明占位（内容由批次 D/E 交付时回填，本 spec 只立段位）。
+
+### FR-5 README 措辞面清零（**C 级**：文档一致性）
+
+1. 发布后复测「30 秒上手」三条命令真实可用。
+2. `grep -n '尚未在 npm\|404\|未上线' README.md` 命中清零或改写为已发布口径；「装后跑通五命令这件事未在干净机复验」一句按 FR-2 结果改写。
+3. 全部改写过 `docs:check`（被引用数字 vs 来源闸兜底）。
+
+### FR-6 D15 计时启动（**C 级**：流程登记）
+
+发布成功当日在 DEV_LOG 登记起点日期；后续两周观察窗的判定按 tasks.md §5 既有裁定执行，本 spec 不复制其判据（单源在 tasks.md）。
+
+## 5. 输入 / 输出
+
+- **输入**：已终裁的包名；已全绿的 `pnpm test` / `lint` / `typecheck` / `docs:check`；`pnpm pkg:cli` 产物。
+- **输出**：npm 在线的 `openvibe-cli`；`docs/devlog-evidence/` 复验归档；release-notes v0.2.3（含复验矩阵段）；README 措辞面更新；DEV_LOG 起点登记。
+
+## 6. 边界与异常
+
+- **不重开技术选型**：复验中发现的 ABI 失败按 FR-3 诊断兜底；只有失败率不可接受才触发 Store 端口重议（PRD §9 反例 2 的解锁条件），那是另一次裁定，不是本 spec 的动作。
+- **包名摇摆即停**：FR-1.1 的终裁是硬前置；任何「发布前再议一次包名」的冲动按 PRD §9 反例 1 处理（排期全部后移）。
+- **复验失败不遮掩**：矩阵中任何 fail 项如实归档；「带病发布」需要 owner 显式裁定并在发布说明「未验证的事」中登记，不允许静默。
+- 遥测白名单一条不加（design §11.5）；诊断输出不包含机器标识。
+
+## 7. 验收标准（pass/fail）
+
+| # | 条目 | 判据 |
+|---|---|---|
+| 1 | npm 在线 | `npm view openvibe-cli version` 非 404 |
+| 2 | 复验矩阵 | ≥2 平台 × 九命令 + 离线注入逐条 pass/fail 归档，fail 项有处置记录 |
+| 3 | 可读诊断 | 模拟加载失败 ⇒ 输出含平台/Node 版本/三条修复路径，退出码非 0；诊断入口单源（grep 加载点唯一） |
+| 4 | 发布说明 | 「复验矩阵」段存在；「未验证的事」无一项与 v0.1.0 原样重复 |
+| 5 | README | 措辞面 grep 清零；docs:check 全绿 |
+| 6 | D15 | DEV_LOG 含起点日期登记 |
+| 7 | 回归 | `pnpm test` 用例数只增不减（FR-3 新增用例计入） |
+
+## 8. 依赖
+
+### 8.1 依赖
+
+- 上游无代码依赖（发布不改产品代码，FR-3 除外）；FR-3 依赖既有 CLI 启动链的加载点位置（采样后定位）。
+- 测试安全网：163 文件 / 2095 用例（基线 #8）。
+
+### 8.2 裁定记录（2026-10-24 全部闭合；owner 指令「批次 A 裁决收尾」授权，decisions 队列留痕由 owner 决定是否补登）
+
+1. **包名终裁：维持 `openvibe-cli`，bin 仍 `openvibe`，就此终结三次摇摆（D17→D24→本裁决）。**
+   依据：2026-10-24 复测 `npm view openvibe` 返回无关同名包（boxiaolanya2008，v1.0.0，"AI Coding Assistant CLI"）——D24「该名可注册」的前提被现实再次推翻，publish 必 403；改名要动 README/契约串/文档全幅而检索收益不成比例。机械后果已执行：`scripts/build-cli.ts` 的 `PUBLISH_NAME` 改 `openvibe-cli`，`pnpm pkg:cli` 重建后 `npm pack --dry-run` 产出 `openvibe-cli-0.1.0.tgz`（82 文件 / 1.7 MB）。FR-1.1 的「终裁前不得 publish」闸自此解除——publish 本身仍待 owner 以 npm 凭据执行（本机 `npm whoami` 实测 ENEEDAUTH）。
+2. **复验平台组合：macOS（本机）+ Linux 容器。** 理由：两者覆盖 prebuild-install 的两条主路径；Windows 装包形态由三平台 CI 矩阵持续覆盖用例面，其安装路径差异登记进发布说明「本版未验证的事」。FR-2 的「≥2 平台」以这两者为准。
+3. **FR-3 诊断文案：定稿即现稿**（`packages/core/src/db/native-load.ts` 的三条修复路径措辞照准，DEV-0112 落地、DEV-0113 复验）。后续措辞改动按 B 级（人话面）走常规流程。
+
+### 8.3 让位规则
+
+批次 A **不可让位**（PRD §0 次序裁定）。若包名终裁延迟，全版本排期整体后移，其余批次不并行抢跑。

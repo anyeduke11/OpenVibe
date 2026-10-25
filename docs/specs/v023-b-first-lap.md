@@ -1,0 +1,128 @@
+# SPEC · v0.2.3 批次 B：首圈飞轮与自证（G2 · dogfooding 协议 + verify + 输出侧度量）
+
+| 项 | 值 |
+|------|------|
+| 模块 | **v0.2.3 · 批次 B / 目标 G2**。对应 PRD `docs/PRD-v0.2.3-v1.0-20261024.md` 第 4 章的 RQ2（首圈真实飞轮协议）、RQ3（`openvibe verify` 三方一致性）、RQ5（输出侧度量 OM1/OM2） |
+| 优先级 | **P1**。判级构成：FR-4/5/6 为 **B**，FR-1/2/3 为 **C**（协议与报告纪律）。逐项判级见 §4；一切判级均为预判，判级权在 owner（dev-plan §0.3） |
+| 上游 | `docs/PRD-v0.2.3-v1.0-20261024.md`（§0 G2、§4 RQ2/RQ3/RQ5、§7 批次 B、§9 反例 3/10）· `docs/analysis-2026-10-02-first-principles.md`（AD3-L2 verify 四态、MT1/MT2 度量定义、其 §10-10 的口径纪律）· `docs/tasks.md` §5（D15 证伪线与 M5-lite 预案，单源） |
+| 下游设计 | `docs/design.md` §7.5（lock 形状，**不改动**——verify 现算不落盘）· `packages/core/src/inject/`（`fingerprintOf`/`fileSha256`/`lock.ts` 既有原语）· `local_events` 表与 `GET /api/local-events/summary`（本机事件台账，M8 已落地）· `injections` 表（D15 ② 腿已占用，**不重复计数**——分析文 §10.4.1 穷举结论）· `estimateTokens`（OM1 的既有单点估算） |
+| 关联任务 | **无**（任务号待本 spec 裁定后在 tasks.md 另起） |
+| 版本 | **v1.0（2026-10-24）**。§8.2 两处已闭合（owner 2026-10-24 指令「批次 B 收尾」授权落笔）。FR-4 verify 已落地（DEV-0113）；FR-5/6 OM 已落地（GET /api/om + 设置页 OmSection，DEV-0114）；FR-1/2 的协议文档就绪（`docs/devlog-evidence/v023-first-lap-protocol.md`），执行窗口 = 批次 A publish 之后 |
+| 采样 | 2026-10-24 本机工作树 |
+
+---
+
+## 1. 目标与用户价值
+
+- PRD E3：D15 证伪线从未开始计时；PRD 分析结论 J1：产品度量的全是「库里的输入量」，没有一个机器可读的数字回答「用户的项目真的变好了吗」。批次 B 在批次 A（发布）出口后，用**一次成体系的真实使用**回答这两个问题——不求答案好，只求**第一次有机器可读的答案**。
+- **净解锁**：① `openvibe verify`——用户第一次拥有「我的磁盘、lock、包内容三方一致吗」的自问能力（此前只有 `diff` 的两方比对）；② OM1/OM2——设置页/工作台出现第一批**输出侧**数字；③ 《飞轮首圈报告》——下一版 PRD 的唯一合法证据源。
+- 设计总纲：**零新增采集点、零出网**。OM 指标全部从本机 `local_events` 与既有表现算；「永不上报」文案一字不改。
+
+## 2. 范围
+
+| **In** | **Out（明确不做，写明理由与去向）** |
+|---|---|
+| dogfooding 协议（两真实项目、完整飞轮、观察窗 ≥1 周）与《飞轮首圈报告》模板（FR-1/2） | **对照组周**（分析增强建议：不开 OpenVibe 的对照周）。首版不做的理由：协议本身已证伪线化（D15），对照组是锦上添花；列为报告「后续增强」占位，owner 可裁 |
+| `openvibe verify` 只读命令 + 四态 + 退出码（FR-4） | **verify 结果写进 lock**（分析文 AD3 明确建议不写；一致性每次现算）|
+| `sync` 启动时内部 verify 与 PARTIAL 提示（FR-4.4） | **自动修复**。PARTIAL 只提示「上次注入可能中断」，修复动作永远是人发起（sync/clean/手工） |
+| OM1 有效上下文密度 + OM2 首次见效时间（FR-5/6） | **MT3 往返成本、MT4 验证覆盖比等其余 MT 指标**（分析文 §9.1）——本版只做两个最小指标，其余随 RF3 另议 |
+| 采纳率之外的首圈数据面（冲突处置分布、diff 退出码分布） | **看板拖拽的自动化证据**（E10 残留之一）——属 web 测试面，归 `v023-c-consolidation.md` 的回归范围外另议；本报告如实登记其仍缺失 |
+| — | **遥测白名单任何变更**；**OM 数据的任何出网通道** |
+
+## 3. 现状与实测基线（采样：2026-10-24）
+
+| # | 量 | 现测值 | 复算命令 |
+|---|---|---|---|
+| 1 | `verify` 命令 | **不存在**（CLI 无此注册名） | `grep -rn "command('verify'" apps/cli/src/index.ts`（0 命中） |
+| 2 | 三方哈希原语 | **全部已在 core**：`fingerprintOf`（包内容）、`fileSha256`、lock 的 `files[].sha256`、磁盘现算——verify 无需新算法 | `grep -n 'export function fingerprintOf\|fileSha256' packages/core/src/pack/fingerprint.ts` |
+| 3 | lock 比对现状 | `diff` 只比「磁盘 vs lock」两方（clean/drifted/missing 三态）；「包内容 vs lock」一侧未接入 | `grep -n 'diffPackLock' packages/core/src/inject/lock.ts \| head -2` |
+| 4 | 本机事件台账 | `local_events` 已落地（迁移 0007/0010/0012），23 类 kind 闭集；`GET /api/local-events/summary` 聚合端点在 | `grep -n 'LOCAL_EVENT_KINDS' packages/shared/src/constants.ts` |
+| 5 | D15 两腿的机读源 | ① 工作台使用 = `stage_view_switched` / `flow_template_run` 等 kind（M8 落地后可数）；② DEV 日志 = `dev_log_entries` 表（**已被 D15 ② 占用，OM 不重复启用**——分析文 §10.4.1 穷举） | `grep -rn 'stage_view_switched\|flow_template_run' packages/shared/src/constants.ts` |
+| 6 | token 估算 | `estimateTokens` 单点估算已存在（OM1 复用，不新造分词器） | `grep -rn 'estimateTokens' packages/core/src --include='*.ts' \| head -3` |
+| 7 | injection_confirmed 事件 | kind 闭集已含（AN4 引用的 9 键台账之外的既有写入点） | `grep -rn 'injection_confirmed' packages apps --include='*.ts' \| grep -v test \| head -3` |
+| 8 | 测试基线 | 163 文件 / 2095 用例全绿 | `pnpm test` |
+
+## 4. 功能需求（FR）
+
+### FR-1 dogfooding 协议（**C 级**：流程定义）
+
+1. 项目：**2 个 owner 真实在维护的项目**，其中之一为本仓自己（已按 Spec 驱动流吃狗粮）。
+2. 每项目完整跑：`sync --pack default` → 日常开发 **≥1 周** → 至少 1 次改资产并组新版本 → `diff` 处置漂移 → 从项目工作台开发日志**回流 ≥3 条资产**（术语/提示词/技巧草稿，人工确认入库）。
+3. 观察窗内**不清空** `local_events`（设置页清空动作在协议期间禁用，报告须声明）。
+4. 协议文档落 `docs/devlog-evidence/`（含起止日期、项目匿名化标识、每步命令）。
+
+### FR-2 《飞轮首圈报告》（**C 级**：报告纪律）
+
+1. 固定节：注入次数、冲突处置三选一分布、`diff` 退出码（0/2）分布、回流条数、D15 两腿实测值、首圈摩擦清单——**全部从 `local-events/summary` 与既有表现算，零人工计数**；每节附数据导出命令。
+2. 「D15 判定」节：两腿实测值 + 是否触发 M5-lite 预案。**触发不是失败，是证伪线按设计生效**；触发后的动作单源在 tasks.md §5。
+3. 「首圈摩擦清单」硬判据：**≥5 条且每条带复现步骤**；空洞即报告不通过（PRD §9 反例的表演防线）。
+4. 报告落 `docs/devlog-evidence/`，作为下一版 PRD 的唯一证据源引用。
+
+### FR-3 回流计数口径（**C 级**）
+
+回流资产 ≥3 条且带来源反链；报告引用回流资产的 id 清单（与「点进去能看到几个」同口径，navCounts 既有纪律的同族读法）。
+
+### FR-4 `openvibe verify <dir>`（**B 级**：新命令 + 只读核验）
+
+1. 三方现算比对：**包内容**（当前 lock 所指包版本的渲染产物哈希）vs **lock 期望哈希** vs **磁盘实际**；输出四态：`CONSISTENT` / `PARTIAL`（lock 与磁盘同时偏离包，疑似上次注入中断）/ `STALE_LOCK`（lock 偏离包）/ `ORPHAN`（磁盘有 lock 未登记物）。
+2. 每态附一行人话解释 + 修复建议（指向 `sync` / `clean` / 手工处置）；**不写盘、不改 lock 形状**（design §7.5 冻结面不动）。
+3. 退出码：`0` 一致 / `2` 有偏差 / `1` 出错（与 diff/clean 同族）；`--json` 下输出单一 JSON 对象（三旗标既有纪律）。
+4. `sync` 启动时内部跑一次 verify；检得 PARTIAL 时提示「上次注入可能中断」（只提示，不自动修复，不阻断）。
+5. 新命令登记进 `CLI_COMMANDS` 单源（风险档位 `readonly`）——漂移闸（`cliCommands.api.test.ts`）会强制这一点。
+
+### FR-5 OM1 有效上下文密度（**B 级**：新面板数字）
+
+1. 定义：一次注入写入的**受管 token 数** ÷ 该包覆盖的资产数；受管 token 用 `estimateTokens` 对注入产物正文现算（与 `bundle:check` 无关，不进构建闸）。
+2. 附按资产归因 Top5（哪 5 条最占地方）；数据面 = 该包最近一次注入的产物（从 `injections` + 包定义现算）。
+3. 落点：设置页「本机统计」区（§8.2 裁定①，已落地 `OmSection` + `GET /api/om`）；不出网、不进遥测。
+
+### FR-6 OM2 首次见效时间（**B 级**：新面板数字）
+
+1. 定义：首启 → 第一次 `injection_confirmed` 的墙钟差；数据源 = `local_events`（首启事件 + 注入确认事件的时间戳）。
+2. 空数据（无首启记录或无注入）显式显示**「待采集」**（成长页既有口径），不显示 0 或 NaN。
+
+## 5. 输入 / 输出
+
+- **输入**：批次 A 出口（npm 在线 + D15 计时开始）；两个真实项目；`local_events` 与既有表。
+- **输出**：《飞轮首圈报告》；`verify` 命令 + 四态用例；OM1/OM2 面板数字；`CLI_COMMANDS` 增 `verify` 一条。
+
+## 6. 边界与异常
+
+- **协议期间禁清空台账**（FR-1.3）；清空动作的产品语义不变，只是协议纪律。
+- **verify 是只读命令**：任何实现里出现对项目目录或 `~/.openvibe` 的写调用即违约（用例断言：verify 前后项目目录逐字节不变）。
+- **D15 双腿独立性**：OM/报告不得让 dev_log_entries 同时充当两腿（分析文 §10.4.1 的穷举结论），腿① 只走 `local_events` kind。
+- **OM 不造假数字**：`estimateTokens` 是估算器，面板须标注「估算」；usage 类字段拿不到就是「待采集」，不填 0（http-runner 既有「不造假数字」纪律的同族延伸）。
+- 遥测白名单一条不加；报告与面板数据不出网。
+
+## 7. 验收标准（pass/fail）
+
+| # | 条目 | 判据 |
+|---|---|---|
+| 1 | verify 四态 | 各一支用例（人为造中间态：半途 kill 注入 / 手改 lock / 手放新文件）；verify 前后项目目录逐字节不变 |
+| 2 | verify 接线 | 退出码 0/2/1；`--json` 单对象；`CLI_COMMANDS` 登记 + 漂移闸绿 |
+| 3 | sync 前置提示 | 造 PARTIAL 中间态 ⇒ sync 启动输出含「上次注入可能中断」且不阻断 |
+| 4 | OM1 | 同一包两次现算结果确定（同输入同值）；Top5 可归因；面板标注「估算」 |
+| 5 | OM2 | 空数据显示「待采集」；有事件时墙钟差与事件时间戳一致 |
+| 6 | 首圈报告 | 固定节齐全且每节附导出命令；摩擦清单 ≥5 条带复现步骤；D15 判定节有明确触发/不触发结论 |
+| 7 | 回归 | `pnpm test` 用例数只增不减；golden 零变化；docs:check 全绿 |
+
+## 8. 依赖
+
+### 8.1 依赖
+
+- **批次 A 出口**（发布 + D15 计时开始）是 FR-1/2 的前置；FR-4/5/6 无发布依赖、可与批次 A 并行开发。
+- 既有原语：三方哈希（基线 #2）、台账与 summary 端点（#4）、`estimateTokens`（#6）——零新基建。
+
+### 8.2 裁定记录（2026-10-24 闭合；owner 指令「批次 B 收尾」授权）
+
+1. **OM1/OM2 面板落点：设置页「本机统计」区**，紧跟本机事件台账节（`OmSection`，数据 `GET /api/om`）。理由：OM 是自检量具不是工作台动线；工作台飞轮卡已承载五项输入侧统计，同屏堆叠会稀释两者；OM 与台账同源（本机事件 + injections），同区呈现让「数据从哪来」一眼可见。已按此落地。
+2. **dogfooding 第二个项目的选择：不是设计裁定，是使用事实**——移入 FR-1 启动前置：owner 在批次 A publish 完成后启动首圈时指定（协议文档留空位）。观察窗起算日 = 首圈协议启动日。
+
+### 8.2a 复盘补注（2026-10-25，独立复盘发现的两处 spec-实现漂移，owner 复盘指令授权落笔）
+
+1. **verify 实为六态**（CONSISTENT / PARTIAL / ORPHAN / **DISK_DRIFT** / STALE_LOCK / **UNMANAGED**）——DEV-0113 开发时补扩的两态「spec 升 v1.0 时由 owner 确认」一直未记。本行即补记：DISK_DRIFT（磁盘偏离但包/lock 一致——diff 的领地，verify 如实指路）与 UNMANAGED（无 lock，是状态不是错误）经 [DEV-0113/0147] 落地并有 18 支用例背书，按现实现为准；§4 FR-4 与 §7 #1 的「四态」字样读作历史采样。
+2. **sync 前置提示的实现形态**：FR-4.4 写「sync 启动时内部跑一次 verify」——实现为**轻量前置**（对已存在 lock 跑受管文件缺失检测，命中即提示，VERIFY-11 背书），不跑完整 verify（包渲染/远端探测对前置太重，sync 本体随后就会做）。信号等价（同一「lock 在而磁盘缺」事实），按轻量形态为准。
+
+### 8.3 让位规则
+
+批次 B 与批次 C 并行；首圈观察窗 ≥1 周**不可压缩**（与开发并行消化）。若批次 A 滑期，FR-1/2 随之顺延，FR-4/5/6 不受影响。

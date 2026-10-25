@@ -38,8 +38,13 @@ const DIST_WEB = join(REPO, 'apps', 'web', 'dist')
 const SEED_DIR = join(REPO, 'content', 'seed')
 const MIGRATIONS_DIR = join(REPO, 'packages', 'core', 'src', 'db', 'migrations')
 
-/** D24（2026-10-01）把发布名改回 `openvibe`；D17 那条「已被占」的前提经复算作废。bin 仍 `openvibe` */
-export const PUBLISH_NAME = 'openvibe'
+/**
+ * 发布名终裁（v0.2.3 批次 A FR-1，owner 2026-10-24 授权裁决，登记于 spec v023-a §8.2 / DEV-0114）：
+ * 维持 `openvibe-cli`。D24（2026-10-01）改回 `openvibe` 的前提——「该名可注册」——已被现实
+ * 再次推翻：2026-10-24 复测 `npm view openvibe` 返回无关同名包（boxiaolanya2008，v1.0.0），
+ * publish 会 403。包名三次摇摆（D17→D24→本裁决）就此终结；bin 仍 `openvibe`。
+ */
+export const PUBLISH_NAME = 'openvibe-cli'
 /**
  * 不带 `./` 前缀：`npm publish` 的 normalize 会把 `./dist/cli.js` 改写成 `dist/cli.js`
  * 并打一条误导性的「was invalid and removed」警告（实测 npm 11）。写成品即可让
