@@ -55,6 +55,7 @@
  *   ⇒ 本文件**从 shared 转出**，既有 import 路径不变，枚举本身仍只此一份。
  */
 import { LANG_PROFILES, type LangProfile } from '@openvibe/shared'
+import { specSection161 } from './m9-p1b-spec'
 
 export { LANG_PROFILES }
 export type { LangProfile }
@@ -111,20 +112,6 @@ const PROFILE_BY_WORD: Record<string, LangProfile> = {
   速成: 'vibe',
 }
 
-/**
- * 取 spec §1.6.1 的正文（从该小节标题到下一个同级标题为止）。
- *
- * ⚠️ **必须截断** —— §1.6.1 之后还有十几张表，不截断的话「按形状扫数字」的读法
- *   会把别的表里的同形行也吃进来。
- */
-export function specSection161(specText: string): string | null {
-  const start = specText.indexOf('#### 1.6.1')
-  if (start === -1) return null
-  const rest = specText.slice(start)
-  const next = rest.indexOf('\n#### ', 1)
-  return next === -1 ? rest : rest.slice(0, next)
-}
-
 /** 去掉 Markdown 的粗体标记（spec 表格里有一格是 `**必学**`）。 */
 function stripBold(s: string): string {
   return s.replace(/\*/g, '').trim()
@@ -140,7 +127,10 @@ function stripBold(s: string): string {
 function findNecHeader(lines: string[]): { index: number; tiers: ResourceTier[] } | null {
   for (let i = 0; i < lines.length; i += 1) {
     // ⚠️ **必须 stripBold + trim** —— 表格切出来的每格都带首尾空格
-    const cells = (lines[i] ?? '').split('|').slice(1, -1).map((c) => stripBold(c))
+    const cells = (lines[i] ?? '')
+      .split('|')
+      .slice(1, -1)
+      .map((c) => stripBold(c))
     if (cells.length !== RESOURCE_TIERS.length + 1) continue
     if (cells[0] !== '模式') continue
     const tiers: ResourceTier[] = []
@@ -188,7 +178,10 @@ export function parseNecRule(specText: string): NecRule | null {
   let filled = 0
   for (const line of lines.slice(headerIdx + 1)) {
     if (!line.trim().startsWith('|')) continue
-    const cells = line.split('|').slice(1, -1).map((c) => stripBold(c))
+    const cells = line
+      .split('|')
+      .slice(1, -1)
+      .map((c) => stripBold(c))
     if (cells.length !== tiers.length + 1) continue
     const m = /^(精通|熟悉|速成)\s+`?(master|familiar|vibe)`?$/.exec(cells[0] ?? '')
     if (!m) continue
@@ -283,11 +276,7 @@ export function computeDistribution(
  * ⚠️ 入参只有「模式 + 档位」⇒ 没有「逐条覆写」的位置。
  *   矩阵缺格 ⇒ 抛错（不静默返回默认值 —— 静默兜底会让闸恒绿）。
  */
-export function necessaryFor(
-  rule: NecRule,
-  profile: LangProfile,
-  tier: ResourceTier,
-): Necessity {
+export function necessaryFor(rule: NecRule, profile: LangProfile, tier: ResourceTier): Necessity {
   const row = rule[profile]
   if (!row) throw new Error(`矩阵缺模式「${profile}」`)
   const nec = row[tier]
@@ -296,10 +285,7 @@ export function necessaryFor(
 }
 
 export type NecRuleViolationKind =
-  | 'matrix-parse-failed'
-  | 'distribution-parse-failed'
-  | 'unknown-tier'
-  | 'spec-mismatch'
+  'matrix-parse-failed' | 'distribution-parse-failed' | 'unknown-tier' | 'spec-mismatch'
 
 export interface NecRuleViolation {
   where: string

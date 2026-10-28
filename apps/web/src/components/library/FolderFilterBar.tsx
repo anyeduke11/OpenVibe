@@ -3,13 +3,8 @@ import type { DragEvent } from 'react'
 import { lane } from '../../i18n/lane-assets'
 import { zh } from '../../i18n/zh'
 import { Icon } from '../ui/icons'
-import { CHIP_TONES, chipCls, chipPressed } from '../ui/styles'
-
-// 与 TagFilterBar 同一条纪律：chipCls 与两种形制各自带 border / bg / text 三个色类，
-// 叠加只会让 Tailwind 任意挑一个生效（顺序不由源码决定），所以选中与未选中在**形制层**
-// 择一，三元不散进 JSX。
-const toggleChip = (on: boolean): string =>
-  `${chipCls} shrink-0 transition-colors ${on ? chipPressed : `${CHIP_TONES.default} hover:bg-panel`}`
+import { toggleChip } from '../ui/styles'
+import { MoreChips, foldChips } from './foldChips'
 
 /** 路径 → chip 文案：去掉前导斜杠；根目录走 i18n 键，不硬编码 */
 const labelOf = (path: string): string =>
@@ -67,15 +62,7 @@ export function FolderFilterBar(props: {
   const all = useMemo(() => [...props.paths].sort(byDepthThenName), [props.paths])
   if (all.length === 0) return null
 
-  const selectedIdx = props.selected === undefined ? -1 : all.indexOf(props.selected)
-  const collapsible = all.length > limit
-  const shown =
-    !collapsible || expanded
-      ? all
-      : selectedIdx >= limit
-        ? [...all.slice(0, limit), all[selectedIdx] as string]
-        : all.slice(0, limit)
-  const hidden = all.length - shown.length
+  const { shown, hidden, collapsible } = foldChips(all, props.selected, limit, expanded)
 
   // 每个 chip 都是落点。drop 时读 text/plain 拿 promptId —— 与改造前 FolderTree 同一约定。
   const dropProps = (path: string) => ({
@@ -134,24 +121,13 @@ export function FolderFilterBar(props: {
       {chip('/')}
       {shown.map((p) => chip(p))}
 
-      {collapsible && !expanded && (
-        <button
-          type="button"
-          className={`${chipCls} shrink-0 ${CHIP_TONES.default} hover:bg-panel`}
-          onClick={() => setExpanded(true)}
-        >
-          {lane.row.more} +{String(hidden)}
-        </button>
-      )}
-      {collapsible && expanded && (
-        <button
-          type="button"
-          className={`${chipCls} shrink-0 ${CHIP_TONES.default} hover:bg-panel`}
-          onClick={() => setExpanded(false)}
-        >
-          {lane.row.fewer}
-        </button>
-      )}
+      <MoreChips
+        collapsible={collapsible}
+        expanded={expanded}
+        hidden={hidden}
+        moreLabel={lane.row.more}
+        onToggle={setExpanded}
+      />
 
       <span className="shrink-0 text-[11px] leading-relaxed text-ink-faint">
         {zh.folderTree.dropHint}

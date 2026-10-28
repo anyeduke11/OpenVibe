@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import type { FlowTemplateOut, Stage } from '@openvibe/shared'
 import { extractVariables, fillVariables, remainingVariables } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-import { Dialog, DialogPanel } from '../ui/Dialog'
+import { SheetDialog } from '../ui/SheetDialog'
 import { toast } from '../ui/Toaster'
 import { btnGhost, btnPrimary, inputCls, labelCls, noteCls, segCls, segItemCls } from '../ui/styles'
 import { useFlowMutations } from '../../hooks/useFlows'
@@ -70,7 +70,7 @@ export function FlowRunDialog(props: {
           name: s.name,
           checklist: s.checklist,
           artifacts: s.artifacts,
-    prompt: s.prompt ?? '',
+          prompt: s.prompt ?? '',
         })),
       },
       {
@@ -81,125 +81,120 @@ export function FlowRunDialog(props: {
   }
 
   return (
-    <Dialog open={props.open} onOpenChange={(o) => (o ? undefined : props.onClose())}>
-      <DialogPanel
-        variant="sheet"
-        title={`${template.name} · ${zhRun.title}`}
-        footer={
-          <>
-            {template.builtin && (
-              <button
-                className={`${btnGhost} mr-auto`}
-                disabled={create.isPending}
-                onClick={saveAsCustom}
-              >
-                {zhRun.saveAsCustom}
-              </button>
-            )}
+    <SheetDialog
+      open={props.open}
+      onClose={props.onClose}
+      title={`${template.name} · ${zhRun.title}`}
+      footer={
+        <>
+          {template.builtin && (
             <button
-              className={btnGhost}
-              disabled={step === 0}
-              onClick={() => setStep((s) => Math.max(0, s - 1))}
+              className={`${btnGhost} mr-auto`}
+              disabled={create.isPending}
+              onClick={saveAsCustom}
             >
-              {zhRun.prev}
+              {zhRun.saveAsCustom}
             </button>
-            <button
-              className={btnPrimary}
-              disabled={step >= stages.length - 1}
-              onClick={() => setStep((s) => Math.min(stages.length - 1, s + 1))}
-            >
-              {step >= stages.length - 1 ? zhRun.last : zhRun.next}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-3 text-sm">
-          {/* 阶段导航走 segmented（DESIGN.md tabs）：它是「当前走到第几段」的控件，不是状态 chip */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className={segCls}>
-              {stages.map((s, i) => (
-                <button
-                  key={s.name}
-                  type="button"
-                  aria-pressed={i === step}
-                  className={segItemCls}
-                  onClick={() => setStep(i)}
-                >
-                  {`${String(i + 1)}. ${s.name}`}
-                </button>
-              ))}
-            </span>
-            <span className="ml-auto text-[11px] tabular-nums text-ink-faint">
-              {zhRun.progress(step + 1, stages.length)}
-            </span>
-          </div>
-
-          {stage !== undefined && (
-            <>
-              {stagePrompt.trim() === '' ? (
-                <p className={`${noteCls('info')} text-ink-body`}>
-                  {zhRun.noPrompt}
-                </p>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-2">
-                    {vars.map((v) => (
-                      <div key={v}>
-                        <label className={labelCls}>
-                          <span className="mono">{`{{${v}}}`}</span>
-                          {answers[v] !== undefined && answers[v] !== '' && (
-                            <span className="ml-1 text-[10px] text-ink-faint">
-                              {zhRun.inherited}
-                            </span>
-                          )}
-                        </label>
-                        <input
-                          className={inputCls}
-                          placeholder={zhRun.answerPlaceholder}
-                          value={answers[v] ?? ''}
-                          onChange={(e) => setAnswer(v, e.target.value)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div>
-                    <p className={labelCls}>
-                      {zhRun.generated}
-                      {remaining.length > 0 && (
-                        <span className="ml-2 text-warn">
-                          {zhFillRemain(remaining.length, remaining.join(', '))}
-                        </span>
-                      )}
-                    </p>
-                    <textarea
-                      readOnly
-                      className={`${inputCls} mono h-48 resize-none whitespace-pre-wrap`}
-                      value={generated}
-                    />
-                  </div>
-                  <div className="flex justify-end">
-                    <button className={btnPrimary} onClick={() => void copyCurrent()}>
-                      {zhRun.copyStage}
-                    </button>
-                  </div>
-                </>
-              )}
-              {stage.checklist.length > 0 && (
-                <details>
-                  <summary className="cursor-pointer text-[11px] text-ink-muted">
-                    {zhRun.checklistOf(stage.checklist.length)}
-                  </summary>
-                  <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-ink-muted">
-                    {stage.checklist.map((c) => (
-                      <li key={c.id}>{c.text}</li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-            </>
           )}
+          <button
+            className={btnGhost}
+            disabled={step === 0}
+            onClick={() => setStep((s) => Math.max(0, s - 1))}
+          >
+            {zhRun.prev}
+          </button>
+          <button
+            className={btnPrimary}
+            disabled={step >= stages.length - 1}
+            onClick={() => setStep((s) => Math.min(stages.length - 1, s + 1))}
+          >
+            {step >= stages.length - 1 ? zhRun.last : zhRun.next}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-3 text-sm">
+        {/* 阶段导航走 segmented（DESIGN.md tabs）：它是「当前走到第几段」的控件，不是状态 chip */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className={segCls}>
+            {stages.map((s, i) => (
+              <button
+                key={s.name}
+                type="button"
+                aria-pressed={i === step}
+                className={segItemCls}
+                onClick={() => setStep(i)}
+              >
+                {`${String(i + 1)}. ${s.name}`}
+              </button>
+            ))}
+          </span>
+          <span className="ml-auto text-[11px] tabular-nums text-ink-faint">
+            {zhRun.progress(step + 1, stages.length)}
+          </span>
         </div>
-      </DialogPanel>
-    </Dialog>
+
+        {stage !== undefined && (
+          <>
+            {stagePrompt.trim() === '' ? (
+              <p className={`${noteCls('info')} text-ink-body`}>{zhRun.noPrompt}</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  {vars.map((v) => (
+                    <div key={v}>
+                      <label className={labelCls}>
+                        <span className="mono">{`{{${v}}}`}</span>
+                        {answers[v] !== undefined && answers[v] !== '' && (
+                          <span className="ml-1 text-[10px] text-ink-faint">{zhRun.inherited}</span>
+                        )}
+                      </label>
+                      <input
+                        className={inputCls}
+                        placeholder={zhRun.answerPlaceholder}
+                        value={answers[v] ?? ''}
+                        onChange={(e) => setAnswer(v, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <p className={labelCls}>
+                    {zhRun.generated}
+                    {remaining.length > 0 && (
+                      <span className="ml-2 text-warn">
+                        {zhFillRemain(remaining.length, remaining.join(', '))}
+                      </span>
+                    )}
+                  </p>
+                  <textarea
+                    readOnly
+                    className={`${inputCls} mono h-48 resize-none whitespace-pre-wrap`}
+                    value={generated}
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button className={btnPrimary} onClick={() => void copyCurrent()}>
+                    {zhRun.copyStage}
+                  </button>
+                </div>
+              </>
+            )}
+            {stage.checklist.length > 0 && (
+              <details>
+                <summary className="cursor-pointer text-[11px] text-ink-muted">
+                  {zhRun.checklistOf(stage.checklist.length)}
+                </summary>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-xs text-ink-muted">
+                  {stage.checklist.map((c) => (
+                    <li key={c.id}>{c.text}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </>
+        )}
+      </div>
+    </SheetDialog>
   )
 }

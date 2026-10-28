@@ -4,9 +4,18 @@ import { useFlowMutations, useFlowTemplates } from '../hooks/useFlows'
 import { useProjectList } from '../hooks/useProjects'
 import { zh } from '../i18n/zh'
 import { FlowTemplateCard } from '../components/flows/FlowTemplateCard'
-import { Dialog, DialogPanel } from '../components/ui/Dialog'
+import { ConfirmDeleteDialog } from '../components/ui/ConfirmDeleteDialog'
 import { toast } from '../components/ui/Toaster'
-import { btnDanger, btnGhost, btnPrimary, emptyHintCls, h1Cls, h1SubCls, noteCls, noteTitleCls, skelCls } from '../components/ui/styles'
+import {
+  btnGhost,
+  btnPrimary,
+  emptyHintCls,
+  h1Cls,
+  h1SubCls,
+  noteCls,
+  noteTitleCls,
+  skelCls,
+} from '../components/ui/styles'
 import { laneEngineering } from '../i18n/lane-engineering'
 
 /** 两个重 UI 都懒加载（DEV-0074）：问答运行对话框 + 模板编辑器（含 dnd-kit）只在点开时
@@ -75,10 +84,7 @@ export function FlowsPage() {
           <span className="text-xs text-ink-faint tabular-nums">
             {list.data === undefined ? '' : laneEngineering.flowDelete.count(list.data.total)}
           </span>
-          <button
-            className={`${btnPrimary} ml-auto`}
-            onClick={() => setEditor({ template: null })}
-          >
+          <button className={`${btnPrimary} ml-auto`} onClick={() => setEditor({ template: null })}>
             {zh.flows.newFlow}
           </button>
         </div>
@@ -86,16 +92,18 @@ export function FlowsPage() {
 
       <div className="min-h-0 flex-1 overflow-auto px-5 py-3">
         {list.isLoading &&
-          [0, 1, 2].map((i) => (
-            <div key={i} className={`${skelCls} mb-3 h-32`} aria-hidden />
-          ))}
+          [0, 1, 2].map((i) => <div key={i} className={`${skelCls} mb-3 h-32`} aria-hidden />)}
         {list.isError && (
           <div className={noteCls('danger')}>
             <span className={`${noteTitleCls} text-danger`}>
               {zh.common.failed((list.error as Error).message)}
             </span>
             <p className="text-ink-body">{laneEngineering.state.retryHint}</p>
-            <button type="button" className={`${btnGhost} mt-2`} onClick={() => void list.refetch()}>
+            <button
+              type="button"
+              className={`${btnGhost} mt-2`}
+              onClick={() => void list.refetch()}
+            >
               {laneEngineering.state.retry}
             </button>
           </div>
@@ -137,50 +145,39 @@ export function FlowsPage() {
         </Suspense>
       )}
 
-      <Dialog open={deleting !== null} onOpenChange={(o) => (o ? undefined : setDeleting(null))}>
-        <DialogPanel
-          title={zh.flows.deleteDialog.title}
-          footer={
-            <>
-              <button className={btnGhost} onClick={() => setDeleting(null)}>
-                {zh.editor.cancel}
-              </button>
-              <button
-                className={btnDanger}
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (deleting === null) return
-                  remove.mutate(deleting.id, {
-                    onSuccess: () => {
-                      toast(zh.flows.deleteDialog.done)
-                      setDeleting(null)
-                    },
-                    onError: (e: Error) => toast(e.message, 'error'),
-                  })
-                }}
-              >
-                {zh.flows.deleteDialog.confirm}
-              </button>
-            </>
-          }
-        >
-          {deleting !== null && (
-            <div className="space-y-2 text-sm">
-              <p>{zh.flows.deleteDialog.body(deleting.name)}</p>
-              <p className="text-xs text-ink-muted">{zh.flows.deleteDialog.note}</p>
-              <div className="rounded-md border border-line bg-panel-2 px-3 py-2 text-xs">
-                <span className={`${noteTitleCls} text-ink-body`}>
-                  {laneEngineering.flowDelete.impactTitle}
-                </span>
-                <ul className="space-y-0.5 text-ink-muted">
-                  <li>· {laneEngineering.flowDelete.impactKept}</li>
-                  <li>· {laneEngineering.flowDelete.impactGone}</li>
-                </ul>
-              </div>
+      <ConfirmDeleteDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        title={zh.flows.deleteDialog.title}
+        confirmLabel={zh.flows.deleteDialog.confirm}
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (deleting === null) return
+          remove.mutate(deleting.id, {
+            onSuccess: () => {
+              toast(zh.flows.deleteDialog.done)
+              setDeleting(null)
+            },
+            onError: (e: Error) => toast(e.message, 'error'),
+          })
+        }}
+      >
+        {deleting !== null && (
+          <div className="space-y-2 text-sm">
+            <p>{zh.flows.deleteDialog.body(deleting.name)}</p>
+            <p className="text-xs text-ink-muted">{zh.flows.deleteDialog.note}</p>
+            <div className="rounded-md border border-line bg-panel-2 px-3 py-2 text-xs">
+              <span className={`${noteTitleCls} text-ink-body`}>
+                {laneEngineering.flowDelete.impactTitle}
+              </span>
+              <ul className="space-y-0.5 text-ink-muted">
+                <li>· {laneEngineering.flowDelete.impactKept}</li>
+                <li>· {laneEngineering.flowDelete.impactGone}</li>
+              </ul>
             </div>
-          )}
-        </DialogPanel>
-      </Dialog>
+          </div>
+        )}
+      </ConfirmDeleteDialog>
     </div>
   )
 }

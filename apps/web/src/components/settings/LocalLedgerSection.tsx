@@ -18,8 +18,8 @@ import {
   noteCls,
   noteTitleCls,
   proseCls,
-  skelCls,
 } from '../ui/styles'
+import { QueryError, QueryOffline, QuerySkeleton } from '../ui/QueryStates'
 import { Icon } from '../ui/icons'
 import { toast } from '../ui/Toaster'
 import { Dialog, DialogPanel } from '../ui/Dialog'
@@ -106,25 +106,11 @@ export function LocalLedgerSection() {
       <p className={`${proseCls} text-[13.5px] text-ink-body`}>{sys.settings.localLedger.body}</p>
 
       {state.isLoading ? (
-        <div className="mt-2 space-y-1.5" aria-busy>
-          {[0, 1, 2].map((i) => (
-            <div key={i} className={`${skelCls} h-4`} />
-          ))}
-        </div>
+        <QuerySkeleton wrap="mt-2" />
       ) : missing ? (
-        <p className="mt-2 text-[13px] text-ink-muted">{sys.state.notOnline}</p>
+        <QueryOffline wrap="mt-2" />
       ) : state.error ? (
-        <div className="mt-2">
-          <div className={emptyHintCls}>
-            <p className="text-danger">
-              {sys.state.error(state.error instanceof Error ? state.error.message : '')}
-            </p>
-            <button type="button" className={btnGhost} onClick={() => void state.refetch()}>
-              <Icon name="refresh" size={13} />
-              {sys.state.retry}
-            </button>
-          </div>
-        </div>
+        <QueryError wrap="mt-2" error={state.error} onRetry={() => void state.refetch()} />
       ) : !data || data.cumulativeTotal === 0 ? (
         <div className="mt-2">
           <div className={emptyHintCls}>
@@ -169,22 +155,22 @@ export function LocalLedgerSection() {
               <thead>
                 <tr className={ledgerHeadCls}>
                   <th className="text-left font-normal">{sys.settings.localLedger.colKind}</th>
-                  <th className="text-right font-normal">
-                    {sys.settings.localLedger.colWindow}
-                  </th>
+                  <th className="text-right font-normal">{sys.settings.localLedger.colWindow}</th>
                   <th className="text-right font-normal">
                     {sys.settings.localLedger.colCumulative}
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {cumulativeByKind(data.cumulativeByKind, data.byKind).map(({ kind, inWindow, total }) => (
-                  <tr key={kind} className="border-t border-line-hair">
-                    <td className="py-1.5 text-ink-body">{kind}</td>
-                    <td className="py-1.5 text-right text-ink">{String(inWindow)}</td>
-                    <td className="py-1.5 text-right text-ink-muted">{String(total)}</td>
-                  </tr>
-                ))}
+                {cumulativeByKind(data.cumulativeByKind, data.byKind).map(
+                  ({ kind, inWindow, total }) => (
+                    <tr key={kind} className="border-t border-line-hair">
+                      <td className="py-1.5 text-ink-body">{kind}</td>
+                      <td className="py-1.5 text-right text-ink">{String(inWindow)}</td>
+                      <td className="py-1.5 text-right text-ink-muted">{String(total)}</td>
+                    </tr>
+                  ),
+                )}
               </tbody>
             </table>
           )}

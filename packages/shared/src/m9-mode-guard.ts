@@ -23,7 +23,12 @@ import type { TransferMappingEntry, TransferPlan } from './m9-mode-interaction'
 /** 检查器只需要计划里的这几项（传 `TransferPlan` 的子集即可）。 */
 export type TransferPlanView = Pick<
   TransferPlan,
-  'mapping' | 'stationFrom' | 'stationTo' | 'litRequiredCount' | 'totalStations' | 'remainingStations'
+  | 'mapping'
+  | 'stationFrom'
+  | 'stationTo'
+  | 'litRequiredCount'
+  | 'totalStations'
+  | 'remainingStations'
 >
 
 /**
@@ -54,14 +59,16 @@ export function findTransferPlanViolations(
 
   const expFrom = expected.length === 0 ? null : Math.min(...expected.map((m) => m.stationNo))
   const expTo = expected.length === 0 ? null : Math.max(...expected.map((m) => m.stationNo))
-  if (plan.stationFrom !== expFrom) out.push(`起始站 ${String(plan.stationFrom)} ≠ 期望 ${String(expFrom)}`)
+  if (plan.stationFrom !== expFrom)
+    out.push(`起始站 ${String(plan.stationFrom)} ≠ 期望 ${String(expFrom)}`)
   if (plan.stationTo !== expTo) out.push(`末站 ${String(plan.stationTo)} ≠ 期望 ${String(expTo)}`)
   if (plan.litRequiredCount !== expected.length) {
     out.push(`已点亮必学条数 ${plan.litRequiredCount} ≠ 期望 ${expected.length}`)
   }
 
   // 「还剩几站」= 从当前站位那一站到最后一站（含当前那一站）
-  const expRemaining = expFrom === null ? plan.totalStations : Math.max(0, plan.totalStations - expFrom + 1)
+  const expRemaining =
+    expFrom === null ? plan.totalStations : Math.max(0, plan.totalStations - expFrom + 1)
   if (plan.remainingStations !== expRemaining) {
     out.push(`还剩站数 ${plan.remainingStations} ≠ 期望 ${expRemaining}`)
   }
@@ -73,6 +80,92 @@ export function findTransferPlanViolations(
 // ③ 口径只留一处：谓词在**代码**里只能出现一次
 // ============================================================================
 
+/** 词法段类型：代码 / 字符串字面量（含引号）/ 行注释 / 块注释。 */
+type LexKind = 'code' | 'str' | 'line' | 'block'
+
+/**
+ * 单趟扫描：把源码切成「代码 / 字符串 / 注释」三类**连续段**。
+ *
+ * 这台状态机是 `stripComments` 与 `countCodeOccurrences` 的**唯一**判定处 ——
+ * 「字符串里的 `//`（如 URL）算不算注释」「转义怎么跳」只在这里答一次。
+ * 各写一份时只要有一处判断不同，「去注释后看得见的表名」与「数出来的次数」
+ * 就会互相矛盾，而两边各自看都还合理。
+ *
+ * ⚠️ 引号本身归**字符串段**：代码段因此从不以引号开头，数代码时
+ *   不会把 `'…'` 的起始位置当成一次代码命中（与原判据一致）。
+ */
+function lexSegments(source: string): { kind: LexKind; text: string }[] {
+  const out: { kind: LexKind; text: string }[] = []
+  let kind: LexKind = 'code'
+  let start = 0
+  let i = 0
+
+  /** 把 `[start, end)` 落成一段；调用方先换 `kind` 的场合，先 flush 再换 */
+  const flush = (end: number): void => {
+    if (end > start) out.push({ kind, text: source.slice(start, end) })
+    start = end
+  }
+
+  while (i < source.length) {
+    const c = source[i]!
+    const d = source[i + 1] ?? ''
+    if (kind === 'code') {
+      if (c === '/' && d === '/') {
+        flush(i)
+        kind = 'line'
+        i += 2
+        continue
+      }
+      if (c === '/' && d === '*') {
+        flush(i)
+        kind = 'block'
+        i += 2
+        continue
+      }
+      if (c === "'" || c === '"' || c === '`') {
+        flush(i)
+        kind = 'str'
+        i += 1
+        continue
+      }
+      i += 1
+      continue
+    }
+    if (kind === 'str') {
+      if (c === '\\') {
+        i += 2 // 转义：连跳两个字符（`\'` 不结束字符串）
+        continue
+      }
+      i += 1
+      if (c === "'" || c === '"' || c === '`') {
+        flush(i)
+        kind = 'code'
+      }
+      continue
+    }
+    if (kind === 'line') {
+      if (c === '\n') {
+        i += 1
+        flush(i)
+        kind = 'code'
+        continue
+      }
+      i += 1
+      continue
+    }
+    // block
+    if (c === '*' && d === '/') {
+      i += 2
+      flush(i)
+      kind = 'code'
+      continue
+    }
+    i += 1
+  }
+  flush(source.length)
+  return out
+}
+
 /**
  * 去掉源码里的**注释**，**保留字符串字面量**。
  *
@@ -83,65 +176,16 @@ export function findTransferPlanViolations(
  * 一句 `db.prepare('INSERT INTO lang_topic_state')` 里的表名**必须**被看见，
  * 剔了字符串就等于把真正的违规放过去了。
  *
- * ⚠️ 字符串里的 `//`（如 URL）**不算注释** ⇒ 状态机必须同时认字符串。
+ * 两者的**词法判定**共用 `lexSegments`（见上）；这里只决定「段怎么拼回去」。
+ *
+ * ⚠️ 注释段**只留换行**：行数不漂，按行断言的调用方才不误报。
  *
  * @param source 源码文本
  */
 export function stripComments(source: string): string {
   let out = ''
-  let i = 0
-  let state: 'code' | 'line' | 'block' | 'sq' | 'dq' | 'bt' = 'code'
-
-  while (i < source.length) {
-    const c = source[i]!
-    const d = source[i + 1] ?? ''
-    if (state === 'code') {
-      if (c === '/' && d === '/') {
-        state = 'line'
-        i += 2
-        continue
-      }
-      if (c === '/' && d === '*') {
-        state = 'block'
-        i += 2
-        continue
-      }
-      if (c === "'") state = 'sq'
-      else if (c === '"') state = 'dq'
-      else if (c === '`') state = 'bt'
-      out += c
-      i += 1
-      continue
-    }
-    if (state === 'line') {
-      if (c === '\n') {
-        state = 'code'
-        out += c
-      }
-      i += 1
-      continue
-    }
-    if (state === 'block') {
-      if (c === '*' && d === '/') {
-        state = 'code'
-        i += 2
-        continue
-      }
-      if (c === '\n') out += c
-      i += 1
-      continue
-    }
-    // 字符串字面量：原样保留，跳过转义
-    if (c === '\\') {
-      out += source.slice(i, i + 2)
-      i += 2
-      continue
-    }
-    if ((state === 'sq' && c === "'") || (state === 'dq' && c === '"') || (state === 'bt' && c === '`')) {
-      state = 'code'
-    }
-    out += c
-    i += 1
+  for (const seg of lexSegments(source)) {
+    out += seg.kind === 'line' || seg.kind === 'block' ? seg.text.replace(/[^\n]/g, '') : seg.text
   }
   return out
 }
@@ -155,76 +199,24 @@ export function stripComments(source: string): string {
  *   按原文数会多出一两处，**数出来的不是「写了几遍判定式」而是「写了几遍这句话」**。
  *   ⇒ 必须先把注释与字符串剔掉，数剩下的才是代码。
  *
+ * 词法判定共用 `lexSegments`（见上）；命中**不跨段** —— 段与段之间隔着字符串或注释，
+ * 跨过去意味着片段本身一半是字符串/注释，那就不算「代码里写了几遍」。
+ *
  * @param source 源码文本
  * @param needle 要数的片段
  */
 export function countCodeOccurrences(source: string, needle: string): number {
   if (needle.length === 0) return 0
   let count = 0
-  let i = 0
-  /** 当前所处的词法状态 */
-  let state: 'code' | 'line' | 'block' | 'sq' | 'dq' | 'bt' = 'code'
-
-  while (i < source.length) {
-    const c = source[i]!
-    const d = source[i + 1] ?? ''
-    if (state === 'code') {
-      if (c === '/' && d === '/') {
-        state = 'line'
-        i += 2
-        continue
-      }
-      if (c === '/' && d === '*') {
-        state = 'block'
-        i += 2
-        continue
-      }
-      if (c === "'") {
-        state = 'sq'
-        i += 1
-        continue
-      }
-      if (c === '"') {
-        state = 'dq'
-        i += 1
-        continue
-      }
-      if (c === '`') {
-        state = 'bt'
-        i += 1
-        continue
-      }
-      if (source.startsWith(needle, i)) {
-        count += 1
-        i += needle.length
-        continue
-      }
-      i += 1
-      continue
+  for (const seg of lexSegments(source)) {
+    if (seg.kind !== 'code') continue
+    for (
+      let at = seg.text.indexOf(needle);
+      at !== -1;
+      at = seg.text.indexOf(needle, at + needle.length)
+    ) {
+      count += 1
     }
-    if (state === 'line') {
-      if (c === '\n') state = 'code'
-      i += 1
-      continue
-    }
-    if (state === 'block') {
-      if (c === '*' && d === '/') {
-        state = 'code'
-        i += 2
-        continue
-      }
-      i += 1
-      continue
-    }
-    // 字符串字面量：跳过转义
-    if (c === '\\') {
-      i += 2
-      continue
-    }
-    if ((state === 'sq' && c === "'") || (state === 'dq' && c === '"') || (state === 'bt' && c === '`')) {
-      state = 'code'
-    }
-    i += 1
   }
   return count
 }

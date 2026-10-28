@@ -3,3 +3,14 @@ content/seed/*.json
 # golden 标准包快照：逐字节契约对象，任何格式化（含表格对齐）都会破坏 m6a §7.4 验收
 tests/golden/**/files/**
 tests/golden/**/openvibe.pack.json
+# golden 的两个 .ts 辅助件：FR-9.1 冻结面判的是 `tests/golden/` 整目录零 diff，
+# 而 prettier 的重排（如把多行数组折成一行）会让这道闸必红 ⇒ 冻结面里不排版
+tests/golden/artifacts.ts
+tests/golden/fixtures.ts
+# agent 记忆导出件：**逐字节契约**（导出脚本自证「导出件与源逐字节相同」，
+# manifest.json 记每个文件的 sha256）⇒ 任何重排都会让 `pnpm memory:verify`
+# 与 `pnpm memory:check` 两道闸判红（前者比清单哈希、后者比源）
+docs/agent-memory/**
+# V1 原型归档快照：prettier 的 HTML 解析器无法解析（内嵌 script 契约 JSON 报
+# "Opening tag not terminated"），且归档件是历史存档，本就不应被重排
+docs/prototypes/archive/**

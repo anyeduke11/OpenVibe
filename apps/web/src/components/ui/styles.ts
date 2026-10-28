@@ -32,7 +32,8 @@ export const inputCls =
 export const labelCls = 'mb-1 block text-xs font-medium text-ink-muted'
 
 /** chip 基座：full 圆角 + 11px/1.7 行高（DESIGN.md chip） */
-export const chipCls = 'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] leading-[1.7]'
+export const chipCls =
+  'inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] leading-[1.7]'
 
 /**
  * chip 六形制（DESIGN.md chip）。每形制都是「soft 底 + 同色系 line + 同色系 solid 字」三件套。
@@ -55,6 +56,15 @@ export const chipTone = (tone: ChipTone): string => `${chipCls} ${CHIP_TONES[ton
 export const chipPressed = 'border-accent-line bg-accent-soft text-accent-deep'
 
 /**
+ * 可按压筛选 chip 的三元：选中态 `chipPressed`，未选中 default 形制。
+ *
+ * ⚠️ chipCls 与两种形制各自带 border / bg / text 三个色类，叠加只会让 Tailwind 任意挑一个
+ * 生效（顺序不由源码决定），所以在**形制层**择一，三元不散进 JSX。
+ */
+export const toggleChip = (on: boolean): string =>
+  `${chipCls} shrink-0 transition-colors ${on ? chipPressed : `${CHIP_TONES.default} hover:bg-panel`}`
+
+/**
  * **筛选 chip**（M9 资源页 · owner 2026-10-22 的「支持筛选」）。
  *
  * ⚠️ **为什么单独两个而不是直接用 `chipCls`**：筛选 chip 是**可按压的**
@@ -64,7 +74,8 @@ export const chipPressed = 'border-accent-line bg-accent-soft text-accent-deep'
  * ⚠️ **类组合只此一处**：调用点不许再拼一遍圆角/描边/字号
  * （拼一遍就等于多一份口径 ⇒ 两处会漂）。
  */
-export const filterChipCls = 'rounded-full border border-line px-2.5 py-1 text-[12px] text-ink-muted'
+export const filterChipCls =
+  'rounded-full border border-line px-2.5 py-1 text-[12px] text-ink-muted'
 export const filterChipActiveCls = `${filterChipCls} ${chipPressed}`
 
 /**
@@ -125,8 +136,7 @@ export const cardCls = 'rounded-md border border-line bg-panel shadow-1'
 export const cardHeadCls =
   'flex min-h-11 items-center gap-2.5 border-b border-line-hair px-3.5 py-2.5'
 export const cardBodyCls = 'px-3.5 py-3'
-export const cardFootCls =
-  'flex items-center gap-2 border-t border-line-hair px-3.5 py-2.5'
+export const cardFootCls = 'flex items-center gap-2 border-t border-line-hair px-3.5 py-2.5'
 
 /**
  * 统计卡（DESIGN.md stat）：键 12px ink-faint / 值 27px 600 ink tabular-nums / 注 12px ink-muted。

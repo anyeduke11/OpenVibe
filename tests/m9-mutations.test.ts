@@ -69,9 +69,15 @@ interface VibeSeed {
   items: VibeSeedItem[]
 }
 
-const PHASE_SEED = JSON.parse(readFileSync(join(SEEDS, 'lang_profile_phases.json'), 'utf8')) as PhaseSeed
-const RES_SEED = JSON.parse(readFileSync(join(SEEDS, 'lang_resources.json'), 'utf8')) as ResourceSeed
-const VIBE_SEED = JSON.parse(readFileSync(join(SEEDS, 'lang_vibe_resources.json'), 'utf8')) as VibeSeed
+const PHASE_SEED = JSON.parse(
+  readFileSync(join(SEEDS, 'lang_profile_phases.json'), 'utf8'),
+) as PhaseSeed
+const RES_SEED = JSON.parse(
+  readFileSync(join(SEEDS, 'lang_resources.json'), 'utf8'),
+) as ResourceSeed
+const VIBE_SEED = JSON.parse(
+  readFileSync(join(SEEDS, 'lang_vibe_resources.json'), 'utf8'),
+) as VibeSeed
 
 // ============================================================================
 // 闸组
@@ -86,8 +92,7 @@ interface Gate {
 const GATES: Gate[] = [
   {
     name: 'spec-consistency',
-    run: (t) =>
-      checkSpecConsistency(t).map((x) => `[${x.rule}] ${x.where} — ${x.detail}`),
+    run: (t) => checkSpecConsistency(t).map((x) => `[${x.rule}] ${x.where} — ${x.detail}`),
   },
   {
     name: 'DL-49 分期 21 段逐格',
@@ -154,7 +159,11 @@ const GATES: Gate[] = [
       for (const profile of ['master', 'familiar', 'vibe'] as LangProfile[]) {
         const a = spec.distribution[profile]
         const b = computed[profile]
-        if (a.required !== b.required || a.recommended !== b.recommended || a.optional !== b.optional) {
+        if (
+          a.required !== b.required ||
+          a.recommended !== b.recommended ||
+          a.optional !== b.optional
+        ) {
           problems.push(
             `${profile} 档位分布与「矩阵 × 种子 tier 现算」不符：spec ${a.required}/${a.recommended}/${a.optional}，现算 ${b.required}/${b.recommended}/${b.optional}`,
           )
@@ -227,7 +236,11 @@ function replaceOnce(oldText: string, newText: string): (t: string) => string {
  *   `checkNoMappingStatements` 仍然读得到那句话 ⇒ **闸不会红**，
  *   那条腿就证明不了任何东西（实测踩到过：M18 第一版就是这么空转的）。
  */
-function replaceInSection(heading: string, oldText: string, newText: string): (t: string) => string {
+function replaceInSection(
+  heading: string,
+  oldText: string,
+  newText: string,
+): (t: string) => string {
   return (t) => {
     const lines = t.split('\n')
     const from = lines.findIndex((l) => l.trim().startsWith(heading))
@@ -301,11 +314,7 @@ const MUTATIONS: Mutation[] = [
   {
     name: 'M9 §3.1 代码块删掉一张表（表数变 16）',
     expectGate: 'spec-consistency',
-    apply: (t) =>
-      t.replace(
-        /^lang_concept_deltas .*\n/m,
-        '',
-      ),
+    apply: (t) => t.replace(/^lang_concept_deltas .*\n/m, ''),
   },
 
   // ── C 组：DL-45 ─────────────────────────────────────────────────────────
@@ -333,10 +342,7 @@ const MUTATIONS: Mutation[] = [
   {
     name: 'M12 §6.3 第 8 条不再标 ⛔（依赖链说它在第 6 条之后）',
     expectGate: 'spec-consistency',
-    apply: replaceOnce(
-      '| ⛔ **P1f**（阶段 2 的推荐档；',
-      '| **P1f**（阶段 2 的推荐档；',
-    ),
+    apply: replaceOnce('| ⛔ **P1f**（阶段 2 的推荐档；', '| **P1f**（阶段 2 的推荐档；'),
   },
   {
     name: 'M13 §9 的 P1f 行依赖去掉 P1d（台账仍写「卡住 P1f」）',
@@ -352,8 +358,8 @@ const MUTATIONS: Mutation[] = [
     name: 'M14 §1.6.1 资源表把 official 的 Go 改成 8（行内 6+8 ≠ 合计 13）',
     expectGate: 'DL-47 资源条数',
     apply: replaceOnce(
-      '| `official` 官方文档 | 6 | 7 | **13** |',
-      '| `official` 官方文档 | 6 | 8 | **13** |',
+      '| `official` 官方文档          | 6      | 7      | **13**  | 官方权威入门路径与文档       |',
+      '| `official` 官方文档          | 6      | 8      | **13**  | 官方权威入门路径与文档       |',
     ),
   },
   {
@@ -367,7 +373,7 @@ const MUTATIONS: Mutation[] = [
   {
     name: 'M16 §3.17.1 删掉第 21 段（21 段变 20 段）',
     expectGate: 'DL-49 分期 21 段逐格',
-    apply: (t) => t.replace(/^\| \*\*21\*\* \| Go \| 速成 .*\n/m, ''),
+    apply: (t) => t.replace(/^\| \*\*21\*\* \| Go\s+\| 速成 .*\n/m, ''),
   },
   {
     name: 'M17 §3.17.1 把「跳过：」润色成「产出：」（**方向完全相反**的那种润色）',
@@ -389,10 +395,7 @@ const MUTATIONS: Mutation[] = [
   {
     name: 'M19 §6.3 第 8 条那一行多切一格（表格静默变形）',
     expectGate: 'spec-consistency',
-    apply: replaceOnce(
-      '| ⛔ **P1f**（阶段 2 的推荐档；',
-      '| ⛔ **P1f**（阶段 2 的推荐档；| ',
-    ),
+    apply: replaceOnce('| ⛔ **P1f**（阶段 2 的推荐档；', '| ⛔ **P1f**（阶段 2 的推荐档；| '),
   },
 ]
 

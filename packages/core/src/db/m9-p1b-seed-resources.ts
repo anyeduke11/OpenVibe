@@ -31,7 +31,18 @@ import { mergeSeedRow, type SeedMergeSpec } from './seed-merge'
 export const RESOURCES_MERGE_SPEC: SeedMergeSpec = {
   table: 'lang_resources',
   keyColumns: ['lang', 'name'],
-  contentColumns: ['url', 'category', 'tier', 'level_label', 'price', 'lang_label', 'summary', 'freshness', 'verified_by', 'source_checked_at'],
+  contentColumns: [
+    'url',
+    'category',
+    'tier',
+    'level_label',
+    'price',
+    'lang_label',
+    'summary',
+    'freshness',
+    'verified_by',
+    'source_checked_at',
+  ],
 }
 export const VIBE_RESOURCES_MERGE_SPEC: SeedMergeSpec = {
   table: 'lang_vibe_resources',
@@ -115,7 +126,10 @@ function emptyResult(bundle: string): M9ResourceSeedResult {
   return { bundle, status: 'skipped', created: 0, ignored: 0, warnings: [] }
 }
 
-function readSeed<T>(seedDir: string, file: string): { parsed: SeedFile<T> | null; raw: string; error?: string } {
+function readSeed<T>(
+  seedDir: string,
+  file: string,
+): { parsed: SeedFile<T> | null; raw: string; error?: string } {
   try {
     const raw = readFileSync(join(seedDir, file), 'utf8')
     const parsed = JSON.parse(raw) as SeedFile<T>
@@ -130,6 +144,50 @@ function readSeed<T>(seedDir: string, file: string): { parsed: SeedFile<T> | nul
 
 function registerBundle(db: SqliteDatabase, bundle: string, raw: string): void {
   seedRegistryUpsert(db, bundle, sha256Hex(raw), nowIso())
+}
+
+/** 三条 seed 路径的逐行计数（三态合并的可见口径）。 */
+interface SeedCounts {
+  created: number
+  ignored: number
+}
+
+/**
+ * 落一行并计数 —— 三张表的循环体共用这一份。
+ *
+ * ⚠️ **计数口径不许各抄一遍**：`updated` 不计入 `ignored`、`user-modified` 两条都计，
+ *   抄成三份时只要有一处写错，同一份种子在不同表上就会报出不同的数。
+ */
+function applySeedRow(
+  result: M9ResourceSeedResult,
+  counts: SeedCounts,
+  insert: () => string,
+  label: string,
+): void {
+  try {
+    const r = insert()
+    if (r === 'created') counts.created += 1
+    else if (r === 'updated') result.updated = (result.updated ?? 0) + 1
+    else {
+      counts.ignored += 1
+      if (r === 'user-modified') result.userModified = (result.userModified ?? 0) + 1
+    }
+  } catch (err) {
+    result.warnings.push(`单条 INSERT 失败: ${label} — ${String(err)}`)
+  }
+}
+
+/**
+ * 单条 `verified_by` 校验（DL-29：核实主体只能是 owner，§1.6 第 1 点）——
+ * 值域由表的 CHECK 兜住，这里再挡一道。越界 ⇒ warn（与其余越界同款文案），返回 false 让调用方跳过。
+ */
+function verifiedByOwner(
+  result: M9ResourceSeedResult,
+  it: { verified_by: string; name: string },
+): boolean {
+  if (it.verified_by === 'owner_guide') return true
+  result.warnings.push(`verified_by 越界（DL-29）: ${it.verified_by} (${it.name})`)
+  return false
 }
 
 /**
@@ -150,8 +208,7 @@ export function seedLangResources(db: SqliteDatabase, seedDir: string): M9Resour
   const runOne = db.transaction((it: ResourceSeedItem): string =>
     mergeSeedRow(db, RESOURCES_MERGE_SPEC, { ...it }),
   )
-  let created = 0
-  let ignored = 0
+  const counts: SeedCounts = { created: 0, ignored: 0 }
   for (const it of parsed.items) {
     if (!EXPECTED_LANGS.has(it.lang)) {
       result.warnings.push(`lang 越界: ${it.lang} (${it.name})`)
@@ -179,25 +236,12 @@ export function seedLangResources(db: SqliteDatabase, seedDir: string): M9Resour
       continue
     }
     // ⚠️ DL-29：核实主体只能是 owner（§1.6 第 1 点）⇒ 值域由表的 CHECK 兜住，这里再挡一道。
-    if (it.verified_by !== 'owner_guide') {
-      result.warnings.push(`verified_by 越界（DL-29）: ${it.verified_by} (${it.name})`)
-      continue
-    }
-    try {
-      const r = runOne(it)
-      if (r === 'created') created += 1
-      else if (r === 'updated') result.updated = (result.updated ?? 0) + 1
-      else {
-        ignored += 1
-        if (r === 'user-modified') result.userModified = (result.userModified ?? 0) + 1
-      }
-    } catch (err) {
-      result.warnings.push(`单条 INSERT 失败: ${it.name} — ${String(err)}`)
-    }
+    if (!verifiedByOwner(result, it)) continue
+    applySeedRow(result, counts, () => runOne(it), it.name)
   }
-  result.created = created
-  result.ignored = ignored
-  result.status = created > 0 || (result.updated ?? 0) > 0 ? 'imported' : 'skipped'
+  result.created = counts.created
+  result.ignored = counts.ignored
+  result.status = counts.created > 0 || (result.updated ?? 0) > 0 ? 'imported' : 'skipped'
   registerBundle(db, LANG_RESOURCE_BUNDLE, raw)
   return result
 }
@@ -218,32 +262,18 @@ export function seedLangVibeResources(db: SqliteDatabase, seedDir: string): M9Re
   const runOne = db.transaction((it: VibeSeedItem): string =>
     mergeSeedRow(db, VIBE_RESOURCES_MERGE_SPEC, { ...it }),
   )
-  let created = 0
-  let ignored = 0
+  const counts: SeedCounts = { created: 0, ignored: 0 }
   for (const it of parsed.items) {
     if (!EXPECTED_GROUPS.has(it.group)) {
       result.warnings.push(`group 越界: ${it.group} (${it.name})`)
       continue
     }
-    if (it.verified_by !== 'owner_guide') {
-      result.warnings.push(`verified_by 越界（DL-29）: ${it.verified_by} (${it.name})`)
-      continue
-    }
-    try {
-      const r = runOne(it)
-      if (r === 'created') created += 1
-      else if (r === 'updated') result.updated = (result.updated ?? 0) + 1
-      else {
-        ignored += 1
-        if (r === 'user-modified') result.userModified = (result.userModified ?? 0) + 1
-      }
-    } catch (err) {
-      result.warnings.push(`单条 INSERT 失败: ${it.name} — ${String(err)}`)
-    }
+    if (!verifiedByOwner(result, it)) continue
+    applySeedRow(result, counts, () => runOne(it), it.name)
   }
-  result.created = created
-  result.ignored = ignored
-  result.status = created > 0 ? 'imported' : 'skipped'
+  result.created = counts.created
+  result.ignored = counts.ignored
+  result.status = counts.created > 0 ? 'imported' : 'skipped'
   registerBundle(db, LANG_VIBE_BUNDLE, raw)
   return result
 }
@@ -265,16 +295,14 @@ export function seedLangTopicResources(db: SqliteDatabase, seedDir: string): M9R
   }
   const findTopic = db.prepare('SELECT id FROM lang_topics WHERE lang = ? AND slug = ?')
   const findResource = db.prepare('SELECT id FROM lang_resources WHERE lang = ? AND name = ?')
-  const runOne = db.transaction(
-    (topicId: number, resourceId: number, role: string): string =>
-      mergeSeedRow(db, TOPIC_RESOURCES_MERGE_SPEC, {
-        topic_id: topicId,
-        resource_id: resourceId,
-        role,
-      }),
+  const runOne = db.transaction((topicId: number, resourceId: number, role: string): string =>
+    mergeSeedRow(db, TOPIC_RESOURCES_MERGE_SPEC, {
+      topic_id: topicId,
+      resource_id: resourceId,
+      role,
+    }),
   )
-  let created = 0
-  let ignored = 0
+  const counts: SeedCounts = { created: 0, ignored: 0 }
   for (const it of parsed.items) {
     if (!EXPECTED_ROLES.has(it.role)) {
       result.warnings.push(`role 越界: ${it.role} (${it.topic_slug})`)
@@ -290,21 +318,16 @@ export function seedLangTopicResources(db: SqliteDatabase, seedDir: string): M9R
       result.warnings.push(`资源不存在: ${it.lang}/${it.resource_name}`)
       continue
     }
-    try {
-      const r = runOne(topic.id, resource.id, it.role)
-      if (r === 'created') created += 1
-      else if (r === 'updated') result.updated = (result.updated ?? 0) + 1
-      else {
-        ignored += 1
-        if (r === 'user-modified') result.userModified = (result.userModified ?? 0) + 1
-      }
-    } catch (err) {
-      result.warnings.push(`单条 INSERT 失败: ${it.topic_slug} → ${it.resource_name} — ${String(err)}`)
-    }
+    applySeedRow(
+      result,
+      counts,
+      () => runOne(topic.id, resource.id, it.role),
+      `${it.topic_slug} → ${it.resource_name}`,
+    )
   }
-  result.created = created
-  result.ignored = ignored
-  result.status = created > 0 ? 'imported' : 'skipped'
+  result.created = counts.created
+  result.ignored = counts.ignored
+  result.status = counts.created > 0 ? 'imported' : 'skipped'
   registerBundle(db, LANG_TOPIC_RESOURCE_BUNDLE, raw)
   return result
 }

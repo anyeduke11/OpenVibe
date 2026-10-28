@@ -40,7 +40,13 @@ import {
   type NecDistribution,
   type ResourceTier,
 } from '../tooling/m9-p1b-necessity'
-import { FAIL_THRESHOLD, applyProbeOutcome, livenessOf, planProbeTargets, runResourceProbe } from './m9-p1b-probe'
+import {
+  FAIL_THRESHOLD,
+  applyProbeOutcome,
+  livenessOf,
+  planProbeTargets,
+  runResourceProbe,
+} from './m9-p1b-probe'
 import { exportResourcesReadme, listReadmeRows, verifyReadmeExport } from './m9-p1b-readme'
 import { LOCAL_EVENT_KINDS } from '@openvibe/shared'
 
@@ -65,12 +71,18 @@ const NINE_FIELDS = [
   'freshness',
 ] as const
 
-function countRows(db: { prepare: (sql: string) => { get: () => unknown } }, table: string): number {
+function countRows(
+  db: { prepare: (sql: string) => { get: () => unknown } },
+  table: string,
+): number {
   const r = db.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get() as { c: number }
   return r.c
 }
 
-function columnNames(db: { prepare: (sql: string) => { all: () => unknown } }, table: string): string[] {
+function columnNames(
+  db: { prepare: (sql: string) => { all: () => unknown } },
+  table: string,
+): string[] {
   return (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((r) => r.name)
 }
 
@@ -88,7 +100,9 @@ describe('DL-47 资源层与附件逐条相等 ＋ 主键不得用 url', () => {
     try {
       expect(countRows(h.db, 'lang_resources')).toBe(COUNTS.main)
       expect(countRows(h.db, 'lang_vibe_resources')).toBe(COUNTS.all - COUNTS.main)
-      expect(countRows(h.db, 'lang_resources') + countRows(h.db, 'lang_vibe_resources')).toBe(COUNTS.all)
+      expect(countRows(h.db, 'lang_resources') + countRows(h.db, 'lang_vibe_resources')).toBe(
+        COUNTS.all,
+      )
     } finally {
       h.close()
     }
@@ -136,7 +150,9 @@ describe('DL-47 资源层与附件逐条相等 ＋ 主键不得用 url', () => {
         expect(['a', 'b', 'c', 'd', 'e'], `tier「${r.tier}」不在五个合法值里`).toContain(r.tier)
       }
       // ⚠️ `star` 只在部分条目上有（spec §1.6.1：「仅 21 条有」）⇒ 必须仍能断言这个数
-      const withStar = h.db.prepare('SELECT COUNT(*) AS c FROM lang_resources WHERE star IS NOT NULL').get() as {
+      const withStar = h.db
+        .prepare('SELECT COUNT(*) AS c FROM lang_resources WHERE star IS NOT NULL')
+        .get() as {
         c: number
       }
       expect(withStar.c).toBe(COUNTS.star)
@@ -162,7 +178,9 @@ describe('DL-47 资源层与附件逐条相等 ＋ 主键不得用 url', () => {
     const h = freshDb()
     try {
       const before = countRows(h.db, 'lang_resources')
-      h.db.prepare('DELETE FROM lang_resources WHERE id = (SELECT MIN(id) FROM lang_resources)').run()
+      h.db
+        .prepare('DELETE FROM lang_resources WHERE id = (SELECT MIN(id) FROM lang_resources)')
+        .run()
       const after = countRows(h.db, 'lang_resources')
       expect(after).not.toBe(COUNTS.main)
       expect(after).toBe(before - 1)
@@ -175,7 +193,9 @@ describe('DL-47 资源层与附件逐条相等 ＋ 主键不得用 url', () => {
     const h = freshDb()
     try {
       h.db.exec('CREATE TABLE url_keyed (id INTEGER PRIMARY KEY, url TEXT NOT NULL UNIQUE)')
-      const rows = h.db.prepare('SELECT url FROM lang_resources ORDER BY id ASC').all() as { url: string }[]
+      const rows = h.db.prepare('SELECT url FROM lang_resources ORDER BY id ASC').all() as {
+        url: string
+      }[]
       const ins = h.db.prepare('INSERT INTO url_keyed (url) VALUES (?)')
       let failed = 0
       for (const r of rows) {
@@ -216,7 +236,9 @@ describe('DL-41 速成专区那 11 条必须在库，且不与主清单混表', 
     try {
       const vibe = h.db.prepare('SELECT name FROM lang_vibe_resources').all() as { name: string }[]
       const main = new Set(
-        (h.db.prepare('SELECT name FROM lang_resources').all() as { name: string }[]).map((r) => r.name),
+        (h.db.prepare('SELECT name FROM lang_resources').all() as { name: string }[]).map(
+          (r) => r.name,
+        ),
       )
       for (const v of vibe) expect(main.has(v.name), `${v.name} 不该同时出现在主清单`).toBe(false)
     } finally {
@@ -256,7 +278,11 @@ describe('DL-41 速成专区那 11 条必须在库，且不与主清单混表', 
   it('⚠️ 变异腿：抽掉其中一条 ⇒ 11 条不成立（闸会红）', () => {
     const h = freshDb()
     try {
-      h.db.prepare('DELETE FROM lang_vibe_resources WHERE id = (SELECT MIN(id) FROM lang_vibe_resources)').run()
+      h.db
+        .prepare(
+          'DELETE FROM lang_vibe_resources WHERE id = (SELECT MIN(id) FROM lang_vibe_resources)',
+        )
+        .run()
       expect(countRows(h.db, 'lang_vibe_resources')).not.toBe(COUNTS.all - COUNTS.main)
     } finally {
       h.close()
@@ -270,7 +296,10 @@ describe('DL-27 资源层不得有前置边，也不得进 DAG', () => {
     try {
       const cols = columnNames(h.db, 'lang_resources').map((c) => c.toLowerCase())
       for (const banned of ['edge', 'parent', 'prereq', 'depend', 'next', 'prev']) {
-        expect(cols.some((c) => c.includes(banned)), `资源表不该有含「${banned}」的列`).toBe(false)
+        expect(
+          cols.some((c) => c.includes(banned)),
+          `资源表不该有含「${banned}」的列`,
+        ).toBe(false)
       }
     } finally {
       h.close()
@@ -280,9 +309,11 @@ describe('DL-27 资源层不得有前置边，也不得进 DAG', () => {
   it('仓里没有「资源 × 边」那种表', () => {
     const h = freshDb()
     try {
-      const tables = (h.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as { name: string }[]).map(
-        (r) => r.name,
-      )
+      const tables = (
+        h.db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as {
+          name: string
+        }[]
+      ).map((r) => r.name)
       expect(tables.filter((t) => t.includes('resource') && t.includes('edge'))).toEqual([])
     } finally {
       h.close()
@@ -309,11 +340,15 @@ describe('DL-29 owner 提供的来源不得标成我核过', () => {
     const h = freshDb()
     try {
       const bad = h.db
-        .prepare("SELECT COUNT(*) AS c FROM lang_resources WHERE verified_by <> 'owner_guide' OR source_checked_at IS NOT NULL")
+        .prepare(
+          "SELECT COUNT(*) AS c FROM lang_resources WHERE verified_by <> 'owner_guide' OR source_checked_at IS NOT NULL",
+        )
         .get() as { c: number }
       expect(bad.c).toBe(0)
       const badVibe = h.db
-        .prepare("SELECT COUNT(*) AS c FROM lang_vibe_resources WHERE verified_by <> 'owner_guide' OR source_checked_at IS NOT NULL")
+        .prepare(
+          "SELECT COUNT(*) AS c FROM lang_vibe_resources WHERE verified_by <> 'owner_guide' OR source_checked_at IS NOT NULL",
+        )
         .get() as { c: number }
       expect(badVibe.c).toBe(0)
     } finally {
@@ -325,7 +360,11 @@ describe('DL-29 owner 提供的来源不得标成我核过', () => {
     const h = freshDb()
     try {
       expect(() =>
-        h.db.prepare("UPDATE lang_resources SET verified_by = 'self' WHERE id = (SELECT MIN(id) FROM lang_resources)").run(),
+        h.db
+          .prepare(
+            "UPDATE lang_resources SET verified_by = 'self' WHERE id = (SELECT MIN(id) FROM lang_resources)",
+          )
+          .run(),
       ).toThrow()
     } finally {
       h.close()
@@ -380,8 +419,8 @@ describe('DL-48 必要性必须由矩阵推导，不得逐条手写', () => {
 
   it('⚠️ 变异腿①：把矩阵的 d × 精通 改成「可跳过」⇒ 必须红', () => {
     const mutated = SPEC_TEXT.replace(
-      '| **精通** `master` | 必学 | 必学 | 必学 | 推荐 | 推荐 | 推荐 |',
-      '| **精通** `master` | 必学 | 必学 | 必学 | 可跳过 | 推荐 | 推荐 |',
+      '| **精通** `master`   | 必学       | 必学       | 必学       | 推荐       | 推荐       | 推荐      |',
+      '| **精通** `master`   | 必学       | 必学       | 必学       | 可跳过    | 推荐       | 推荐      |',
     )
     expect(mutated).not.toBe(SPEC_TEXT)
     const violations = verifyNecessity({ specText: mutated, rows: [{ tier: 'd' }] })
@@ -390,7 +429,10 @@ describe('DL-48 必要性必须由矩阵推导，不得逐条手写', () => {
   })
 
   it('⚠️ 变异腿②：把 spec 记的分布数字改掉 ⇒ 必须红（防「矩阵与分布一起被改」）', () => {
-    const mutated = SPEC_TEXT.replace('精通 必学 53 / 推荐 36 / 可跳过 0', '精通 必学 54 / 推荐 35 / 可跳过 0')
+    const mutated = SPEC_TEXT.replace(
+      '精通 必学 53 / 推荐 36 / 可跳过 0',
+      '精通 必学 54 / 推荐 35 / 可跳过 0',
+    )
     expect(mutated).not.toBe(SPEC_TEXT)
     const violations = verifyNecessity({ specText: mutated, rows: [{ tier: 'd' }] })
     expect(violations.some((v) => v.rule === 'spec-mismatch')).toBe(true)
@@ -402,7 +444,9 @@ describe('DL-48 必要性必须由矩阵推导，不得逐条手写', () => {
       const rows = () => h.db.prepare('SELECT tier FROM lang_resources').all() as { tier: string }[]
       expect(verifyNecessity({ specText: SPEC_TEXT, rows: rows() })).toEqual([])
       h.db
-        .prepare("UPDATE lang_resources SET tier = 'a' WHERE id = (SELECT MIN(id) FROM lang_resources WHERE tier = 'd')")
+        .prepare(
+          "UPDATE lang_resources SET tier = 'a' WHERE id = (SELECT MIN(id) FROM lang_resources WHERE tier = 'd')",
+        )
         .run()
       const violations = verifyNecessity({ specText: SPEC_TEXT, rows: rows() })
       expect(violations.some((v) => v.rule === 'spec-mismatch')).toBe(true)
@@ -417,7 +461,9 @@ describe('DL-48 必要性必须由矩阵推导，不得逐条手写', () => {
     }
     for (const it of seed.items) {
       for (const k of Object.keys(it)) {
-        expect(k.toLowerCase(), `种子不该有逐条必要性字段 ${k}`).not.toMatch(/nec|necess|required|must/)
+        expect(k.toLowerCase(), `种子不该有逐条必要性字段 ${k}`).not.toMatch(
+          /nec|necess|required|must/,
+        )
       }
     }
     const rule = parseNecRule(SPEC_TEXT)!
@@ -427,7 +473,7 @@ describe('DL-48 必要性必须由矩阵推导，不得逐条手写', () => {
 })
 
 describe('DL-31 要点级知识点至少有一条可点的去处', () => {
-  it('每条 content_level=\'point\' 的知识点都至少有一条挂接', () => {
+  it("每条 content_level='point' 的知识点都至少有一条挂接", () => {
     const h = freshDb()
     try {
       const orphans = h.db
@@ -468,7 +514,11 @@ describe('DL-31 要点级知识点至少有一条可点的去处', () => {
   it('⚠️ 变异腿：删掉某条的挂接 ⇒ 必须红', () => {
     const h = freshDb()
     try {
-      h.db.prepare('DELETE FROM lang_topic_resources WHERE topic_id = (SELECT MIN(topic_id) FROM lang_topic_resources)').run()
+      h.db
+        .prepare(
+          'DELETE FROM lang_topic_resources WHERE topic_id = (SELECT MIN(topic_id) FROM lang_topic_resources)',
+        )
+        .run()
       const orphans = h.db
         .prepare(
           `SELECT COUNT(*) AS c FROM lang_topics t
@@ -482,10 +532,12 @@ describe('DL-31 要点级知识点至少有一条可点的去处', () => {
     }
   })
 
-  it('反证：`content_level=\'full\'` 的条目挂 0 条是**允许**的（判据必须按 point 过滤）', () => {
+  it("反证：`content_level='full'` 的条目挂 0 条是**允许**的（判据必须按 point 过滤）", () => {
     const h = freshDb()
     try {
-      const topic = h.db.prepare('SELECT id FROM lang_topics ORDER BY id ASC LIMIT 1').get() as { id: number }
+      const topic = h.db.prepare('SELECT id FROM lang_topics ORDER BY id ASC LIMIT 1').get() as {
+        id: number
+      }
       h.db.prepare('DELETE FROM lang_topic_resources WHERE topic_id = ?').run(topic.id)
       h.db.prepare("UPDATE lang_topics SET content_level = 'full' WHERE id = ?").run(topic.id)
       const orphans = h.db
@@ -538,13 +590,19 @@ describe('P1b.4 探测定点与状态机（DL-30 调度侧）', () => {
   it('状态机：成功 ⇒ alive=1 且计数归零；单次失败 ⇒ alive 仍为 1；连续两次 ⇒ alive=0 但**行仍在**', async () => {
     const h = freshDb()
     try {
-      const target = h.db.prepare('SELECT url FROM lang_resources ORDER BY id ASC LIMIT 1').get() as { url: string }
+      const target = h.db
+        .prepare('SELECT url FROM lang_resources ORDER BY id ASC LIMIT 1')
+        .get() as { url: string }
       const before = countRows(h.db, 'lang_resources')
 
       // 成功
-      await runResourceProbe(h.db, async () => ({ statusCode: 200 }), { checkedAt: '2026-10-20T00:00:00Z' })
+      await runResourceProbe(h.db, async () => ({ statusCode: 200 }), {
+        checkedAt: '2026-10-20T00:00:00Z',
+      })
       let row: { alive: number; consecutive_fails: number; last_status_code?: number | null } = h.db
-        .prepare('SELECT alive, consecutive_fails, last_status_code FROM lang_resources WHERE url = ?')
+        .prepare(
+          'SELECT alive, consecutive_fails, last_status_code FROM lang_resources WHERE url = ?',
+        )
         .get(target.url) as {
         alive: number
         consecutive_fails: number
@@ -556,8 +614,12 @@ describe('P1b.4 探测定点与状态机（DL-30 调度侧）', () => {
       expect(livenessOf(row)).toBe('ok')
 
       // 单次失败
-      await runResourceProbe(h.db, async () => ({ statusCode: 500 }), { checkedAt: '2026-10-20T01:00:00Z' })
-      row = h.db.prepare('SELECT alive, consecutive_fails FROM lang_resources WHERE url = ?').get(target.url) as {
+      await runResourceProbe(h.db, async () => ({ statusCode: 500 }), {
+        checkedAt: '2026-10-20T01:00:00Z',
+      })
+      row = h.db
+        .prepare('SELECT alive, consecutive_fails FROM lang_resources WHERE url = ?')
+        .get(target.url) as {
         alive: number
         consecutive_fails: number
       }
@@ -566,8 +628,12 @@ describe('P1b.4 探测定点与状态机（DL-30 调度侧）', () => {
       expect(livenessOf(row)).toBe('suspect')
 
       // 连续第二次失败
-      await runResourceProbe(h.db, async () => ({ statusCode: 500 }), { checkedAt: '2026-10-20T02:00:00Z' })
-      row = h.db.prepare('SELECT alive, consecutive_fails FROM lang_resources WHERE url = ?').get(target.url) as {
+      await runResourceProbe(h.db, async () => ({ statusCode: 500 }), {
+        checkedAt: '2026-10-20T02:00:00Z',
+      })
+      row = h.db
+        .prepare('SELECT alive, consecutive_fails FROM lang_resources WHERE url = ?')
+        .get(target.url) as {
         alive: number
         consecutive_fails: number
       }
@@ -584,12 +650,18 @@ describe('P1b.4 探测定点与状态机（DL-30 调度侧）', () => {
   it('阈值被**两侧**钉死：既不是 1 也不是 3（单次不死 + 两次必死）', () => {
     const h = freshDb()
     try {
-      const target = h.db.prepare('SELECT url FROM lang_resources ORDER BY id ASC LIMIT 1').get() as { url: string }
+      const target = h.db
+        .prepare('SELECT url FROM lang_resources ORDER BY id ASC LIMIT 1')
+        .get() as { url: string }
       applyProbeOutcome(h.db, target.url, 500, '2026-10-20T00:00:00Z')
-      let row = h.db.prepare('SELECT alive FROM lang_resources WHERE url = ?').get(target.url) as { alive: number }
+      let row = h.db.prepare('SELECT alive FROM lang_resources WHERE url = ?').get(target.url) as {
+        alive: number
+      }
       expect(row.alive, '阈值若是 1 ⇒ 这里会死，断言会红').toBe(1)
       applyProbeOutcome(h.db, target.url, 500, '2026-10-20T01:00:00Z')
-      row = h.db.prepare('SELECT alive FROM lang_resources WHERE url = ?').get(target.url) as { alive: number }
+      row = h.db.prepare('SELECT alive FROM lang_resources WHERE url = ?').get(target.url) as {
+        alive: number
+      }
       expect(row.alive, '阈值若是 3 ⇒ 这里还活着，断言会红').toBe(0)
       expect(FAIL_THRESHOLD).toBe(2)
     } finally {
@@ -601,7 +673,9 @@ describe('P1b.4 探测定点与状态机（DL-30 调度侧）', () => {
     // 直接证明「阈值 1」与「阈值 2」的行为不同 —— 生产常量改小，上面那条断言就会红
     const h = freshDb()
     try {
-      const target = h.db.prepare('SELECT url FROM lang_resources ORDER BY id ASC LIMIT 1').get() as { url: string }
+      const target = h.db
+        .prepare('SELECT url FROM lang_resources ORDER BY id ASC LIMIT 1')
+        .get() as { url: string }
       // 模拟阈值 = 1 的实现：一次失败即判死
       const simulated = h.db
         .prepare('SELECT alive, consecutive_fails FROM lang_resources WHERE url = ?')
@@ -694,15 +768,29 @@ describe('0012/0021 迁移：content_level 列 ＋ local_events 的 CHECK 扩到
     try {
       const cols = columnNames(h.db, 'lang_topics')
       expect(cols).toContain('content_level')
-      const dflt = h.db.prepare("SELECT dflt_value AS d FROM pragma_table_info('lang_topics') WHERE name='content_level'").get() as {
+      const dflt = h.db
+        .prepare(
+          "SELECT dflt_value AS d FROM pragma_table_info('lang_topics') WHERE name='content_level'",
+        )
+        .get() as {
         d: string | null
       }
       expect(String(dflt.d)).toContain('point')
-      const bad = h.db.prepare("SELECT COUNT(*) AS c FROM lang_topics WHERE content_level NOT IN ('point','full')").get() as {
+      const bad = h.db
+        .prepare(
+          "SELECT COUNT(*) AS c FROM lang_topics WHERE content_level NOT IN ('point','full')",
+        )
+        .get() as {
         c: number
       }
       expect(bad.c).toBe(0)
-      expect(() => h.db.prepare("UPDATE lang_topics SET content_level = 'x' WHERE id = (SELECT MIN(id) FROM lang_topics)").run()).toThrow()
+      expect(() =>
+        h.db
+          .prepare(
+            "UPDATE lang_topics SET content_level = 'x' WHERE id = (SELECT MIN(id) FROM lang_topics)",
+          )
+          .run(),
+      ).toThrow()
     } finally {
       h.close()
     }
@@ -712,7 +800,9 @@ describe('0012/0021 迁移：content_level 列 ＋ local_events 的 CHECK 扩到
     const h = newDb()
     try {
       const sql = (
-        h.db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='local_events'").get() as { sql: string }
+        h.db
+          .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='local_events'")
+          .get() as { sql: string }
       ).sql
       // ⚠️ **必须先去掉 SQL 注释** —— 0012 的 CHECK 里每一组前面都有一行 `--` 说明，
       //   不去掉的话它们会被当成字面量（实测踩过）。
@@ -726,9 +816,11 @@ describe('0012/0021 迁移：content_level 列 ＋ local_events 的 CHECK 扩到
       expect(literals.length).toBe(25)
       expect(literals).toEqual([...LOCAL_EVENT_KINDS])
       // 既有行仍合法（重建表复制了历史数据）
-      const bad = h.db.prepare('SELECT COUNT(*) AS c FROM local_events WHERE kind NOT IN (SELECT value FROM json_each(?))').get(
-        JSON.stringify([...LOCAL_EVENT_KINDS]),
-      ) as { c: number }
+      const bad = h.db
+        .prepare(
+          'SELECT COUNT(*) AS c FROM local_events WHERE kind NOT IN (SELECT value FROM json_each(?))',
+        )
+        .get(JSON.stringify([...LOCAL_EVENT_KINDS])) as { c: number }
       expect(bad.c).toBe(0)
     } finally {
       h.close()

@@ -81,7 +81,7 @@ function registeredCommands(): RegisteredCommand[] {
   return hits.map((hit, i) => {
     const from = (hit.index ?? 0) + hit[0].length
     const to = hits[i + 1]?.index ?? src.length
-    const desc = src.slice(from, to).match(/\.description\(\s*'((?:[^'\\]|\\.)*)'\s*\)/)
+    const desc = src.slice(from, to).match(/\.description\(\s*'((?:[^'\\]|\\.)*)'\s*,?\s*\)/)
     return {
       name: hit[2] as string,
       receiver: hit[1] as string,
@@ -135,10 +135,11 @@ describe('GET /api/cli/commands（CLI 命令参考）', () => {
     // （apps/cli/src/index.ts 的 buildProgram 里有注释说明），故源码序恰等于码点序
     // （'add' < 'log'）。顺序因此仍是契约——**不是**为了省事才这么排；
     // 若日后挪动注册顺序，必须改成排序比较并在测试里说明放弃了顺序校验。
-    expect(registeredCommands().filter((c) => c.receiver !== 'program').map((c) => c.name)).toEqual([
-      'add',
-      'log',
-    ])
+    expect(
+      registeredCommands()
+        .filter((c) => c.receiver !== 'program')
+        .map((c) => c.name),
+    ).toEqual(['add', 'log'])
   })
 
   it('IT-CLI-CMD-05: summary 逐字等于注册处的 .description()（FR-4.3.3）', () => {

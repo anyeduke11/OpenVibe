@@ -1,7 +1,16 @@
 import type { FlywheelStatsOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 import { sys } from '../../i18n/lane-system'
-import { statCls, statHeroCls } from '../ui/styles'
+import type { useFlywheelStats } from '../../hooks/useSettings'
+import {
+  btnGhost,
+  noteCls,
+  noteTitleCls,
+  proseCls,
+  skelCls,
+  statCls,
+  statHeroCls,
+} from '../ui/styles'
 import { Icon } from '../ui/icons'
 
 /**
@@ -74,4 +83,40 @@ export function FlywheelCard(props: FlywheelStatsOut) {
       ))}
     </section>
   )
+}
+
+/**
+ * 统计条四态：加载骨架 / 错误可重试 / 数据（全零由 hero 注自陈）。
+ * 工作台与成长页共用；错误文案与其它查询块一致，只取 Error.message。
+ */
+export function FlywheelBody(props: { stats: ReturnType<typeof useFlywheelStats> }) {
+  const { stats } = props
+  if (stats.isLoading) {
+    return (
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-busy>
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className={`${skelCls} h-[86px] rounded-md`} />
+        ))}
+      </div>
+    )
+  }
+  if (stats.error) {
+    return (
+      <div className={noteCls('danger')}>
+        <b className={`${noteTitleCls} flex items-center gap-1.5 text-danger`}>
+          <Icon name="alert" size={13} />
+          统计条没取到
+        </b>
+        <p className={proseCls}>
+          {sys.state.error(stats.error instanceof Error ? stats.error.message : '')}
+        </p>
+        <button type="button" className={`${btnGhost} mt-2`} onClick={() => void stats.refetch()}>
+          <Icon name="refresh" size={13} />
+          {sys.state.retry}
+        </button>
+      </div>
+    )
+  }
+  if (stats.data === undefined) return null
+  return <FlywheelCard {...stats.data} />
 }

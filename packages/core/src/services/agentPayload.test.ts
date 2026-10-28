@@ -1,14 +1,26 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { FORBIDDEN, FORBIDDEN_COVERAGE, newDb, payloadKeys, scanForbidden, selfProofRows } from '../test-support'
+import {
+  FORBIDDEN,
+  FORBIDDEN_COVERAGE,
+  newDb,
+  payloadKeys,
+  scanForbidden,
+  selfProofRows,
+} from '../test-support'
 import { FlowTemplatesRepo } from '../repos/flows'
 import { APP_META_KEYS, AppMetaRepo } from '../repos/appMeta'
 import { ProjectsRepo } from '../repos/projects'
 import { createAgentService } from './agentService'
 import { createContextService } from './contextService'
 import { createCommandRunService } from './commandRunService'
-import { AGENT_PAYLOAD_KEYS, AGENT_PAYLOAD_TYPES, AGENT_EVENT_KINDS, AgentIngestOne } from '@openvibe/shared'
+import {
+  AGENT_PAYLOAD_KEYS,
+  AGENT_PAYLOAD_TYPES,
+  AGENT_EVENT_KINDS,
+  AgentIngestOne,
+} from '@openvibe/shared'
 
 /**
  * M8 台账 payload 的**统一守卫**（`m8-agent-bridge.md` FR-5.1.1 键闭集 ＋ FR-5.1.2 禁列）。
@@ -72,13 +84,16 @@ const KIND_SPEC: Record<string, { spec: string; marker: string }> = {
  * 这类「锚点词在别处也出现」的坑是判据变成永红的最常见形态，故把 kind 名也写进条件。
  */
 export function findSpecRow(spec: string, marker: string, kind: string): string | undefined {
-  return spec
-    .split('\n')
-    .find((l) => l.includes(marker) && l.includes('→') && l.includes(kind))
+  return spec.split('\n').find((l) => l.includes(marker) && l.includes('→') && l.includes(kind))
 }
 
 /** 四类**已有生产写入点**的 kind（第五类属 Phase 2，见文首） */
-const WRITTEN = ['agent_ingest_accepted', 'agent_ingest_rejected', 'agent_context_served', 'cli_agent_command_run'] as const
+const WRITTEN = [
+  'agent_ingest_accepted',
+  'agent_ingest_rejected',
+  'agent_context_served',
+  'cli_agent_command_run',
+] as const
 
 function fixture() {
   const h = newDb()
@@ -87,7 +102,10 @@ function fixture() {
     kind: 'light',
     stages: [{ name: '启动', checklist: [{ id: 'c1', text: '需求一句话' }], artifacts: [] }],
   })
-  const projectId = new ProjectsRepo(h.db).create({ name: '统一守卫演示', flowTemplateId: template.id }).id
+  const projectId = new ProjectsRepo(h.db).create({
+    name: '统一守卫演示',
+    flowTemplateId: template.id,
+  }).id
   let tick = 0
   const now = () => new Date(Date.UTC(2026, 9, 17, 0, 0, tick++))
   return {
@@ -101,8 +119,7 @@ function fixture() {
 
 function oneRow(h: ReturnType<typeof newDb>, kind: string): { payload_json: string } {
   const row = h.db.prepare('SELECT payload_json FROM local_events WHERE kind = ?').get(kind) as
-    | { payload_json: string }
-    | undefined
+    { payload_json: string } | undefined
   expect(row, `没有 ${kind} 的台账行 —— 写入点没跑起来，先修实现再谈判据`).toBeDefined()
   return row!
 }
@@ -115,12 +132,26 @@ function allRowsWritten(h: ReturnType<typeof newDb>, f: ReturnType<typeof fixtur
   new AppMetaRepo(h.db).write(APP_META_KEYS.agentWriteEnabled, true)
   f.agent.ingestBatch({
     projectId: f.projectId,
-    items: [{ kind: 'dev_log', idempotencyKey: 'g1', payload: { body: '正常内容' }, sourcePlatform: 'trae' }],
+    items: [
+      {
+        kind: 'dev_log',
+        idempotencyKey: 'g1',
+        payload: { body: '正常内容' },
+        sourcePlatform: 'trae',
+      },
+    ],
   })
   // 超单条上限 ⇒ 走拒收分支，落 agent_ingest_rejected
   f.agent.ingestBatch({
     projectId: f.projectId,
-    items: [{ kind: 'dev_log', idempotencyKey: 'g2', payload: { body: 'x'.repeat(600_000) }, sourcePlatform: 'trae' }],
+    items: [
+      {
+        kind: 'dev_log',
+        idempotencyKey: 'g2',
+        payload: { body: 'x'.repeat(600_000) },
+        sourcePlatform: 'trae',
+      },
+    ],
   })
   f.context.build(f.projectId, [])
   f.run.recordCommandRun({ command: 'ask', exitCode: 0, agent: 'trae' })
@@ -210,7 +241,10 @@ describe('FR-5.1.1 · 五类 payload 键闭集（单一出处 ＋ 逐字对齐�
       const binding = KIND_SPEC[kind]!
       const spec = readFileSync(binding.spec, 'utf8')
       const line = findSpecRow(spec, binding.marker, kind)
-      expect(line, `${binding.spec} 里找不到 ${kind} 的闭集那一行 —— 规格被改写了，本判据需同步`).toBeDefined()
+      expect(
+        line,
+        `${binding.spec} 里找不到 ${kind} 的闭集那一行 —— 规格被改写了，本判据需同步`,
+      ).toBeDefined()
 
       // 正向：实现的每个键都要在规格那行出现
       for (const key of AGENT_PAYLOAD_KEYS[kind as keyof typeof AGENT_PAYLOAD_KEYS]) {
@@ -232,7 +266,8 @@ describe('FR-5.1.1 · 五类 payload 键闭集（单一出处 ＋ 逐字对齐�
     // 只按 marker 找就必然返回它 —— 而版本行里一个键名都没有，守卫遂恒红。
     const decoy =
       '| 版本 | **v0.7**。v0.6 → v0.7：P5 落地 FR-9.2 的 CHECK 扩项 ＋ **新增 FR-9.1-b**（`payload_json` 允许键闭集 …）|'
-    const real = '- **FR-9.1-b** `payload_json` **允许键**：`ai_recommend_call` → `aiModel` / `aiProvider`。'
+    const real =
+      '- **FR-9.1-b** `payload_json` **允许键**：`ai_recommend_call` → `aiModel` / `aiProvider`。'
     const spec = [decoy, real].join('\n')
 
     expect(findSpecRow(spec, 'FR-9.1-b', 'ai_recommend_call')).toBe(real)
@@ -317,7 +352,9 @@ describe('FR-5.1.2 · 四类 payload 禁列（绝对路径 / 用户名 / 正文�
   })
 
   it('⚠️ 扫描器自证：干净行必须**放行**（否则闸严到没有实用价值）', () => {
-    expect(scanForbidden({ payload_json: JSON.stringify({ kind: 'dev_log', sourcePlatform: 'trae' }) })).toEqual([])
+    expect(
+      scanForbidden({ payload_json: JSON.stringify({ kind: 'dev_log', sourcePlatform: 'trae' }) }),
+    ).toEqual([])
   })
 
   it('⚠️ 变异腿：把禁列值灌进真实写入行 ⇒ 必须被抓（证明这条守卫不是恒绿）', () => {
@@ -342,7 +379,10 @@ describe('FR-6.3 覆盖差 · 禁列清单每一项都得能指认守卫', () =>
       expect(['scanner', 'writepoint'], c.item).toContain(c.mechanism)
       expect(c.guard.length, c.item).toBeGreaterThan(0)
       if (c.mechanism === 'scanner') {
-        expect(FORBIDDEN.map((f) => f.label), c.item).toContain(c.guard)
+        expect(
+          FORBIDDEN.map((f) => f.label),
+          c.item,
+        ).toContain(c.guard)
       } else {
         // 靠写入点的项必须**写明为什么正则兜不住**，否则等于默默放弃
         expect(c.whyNotRegex?.length ?? 0, c.item).toBeGreaterThan(5)
@@ -358,7 +398,9 @@ describe('FR-6.3 覆盖差 · 禁列清单每一项都得能指认守卫', () =>
     for (const word of ['绝对路径', '项目名', '用户名', '资产正文']) {
       expect(line, `规格 FR-6.3 提到「${word}」，对照表里却没有`).toContain(word)
       expect(
-        FORBIDDEN_COVERAGE.some((c) => c.item.includes(word) || (c.item.includes('绝对路径') && word === '绝对路径')),
+        FORBIDDEN_COVERAGE.some(
+          (c) => c.item.includes(word) || (c.item.includes('绝对路径') && word === '绝对路径'),
+        ),
         `对照表缺「${word}」`,
       ).toBe(true)
     }
@@ -374,7 +416,9 @@ describe('FR-6.3 覆盖差 · 禁列清单每一项都得能指认守卫', () =>
       cwd: `${process.env.HOME ?? '/tmp'}/work`,
     }
     // ① 键闭集抓到多出来的键
-    expect(Object.keys(spread).sort()).not.toEqual([...AGENT_PAYLOAD_KEYS.agent_ingest_accepted].sort())
+    expect(Object.keys(spread).sort()).not.toEqual(
+      [...AGENT_PAYLOAD_KEYS.agent_ingest_accepted].sort(),
+    )
     // ② 禁列扫到路径与 home 片段
     const labels = scanForbidden({ payload_json: JSON.stringify(spread) })
     expect(labels.length).toBeGreaterThan(0)
@@ -394,14 +438,14 @@ describe('FR-2.1 请求体字段名 · 规格与 zod 入参逐字一致', () => 
    */
   it('规格 §5「入 · 回流」那一行的每个字段都必须是 `AgentIngestOne` 的真实键', () => {
     const spec = readFileSync(SPEC_PATH, 'utf8')
-    const row = spec
-      .split('\n')
-      .find((l) => l.startsWith('| 入 |') && l.includes('POST body'))
+    const row = spec.split('\n').find((l) => /^\|\s*入\s*\|/.test(l) && l.includes('POST body'))
     expect(row, '规格 §5 找不到「入 · 回流」那一行').toBeDefined()
 
     // ⚠️ 只取**内容列**（`split('|')[2]`）：形态列里还有 `parseOrThrow` 这类实现侧的名字，
     // 全行收会把它们当成请求字段。
-    const specFields = [...row!.split('|')[2]!.matchAll(/`([A-Za-z][A-Za-z0-9_]*)`/g)].map((m) => m[1]!)
+    const specFields = [...row!.split('|')[2]!.matchAll(/`([A-Za-z][A-Za-z0-9_]*)`/g)].map(
+      (m) => m[1]!,
+    )
     for (const f of specFields) {
       expect(Object.keys(AgentIngestOne.shape), `规格 §5 写了 ${f}，但 zod 入参没有`).toContain(f)
     }
@@ -411,19 +455,27 @@ describe('FR-2.1 请求体字段名 · 规格与 zod 入参逐字一致', () => 
     // 这正是本轮订正前的实况：规格写 `idempotency_key`，zod 没有这个键。
     const specRow =
       '| 入 | 回流：`kind`、`idempotency_key`、`payload`（按 kind 判形）、`source_platform`、`source_session_id`、`cwd` | POST body，zod 经既有 `parseOrThrow` |'
-    const specFields = [...specRow.split('|')[2]!.matchAll(/`([A-Za-z][A-Za-z0-9_]*)`/g)].map((m) => m[1]!)
+    const specFields = [...specRow.split('|')[2]!.matchAll(/`([A-Za-z][A-Za-z0-9_]*)`/g)].map(
+      (m) => m[1]!,
+    )
     const shape = Object.keys(AgentIngestOne.shape)
     expect(specFields.filter((f) => !shape.includes(f))).toContain('idempotency_key')
     // 反证：改成 camelCase 后就抓不到 ⇒ 这条腿不是恒真
     const fixed = specFields.map((f) =>
-      f === 'idempotency_key' ? 'idempotencyKey' : f === 'source_platform' ? 'sourcePlatform' : f === 'source_session_id' ? 'sourceSessionId' : f,
+      f === 'idempotency_key'
+        ? 'idempotencyKey'
+        : f === 'source_platform'
+          ? 'sourcePlatform'
+          : f === 'source_session_id'
+            ? 'sourceSessionId'
+            : f,
     )
     expect(fixed.filter((f) => !shape.includes(f))).toEqual([])
   })
 
   it('规格 §5「入 · 查询」那一行的路径参必须与真实路由一致', () => {
     const spec = readFileSync(SPEC_PATH, 'utf8')
-    const row = spec.split('\n').find((l) => l.startsWith('| 入 |') && l.includes('path + query'))
+    const row = spec.split('\n').find((l) => /^\|\s*入\s*\|/.test(l) && l.includes('path + query'))
     expect(row).toBeDefined()
     // 实测路由是 `/api/projects/:id/context` —— 规格原写 `project_id`，与真实路径参不同名
     expect(row).toContain('`:id`')

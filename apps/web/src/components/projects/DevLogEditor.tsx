@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { DevLogType } from '@openvibe/shared'
 import { useDevLogMutations } from '../../hooks/useDevLog'
 import { zh } from '../../i18n/zh'
-import { Dialog, DialogPanel } from '../ui/Dialog'
+import { SheetDialog } from '../ui/SheetDialog'
 import { toast } from '../ui/Toaster'
 import { CodeEditor } from '../library/CodeEditor'
 import { btnGhost, btnPrimary, inputCls, labelCls } from '../ui/styles'
@@ -81,67 +81,68 @@ export function DevLogEditor(props: {
   }
 
   return (
-    <Dialog open={props.open} onOpenChange={(o) => (o ? undefined : props.onClose())}>
-      <DialogPanel
-        variant="sheet"
-        title={zh.projects.devlog.newEntry(type)}
-        footer={
-          <>
-            <span className="mr-auto text-[11px] text-ink-faint">{zh.projects.devlog.prefillHint}</span>
-            <button className={btnGhost} onClick={props.onClose}>
-              {zh.editor.cancel}
-            </button>
-            <button className={btnPrimary} disabled={create.isPending} onClick={save}>
-              {create.isPending ? zh.editor.saving : zh.editor.save}
-            </button>
-          </>
-        }
-      >
-        <div className="space-y-3 text-sm">
-          <div>
-            <label className={labelCls}>{zh.projects.devlog.fields.title}</label>
-            <input
-              className={inputCls}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="T5c Web 四页落地"
-            />
-          </div>
-          <div>
-            <label className={labelCls}>{zh.projects.devlog.fields.body}</label>
-            <div className="h-72 overflow-hidden rounded-md border border-line">
-              <CodeEditor value={body} onChange={setBody} />
-            </div>
-          </div>
-          <div>
-            <label className={labelCls}>{zh.projects.devlog.fields.relatedFiles}</label>
-            <textarea
-              className={`${inputCls} mono min-h-16 text-[13px]`}
-              value={files}
-              onChange={(e) => setFiles(e.target.value)}
-              placeholder={'apps/web/src/pages/ProjectsPage.tsx\napps/server/src/routes/projects.ts'}
-            />
-          </div>
-          <div>
-            <label className={labelCls}>{zh.projects.devlog.fields.evidence}</label>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                className={`${inputCls} mono`}
-                value={command}
-                placeholder={zh.projects.devlog.fields.command}
-                onChange={(e) => setCommand(e.target.value)}
-              />
-              <input
-                className={inputCls}
-                value={result}
-                placeholder={zh.projects.devlog.fields.result}
-                onChange={(e) => setResult(e.target.value)}
-              />
-            </div>
-            <p className="mt-1 text-[11px] text-ink-faint">{zh.projects.devlog.evidenceHint}</p>
+    <SheetDialog
+      open={props.open}
+      onClose={props.onClose}
+      title={zh.projects.devlog.newEntry(type)}
+      footer={
+        <>
+          <span className="mr-auto text-[11px] text-ink-faint">
+            {zh.projects.devlog.prefillHint}
+          </span>
+          <button className={btnGhost} onClick={props.onClose}>
+            {zh.editor.cancel}
+          </button>
+          <button className={btnPrimary} disabled={create.isPending} onClick={save}>
+            {create.isPending ? zh.editor.saving : zh.editor.save}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-3 text-sm">
+        <div>
+          <label className={labelCls}>{zh.projects.devlog.fields.title}</label>
+          <input
+            className={inputCls}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="T5c Web 四页落地"
+          />
+        </div>
+        <div>
+          <label className={labelCls}>{zh.projects.devlog.fields.body}</label>
+          <div className="h-72 overflow-hidden rounded-md border border-line">
+            <CodeEditor value={body} onChange={setBody} />
           </div>
         </div>
-      </DialogPanel>
-    </Dialog>
+        <div>
+          <label className={labelCls}>{zh.projects.devlog.fields.relatedFiles}</label>
+          <textarea
+            className={`${inputCls} mono min-h-16 text-[13px]`}
+            value={files}
+            onChange={(e) => setFiles(e.target.value)}
+            placeholder={'apps/web/src/pages/ProjectsPage.tsx\napps/server/src/routes/projects.ts'}
+          />
+        </div>
+        <div>
+          <label className={labelCls}>{zh.projects.devlog.fields.evidence}</label>
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              className={`${inputCls} mono`}
+              value={command}
+              placeholder={zh.projects.devlog.fields.command}
+              onChange={(e) => setCommand(e.target.value)}
+            />
+            <input
+              className={inputCls}
+              value={result}
+              placeholder={zh.projects.devlog.fields.result}
+              onChange={(e) => setResult(e.target.value)}
+            />
+          </div>
+          <p className="mt-1 text-[11px] text-ink-faint">{zh.projects.devlog.evidenceHint}</p>
+        </div>
+      </div>
+    </SheetDialog>
   )
 }

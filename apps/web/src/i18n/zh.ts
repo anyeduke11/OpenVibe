@@ -118,7 +118,11 @@ export const zh = {
     preview: {
       title: 'TERMS.md 预览（只读，确定性输出）',
       orderBy: '排序',
-      orderByOptions: { 'en-alpha': '英文 alpha（默认）', pinyin: '拼音（词典）', manual: '手动（选集顺序）' },
+      orderByOptions: {
+        'en-alpha': '英文 alpha（默认）',
+        pinyin: '拼音（词典）',
+        manual: '手动（选集顺序）',
+      },
       copy: '复制全文',
       copied: '已复制 TERMS.md 内容',
       download: '下载 TERMS.md',
@@ -154,7 +158,8 @@ export const zh = {
     },
     deleteDialog: {
       title: '删除词条',
-      body: (name: string) => `确认删除「${name}」？其他词条的相关词引用会自动剔除（不级联删除词条）。`,
+      body: (name: string) =>
+        `确认删除「${name}」？其他词条的相关词引用会自动剔除（不级联删除词条）。`,
       seedNote: '种子词条删除后不会被自动恢复（m3 FR-2.3）。',
       referencedToast: (names: string) => `注意：被标准包引用过（${names}）`,
       done: '已删除',
@@ -210,7 +215,8 @@ export const zh = {
       antiPractice: '反例（可选）',
       antiPracticeHint: '留空则整行不产',
       verified: '标记为亲测有效',
-      verifiedHint: '置真必须随带至少一条使用证据——静默把「没验过」写成「亲测有效」是资产库的信任事故（m4 FR-4）',
+      verifiedHint:
+        '置真必须随带至少一条使用证据——静默把「没验过」写成「亲测有效」是资产库的信任事故（m4 FR-4）',
       verifiedNeedsEvidence: '标记亲测有效前，至少登记一条使用证据',
       evidenceCommand: '执行过的命令',
       evidenceSummary: '结果摘要',
@@ -232,7 +238,8 @@ export const zh = {
     },
     deleteDialog: {
       title: '删除技巧',
-      body: (scenario: string) => `确认删除「${scenario}」？其他技巧对它的关联会自动剔除（不级联删除）。`,
+      body: (scenario: string) =>
+        `确认删除「${scenario}」？其他技巧对它的关联会自动剔除（不级联删除）。`,
       seedNote: '种子技巧删除后不会被自动恢复。',
       referencedToast: (names: string) => `注意：被标准包引用过（${names}）`,
       editFirst: '先编辑',
@@ -269,12 +276,14 @@ export const zh = {
       step3: '③ 标准包（可跳过）',
       name: '项目名称',
       localPath: '本地目录（绝对路径，可留空）',
-      localPathHint: '留空即纯台账项目；路径只用于只读解析 pack.lock.json，本应用不往你的项目目录写任何文件（m5 FR-6.2）',
+      localPathHint:
+        '留空即纯台账项目；路径只用于只读解析 pack.lock.json，本应用不往你的项目目录写任何文件（m5 FR-6.2）',
       flowNone: '还没有自定义模板，内置 3 套可直接用',
       packNone: '不关联标准包（可稍后在项目详情里登记）',
       packEmpty: '还没有标准包——先去「标准包」页用五步向导组装并导出一个',
       packNotExported: '该包还没有导出记录，openvibe sync 无内容可注入（先在向导第 5 步导出）',
-      packWriteNote: '本步只写项目登记的关联包与版本；真正落盘到项目目录的唯一入口是 CLI（design §2）',
+      packWriteNote:
+        '本步只写项目登记的关联包与版本；真正落盘到项目目录的唯一入口是 CLI（design §2）',
       packLinkFailed: '标准包关联未写入，可在项目详情页重新登记',
       prev: '上一步',
       next: '下一步',
@@ -577,7 +586,13 @@ export const zh = {
       levels: { ok: '通过', info: '提示', warn: '警告', fail: '严重' },
       issues: '问题明细',
     },
-    columns: { name: '名称', description: '描述', source: '来源', versions: '版本', installed: '安装到' },
+    columns: {
+      name: '名称',
+      description: '描述',
+      source: '来源',
+      versions: '版本',
+      installed: '安装到',
+    },
     latestVersion: (label: string) => `最新 ${label}`,
     noVersion: '无版本',
     create: {
@@ -590,7 +605,11 @@ export const zh = {
       created: '已登记',
       nameConflict: '同名 skill 已存在（NAME_CONFLICT），请在台账里编辑或先扫描合并',
     },
-    edit: { title: '编辑 Skill', saved: '已保存', nameImmutable: '名称与来源由扫描/创建决定，不可改（m2 FR-3.2）' },
+    edit: {
+      title: '编辑 Skill',
+      saved: '已保存',
+      nameImmutable: '名称与来源由扫描/创建决定，不可改（m2 FR-3.2）',
+    },
     deleteDialog: {
       title: '删除 Skill',
       body: (name: string) => `确认删除「${name}」？`,
@@ -638,7 +657,13 @@ export const zh = {
     newPack: '新建标准包',
     empty: '还没有标准包——点右上角「新建」，五步向导把提示词 / 术语 / skill 组装成可注入的包',
     total: (n: number) => `共 ${String(n)} 个包`,
-    columns: { name: '包名', description: '描述', targets: '目标平台', assets: '选集', updated: '更新' },
+    columns: {
+      name: '包名',
+      description: '描述',
+      targets: '目标平台',
+      assets: '选集',
+      updated: '更新',
+    },
     assetSummary: (p: number, t: number, s: number) =>
       `提示词 ${String(p)} · 术语 ${String(t)} · Skill ${String(s)}`,
     noFlow: '未关联流程',
@@ -673,7 +698,8 @@ export const zh = {
       nameHint: '只允许小写字母 / 数字 / 连字符，最长 64（m6a §6.1）',
       nameRequired: '包名必填',
       nameInvalid: '包名不符合 slug 规则（[a-z0-9-]）',
-      nameTaken: (name: string) => `包名「${name}」已存在（NAME_CONFLICT），换一个或用列表里的「编辑」`,
+      nameTaken: (name: string) =>
+        `包名「${name}」已存在（NAME_CONFLICT），换一个或用列表里的「编辑」`,
       description: '描述（可选，写进 manifest）',
       flowNone: '还没有流程模板',
       flowSkip: '不关联流程（不生成 CHECKLIST.md）',
@@ -920,7 +946,8 @@ export const zh = {
     pack: {
       title: '预置演示包',
       hint: '首启自动组装的 default 包：种子精选提示词 + 全部术语 + 个人轻量流 + 六个 target，版本 1.0.0',
-      rebuildHint: '重建与种子重播同一入口（POST /api/settings/reseed）：只有缺失才组装，用户改过的包跳过并说明原因',
+      rebuildHint:
+        '重建与种子重播同一入口（POST /api/settings/reseed）：只有缺失才组装，用户改过的包跳过并说明原因',
       rebuild: '重建预置包',
       exportedTo: (p: string) => `目录导出 ${p}`,
       version: (v: string) => `当前版本 ${v}`,
@@ -941,24 +968,6 @@ export const zh = {
       reset: '重新显示向导',
       done: '向导标记：已完成',
       pending: '向导标记：未完成',
-    },
-    om: {
-      title: '输出侧度量（OM）',
-      aside: '本机 · 不出网 · 估算',
-      densityTitle: 'OM1 · 有效上下文密度',
-      densityEmpty: '待采集：组一个标准包后出现。',
-      densityLine: (pack: string, tokens: number, assets: number, per: string) =>
-        `包 ${pack}：受管 ${tokens} token ÷ ${assets} 项资产 ≈ ${per} token/条`,
-      top5Title: '最占上下文的产物 Top5',
-      timeTitle: 'OM2 · 首次见效时间',
-      timeEmpty: '待采集：完成一次注入后出现。',
-      timeLine: (seconds: number) =>
-        seconds < 90
-          ? `首次注入距首次使用 ${seconds} 秒`
-          : seconds < 5400
-            ? `首次注入距首次使用 ${Math.round(seconds / 60)} 分钟`
-            : `首次注入距首次使用 ${Math.round(seconds / 3600)} 小时`,
-      timeRange: '台账口径：首次本机事件 → 首次注入记录（injections 表）。',
     },
     backup: {
       title: '备份说明',
@@ -982,6 +991,4 @@ export const zh = {
       skill: 'Skill',
     },
   },
-
-
 } as const

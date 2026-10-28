@@ -32,6 +32,7 @@ import {
   proseCls,
   skelCls,
 } from '../ui/styles'
+import { QueryError, QueryOffline, QuerySkeleton } from '../ui/QueryStates'
 import { Icon, type IconName } from '../ui/icons'
 import { toast } from '../ui/Toaster'
 
@@ -107,9 +108,7 @@ export function AppearanceSection() {
       aside={
         <span className={theme === 'night' ? chipTone('accent') : chipTone('default')}>
           <Icon name={theme === 'night' ? 'moon' : 'sun'} size={12} />
-          {theme === 'night'
-            ? sys.settings.appearance.night
-            : sys.settings.appearance.paper}
+          {theme === 'night' ? sys.settings.appearance.night : sys.settings.appearance.paper}
         </span>
       }
     >
@@ -130,8 +129,7 @@ export function TelemetrySection() {
 
   const flip = (next: boolean) =>
     toggle.mutate(next, {
-      onSuccess: (res) =>
-        toast(res.enabled ? zh.settings.telemetry.on : zh.settings.telemetry.off),
+      onSuccess: (res) => toast(res.enabled ? zh.settings.telemetry.on : zh.settings.telemetry.off),
       onError: (e: Error) => toast(`${zh.settings.telemetry.failed}: ${e.message}`, 'error'),
     })
 
@@ -179,13 +177,19 @@ export function TelemetrySection() {
           <table className="mt-2 w-full border-collapse text-[13px]">
             <thead>
               <tr>
-                <th className={`${ledgerHeadCls} border-b border-line py-1.5 text-left font-normal`}>
+                <th
+                  className={`${ledgerHeadCls} border-b border-line py-1.5 text-left font-normal`}
+                >
                   {sys.settings.telemetry.cols.event}
                 </th>
-                <th className={`${ledgerHeadCls} border-b border-line py-1.5 text-left font-normal`}>
+                <th
+                  className={`${ledgerHeadCls} border-b border-line py-1.5 text-left font-normal`}
+                >
                   {sys.settings.telemetry.cols.trigger}
                 </th>
-                <th className={`${ledgerHeadCls} border-b border-line py-1.5 text-left font-normal`}>
+                <th
+                  className={`${ledgerHeadCls} border-b border-line py-1.5 text-left font-normal`}
+                >
                   {sys.settings.telemetry.cols.excludes}
                 </th>
               </tr>
@@ -248,25 +252,11 @@ export function LedgerSection() {
       <p className={`${proseCls} text-[13.5px] text-ink-body`}>{sys.settings.ledger.body}</p>
 
       {state.isLoading ? (
-        <div className="mt-2 space-y-1.5" aria-busy>
-          {[0, 1, 2].map((i) => (
-            <div key={i} className={`${skelCls} h-4`} />
-          ))}
-        </div>
+        <QuerySkeleton wrap="mt-2" />
       ) : missing ? (
-        <p className="mt-2 text-[13px] text-ink-muted">{sys.state.notOnline}</p>
+        <QueryOffline wrap="mt-2" />
       ) : state.error ? (
-        <div className="mt-2">
-          <div className={emptyHintCls}>
-            <p className="text-danger">
-              {sys.state.error(state.error instanceof Error ? state.error.message : '')}
-            </p>
-            <button type="button" className={btnGhost} onClick={() => void state.refetch()}>
-              <Icon name="refresh" size={13} />
-              {sys.state.retry}
-            </button>
-          </div>
-        </div>
+        <QueryError wrap="mt-2" error={state.error} onRetry={() => void state.refetch()} />
       ) : items.length === 0 ? (
         <div className="mt-2">
           <div className={emptyHintCls}>
@@ -302,9 +292,7 @@ export function LedgerSection() {
                   {new Date(e.ts).toLocaleString('zh-CN', { hour12: false })}
                 </td>
                 <td className="mono py-1.5 text-ink-body">{e.name}</td>
-                <td className={`${ledgerNumCls} num py-1.5 text-ink-muted`}>
-                  {String(e.id)}
-                </td>
+                <td className={`${ledgerNumCls} num py-1.5 text-ink-muted`}>{String(e.id)}</td>
               </tr>
             ))}
           </tbody>
@@ -429,20 +417,18 @@ export function PathsSection(props: { settings: SettingsOut | undefined }) {
             <span className="mono">{s.appVersion}</span>
           </Row>
           <Row label={zh.settings.service.port}>
-            <span className="mono">
-              127.0.0.1:{String(s.port)}
-            </span>
+            <span className="mono">127.0.0.1:{String(s.port)}</span>
           </Row>
           <Row label={zh.settings.service.dataDir}>
-            <span className="mono break-all">
-              {s.dataDir === '' ? zh.common.none : s.dataDir}
-            </span>
+            <span className="mono break-all">{s.dataDir === '' ? zh.common.none : s.dataDir}</span>
           </Row>
           <Row label={zh.settings.service.db}>
             <span className="mono">{s.db.detail ?? s.db.status}</span>
           </Row>
           <Row label={zh.settings.seed.countsLabel}>
-            <span className="num">{zh.settings.seed.counts(s.seed.terms, s.seed.flowTemplates, s.seed.prompts)}</span>
+            <span className="num">
+              {zh.settings.seed.counts(s.seed.terms, s.seed.flowTemplates, s.seed.prompts)}
+            </span>
           </Row>
           <Row label={zh.settings.pack.name}>
             {packId === null ? (
@@ -652,13 +638,27 @@ const PAIRS: Pair[] = [
   { label: 'ink-muted on panel-2', fgVar: '--color-ink-muted', bgVar: '--color-panel-2' },
   { label: 'ink-faint on panel-sunk', fgVar: '--color-ink-faint', bgVar: '--color-panel-sunk' },
   { label: 'accent on canvas', fgVar: '--color-accent', bgVar: '--color-canvas' },
-  { label: 'accent-deep on accent-soft', fgVar: '--color-accent-deep', bgVar: '--color-accent-soft' },
+  {
+    label: 'accent-deep on accent-soft',
+    fgVar: '--color-accent-deep',
+    bgVar: '--color-accent-soft',
+  },
   { label: 'ok on ok-soft', fgVar: '--color-ok', bgVar: '--color-ok-soft' },
   { label: 'warn on warn-soft', fgVar: '--color-warn', bgVar: '--color-warn-soft' },
   { label: 'danger on danger-soft', fgVar: '--color-danger', bgVar: '--color-danger-soft' },
   { label: 'info on info-soft', fgVar: '--color-info', bgVar: '--color-info-soft' },
-  { label: 'ink-faint on accent-soft', fgVar: '--color-ink-faint', bgVar: '--color-accent-soft', forbidden: true },
-  { label: 'ink-faint on ok-soft', fgVar: '--color-ink-faint', bgVar: '--color-ok-soft', forbidden: true },
+  {
+    label: 'ink-faint on accent-soft',
+    fgVar: '--color-ink-faint',
+    bgVar: '--color-accent-soft',
+    forbidden: true,
+  },
+  {
+    label: 'ink-faint on ok-soft',
+    fgVar: '--color-ink-faint',
+    bgVar: '--color-ok-soft',
+    forbidden: true,
+  },
 ]
 
 /**
@@ -691,7 +691,10 @@ export function ReadabilitySection() {
         }
       }
     })
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    })
     return () => observer.disconnect()
   }, [])
 
@@ -834,7 +837,9 @@ export function OmSection() {
           {sys.settings.om.densityTitle}
         </p>
         {density === null ? (
-          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>{sys.settings.om.densityEmpty}</p>
+          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>
+            {sys.settings.om.densityEmpty}
+          </p>
         ) : (
           <>
             <p className={`${proseCls} text-[12.5px] text-ink-body`}>
@@ -847,7 +852,9 @@ export function OmSection() {
             </p>
             {density.top5.length > 0 && (
               <div className="flex flex-col gap-0.5">
-                <p className={`${proseCls} text-[11.5px] text-ink-muted`}>{sys.settings.om.top5Title}</p>
+                <p className={`${proseCls} text-[11.5px] text-ink-muted`}>
+                  {sys.settings.om.top5Title}
+                </p>
                 {density.top5.map((t) => (
                   <p key={t.path} className={`${proseCls} text-[12px] text-ink-muted`}>
                     {t.path} · {t.tokens} token
@@ -863,7 +870,9 @@ export function OmSection() {
         {time === null || time.seconds === null ? (
           <p className={`${proseCls} text-[12.5px] text-ink-muted`}>{sys.settings.om.timeEmpty}</p>
         ) : (
-          <p className={`${proseCls} text-[12.5px] text-ink-body`}>{sys.settings.om.timeLine(time.seconds)}</p>
+          <p className={`${proseCls} text-[12.5px] text-ink-body`}>
+            {sys.settings.om.timeLine(time.seconds)}
+          </p>
         )}
         <p className={`${proseCls} text-[11.5px] text-ink-muted`}>{sys.settings.om.timeRange}</p>
       </div>
@@ -898,16 +907,25 @@ export function AiSection() {
           />
           {sys.settings.aiExtract.gateLabel}
         </label>
-        <p className={`${proseCls} text-[11.5px] text-ink-muted`}>{sys.settings.aiExtract.gateHint}</p>
-        <p className={`${proseCls} text-[11.5px] text-ink-muted`}>{sys.settings.aiExtract.providerHint}</p>
+        <p className={`${proseCls} text-[11.5px] text-ink-muted`}>
+          {sys.settings.aiExtract.gateHint}
+        </p>
+        <p className={`${proseCls} text-[11.5px] text-ink-muted`}>
+          {sys.settings.aiExtract.providerHint}
+        </p>
         <p className={`${proseCls} mt-2 text-[13.5px] font-medium text-ink-body`}>
           {sys.settings.aiExtract.usageTitle}
         </p>
         {(usage.data?.usage ?? []).length === 0 ? (
-          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>{sys.settings.aiExtract.usageEmpty}</p>
+          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>
+            {sys.settings.aiExtract.usageEmpty}
+          </p>
         ) : (
           (usage.data?.usage ?? []).map((u) => (
-            <p key={`${u.provider}/${u.model}`} className={`${proseCls} text-[12.5px] text-ink-body`}>
+            <p
+              key={`${u.provider}/${u.model}`}
+              className={`${proseCls} text-[12.5px] text-ink-body`}
+            >
               {u.provider} · {u.model}：{u.calls} 次出网（成功 {u.okCalls}）· 候选 {u.candidates} 条
             </p>
           ))
@@ -915,15 +933,23 @@ export function AiSection() {
         <p className={`${proseCls} mt-2 text-[13.5px] font-medium text-ink-body`}>
           {sys.settings.aiExtract.adoptionTitle}
         </p>
-        {((adoption.data as unknown as { consecutive?: { kind: string; triggered: boolean; rounds: number }[] })?.consecutive ?? [])
-            .filter((c) => c.triggered)
-            .map((c) => (
-              <p key={c.kind} className={`${noteCls('warn')} mt-1 text-[12px]`}>
-                {sys.settings.aiExtract.adoptionLowBanner(c.rounds)}
-              </p>
-            ))}
+        {(
+          (
+            adoption.data as unknown as {
+              consecutive?: { kind: string; triggered: boolean; rounds: number }[]
+            }
+          )?.consecutive ?? []
+        )
+          .filter((c) => c.triggered)
+          .map((c) => (
+            <p key={c.kind} className={`${noteCls('warn')} mt-1 text-[12px]`}>
+              {sys.settings.aiExtract.adoptionLowBanner(c.rounds)}
+            </p>
+          ))}
         {(adoption.data?.kinds ?? []).filter((k) => k.published + k.rejected > 0).length === 0 ? (
-          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>{sys.settings.aiExtract.adoptionEmpty}</p>
+          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>
+            {sys.settings.aiExtract.adoptionEmpty}
+          </p>
         ) : (
           (adoption.data?.kinds ?? [])
             .filter((k) => k.published + k.rejected > 0)
@@ -939,7 +965,9 @@ export function AiSection() {
           {sys.settings.aiExtract.consentTitle}
         </p>
         {(consents.data?.consents ?? []).length === 0 ? (
-          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>{sys.settings.aiExtract.consentEmpty}</p>
+          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>
+            {sys.settings.aiExtract.consentEmpty}
+          </p>
         ) : (
           (consents.data?.consents ?? []).map((c) => (
             <div key={c.project_id} className="flex items-center gap-2">

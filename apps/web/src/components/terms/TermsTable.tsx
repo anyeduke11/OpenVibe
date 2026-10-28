@@ -1,14 +1,10 @@
-import type { ReactNode } from 'react'
-import type { MatchRange, TermMatch, TermOut } from '@openvibe/shared'
+import type { TermMatch, TermOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-import {
-  AssetEmpty,
-  AssetError,
-  AssetNoResults,
-  AssetSkeleton,
-} from '../library/AssetStates'
+import { AssetEmpty, AssetError, AssetNoResults, AssetSkeleton } from '../library/AssetStates'
+import { Highlight, rangesOf } from '../ui/Highlight'
+import { LedgerShell, RowActions } from '../ui/LedgerTable'
 import { Icon, type IconName } from '../ui/icons'
-import { btnGhost, btnPrimary, chipTone, ledgerHeadCls, tagCls } from '../ui/styles'
+import { btnPrimary, chipTone, ledgerHeadCls, tagCls } from '../ui/styles'
 
 export interface TermRowView {
   term: TermOut
@@ -20,30 +16,6 @@ const STATUS: Record<TermOut['status'], { cls: string; icon: IconName }> = {
   draft: { cls: chipTone('default'), icon: 'doc' },
   active: { cls: chipTone('ok'), icon: 'check' },
 }
-
-/** 命中片段高亮（m3 FR-3.2）：按偏移切片包 <mark>，区间已由服务端合并去叠 */
-function Highlight(props: { text: string; ranges: MatchRange[] }) {
-  const { text, ranges } = props
-  if (ranges.length === 0) return <>{text}</>
-  const sorted = [...ranges].sort((a, b) => a.start - b.start)
-  const nodes = [] as ReactNode[]
-  let cursor = 0
-  sorted.forEach((r, i) => {
-    if (r.start < cursor) return
-    if (r.start > cursor) nodes.push(text.slice(cursor, r.start))
-    nodes.push(
-      <mark key={i} className="rounded-sm bg-warn-soft px-0.5 text-warn">
-        {text.slice(r.start, r.end)}
-      </mark>,
-    )
-    cursor = r.end
-  })
-  if (cursor < text.length) nodes.push(text.slice(cursor))
-  return <>{nodes}</>
-}
-
-const rangesOf = (matches: TermMatch[], field: TermMatch['field']): MatchRange[] =>
-  matches.filter((m) => m.field === field).map((m) => ({ start: m.start, end: m.end }))
 
 /**
  * 词条台账表（DESIGN.md ledger-table）。
@@ -140,10 +112,7 @@ export function TermsTable(props: {
                   <Highlight text={term.en ?? '—'} ranges={rangesOf(matches, 'en')} />
                 </td>
                 <td className="px-2 py-2 text-ink-muted">
-                  <Highlight
-                    text={term.aliases.join('、')}
-                    ranges={rangesOf(matches, 'aliases')}
-                  />
+                  <Highlight text={term.aliases.join('、')} ranges={rangesOf(matches, 'aliases')} />
                 </td>
                 {/* 定义 13.5px/1.65，两行截断；超长内容因此不撑破列宽 */}
                 <td className="px-2 py-2 text-[13.5px] leading-[1.65] text-ink-muted">
@@ -164,20 +133,15 @@ export function TermsTable(props: {
                     </span>
                     {/* 来源是元信息不是状态 → tag，不是 chip */}
                     <span className={`${tagCls} shrink-0 whitespace-nowrap`}>
-                      {term.source === 'openvibe-seed' ? zh.terms.source.seed : zh.terms.source.manual}
+                      {term.source === 'openvibe-seed'
+                        ? zh.terms.source.seed
+                        : zh.terms.source.manual}
                     </span>
-                    <span className="ml-auto flex shrink-0 items-center gap-1">
-                      <button className={`${btnGhost} shrink-0 whitespace-nowrap px-2`} onClick={() => props.onEdit(term)}>
-                        {zh.library.edit}
-                      </button>
-                      <button
-                        className={`${btnGhost} shrink-0 px-2`}
-                        aria-label={`${zh.library.delete} ${term.zh ?? term.en ?? term.id}`}
-                        onClick={() => props.onDelete(term)}
-                      >
-                        <Icon name="trash" size={12} />
-                      </button>
-                    </span>
+                    <RowActions
+                      label={term.zh ?? term.en ?? term.id}
+                      onEdit={() => props.onEdit(term)}
+                      onDelete={() => props.onDelete(term)}
+                    />
                   </div>
                 </td>
               </tr>
@@ -189,30 +153,14 @@ export function TermsTable(props: {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b border-line-hair px-5 py-1.5 text-xs">
-        <label className="flex items-center gap-1.5 text-ink-muted">
-          <input
-            type="checkbox"
-            checked={allShown}
-            onChange={() =>
-              props.onSelectAll(allShown ? [] : rows.map((r) => r.term.id))
-            }
-          />
-          {zh.terms.selection.allShown}
-        </label>
-        <span className="tabular-nums text-ink-faint">{zh.terms.selection.label(selected.length)}</span>
-        {selected.length > 0 && (
-          <button
-            className="text-accent underline underline-offset-2 hover:text-accent-deep"
-            onClick={() => props.onSelectAll([])}
-          >
-            {zh.terms.selection.clear}
-          </button>
-        )}
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-auto">{body()}</div>
-    </div>
+    <LedgerShell
+      allShown={allShown}
+      count={selected.length}
+      text={zh.terms.selection}
+      onToggleAll={() => props.onSelectAll(allShown ? [] : rows.map((r) => r.term.id))}
+      onClear={() => props.onSelectAll([])}
+    >
+      {body()}
+    </LedgerShell>
   )
 }

@@ -76,9 +76,5 @@ export function fillVariables(content: string, values: Record<string, string>): 
 
 /** 统计正文里仍残留的占位符（fillVariables 后用于提示「还有 N 个未填」） */
 export function remainingVariables(filled: string): string[] {
-  const names = new Set<string>()
-  for (const m of filled.matchAll(VARIABLE_PATTERN)) {
-    if (m[1]) names.add(m[1])
-  }
-  return [...names]
+  return extractVariables(filled)
 }

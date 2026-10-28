@@ -2,13 +2,8 @@ import { useState } from 'react'
 import { lane } from '../../i18n/lane-assets'
 import { zh } from '../../i18n/zh'
 import { Icon } from '../ui/icons'
-import { CHIP_TONES, chipCls, chipPressed } from '../ui/styles'
-
-// 可按压的筛选 chip：选中与未选中在形制层择一。chipCls + CHIP_TONES.default / chipPressed
-// 各自带 border/bg/text 三个色类，叠加只会让 Tailwind 任意挑一个生效（顺序不由源码决定），
-// 所以这里不叠加，三元也不散进 JSX。与 TermRoadmapView 的 toggleChip 同一条纪律。
-const toggleChip = (on: boolean): string =>
-  `${chipCls} shrink-0 transition-colors ${on ? chipPressed : `${CHIP_TONES.default} hover:bg-panel`}`
+import { toggleChip } from '../ui/styles'
+import { MoreChips, foldChips } from './foldChips'
 
 /**
  * 标签过滤条（m1 FR-3.4 单选切换）：**单行** + 超量折叠。
@@ -30,15 +25,7 @@ export function TagFilterBar(props: {
   const limit = props.limit ?? 8
   if (props.tags.length === 0) return null
 
-  const selectedIdx = props.selected === undefined ? -1 : props.tags.indexOf(props.selected)
-  const collapsible = props.tags.length > limit
-  const shown =
-    !collapsible || expanded
-      ? props.tags
-      : selectedIdx >= limit
-        ? [...props.tags.slice(0, limit), props.tags[selectedIdx] as string]
-        : props.tags.slice(0, limit)
-  const hidden = props.tags.length - shown.length
+  const { shown, hidden, collapsible } = foldChips(props.tags, props.selected, limit, expanded)
 
   return (
     <div className="flex min-w-0 items-center gap-1.5">
@@ -60,24 +47,13 @@ export function TagFilterBar(props: {
           </button>
         )
       })}
-      {collapsible && !expanded && (
-        <button
-          type="button"
-          className={`${chipCls} shrink-0 ${CHIP_TONES.default} hover:bg-panel`}
-          onClick={() => setExpanded(true)}
-        >
-          {lane.filter.more} +{String(hidden)}
-        </button>
-      )}
-      {collapsible && expanded && (
-        <button
-          type="button"
-          className={`${chipCls} shrink-0 ${CHIP_TONES.default} hover:bg-panel`}
-          onClick={() => setExpanded(false)}
-        >
-          {lane.row.fewer}
-        </button>
-      )}
+      <MoreChips
+        collapsible={collapsible}
+        expanded={expanded}
+        hidden={hidden}
+        moreLabel={lane.filter.more}
+        onToggle={setExpanded}
+      />
       {props.selected !== undefined && (
         <button
           type="button"

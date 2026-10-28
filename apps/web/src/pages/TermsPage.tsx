@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
-  CONTROLLED_TAG_VOCAB,
   TERM_DOMAINS,
   TERM_STATUS,
   TERMS_ORDER_BY,
@@ -10,8 +9,16 @@ import {
 } from '@openvibe/shared'
 import { lane } from '../i18n/lane-assets'
 import { zh } from '../i18n/zh'
-import { AssetFilterBar, AssetPageHead, AssetSearchBox, FilterDivider } from '../components/library/AssetPageHead'
+import {
+  AssetFilterBar,
+  AssetPageHead,
+  AssetSearchBox,
+  FilterDivider,
+  FilterSelect,
+  FilterTrail,
+} from '../components/library/AssetPageHead'
 import { RefreshHint } from '../components/library/AssetStates'
+import { controlledTagsOf } from '../components/library/controlledTags'
 import { TagFilterBar } from '../components/library/TagFilterBar'
 import { TermCardGrid } from '../components/terms/TermCardGrid'
 import { TermEditorDrawer } from '../components/terms/TermEditorDrawer'
@@ -20,9 +27,9 @@ import { searchByScenario } from '../components/terms/scenarioSearch'
 import { TermRoadmapView } from '../components/terms/TermRoadmapView'
 import { TermsMdPreview } from '../components/terms/TermsMdPreview'
 import { TermsTable, type TermRowView } from '../components/terms/TermsTable'
+import { ConfirmDeleteDialog, deleteReceipts } from '../components/ui/ConfirmDeleteDialog'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
-import { toast } from '../components/ui/Toaster'
-import { btnDanger, btnGhost, btnPrimary, inputCls, segCls, segItemCls } from '../components/ui/styles'
+import { btnGhost, btnPrimary, inputCls, segCls, segItemCls } from '../components/ui/styles'
 import { useDebounced } from '../hooks/useDebounced'
 import { useTermList, useTermMutations, useTermSearch } from '../hooks/useTerms'
 
@@ -84,7 +91,18 @@ export function TermsPage() {
         (level === null || term.level === level) &&
         (!starterOnly || term.starter),
     )
-  }, [searching, usingScenarioFallback, scenarioHits, nameHits, allItems, status, tag, domain, level, starterOnly])
+  }, [
+    searching,
+    usingScenarioFallback,
+    scenarioHits,
+    nameHits,
+    allItems,
+    status,
+    tag,
+    domain,
+    level,
+    starterOnly,
+  ])
 
   // 领域 chip 的计数取「除领域外其余筛选都已生效」的那一批 ⇒ 选了别的维度时计数不会互相打架，
   // 且点「全部」时看到的总数就是当前结果数。
@@ -102,15 +120,12 @@ export function TermsPage() {
     return [...m.entries()]
       .filter(([k]) => k !== '')
       .map(([domain, count]) => ({ domain, count }))
-      .sort((a, b) => TERM_DOMAINS.indexOf(a.domain as never) - TERM_DOMAINS.indexOf(b.domain as never))
+      .sort(
+        (a, b) => TERM_DOMAINS.indexOf(a.domain as never) - TERM_DOMAINS.indexOf(b.domain as never),
+      )
   }, [rows, status, tag, level, starterOnly, domain])
 
-  const tags = useMemo(() => {
-    const used = new Set(allItems.flatMap((t) => t.tags))
-    const known = CONTROLLED_TAG_VOCAB.filter((t) => used.has(t))
-    const extra = [...used].filter((t) => !(CONTROLLED_TAG_VOCAB as readonly string[]).includes(t)).sort()
-    return [...known, ...extra]
-  }, [allItems])
+  const tags = useMemo(() => controlledTagsOf(allItems), [allItems])
 
   useEffect(() => {
     const visible = new Set(rows.map((r) => r.term.id))
@@ -174,31 +189,24 @@ export function TermsPage() {
                       className={segItemCls}
                       onClick={() => setView(v)}
                     >
-                      {v === 'cards' ? VIEW_CARDS : v === 'table' ? zh.terms.viewTable : zh.terms.viewRoadmap}
+                      {v === 'cards'
+                        ? VIEW_CARDS
+                        : v === 'table'
+                          ? zh.terms.viewTable
+                          : zh.terms.viewRoadmap}
                     </button>
                   ))}
                 </span>
               </>
             }
           >
-            {/* `w-auto!` 不是笔误，是必须的：inputCls 自带 `w-full`，而 Tailwind v4 生成的 CSS 里
-            `.w-full` 排在 `.w-auto` **之后**，两者同权重 ⇒ `w-full` 恒胜，
-            下拉框会撑满整条轨道、把后面的筛选项全推出可视区。`!` 提升权重，
-            **不改共享 inputCls**（另有多个调用点依赖它的 `w-full`）。
-            全仓同形态已清零：核法是搜 `inputCls` 同一串里不带 `!` 的 `w-auto`，命中 0。 */}
-            <select
-              aria-label={zh.library.filters.status}
-              className={`${inputCls} w-auto! shrink-0 appearance-none`}
-              value={status ?? ''}
-              onChange={(e) => setStatus(e.target.value === '' ? undefined : e.target.value)}
-            >
-              <option value="">{`${zh.library.filters.all} · ${zh.library.filters.status}`}</option>
-              {TERM_STATUS.map((s) => (
-                <option key={s} value={s}>
-                  {zh.terms.status[s]}
-                </option>
-              ))}
-            </select>
+            <FilterSelect
+              ariaLabel={zh.library.filters.status}
+              allLabel={`${zh.library.filters.all} · ${zh.library.filters.status}`}
+              value={status}
+              options={TERM_STATUS.map((s) => ({ value: s, label: zh.terms.status[s] }))}
+              onChange={setStatus}
+            />
             <FilterDivider />
             <TagFilterBar tags={tags} selected={tag} onToggle={setTag} />
             <FilterDivider />
@@ -212,17 +220,12 @@ export function TermsPage() {
               onLevel={setLevel}
               onStarterOnly={setStarterOnly}
             />
-            {searching && trimmed.length < 3 && (
-              <span className="shrink-0 text-[11px] text-warn">{zh.terms.shortQueryHint}</span>
-            )}
-            {activeFilters > 0 && (
-              <button
-                className="shrink-0 text-xs text-accent underline underline-offset-2 hover:text-accent-deep"
-                onClick={clearFilters}
-              >
-                {lane.state.clearFilters}（{lane.filter.active(activeFilters)}）
-              </button>
-            )}
+            <FilterTrail
+              shortQuery={searching && trimmed.length < 3}
+              shortQueryHint={zh.terms.shortQueryHint}
+              activeFilters={activeFilters}
+              onClear={clearFilters}
+            />
           </AssetFilterBar>
         }
       />
@@ -321,46 +324,35 @@ export function TermsPage() {
         </DialogPanel>
       </Dialog>
 
-      <Dialog open={deleting !== null} onOpenChange={(o) => (o ? undefined : setDeleting(null))}>
-        <DialogPanel
-          title={zh.terms.deleteDialog.title}
-          footer={
-            <>
-              <button className={btnGhost} onClick={() => setDeleting(null)}>
-                {zh.editor.cancel}
-              </button>
-              <button
-                className={btnDanger}
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (deleting === null) return
-                  remove.mutate(deleting.id, {
-                    onSuccess: (packs) => {
-                      toast(zh.terms.deleteDialog.done)
-                      if (packs !== null && packs !== '') {
-                        toast(zh.terms.deleteDialog.referencedToast(packs), 'error')
-                      }
-                      setDeleting(null)
-                    },
-                    onError: (e) => toast(e.message, 'error'),
-                  })
-                }}
-              >
-                {zh.terms.deleteDialog.confirm}
-              </button>
-            </>
-          }
-        >
-          {deleting !== null && (
-            <div className="space-y-2 text-sm">
-              <p className="proseCls">{zh.terms.deleteDialog.body(deleting.zh || deleting.en || deleting.id)}</p>
-              {deleting.source === 'openvibe-seed' && (
-                <p className="proseCls text-xs text-ink-muted">{zh.terms.deleteDialog.seedNote}</p>
-              )}
-            </div>
-          )}
-        </DialogPanel>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        title={zh.terms.deleteDialog.title}
+        confirmLabel={zh.terms.deleteDialog.confirm}
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (deleting === null) return
+          remove.mutate(
+            deleting.id,
+            deleteReceipts({
+              done: zh.terms.deleteDialog.done,
+              referenced: zh.terms.deleteDialog.referencedToast,
+              close: () => setDeleting(null),
+            }),
+          )
+        }}
+      >
+        {deleting !== null && (
+          <div className="space-y-2 text-sm">
+            <p className="proseCls">
+              {zh.terms.deleteDialog.body(deleting.zh || deleting.en || deleting.id)}
+            </p>
+            {deleting.source === 'openvibe-seed' && (
+              <p className="proseCls text-xs text-ink-muted">{zh.terms.deleteDialog.seedNote}</p>
+            )}
+          </div>
+        )}
+      </ConfirmDeleteDialog>
     </div>
   )
 }

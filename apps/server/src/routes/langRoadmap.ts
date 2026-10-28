@@ -14,6 +14,11 @@ import {
 import {
   APP_META_KEYS,
   AppMetaRepo,
+  exportResourcesReadme,
+  filterTopics,
+  langCoverage,
+  listReadmeRows,
+  listTopicTerms,
   readEffectiveProfile,
   readLitTopicIds,
   readResourceCatalogRows,
@@ -25,6 +30,7 @@ import {
   readTopicProfiles,
   readTopicStages,
   readVibeResourceRows,
+  topicFilterOptions,
   writeStageChoice,
   type SqliteDatabase,
 } from '@openvibe/core'
@@ -176,7 +182,31 @@ export function registerLangRoutes(app: FastifyInstance, deps: LangRouteDeps): v
     if (detail === null) {
       throw new AppError('NOT_FOUND', `知识点 ${String(params.data.id)} 不存在`)
     }
-    return detail
+    // CS4（v0.2.3 批次 C）：知识点-术语挂接（m9-topic-terms 接入生产）——
+    // 详情页直接看到挂接的术语，无需第二请求。additive 字段，旧消费者不受影响。
+    return { ...detail, attached_terms: listTopicTerms(deps.db, params.data.id) }
+  })
+
+  // CS4：站点过滤的读端（m9-topic-filter 接入生产）——菜单/筛选器一次拿到
+  // 可选语言、站号、kind 与覆盖度，不必再拉全量自算。纯读，零副作用。
+  app.get('/api/lang/topics', async (req) => {
+    const q = (req.query as { lang?: string; stage?: string; kind?: string } | undefined) ?? {}
+    const stage = q.stage !== undefined && q.stage !== '' ? Number(q.stage) : undefined
+    if (stage !== undefined && !Number.isInteger(stage)) {
+      throw new AppError('VALIDATION_ERROR', 'stage 必须是整数')
+    }
+    const topics = filterTopics(deps.db, {
+      lang: q.lang,
+      kind: q.kind,
+      ...(stage !== undefined ? { stage } : {}),
+    })
+    return { topics, coverage: langCoverage(deps.db), options: topicFilterOptions(deps.db) }
+  })
+
+  // CS4：资源清单的 README 导出（m9-p1b-readme 接入生产）——
+  // 与采集脚本同一份 exportResourcesReadme（口径只留一处）；只读，不写盘。
+  app.get('/api/lang/resources/readme', async () => {
+    return { markdown: exportResourcesReadme(listReadmeRows(deps.db)) }
   })
 
   // ⚠️ **模式层的读端**（P1e / P1f 的四个界面件一直缺的就是这一层）
@@ -202,9 +232,8 @@ export function registerLangRoutes(app: FastifyInstance, deps: LangRouteDeps): v
       stage_tracks: readStageTracks(deps.db),
       resources: readResourcesWithTopics(deps.db),
       // ⚠️ 「已点亮」是**某个项目**的行为证据 ⇒ 没给项目就没有这批
-      lit_topic_ids: parsed.data.project === undefined
-        ? []
-        : readLitTopicIds(deps.db, parsed.data.project),
+      lit_topic_ids:
+        parsed.data.project === undefined ? [] : readLitTopicIds(deps.db, parsed.data.project),
     }
   })
 

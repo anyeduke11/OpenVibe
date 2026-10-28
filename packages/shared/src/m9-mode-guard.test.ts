@@ -192,4 +192,50 @@ describe('M9 P1e · §3.20 第 3 条 · 反查口径只留一处', () => {
     const familiar: LangProfile = 'familiar'
     expect(resourceModeLabel(familiar, [103], PROFILES)).toBe('仅扩展阅读')
   })
+
+  // ── 病态 needle（片段自身跨段）────────────────────────────────────────
+  //
+  // ⚠️ **这一组钉的是「两台状态机合并成一台后，口径收窄了」这件事**：
+  //   needle 里带引号或注释符时，它的后半截落在字符串/注释里 ⇒ 片段本身一半不是代码
+  //   ⇒ 不算「代码里写了几遍」。
+  //   旧实现（stripComments 与 countCodeOccurrences 各一台状态机）会把它算成命中
+  //   ⇒ 这几条在实现改回旧口径时必红。
+  //   口径与函数文档一致（「注释与字符串不算」），所以收窄方向是**修正**而非回退。
+
+  it('⑤ needle 跨「代码→字符串」边界 ⇒ 不算代码命中', () => {
+    const src = `const a = 'x' === 1`
+    expect(countCodeOccurrences(src, "= 'x'")).toBe(0)
+    // 反证：只取代码段内的片段仍数得到 ⇒ 这条不是恒 0
+    expect(countCodeOccurrences(src, 'a =')).toBe(1)
+  })
+
+  it('⑥ needle 跨「代码→注释」边界 ⇒ 不算代码命中', () => {
+    const src = `const a = 1 // 1`
+    expect(countCodeOccurrences(src, '1 // 1')).toBe(0)
+    // 反证：只取代码段内的片段仍数得到
+    expect(countCodeOccurrences(src, 'a = 1')).toBe(1)
+  })
+
+  it('⑦ 两个函数的差异是刻意的：stripComments 看得见字符串，countCodeOccurrences 看不见', () => {
+    const src = `const q = "INSERT INTO lang_topic_state"`
+    // stripComments 保留字符串 ⇒ 表名必须被看见（剔了就等于把真违规放过去）
+    expect(stripComments(src)).toContain('lang_topic_state')
+    // countCodeOccurrences 剔字符串 ⇒ 字符串里的片段不算「代码里写了几遍」
+    expect(countCodeOccurrences(src, 'lang_topic_state')).toBe(0)
+  })
+
+  it('⑧ 字符串里的 `//`（如 URL）不算注释 ⇒ 注释不误删', () => {
+    const src = `const url = 'https://example.com/a'`
+    expect(stripComments(src)).toContain('https://example.com/a')
+  })
+
+  it('⑨ stripComments 只删注释内容、不删行 ⇒ 按行断言的调用方不误报', () => {
+    const src = `const a = 1
+// 一行注释
+const b = 2
+/* 块
+注释 */
+const c = 3`
+    expect(stripComments(src).split('\n')).toHaveLength(src.split('\n').length)
+  })
 })

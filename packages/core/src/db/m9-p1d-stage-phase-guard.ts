@@ -25,6 +25,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { isAbsolute, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { SqliteDatabase } from './index'
+import { checkNoMappingStatements } from '../tooling/m9-p1d-spec'
 
 export interface StagePhaseGuardOptions {
   db: SqliteDatabase
@@ -113,9 +114,9 @@ export function findStagePhaseArtifacts(opts: StagePhaseGuardOptions): StagePhas
   const out: StagePhaseViolation[] = []
 
   // ---------- ① `lang_topics` 上不许有 phase 类列 ----------
-  const cols = opts.db
-    .prepare(`SELECT name FROM pragma_table_info('lang_topics')`)
-    .all() as { name: string }[]
+  const cols = opts.db.prepare(`SELECT name FROM pragma_table_info('lang_topics')`).all() as {
+    name: string
+  }[]
   for (const c of cols) {
     if (PHASE_COLUMN_RE.test(c.name)) {
       out.push({
@@ -127,9 +128,9 @@ export function findStagePhaseArtifacts(opts: StagePhaseGuardOptions): StagePhas
   }
 
   // ---------- ② 库里不得有「站↔段」映射表 ----------
-  const tables = opts.db
-    .prepare(`SELECT name FROM sqlite_master WHERE type='table'`)
-    .all() as { name: string }[]
+  const tables = opts.db.prepare(`SELECT name FROM sqlite_master WHERE type='table'`).all() as {
+    name: string
+  }[]
   for (const t of tables) {
     if (MAPPING_TABLE_RE.test(t.name)) {
       out.push({
@@ -175,26 +176,14 @@ export function findStagePhaseArtifacts(opts: StagePhaseGuardOptions): StagePhas
  *
  * ⚠️ 与正向支**同款地重要**：正向支恒绿 ⇒ 若裁定文字被删了，正向支依然绿，
  *   下一个人照样会以为「不做映射」这件事根本没被规定过。
+ *
+ * 判定实现在 `tooling/m9-p1d-spec.ts`（`checkNoMappingStatements`）——
+ * 两处各写一份会让「漏认某一处」错得一模一样，这里只做形状适配。
  */
 export function checkNoMappingStatementsStillThere(specText: string): {
   ok: boolean
   problems: string[]
 } {
-  const problems: string[] = []
-  const stageIdx = specText.indexOf('### 3.6 ')
-  const stageSec =
-    stageIdx === -1 ? '' : specText.slice(stageIdx, specText.indexOf('### 3.7 ', stageIdx))
-  const stageDivision =
-    stageSec.includes('`lang_topics.stage_id`') &&
-    stageSec.includes('`lang_profile_phases`') &&
-    stageSec.includes('不做逐格映射')
-  if (!stageDivision) problems.push('§3.6 的两列分工表或「不做逐格映射」那句不见了')
-
-  const planIdx = specText.indexOf('#### 3.22.1')
-  const planSec =
-    planIdx === -1 ? '' : specText.slice(planIdx, specText.indexOf('#### ', planIdx + 5))
-  const triplePlan = planSec.includes('互不映射')
-  if (!triplePlan) problems.push('§3.22.1 的「三者互不映射」那句不见了')
-
-  return { ok: problems.length === 0, problems }
+  const r = checkNoMappingStatements(specText)
+  return { ok: r.problems.length === 0, problems: r.problems }
 }

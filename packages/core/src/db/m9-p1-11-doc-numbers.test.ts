@@ -146,11 +146,7 @@ describe('M9 P1.11 · 文档里的实测数字必须与实跑值相等', () => {
   })
 
   it('变异 ②：dev-plan 的实测分项 46 改成 47 ⇒ 红', () => {
-    const bad = replaceOnce(
-      PLAN_TEXT,
-      '实测 **Python 语言知识点 46',
-      '实测 **Python 语言知识点 47',
-    )
+    const bad = replaceOnce(PLAN_TEXT, '实测 **Python 语言知识点 46', '实测 **Python 语言知识点 47')
     const r = rules(violations(SPEC_TEXT, bad))
     // 47 ＋ 32 = 79 ≠ 78 ⇒ 文档自己的算式就不成立；同时与 spec 说的 46 对不上
     expect(r).toContain('internal-mismatch')
@@ -158,21 +154,17 @@ describe('M9 P1.11 · 文档里的实测数字必须与实跑值相等', () => {
   })
 
   it('变异 ③：spec §1.4 三档表的「语言知识点 45」改成 44 ⇒ 红', () => {
-    const bad = replaceOnce(SPEC_TEXT, '| **语言知识点** | 45 |', '| **语言知识点** | 44 |')
+    const bad = replaceOnce(SPEC_TEXT, '| **语言知识点** | 45   |', '| **语言知识点** | 44   |')
     expect(rules(violations(bad, PLAN_TEXT))).toContain('actual-mismatch')
   })
 
   it('变异 ④：spec §1.4 三档表的「库级 30」改成 31 ⇒ 红', () => {
-    const bad = replaceOnce(SPEC_TEXT, '| **库级** | 30 |', '| **库级** | 31 |')
+    const bad = replaceOnce(SPEC_TEXT, '| **库级**       | 30   |', '| **库级**       | 31   |')
     expect(rules(violations(bad, PLAN_TEXT))).toContain('actual-mismatch')
   })
 
   it('变异 ⑤：spec 的路线节点算式 32 改成 31 ⇒ 两份台账对不上 ⇒ 红', () => {
-    const bad = replaceOnce(
-      SPEC_TEXT,
-      'Go 语言知识点 `32` ＝ `78`',
-      'Go 语言知识点 `31` ＝ `78`',
-    )
+    const bad = replaceOnce(SPEC_TEXT, 'Go 语言知识点 `32` ＝ `78`', 'Go 语言知识点 `31` ＝ `78`')
     expect(rules(violations(bad, PLAN_TEXT))).toContain('spec-plan-mismatch')
   })
 
@@ -205,9 +197,9 @@ describe('M9 P1.11 · 文档里的实测数字必须与实跑值相等', () => {
         )
         .get() as { slug: string } | undefined
       expect(victim, '库里没有语言知识点可改 ⇒ 变异腿打空了').toBeTruthy()
-      h.db.prepare(`UPDATE lang_topics SET kind = 'library' WHERE slug = ? AND lang = 'python'`).run(
-        victim!.slug,
-      )
+      h.db
+        .prepare(`UPDATE lang_topics SET kind = 'library' WHERE slug = ? AND lang = 'python'`)
+        .run(victim!.slug)
       const actual = measureFrom(h.db)
       expect(actual.routeNodes.pyLanguage).toBe(45)
       const r = rules(verifyDocNumbers({ specText: SPEC_TEXT, planText: PLAN_TEXT }, actual))
@@ -254,7 +246,11 @@ describe('M9 P1.11 · 文档里的实测数字必须与实跑值相等', () => {
     expect(rules(violations(SPEC_TEXT, PLAN_TEXT))).toEqual([])
 
     // 只改源清点那一处（§1.4 三档表）⇒ 红，且**不**牵连路线节点那几条
-    const badCensus = replaceOnce(SPEC_TEXT, '| **语言知识点** | 45 |', '| **语言知识点** | 44 |')
+    const badCensus = replaceOnce(
+      SPEC_TEXT,
+      '| **语言知识点** | 45   |',
+      '| **语言知识点** | 44   |',
+    )
     const v1 = violations(badCensus, PLAN_TEXT)
     expect(rules(v1)).toContain('actual-mismatch')
     expect(
@@ -263,7 +259,11 @@ describe('M9 P1.11 · 文档里的实测数字必须与实跑值相等', () => {
     ).toEqual([])
 
     // 只改路线节点那一处（dev-plan 出口条件）⇒ 红，且**不**牵连源清点那几条
-    const badRoute = replaceOnce(PLAN_TEXT, '「lang_topics 节点数 = 78', '「lang_topics 节点数 = 77')
+    const badRoute = replaceOnce(
+      PLAN_TEXT,
+      '「lang_topics 节点数 = 78',
+      '「lang_topics 节点数 = 77',
+    )
     const v2 = violations(SPEC_TEXT, badRoute)
     expect(rules(v2)).toContain('actual-mismatch')
     expect(

@@ -64,7 +64,9 @@ export function AssetFilterBar(props: {
       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto whitespace-nowrap py-0.5">
         {props.children}
       </div>
-      {props.trailing !== undefined && <div className="flex shrink-0 items-center gap-1.5">{props.trailing}</div>}
+      {props.trailing !== undefined && (
+        <div className="flex shrink-0 items-center gap-1.5">{props.trailing}</div>
+      )}
     </div>
   )
 }
@@ -72,6 +74,72 @@ export function AssetFilterBar(props: {
 /** 筛选条里的分隔竖线（轨道内的分组视觉，非颜色单义） */
 export function FilterDivider() {
   return <span className="mx-0.5 h-4 w-px shrink-0 bg-line" />
+}
+
+/**
+ * 轨道末端的「短查询提示 + 清除筛选」。
+ *
+ * 两件事都必须贴着筛选条说，不能只在列表空态里说：提示是在用户还没提交查询时
+ * 解释「为什么没结果」，清除是在结果被筛掉后给出退路。
+ */
+export function FilterTrail(props: {
+  /** 已输入但不足 3 字符：后端不做模糊匹配，此时列表显示的是全量 */
+  shortQuery: boolean
+  shortQueryHint: string
+  activeFilters: number
+  onClear: () => void
+}) {
+  return (
+    <>
+      {props.shortQuery && (
+        <span className="shrink-0 text-[11px] text-warn">{props.shortQueryHint}</span>
+      )}
+      {props.activeFilters > 0 && (
+        <button
+          className="shrink-0 text-xs text-accent underline underline-offset-2 hover:text-accent-deep"
+          onClick={props.onClear}
+        >
+          {lane.state.clearFilters}（{lane.filter.active(props.activeFilters)}）
+        </button>
+      )}
+    </>
+  )
+}
+
+/**
+ * 筛选轨道里的下拉筛选（状态 / 平台等）。
+ *
+ * `w-auto!` 不是笔误，是必须的：`inputCls` 自带 `w-full`，而 Tailwind v4 生成的 CSS 里
+ * `.w-full` 排在 `.w-auto` **之后**，两者同权重 ⇒ `w-full` 恒胜，下拉框会撑满整条
+ * 轨道、把后面所有筛选项推出可视区。加 `!` 提升权重；不改共享 `inputCls`，是因为
+ * 另有多个调用点依赖它的 `w-full`。
+ *
+ * 空字符串在 DOM 里表示「不过滤」，在状态层是 `undefined`——这层转换收在这里，
+ * 调用点不必各写一遍。
+ */
+export function FilterSelect(props: {
+  ariaLabel: string
+  /** 空值选项的文案，如「全部 · 状态」 */
+  allLabel: string
+  value: string | undefined
+  options: readonly { value: string; label: string }[]
+  onChange: (next: string | undefined) => void
+}) {
+  return (
+    <select
+      aria-label={props.ariaLabel}
+      className={`${inputCls} w-auto! shrink-0 appearance-none`}
+      value={props.value ?? ''}
+      onChange={(e) => props.onChange(e.target.value === '' ? undefined : e.target.value)}
+    >
+      <option value="">{props.allLabel}</option>
+      {props.options.map((o) => (
+        <option key={o.value} value={o.value}>
+          {o.label}
+        </option>
+      ))}
+    </select>
+  )
 }
 
 /**

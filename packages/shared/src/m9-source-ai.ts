@@ -39,6 +39,25 @@ import { MasteryStateSchema } from './schemas/lang'
 export const SOURCE_INTERPRET_SCHEMA_VERSION = 1
 
 /**
+ * 校验响应里的版本号，**先比版本，再谈字段**（增强 3）。
+ *
+ * 三个实现共用同一句文案（HTTP runner、命令适配器、Pi 包装脚本）：
+ * 版本对不上要归一成「契约变了」的**自有**失败原因，而不是笼统的「不合 schema」——
+ * 后者会让人误判成「工具坏了」。
+ *
+ * @param parsed 已 `JSON.parse` 的原始响应（任意形态）
+ * @returns 版本不一致时的错误文案；一致时返回 `null`
+ */
+export function schemaVersionMismatch(parsed: unknown): string | null {
+  const version =
+    typeof parsed === 'object' && parsed !== null
+      ? (parsed as { schema_version?: unknown }).schema_version
+      : undefined
+  if (version === SOURCE_INTERPRET_SCHEMA_VERSION) return null
+  return `解读契约版本对不上（期望 ${String(SOURCE_INTERPRET_SCHEMA_VERSION)}，收到 ${String(version ?? '缺失')}）`
+}
+
+/**
  * 送出去的一条片段（**只含勾选过的**）。
  *
  * ⚠️ `path` 必须是**相对项目根**的路径；`content` 是**脱敏后**的片段正文
@@ -291,7 +310,13 @@ export type InterpretProviderKind = z.infer<typeof InterpretProviderKind>
  * ⚠️ **字段全是标量 ＋ 一串命令参数**：没有嵌套对象 ⇒ 序列化与读回都不会出现
  * 「半个结构」的中间态。
  */
-export const InterpretProviderConfig = z.object({
+/**
+ * `Config` 与 `View` 的**共有字段** —— 只声明一次。
+ *
+ * ⚠️ **共有字段不许抄两份**：读端（View）若另抄一遍，将来加字段时必然只改一边，
+ *   于是「写进去的」与「读出来的」悄悄分叉。
+ */
+const InterpretProviderBase = z.object({
   /** 总闸（**默认关**）—— 关掉 ⇒ DL-08 的下限：AI 不可用，确定性层照常 */
   enabled: z.boolean(),
   kind: InterpretProviderKind,
@@ -305,6 +330,9 @@ export const InterpretProviderConfig = z.object({
   model: z.string(),
   /** provider 标识（台账用，如 `ollama` / `openai` / `pi`） */
   provider: z.string(),
+})
+
+export const InterpretProviderConfig = InterpretProviderBase.extend({
   /**
    * API key（⚠️ **只有「明文降级」时这里才非空** —— 见 `api_key_storage`）。
    *
@@ -349,14 +377,7 @@ export type InterpretProviderKeyStorage = z.infer<typeof InterpretProviderKeySto
  *   `api_key_hint`（末 4 位，给人眼确认「配的是不是这一把」）。
  * ⇒ 「回显密钥」这件事在**类型上**就不可能发生，与「解读结果只展示不留存」同款纪律。
  */
-export const InterpretProviderView = z.object({
-  enabled: z.boolean(),
-  kind: InterpretProviderKind,
-  cmd: z.string(),
-  args: z.array(z.string()),
-  endpoint: z.string(),
-  model: z.string(),
-  provider: z.string(),
+export const InterpretProviderView = InterpretProviderBase.extend({
   /** 有没有配 key */
   has_api_key: z.boolean(),
   /** key 的末 4 位（没配则是空串） */
@@ -370,6 +391,7 @@ export const InterpretProviderView = z.object({
   api_key_storage: InterpretProviderKeyStorage,
   /** 存储位置的**人话说明**（服务端生成 —— 「本机有没有钥匙串」是服务端的事实） */
   api_key_storage_detail: z.string(),
+  /** 超时（毫秒） */
   timeout_ms: z.number().int(),
 })
 export type InterpretProviderView = z.infer<typeof InterpretProviderView>
@@ -456,4 +478,3 @@ export type InterpretProviderCollectionSave = z.infer<typeof InterpretProviderCo
  *   是**同一个问题**的两面，分成两个形状就会有两处口径漂移。
  */
 export type InterpretProviderCapability = InterpretCapability
-

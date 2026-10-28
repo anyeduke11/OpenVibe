@@ -42,7 +42,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { runWithStdin } from '../source-scan/run-with-stdin'
 import {
-  SOURCE_INTERPRET_SCHEMA_VERSION,
+  schemaVersionMismatch,
   SourceInterpretRequest,
   SourceInterpretResult,
   type InterpretStatus,
@@ -69,6 +69,30 @@ export class InterpretRunnerError extends Error {
     super(message)
     this.name = 'InterpretRunnerError'
   }
+}
+
+/**
+ * 校验 runner 的输出：**先比契约版本，再看字段**（命令适配器与 HTTP runner 同款）。
+ *
+ * ⚠️ 版本对不上归一成 `runner-version-mismatch`，而不是笼统的「不合 schema」——
+ *   前者是「契约变了」，后者会让人误判成「工具坏了」。
+ *
+ * @param parsed 已 `JSON.parse` 的原始值
+ * @param invalidSchemaMessage 字段不合契约时的错误文案（两个 runner 各自的措辞）
+ */
+export function decodeInterpretResult(
+  parsed: unknown,
+  invalidSchemaMessage: string,
+): SourceInterpretResult {
+  const mismatch = schemaVersionMismatch(parsed)
+  if (mismatch !== null) {
+    throw new InterpretRunnerError('runner-version-mismatch', mismatch)
+  }
+  const result = SourceInterpretResult.safeParse(parsed)
+  if (!result.success) {
+    throw new InterpretRunnerError('runner-invalid-schema', invalidSchemaMessage)
+  }
+  return result.data
 }
 
 /** 解读 runner（**可注入**）。 */
@@ -178,7 +202,10 @@ export class CommandInterpretRunner implements SourceInterpretRunner {
       )
     }
     if (timedOut) {
-      throw new InterpretRunnerError('runner-timeout', `解读命令超时（${String(this.timeoutMs)}ms）`)
+      throw new InterpretRunnerError(
+        'runner-timeout',
+        `解读命令超时（${String(this.timeoutMs)}ms）`,
+      )
     }
     if (code !== 0) {
       throw new InterpretRunnerError(
@@ -195,21 +222,7 @@ export class CommandInterpretRunner implements SourceInterpretRunner {
     // ⚠️ **先比版本，再谈字段**（增强 3）——
     //   版本对不上 ⇒ 归一成**自己的**失败原因，而不是笼统的「不合 schema」
     //   （后者会让人误判成「工具坏了」，实际是「契约变了」）。
-    const version =
-      typeof parsed === 'object' && parsed !== null
-        ? (parsed as { schema_version?: unknown }).schema_version
-        : undefined
-    if (version !== SOURCE_INTERPRET_SCHEMA_VERSION) {
-      throw new InterpretRunnerError(
-        'runner-version-mismatch',
-        `解读契约版本对不上（期望 ${String(SOURCE_INTERPRET_SCHEMA_VERSION)}，收到 ${String(version ?? '缺失')}）`,
-      )
-    }
-    const result = SourceInterpretResult.safeParse(parsed)
-    if (!result.success) {
-      throw new InterpretRunnerError('runner-invalid-schema', '解读命令的输出不合契约')
-    }
-    return result.data
+    return decodeInterpretResult(parsed, '解读命令的输出不合契约')
   }
 }
 

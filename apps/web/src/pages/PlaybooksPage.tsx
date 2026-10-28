@@ -1,16 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { CONTROLLED_TAG_VOCAB, type PlaybookOut } from '@openvibe/shared'
+import type { PlaybookOut } from '@openvibe/shared'
 import { lane } from '../i18n/lane-assets'
 import { zh } from '../i18n/zh'
-import { AssetFilterBar, AssetPageHead, AssetSearchBox, FilterDivider } from '../components/library/AssetPageHead'
+import {
+  AssetFilterBar,
+  AssetPageHead,
+  AssetSearchBox,
+  FilterDivider,
+  FilterSelect,
+  FilterTrail,
+} from '../components/library/AssetPageHead'
 import { RefreshHint } from '../components/library/AssetStates'
+import { controlledTagsOf } from '../components/library/controlledTags'
 import { TagFilterBar } from '../components/library/TagFilterBar'
 import { PlaybookEditorDrawer } from '../components/playbooks/PlaybookEditorDrawer'
 import { PlaybooksMdPreview } from '../components/playbooks/PlaybooksMdPreview'
 import { PlaybooksTable, type PlaybookRowView } from '../components/playbooks/PlaybooksTable'
+import { ConfirmDeleteDialog, deleteReceipts } from '../components/ui/ConfirmDeleteDialog'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
-import { toast } from '../components/ui/Toaster'
-import { btnDanger, btnGhost, btnPrimary, inputCls } from '../components/ui/styles'
+import { btnGhost, btnPrimary } from '../components/ui/styles'
 import { useDebounced } from '../hooks/useDebounced'
 import { usePlaybookList, usePlaybookMutations, usePlaybookSearch } from '../hooks/usePlaybooks'
 
@@ -43,12 +51,7 @@ export function PlaybooksPage() {
     )
   }, [searching, search_.data, allItems, status, tag])
 
-  const tags = useMemo(() => {
-    const used = new Set(allItems.flatMap((p) => p.tags))
-    const known = CONTROLLED_TAG_VOCAB.filter((t) => used.has(t))
-    const extra = [...used].filter((t) => !(CONTROLLED_TAG_VOCAB as readonly string[]).includes(t)).sort()
-    return [...known, ...extra]
-  }, [allItems])
+  const tags = useMemo(() => controlledTagsOf(allItems), [allItems])
 
   // 过滤或搜索变化后，已选但当前不可见的条目必须退出选集（否则渲染端报 STALE_SELECTION）
   useEffect(() => {
@@ -108,37 +111,24 @@ export function PlaybooksPage() {
               <RefreshHint busy={(list.isFetching || search_.isFetching) && !active.isLoading} />
             }
           >
-            {/* `w-auto!` 不是笔误，是必须的：inputCls 自带 `w-full`，而 Tailwind v4 生成的 CSS 里
-            `.w-full` 排在 `.w-auto` **之后**，两者同权重 ⇒ `w-full` 恒胜，
-            下拉框会撑满整条轨道、把后面的筛选项全推出可视区。`!` 提升权重，
-            **不改共享 inputCls**（另有多个调用点依赖它的 `w-full`）。
-全仓同形态已清零：核法是搜 `inputCls` 同一串里不带 `!` 的 `w-auto`，命中 0。 */}
-            <select
-              aria-label={zh.library.filters.status}
-              className={`${inputCls} w-auto! shrink-0 appearance-none`}
-              value={status ?? ''}
-              onChange={(e) => setStatus(e.target.value === '' ? undefined : e.target.value)}
-            >
-              <option value="">{`${zh.library.filters.all} · ${zh.library.filters.status}`}</option>
-              {(['draft', 'published'] as const).map((s) => (
-                <option key={s} value={s}>
-                  {zh.playbooks.status[s]}
-                </option>
-              ))}
-            </select>
+            <FilterSelect
+              ariaLabel={zh.library.filters.status}
+              allLabel={`${zh.library.filters.all} · ${zh.library.filters.status}`}
+              value={status}
+              options={(['draft', 'published'] as const).map((s) => ({
+                value: s,
+                label: zh.playbooks.status[s],
+              }))}
+              onChange={setStatus}
+            />
             <FilterDivider />
             <TagFilterBar tags={tags} selected={tag} onToggle={setTag} />
-            {searching && trimmed.length < 3 && (
-              <span className="shrink-0 text-[11px] text-warn">{zh.playbooks.shortQueryHint}</span>
-            )}
-            {activeFilters > 0 && (
-              <button
-                className="shrink-0 text-xs text-accent underline underline-offset-2 hover:text-accent-deep"
-                onClick={clearFilters}
-              >
-                {lane.state.clearFilters}（{lane.filter.active(activeFilters)}）
-              </button>
-            )}
+            <FilterTrail
+              shortQuery={searching && trimmed.length < 3}
+              shortQueryHint={zh.playbooks.shortQueryHint}
+              activeFilters={activeFilters}
+              onClear={clearFilters}
+            />
           </AssetFilterBar>
         }
       />
@@ -195,56 +185,47 @@ export function PlaybooksPage() {
           <div className="h-[60vh]">
             <PlaybooksMdPreview playbookIds={renderableIds} />
           </div>
-          {blockedByDraft && <p className="mt-2 text-[11px] text-warn">{zh.playbooks.preview.draftSkipped}</p>}
-        </DialogPanel>
-      </Dialog>
-
-      <Dialog open={deleting !== null} onOpenChange={(o) => (o ? undefined : setDeleting(null))}>
-        <DialogPanel
-          title={zh.playbooks.deleteDialog.title}
-          footer={
-            <>
-              <button className={btnGhost} onClick={() => setDeleting(null)}>
-                {zh.editor.cancel}
-              </button>
-              <button
-                className={btnDanger}
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (deleting === null) return
-                  remove.mutate(deleting.id, {
-                    onSuccess: (packs) => {
-                      toast(zh.playbooks.deleteDialog.done)
-                      if (packs !== null && packs !== '') {
-                        toast(zh.playbooks.deleteDialog.referencedToast(packs), 'error')
-                      }
-                      setDeleting(null)
-                    },
-                    onError: (e) => toast(e.message, 'error'),
-                  })
-                }}
-              >
-                {zh.playbooks.deleteDialog.confirm}
-              </button>
-            </>
-          }
-        >
-          {deleting !== null && (
-            <div className="space-y-2 text-sm">
-              {/* 影响范围：删什么、种子条目删了不会自动恢复、可改再删 */}
-              <p className="proseCls">{zh.playbooks.deleteDialog.body(deleting.scenario)}</p>
-              {deleting.source === 'openvibe-seed' && (
-                <p className="proseCls text-xs text-ink-muted">{zh.playbooks.deleteDialog.seedNote}</p>
-              )}
-              <div className="flex justify-end pt-1">
-                <button className={btnGhost} onClick={() => setEditor({ playbook: deleting })}>
-                  {zh.playbooks.deleteDialog.editFirst}
-                </button>
-              </div>
-            </div>
+          {blockedByDraft && (
+            <p className="mt-2 text-[11px] text-warn">{zh.playbooks.preview.draftSkipped}</p>
           )}
         </DialogPanel>
       </Dialog>
+
+      <ConfirmDeleteDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        title={zh.playbooks.deleteDialog.title}
+        confirmLabel={zh.playbooks.deleteDialog.confirm}
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (deleting === null) return
+          remove.mutate(
+            deleting.id,
+            deleteReceipts({
+              done: zh.playbooks.deleteDialog.done,
+              referenced: zh.playbooks.deleteDialog.referencedToast,
+              close: () => setDeleting(null),
+            }),
+          )
+        }}
+      >
+        {deleting !== null && (
+          <div className="space-y-2 text-sm">
+            {/* 影响范围：删什么、种子条目删了不会自动恢复、可改再删 */}
+            <p className="proseCls">{zh.playbooks.deleteDialog.body(deleting.scenario)}</p>
+            {deleting.source === 'openvibe-seed' && (
+              <p className="proseCls text-xs text-ink-muted">
+                {zh.playbooks.deleteDialog.seedNote}
+              </p>
+            )}
+            <div className="flex justify-end pt-1">
+              <button className={btnGhost} onClick={() => setEditor({ playbook: deleting })}>
+                {zh.playbooks.deleteDialog.editFirst}
+              </button>
+            </div>
+          </div>
+        )}
+      </ConfirmDeleteDialog>
     </div>
   )
 }

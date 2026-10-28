@@ -86,9 +86,11 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
       payload: { origin: 'user' },
     })
     const check = checkLocalPath(project.localPath)
-    return reply
-      .code(201)
-      .send({ ...project, health: projects.healthSummary(project.id), localPathWarning: check.warning ?? null })
+    return reply.code(201).send({
+      ...project,
+      health: projects.healthSummary(project.id),
+      localPathWarning: check.warning ?? null,
+    })
   })
 
   app.get('/api/projects/:id', async (req) => {
@@ -104,7 +106,11 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
     assertLocalPath(patch.localPath)
     const project = projects.update(id, patch)
     const check = checkLocalPath(project.localPath)
-    return { ...project, health: projects.healthSummary(id), localPathWarning: check.warning ?? null }
+    return {
+      ...project,
+      health: projects.healthSummary(id),
+      localPathWarning: check.warning ?? null,
+    }
   })
 
   // 级联由外键保证；不触碰 localPath 目录内任何文件（m5 §6.5）

@@ -1,13 +1,11 @@
 import {
   buildInterpretPrompt,
-  SOURCE_INTERPRET_SCHEMA_VERSION,
   SourceInterpretRequest,
-  SourceInterpretResult,
   stripJsonFence,
   type SourceInterpretResult as SourceInterpretResultType,
   type SourceInterpretUsage,
 } from '@openvibe/shared'
-import { InterpretRunnerError, type SourceInterpretRunner } from './runner'
+import { decodeInterpretResult, InterpretRunnerError, type SourceInterpretRunner } from './runner'
 
 // ⚠️ **提示词与围栏剥离的实现住在 shared**（`@openvibe/shared` 的 `m9-source-prompt`）——
 //   HTTP runner 与 `scripts/pi-interpret-runner.ts`（Pi 包装脚本）**共用同一份**。
@@ -112,7 +110,10 @@ export class HttpInterpretRunner implements SourceInterpretRunner {
     } catch (err) {
       const e = err as { name?: string; message?: string }
       if (e.name === 'TimeoutError' || e.name === 'AbortError') {
-        throw new InterpretRunnerError('runner-timeout', `解读请求超时（${String(this.timeoutMs)}ms）`)
+        throw new InterpretRunnerError(
+          'runner-timeout',
+          `解读请求超时（${String(this.timeoutMs)}ms）`,
+        )
       }
       throw new InterpretRunnerError(
         'runner-failed',
@@ -154,23 +155,10 @@ export class HttpInterpretRunner implements SourceInterpretRunner {
     }
 
     // ⚠️ **先比版本，再谈字段**（同命令适配器）
-    const version =
-      typeof parsed === 'object' && parsed !== null
-        ? (parsed as { schema_version?: unknown }).schema_version
-        : undefined
-    if (version !== SOURCE_INTERPRET_SCHEMA_VERSION) {
-      throw new InterpretRunnerError(
-        'runner-version-mismatch',
-        `解读契约版本对不上（期望 ${String(SOURCE_INTERPRET_SCHEMA_VERSION)}，收到 ${String(version ?? '缺失')}）`,
-      )
-    }
-    const result = SourceInterpretResult.safeParse(parsed)
-    if (!result.success) {
-      throw new InterpretRunnerError('runner-invalid-schema', '解读服务返回的内容不合契约')
-    }
+    const result = decodeInterpretResult(parsed, '解读服务返回的内容不合契约')
     // ⚠️ **用量是可选的**（有的服务不返回 `usage`）⇒ 拿不到就是没有，不算失败
     const usage = extractUsage(body)
-    return usage === null ? result.data : { ...result.data, usage }
+    return usage === null ? result : { ...result, usage }
   }
 }
 
@@ -184,12 +172,18 @@ export function extractUsage(body: unknown): SourceInterpretUsage | null {
   if (typeof body !== 'object' || body === null) return null
   const usage = (body as { usage?: unknown }).usage
   if (typeof usage !== 'object' || usage === null) return null
-  const u = usage as { prompt_tokens?: unknown; completion_tokens?: unknown; total_tokens?: unknown }
+  const u = usage as {
+    prompt_tokens?: unknown
+    completion_tokens?: unknown
+    total_tokens?: unknown
+  }
   if (typeof u.prompt_tokens !== 'number' || typeof u.completion_tokens !== 'number') return null
   const prompt = Math.max(0, Math.trunc(u.prompt_tokens))
   const completion = Math.max(0, Math.trunc(u.completion_tokens))
   const total =
-    typeof u.total_tokens === 'number' ? Math.max(0, Math.trunc(u.total_tokens)) : prompt + completion
+    typeof u.total_tokens === 'number'
+      ? Math.max(0, Math.trunc(u.total_tokens))
+      : prompt + completion
   return { prompt_tokens: prompt, completion_tokens: completion, total_tokens: total }
 }
 

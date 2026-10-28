@@ -56,6 +56,7 @@ import { tmpdir } from 'node:os'
 import {
   buildInterpretPrompt,
   digestPiEventStream,
+  schemaVersionMismatch,
   SOURCE_INTERPRET_SCHEMA_VERSION,
   SourceInterpretRequest,
   SourceInterpretResult,
@@ -100,7 +101,8 @@ function resolveTarget(): { provider: string | null; model: string | null } {
   const envProvider = process.env['OPENVIBE_M9_INTERPRETER_PROVIDER']?.trim()
   const envModel = process.env['OPENVIBE_M9_INTERPRETER_MODEL']?.trim()
   return {
-    provider: cli.provider ?? (envProvider !== undefined && envProvider !== '' ? envProvider : null),
+    provider:
+      cli.provider ?? (envProvider !== undefined && envProvider !== '' ? envProvider : null),
     model: cli.model ?? (envModel !== undefined && envModel !== '' ? envModel : null),
   }
 }
@@ -236,16 +238,8 @@ async function main(): Promise<void> {
   }
 
   // ⚠️ **先比版本，再谈字段**（增强 3：同 HTTP runner 与命令适配器）
-  const version =
-    typeof parsed === 'object' && parsed !== null
-      ? (parsed as { schema_version?: unknown }).schema_version
-      : undefined
-  if (version !== SOURCE_INTERPRET_SCHEMA_VERSION) {
-    fail(
-      `解读契约版本对不上（期望 ${String(SOURCE_INTERPRET_SCHEMA_VERSION)}，收到 ${String(version ?? '缺失')}）`,
-      5,
-    )
-  }
+  const mismatch = schemaVersionMismatch(parsed)
+  if (mismatch !== null) fail(mismatch, 5)
 
   // ⚠️ **model / provider 用「实际跑的那一家」覆盖模型的自述** ——
   //   台账要记的是事实；模型自报的名字是猜的。

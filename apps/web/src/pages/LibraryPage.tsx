@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { PLATFORM_MARKS, PROMPT_STATUS, type PromptOut } from '@openvibe/shared'
 import { lane } from '../i18n/lane-assets'
 import { zh } from '../i18n/zh'
-import { AssetFilterBar, AssetPageHead, AssetSearchBox, FilterDivider } from '../components/library/AssetPageHead'
+import {
+  AssetFilterBar,
+  AssetPageHead,
+  AssetSearchBox,
+  FilterDivider,
+  FilterSelect,
+  FilterTrail,
+} from '../components/library/AssetPageHead'
 import { RefreshHint } from '../components/library/AssetStates'
 import { FolderFilterBar } from '../components/library/FolderFilterBar'
 import { ImportExportDialog } from '../components/library/ImportExportDialog'
@@ -10,8 +17,8 @@ import { PromptEditorDrawer } from '../components/library/PromptEditorDrawer'
 import { PromptList } from '../components/library/PromptList'
 import { TagFilterBar } from '../components/library/TagFilterBar'
 import { VariableFillModal } from '../components/library/VariableFillModal'
-import { Dialog, DialogPanel } from '../components/ui/Dialog'
-import { btnDanger, btnGhost, btnPrimary, inputCls } from '../components/ui/styles'
+import { ConfirmDeleteDialog, deleteReceipts } from '../components/ui/ConfirmDeleteDialog'
+import { btnGhost, btnPrimary } from '../components/ui/styles'
 import { toast } from '../components/ui/Toaster'
 import { useDebounced } from '../hooks/useDebounced'
 import { usePromptAggregates, usePromptList, usePromptMutations } from '../hooks/usePrompts'
@@ -110,46 +117,21 @@ export function LibraryPage() {
           </>
         }
         filters={
-          <AssetFilterBar
-            trailing={
-              <RefreshHint busy={list.isFetching && !list.isLoading} />
-            }
-          >
-            {/* `w-auto!` 不是笔误，是必须的：inputCls 自带 `w-full`，而 Tailwind v4 生成的
-                CSS 里 `.w-full` 排在 `.w-auto` **之后**，两者同权重 ⇒ `w-full` 恒胜，
-                select 会撑满整条筛选轨道，把后面所有 chip 推出可视区（实测轨道
-                1336px 宽、scrollWidth 3272px，两个 select 各占 1336px）。
-                加 `!` 提升权重。不改共享 `inputCls` 是为了不波及其余 7 处调用点。 */}
-            <select
-              aria-label={zh.library.filters.status}
-              className={`${inputCls} w-auto! shrink-0 appearance-none`}
-              value={status ?? ''}
-              onChange={(e) => setStatus(e.target.value === '' ? undefined : e.target.value)}
-            >
-              <option value="">
-                {zh.library.filters.all} · {zh.library.filters.status}
-              </option>
-              {PROMPT_STATUS.map((s) => (
-                <option key={s} value={s}>
-                  {zh.library.status[s]}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label={zh.library.filters.platform}
-              className={`${inputCls} w-auto! shrink-0 appearance-none`}
-              value={platform ?? ''}
-              onChange={(e) => setPlatform(e.target.value === '' ? undefined : e.target.value)}
-            >
-              <option value="">
-                {zh.library.filters.all} · {zh.library.filters.platform}
-              </option>
-              {PLATFORM_MARKS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
+          <AssetFilterBar trailing={<RefreshHint busy={list.isFetching && !list.isLoading} />}>
+            <FilterSelect
+              ariaLabel={zh.library.filters.status}
+              allLabel={`${zh.library.filters.all} · ${zh.library.filters.status}`}
+              value={status}
+              options={PROMPT_STATUS.map((s) => ({ value: s, label: zh.library.status[s] }))}
+              onChange={setStatus}
+            />
+            <FilterSelect
+              ariaLabel={zh.library.filters.platform}
+              allLabel={`${zh.library.filters.all} · ${zh.library.filters.platform}`}
+              value={platform}
+              options={PLATFORM_MARKS.map((m) => ({ value: m, label: m }))}
+              onChange={setPlatform}
+            />
             <FilterDivider />
             {/* 文件夹筛选横排放在状态/平台之后、标签之前：它是「归档维度」，
                 与标签同属资产组织方式，靠右更贴标签条；靠左会挤掉状态/平台这两个
@@ -162,17 +144,12 @@ export function LibraryPage() {
             />
             <FilterDivider />
             <TagFilterBar tags={tags} selected={tag} onToggle={setTag} />
-            {q.trim() !== '' && q.trim().length < 3 && (
-              <span className="shrink-0 text-[11px] text-warn">{zh.library.shortQueryHint}</span>
-            )}
-            {activeFilters > 0 && (
-              <button
-                className="shrink-0 text-xs text-accent underline underline-offset-2 hover:text-accent-deep"
-                onClick={clearFilters}
-              >
-                {lane.state.clearFilters}（{lane.filter.active(activeFilters)}）
-              </button>
-            )}
+            <FilterTrail
+              shortQuery={q.trim() !== '' && q.trim().length < 3}
+              shortQueryHint={zh.library.shortQueryHint}
+              activeFilters={activeFilters}
+              onClear={clearFilters}
+            />
           </AssetFilterBar>
         }
       />
@@ -214,45 +191,32 @@ export function LibraryPage() {
 
       <ImportExportDialog open={ioOpen} onClose={() => setIoOpen(false)} />
 
-      <Dialog open={deleting !== null} onOpenChange={(o) => (o ? undefined : setDeleting(null))}>
-        <DialogPanel
-          title={zh.deleteDialog.title}
-          footer={
-            <>
-              <button className={btnGhost} onClick={() => setDeleting(null)}>
-                {zh.editor.cancel}
-              </button>
-              <button
-                className={btnDanger}
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (deleting === null) return
-                  remove.mutate(deleting.id, {
-                    onSuccess: (packs) => {
-                      toast(zh.deleteDialog.done)
-                      if (packs !== null && packs !== '') {
-                        toast(zh.deleteDialog.referencedToast(packs), 'error')
-                      }
-                      setDeleting(null)
-                    },
-                    onError: (e) => toast(e.message, 'error'),
-                  })
-                }}
-              >
-                {zh.deleteDialog.confirm}
-              </button>
-            </>
-          }
-        >
-          {deleting !== null && (
-            <div className="space-y-2 text-sm">
-              {/* 影响范围写进确认框正文：删什么、连带删什么、什么不受影响 */}
-              <p className="proseCls">{zh.deleteDialog.body(deleting.title)}</p>
-              <p className="proseCls text-xs text-ink-muted">{zh.deleteDialog.packNote}</p>
-            </div>
-          )}
-        </DialogPanel>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        title={zh.deleteDialog.title}
+        confirmLabel={zh.deleteDialog.confirm}
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (deleting === null) return
+          remove.mutate(
+            deleting.id,
+            deleteReceipts({
+              done: zh.deleteDialog.done,
+              referenced: zh.deleteDialog.referencedToast,
+              close: () => setDeleting(null),
+            }),
+          )
+        }}
+      >
+        {deleting !== null && (
+          <div className="space-y-2 text-sm">
+            {/* 影响范围写进确认框正文：删什么、连带删什么、什么不受影响 */}
+            <p className="proseCls">{zh.deleteDialog.body(deleting.title)}</p>
+            <p className="proseCls text-xs text-ink-muted">{zh.deleteDialog.packNote}</p>
+          </div>
+        )}
+      </ConfirmDeleteDialog>
     </section>
   )
 }

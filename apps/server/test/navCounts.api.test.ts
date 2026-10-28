@@ -5,9 +5,10 @@ import { NavCountsOut } from '@openvibe/shared'
 import { buildApp } from '../src/app'
 
 /**
- * GET /api/nav-counts：侧栏七项角标（M4 技巧库上线后由六项扩到七项）。
+ * GET /api/nav-counts：侧栏七项角标。
  * 重点钉两件事——① 七格齐全且与各列表端点同口径；② projects 只数非归档（与
  * GET /api/projects 的默认返回同数），因为角标报一个点进去看不到的数字比报错更糟。
+ * playbooks 取全量（PlaybooksRepo.list() 不按 status 过滤），故与 /api/playbooks 的 total 同数。
  */
 
 const TOKEN = 'test-token'
@@ -61,7 +62,7 @@ function seedRows(h: Harness): void {
   ).run(ts, ts)
   db.prepare(
     `INSERT INTO playbooks (id, scenario, problem, practice, created_at, updated_at)
-     VALUES ('pbx_a', '场景', '问题', '做法', ?, ?)`,
+     VALUES ('pbk_a', '场景', '问题', '做法', ?, ?)`,
   ).run(ts, ts)
   db.prepare(
     `INSERT INTO skills (id, name, description, source, created_at, updated_at)
@@ -75,7 +76,13 @@ function seedRows(h: Harness): void {
     `INSERT INTO standard_packs (id, name, description, selection, targets, created_at, updated_at)
      VALUES ('pk_a', 'p', '', ?, '["claude-code"]', ?, ?)`,
   ).run(
-    JSON.stringify({ promptIds: [], termIds: [], skillIds: [], playbookIds: [], flowTemplateId: null }),
+    JSON.stringify({
+      promptIds: [],
+      termIds: [],
+      skillIds: [],
+      playbookIds: [],
+      flowTemplateId: null,
+    }),
     ts,
     ts,
   )

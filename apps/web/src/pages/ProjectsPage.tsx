@@ -3,11 +3,9 @@ import { Link } from 'react-router-dom'
 import { PROJECT_STATUS } from '@openvibe/shared'
 import { ProjectList } from '../components/projects/ProjectList'
 import { ProjectWizard } from '../components/projects/ProjectWizard'
-import { Dialog, DialogPanel } from '../components/ui/Dialog'
+import { ConfirmDeleteDialog } from '../components/ui/ConfirmDeleteDialog'
 import { toast } from '../components/ui/Toaster'
 import {
-  btnDanger,
-  btnGhost,
   btnPrimary,
   chipPressed,
   h1Cls,
@@ -51,10 +49,7 @@ export function ProjectsPage() {
               </button>
             ))}
           </div>
-          <button
-            className={`${btnPrimary} ml-auto`}
-            onClick={() => setWizardOpen(true)}
-          >
+          <button className={`${btnPrimary} ml-auto`} onClick={() => setWizardOpen(true)}>
             {zh.projects.newProject}
           </button>
         </div>
@@ -101,53 +96,42 @@ export function ProjectsPage() {
 
       <ProjectWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
 
-      <Dialog open={deleting !== null} onOpenChange={(o) => (o ? undefined : setDeleting(null))}>
-        <DialogPanel
-          title={zh.projects.deleteDialog.title}
-          footer={
-            <>
-              <button className={btnGhost} onClick={() => setDeleting(null)}>
-                {zh.editor.cancel}
-              </button>
-              <button
-                className={btnDanger}
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (deleting === null) return
-                  remove.mutate(deleting.id, {
-                    onSuccess: () => {
-                      toast(zh.projects.deleteDialog.done)
-                      setDeleting(null)
-                    },
-                    onError: (e: Error) => toast(e.message, 'error'),
-                  })
-                }}
-              >
-                {zh.projects.deleteDialog.confirm}
-              </button>
-            </>
-          }
-        >
-          {deleting !== null && (
-            <div className="space-y-2 text-sm">
-              <p>{zh.projects.deleteDialog.body(deleting.name)}</p>
-              <p className="text-xs text-danger">
-                {zh.projects.deleteDialog.counts(deleting.health.logCount, deleting.health.taskCount)}
-              </p>
-              {/* 影响范围：会变 / 不受影响各说一遍，破坏动作不能只给一个「确定吗」 */}
-              <div className="rounded-md border border-line bg-panel-2 px-3 py-2 text-xs">
-                <span className={`${noteTitleCls} text-ink-body`}>
-                  {laneEngineering.projectDelete.impactTitle}
-                </span>
-                <ul className="space-y-0.5 text-ink-muted">
-                  <li>· {laneEngineering.projectDelete.impactOk}</li>
-                  <li>· {laneEngineering.projectDelete.impactExported}</li>
-                </ul>
-              </div>
+      <ConfirmDeleteDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        title={zh.projects.deleteDialog.title}
+        confirmLabel={zh.projects.deleteDialog.confirm}
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (deleting === null) return
+          remove.mutate(deleting.id, {
+            onSuccess: () => {
+              toast(zh.projects.deleteDialog.done)
+              setDeleting(null)
+            },
+            onError: (e: Error) => toast(e.message, 'error'),
+          })
+        }}
+      >
+        {deleting !== null && (
+          <div className="space-y-2 text-sm">
+            <p>{zh.projects.deleteDialog.body(deleting.name)}</p>
+            <p className="text-xs text-danger">
+              {zh.projects.deleteDialog.counts(deleting.health.logCount, deleting.health.taskCount)}
+            </p>
+            {/* 影响范围：会变 / 不受影响各说一遍，破坏动作不能只给一个「确定吗」 */}
+            <div className="rounded-md border border-line bg-panel-2 px-3 py-2 text-xs">
+              <span className={`${noteTitleCls} text-ink-body`}>
+                {laneEngineering.projectDelete.impactTitle}
+              </span>
+              <ul className="space-y-0.5 text-ink-muted">
+                <li>· {laneEngineering.projectDelete.impactOk}</li>
+                <li>· {laneEngineering.projectDelete.impactExported}</li>
+              </ul>
             </div>
-          )}
-        </DialogPanel>
-      </Dialog>
+          </div>
+        )}
+      </ConfirmDeleteDialog>
     </div>
   )
 }

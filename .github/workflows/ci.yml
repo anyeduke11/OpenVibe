@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-  workflow_dispatch: {}   # CI 预演通道（pnpm ci:preview）——push 前对任意 HEAD 触发同矩阵
+  workflow_dispatch: {} # CI 预演通道（pnpm ci:preview）——push 前对任意 HEAD 触发同矩阵
 
 jobs:
   verify:
@@ -29,6 +29,17 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      # 格式闸（2026-10-26 接入）：prettier 合规曾经只靠「有人记得跑 pnpm format」——
+      # 那道承诺在 2026-10-26 复算时已漂成 248 个文件不合规 ⇒ 把它变成闸。
+      #
+      # ⚠️ **为什么进三平台矩阵而不是单开一个作业**：格式判定与平台无关
+      #   （.gitattributes 已锁 `eol=lf`，行尾不随平台漂）⇒ 单开作业只会多一次
+      #   依赖安装；放进既有矩阵则与 lint/typecheck 同级、同一次 checkout 出结果。
+      # ⚠️ **豁免面在 .prettierignore**：内容/种子 JSON、golden 快照与冻结面辅助件、
+      #   V1 归档原型 —— 这些是逐字节契约或历史存档，排版即破坏。
+      - name: Format check
+        run: pnpm format:check
 
       - name: Typecheck
         run: pnpm typecheck

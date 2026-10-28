@@ -1,14 +1,10 @@
-import type { ReactNode } from 'react'
-import type { MatchRange, PlaybookMatch, PlaybookOut } from '@openvibe/shared'
+import type { PlaybookMatch, PlaybookOut } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
-import {
-  AssetEmpty,
-  AssetError,
-  AssetNoResults,
-  AssetSkeleton,
-} from '../library/AssetStates'
+import { AssetEmpty, AssetError, AssetNoResults, AssetSkeleton } from '../library/AssetStates'
+import { Highlight, rangesOf } from '../ui/Highlight'
+import { LedgerShell, RowActions } from '../ui/LedgerTable'
 import { Icon, type IconName } from '../ui/icons'
-import { btnGhost, btnPrimary, chipTone, ledgerHeadCls, tagCls } from '../ui/styles'
+import { btnPrimary, chipTone, ledgerHeadCls, tagCls } from '../ui/styles'
 
 export interface PlaybookRowView {
   playbook: PlaybookOut
@@ -20,30 +16,6 @@ const STATUS: Record<PlaybookOut['status'], { cls: string; icon: IconName }> = {
   draft: { cls: chipTone('default'), icon: 'doc' },
   published: { cls: chipTone('ok'), icon: 'check' },
 }
-
-/** 命中片段高亮（m4 FR-2.2 沿用 terms 的高亮口径）：按偏移切片包 <mark>，区间已由服务端合并去叠 */
-function Highlight(props: { text: string; ranges: MatchRange[] }) {
-  const { text, ranges } = props
-  if (ranges.length === 0) return <>{text}</>
-  const sorted = [...ranges].sort((a, b) => a.start - b.start)
-  const nodes = [] as ReactNode[]
-  let cursor = 0
-  sorted.forEach((r, i) => {
-    if (r.start < cursor) return
-    if (r.start > cursor) nodes.push(text.slice(cursor, r.start))
-    nodes.push(
-      <mark key={i} className="rounded-sm bg-warn-soft px-0.5 text-warn">
-        {text.slice(r.start, r.end)}
-      </mark>,
-    )
-    cursor = r.end
-  })
-  if (cursor < text.length) nodes.push(text.slice(cursor))
-  return <>{nodes}</>
-}
-
-const rangesOf = (matches: PlaybookMatch[], field: PlaybookMatch['field']): MatchRange[] =>
-  matches.filter((m) => m.field === field).map((m) => ({ start: m.start, end: m.end }))
 
 /**
  * 技巧台账表（DESIGN.md 内容面 = 台账密度 + 可读性）。
@@ -175,18 +147,11 @@ export function PlaybooksTable(props: {
                       <Icon name={status.icon} size={11} />
                       {zh.playbooks.status[playbook.status]}
                     </span>
-                    <span className="ml-auto flex shrink-0 items-center gap-1">
-                      <button className={`${btnGhost} shrink-0 whitespace-nowrap px-2`} onClick={() => props.onEdit(playbook)}>
-                        {zh.library.edit}
-                      </button>
-                      <button
-                        className={btnGhost}
-                        aria-label={`${zh.library.delete} ${playbook.scenario}`}
-                        onClick={() => props.onDelete(playbook)}
-                      >
-                        <Icon name="trash" size={12} />
-                      </button>
-                    </span>
+                    <RowActions
+                      label={playbook.scenario}
+                      onEdit={() => props.onEdit(playbook)}
+                      onDelete={() => props.onDelete(playbook)}
+                    />
                   </div>
                 </td>
               </tr>
@@ -198,30 +163,14 @@ export function PlaybooksTable(props: {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b border-line-hair px-5 py-1.5 text-xs">
-        <label className="flex items-center gap-1.5 text-ink-muted">
-          <input
-            type="checkbox"
-            checked={allShown}
-            onChange={() => props.onSelectAll(allShown ? [] : rows.map((r) => r.playbook.id))}
-          />
-          {zh.playbooks.selection.allShown}
-        </label>
-        <span className="tabular-nums text-ink-faint">
-          {zh.playbooks.selection.label(selected.length)}
-        </span>
-        {selected.length > 0 && (
-          <button
-            className="text-accent underline underline-offset-2 hover:text-accent-deep"
-            onClick={() => props.onSelectAll([])}
-          >
-            {zh.playbooks.selection.clear}
-          </button>
-        )}
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-auto">{body()}</div>
-    </div>
+    <LedgerShell
+      allShown={allShown}
+      count={selected.length}
+      text={zh.playbooks.selection}
+      onToggleAll={() => props.onSelectAll(allShown ? [] : rows.map((r) => r.playbook.id))}
+      onClear={() => props.onSelectAll([])}
+    >
+      {body()}
+    </LedgerShell>
   )
 }

@@ -6,11 +6,10 @@ import { laneEngineering } from '../i18n/lane-engineering'
 import { zh } from '../i18n/zh'
 import { PackDetailPane } from '../components/packs/PackDetailPane'
 import { PackDetailSheet } from '../components/packs/PackDetailSheet'
-import { Dialog, DialogPanel } from '../components/ui/Dialog'
+import { ConfirmDeleteDialog } from '../components/ui/ConfirmDeleteDialog'
 import { Icon } from '../components/ui/icons'
 import { toast } from '../components/ui/Toaster'
 import {
-  btnDanger,
   btnGhost,
   btnPrimary,
   chipPressed,
@@ -50,9 +49,7 @@ export function PacksPage() {
     return items.filter((p) => {
       if (target !== null && !p.targets.includes(target as PackOut['targets'][number])) return false
       if (needle === '') return true
-      return (
-        p.name.toLowerCase().includes(needle) || p.description.toLowerCase().includes(needle)
-      )
+      return p.name.toLowerCase().includes(needle) || p.description.toLowerCase().includes(needle)
     })
   }, [items, q, target])
 
@@ -120,9 +117,7 @@ export function PacksPage() {
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-auto px-5 py-3 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] lg:overflow-hidden">
         <div className="min-h-0 lg:overflow-auto">
           {list.isLoading &&
-            [0, 1, 2].map((i) => (
-              <div key={i} className={`${skelCls} mb-2 h-14`} aria-hidden />
-            ))}
+            [0, 1, 2].map((i) => <div key={i} className={`${skelCls} mb-2 h-14`} aria-hidden />)}
 
           {list.isError && (
             <div className={noteCls('danger')}>
@@ -227,50 +222,39 @@ export function PacksPage() {
 
       <PackDetailSheet pack={history} onClose={() => setHistory(null)} />
 
-      <Dialog open={deleting !== null} onOpenChange={(o) => (o ? undefined : setDeleting(null))}>
-        <DialogPanel
-          title={zh.packs.deleteDialog.title}
-          footer={
-            <>
-              <button className={btnGhost} onClick={() => setDeleting(null)}>
-                {zh.editor.cancel}
-              </button>
-              <button
-                className={btnDanger}
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (deleting === null) return
-                  remove.mutate(deleting.id, {
-                    onSuccess: () => {
-                      toast(zh.packs.deleteDialog.done)
-                      if (selectedId === deleting.id) setSelectedId(null)
-                      setDeleting(null)
-                    },
-                    onError: (e: Error) => toast(e.message, 'error'),
-                  })
-                }}
-              >
-                {zh.packs.deleteDialog.confirm}
-              </button>
-            </>
-          }
-        >
-          {deleting !== null && (
-            <div className="space-y-2 text-sm">
-              <p>{zh.packs.deleteDialog.body(deleting.name)}</p>
-              <div className="rounded-md border border-line bg-panel-2 px-3 py-2 text-xs">
-                <span className={`${noteTitleCls} text-ink-body`}>
-                  {laneEngineering.packs.impactTitle}
-                </span>
-                <ul className="space-y-0.5 text-ink-muted">
-                  <li>· {laneEngineering.packs.impactGone}</li>
-                  <li>· {laneEngineering.packs.impactKept}</li>
-                </ul>
-              </div>
+      <ConfirmDeleteDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        title={zh.packs.deleteDialog.title}
+        confirmLabel={zh.packs.deleteDialog.confirm}
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (deleting === null) return
+          remove.mutate(deleting.id, {
+            onSuccess: () => {
+              toast(zh.packs.deleteDialog.done)
+              if (selectedId === deleting.id) setSelectedId(null)
+              setDeleting(null)
+            },
+            onError: (e: Error) => toast(e.message, 'error'),
+          })
+        }}
+      >
+        {deleting !== null && (
+          <div className="space-y-2 text-sm">
+            <p>{zh.packs.deleteDialog.body(deleting.name)}</p>
+            <div className="rounded-md border border-line bg-panel-2 px-3 py-2 text-xs">
+              <span className={`${noteTitleCls} text-ink-body`}>
+                {laneEngineering.packs.impactTitle}
+              </span>
+              <ul className="space-y-0.5 text-ink-muted">
+                <li>· {laneEngineering.packs.impactGone}</li>
+                <li>· {laneEngineering.packs.impactKept}</li>
+              </ul>
             </div>
-          )}
-        </DialogPanel>
-      </Dialog>
+          </div>
+        )}
+      </ConfirmDeleteDialog>
     </div>
   )
 }

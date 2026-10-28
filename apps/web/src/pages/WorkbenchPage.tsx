@@ -13,7 +13,7 @@ import {
 } from '../hooks/useSettings'
 import { zh } from '../i18n/zh'
 import { sys } from '../i18n/lane-system'
-import { FlywheelCard } from '../components/onboarding/FlywheelCard'
+import { FlywheelBody } from '../components/onboarding/FlywheelCard'
 import { OnboardingBar } from '../components/onboarding/OnboardingBar'
 import { TelemetryAskCard } from '../components/onboarding/TelemetryAskCard'
 import {
@@ -25,20 +25,20 @@ import {
   cardHeadCls,
   chipTone,
   emptyHintCls,
-  noteCls,
-  noteTitleCls,
   proseCls,
   rowCls,
   skelCls,
 } from '../components/ui/styles'
+import { QueryError, QueryOffline, QuerySkeleton } from '../components/ui/QueryStates'
 import { Icon } from '../components/ui/icons'
+import { LedgerCardHead } from '../components/ui/LedgerCardHead'
 import { toast } from '../components/ui/Toaster'
 
 /**
  * 工作台（侧栏「概览」组，路由 `/`）。
  *
  * 本页承接三件首启/常驻内容（它们已于本轮从壳层搬来，见 AppShell 纪律 2）：
- * OnboardingBar（无项目且未完成时出镜，可跳步）、FlywheelCard（常驻统计条）、
+ * OnboardingBar（无项目且未完成时出镜，可跳步）、FlywheelBody（常驻统计条）、
  * TelemetryAskCard（见过首次注入且 askState 仍是 unset 时问一次）。三件都在这一页，
  * 老用户不必在其他页面被横幅打扰，首启用户落地就看见。
  */
@@ -88,9 +88,7 @@ export function WorkbenchPage() {
           <h1 className="text-[30px] font-semibold leading-[1.25] tracking-tight text-ink max-sm:text-[25px]">
             {zh.workbench.title}
           </h1>
-          <p className={`${proseCls} mt-1 text-[13.5px] text-ink-muted`}>
-            {zh.workbench.subtitle}
-          </p>
+          <p className={`${proseCls} mt-1 text-[13.5px] text-ink-muted`}>{zh.workbench.subtitle}</p>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <button
@@ -135,41 +133,7 @@ export function WorkbenchPage() {
   )
 }
 
-/** 统计条四态：加载骨架 / 错误可重试 / 数据 / （全零由 hero 注自陈） */
-function FlywheelBody(props: { stats: ReturnType<typeof useFlywheelStats> }) {
-  const { stats } = props
-  if (stats.isLoading) {
-    return (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-busy>
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className={`${skelCls} h-[86px] rounded-md`} />
-        ))}
-      </div>
-    )
-  }
-  if (stats.error) {
-    return (
-      <div className={noteCls('danger')}>
-        <b className={`${noteTitleCls} flex items-center gap-1.5 text-danger`}>
-          <Icon name="alert" size={13} />
-          统计条没取到
-        </b>
-        <p className={proseCls}>{sys.state.error(errText(stats.error))}</p>
-        <button
-          type="button"
-          className={`${btnGhost} mt-2`}
-          onClick={() => void stats.refetch()}
-        >
-          <Icon name="refresh" size={13} />
-          {sys.state.retry}
-        </button>
-      </div>
-    )
-  }
-  if (stats.data === undefined) return null
-  return <FlywheelCard {...stats.data} />
-}
-
+/** 最近项目卡四态：加载骨架 / 错误可重试 / 空态引导 / 列表；底部附健康摘要口径说明 */
 function RecentProjects(props: {
   loading: boolean
   error: unknown
@@ -301,35 +265,14 @@ function LedgerCard(props: { state: ReturnType<typeof useLedger> }) {
 
   return (
     <section className={cardCls}>
-      <div className={cardHeadCls}>
-        <Icon name="lock" size={15} className="text-ink-faint" />
-        <h2 className="text-sm font-semibold text-ink">{zh.workbench.ledger.title}</h2>
-        <span className={chipTone('default')}>
-          <Icon name="lock" size={12} />
-          不出网
-        </span>
-      </div>
+      <LedgerCardHead />
 
       {state.isLoading ? (
-        <div className={`${cardBodyCls} space-y-1.5`} aria-busy>
-          {[0, 1, 2].map((i) => (
-            <div key={i} className={`${skelCls} h-4`} />
-          ))}
-        </div>
+        <QuerySkeleton wrap={cardBodyCls} />
       ) : missing ? (
-        <div className={cardBodyCls}>
-          <p className={`${proseCls} text-[13px] text-ink-muted`}>{sys.state.notOnline}</p>
-        </div>
+        <QueryOffline wrap={cardBodyCls} />
       ) : state.error ? (
-        <div className={cardBodyCls}>
-          <div className={emptyHintCls}>
-            <p className="text-danger">{sys.state.error(errText(state.error))}</p>
-            <button type="button" className={btnGhost} onClick={() => void state.refetch()}>
-              <Icon name="refresh" size={13} />
-              {sys.state.retry}
-            </button>
-          </div>
-        </div>
+        <QueryError wrap={cardBodyCls} error={state.error} onRetry={() => void state.refetch()} />
       ) : items.length === 0 ? (
         <div className={cardBodyCls}>
           <div className={emptyHintCls}>

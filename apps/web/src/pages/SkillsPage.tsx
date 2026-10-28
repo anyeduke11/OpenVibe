@@ -12,10 +12,11 @@ import { SkillReviewDialog } from '../components/skills/SkillReviewDialog'
 import { SkillToolsDialog } from '../components/skills/SkillToolsDialog'
 import { SkillUpdateDialog } from '../components/skills/SkillUpdateDialog'
 import { SkillScanReportView } from '../components/skills/SkillScanReportView'
+import { ConfirmDeleteDialog } from '../components/ui/ConfirmDeleteDialog'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
 import { toast } from '../components/ui/Toaster'
 import { Icon } from '../components/ui/icons'
-import { btnDanger, btnGhost, btnPrimary } from '../components/ui/styles'
+import { btnGhost, btnPrimary } from '../components/ui/styles'
 import { useDebounced } from '../hooks/useDebounced'
 import { useSkillMutations, useSkillList, type SkillRow } from '../hooks/useSkills'
 
@@ -45,11 +46,10 @@ export function SkillsPage() {
   const clearFilters = useCallback(() => setSearch(''), [])
 
   // 工具箱里的按钮先关自己再开目标对话框，避免两个 Radix 焦点域叠在一起
-  const handoff =
-    (close: () => void, open: () => void) => () => {
-      close()
-      open()
-    }
+  const handoff = (close: () => void, open: () => void) => () => {
+    close()
+    open()
+  }
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -75,7 +75,11 @@ export function SkillsPage() {
             trailing={
               <>
                 <RefreshHint busy={list.isFetching && !list.isLoading} />
-                <button className={btnGhost} onClick={() => setToolsOpen(true)} title={lane.skills.toolsHint}>
+                <button
+                  className={btnGhost}
+                  onClick={() => setToolsOpen(true)}
+                  title={lane.skills.toolsHint}
+                >
                   <Icon name="layers" size={12} />
                   {lane.skills.tools}
                 </button>
@@ -130,10 +134,22 @@ export function SkillsPage() {
           setToolsOpen(false)
           runScan(roots)
         }}
-        onOpenRemote={handoff(() => setToolsOpen(false), () => setRemoteOpen(true))}
-        onOpenUpdates={handoff(() => setToolsOpen(false), () => setUpdatesOpen(true))}
-        onOpenCleanup={handoff(() => setToolsOpen(false), () => setCleanupOpen(true))}
-        onOpenReview={handoff(() => setToolsOpen(false), () => setReviewOpen(true))}
+        onOpenRemote={handoff(
+          () => setToolsOpen(false),
+          () => setRemoteOpen(true),
+        )}
+        onOpenUpdates={handoff(
+          () => setToolsOpen(false),
+          () => setUpdatesOpen(true),
+        )}
+        onOpenCleanup={handoff(
+          () => setToolsOpen(false),
+          () => setCleanupOpen(true),
+        )}
+        onOpenReview={handoff(
+          () => setToolsOpen(false),
+          () => setReviewOpen(true),
+        )}
       />
       <SkillRemoteDialog open={remoteOpen} onClose={() => setRemoteOpen(false)} />
       <SkillCleanupDialog open={cleanupOpen} onClose={() => setCleanupOpen(false)} />
@@ -153,49 +169,36 @@ export function SkillsPage() {
         </DialogPanel>
       </Dialog>
 
-      <Dialog open={deleting !== null} onOpenChange={(o) => (o ? undefined : setDeleting(null))}>
-        <DialogPanel
-          title={zh.skills.deleteDialog.title}
-          footer={
-            <>
-              <button className={btnGhost} onClick={() => setDeleting(null)}>
-                {zh.editor.cancel}
-              </button>
-              <button
-                className={btnDanger}
-                disabled={remove.isPending}
-                onClick={() => {
-                  if (deleting === null) return
-                  remove.mutate(deleting.id, {
-                    onSuccess: () => {
-                      toast(zh.skills.deleteDialog.done)
-                      setDeleting(null)
-                    },
-                    onError: (e: Error) => toast(e.message, 'error'),
-                  })
-                }}
-              >
-                {zh.skills.deleteDialog.confirm}
-              </button>
-            </>
-          }
-        >
-          {deleting !== null && (
-            <div className="space-y-2 text-sm">
-              {/* 影响范围：只删台账与版本历史，磁盘目录不受影响 */}
-              <p className="proseCls">{zh.skills.deleteDialog.body(deleting.name)}</p>
-              <p className="proseCls text-xs text-ink-muted">{zh.skills.deleteDialog.note}</p>
-              {deleting.installedTargets.length > 0 && (
-                <p className="proseCls text-xs text-ink-muted">
-                  <span className="mono">
-                    {deleting.installedTargets.join(' · ')}
-                  </span>
-                </p>
-              )}
-            </div>
-          )}
-        </DialogPanel>
-      </Dialog>
+      <ConfirmDeleteDialog
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        title={zh.skills.deleteDialog.title}
+        confirmLabel={zh.skills.deleteDialog.confirm}
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (deleting === null) return
+          remove.mutate(deleting.id, {
+            onSuccess: () => {
+              toast(zh.skills.deleteDialog.done)
+              setDeleting(null)
+            },
+            onError: (e: Error) => toast(e.message, 'error'),
+          })
+        }}
+      >
+        {deleting !== null && (
+          <div className="space-y-2 text-sm">
+            {/* 影响范围：只删台账与版本历史，磁盘目录不受影响 */}
+            <p className="proseCls">{zh.skills.deleteDialog.body(deleting.name)}</p>
+            <p className="proseCls text-xs text-ink-muted">{zh.skills.deleteDialog.note}</p>
+            {deleting.installedTargets.length > 0 && (
+              <p className="proseCls text-xs text-ink-muted">
+                <span className="mono">{deleting.installedTargets.join(' · ')}</span>
+              </p>
+            )}
+          </div>
+        )}
+      </ConfirmDeleteDialog>
     </div>
   )
 }

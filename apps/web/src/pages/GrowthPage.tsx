@@ -5,7 +5,7 @@ import { useFlywheelStats } from '../hooks/useSettings'
 import { useLedger, type LedgerEvent } from '../hooks/useLedger'
 import { zh } from '../i18n/zh'
 import { sys } from '../i18n/lane-system'
-import { FlywheelCard } from '../components/onboarding/FlywheelCard'
+import { FlywheelBody } from '../components/onboarding/FlywheelCard'
 import {
   REDLINES,
   STAGES,
@@ -28,16 +28,16 @@ import {
   cardHeadCls,
   chipCls,
   chipPressed,
-  chipTone,
   emptyHintCls,
   ledgerHeadCls,
   noteCls,
   noteTitleCls,
   proseCls,
   rowCls,
-  skelCls,
 } from '../components/ui/styles'
+import { QueryError, QueryOffline, QuerySkeleton } from '../components/ui/QueryStates'
 import { Icon } from '../components/ui/icons'
+import { LedgerCardHead } from '../components/ui/LedgerCardHead'
 
 const MODULE_LABEL: Record<StageModule, string> = {
   prompts: zh.nav.library,
@@ -139,7 +139,9 @@ export function GrowthPage() {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr>
-                    <th className={`${ledgerHeadCls} border-b border-line px-3.5 py-2 text-left font-normal`}>
+                    <th
+                      className={`${ledgerHeadCls} border-b border-line px-3.5 py-2 text-left font-normal`}
+                    >
                       {zh.growth.vector.module}
                     </th>
                     {STAGES.map((s) => (
@@ -164,7 +166,10 @@ export function GrowthPage() {
                         {MODULE_LABEL[m]}
                       </td>
                       {STAGES.map((s) => (
-                        <td key={s.code} className="border-b border-line-hair px-2 py-1.5 text-center">
+                        <td
+                          key={s.code}
+                          className="border-b border-line-hair px-2 py-1.5 text-center"
+                        >
                           <button
                             type="button"
                             aria-pressed={growth.stages[m] === s.code}
@@ -202,9 +207,7 @@ export function GrowthPage() {
             {/* 展开即得：当前聚焦阶段的心智 / 权威 / 毕业信号（红线 3） */}
             <div className={cardBodyCls}>
               <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                <span className="text-[11.5px] text-ink-muted">
-                  {sys.growth.vector.focusLabel}
-                </span>
+                <span className="text-[11.5px] text-ink-muted">{sys.growth.vector.focusLabel}</span>
                 {STAGES.map((s) => (
                   <button
                     key={s.code}
@@ -269,39 +272,7 @@ function DetailItem(props: { label: string; value: string }) {
   )
 }
 
-/** 统计条四态：加载骨架 / 错误可重试 / 数据 */
-function FlywheelBody(props: { stats: ReturnType<typeof useFlywheelStats> }) {
-  const { stats } = props
-  if (stats.isLoading) {
-    return (
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-busy>
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className={`${skelCls} h-[86px] rounded-md`} />
-        ))}
-      </div>
-    )
-  }
-  if (stats.error) {
-    return (
-      <div className={noteCls('danger')}>
-        <b className={`${noteTitleCls} flex items-center gap-1.5 text-danger`}>
-          <Icon name="alert" size={13} />
-          统计条没取到
-        </b>
-        <p className={proseCls}>
-          {sys.state.error(stats.error instanceof Error ? stats.error.message : '')}
-        </p>
-        <button type="button" className={`${btnGhost} mt-2`} onClick={() => void stats.refetch()}>
-          <Icon name="refresh" size={13} />
-          {sys.state.retry}
-        </button>
-      </div>
-    )
-  }
-  if (stats.data === undefined) return null
-  return <FlywheelCard {...stats.data} />
-}
-
+/** 账本面板：按事件名筛选 + 列表；404 视为「尚无本地事件」，不算错误 */
 function LedgerPanel(props: { state: ReturnType<typeof useLedger> }) {
   const { state } = props
   const [filter, setFilter] = useState<string>('')
@@ -321,14 +292,7 @@ function LedgerPanel(props: { state: ReturnType<typeof useLedger> }) {
 
   return (
     <section className={`${cardCls} flex min-w-0 flex-col`}>
-      <div className={cardHeadCls}>
-        <Icon name="lock" size={15} className="text-ink-faint" />
-        <h2 className="text-sm font-semibold text-ink">{zh.workbench.ledger.title}</h2>
-        <span className={chipTone('default')}>
-          <Icon name="lock" size={12} />
-          不出网
-        </span>
-      </div>
+      <LedgerCardHead />
 
       {state.data !== undefined && kinds.length > 0 && items.length > 0 && (
         <div className="flex flex-wrap gap-1.5 border-b border-line-hair px-3 py-2">
@@ -355,27 +319,11 @@ function LedgerPanel(props: { state: ReturnType<typeof useLedger> }) {
       )}
 
       {state.isLoading ? (
-        <div className={`${cardBodyCls} space-y-1.5`} aria-busy>
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className={`${skelCls} h-4`} />
-          ))}
-        </div>
+        <QuerySkeleton wrap={cardBodyCls} rows={4} />
       ) : missing ? (
-        <div className={cardBodyCls}>
-          <p className={`${proseCls} text-[13px] text-ink-muted`}>{sys.state.notOnline}</p>
-        </div>
+        <QueryOffline wrap={cardBodyCls} />
       ) : state.error ? (
-        <div className={cardBodyCls}>
-          <div className={emptyHintCls}>
-            <p className="text-danger">
-              {sys.state.error(state.error instanceof Error ? state.error.message : '')}
-            </p>
-            <button type="button" className={btnGhost} onClick={() => void state.refetch()}>
-              <Icon name="refresh" size={13} />
-              {sys.state.retry}
-            </button>
-          </div>
-        </div>
+        <QueryError wrap={cardBodyCls} error={state.error} onRetry={() => void state.refetch()} />
       ) : items.length === 0 ? (
         <div className={cardBodyCls}>
           <div className={emptyHintCls}>
@@ -387,11 +335,7 @@ function LedgerPanel(props: { state: ReturnType<typeof useLedger> }) {
             ) : (
               <>
                 <p>{sys.growth.ledger.noResult}</p>
-                <button
-                  type="button"
-                  className={btnGhost}
-                  onClick={() => setFilter('')}
-                >
+                <button type="button" className={btnGhost} onClick={() => setFilter('')}>
                   <Icon name="x" size={13} />
                   {sys.growth.ledger.clearFilter}
                 </button>
