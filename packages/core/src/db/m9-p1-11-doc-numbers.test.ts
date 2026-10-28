@@ -23,6 +23,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { newDb } from '../test-support/new-db'
+import { replaceCell } from '../test-support/doc-table'
 import { seedLangTopics } from './m9-p1-seed-lang-topics'
 import { listDagNodes } from './m9-p1-7-topic-stages'
 import { strictLibraryClassifier } from './m9-classify-lang-topics'
@@ -154,12 +155,12 @@ describe('M9 P1.11 · 文档里的实测数字必须与实跑值相等', () => {
   })
 
   it('变异 ③：spec §1.4 三档表的「语言知识点 45」改成 44 ⇒ 红', () => {
-    const bad = replaceOnce(SPEC_TEXT, '| **语言知识点** | 45   |', '| **语言知识点** | 44   |')
+    const bad = replaceCell(SPEC_TEXT, ['语言知识点', '45', '53.6%'], 1, '44')
     expect(rules(violations(bad, PLAN_TEXT))).toContain('actual-mismatch')
   })
 
   it('变异 ④：spec §1.4 三档表的「库级 30」改成 31 ⇒ 红', () => {
-    const bad = replaceOnce(SPEC_TEXT, '| **库级**       | 30   |', '| **库级**       | 31   |')
+    const bad = replaceCell(SPEC_TEXT, ['库级', '30', '35.7%'], 1, '31')
     expect(rules(violations(bad, PLAN_TEXT))).toContain('actual-mismatch')
   })
 
@@ -246,11 +247,7 @@ describe('M9 P1.11 · 文档里的实测数字必须与实跑值相等', () => {
     expect(rules(violations(SPEC_TEXT, PLAN_TEXT))).toEqual([])
 
     // 只改源清点那一处（§1.4 三档表）⇒ 红，且**不**牵连路线节点那几条
-    const badCensus = replaceOnce(
-      SPEC_TEXT,
-      '| **语言知识点** | 45   |',
-      '| **语言知识点** | 44   |',
-    )
+    const badCensus = replaceCell(SPEC_TEXT, ['语言知识点', '45', '53.6%'], 1, '44')
     const v1 = violations(badCensus, PLAN_TEXT)
     expect(rules(v1)).toContain('actual-mismatch')
     expect(

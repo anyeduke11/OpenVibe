@@ -4,12 +4,15 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
+  collectAddedLines,
+  detectRollbackInAddedLines,
   detectRollbackMarkers,
   detectStagedWorktreeDrift,
   dropPreexistingMarkers,
   firstDifferenceLine,
   judgeDrift,
   runGuard,
+  squashWhitespace,
   type DriftFacts,
   type MarkerHit,
   type StagedBlob,
@@ -170,6 +173,80 @@ describe('concurrency-guard · 规则 B：回退特征', () => {
   })
 })
 
+/* ------------------------------------------------------------------ 规则 C · 纯函数 */
+
+describe('concurrency-guard · 规则 C：回退态（新增行口径）', () => {
+  const head = (text: string): Map<string, string> => new Map([['docs/tasks.md', text]])
+
+  it('新增行命中标志且 HEAD 里查无此行 ⇒ 报回退态', () => {
+    // 这条是规则 C 的存在理由：回退的写法是「把旧措辞新写进来」⇒ 这行在 HEAD 里是新的。
+    const hits = detectRollbackInAddedLines(
+      [{ path: 'docs/tasks.md', line: 180, text: `### T12 · ${SOME_MARKER} —— 旧措辞` }],
+      head('别的内容\n'),
+      DEFAULT_MARKERS,
+    )
+    expect(hits).toHaveLength(1)
+    expect(hits[0]!.path).toBe('docs/tasks.md')
+    expect(hits[0]!.line).toBe(180)
+    expect(hits[0]!.marker).toBe(SOME_MARKER)
+  })
+
+  it('⚠️ 排版重排（同一行、仅空白不同）⇒ 不报（去空白后 HEAD 里有 ⇒ 不是新写进来的）', () => {
+    // prettier 对 Markdown 表格只改空白（列对齐是加空格）⇒ 重排产生的行不是回退。
+    // 没有这一条，每一张表格被对齐一次就会被判成回退 ⇒ 闸变成噪音。
+    const hits = detectRollbackInAddedLines(
+      [{ path: 'docs/tasks.md', line: 10, text: `| ⑫ | ${SOME_MARKER} | 状态 |` }],
+      head(`| ⑫ | ${SOME_MARKER} | 状态 |\n`),
+      DEFAULT_MARKERS,
+    )
+    expect(hits).toEqual([])
+  })
+
+  it('⚠️ 既有词汇豁免：同一标志在该文件 HEAD 里已存在（但不是同一行）⇒ 本行是新的 ⇒ 照报', () => {
+    // 这条钉的是规则 C 与规则 B 的**关键差异**：
+    // 规则 B 的文件级豁免会放过它（文件里有这个标志就整体放过）⇒ 真回退漏报；
+    // 规则 C 逐行问「这行是不是新的」⇒ 抓得住。
+    const hits = detectRollbackInAddedLines(
+      [{ path: 'docs/tasks.md', line: 180, text: `### T12 · ${SOME_MARKER}` }],
+      head(`历史正文里也有 ${SOME_MARKER}\n`),
+      DEFAULT_MARKERS,
+    )
+    expect(hits).toHaveLength(1)
+  })
+
+  it('自引用豁免：判据文件按构造含标志字面量，不该被判成回退', () => {
+    const hits = detectRollbackInAddedLines(
+      [{ path: 'scripts/ownership-check.ts', line: 1, text: `const M = "${SOME_MARKER}"` }],
+      new Map(),
+      DEFAULT_MARKERS,
+      [/^scripts\/ownership-check\.ts$/],
+    )
+    expect(hits).toEqual([])
+  })
+
+  it('HEAD 里没有这个文件（新增文件）⇒ 整份都是新的 ⇒ 命中照报', () => {
+    const hits = detectRollbackInAddedLines(
+      [{ path: 'new.md', line: 1, text: `新文件里写了 ${SOME_MARKER}` }],
+      new Map(),
+      DEFAULT_MARKERS,
+    )
+    expect(hits).toHaveLength(1)
+  })
+
+  it('新增行不含标志 ⇒ 一条都不报', () => {
+    const hits = detectRollbackInAddedLines(
+      [{ path: 'docs/tasks.md', line: 1, text: '干净的新增行' }],
+      new Map(),
+      DEFAULT_MARKERS,
+    )
+    expect(hits).toEqual([])
+  })
+
+  it('去空白比对：换行位置不同也算同一行（表格重排常伴随换行调整）', () => {
+    expect(squashWhitespace('a  b\tc')).toBe(squashWhitespace('a\t b c'))
+  })
+})
+
 /* ------------------------------------------------------------------ 集成测（真 git 仓库） */
 
 const repos: string[] = []
@@ -279,6 +356,82 @@ describe('concurrency-guard · 集成：真仓库里已暂存内容含回退特�
     const outcome = runGuard({ repoRoot: dir, env: {} })
     expect(outcome.markers).toEqual([])
     expect(outcome.exitCode).toBe(0)
+  })
+})
+
+describe('concurrency-guard · 集成：真仓库里的回退态（规则 C）', () => {
+  it('⚠️ 回退态行是**新写进来的** ⇒ 规则 C 拦下（规则 B 因文件级豁免放过它）', () => {
+    const dir = makeRepo()
+    // HEAD 版里这个文件**已经**含该标志（别的行）
+    writeFileSync(join(dir, 'docs.md'), `历史正文里也有 ${SOME_MARKER}\n`)
+    execFileSync('git', ['add', 'docs.md'], { cwd: dir })
+    commitAll(dir, 'init')
+
+    // 这一笔把旧措辞**新写进标题行** ⇒ 是回退
+    writeFileSync(join(dir, 'docs.md'), `### 标题 ${SOME_MARKER}\n历史正文里也有 ${SOME_MARKER}\n`)
+    execFileSync('git', ['add', 'docs.md'], { cwd: dir })
+
+    const outcome = runGuard({ repoRoot: dir, env: {} })
+    // 规则 B 放过（文件里有这个标志 ⇒ 既有词汇豁免）
+    expect(outcome.markers).toEqual([])
+    // 规则 C 抓得住
+    expect(outcome.rollbacks).toHaveLength(1)
+    expect(outcome.rollbacks[0]!.path).toBe('docs.md')
+    expect(outcome.exitCode).toBe(1)
+    const text = outcome.lines.join('\n')
+    expect(text).toContain('规则 C')
+    expect(text).toContain('不提供放行开关')
+  })
+
+  it('⚠️ 同一行仅空白被改（排版重排）⇒ 规则 C 不报（不是新写进来的）', () => {
+    const dir = makeRepo()
+    writeFileSync(join(dir, 'docs.md'), `| ⑫ | ${SOME_MARKER} | 状态 |\n`)
+    execFileSync('git', ['add', 'docs.md'], { cwd: dir })
+    commitAll(dir, 'init')
+
+    // prettier 风格的列对齐：同一行，多几个空格
+    writeFileSync(join(dir, 'docs.md'), `| ⑫   | ${SOME_MARKER}   | 状态   |\n`)
+    execFileSync('git', ['add', 'docs.md'], { cwd: dir })
+
+    const outcome = runGuard({ repoRoot: dir, env: {} })
+    expect(outcome.rollbacks).toEqual([])
+    expect(outcome.exitCode).toBe(0)
+  })
+
+  it('规则 C 也不被规则 A 的放行变量放过（回退态入库不可逆）', () => {
+    const dir = makeRepo()
+    writeFileSync(join(dir, 'docs.md'), `标题 ${SOME_MARKER}\n`)
+    execFileSync('git', ['add', 'docs.md'], { cwd: dir })
+
+    const outcome = runGuard({ repoRoot: dir, env: { OPENVIBE_ALLOW_PARTIAL_STAGE: '1' } })
+    expect(outcome.exitCode).toBe(1)
+    expect(outcome.rollbacks.length).toBeGreaterThan(0)
+  })
+
+  it('⚠️ 新增行采集取自**暂存区**而非工作树（未暂存的内容不该进这次判定）', () => {
+    // 与规则 A 的采集层同一条纪律：提交入库的是 index ⇒ 判定必须看 index。
+    const dir = makeRepo()
+    writeFileSync(join(dir, 'docs.md'), '暂存版\n')
+    execFileSync('git', ['add', 'docs.md'], { cwd: dir })
+    // 工作树里另加一行含标志，但**没暂存**
+    writeFileSync(join(dir, 'docs.md'), `暂存版\n未暂存的 ${SOME_MARKER}\n`)
+
+    const added = collectAddedLines(dir, ['docs.md'])
+    expect(added.map((a) => a.text)).not.toContain(`未暂存的 ${SOME_MARKER}`)
+  })
+
+  it('新增行行号按 hunk 头部推算（能指回原文的行）', () => {
+    const dir = makeRepo()
+    writeFileSync(join(dir, 'docs.md'), '第一行\n第二行\n')
+    execFileSync('git', ['add', 'docs.md'], { cwd: dir })
+    commitAll(dir, 'init')
+    writeFileSync(join(dir, 'docs.md'), '第一行\n第二行\n第三行\n')
+    execFileSync('git', ['add', 'docs.md'], { cwd: dir })
+
+    const added = collectAddedLines(dir, ['docs.md'])
+    expect(added).toHaveLength(1)
+    expect(added[0]!.text).toBe('第三行')
+    expect(added[0]!.line).toBe(3)
   })
 })
 

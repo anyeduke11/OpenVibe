@@ -28,6 +28,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { newDb } from '../test-support/new-db'
+import { replaceCell } from '../test-support/doc-table'
 import { seedLangTopics } from './m9-p1-seed-lang-topics'
 import { seedLangResourceLayer } from './m9-p1b-seed-resources'
 import { parseSpecResourceCounts } from '../tooling/m9-p1b-spec'
@@ -418,9 +419,13 @@ describe('DL-48 必要性必须由矩阵推导，不得逐条手写', () => {
   })
 
   it('⚠️ 变异腿①：把矩阵的 d × 精通 改成「可跳过」⇒ 必须红', () => {
-    const mutated = SPEC_TEXT.replace(
-      '| **精通** `master`   | 必学       | 必学       | 必学       | 推荐       | 推荐       | 推荐      |',
-      '| **精通** `master`   | 必学       | 必学       | 必学       | 可跳过    | 推荐       | 推荐      |',
+    // ⚠️ 锚点用**单元格级**（`replaceCell`）而不是整行字面量 ——
+    //   整行字面量里的列宽空格数会被 prettier 的表格对齐改掉（实测 2026-10-26）。
+    const mutated = replaceCell(
+      SPEC_TEXT,
+      ['精通 master', '必学', '必学', '必学', '推荐', '推荐', '推荐'],
+      4,
+      '可跳过',
     )
     expect(mutated).not.toBe(SPEC_TEXT)
     const violations = verifyNecessity({ specText: mutated, rows: [{ tier: 'd' }] })

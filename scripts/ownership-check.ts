@@ -316,6 +316,9 @@ export const SELF_QUOTING: RegExp[] = [
   // 这是**结构性的自指**，不是绕过：判据实现与被判字面量住在同一个文件里。
   /^scripts\/ownership-check\.ts$/,
   /^scripts\/docs-check\.ts$/,
+  // 并发护栏同样**按构造**引用标志：它 import `DEFAULT_MARKERS` 并在注释里
+  // 举实例说明各标志对应哪种回退 ⇒ 不豁免的话，护栏会把自己的注释判成回退态。
+  /^scripts\/concurrency-guard\.ts$/,
 ]
 
 export function renderReport(r: OwnershipReport): string {

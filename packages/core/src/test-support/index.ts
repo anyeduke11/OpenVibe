@@ -9,6 +9,17 @@
  */
 export { newDb, type TestDbHandle } from './new-db'
 export {
+  cellsMatch,
+  findRow,
+  findRowWhere,
+  isSeparatorRow,
+  normalizeCell,
+  replaceCell,
+  sectionOf,
+  splitRow,
+  type DocRow,
+} from './doc-table'
+export {
   FORBIDDEN,
   FORBIDDEN_COVERAGE,
   payloadKeys,

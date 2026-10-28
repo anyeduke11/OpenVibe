@@ -10,6 +10,7 @@ import {
   selfProofRows,
 } from '../test-support'
 import { FlowTemplatesRepo } from '../repos/flows'
+import { findRowWhere } from '../test-support/doc-table'
 import { APP_META_KEYS, AppMetaRepo } from '../repos/appMeta'
 import { ProjectsRepo } from '../repos/projects'
 import { createAgentService } from './agentService'
@@ -438,14 +439,14 @@ describe('FR-2.1 请求体字段名 · 规格与 zod 入参逐字一致', () => 
    */
   it('规格 §5「入 · 回流」那一行的每个字段都必须是 `AgentIngestOne` 的真实键', () => {
     const spec = readFileSync(SPEC_PATH, 'utf8')
-    const row = spec.split('\n').find((l) => /^\|\s*入\s*\|/.test(l) && l.includes('POST body'))
-    expect(row, '规格 §5 找不到「入 · 回流」那一行').toBeDefined()
+    // ⚠️ 定位用**单元格级**（首格 + 内容列含什么），不用整行字面量 ——
+    //   整行字面量里的列宽空格数会被 prettier 的表格对齐改掉（实测 2026-10-26）。
+    const cells = findRowWhere(spec, (c) => c[0] === '入' && c[2]?.includes('POST body') === true)
+    expect(cells.length, '规格 §5 找不到「入 · 回流」那一行').toBeGreaterThan(2)
 
-    // ⚠️ 只取**内容列**（`split('|')[2]`）：形态列里还有 `parseOrThrow` 这类实现侧的名字，
+    // ⚠️ 只取**内容列**（下标 1）：形态列（标 2）里还有 `parseOrThrow` 这类实现侧的名字，
     // 全行收会把它们当成请求字段。
-    const specFields = [...row!.split('|')[2]!.matchAll(/`([A-Za-z][A-Za-z0-9_]*)`/g)].map(
-      (m) => m[1]!,
-    )
+    const specFields = [...cells[1]!.matchAll(/`([A-Za-z][A-Za-z0-9_]*)`/g)].map((m) => m[1]!)
     for (const f of specFields) {
       expect(Object.keys(AgentIngestOne.shape), `规格 §5 写了 ${f}，但 zod 入参没有`).toContain(f)
     }
@@ -475,10 +476,14 @@ describe('FR-2.1 请求体字段名 · 规格与 zod 入参逐字一致', () => 
 
   it('规格 §5「入 · 查询」那一行的路径参必须与真实路由一致', () => {
     const spec = readFileSync(SPEC_PATH, 'utf8')
-    const row = spec.split('\n').find((l) => /^\|\s*入\s*\|/.test(l) && l.includes('path + query'))
-    expect(row).toBeDefined()
+    const cells = findRowWhere(
+      spec,
+      (c) => c[0] === '入' && c[2]?.includes('path + query') === true,
+    )
+    expect(cells.length).toBeGreaterThan(2)
     // 实测路由是 `/api/projects/:id/context` —— 规格原写 `project_id`，与真实路径参不同名
-    expect(row).toContain('`:id`')
-    expect(row).not.toContain('`project_id`')
+    // ⚠️ 断言针对**规范化后的文字**（单元格级工具已剥掉 Markdown 标记）
+    expect(cells[1]).toContain(':id')
+    expect(cells[1]).not.toContain('project_id')
   })
 })

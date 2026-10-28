@@ -37,6 +37,7 @@ import {
   type ResourceTier,
 } from '../packages/core/src/tooling/m9-p1b-necessity'
 import { parseSpecResourceCounts } from '../packages/core/src/tooling/m9-p1b-spec'
+import { replaceCell } from '../packages/core/src/test-support/doc-table'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO = join(HERE, '..')
@@ -357,10 +358,10 @@ const MUTATIONS: Mutation[] = [
   {
     name: 'M14 §1.6.1 资源表把 official 的 Go 改成 8（行内 6+8 ≠ 合计 13）',
     expectGate: 'DL-47 资源条数',
-    apply: replaceOnce(
-      '| `official` 官方文档          | 6      | 7      | **13**  | 官方权威入门路径与文档       |',
-      '| `official` 官方文档          | 6      | 8      | **13**  | 官方权威入门路径与文档       |',
-    ),
+    // ⚠️ 锚点用**单元格级**（`replaceCell`）而不是整行字面量 ——
+    //   整行字面量里的列宽空格数会被 prettier 的表格对齐改掉（实测 2026-10-26）。
+    apply: (t) =>
+      replaceCell(t, ['official 官方文档', '6', '7', '13', '官方权威入门路径与文档'], 2, '8'),
   },
   {
     name: 'M15 §1.6.1 的分布把精通「可跳过」改成 1（矩阵里精通没有这一档）',

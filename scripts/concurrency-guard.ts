@@ -354,6 +354,137 @@ function collectHeadBlobs(repoRoot: string, paths: string[]): StagedBlob[] {
   return blobs
 }
 
+/* ════════════════════════════════════════════════════════ 规则 C · 回退态（新增行口径） */
+
+/**
+ * 一条回退态命中（规则 C 的结论单位）。
+ *
+ * ⚠️ 与规则 B 的 `MarkerHit` **不是同一件事**：规则 B 说「这个文件里出现了标志字样」，
+ * 规则 C 说「这条**新增**的行是回退态」——后者精确得多，因为它多问了一句
+ * 「这行在 HEAD 里是不是新的」。
+ */
+export interface RollbackHit {
+  path: string
+  /** 新增行的行号（在**新文件**里的行号，1 起） */
+  line: number
+  /** 命中的标志字样 */
+  marker: string
+  /** 新增行原文 */
+  excerpt: string
+}
+
+/** 一条新增行的事实（采集层产出，纯函数判定） */
+export interface AddedLine {
+  path: string
+  /** 在新文件里的行号（1 起） */
+  line: number
+  /** 该行文本（已去掉 diff 的 `+` 前缀） */
+  text: string
+}
+
+/**
+ * 去空白后比较用：prettier 对 Markdown 的重排**只改空白**（表格列对齐是加空格）⇒
+ * 排版重排产生的行，去掉空白后与 HEAD 的某行逐字相同。
+ *
+ * ⚠️ 这条是规则 C 不误报的关键：不这么做的话，每一次表格对齐都会被判成回退。
+ */
+export function squashWhitespace(text: string): string {
+  return text.replace(/\s+/g, '')
+}
+
+/**
+ * 规则 C 的判定核心（纯函数）。
+ *
+ * ## 判据
+ *
+ * 对每条新增行：**命中回退标志** 且 **去空白后在 HEAD 版该文件里查无此行** ⇒ 回退态。
+ *
+ * ## 为什么必须加「新增性」这一问
+ *
+ * ⚠️ 规则 B 扫全文 + 文件级豁免（「该标志在该文件 HEAD 版里已存在 ⇒ 整个文件放过」）
+ *   在 `docs/tasks.md` / `docs/decisions.md` 这类**本身就在正常讨论这些措辞**的文件上
+ *   整体失效 ⇒ 真回退被放过（实测 2026-10-26：`tasks.md` 的 T12 那行漏报）。
+ *
+ *   回退的写法是「**把旧措辞新写进来**」⇒ 这行在 HEAD 里查无此行；
+ *   而排版重排产生的行，去空白后与 HEAD 的某行逐字相同 ⇒ 放行。
+ *
+ * ## 实测（2026-10-26 · 7 个真实文件）
+ *
+ * 精确命中 2 件真回退（`docs/tasks.md`、`docs/specs/m6-standard-pack.md`），
+ * 对 5 件「登记回退事实的说明行 / 纯排版重排」零假阳性。
+ *
+ * @param added 新增行事实
+ * @param headByPath HEAD 版内容（路径 → 文本）
+ * @param markers 标志清单
+ * @param selfQuoting 自引用豁免路径
+ */
+export function detectRollbackInAddedLines(
+  added: AddedLine[],
+  headByPath: Map<string, string>,
+  markers: RegExp[],
+  selfQuoting: RegExp[] = [],
+): RollbackHit[] {
+  const out: RollbackHit[] = []
+  // 每个路径的 HEAD 版「去空白后逐行集合」——一次性建好，避免逐行重复 split
+  const headSets = new Map<string, Set<string>>()
+  for (const [path, content] of headByPath) {
+    const set = new Set<string>()
+    for (const line of content.split('\n')) set.add(squashWhitespace(line))
+    headSets.set(path, set)
+  }
+
+  for (const a of added) {
+    if (selfQuoting.some((p) => p.test(a.path))) continue
+    const marker = markers.find((m) => m.test(a.text))
+    if (!marker) continue
+    // ⚠️ HEAD 里没有这个文件 ⇒ 整份都是新增 ⇒ 该行必然是新的 ⇒ 算回退
+    const set = headSets.get(a.path)
+    if (set && set.has(squashWhitespace(a.text))) continue
+    out.push({
+      path: a.path,
+      line: a.line,
+      marker: markerLiteral(marker),
+      excerpt: excerpt(a.text),
+    })
+  }
+  return out
+}
+
+/**
+ * 采集已暂存内容相对 HEAD 的**新增行**（规则 C 的输入）。
+ *
+ * ⚠️ 必须取 **`--cached`**（暂存区相对 HEAD），不是工作树相对 HEAD ——
+ *   提交入库的是 index，工作树里还没暂存的内容不在这次提交里。
+ * ⚠️ 用 `-U0`（零上下文）：只需 `-` / `+` 行本身，context 行对判定无用。
+ */
+export function collectAddedLines(repoRoot: string, paths: string[]): AddedLine[] {
+  const out: AddedLine[] = []
+  for (const path of paths) {
+    const raw = git(repoRoot, ['diff', '--cached', '-U0', '-M', '--', path])
+    if (raw === null) continue
+    // 逐 hunk 解析：新增行的行号按 hunk 头部的「+起始,长度」推算
+    let newLineNo = 0
+    for (const line of raw.split('\n')) {
+      const hunk = line.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/)
+      if (hunk) {
+        newLineNo = Number(hunk[1]) - 1
+        continue
+      }
+      if (line.startsWith('+++') || line.startsWith('---')) continue
+      if (line.startsWith('diff ') || line.startsWith('index ')) continue
+      if (line.startsWith('+')) {
+        newLineNo += 1
+        out.push({ path, line: newLineNo, text: line.slice(1) })
+        continue
+      }
+      if (line.startsWith('-')) continue
+      // context 行（-U0 下不该出现，兜底计数）
+      newLineNo += 1
+    }
+  }
+  return out
+}
+
 /* ------------------------------------------------------------------ 闸本体 */
 
 export interface GuardOptions {
@@ -366,6 +497,8 @@ export interface GuardOutcome {
   exitCode: number
   drift: DriftReport[]
   markers: MarkerHit[]
+  /** 规则 C 的回退态命中（新增行口径） */
+  rollbacks: RollbackHit[]
   /** 规则 A 是否被环境变量显式放行（放行了也照样记录） */
   driftAllowed: boolean
   lines: string[]
@@ -388,20 +521,41 @@ export function runGuard(opts: GuardOptions): GuardOutcome {
   const markers = dropPreexistingMarkers(rawHits, collectHeadBlobs(opts.repoRoot, hitPaths))
   const driftAllowed = partialStageAllowed(opts.env)
 
+  // 规则 C：回退态（新增行口径）。**独立于规则 B** ——
+  // 规则 B 是「全文扫 + 文件级豁免」，规则 C 是「新增行扫 + 行级新增性比对」，
+  // 后者更精确（见 detectRollbackInAddedLines 的注释）。
+  const stagedPathList = stagedPaths(opts.repoRoot)
+  const addedLines = collectAddedLines(opts.repoRoot, stagedPathList)
+  const markerPaths = [...new Set(addedLines.map((a) => a.path))]
+  const headByPath = new Map<string, string>()
+  for (const path of markerPaths) {
+    const content = git(opts.repoRoot, ['show', `HEAD:${path}`])
+    if (content !== null) headByPath.set(path, content)
+  }
+  const rollbacks = detectRollbackInAddedLines(
+    addedLines,
+    headByPath,
+    DEFAULT_MARKERS,
+    SELF_QUOTING,
+  )
+
   const driftBlocking = drift.length > 0 && !driftAllowed
   const markerBlocking = markers.length > 0
-  const exitCode = driftBlocking || markerBlocking ? 1 : 0
+  const rollbackBlocking = rollbacks.length > 0
+  const exitCode = driftBlocking || markerBlocking || rollbackBlocking ? 1 : 0
 
   return {
     exitCode,
     drift,
     markers,
+    rollbacks,
     driftAllowed,
     lines: renderGuard({
       repoRoot: opts.repoRoot,
       stagedCount: stagedBlobs.length,
       drift,
       markers,
+      rollbacks,
       driftAllowed,
       blocked: exitCode === 1,
     }),
@@ -414,6 +568,7 @@ export function renderGuard(input: {
   stagedCount: number
   drift: DriftReport[]
   markers: MarkerHit[]
+  rollbacks: RollbackHit[]
   driftAllowed: boolean
   blocked: boolean
 }): string[] {
@@ -423,7 +578,7 @@ export function renderGuard(input: {
   out.push(`已暂存文件：${input.stagedCount} 个`)
   out.push('')
 
-  if (input.drift.length === 0 && input.markers.length === 0) {
+  if (input.drift.length === 0 && input.markers.length === 0 && input.rollbacks.length === 0) {
     out.push('✅ 通过：暂存区与工作树一致，已暂存内容里没有回退特征。')
     return out
   }
@@ -486,8 +641,32 @@ export function renderGuard(input: {
     out.push('')
   }
 
+  if (input.rollbacks.length > 0) {
+    out.push(`── 规则 C · 回退态（新增行口径，命中 ${input.rollbacks.length} 处）`)
+    out.push(
+      '  为什么危险：这些是**新增进来**的行，且含本仓登记过的回退措辞 ⇒ 把已修内容以旧措辞提交。',
+    )
+    out.push(
+      '    与规则 B 的区别：规则 B 扫全文，规则 C 只看「新增行」且多问一句「这行在 HEAD 里是不是新的」——',
+    )
+    out.push('    正因如此，规则 B 会因文件级豁免漏报（如 `docs/tasks.md` 本身就在讨论这些措辞）。')
+    out.push('  怎么处置：')
+    out.push('    ① 命中行确实是回退 ⇒ 改回新措辞后重新暂存（git add <文件>）再提交。')
+    out.push(
+      '    ② 命中行**不是**回退（本仓既有词汇误伤）⇒ 请在报告里点名行号与原文，由 owner 决定是否调判据。',
+    )
+    out.push('    ⚠️ 规则 C 不提供放行开关：回退态入库不可逆。')
+    out.push('       （确实要跳过这一次：用 git commit --no-verify —— 但请先确认命中行无害。）')
+    for (const r of input.rollbacks) {
+      out.push(`  ✗ ${r.path}:${r.line}`)
+      out.push(`      命中标志：${r.marker}`)
+      out.push(`      原文：${r.excerpt}`)
+    }
+    out.push('')
+  }
+
   if (input.blocked) {
-    out.push('结论：本次提交被拦下（规则 A 或规则 B 命中）。')
+    out.push('结论：本次提交被拦下（规则 A / B / C 命中）。')
   } else {
     out.push('结论：规则 A 已按显式放行处理，本次提交放行。')
   }
@@ -511,7 +690,8 @@ function main(argv: string[]): number {
         '',
         '  规则 A · 暂存与工作树分歧：已暂存文件的工作树内容与 index 不一致 ⇒ 拦下。',
         `    放行：${ALLOW_PARTIAL_STAGE_ENV}=1（只在确认这次就该提交暂存区那一版时用）。`,
-        '  规则 B · 回退特征：已暂存内容命中本仓登记的回退字样 ⇒ 拦下（不放行）。',
+        '  规则 B · 回退特征：已暂存内容命中回退字样 ⇒ 拦下（不放行）。',
+        '  规则 C · 回退态：新增行命中回退字样且该行在 HEAD 里是新的 ⇒ 拦下（不放行）。',
         '',
         '退出码：0 = 放行；1 = 拦下。',
       ].join('\n') + '\n',
