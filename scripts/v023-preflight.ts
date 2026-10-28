@@ -19,7 +19,9 @@ const MANIFEST = join(ROOT, 'docs/devlog-evidence/v023-commit-manifest.md')
 const manifest = readFileSync(MANIFEST, 'utf8')
 const allRows = [...manifest.matchAll(/^- `([^`]+)`(.*)$/gm)]
 const listed = allRows.map((m) => m[1]!)
-const deletedMarked = new Set(allRows.filter((m) => (m[2] ?? '').includes('删除态')).map((m) => m[1]!))
+const deletedMarked = new Set(
+  allRows.filter((m) => (m[2] ?? '').includes('删除态')).map((m) => m[1]!),
+)
 
 const status = execFileSync('git', ['status', '--porcelain'], { encoding: 'utf8' })
 // porcelain：XY 两字符状态 + 空格 + 路径（与 manifest 生成端同一解析；rename 行取新路径）
@@ -33,26 +35,35 @@ const changed = status
     return path
   })
 
-const PARALLEL = /(docs-check|section-ref-audit|langRoadmap|restore-link-check|dev-plan\.md|export-agent-memory|concurrency-guard|probe-raw-check)/
+const PARALLEL =
+  /(docs-check|section-ref-audit|langRoadmap|restore-link-check|dev-plan\.md|export-agent-memory|concurrency-guard|probe-raw-check)/
 const listedSet = new Set(listed)
 
 const missing = listed.filter((f) => !deletedMarked.has(f) && !existsSync(join(ROOT, f)))
-const unlisted = changed.filter((f) => !listedSet.has(f) && !f.startsWith('demo/') && !f.startsWith('redesign/'))
+const unlisted = changed.filter(
+  (f) => !listedSet.has(f) && !f.startsWith('demo/') && !f.startsWith('redesign/'),
+)
 
-console.log(`清单：${String(listed.length)} 个文件；工作树改动（含未跟踪）：${String(changed.length)} 个`)
+console.log(
+  `清单：${String(listed.length)} 个文件；工作树改动（含未跟踪）：${String(changed.length)} 个`,
+)
 if (missing.length > 0) {
   console.error(`⛔ 清单内文件不存在（被误删/移动？）：`)
   for (const f of missing) console.error(`  · ${f}`)
 }
 if (unlisted.length > 0) {
-  console.log(`⚠ 清单外的工作树改动 ${String(unlisted.length)} 个（应全部是并行会话在编；有本会话文件则先补清单）：`)
+  console.log(
+    `⚠ 清单外的工作树改动 ${String(unlisted.length)} 个（应全部是并行会话在编；有本会话文件则先补清单）：`,
+  )
   for (const f of unlisted) {
     console.log(`  · ${PARALLEL.test(f) ? '[并行在编-预期]' : '[需人工判断]'} ${f}`)
   }
 }
 if (missing.length === 0 && unlisted.every((f) => PARALLEL.test(f))) {
   console.log('✓ 对账干净：清单覆盖本会话全部改动，清单外仅并行会话在编文件')
-  console.log('提交前建议：pnpm lint && pnpm typecheck && pnpm test && pnpm docs:check && pnpm ownership:check')
+  console.log(
+    '提交前建议：pnpm lint && pnpm typecheck && pnpm test && pnpm docs:check && pnpm ownership:check',
+  )
   process.exit(0)
 }
 process.exit(1)

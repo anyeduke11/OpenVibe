@@ -265,10 +265,7 @@
       "label": "Day 1 · 起步",
       "title": "装 Go 与 AI 工具，跑通 Hello World",
       "duration_label": "1 天",
-      "points": [
-        "go mod init、go run . 运行、go build 编译",
-        "让 AI 解释第一个程序的每一行"
-      ],
+      "points": ["go mod init、go run . 运行、go build 编译", "让 AI 解释第一个程序的每一行"],
       "outcome": null
     },
     {

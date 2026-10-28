@@ -100,7 +100,8 @@ export const laneEngineering = {
   projectDelete: {
     impactTitle: '影响范围',
     impactOk: '项目目录里的文件一律不动——删的是灵典库里的这条立项记录。',
-    impactExported: '已注入项目的标准包文件（CLAUDE.md / AGENTS.md 等）仍在项目目录里，不受这次删除影响。',
+    impactExported:
+      '已注入项目的标准包文件（CLAUDE.md / AGENTS.md 等）仍在项目目录里，不受这次删除影响。',
     /** 行内二次确认的按钮态文案（列表里的 × 第一次点只是武装，不提交） */
     confirmRow: '确认删除',
   },

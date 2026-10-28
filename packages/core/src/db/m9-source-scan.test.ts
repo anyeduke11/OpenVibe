@@ -186,7 +186,9 @@ describe('M9 P4.5 · DL-21 · 记忆清除后立刻回到全不勾', () => {
     const db = makeDb()
     const { projectId } = seed(db)
     setConsent(db, projectId, true, '2026-10-21T00:00:00.000Z')
-    db.prepare('UPDATE lang_source_consent SET remember_all = 0 WHERE project_id = ?').run(projectId)
+    db.prepare('UPDATE lang_source_consent SET remember_all = 0 WHERE project_id = ?').run(
+      projectId,
+    )
     const after = readConsent(db, projectId)
     // 半吊子实现：行还在 ⇒ 「记住过」这件事还在 ⇒ 清除**没生效**
     expect(after).not.toBeNull()
@@ -290,9 +292,14 @@ describe('M9 P4.4 · DL-22 / DL-23 · 导出清单', () => {
     mkdirSync(dirname(join(dir, rel)), { recursive: true })
     writeFileSync(
       join(dir, rel),
-      ['package main', '', 'func main() {', '\tgo func() { fmt.Println("hi") }()', '\tdefer resp.Body.Close()', '}'].join(
-        '\n',
-      ),
+      [
+        'package main',
+        '',
+        'func main() {',
+        '\tgo func() { fmt.Println("hi") }()',
+        '\tdefer resp.Body.Close()',
+        '}',
+      ].join('\n'),
     )
 
     saveFindings(db, 1, 'p1', [
@@ -333,9 +340,10 @@ describe('M9 P4.4 · DL-22 / DL-23 · 导出清单', () => {
         .split('\n')
         .filter((l) => l !== '')
         .map((l) => Number(l.split(':')[0]))
-      expect(hitLines, `${item.file} 的 ${item.pattern} 应命中第 ${String(item.line)} 行`).toContain(
-        item.line,
-      )
+      expect(
+        hitLines,
+        `${item.file} 的 ${item.pattern} 应命中第 ${String(item.line)} 行`,
+      ).toContain(item.line)
     }
   })
 
@@ -358,9 +366,7 @@ describe('M9 P4.4 · DL-22 / DL-23 · 导出清单', () => {
       },
     ])
     const text = buildExportText('p1', 1, readFindings(db, 'p1'))
-    const patternLine = text
-      .split('\n')
-      .find((l) => l.startsWith('  ↳ grep')) as string
+    const patternLine = text.split('\n').find((l) => l.startsWith('  ↳ grep')) as string
     const quoted = /grep -n -- '([^']*)'/u.exec(patternLine)
     expect(quoted).not.toBeNull()
     const pattern = quoted?.[1] as string

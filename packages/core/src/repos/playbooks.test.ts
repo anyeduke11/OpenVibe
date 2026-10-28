@@ -67,7 +67,9 @@ describe('CORE-PB-02 · 检索（FR-2.2）', () => {
     expect(byScenario).toHaveLength(1)
     expect(byScenario[0]?.matchedFields).toContain('scenario')
     const range = byScenario[0]?.matches.find((m) => m.field === 'scenario')
-    expect(range && byScenario[0]?.playbook.scenario.slice(range.start, range.end)).toBe('数据分类分级')
+    expect(range && byScenario[0]?.playbook.scenario.slice(range.start, range.end)).toBe(
+      '数据分类分级',
+    )
 
     // 两字词走 LIKE 降级路径（len < 3 不进 FTS）
     expect(repo.search('抽样')).toHaveLength(1)
@@ -147,7 +149,9 @@ describe('CORE-PB-05 · related* 三道闸（§6.2）', () => {
       )
       .run()
     const term = h.db
-      .prepare("INSERT INTO terms (id, zh, definition, created_at, updated_at) VALUES ('trm_x','甲','d','t','t')")
+      .prepare(
+        "INSERT INTO terms (id, zh, definition, created_at, updated_at) VALUES ('trm_x','甲','d','t','t')",
+      )
       .run()
     const skill = h.db
       .prepare(
@@ -183,9 +187,9 @@ describe('CORE-PB-05 · related* 三道闸（§6.2）', () => {
     expect(unchanged?.relatedPromptIds).toEqual([])
     expect(unchanged?.relatedTermIds).toEqual([])
     expect(unchanged?.relatedSkillIds).toEqual([])
-    expect(() => mk(repo, { scenario: 'S3', problem: 'P3', relatedSkillIds: ['sk_missing'] })).toThrow(
-      /sk_missing/,
-    )
+    expect(() =>
+      mk(repo, { scenario: 'S3', problem: 'P3', relatedSkillIds: ['sk_missing'] }),
+    ).toThrow(/sk_missing/)
     h.close()
   })
 
@@ -193,7 +197,9 @@ describe('CORE-PB-05 · related* 三道闸（§6.2）', () => {
     const h = newDb()
     const repo = new PlaybooksRepo(h.db)
     const term = h.db
-      .prepare("INSERT INTO terms (id, zh, definition, created_at, updated_at) VALUES ('trm_y','乙','d','t','t')")
+      .prepare(
+        "INSERT INTO terms (id, zh, definition, created_at, updated_at) VALUES ('trm_y','乙','d','t','t')",
+      )
       .run()
     expect(term.changes).toBe(1)
     const target = mk(repo)

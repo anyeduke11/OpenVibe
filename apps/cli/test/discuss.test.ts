@@ -36,9 +36,13 @@ describe('openvibe discuss（CLI 腿）', () => {
   const home = tempDir('ov-discuss-home-')
 
   it('DISC-CLI-01: --json 下 stdout 单对象（command=discuss），退出码映射（serve 不可达/未配置）', () => {
-    writeFileSync(join(home, 'config.json'), JSON.stringify({ serverUrl: 'http://127.0.0.1:1', token: 't', port: 1 }), {
-      mode: 0o600,
-    })
+    writeFileSync(
+      join(home, 'config.json'),
+      JSON.stringify({ serverUrl: 'http://127.0.0.1:1', token: 't', port: 1 }),
+      {
+        mode: 0o600,
+      },
+    )
     const res = runCli(['--json', 'discuss', '项目到哪了？'], home)
     // config 指向不可达端口：ask/discuss 依赖 serve —— 人话错误、退出码 1
     expect(res.status).toBe(1)

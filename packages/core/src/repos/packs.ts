@@ -48,9 +48,9 @@ export class PacksRepo {
   constructor(private readonly db: SqliteDatabase) {}
 
   create(input: PackCreateInput): PackOut {
-    const existing = this.db.prepare('SELECT id FROM standard_packs WHERE name = ?').get(input.name) as
-      | { id: string }
-      | undefined
+    const existing = this.db
+      .prepare('SELECT id FROM standard_packs WHERE name = ?')
+      .get(input.name) as { id: string } | undefined
     if (existing) throw new AppError('NAME_CONFLICT', `包名已存在: ${input.name}`)
     const selection: PackSelection = {
       promptIds: input.selection?.promptIds ?? [],
@@ -66,7 +66,15 @@ export class PacksRepo {
         `INSERT INTO standard_packs (id, name, description, selection, targets, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, input.name, input.description ?? '', JSON.stringify(selection), JSON.stringify(input.targets), ts, ts)
+      .run(
+        id,
+        input.name,
+        input.description ?? '',
+        JSON.stringify(selection),
+        JSON.stringify(input.targets),
+        ts,
+        ts,
+      )
     const pack = this.get(id)
     if (!pack) throw new AppError('INTERNAL', '创建后读取失败')
     return pack
@@ -76,9 +84,9 @@ export class PacksRepo {
     const existing = this.get(id)
     if (!existing) throw new AppError('NOT_FOUND', `标准包不存在: ${id}`)
     if (patch.name !== undefined && patch.name !== existing.name) {
-      const dup = this.db.prepare('SELECT id FROM standard_packs WHERE name = ?').get(patch.name) as
-        | { id: string }
-        | undefined
+      const dup = this.db
+        .prepare('SELECT id FROM standard_packs WHERE name = ?')
+        .get(patch.name) as { id: string } | undefined
       if (dup) throw new AppError('NAME_CONFLICT', `包名已存在: ${patch.name}`)
     }
     this.db
@@ -105,15 +113,13 @@ export class PacksRepo {
 
   get(id: string): PackOut | null {
     const row = this.db.prepare('SELECT * FROM standard_packs WHERE id = ?').get(id) as
-      | PackRow
-      | undefined
+      PackRow | undefined
     return row ? rowToPack(row) : null
   }
 
   getByName(name: string): PackOut | null {
     const row = this.db.prepare('SELECT * FROM standard_packs WHERE name = ?').get(name) as
-      | PackRow
-      | undefined
+      PackRow | undefined
     return row ? rowToPack(row) : null
   }
 

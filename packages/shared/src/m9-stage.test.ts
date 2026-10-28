@@ -123,7 +123,10 @@ describe('M9 P1f · §3.21 第 2 条 · 源 → 派生三条规则', () => {
   })
 
   it('③ 变异腿：把「选学」判定拿掉（required 恒 1）⇒ 必须被区分出来', () => {
-    const mutated = (s: StageTrackSeed): StageTrack => ({ ...deriveStageTrack(s), required: 1 as const })
+    const mutated = (s: StageTrackSeed): StageTrack => ({
+      ...deriveStageTrack(s),
+      required: 1 as const,
+    })
     // 阶段 2/3 的 Go 在源文档里写着「选学」⇒ 必学 = 否
     expect(deriveStageTrack(GO_STAGE2).required).toBe(0)
     expect(deriveStageTrack(GO_STAGE3).required).toBe(0)
@@ -136,7 +139,10 @@ describe('M9 P1f · §3.21 第 2 条 · 源 → 派生三条规则', () => {
   })
 
   it('④ 变异腿：把 is_default 恒设 1 ⇒ Go 行必须与之不同', () => {
-    const mutated = (s: StageTrackSeed): StageTrack => ({ ...deriveStageTrack(s), is_default: 1 as const })
+    const mutated = (s: StageTrackSeed): StageTrack => ({
+      ...deriveStageTrack(s),
+      is_default: 1 as const,
+    })
     expect(deriveStageTrack(GO_STAGE2).is_default).toBe(0)
     expect(deriveStageTrack(GO_STAGE3).is_default).toBe(0)
     expect(mutated(GO_STAGE2).is_default).toBe(1)

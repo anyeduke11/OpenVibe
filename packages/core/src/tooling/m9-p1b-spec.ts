@@ -60,7 +60,6 @@ export function specSection161(specText: string): string | null {
   return next === -1 ? rest : rest.slice(0, next)
 }
 
-
 /**
  * 读 §1.6.1 的全部口径数字。
  *

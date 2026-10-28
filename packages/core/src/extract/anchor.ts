@@ -27,7 +27,10 @@ function containsLiteral(haystack: string, needle: string): boolean {
   return needle.length > 0 && haystack.includes(needle)
 }
 
-export function anchorCandidates(candidates: ExtractCandidateItem[], sources: AnchorSource[]): AnchorOutcome {
+export function anchorCandidates(
+  candidates: ExtractCandidateItem[],
+  sources: AnchorSource[],
+): AnchorOutcome {
   const byIndex = new Map(sources.map((s) => [s.index, s]))
   const passed: ExtractCandidateItem[] = []
   const dropped: { title: string; reason: string }[] = []

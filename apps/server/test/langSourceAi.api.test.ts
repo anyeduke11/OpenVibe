@@ -129,7 +129,9 @@ function seed(db: TestDbHandle['db'], localPath: string): number[] {
      VALUES (1, (SELECT id FROM lang_topics WHERE slug = 'python-logging'), 'p1',
              'app.py', 6, 5, 'logging.info("hi")', 'confirmed', 'parser')`,
   ).run()
-  const rows = db.prepare('SELECT id FROM lang_topic_findings ORDER BY id').all() as { id: number }[]
+  const rows = db.prepare('SELECT id FROM lang_topic_findings ORDER BY id').all() as {
+    id: number
+  }[]
   return rows.map((r) => r.id)
 }
 
@@ -231,7 +233,11 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
 
   it('⚠️ **key 缺省 = 保持原值**（读端回显不了全文 ⇒ 缺省不能当成清空）', async () => {
     const h = await makeHarness(undefined)
-    await put(h, '/api/lang/interpret/providers', coll({ kind: 'openai_http', api_key: 'sk-keep-me-1234' }))
+    await put(
+      h,
+      '/api/lang/interpret/providers',
+      coll({ kind: 'openai_http', api_key: 'sk-keep-me-1234' }),
+    )
     // ⚠️ 再写一次，**不带** api_key
     await put(h, '/api/lang/interpret/providers', coll({ kind: 'openai_http', model: 'm2' }))
     const res = await get(h, '/api/lang/interpret/providers')
@@ -245,7 +251,11 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
 
   it('⚠️ **key 显式传空串 ⇒ 清除**', async () => {
     const h = await makeHarness(undefined)
-    await put(h, '/api/lang/interpret/providers', coll({ kind: 'openai_http', api_key: 'sk-gone-5678' }))
+    await put(
+      h,
+      '/api/lang/interpret/providers',
+      coll({ kind: 'openai_http', api_key: 'sk-gone-5678' }),
+    )
     await put(h, '/api/lang/interpret/providers', coll({ kind: 'openai_http', api_key: '' }))
     const res = await get(h, '/api/lang/interpret/providers')
     const body = res.json() as { providers: { has_api_key: boolean }[] }
@@ -254,14 +264,22 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
 
   it('⚠️ **key 全文绝不出现在读端出参里**', async () => {
     const h = await makeHarness(undefined)
-    await put(h, '/api/lang/interpret/providers', coll({ kind: 'openai_http', api_key: 'sk-SUPER-SECRET-9999' }))
+    await put(
+      h,
+      '/api/lang/interpret/providers',
+      coll({ kind: 'openai_http', api_key: 'sk-SUPER-SECRET-9999' }),
+    )
     const res = await get(h, '/api/lang/interpret/providers')
     expect(res.body).not.toContain('SUPER-SECRET')
   })
 
   it('端点不是合法 URL ⇒ **422**（不等到真跑一次才暴露）', async () => {
     const h = await makeHarness(undefined)
-    const res = await put(h, '/api/lang/interpret/providers', coll({ kind: 'openai_http', endpoint: '不是 URL' }))
+    const res = await put(
+      h,
+      '/api/lang/interpret/providers',
+      coll({ kind: 'openai_http', endpoint: '不是 URL' }),
+    )
     expect(res.statusCode).toBe(422)
   })
 
@@ -296,7 +314,10 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
 
   it('⚠️ **一份都不留 ⇒ 422**（至少要留一份 ⇒ 不许出现「什么也没配」这种状态）', async () => {
     const h = await makeHarness(undefined)
-    const res = await put(h, '/api/lang/interpret/providers', { providers: [], default_provider_id: '' })
+    const res = await put(h, '/api/lang/interpret/providers', {
+      providers: [],
+      default_provider_id: '',
+    })
     expect(res.statusCode).toBe(422)
   })
 
@@ -314,7 +335,14 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
     const saved = await put(h, '/api/lang/interpret/providers', {
       providers: [
         { ...BASE, id: 'p1', name: '命令那份', kind: 'command', cmd: '/bin/echo' },
-        { ...BASE, id: 'p2', name: '接口那份', kind: 'openai_http', cmd: '', endpoint: 'http://127.0.0.1:11434/v1/chat/completions' },
+        {
+          ...BASE,
+          id: 'p2',
+          name: '接口那份',
+          kind: 'openai_http',
+          cmd: '',
+          endpoint: 'http://127.0.0.1:11434/v1/chat/completions',
+        },
       ],
       default_provider_id: 'p2',
     })
@@ -390,7 +418,10 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
         }),
       )
     const res = await get(h, '/api/lang/interpret/providers')
-    const body = res.json() as { providers: { id: string; cmd: string }[]; default_provider_id: string }
+    const body = res.json() as {
+      providers: { id: string; cmd: string }[]
+      default_provider_id: string
+    }
     expect(body.providers).toHaveLength(1)
     expect(body.providers[0]?.cmd).toBe('/bin/echo')
     expect(body.providers[0]?.id).toBe('default')
@@ -550,10 +581,7 @@ describe('M9 P5 · 命令适配器（stdin 收 JSON、stdout 出 JSON）', () =>
     dirs.push(dir)
     const script = join(dir, 'bad-runner.sh')
     // ⚠️ **版本号是对的** ⇒ 这一支断的才是「字段不合契约」（版本不对有单独一支）
-    writeFileSync(
-      script,
-      `#!/bin/sh\nprintf '%s' '{"schema_version":1,"items":"不是数组"}'\n`,
-    )
+    writeFileSync(script, `#!/bin/sh\nprintf '%s' '{"schema_version":1,"items":"不是数组"}'\n`)
     chmodSync(script, 0o755)
 
     const runner = new CommandInterpretRunner({ cmd: script, model: 'm', provider: 'p' })
@@ -705,7 +733,11 @@ describe('M9 · provider 配置 · key 存在哪（钥匙串 / 明文降级）',
   it('① ⚠️ 写 key ⇒ **进系统钥匙串**，配置里**不留全文**', async () => {
     const store = memoryKeychainStore()
     const h = await makeHarness(undefined, store)
-    const saved = await put(h, '/api/lang/interpret/providers', coll({ api_key: 'sk-keychain-1234' }))
+    const saved = await put(
+      h,
+      '/api/lang/interpret/providers',
+      coll({ api_key: 'sk-keychain-1234' }),
+    )
     expect(saved.statusCode).toBe(200)
     const body = saved.json() as {
       providers: { has_api_key: boolean; api_key_hint: string; api_key_storage: string }[]
@@ -769,7 +801,11 @@ describe('M9 · provider 配置 · key 存在哪（钥匙串 / 明文降级）',
 
   it('⑥ ⚠️ 客户端**不许声明**存储位置（那是服务端算出来的事实）', async () => {
     const h = await makeHarness(undefined)
-    const res = await put(h, '/api/lang/interpret/providers', coll({ api_key: 'sk-abc-1111', api_key_storage: 'keychain' }))
+    const res = await put(
+      h,
+      '/api/lang/interpret/providers',
+      coll({ api_key: 'sk-abc-1111', api_key_storage: 'keychain' }),
+    )
     // ⚠️ 多余字段被剥掉（zod 默认 strip）⇒ 不报错，但**也不采信**
     expect(res.statusCode).toBe(200)
     const body = res.json() as { providers: { api_key_storage: string }[] }

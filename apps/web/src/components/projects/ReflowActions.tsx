@@ -111,6 +111,8 @@ export function ReflowOriginLine(props: { assetId: string }) {
   const o = origin.data?.origin
   if (o === null || o === undefined) return null
   return (
-    <span className="text-[11px] text-accent">{zh.projects.reflow.sourceLabel(o.projectName, o.displayNo)}</span>
+    <span className="text-[11px] text-accent">
+      {zh.projects.reflow.sourceLabel(o.projectName, o.displayNo)}
+    </span>
   )
 }

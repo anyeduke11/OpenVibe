@@ -42,7 +42,11 @@ const TOOLS: ToolDef[] = [
       type: 'object',
       properties: {
         project_id: { type: 'string', description: '项目 id（prj_ 前缀）' },
-        fields: { type: 'array', items: { type: 'string' }, description: '可选，只要这些段（缺省全部）' },
+        fields: {
+          type: 'array',
+          items: { type: 'string' },
+          description: '可选，只要这些段（缺省全部）',
+        },
         budget: { type: 'number', description: '可选，字符预算上限' },
       },
       required: ['project_id'],
@@ -55,7 +59,11 @@ const TOOLS: ToolDef[] = [
       type: 'object',
       properties: {
         query: { type: 'string', description: '搜索词（术语支持拼音与英文双序）' },
-        kind: { type: 'string', enum: ['terms', 'prompts', 'playbooks'], description: '可选，只查这一类' },
+        kind: {
+          type: 'string',
+          enum: ['terms', 'prompts', 'playbooks'],
+          description: '可选，只查这一类',
+        },
       },
       required: ['query'],
     },
@@ -95,24 +103,35 @@ interface McpDeps {
 }
 
 export async function runMcpServer(deps: McpDeps = {}): Promise<void> {
-  const getClient = deps.client ?? (() => makeClientFromConfig(deps.serverOverride, deps.tokenOverride))
+  const getClient =
+    deps.client ?? (() => makeClientFromConfig(deps.serverOverride, deps.tokenOverride))
   const diff = deps.diff ?? diffAction
   const out = (obj: unknown): void => {
     process.stdout.write(`${JSON.stringify(obj)}\n`)
   }
 
-  const callTool = async (name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> => {
+  const callTool = async (
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> => {
     if (name === 'project_context') {
       const id = String(args.project_id ?? '')
       if (id === '') return toolResult('project_id 不能为空', true)
       const client = getClient()
-      if (client === undefined) return toolResult('未配置 serve 地址（config.json 缺 serverUrl）。先运行 openvibe serve。', true)
+      if (client === undefined)
+        return toolResult(
+          '未配置 serve 地址（config.json 缺 serverUrl）。先运行 openvibe serve。',
+          true,
+        )
       try {
         const q = new URLSearchParams()
-        if (Array.isArray(args.fields) && args.fields.length > 0) q.set('fields', (args.fields as string[]).join(','))
+        if (Array.isArray(args.fields) && args.fields.length > 0)
+          q.set('fields', (args.fields as string[]).join(','))
         if (typeof args.budget === 'number') q.set('budget', String(args.budget))
         const qs = q.size > 0 ? `?${q.toString()}` : ''
-        return toolResult(JSON.stringify(await client.getJson(`/api/projects/${id}/context${qs}`), null, 1))
+        return toolResult(
+          JSON.stringify(await client.getJson(`/api/projects/${id}/context${qs}`), null, 1),
+        )
       } catch (e) {
         if (e instanceof ServerUnreachable) return toolResult(unreachableText(e), true)
         return toolResult(`读取项目上下文失败：${String(e)}`, true)
@@ -124,20 +143,26 @@ export async function runMcpServer(deps: McpDeps = {}): Promise<void> {
       if (query === '') return toolResult('query 不能为空', true)
       const kind = typeof args.kind === 'string' ? args.kind : undefined
       const client = getClient()
-      if (client === undefined) return toolResult('未配置 serve 地址（config.json 缺 serverUrl）。先运行 openvibe serve。', true)
+      if (client === undefined)
+        return toolResult(
+          '未配置 serve 地址（config.json 缺 serverUrl）。先运行 openvibe serve。',
+          true,
+        )
       try {
         const result: Record<string, unknown> = {}
         if (kind === undefined || kind === 'terms') {
           result.terms = await client.getJson(`/api/terms/search?q=${encodeURIComponent(query)}`)
         }
         if (kind === undefined || kind === 'playbooks') {
-          result.playbooks = await client.getJson(`/api/playbooks/search?q=${encodeURIComponent(query)}`)
+          result.playbooks = await client.getJson(
+            `/api/playbooks/search?q=${encodeURIComponent(query)}`,
+          )
         }
         if (kind === undefined || kind === 'prompts') {
           // prompts 无专用搜索端点（m1）：取全量列表本地按标题/内容包含匹配（薄客户端不引 FTS）
-          const list = await client.getJson<{ items: { id: string; title: string; content?: string; description?: string }[] }>(
-            `/api/prompts`,
-          )
+          const list = await client.getJson<{
+            items: { id: string; title: string; content?: string; description?: string }[]
+          }>(`/api/prompts`)
           const lower = query.toLowerCase()
           result.prompts = {
             items: (list.items ?? []).filter(
@@ -220,17 +245,24 @@ export async function runMcpServer(deps: McpDeps = {}): Promise<void> {
       return
     }
     if (req.method === 'tools/call') {
-      const params = req.params as { name?: string; arguments?: Record<string, unknown> } | undefined
+      const params = req.params as
+        { name?: string; arguments?: Record<string, unknown> } | undefined
       if (typeof params?.name !== 'string') {
         out({ jsonrpc: '2.0', id: req.id, error: { code: -32602, message: 'params.name 缺失' } })
         return
       }
       void callTool(params.name, params.arguments ?? {})
         .then((result) => out({ jsonrpc: '2.0', id: req.id, result }))
-        .catch((e) => out({ jsonrpc: '2.0', id: req.id, error: { code: -32603, message: String(e) } }))
+        .catch((e) =>
+          out({ jsonrpc: '2.0', id: req.id, error: { code: -32603, message: String(e) } }),
+        )
       return
     }
-    out({ jsonrpc: '2.0', id: req.id, error: { code: -32601, message: `Method not found: ${req.method}` } })
+    out({
+      jsonrpc: '2.0',
+      id: req.id,
+      error: { code: -32601, message: `Method not found: ${req.method}` },
+    })
   })
 
   // stdin EOF（客户端断开）⇒ 干净退出；SIGTERM/SIGINT 同理（不挂起父进程）
@@ -240,7 +272,10 @@ export async function runMcpServer(deps: McpDeps = {}): Promise<void> {
 }
 
 /** stdout 是协议通道：config 发现链的警告只走 stderr，一行都不能混进协议流 */
-function makeClientFromConfig(serverOverride?: string, tokenOverride?: string): ApiClient | undefined {
+function makeClientFromConfig(
+  serverOverride?: string,
+  tokenOverride?: string,
+): ApiClient | undefined {
   const config = resolveConfig({ server: serverOverride, token: tokenOverride })
   for (const w of config.warnings) process.stderr.write(`${w}\n`)
   return config.token === null ? undefined : clientFromConfig(config)

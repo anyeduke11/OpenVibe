@@ -74,8 +74,14 @@ describe('port-scan · 声明扫描器（纯文件解析）', () => {
           dependencies: { vue: '^3', vite: '^6' },
         }),
       )
-      writeFileSync(join(dir, 'docker-compose.yml'), 'services:\n  web:\n    ports:\n      - "8080:80"\n      - 9090:90\n')
-      writeFileSync(join(dir, 'Dockerfile'), 'FROM node:22\nEXPOSE 4321/tcp\nCMD ["npm","run","dev"]\n')
+      writeFileSync(
+        join(dir, 'docker-compose.yml'),
+        'services:\n  web:\n    ports:\n      - "8080:80"\n      - 9090:90\n',
+      )
+      writeFileSync(
+        join(dir, 'Dockerfile'),
+        'FROM node:22\nEXPOSE 4321/tcp\nCMD ["npm","run","dev"]\n',
+      )
 
       const { declared, scannedFiles } = scanDeclaredServices(dir)
       const byPort = new Map(declared.map((d) => [d.port, d]))
@@ -227,18 +233,17 @@ describe('GET /api/projects/:id/ports', () => {
     // 夹具随 listListeners 的平台分支换形：win32 跑 parseNetstatListen，喂 lsof 文本会解出 0 条
     const isWin = process.platform === 'win32'
     const fakeRunner: CommandRunner = async () =>
-      (
-        isWin
-          ? [
-              '  Proto  Local Address          Foreign Address        State           PID',
-              '  TCP    127.0.0.1:4321         127.0.0.1:0            LISTENING       111',
-              '  TCP    0.0.0.0:8787           0.0.0.0:0              LISTENING       222',
-            ]
-          : [
-              'COMMAND   PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME',
-              'node    111  duke   18u  IPv4 0x1 0t0  TCP 127.0.0.1:4321 (LISTEN)',
-              'node    222  duke   19u  IPv4 0x2 0t0  TCP *:8787 (LISTEN)',
-            ]
+      (isWin
+        ? [
+            '  Proto  Local Address          Foreign Address        State           PID',
+            '  TCP    127.0.0.1:4321         127.0.0.1:0            LISTENING       111',
+            '  TCP    0.0.0.0:8787           0.0.0.0:0              LISTENING       222',
+          ]
+        : [
+            'COMMAND   PID USER   FD   TYPE DEVICE SIZE/OFF NODE NAME',
+            'node    111  duke   18u  IPv4 0x1 0t0  TCP 127.0.0.1:4321 (LISTEN)',
+            'node    222  duke   19u  IPv4 0x2 0t0  TCP *:8787 (LISTEN)',
+          ]
       ).join('\n')
 
     // 直接用 lib 组装（路由的注入点在 registerPortRoutes；此处走 buildApp 默认路径,
@@ -249,7 +254,15 @@ describe('GET /api/projects/:id/ports', () => {
     const byPort = new Map(live.listeners.map((l) => [l.port, l]))
     const merged = declared.map((d) => {
       const l = byPort.get(d.port)
-      return l === undefined ? { ...d, state: 'idle' as const } : { ...d, state: 'listening' as const, process: l.process, pid: l.pid, url: `http://localhost:${String(d.port)}` }
+      return l === undefined
+        ? { ...d, state: 'idle' as const }
+        : {
+            ...d,
+            state: 'listening' as const,
+            process: l.process,
+            pid: l.pid,
+            url: `http://localhost:${String(d.port)}`,
+          }
     })
     expect(merged).toHaveLength(1)
     expect(merged[0]).toMatchObject({
@@ -307,7 +320,10 @@ describe('GET /api/projects/:id/ports', () => {
     const projDir = join(h.root, 'proj')
     mkdirSync(projDir)
     writeFileSync(join(projDir, '.env'), 'PORT=4321\n')
-    writeFileSync(join(projDir, 'docker-compose.yml'), 'services:\n  web:\n    ports:\n      - "8787:80"\n')
+    writeFileSync(
+      join(projDir, 'docker-compose.yml'),
+      'services:\n  web:\n    ports:\n      - "8787:80"\n',
+    )
     const pid = await mkProject(h, projDir)
 
     const res = await api<{ services: Row[] }>(h, 'GET', `/api/projects/${String(pid)}/ports`)

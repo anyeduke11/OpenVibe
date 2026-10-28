@@ -69,7 +69,10 @@ function countRows(db: { prepare: (sql: string) => { get: () => unknown } }): nu
   return main.c + vibe.c
 }
 
-function columnNames(db: { prepare: (sql: string) => { all: () => unknown } }, table: string): string[] {
+function columnNames(
+  db: { prepare: (sql: string) => { all: () => unknown } },
+  table: string,
+): string[] {
   return (db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[]).map((r) => r.name)
 }
 
@@ -205,7 +208,9 @@ describe('M9 P1c · 失效巡检（DL-30 · §3.14）', () => {
     const h = freshDb()
     try {
       const before = countRows(h.db)
-      const report = await runLinkProbe(h.db, fixedStatus(500), { checkedAt: '2026-10-20T00:00:00.000Z' })
+      const report = await runLinkProbe(h.db, fixedStatus(500), {
+        checkedAt: '2026-10-20T00:00:00.000Z',
+      })
       expect(report.failedUrls).toBe(report.requestedUrls)
       expect(report.markedDead).toBe(0)
       expect(report.markedSuspect).toBe(report.updatedRows)
@@ -228,7 +233,9 @@ describe('M9 P1c · 失效巡检（DL-30 · §3.14）', () => {
     try {
       const before = countRows(h.db)
       await runLinkProbe(h.db, fixedStatus(500), { checkedAt: '2026-10-20T00:00:00.000Z' })
-      const report = await runLinkProbe(h.db, fixedStatus(500), { checkedAt: '2026-10-21T00:00:00.000Z' })
+      const report = await runLinkProbe(h.db, fixedStatus(500), {
+        checkedAt: '2026-10-21T00:00:00.000Z',
+      })
       expect(report.markedDead).toBe(report.updatedRows)
       const row = h.db
         .prepare('SELECT alive, consecutive_fails FROM lang_resources WHERE id = 1')
@@ -237,7 +244,9 @@ describe('M9 P1c · 失效巡检（DL-30 · §3.14）', () => {
       expect(row.consecutive_fails).toBe(2)
       // ⚠️ 「行仍在表里」：条数一条不少
       expect(countRows(h.db)).toBe(before)
-      const dead = h.db.prepare('SELECT COUNT(*) AS c FROM lang_resources WHERE alive = 0').get() as {
+      const dead = h.db
+        .prepare('SELECT COUNT(*) AS c FROM lang_resources WHERE alive = 0')
+        .get() as {
         c: number
       }
       expect(dead.c).toBe(COUNTS.main)
@@ -251,11 +260,15 @@ describe('M9 P1c · 失效巡检（DL-30 · §3.14）', () => {
     try {
       await runLinkProbe(h.db, fixedStatus(500), { checkedAt: '2026-10-20T00:00:00.000Z' })
       await runLinkProbe(h.db, fixedStatus(500), { checkedAt: '2026-10-21T00:00:00.000Z' })
-      const dead = h.db.prepare('SELECT alive FROM lang_resources WHERE id = 1').get() as { alive: number }
+      const dead = h.db.prepare('SELECT alive FROM lang_resources WHERE id = 1').get() as {
+        alive: number
+      }
       expect(dead.alive).toBe(0)
       await runLinkProbe(h.db, fixedStatus(200), { checkedAt: '2026-10-22T00:00:00.000Z' })
       const back = h.db
-        .prepare('SELECT alive, consecutive_fails, last_status_code FROM lang_resources WHERE id = 1')
+        .prepare(
+          'SELECT alive, consecutive_fails, last_status_code FROM lang_resources WHERE id = 1',
+        )
         .get() as { alive: number; consecutive_fails: number; last_status_code: number }
       expect(back.alive).toBe(1)
       expect(back.consecutive_fails).toBe(0)
@@ -279,7 +292,9 @@ describe('M9 P1c · 失效巡检（DL-30 · §3.14）', () => {
         .get() as { c: number }
       expect(vibeFails.c).toBe(VIBE_TOTAL)
       await runLinkProbe(h.db, fixedStatus(500), { checkedAt: '2026-10-21T00:00:00.000Z' })
-      const vibeDead = h.db.prepare('SELECT COUNT(*) AS c FROM lang_vibe_resources WHERE alive = 0').get() as {
+      const vibeDead = h.db
+        .prepare('SELECT COUNT(*) AS c FROM lang_vibe_resources WHERE alive = 0')
+        .get() as {
         c: number
       }
       expect(vibeDead.c).toBe(VIBE_TOTAL)
@@ -292,8 +307,12 @@ describe('M9 P1c · 失效巡检（DL-30 · §3.14）', () => {
   it('⑧ DL-03 的 P1c 半：「已过时」（tier=e）并入判定 ⇒ 不算有效来源；且判据是行为不是常量', async () => {
     const h = freshDb()
     try {
-      const report = await runLinkProbe(h.db, fixedStatus(200), { checkedAt: '2026-10-20T00:00:00.000Z' })
-      const outdatedRows = h.db.prepare("SELECT COUNT(*) AS c FROM lang_resources WHERE tier = 'e'").get() as {
+      const report = await runLinkProbe(h.db, fixedStatus(200), {
+        checkedAt: '2026-10-20T00:00:00.000Z',
+      })
+      const outdatedRows = h.db
+        .prepare("SELECT COUNT(*) AS c FROM lang_resources WHERE tier = 'e'")
+        .get() as {
         c: number
       }
       // 有真实的「已过时」对象 ⇒ 这条判据不是空转
@@ -319,7 +338,13 @@ describe('M9 P1c · 失效巡检（DL-30 · §3.14）', () => {
   })
 
   it('⑨ P1c.3：默认手动触发，**不进启动流程**（app 里零引用；包内只有导出桶与模块本身）', () => {
-    const needles = ['m9-p1c-links', 'm9-p1b-probe', 'check-m9-links', 'runLinkProbe', 'headStatusCode']
+    const needles = [
+      'm9-p1c-links',
+      'm9-p1b-probe',
+      'check-m9-links',
+      'runLinkProbe',
+      'headStatusCode',
+    ]
     /** 允许引用的位置：模块自身、包的导出桶（脚本从它导入）、手动入口脚本自己。 */
     const allowed = new Set([
       'packages/core/src/index.ts',
@@ -355,8 +380,14 @@ describe('M9 P1c · 失效巡检（DL-30 · §3.14）', () => {
     const h = freshDb()
     try {
       const before = countRows(h.db)
-      const report = await runLinkProbe(h.db, fixedStatus(500), { checkedAt: '2026-10-20T00:00:00.000Z' })
-      const violations = verifyLinkProbeRun({ report, rowsBefore: before, rowsAfter: countRows(h.db) })
+      const report = await runLinkProbe(h.db, fixedStatus(500), {
+        checkedAt: '2026-10-20T00:00:00.000Z',
+      })
+      const violations = verifyLinkProbeRun({
+        report,
+        rowsBefore: before,
+        rowsAfter: countRows(h.db),
+      })
       expect(violations).toEqual([])
       // 反证：把行数说少了 ⇒ 立刻报「有人删了行」
       const drifted = verifyLinkProbeRun({ report, rowsBefore: before + 1, rowsAfter: before })
@@ -400,7 +431,9 @@ describe('M9 P1c · 手动触发入口（scripts/check-m9-links.ts）', () => {
    */
   function runScript(args: readonly string[]): Promise<{ status: number | null; out: string }> {
     return new Promise((resolve, reject) => {
-      const child = spawn(process.execPath, ['--import', 'tsx', SCRIPT, ...args], { cwd: REPO_ROOT })
+      const child = spawn(process.execPath, ['--import', 'tsx', SCRIPT, ...args], {
+        cwd: REPO_ROOT,
+      })
       let out = ''
       child.stdout.on('data', (chunk: Buffer) => {
         out += String(chunk)
@@ -445,7 +478,9 @@ describe('M9 P1c · 手动触发入口（scripts/check-m9-links.ts）', () => {
       expect(server.captured[0]?.method).toBe('HEAD')
       const db = openDatabase(dbPath)
       const row = db
-        .prepare('SELECT last_status_code, alive, consecutive_fails, last_checked_at FROM lang_resources')
+        .prepare(
+          'SELECT last_status_code, alive, consecutive_fails, last_checked_at FROM lang_resources',
+        )
         .get() as {
         last_status_code: number | null
         alive: number

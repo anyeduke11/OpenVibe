@@ -7,47 +7,47 @@
 
 ## 1. 判定摘要
 
-| 项 | 数 |
-|---|---|
-| 限定型引用（可判面） | 287 |
-| ├ 标题型绿 | 238 |
-| ├ 条目型绿 | 45 |
-| ├ 不可判（父节在、子项未登记） | 3 |
-| └ 断链（红） | 1 |
-| 裸引用（不可判，只报数） | 3358 |
-| 目标文件重名而不可判 | 0 |
+| 项                             | 数   |
+| ------------------------------ | ---- |
+| 限定型引用（可判面）           | 287  |
+| ├ 标题型绿                     | 238  |
+| ├ 条目型绿                     | 45   |
+| ├ 不可判（父节在、子项未登记） | 3    |
+| └ 断链（红）                   | 1    |
+| 裸引用（不可判，只报数）       | 3358 |
+| 目标文件重名而不可判           | 0    |
 
 ## 2. 断链清单
 
-| 位置 | 被引 | 状态 | 说明 |
-|---|---|---|---|
+| 位置                    | 被引                          | 状态                 | 说明                                                                                                                                                                                                                                                                         |
+| ----------------------- | ----------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `docs/dev-plan.md:1454` | `docs/specs/onboarding.md §7` | 已知存量（只报不改） | 指向 `docs/specs/onboarding.md` 的 §7 —— 该 spec 的节只到 §6（验收标准是 §5），故这条引用指空。**该文件属并行会话保留区（owner 2026-10-24 裁定「原样保留、等那个会话自己收」），只登记不改**；待该会话收尾后改成 §5。**登记是精确登记（不是通配）** ⇒ 本闸其余断链一律判红。 |
 
 ## 3. 拆分影响面：谁引用了 `docs/dev-plan.md` 的哪一节
 
-| 被引节号 | 引用处数 | 引用位置 |
-|---|---|---|
-| §15 | 7 | `docs/PRD.md:7`、`docs/PRD.md:429`、`docs/PRD.md:436`、`docs/decisions.md:16`、`docs/decisions.md:16`、`docs/tasks.md:7`、`docs/tasks.md:153` |
-| §18 | 6 | `docs/PRD.md:790`、`docs/decisions.md:47`、`docs/decisions.md:73`、`docs/dev-plan-v0.2.1.md:28`、`docs/dev-plan-v0.2.1.md:126`、`docs/dev-plan-v0.2.1.md:912` |
-| §0.3 | 6 | `docs/analysis-2026-10-02-first-principles.md:10`、`docs/analysis-2026-10-02-first-principles.md:804`、`docs/design.md:8`、`docs/dev-plan-v0.2.1.md:37`、`docs/specs/m8-agent-bridge.md:7`、`docs/specs/m8-agent-bridge.md:250` |
-| §0.4 | 6 | `docs/dev-plan-v0.2.1.md:10`、`docs/dev-plan-v0.2.1.md:39`、`docs/specs/m3-terms-learning.md:9`、`docs/specs/m8-agent-bridge.md:9`、`docs/specs/m8-agent-bridge.md:363`、`docs/specs/m8-agent-panel.md:9` |
-| §15.2 | 5 | `docs/PRD.md:617`、`docs/PRD.md:806`、`docs/dev-plan.md:1395`、`docs/dev-plan.md:1889`、`docs/specs/m4-playbook.md:102` |
-| §16 | 5 | `docs/PRD.md:790`、`docs/PRD.md:807`、`docs/decisions.md:73`、`docs/dev-plan-v0.2.1.md:22`、`docs/dev-plan-v0.2.1.md:943` |
-| §16.6 | 4 | `docs/PRD-M8-agent-bridge-v1.0-20261013.md:559`、`docs/decisions.md:47`、`docs/dev-plan-v0.2.1.md:11`、`docs/dev-plan-v0.2.1.md:34` |
-| §1.2 | 3 | `docs/PRD-M8-agent-bridge-v1.0-20261013.md:349`、`docs/PRD-M8-agent-bridge-v1.0-20261013.md:359`、`docs/specs/m8-agent-bridge.md:196` |
-| §18.3 | 3 | `docs/decisions.md:47`、`docs/decisions.md:73`、`docs/dev-plan-v0.2.1.md:875` |
-| §15.5-14 | 2 | `docs/PRD.md:617`、`docs/PRD.md:806` |
-| §16.2 | 2 | `docs/PRD.md:637`、`docs/dev-plan-v0.2.1.md:6` |
-| §15.5 | 1 | `docs/decisions.md:17` |
-| §15.5-9 | 1 | `docs/decisions.md:17` |
-| §15.4b | 1 | `docs/decisions.md:20` |
-| §15.4-S2 | 1 | `docs/decisions.md:21` |
-| §11 | 1 | `docs/decisions.md:30` |
-| §13-8 | 1 | `docs/dev-plan-v0.2.1.md:35` |
-| §13-9 | 1 | `docs/dev-plan-v0.2.1.md:36` |
-| §17 | 1 | `docs/dev-plan-v0.2.1.md:940` |
-| §1.1 | 1 | `docs/specs/m8-agent-bridge.md:8` |
-| §15.1-9 | 1 | `docs/specs/theme.md:76` |
+| 被引节号 | 引用处数 | 引用位置                                                                                                                                                                                                                        |
+| -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §15      | 7        | `docs/PRD.md:7`、`docs/PRD.md:429`、`docs/PRD.md:436`、`docs/decisions.md:16`、`docs/decisions.md:16`、`docs/tasks.md:7`、`docs/tasks.md:153`                                                                                   |
+| §18      | 6        | `docs/PRD.md:790`、`docs/decisions.md:47`、`docs/decisions.md:73`、`docs/dev-plan-v0.2.1.md:28`、`docs/dev-plan-v0.2.1.md:126`、`docs/dev-plan-v0.2.1.md:912`                                                                   |
+| §0.3     | 6        | `docs/analysis-2026-10-02-first-principles.md:10`、`docs/analysis-2026-10-02-first-principles.md:804`、`docs/design.md:8`、`docs/dev-plan-v0.2.1.md:37`、`docs/specs/m8-agent-bridge.md:7`、`docs/specs/m8-agent-bridge.md:250` |
+| §0.4     | 6        | `docs/dev-plan-v0.2.1.md:10`、`docs/dev-plan-v0.2.1.md:39`、`docs/specs/m3-terms-learning.md:9`、`docs/specs/m8-agent-bridge.md:9`、`docs/specs/m8-agent-bridge.md:363`、`docs/specs/m8-agent-panel.md:9`                       |
+| §15.2    | 5        | `docs/PRD.md:617`、`docs/PRD.md:806`、`docs/dev-plan.md:1395`、`docs/dev-plan.md:1889`、`docs/specs/m4-playbook.md:102`                                                                                                         |
+| §16      | 5        | `docs/PRD.md:790`、`docs/PRD.md:807`、`docs/decisions.md:73`、`docs/dev-plan-v0.2.1.md:22`、`docs/dev-plan-v0.2.1.md:943`                                                                                                       |
+| §16.6    | 4        | `docs/PRD-M8-agent-bridge-v1.0-20261013.md:559`、`docs/decisions.md:47`、`docs/dev-plan-v0.2.1.md:11`、`docs/dev-plan-v0.2.1.md:34`                                                                                             |
+| §1.2     | 3        | `docs/PRD-M8-agent-bridge-v1.0-20261013.md:349`、`docs/PRD-M8-agent-bridge-v1.0-20261013.md:359`、`docs/specs/m8-agent-bridge.md:196`                                                                                           |
+| §18.3    | 3        | `docs/decisions.md:47`、`docs/decisions.md:73`、`docs/dev-plan-v0.2.1.md:875`                                                                                                                                                   |
+| §15.5-14 | 2        | `docs/PRD.md:617`、`docs/PRD.md:806`                                                                                                                                                                                            |
+| §16.2    | 2        | `docs/PRD.md:637`、`docs/dev-plan-v0.2.1.md:6`                                                                                                                                                                                  |
+| §15.5    | 1        | `docs/decisions.md:17`                                                                                                                                                                                                          |
+| §15.5-9  | 1        | `docs/decisions.md:17`                                                                                                                                                                                                          |
+| §15.4b   | 1        | `docs/decisions.md:20`                                                                                                                                                                                                          |
+| §15.4-S2 | 1        | `docs/decisions.md:21`                                                                                                                                                                                                          |
+| §11      | 1        | `docs/decisions.md:30`                                                                                                                                                                                                          |
+| §13-8    | 1        | `docs/dev-plan-v0.2.1.md:35`                                                                                                                                                                                                    |
+| §13-9    | 1        | `docs/dev-plan-v0.2.1.md:36`                                                                                                                                                                                                    |
+| §17      | 1        | `docs/dev-plan-v0.2.1.md:940`                                                                                                                                                                                                   |
+| §1.1     | 1        | `docs/specs/m8-agent-bridge.md:8`                                                                                                                                                                                               |
+| §15.1-9  | 1        | `docs/specs/theme.md:76`                                                                                                                                                                                                        |
 
 合计 **59 处**限定型引用指向 `docs/dev-plan.md`。
 
@@ -57,13 +57,12 @@
 
 **为什么不判红**：仓根的日志记录的是**当时为真**的状态，条目里出现已被删掉的节号属正常（如 §17 的整节删除）。把它们算进红，等于要求三年前的日志补今天的结构 —— 那是给历史制造噪声。但它们**必须被看见**：日志里指着已删节号的条目，正是「谁在依赖这一节」的线索。
 
-| 项 | 数 |
-|---|---|
-| 限定型引用 | 96 |
+| 项               | 数  |
+| ---------------- | --- |
+| 限定型引用       | 96  |
 | 裸引用（不可判） | 972 |
-| 断链（只报数） | 3 |
+| 断链（只报数）   | 3   |
 
-| 位置 | 被引 | 上下文 |
-|---|---|---|
+| 位置              | 被引                   | 上下文                                                                                                                                                           |
+| ----------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `DEV_LOG.md:3131` | `docs/decisions.md §2` | - ⑤ docs:check 此刻剩 1 条 error（`dev-plan-v0.2.1.md:940` 引 `decisions.md §2` 死链）属并行会话在编文件（其 [DEV-0115] 的别名表工作正在收敛该引用），本笔不越界 |
-

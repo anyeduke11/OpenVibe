@@ -33,11 +33,7 @@ export function PackNewPage() {
             {zh.common.failed((pack.error as Error).message)}
           </span>
           <p className="text-ink-body">{laneEngineering.state.retryHint}</p>
-          <button
-            type="button"
-            className={`${btnGhost} mt-2`}
-            onClick={() => void pack.refetch()}
-          >
+          <button type="button" className={`${btnGhost} mt-2`} onClick={() => void pack.refetch()}>
             {laneEngineering.state.retry}
           </button>
         </div>

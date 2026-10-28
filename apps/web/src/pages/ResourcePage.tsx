@@ -81,7 +81,8 @@ const L = {
   failStreak: (n: number) => `连着失败 ${String(n)} 次`,
   notChecked: '还没巡检过',
   vibeTitle: '速成专区',
-  vibeHint: '这 11 条是速成专区的独立清单，**没有**分类、费用、阶段、精选这些维度（附件里就没有）⇒ 上面那些筛选只作用于主清单，这里只受关键字影响。',
+  vibeHint:
+    '这 11 条是速成专区的独立清单，**没有**分类、费用、阶段、精选这些维度（附件里就没有）⇒ 上面那些筛选只作用于主清单，这里只受关键字影响。',
   vibeGroupLabels: { tools: 'AI 工具官方指引', tuts: '工作流教程' } as Record<string, string>,
   categoryLabels: {
     official: '官方',
@@ -318,9 +319,7 @@ export function ResourcePage() {
                     {r.last_checked_at === null
                       ? L.notChecked
                       : `${L.checkedAt(r.last_checked_at)}${
-                          r.consecutive_fails > 0
-                            ? ` · ${L.failStreak(r.consecutive_fails)}`
-                            : ''
+                          r.consecutive_fails > 0 ? ` · ${L.failStreak(r.consecutive_fails)}` : ''
                         }`}
                   </span>
                 </div>
@@ -360,7 +359,9 @@ export function ResourcePage() {
                     {r.name}
                   </a>
                   {r.summary !== '' && (
-                    <p className={`${proseCls} mt-0.5 text-[12.5px] leading-relaxed text-ink-muted`}>
+                    <p
+                      className={`${proseCls} mt-0.5 text-[12.5px] leading-relaxed text-ink-muted`}
+                    >
                       {r.summary}
                     </p>
                   )}
@@ -371,9 +372,7 @@ export function ResourcePage() {
                       {r.last_checked_at === null
                         ? L.notChecked
                         : `${L.checkedAt(r.last_checked_at)}${
-                            r.consecutive_fails > 0
-                              ? ` · ${L.failStreak(r.consecutive_fails)}`
-                              : ''
+                            r.consecutive_fails > 0 ? ` · ${L.failStreak(r.consecutive_fails)}` : ''
                           }`}
                     </span>
                   </div>

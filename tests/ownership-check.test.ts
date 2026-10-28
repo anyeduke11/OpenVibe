@@ -61,7 +61,9 @@ describe('ownership-check · 判定顺序：禁区压过一切', () => {
 
 describe('ownership-check · 判定顺序：「混了」压过 owned', () => {
   it('owned 且新增行没有标志 ⇒ commit', () => {
-    const v = classifyOne(f({ path: 'apps/cli/src/commands/ask.ts', addedLines: ['export const ask = 1'] }))
+    const v = classifyOne(
+      f({ path: 'apps/cli/src/commands/ask.ts', addedLines: ['export const ask = 1'] }),
+    )
     expect(v.verdict).toBe('commit')
     expect(v.label).toBe('本会话')
   })
@@ -69,7 +71,10 @@ describe('ownership-check · 判定顺序：「混了」压过 owned', () => {
   it('⚠️ owned 但新增行命中标志 ⇒ 强制降级为 review，并点名原因', () => {
     // 这是工具的头号价值：拦住「同一文件里既有我的改动、又有别人回退」的情况。
     const v = classifyOne(
-      f({ path: 'apps/cli/src/commands/ask.ts', addedLines: ['// T12 人日未估', 'export const ask = 1'] }),
+      f({
+        path: 'apps/cli/src/commands/ask.ts',
+        addedLines: ['// T12 人日未估', 'export const ask = 1'],
+      }),
     )
     expect(v.verdict).toBe('review')
     expect(v.label).toBe('疑似混入他人改动')
@@ -163,7 +168,11 @@ describe('ownership-check · 未判定与计数', () => {
 
   it('排序恒为 hold → review → commit', () => {
     const r = classify(
-      [f({ path: 'apps/cli/src/z.ts' }), f({ path: 'apps/web/src/a.tsx' }), f({ path: 'apps/cli/src/y.ts', addedLines: ['// M4 未上'] })],
+      [
+        f({ path: 'apps/cli/src/z.ts' }),
+        f({ path: 'apps/web/src/a.tsx' }),
+        f({ path: 'apps/cli/src/y.ts', addedLines: ['// M4 未上'] }),
+      ],
       { forbidden: FORBIDDEN, owned: OWNED, markers: DEFAULT_MARKERS },
     )
     expect(r.files.map((v) => v.verdict)).toEqual(['hold', 'review', 'commit'])
@@ -179,7 +188,10 @@ describe('ownership-check · 未判定与计数', () => {
 describe('ownership-check · 报告渲染', () => {
   it('报告含三类计数与「不要整文件 add」的对策', () => {
     const r = classify(
-      [f({ path: 'apps/web/src/a.tsx' }), f({ path: 'packages/shared/src/c.ts', addedLines: ['// 人日未估'] })],
+      [
+        f({ path: 'apps/web/src/a.tsx' }),
+        f({ path: 'packages/shared/src/c.ts', addedLines: ['// 人日未估'] }),
+      ],
       { forbidden: FORBIDDEN, owned: [], markers: DEFAULT_MARKERS },
     )
     const text = renderReport(r)

@@ -8,9 +8,7 @@ import { AppShell } from './components/AppShell'
  * 没有这一层它们全都会挤进首屏那一个文件里。
  * 命名导出需过一层 `{ default }` 适配——`lazy` 只认默认导出。
  */
-const GrowthPage = lazy(() =>
-  import('./pages/GrowthPage').then((m) => ({ default: m.GrowthPage })),
-)
+const GrowthPage = lazy(() => import('./pages/GrowthPage').then((m) => ({ default: m.GrowthPage })))
 const WorkbenchPage = lazy(() =>
   import('./pages/WorkbenchPage').then((m) => ({ default: m.WorkbenchPage })),
 )

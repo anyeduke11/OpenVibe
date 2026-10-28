@@ -103,7 +103,11 @@ describe('0007 迁移与 shared 常量的双源一致性', () => {
     // M8 五项 ＋ M3 AI 一项（P5 新增）。⚠️ 写死计数是有意的：扩项必须在这里被看见，
     // 否则「悄悄多了一项」不会有任何人察觉。
     expect(AGENT_EVENT_KINDS).toHaveLength(8)
-    expect(AGENT_AI_EVENT_KINDS).toEqual(['ai_recommend_call', 'ai_extract_call', 'ai_discuss_call'])
+    expect(AGENT_AI_EVENT_KINDS).toEqual([
+      'ai_recommend_call',
+      'ai_extract_call',
+      'ai_discuss_call',
+    ])
     // M9 v1.6 P0 预声明 4 项。⚠️ 这 4 项在 P0 还**没有被任何 `INSERT` 引用** —— 它们要靠
     // P1 写的迁移 0011 建新表（SQLite 不能 ALTER CHECK）才会真正落地；当下
     // LANG_EVENT_KINDS 只是**声明**，与 P0-pre 阶段的「禁列扫描器接 lang_* 命名空间」
@@ -115,19 +119,21 @@ describe('0007 迁移与 shared 常量的双源一致性', () => {
   it('⚠️ 每份历史迁移的 CHECK 闭集都必须是当前集的前缀（否则历史行会因新定义而非法）', () => {
     const current = [...LOCAL_EVENT_KINDS]
     for (const { file } of MIGRATIONS) {
-      const re = /local_events(?:_[a-z0-9]+)?\s*\([\s\S]*?kind\s+TEXT[^)]*?CHECK\s*\(\s*kind\s+IN\s*\(([\s\S]*?)\)\)/i
+      const re =
+        /local_events(?:_[a-z0-9]+)?\s*\([\s\S]*?kind\s+TEXT[^)]*?CHECK\s*\(\s*kind\s+IN\s*\(([\s\S]*?)\)\)/i
       const m = file.match(re)
       if (!m) continue
       const lits = [...(m[1] as string).matchAll(/'([^']+)'/g)].map((x) => x[1]!)
-      expect(
-        lits,
-        `${file} 的 local_events.kind 闭集不是当前 LOCAL_EVENT_KINDS 的前缀`,
-      ).toEqual(current.slice(0, lits.length))
+      expect(lits, `${file} 的 local_events.kind 闭集不是当前 LOCAL_EVENT_KINDS 的前缀`).toEqual(
+        current.slice(0, lits.length),
+      )
     }
   })
 
   it('台账 kind 与遥测三事件严格不同名（台账永不出网、遥测默认关，混名会让误解被代码坐实）', () => {
-    const overlap = LOCAL_EVENT_KINDS.filter((k) => (TELEMETRY_EVENTS as readonly string[]).includes(k))
+    const overlap = LOCAL_EVENT_KINDS.filter((k) =>
+      (TELEMETRY_EVENTS as readonly string[]).includes(k),
+    )
     expect(overlap).toEqual([])
   })
 

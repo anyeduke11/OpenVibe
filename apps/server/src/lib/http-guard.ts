@@ -18,13 +18,19 @@ export function isPublicIp(ip: string): boolean {
     if (mapped?.[1] !== undefined) return isPublicIp(mapped[1])
     const first = Number.parseInt(ip.split(':')[0] ?? 'ffff', 16)
     if (!Number.isFinite(first)) return false
-    if (first === 0 || first === 0xfe80 || (first & 0xfe00) === 0xfc00 || (first & 0xff00) === 0xff00) {
+    if (
+      first === 0 ||
+      first === 0xfe80 ||
+      (first & 0xfe00) === 0xfc00 ||
+      (first & 0xff00) === 0xff00
+    ) {
       return false
     }
     return true
   }
   const parts = ip.split('.').map(Number)
-  if (parts.length !== 4 || parts.some((p) => !Number.isInteger(p) || p < 0 || p > 255)) return false
+  if (parts.length !== 4 || parts.some((p) => !Number.isInteger(p) || p < 0 || p > 255))
+    return false
   const [a, b] = parts as [number, number, number, number]
   if (a === 0 || a === 10 || a === 127) return false
   if (a === 100 && b >= 64 && b <= 127) return false // CGNAT 100.64/10
@@ -78,7 +84,10 @@ export async function assertRemoteUrl(
   }
   for (const { address } of addresses) {
     if (!isPublicIp(address)) {
-      throw new AppError('FORBIDDEN_ORIGIN', `${url.hostname} 解析到私有/保留地址 ${address}，已拦截`)
+      throw new AppError(
+        'FORBIDDEN_ORIGIN',
+        `${url.hostname} 解析到私有/保留地址 ${address}，已拦截`,
+      )
     }
   }
   return url
@@ -109,7 +118,10 @@ export async function guardedFetch(
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get('location')
       if (location === null) {
-        throw new AppError('REMOTE_UNREACHABLE', `远端 ${res.status} 重定向但缺 Location: ${current}`)
+        throw new AppError(
+          'REMOTE_UNREACHABLE',
+          `远端 ${res.status} 重定向但缺 Location: ${current}`,
+        )
       }
       current = new URL(location, url).toString()
       continue
@@ -124,7 +136,11 @@ export async function guardedJson<T>(
   fetchImpl: typeof fetch = fetch,
   headers: Record<string, string> = {},
 ): Promise<T> {
-  const res = await guardedFetch(rawUrl, { headers: { accept: 'application/json', ...headers } }, fetchImpl)
+  const res = await guardedFetch(
+    rawUrl,
+    { headers: { accept: 'application/json', ...headers } },
+    fetchImpl,
+  )
   if (!res.ok) {
     throw new AppError('REMOTE_UNREACHABLE', `远端 ${res.status}: ${rawUrl}`)
   }

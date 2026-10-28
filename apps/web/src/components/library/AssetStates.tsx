@@ -21,9 +21,14 @@ export function AssetSkeleton(props: { rows?: number; label?: string }) {
     <div className="px-5 py-3" role="status" aria-live="polite" aria-busy="true">
       <span className="sr-only">{props.label ?? zh.common.loading}</span>
       {Array.from({ length: props.rows ?? 6 }, (_, i) => (
-        <div key={i} className="flex items-center gap-3 border-b border-line-hair py-2 last:border-0">
+        <div
+          key={i}
+          className="flex items-center gap-3 border-b border-line-hair py-2 last:border-0"
+        >
           {/* 主行宽窄交错，读起来像条目而不是等宽色块 */}
-          <div className={`${skelCls} h-3.5 ${i % 3 === 0 ? 'w-2/5' : i % 3 === 1 ? 'w-1/3' : 'w-2/7'}`} />
+          <div
+            className={`${skelCls} h-3.5 ${i % 3 === 0 ? 'w-2/5' : i % 3 === 1 ? 'w-1/3' : 'w-2/7'}`}
+          />
           <div className={`${skelCls} h-3 ${i % 2 === 0 ? 'w-1/6' : 'w-1/8'}`} />
           <div className={`${skelCls} ml-auto h-3 w-16`} />
         </div>

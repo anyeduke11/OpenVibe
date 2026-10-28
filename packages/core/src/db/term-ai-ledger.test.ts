@@ -63,11 +63,17 @@ describe('P5 · FR-9.1 留痕的最小可复盘集', () => {
       'result',
     ])
     // 画像只留指纹：键名必须是 hash 语义，且不含任何内容语义
-    expect(KEYS.filter((k) => /text|body|content|snapshot|checklist|prompt|contentRaw/i.test(k))).toEqual([])
+    expect(
+      KEYS.filter((k) => /text|body|content|snapshot|checklist|prompt|contentRaw/i.test(k)),
+    ).toEqual([])
   })
 
   it('⚠️ 按声明形状造出的 P4 形态 payload 过得去禁列扫描器（自证：脏的那份过不去）', () => {
-    const clean = { payload_json: JSON.stringify(makeP4Payload()), subject_type: 'project', subject_id: 'prj_1' }
+    const clean = {
+      payload_json: JSON.stringify(makeP4Payload()),
+      subject_type: 'project',
+      subject_id: 'prj_1',
+    }
     expect(scanForbidden(clean)).toEqual([])
 
     // 反向腿：把 checklist 原文塞进 payload，扫描器**不认**它（正文靠写入点白名单，不靠正则）

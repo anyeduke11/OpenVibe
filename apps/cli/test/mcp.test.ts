@@ -55,7 +55,10 @@ async function startMcp(envHome: string): Promise<McpProc> {
   }
   const nextResponse = (timeoutMs = 8000): Promise<Record<string, unknown>> =>
     new Promise((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error(`MCP 响应超时（等待 ${String(timeoutMs)}ms）`)), timeoutMs)
+      const t = setTimeout(
+        () => reject(new Error(`MCP 响应超时（等待 ${String(timeoutMs)}ms）`)),
+        timeoutMs,
+      )
       const poll = (): void => {
         const line = lines.shift()
         if (line === undefined) {
@@ -93,9 +96,18 @@ describe('openvibe mcp（stdio JSON-RPC，只读三工具）', () => {
   })
 
   it('MCP-01: initialize 握手——回显协议版本、capabilities.tools、serverInfo', async () => {
-    proc.send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } })
+    proc.send({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: { protocolVersion: '2025-06-18' },
+    })
     const res = await proc.nextResponse()
-    const result = res.result as { protocolVersion?: string; capabilities?: Record<string, unknown>; serverInfo?: { name?: string } }
+    const result = res.result as {
+      protocolVersion?: string
+      capabilities?: Record<string, unknown>
+      serverInfo?: { name?: string }
+    }
     expect(result.protocolVersion).toBe('2025-06-18')
     expect(result.capabilities?.tools).toBeDefined()
     expect(result.serverInfo?.name).toBe('openvibe')
@@ -107,8 +119,14 @@ describe('openvibe mcp（stdio JSON-RPC，只读三工具）', () => {
   it('MCP-02: tools/list 恰好三只读工具，inputSchema 齐', async () => {
     proc.send({ jsonrpc: '2.0', id: 2, method: 'tools/list' })
     const res = await proc.nextResponse()
-    const tools = (res.result as { tools: { name: string; inputSchema: Record<string, unknown> }[] }).tools
-    expect(tools.map((t) => t.name).sort()).toEqual(['pack_diff', 'project_context', 'search_assets'])
+    const tools = (
+      res.result as { tools: { name: string; inputSchema: Record<string, unknown> }[] }
+    ).tools
+    expect(tools.map((t) => t.name).sort()).toEqual([
+      'pack_diff',
+      'project_context',
+      'search_assets',
+    ])
     for (const t of tools) {
       expect(t.inputSchema.type).toBe('object')
       expect(Object.keys(t.inputSchema).length).toBeGreaterThan(0)
@@ -122,7 +140,12 @@ describe('openvibe mcp（stdio JSON-RPC，只读三工具）', () => {
     const bundlePath = writeBundleFile(root, demoPack())
     await syncAction({ projectPath: project, file: bundlePath, yes: true }, {})
 
-    proc.send({ jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'pack_diff', arguments: { project_dir: project } } })
+    proc.send({
+      jsonrpc: '2.0',
+      id: 3,
+      method: 'tools/call',
+      params: { name: 'pack_diff', arguments: { project_dir: project } },
+    })
     const res = await proc.nextResponse()
     const result = res.result as { isError?: boolean; content: { text: string }[] }
     expect(result.isError).toBeUndefined()
@@ -135,9 +158,16 @@ describe('openvibe mcp（stdio JSON-RPC，只读三工具）', () => {
     const before = readFileSync(terms, 'utf8')
     const { writeFileSync } = await import('node:fs')
     writeFileSync(terms, `${before}\n手改\n`, 'utf8')
-    proc.send({ jsonrpc: '2.0', id: 4, method: 'tools/call', params: { name: 'pack_diff', arguments: { project_dir: project } } })
+    proc.send({
+      jsonrpc: '2.0',
+      id: 4,
+      method: 'tools/call',
+      params: { name: 'pack_diff', arguments: { project_dir: project } },
+    })
     const res2 = await proc.nextResponse()
-    const payload2 = JSON.parse((res2.result as { content: { text: string }[] }).content[0]?.text ?? '{}') as {
+    const payload2 = JSON.parse(
+      (res2.result as { content: { text: string }[] }).content[0]?.text ?? '{}',
+    ) as {
       clean: boolean
       drifted: { path: string }[]
     }
@@ -146,13 +176,23 @@ describe('openvibe mcp（stdio JSON-RPC，只读三工具）', () => {
   })
 
   it('MCP-04: serve 不可达 ⇒ project_context / search_assets 返回 isError + 人话（含「先 openvibe serve」）', async () => {
-    proc.send({ jsonrpc: '2.0', id: 5, method: 'tools/call', params: { name: 'project_context', arguments: { project_id: 'prj_x' } } })
+    proc.send({
+      jsonrpc: '2.0',
+      id: 5,
+      method: 'tools/call',
+      params: { name: 'project_context', arguments: { project_id: 'prj_x' } },
+    })
     const res = await proc.nextResponse()
     const result = res.result as { isError?: boolean; content: { text: string }[] }
     expect(result.isError).toBe(true)
     expect(result.content[0]?.text).toContain('openvibe serve')
 
-    proc.send({ jsonrpc: '2.0', id: 6, method: 'tools/call', params: { name: 'search_assets', arguments: { query: '术语' } } })
+    proc.send({
+      jsonrpc: '2.0',
+      id: 6,
+      method: 'tools/call',
+      params: { name: 'search_assets', arguments: { query: '术语' } },
+    })
     const res2 = await proc.nextResponse()
     const result2 = res2.result as { isError?: boolean; content: { text: string }[] }
     expect(result2.isError).toBe(true)
@@ -171,7 +211,12 @@ describe('openvibe mcp（stdio JSON-RPC，只读三工具）', () => {
     const res = await proc.nextResponse()
     expect((res.error as { code: number }).code).toBe(-32601)
 
-    proc.send({ jsonrpc: '2.0', id: 8, method: 'tools/call', params: { name: 'delete_everything', arguments: {} } })
+    proc.send({
+      jsonrpc: '2.0',
+      id: 8,
+      method: 'tools/call',
+      params: { name: 'delete_everything', arguments: {} },
+    })
     const res2 = await proc.nextResponse()
     const result2 = res2.result as { isError?: boolean; content: { text: string }[] }
     expect(result2.isError).toBe(true)

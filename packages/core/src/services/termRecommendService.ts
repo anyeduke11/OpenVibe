@@ -92,7 +92,10 @@ function stageHits(
  * 项目绑定的 skill：包未绑定时这里是空表，1.0 因子恒为 0 —— **如实为 0，不回退到「全部已装 skill」**。
  * 回退会让 438 条已装 skill 全变成候选，「项目绑定的 skill」这条约束就名存实亡了。
  */
-function boundSkillsOf(db: SqliteDatabase, project: ProjectOut): { name: string; description: string }[] {
+function boundSkillsOf(
+  db: SqliteDatabase,
+  project: ProjectOut,
+): { name: string; description: string }[] {
   if (project.standardPackId === null) return []
   const pack = new PacksRepo(db).get(project.standardPackId)
   if (pack === null) return []

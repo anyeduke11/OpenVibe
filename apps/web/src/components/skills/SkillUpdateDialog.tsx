@@ -96,14 +96,12 @@ export function SkillUpdateDialog(props: { open: boolean; onClose: () => void })
       </span>
       <span className="min-w-0 flex-1 truncate font-medium text-ink-body">{item.name}</span>
       {item.note !== undefined && (
-        <span className="hidden max-w-56 truncate text-[11px] text-ink-faint md:block">{item.note}</span>
+        <span className="hidden max-w-56 truncate text-[11px] text-ink-faint md:block">
+          {item.note}
+        </span>
       )}
       {item.status === 'remoteChanged' && (
-        <button
-          className={btnGhost}
-          disabled={importing !== null}
-          onClick={() => reimport(item)}
-        >
+        <button className={btnGhost} disabled={importing !== null} onClick={() => reimport(item)}>
           {importing === item.skillId ? zh.skills.updates.importing : zh.skills.updates.importNow}
         </button>
       )}
@@ -130,7 +128,11 @@ export function SkillUpdateDialog(props: { open: boolean; onClose: () => void })
                   : zh.skills.updates.retrackNow(untracked.length)}
               </button>
             )}
-            <button className={btnPrimary} disabled={check.isPending} onClick={() => check.mutate({})}>
+            <button
+              className={btnPrimary}
+              disabled={check.isPending}
+              onClick={() => check.mutate({})}
+            >
               {check.isPending ? zh.skills.updates.checking : zh.skills.updates.rerun}
             </button>
           </>
@@ -139,7 +141,9 @@ export function SkillUpdateDialog(props: { open: boolean; onClose: () => void })
         <div className="space-y-3 text-sm">
           <p className="text-xs text-ink-muted">{zh.skills.updates.hint}</p>
           {check.isError && <p className="text-xs text-warn">{(check.error as Error).message}</p>}
-          {check.isPending && <p className="text-xs text-ink-muted">{zh.skills.updates.checking}</p>}
+          {check.isPending && (
+            <p className="text-xs text-ink-muted">{zh.skills.updates.checking}</p>
+          )}
           {report !== undefined && (
             <>
               <p className={`${noteCls('info')} text-ink-body`}>

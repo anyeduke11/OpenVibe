@@ -250,34 +250,101 @@ export interface ExternalFileSchema {
 
 export const EXTERNAL_FILE_SCHEMAS: Record<string, ExternalFileSchema> = {
   'docs/devlog-evidence/M9-probe/runoob-python3-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source', 'source_freshness'],
+    topLevel: [
+      '_readme',
+      'caveats',
+      'collect_method',
+      'collected_at',
+      'counts',
+      'items',
+      'link_probe',
+      'source',
+      'source_freshness',
+    ],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   'docs/devlog-evidence/M9-probe/runoob-go-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source', 'source_freshness'],
+    topLevel: [
+      '_readme',
+      'caveats',
+      'collect_method',
+      'collected_at',
+      'counts',
+      'items',
+      'link_probe',
+      'source',
+      'source_freshness',
+    ],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   'docs/devlog-evidence/M9-probe/aux-sources-structure.json': {
     topLevel: ['_readme', 'aggregate', 'collected_at', 'method', 'sources'],
-    itemKeys: ['name', 'kind', 'md_count', 'sections', 'list_items', 'structure', 'note', 'last_pushed'],
+    itemKeys: [
+      'name',
+      'kind',
+      'md_count',
+      'sections',
+      'list_items',
+      'structure',
+      'note',
+      'last_pushed',
+    ],
   },
   // ⚠️ **GitHub 家族四份**（目录树 2 ＋ README 清单 2）。
   //   前两份做了 HEAD 验链 ⇒ 有 `link_probe`；后两份**刻意没做**（4047 条第三方外链
   //   的存活调查不是本模块的责任）⇒ 无 `link_probe`。**闭集是逐文件的**，不是一刀切。
   'docs/devlog-evidence/M9-probe/xinliangnote-go-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source', 'source_freshness'],
+    topLevel: [
+      '_readme',
+      'caveats',
+      'collect_method',
+      'collected_at',
+      'counts',
+      'items',
+      'link_probe',
+      'source',
+      'source_freshness',
+    ],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   'docs/devlog-evidence/M9-probe/walter201230-python-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'link_probe', 'source', 'source_freshness'],
+    topLevel: [
+      '_readme',
+      'caveats',
+      'collect_method',
+      'collected_at',
+      'counts',
+      'items',
+      'link_probe',
+      'source',
+      'source_freshness',
+    ],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   'docs/devlog-evidence/M9-probe/awesome-python-cn-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'source', 'source_freshness'],
+    topLevel: [
+      '_readme',
+      'caveats',
+      'collect_method',
+      'collected_at',
+      'counts',
+      'items',
+      'source',
+      'source_freshness',
+    ],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   'docs/devlog-evidence/M9-probe/awesome-go-inventory.json': {
-    topLevel: ['_readme', 'caveats', 'collect_method', 'collected_at', 'counts', 'items', 'source', 'source_freshness'],
+    topLevel: [
+      '_readme',
+      'caveats',
+      'collect_method',
+      'collected_at',
+      'counts',
+      'items',
+      'source',
+      'source_freshness',
+    ],
     itemKeys: ['ordinal', 'section', 'title', 'url'],
   },
   // ⚠️ **内容指纹产物** —— 字段闭集只有 `url` / `sha256` / `bytes`：
@@ -392,16 +459,7 @@ export const EXTERNAL_FILE_SCHEMAS: Record<string, ExternalFileSchema> = {
   //   §3.2 版权纪律允许「要点可入库，长文正文不入库」⇒ `points[]` 是合法字段。
   'packages/core/src/db/seeds/lang_profile_phases.json': {
     topLevel: ['_notes', 'collected_at', 'items', 'schemaVersion'],
-    itemKeys: [
-      'duration_label',
-      'label',
-      'lang',
-      'ord',
-      'outcome',
-      'points',
-      'profile',
-      'title',
-    ],
+    itemKeys: ['duration_label', 'label', 'lang', 'ord', 'outcome', 'points', 'profile', 'title'],
     notesKeys: ['collect_method', 'empty_outcome', 'outcome_prefixes', 'points_note', 'source'],
     // ⚠️ **只放宽 `points` 一个字段**：附件里最长的那条要点 81 字符
     //   （Go 精通第 4 段的 goroutine/channel/select 那串）⇒ 比通用上限 80 多 1。
@@ -413,15 +471,7 @@ export const EXTERNAL_FILE_SCHEMAS: Record<string, ExternalFileSchema> = {
   //   ⚠️ `mode_name` 最长 28 字符、`goals` 最长 49、`period` 最长 24 ⇒ **不必放宽上限**。
   'packages/core/src/db/seeds/lang_stage_tracks.json': {
     topLevel: ['_notes', 'collected_at', 'items', 'schemaVersion'],
-    itemKeys: [
-      'goals',
-      'lang',
-      'mode_name',
-      'period',
-      'source_mode',
-      'stage_id',
-      'stage_name',
-    ],
+    itemKeys: ['goals', 'lang', 'mode_name', 'period', 'source_mode', 'stage_id', 'stage_name'],
     notesKeys: [
       'collect_method',
       'eight_cells_six_rows',
@@ -547,7 +597,9 @@ export function scanExternalJson(file: string, content: string): ContentViolatio
   try {
     parsed = JSON.parse(content)
   } catch (err) {
-    return [{ file, where: '(整份文件)', rule: 'body-field', detail: `JSON 不可解析: ${String(err)}` }]
+    return [
+      { file, where: '(整份文件)', rule: 'body-field', detail: `JSON 不可解析: ${String(err)}` },
+    ]
   }
 
   const hits: StringHit[] = []
@@ -562,7 +614,12 @@ export function scanExternalJson(file: string, content: string): ContentViolatio
     if (v && typeof v === 'object') {
       for (const [k, x] of Object.entries(v as Record<string, unknown>)) {
         if (BODY_FIELD_NAMES.includes(k.toLowerCase())) {
-          out.push({ file, where: path === '' ? k : `${path}.${k}`, rule: 'body-field', detail: `正文字段名「${k}」` })
+          out.push({
+            file,
+            where: path === '' ? k : `${path}.${k}`,
+            rule: 'body-field',
+            detail: `正文字段名「${k}」`,
+          })
         }
         checkKeys(x, path === '' ? k : `${path}.${k}`)
       }
@@ -591,12 +648,22 @@ export function scanExternalJson(file: string, content: string): ContentViolatio
       const notesKeys = Object.keys(notes).sort()
       for (const k of notesKeys) {
         if (!schema.notesKeys.includes(k)) {
-          out.push({ file, where: `_notes.${k}`, rule: 'unknown-field', detail: `_notes 出现未登记字段「${k}」` })
+          out.push({
+            file,
+            where: `_notes.${k}`,
+            rule: 'unknown-field',
+            detail: `_notes 出现未登记字段「${k}」`,
+          })
         }
       }
       for (const k of schema.notesKeys) {
         if (!notesKeys.includes(k)) {
-          out.push({ file, where: `_notes.${k}`, rule: 'missing-field', detail: `_notes 缺登记字段「${k}」` })
+          out.push({
+            file,
+            where: `_notes.${k}`,
+            rule: 'missing-field',
+            detail: `_notes 缺登记字段「${k}」`,
+          })
         }
       }
     }
@@ -620,7 +687,12 @@ export function scanExternalJson(file: string, content: string): ContentViolatio
       }
       for (const k of schema.itemKeys) {
         if (!union.has(k)) {
-          out.push({ file, where: `items.${k}`, rule: 'missing-field', detail: `条目里登记字段「${k}」从未出现` })
+          out.push({
+            file,
+            where: `items.${k}`,
+            rule: 'missing-field',
+            detail: `条目里登记字段「${k}」从未出现`,
+          })
         }
       }
     }
@@ -709,7 +781,12 @@ export function scanExternalScript(file: string, content: string): ContentViolat
     if (!isHashOnly) {
       for (const tok of BODY_SCRAPER_TOKENS) {
         if (line.includes(tok)) {
-          out.push({ file, where: `第 ${i + 1} 行`, rule: 'body-scraper', detail: `出现正文抽取器痕迹「${tok}」` })
+          out.push({
+            file,
+            where: `第 ${i + 1} 行`,
+            rule: 'body-scraper',
+            detail: `出现正文抽取器痕迹「${tok}」`,
+          })
         }
       }
     }
@@ -717,7 +794,12 @@ export function scanExternalScript(file: string, content: string): ContentViolat
       // 只认「引号键访问」：`['body']` / `["body"]` / `'body':`
       const re = new RegExp(`(['"])${name}\\1|['"]${name}['"]\\s*:`)
       if (re.test(line)) {
-        out.push({ file, where: `第 ${i + 1} 行`, rule: 'body-field', detail: `以键访问形式取用正文字段「${name}」` })
+        out.push({
+          file,
+          where: `第 ${i + 1} 行`,
+          rule: 'body-field',
+          detail: `以键访问形式取用正文字段「${name}」`,
+        })
       }
     }
     const run = longestChineseRun(line)
@@ -735,7 +817,9 @@ export function scanExternalScript(file: string, content: string): ContentViolat
 
 /** 按扩展名分派到 JSON / 脚本两种扫描器。 */
 export function scanExternalFile(file: string, content: string): ContentViolation[] {
-  return file.endsWith('.json') ? scanExternalJson(file, content) : scanExternalScript(file, content)
+  return file.endsWith('.json')
+    ? scanExternalJson(file, content)
+    : scanExternalScript(file, content)
 }
 
 /** 扫整个外部源派生层（相对仓库根）。 */
@@ -746,7 +830,12 @@ export function scanExternalLayer(repoRoot: string): ContentViolation[] {
     try {
       content = readFileSync(join(repoRoot, rel), 'utf8')
     } catch (err) {
-      out.push({ file: rel, where: '(整份文件)', rule: 'body-field', detail: `读不到：${String(err)}` })
+      out.push({
+        file: rel,
+        where: '(整份文件)',
+        rule: 'body-field',
+        detail: `读不到：${String(err)}`,
+      })
       continue
     }
     out.push(...scanExternalFile(rel, content))
@@ -774,7 +863,12 @@ export function scanDirectoryClosure(
     try {
       entries = readdirSync(join(repoRoot, dir))
     } catch (err) {
-      out.push({ file: dir, where: '(目录)', rule: 'unregistered-file', detail: `读不到目录：${String(err)}` })
+      out.push({
+        file: dir,
+        where: '(目录)',
+        rule: 'unregistered-file',
+        detail: `读不到目录：${String(err)}`,
+      })
       continue
     }
     for (const name of entries) {

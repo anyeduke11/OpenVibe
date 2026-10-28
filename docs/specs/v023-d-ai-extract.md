@@ -1,14 +1,14 @@
 # SPEC · v0.2.3 批次 D：AI 提取闭环（G4 · AN1 LLM 候选提取 + AN4 治理面 + AN5 影子门槛）
 
-| 项 | 值 |
-|------|------|
-| 模块 | **v0.2.3 · 批次 D / 目标 G4**。对应 PRD `docs/PRD-v0.2.3-v1.0-20261024.md` 第 4 章的 AN1（LLM 推断式候选提取）、AN4（治理面：同意/台账/预算/开关）、AN5（质量判据与影子门槛）。三者**同批不可拆**——提取没有治理面不得出网，治理面没有质量判据不得常态化。问答与生态（AN2/AN3）在 `v023-e-ai-assistant.md` |
-| 优先级 | **P0（AI 线内）**。判级构成：除采纳率面板（C）外全部 **B**（新增表 + 新增 kind + 新增出网场景 + 服务层总闸）。逐项判级见 §4；一切判级均为预判，判级权在 owner（dev-plan §0.3） |
-| 上游 | `docs/PRD-v0.2.3-v1.0-20261024.md`（§1 E11、§4 AN1/AN4/AN5、§6 架构与九条红线、§7 批次 D、§9 反例 5/6/7）· **裁定登记**：owner 2026-10-24 指令启用 LLM 推断式候选提取；分析文 §5.4 CP4 的两个启用条件（B 级裁定 + 质量判据）由该裁定与 QG1–QG4 闭合 · `docs/specs/m4-playbook.md` §2 Out（被本裁定反转的条文，升版处置见 PRD §11）· `docs/specs/m8-agent-bridge.md`（pending→review→dispatch 管道与幂等三态，本 spec 的复用单源） |
+| 项       | 值                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 模块     | **v0.2.3 · 批次 D / 目标 G4**。对应 PRD `docs/PRD-v0.2.3-v1.0-20261024.md` 第 4 章的 AN1（LLM 推断式候选提取）、AN4（治理面：同意/台账/预算/开关）、AN5（质量判据与影子门槛）。三者**同批不可拆**——提取没有治理面不得出网，治理面没有质量判据不得常态化。问答与生态（AN2/AN3）在 `v023-e-ai-assistant.md`                                                                                                                                                                                                   |
+| 优先级   | **P0（AI 线内）**。判级构成：除采纳率面板（C）外全部 **B**（新增表 + 新增 kind + 新增出网场景 + 服务层总闸）。逐项判级见 §4；一切判级均为预判，判级权在 owner（dev-plan §0.3）                                                                                                                                                                                                                                                                                                                              |
+| 上游     | `docs/PRD-v0.2.3-v1.0-20261024.md`（§1 E11、§4 AN1/AN4/AN5、§6 架构与九条红线、§7 批次 D、§9 反例 5/6/7）· **裁定登记**：owner 2026-10-24 指令启用 LLM 推断式候选提取；分析文 §5.4 CP4 的两个启用条件（B 级裁定 + 质量判据）由该裁定与 QG1–QG4 闭合 · `docs/specs/m4-playbook.md` §2 Out（被本裁定反转的条文，升版处置见 PRD §11）· `docs/specs/m8-agent-bridge.md`（pending→review→dispatch 管道与幂等三态，本 spec 的复用单源）                                                                           |
 | 下游设计 | `packages/core/src/source-ai/`（provider-config / http-runner / keychain / redact / ledger / snippet——**只 import 不改**，除非 §6 声明）· `packages/core/src/services/agentService.ts`（`agentWriteEnabled` 总闸形制、`reviewIngest`/`dispatchPublish`）· `packages/core/src/db/migrations/`（0007 `agent_ingests` 表形、0010 台账 kind CHECK 先例；**SQLite 不能 ALTER CHECK ⇒ 扩 kind 必须开新迁移**）· `docs/design.md` §11.5（遥测白名单，本 spec **不触碰**——AI 出网走自己的 consent，与遥测是两件事） |
-| 关联任务 | **无**（任务号待本 spec 裁定后在 tasks.md 另起） |
-| 版本 | **v1.0（2026-10-24）**。§8.2 四处已按 owner「按建议进行 D 批次收尾」指令定稿即现实现（裁定记录见该节）；§7 验收 11 条全部落地（EXT-01…16，16 支用例）；DEV-0142/0143/0144 |
-| 采样 | 2026-10-24 本机工作树 |
+| 关联任务 | **无**（任务号待本 spec 裁定后在 tasks.md 另起）                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 版本     | **v1.0（2026-10-24）**。§8.2 四处已按 owner「按建议进行 D 批次收尾」指令定稿即现实现（裁定记录见该节）；§7 验收 11 条全部落地（EXT-01…16，16 支用例）；DEV-0142/0143/0144                                                                                                                                                                                                                                                                                                                                   |
+| 采样     | 2026-10-24 本机工作树                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ---
 
@@ -20,31 +20,31 @@
 
 ## 2. 范围
 
-| **In** | **Out（明确不做，写明理由与去向）** |
-|---|---|
-| Web 提取入口：日志详情页「提取候选」+ 日志多选批量（FR-1） | **CLI 提取入口 `openvibe extract`**（P2 待裁：先验证 Web 入口使用率，PRD §3.2） |
+| **In**                                                                           | **Out（明确不做，写明理由与去向）**                                                                                        |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Web 提取入口：日志详情页「提取候选」+ 日志多选批量（FR-1）                       | **CLI 提取入口 `openvibe extract`**（P2 待裁：先验证 Web 入口使用率，PRD §3.2）                                            |
 | `core/src/extract/` 新目录：service 编排 + zod 契约 + 锚定校验纯函数（FR-2/3/4） | **复用 `lang_source_consent` 表**——用途域不同（源码片段 vs 日志正文），共用会让清除动作互相污染（最小授权，PRD §6 要点 1） |
-| `agent_ingests` 扩三个候选 kind + 迁移扩 CHECK（FR-5） | **新开候选表**——pending→review→dispatch 机器、幂等三态、Web 纪律全部白得，代价只是一次迁移（PRD §6 要点 2） |
-| `dispatchPublish` 三分支：terms/prompts/playbooks 草稿入库（FR-6） | **AI 直写业务表 / 自动确认 / 批量默认通过**——红线 1/7 永不豁免 |
-| `ai_extract_consent` 表 + 出网同意流程（FR-7） | **全局同意**。逐项目粒度（防跨项目授权泄漏，平移 `lang_source_consent` 语义） |
-| 台账 kind `ai_extract_call`（FR-8） | **payload 增加正文容器**——白名单逐键构造，日志原文在类型上进不来（DL-16 纪律） |
-| 预算熔断：单次 token 预算 + 每日上限（FR-9） | **静默降质**（换小模型、砍候选数凑预算）——超限就拒绝并如实提示 |
-| 提取总闸（FR-10）：默认关，形态对齐 M8 `agentWriteEnabled` | **总闸默认开**——出网能力默认关是本产品信任模型的延续 |
-| 影子门槛：采纳率面板 + 连续低采纳自动降级建议（FR-11） | **强制关闭已开项目**——门槛触发只出横幅 + 新项目默认关，已开项目尊重用户选择 |
+| `agent_ingests` 扩三个候选 kind + 迁移扩 CHECK（FR-5）                           | **新开候选表**——pending→review→dispatch 机器、幂等三态、Web 纪律全部白得，代价只是一次迁移（PRD §6 要点 2）                |
+| `dispatchPublish` 三分支：terms/prompts/playbooks 草稿入库（FR-6）               | **AI 直写业务表 / 自动确认 / 批量默认通过**——红线 1/7 永不豁免                                                             |
+| `ai_extract_consent` 表 + 出网同意流程（FR-7）                                   | **全局同意**。逐项目粒度（防跨项目授权泄漏，平移 `lang_source_consent` 语义）                                              |
+| 台账 kind `ai_extract_call`（FR-8）                                              | **payload 增加正文容器**——白名单逐键构造，日志原文在类型上进不来（DL-16 纪律）                                             |
+| 预算熔断：单次 token 预算 + 每日上限（FR-9）                                     | **静默降质**（换小模型、砍候选数凑预算）——超限就拒绝并如实提示                                                             |
+| 提取总闸（FR-10）：默认关，形态对齐 M8 `agentWriteEnabled`                       | **总闸默认开**——出网能力默认关是本产品信任模型的延续                                                                       |
+| 影子门槛：采纳率面板 + 连续低采纳自动降级建议（FR-11）                           | **强制关闭已开项目**——门槛触发只出横幅 + 新项目默认关，已开项目尊重用户选择                                                |
 
 ## 3. 现状与实测基线（采样：2026-10-24）
 
-| # | 量 | 现测值 | 复算命令 |
-|---|---|---|---|
-| 1 | 确认管道 | `agentService.ts` 的 `ingestBatch`（写侧总闸 `agentWriteEnabled` 默认关、批量上限 20、幂等三态）+ `reviewIngest`（**唯一确认入口**，首次裁决才 `dispatchPublish`）已实装 | `grep -n 'agentWriteEnabled\|reviewIngest\|dispatchPublish' packages/core/src/services/agentService.ts \| head -5` |
-| 2 | kind 闭集 | `AGENT_INGEST_KINDS` 五项（`dev_log/session/requirement/task_status/check_state`），CHECK 在迁移 0007——**扩 kind 必须开新迁移** | `grep -n 'AGENT_INGEST_KINDS' packages/shared/src/constants.ts`；`grep -n 'kind' packages/core/src/db/migrations/0007*.sql \| head -3` |
-| 3 | AI 基础设施 | `source-ai/` 十件套在：多 provider 配置（app_meta 集合、Keychain、key 永不回显）、OpenAI 兼容 runner（超时归一、只露 host、`schema_version` 先比版本）、`redactAbsolutePaths`、失败六值闭集 | `ls packages/core/src/source-ai/` |
-| 4 | 台账先例 | kind `ai_recommend_call` 在 `LOCAL_EVENT_KINDS`（迁移 0010 进 CHECK）；payload 9 键白名单（`aiModel/aiProvider/inputHash/candidateCount/passedCount/droppedCount/result/failureReason/durationMs`）——本 spec 的新 kind 照抄此形 | `grep -n 'ai_recommend_call' packages/shared/src/constants.ts packages/core/src/source-ai/ledger.ts` |
-| 5 | consent 先例 | `lang_source_consent`（迁移 0016）：逐项目 `remember_all`；`clearConsent` **删行**不留残影（DL-21）；`deriveConsentDetail` 服务端推导授权来源、不采信客户端 | `grep -n 'readConsent\|clearConsent\|deriveConsentDetail' packages/core/src/db/m9-source-scan.ts packages/core/src/source-ai/interpret-service.ts \| head -4` |
-| 6 | 迁移号位 | **0001–0018 已用，下一空号 0019**；号段规则待批次 C 的 CS6——本 spec 的迁移编号服从该规则 | `ls packages/core/src/db/migrations/ \| tail -3` |
-| 7 | 待确认列表 UI | `PendingIngestList.tsx` 纯文本渲染红线（禁 `dangerouslySetInnerHTML`、码点截断 80 字符、冲突短 hash FNV-1a 8 位）——候选 kind 复用此列表 | `sed -n '1,30p' apps/web/src/components/agent/PendingIngestList.tsx` |
-| 8 | 规格预设 | `divergence.ts:12-15` 引规格原文「解读结果不自动入库——AI 产出的知识点/术语一律走 M8 回流 + 人工确认」 | `grep -n 'M8 回流\|不自动入库' packages/core/src/source-ai/divergence.ts` |
-| 9 | 测试基线 | 163 文件 / 2095 用例全绿 | `pnpm test` |
+| #   | 量            | 现测值                                                                                                                                                                                                                          | 复算命令                                                                                                                                                      |
+| --- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 确认管道      | `agentService.ts` 的 `ingestBatch`（写侧总闸 `agentWriteEnabled` 默认关、批量上限 20、幂等三态）+ `reviewIngest`（**唯一确认入口**，首次裁决才 `dispatchPublish`）已实装                                                        | `grep -n 'agentWriteEnabled\|reviewIngest\|dispatchPublish' packages/core/src/services/agentService.ts \| head -5`                                            |
+| 2   | kind 闭集     | `AGENT_INGEST_KINDS` 五项（`dev_log/session/requirement/task_status/check_state`），CHECK 在迁移 0007——**扩 kind 必须开新迁移**                                                                                                 | `grep -n 'AGENT_INGEST_KINDS' packages/shared/src/constants.ts`；`grep -n 'kind' packages/core/src/db/migrations/0007*.sql \| head -3`                        |
+| 3   | AI 基础设施   | `source-ai/` 十件套在：多 provider 配置（app_meta 集合、Keychain、key 永不回显）、OpenAI 兼容 runner（超时归一、只露 host、`schema_version` 先比版本）、`redactAbsolutePaths`、失败六值闭集                                     | `ls packages/core/src/source-ai/`                                                                                                                             |
+| 4   | 台账先例      | kind `ai_recommend_call` 在 `LOCAL_EVENT_KINDS`（迁移 0010 进 CHECK）；payload 9 键白名单（`aiModel/aiProvider/inputHash/candidateCount/passedCount/droppedCount/result/failureReason/durationMs`）——本 spec 的新 kind 照抄此形 | `grep -n 'ai_recommend_call' packages/shared/src/constants.ts packages/core/src/source-ai/ledger.ts`                                                          |
+| 5   | consent 先例  | `lang_source_consent`（迁移 0016）：逐项目 `remember_all`；`clearConsent` **删行**不留残影（DL-21）；`deriveConsentDetail` 服务端推导授权来源、不采信客户端                                                                     | `grep -n 'readConsent\|clearConsent\|deriveConsentDetail' packages/core/src/db/m9-source-scan.ts packages/core/src/source-ai/interpret-service.ts \| head -4` |
+| 6   | 迁移号位      | **0001–0018 已用，下一空号 0019**；号段规则待批次 C 的 CS6——本 spec 的迁移编号服从该规则                                                                                                                                        | `ls packages/core/src/db/migrations/ \| tail -3`                                                                                                              |
+| 7   | 待确认列表 UI | `PendingIngestList.tsx` 纯文本渲染红线（禁 `dangerouslySetInnerHTML`、码点截断 80 字符、冲突短 hash FNV-1a 8 位）——候选 kind 复用此列表                                                                                         | `sed -n '1,30p' apps/web/src/components/agent/PendingIngestList.tsx`                                                                                          |
+| 8   | 规格预设      | `divergence.ts:12-15` 引规格原文「解读结果不自动入库——AI 产出的知识点/术语一律走 M8 回流 + 人工确认」                                                                                                                           | `grep -n 'M8 回流\|不自动入库' packages/core/src/source-ai/divergence.ts`                                                                                     |
+| 9   | 测试基线      | 163 文件 / 2095 用例全绿                                                                                                                                                                                                        | `pnpm test`                                                                                                                                                   |
 
 ## 4. 功能需求（FR）
 
@@ -126,20 +126,20 @@
 
 ## 7. 验收标准（pass/fail）
 
-| # | 条目 | 判据 |
-|---|---|---|
-| 1 | 端到端 | 三个新 kind 各一支：日志含已知术语 ⇒ 提取 → pending → 人工确认 → 业务表 draft 行带来源反链 |
-| 2 | 锚定校验 | 构造原文中不存在的候选 ⇒ 丢弃、不进列表、`droppedCount` 增 1；校验用例零网络依赖 |
-| 3 | pending 纪律 | 未确认前业务表零写入（解读/提取前后业务表逐字不变，M8 既有断言模式）；重复 review 不二次分发 |
-| 4 | draft 兜底 | 载荷携带 `status='published'` 之类 ⇒ 入库仍为 `'draft'` |
-| 5 | 迁移 | 0019（或 CS6 规则号位）建 consent 表 + 两处 CHECK 扩列；旧 kind 行为不变用例 |
-| 6 | consent | 清除 = 删行；清除后立即全不勾；服务端推导授权来源（谎报 `user_touched` 不改变发送集合） |
-| 7 | 台账 | 9 键白名单守卫（正文键进不来）；成功/失败都记；没出网无行 |
-| 8 | 预算 | 超限熔断提示含两个数；本机端点不进预算（若 §8.2② 采此口径） |
-| 9 | 总闸 | 关闭时入口不渲染 + 服务端 422（服务层拦截断言） |
-| 10 | 影子门槛 | 连续低采纳触发横幅 + 新项目默认关；解除用例；面板「待采集」态 |
-| 11 | 回归 | `pnpm test` 用例数只增不减；`ask` / M8 / M9 既有用例零改动通过；docs:check 全绿 |
-| 12 | 收尾补齐（v1.0） | 双闸独立性（EXT-13）；本机豁免（EXT-14）；consent 四值推导落 `ai_extract_shares`（EXT-15/16：explicit_tick/user_reticked 与 remembered/memory_applied、失败不落 shares、usage 分组）；anchor 纯函数 6 支零网络用例；§7-6 第三条与 §7-8 第二条就此闭合 |
+| #   | 条目             | 判据                                                                                                                                                                                                                                                  |
+| --- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 端到端           | 三个新 kind 各一支：日志含已知术语 ⇒ 提取 → pending → 人工确认 → 业务表 draft 行带来源反链                                                                                                                                                            |
+| 2   | 锚定校验         | 构造原文中不存在的候选 ⇒ 丢弃、不进列表、`droppedCount` 增 1；校验用例零网络依赖                                                                                                                                                                      |
+| 3   | pending 纪律     | 未确认前业务表零写入（解读/提取前后业务表逐字不变，M8 既有断言模式）；重复 review 不二次分发                                                                                                                                                          |
+| 4   | draft 兜底       | 载荷携带 `status='published'` 之类 ⇒ 入库仍为 `'draft'`                                                                                                                                                                                               |
+| 5   | 迁移             | 0019（或 CS6 规则号位）建 consent 表 + 两处 CHECK 扩列；旧 kind 行为不变用例                                                                                                                                                                          |
+| 6   | consent          | 清除 = 删行；清除后立即全不勾；服务端推导授权来源（谎报 `user_touched` 不改变发送集合）                                                                                                                                                               |
+| 7   | 台账             | 9 键白名单守卫（正文键进不来）；成功/失败都记；没出网无行                                                                                                                                                                                             |
+| 8   | 预算             | 超限熔断提示含两个数；本机端点不进预算（若 §8.2② 采此口径）                                                                                                                                                                                           |
+| 9   | 总闸             | 关闭时入口不渲染 + 服务端 422（服务层拦截断言）                                                                                                                                                                                                       |
+| 10  | 影子门槛         | 连续低采纳触发横幅 + 新项目默认关；解除用例；面板「待采集」态                                                                                                                                                                                         |
+| 11  | 回归             | `pnpm test` 用例数只增不减；`ask` / M8 / M9 既有用例零改动通过；docs:check 全绿                                                                                                                                                                       |
+| 12  | 收尾补齐（v1.0） | 双闸独立性（EXT-13）；本机豁免（EXT-14）；consent 四值推导落 `ai_extract_shares`（EXT-15/16：explicit_tick/user_reticked 与 remembered/memory_applied、失败不落 shares、usage 分组）；anchor 纯函数 6 支零网络用例；§7-6 第三条与 §7-8 第二条就此闭合 |
 
 ## 8. 依赖
 

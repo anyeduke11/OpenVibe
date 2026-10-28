@@ -6,10 +6,7 @@ import { newDb } from '../test-support/new-db'
 import { runSeed } from '../db/seed'
 import { TermsRepo } from '../repos/terms'
 
-function writeSeedDir(
-  dir: string,
-  files: Record<string, unknown>,
-): void {
+function writeSeedDir(dir: string, files: Record<string, unknown>): void {
   for (const [name, content] of Object.entries(files)) {
     writeFileSync(join(dir, name), JSON.stringify(content))
   }
@@ -19,8 +16,22 @@ const baseFiles = {
   'terms.json': {
     schemaVersion: 1,
     items: [
-      { zh: '氛围编程', en: 'vibe coding', aliases: [], definition: '以自然语言意图驱动的开发方式', example: '', tags: ['基础概念'] },
-      { zh: '幻觉', en: 'hallucination', aliases: [], definition: '模型生成看似合理实则错误的内容', example: '', tags: ['风险陷阱'] },
+      {
+        zh: '氛围编程',
+        en: 'vibe coding',
+        aliases: [],
+        definition: '以自然语言意图驱动的开发方式',
+        example: '',
+        tags: ['基础概念'],
+      },
+      {
+        zh: '幻觉',
+        en: 'hallucination',
+        aliases: [],
+        definition: '模型生成看似合理实则错误的内容',
+        example: '',
+        tags: ['风险陷阱'],
+      },
     ],
   },
   'flow-templates.json': {
@@ -29,18 +40,34 @@ const baseFiles = {
       {
         name: '个人轻量流',
         kind: 'light',
-        stages: [{ name: '启动', checklist: [{ id: 'c1', text: '需求一句话写清' }], artifacts: [] }],
+        stages: [
+          { name: '启动', checklist: [{ id: 'c1', text: '需求一句话写清' }], artifacts: [] },
+        ],
       },
     ],
   },
   'prompts.json': {
     schemaVersion: 1,
-    items: [{ title: '代码审查请求', content: '审查 {{language}} 代码', tags: ['精选'], platformMarks: ['generic'], useAs: 'reference' }],
+    items: [
+      {
+        title: '代码审查请求',
+        content: '审查 {{language}} 代码',
+        tags: ['精选'],
+        platformMarks: ['generic'],
+        useAs: 'reference',
+      },
+    ],
   },
   'playbooks.json': {
     schemaVersion: 1,
     items: [
-      { scenario: '变更评审', problem: '只列功能清单', practice: '三件套 + 回退耗时实测', antiPractice: '口头承诺可回退', tags: ['风险陷阱'] },
+      {
+        scenario: '变更评审',
+        problem: '只列功能清单',
+        practice: '三件套 + 回退耗时实测',
+        antiPractice: '口头承诺可回退',
+        tags: ['风险陷阱'],
+      },
     ],
   },
 }
@@ -68,18 +95,16 @@ describe('UT-SEED-01 · 种子幂等与升级（夹具 bundle）', () => {
     const count = () => (h.db.prepare('SELECT COUNT(*) AS c FROM terms').get() as { c: number }).c
     const afterFirst = count()
     expect(afterFirst).toBe(2)
-    expect(
-      (h.db.prepare('SELECT COUNT(*) AS c FROM playbooks').get() as { c: number }).c,
-    ).toBe(1)
+    expect((h.db.prepare('SELECT COUNT(*) AS c FROM playbooks').get() as { c: number }).c).toBe(1)
 
     const second = runSeed(h.db, h.dir)
     // 幂等只对四个真 bundle 断言；标注回填在本夹具里恒为 error（文件不存在），与幂等无关。
     // 它的幂等由 term-annotations.test.ts 用真实标注文件单独守。
-    expect(second.filter((r) => r.bundle !== 'term-annotations').every((r) => r.status === 'skipped')).toBe(true)
-    expect(count()).toBe(afterFirst)
     expect(
-      (h.db.prepare('SELECT COUNT(*) AS c FROM playbooks').get() as { c: number }).c,
-    ).toBe(1)
+      second.filter((r) => r.bundle !== 'term-annotations').every((r) => r.status === 'skipped'),
+    ).toBe(true)
+    expect(count()).toBe(afterFirst)
+    expect((h.db.prepare('SELECT COUNT(*) AS c FROM playbooks').get() as { c: number }).c).toBe(1)
     h.close()
   })
 
@@ -99,9 +124,30 @@ describe('UT-SEED-01 · 种子幂等与升级（夹具 bundle）', () => {
       'terms.json': {
         schemaVersion: 1,
         items: [
-          { zh: '氛围编程', en: 'vibe coding', aliases: [], definition: '更新后的定义内容', example: '', tags: ['基础概念'] },
-          { zh: '幻觉', en: 'hallucination', aliases: [], definition: '旧定义', example: '', tags: ['风险陷阱'] },
-          { zh: '规则漂移', en: 'rule drift', aliases: [], definition: '新增词条定义', example: '', tags: ['风险陷阱'] },
+          {
+            zh: '氛围编程',
+            en: 'vibe coding',
+            aliases: [],
+            definition: '更新后的定义内容',
+            example: '',
+            tags: ['基础概念'],
+          },
+          {
+            zh: '幻觉',
+            en: 'hallucination',
+            aliases: [],
+            definition: '旧定义',
+            example: '',
+            tags: ['风险陷阱'],
+          },
+          {
+            zh: '规则漂移',
+            en: 'rule drift',
+            aliases: [],
+            definition: '新增词条定义',
+            example: '',
+            tags: ['风险陷阱'],
+          },
         ],
       },
     })
@@ -156,8 +202,11 @@ describe('UT-SEED-02 · 真实 content/seed 首启计数', () => {
     expect(counts('playbooks')).toBeGreaterThanOrEqual(10)
     // 预置技巧必须是 published，否则「有模块没内容」——进不了包（FR-6.2）
     expect(
-      (h.db.prepare("SELECT COUNT(*) AS c FROM playbooks WHERE status='published'").get() as { c: number })
-        .c,
+      (
+        h.db.prepare("SELECT COUNT(*) AS c FROM playbooks WHERE status='published'").get() as {
+          c: number
+        }
+      ).c,
     ).toBe(counts('playbooks'))
 
     // 空库首启：全部应为新增，不允许 updated/skipped，也不允许逐条 warning。

@@ -79,7 +79,9 @@ export function topicFilterOptions(db: SqliteDatabase): TopicFilterOptions {
     }>
   ).map((r) => r.lang)
   const stages = (
-    db.prepare(`SELECT stage_id FROM lang_topics GROUP BY stage_id ORDER BY stage_id`).all() as Array<{
+    db
+      .prepare(`SELECT stage_id FROM lang_topics GROUP BY stage_id ORDER BY stage_id`)
+      .all() as Array<{
       stage_id: number
     }>
   ).map((r) => r.stage_id)

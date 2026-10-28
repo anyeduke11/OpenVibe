@@ -47,7 +47,9 @@ export function findStageTrackViolations(
 ): string[] {
   const out: string[] = []
   if (rows.length !== seeds.length) {
-    out.push(`行数 ${rows.length} ≠ 源文档 ${seeds.length}（八格对照面 ⇒ 阶段 0/1 不建 Go 行 ⇒ 6 行）`)
+    out.push(
+      `行数 ${rows.length} ≠ 源文档 ${seeds.length}（八格对照面 ⇒ 阶段 0/1 不建 Go 行 ⇒ 6 行）`,
+    )
   }
   for (const seed of seeds) {
     const row = rows.find((r) => r.stage_id === seed.stage_id && r.lang === seed.lang)
@@ -56,16 +58,24 @@ export function findStageTrackViolations(
       continue
     }
     if (row.source_mode !== seed.source_mode) {
-      out.push(`阶段 ${seed.stage_id}/${seed.lang} 的 source_mode 不符：库「${row.source_mode}」≠ 源「${seed.source_mode}」`)
+      out.push(
+        `阶段 ${seed.stage_id}/${seed.lang} 的 source_mode 不符：库「${row.source_mode}」≠ 源「${seed.source_mode}」`,
+      )
     }
     if (row.mode_name !== seed.mode_name) {
-      out.push(`阶段 ${seed.stage_id}/${seed.lang} 的 mode_name 不符：库「${row.mode_name}」≠ 源「${seed.mode_name}」`)
+      out.push(
+        `阶段 ${seed.stage_id}/${seed.lang} 的 mode_name 不符：库「${row.mode_name}」≠ 源「${seed.mode_name}」`,
+      )
     }
     if (row.stage_name !== seed.stage_name) {
-      out.push(`阶段 ${seed.stage_id}/${seed.lang} 的 stage_name 不符：库「${row.stage_name}」≠ 源「${seed.stage_name}」`)
+      out.push(
+        `阶段 ${seed.stage_id}/${seed.lang} 的 stage_name 不符：库「${row.stage_name}」≠ 源「${seed.stage_name}」`,
+      )
     }
     if (row.period !== seed.period) {
-      out.push(`阶段 ${seed.stage_id}/${seed.lang} 的 period 不符：库「${row.period}」≠ 源「${seed.period}」`)
+      out.push(
+        `阶段 ${seed.stage_id}/${seed.lang} 的 period 不符：库「${row.period}」≠ 源「${seed.period}」`,
+      )
     }
     if (row.goals.join('') !== seed.goals.join('')) {
       out.push(`阶段 ${seed.stage_id}/${seed.lang} 的 goals 不符（逐条比）`)
@@ -108,14 +118,20 @@ export function findSpecTrackViolations(
       continue
     }
     if (normalizeStageName(row.stage_name) !== cell.stageName) {
-      out.push(`阶段 ${cell.stageId} 名称不符：库「${normalizeStageName(row.stage_name)}」≠ spec「${cell.stageName}」`)
+      out.push(
+        `阶段 ${cell.stageId} 名称不符：库「${normalizeStageName(row.stage_name)}」≠ spec「${cell.stageName}」`,
+      )
     }
     if (normalizePeriod(row.period) !== cell.period) {
-      out.push(`阶段 ${cell.stageId} 周期不符：库「${normalizePeriod(row.period)}」≠ spec「${cell.period}」`)
+      out.push(
+        `阶段 ${cell.stageId} 周期不符：库「${normalizePeriod(row.period)}」≠ spec「${cell.period}」`,
+      )
     }
     const rowWord = normalizeModeWord(row.mode_name.split('（')[0] ?? row.mode_name)
     if (rowWord !== cell.modeWord) {
-      out.push(`阶段 ${cell.stageId}/${cell.lang} 模式词不符：库「${rowWord}」≠ spec「${cell.modeWord}」`)
+      out.push(
+        `阶段 ${cell.stageId}/${cell.lang} 模式词不符：库「${rowWord}」≠ spec「${cell.modeWord}」`,
+      )
     }
   }
   return out

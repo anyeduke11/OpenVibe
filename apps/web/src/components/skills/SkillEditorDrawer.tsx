@@ -85,7 +85,11 @@ export function SkillEditorDrawer(props: {
               {zh.editor.cancel}
             </button>
             <button className={btnPrimary} disabled={pending} onClick={save}>
-              {pending ? zh.terms.editor.saving : skill === null ? zh.terms.editor.create : zh.terms.editor.save}
+              {pending
+                ? zh.terms.editor.saving
+                : skill === null
+                  ? zh.terms.editor.create
+                  : zh.terms.editor.save}
             </button>
           </>
         }
@@ -138,7 +142,11 @@ export function SkillEditorDrawer(props: {
             )}
             <div>
               <label className={labelCls}>{zh.skills.create.installedTargets}</label>
-              <input className={inputCls} value={targets} onChange={(e) => setTargets(e.target.value)} />
+              <input
+                className={inputCls}
+                value={targets}
+                onChange={(e) => setTargets(e.target.value)}
+              />
             </div>
             {skill !== null && (
               <p className="text-[11px] text-ink-muted">
@@ -155,22 +163,21 @@ export function SkillEditorDrawer(props: {
                   <li className="text-sm text-ink-faint">{zh.skills.versions.empty}</li>
                 )}
                 {[...(versions.data?.items ?? [])].reverse().map((v) => (
-                  <li
-                    key={v.id}
-                    className="rounded-md border border-line px-3 py-2 text-xs"
-                  >
+                  <li key={v.id} className="rounded-md border border-line px-3 py-2 text-xs">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-ink-body">{v.versionLabel}</span>
                       {v.id === skill.latestVersionId && (
-                        <span className={chipTone('ok')}>
-                          {zh.skills.versions.current}
-                        </span>
+                        <span className={chipTone('ok')}>{zh.skills.versions.current}</span>
                       )}
                       <span className="ml-auto text-ink-faint">{v.scannedAt}</span>
                     </div>
                     <p className="mt-1 text-ink-muted">
                       {zh.skills.versions.fileCount(v.fileCount)} · {zh.skills.versions.dirHash}:{' '}
-                      <span className="mono">{v.dirHash === '' ? zh.skills.versions.manualFingerprint : v.dirHash.slice(0, 16)}</span>
+                      <span className="mono">
+                        {v.dirHash === ''
+                          ? zh.skills.versions.manualFingerprint
+                          : v.dirHash.slice(0, 16)}
+                      </span>
                     </p>
                   </li>
                 ))}

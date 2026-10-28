@@ -115,7 +115,9 @@ export function seedConceptDeltas(db: SqliteDatabase, seedDir: string): M9DeltaS
       return
     }
     if (!ASPECT_SET.has(it.aspect)) {
-      result.warnings.push(`aspect 越界: ${it.aspect} (${it.concept_slug}) —— §3.12 词表: ${DELTA_ASPECTS.join('/')}`)
+      result.warnings.push(
+        `aspect 越界: ${it.aspect} (${it.concept_slug}) —— §3.12 词表: ${DELTA_ASPECTS.join('/')}`,
+      )
       return
     }
     if (!VERSION_RE.test(it.since_version)) {

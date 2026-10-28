@@ -1,10 +1,4 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  statSync,
-} from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { isCancel, select } from '@clack/prompts'
 import { ADAPTER_MAIN_PATH } from '@openvibe/adapters'

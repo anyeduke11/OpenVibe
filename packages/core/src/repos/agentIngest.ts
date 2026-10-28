@@ -80,7 +80,9 @@ function canonicalJson(payload: unknown): string {
   // 不归一就会把「同一份载荷」判成 conflict，而 agent 无从知道该换键。
   return JSON.stringify(payload, (_k, v) => {
     if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
-      return Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : 1)))
+      return Object.fromEntries(
+        Object.entries(v as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : 1)),
+      )
     }
     return v
   })
@@ -160,16 +162,26 @@ export class AgentIngestRepo {
   }
 
   /** Web 的人工裁决入口（owner 裁⑥：合并交给用户在 Web 裁决，服务层不给自动策略） */
-  review(id: string, to: Extract<AgentIngestStatus, 'published' | 'rejected'>, reason: string | null, now: string): AgentIngest {
-    const row = this.db.prepare('SELECT * FROM agent_ingests WHERE id = ?').get(id) as IngestRow | undefined
+  review(
+    id: string,
+    to: Extract<AgentIngestStatus, 'published' | 'rejected'>,
+    reason: string | null,
+    now: string,
+  ): AgentIngest {
+    const row = this.db.prepare('SELECT * FROM agent_ingests WHERE id = ?').get(id) as
+      IngestRow | undefined
     if (!row) throw new AppError('NOT_FOUND', `回流记录不存在：${id}`)
     if (row.status === 'conflict') {
       throw new AppError('IDEMPOTENCY_CONFLICT', '冲突记录不能直接裁决，请先决定保留哪一方的幂等键')
     }
     this.db
-      .prepare('UPDATE agent_ingests SET status = ?, reject_reason = ?, reviewed_at = ? WHERE id = ?')
+      .prepare(
+        'UPDATE agent_ingests SET status = ?, reject_reason = ?, reviewed_at = ? WHERE id = ?',
+      )
       .run(to, reason, now, id)
-    return rowToIngest(this.db.prepare('SELECT * FROM agent_ingests WHERE id = ?').get(id) as IngestRow)
+    return rowToIngest(
+      this.db.prepare('SELECT * FROM agent_ingests WHERE id = ?').get(id) as IngestRow,
+    )
   }
 
   /**
@@ -189,7 +201,8 @@ export class AgentIngestRepo {
   }
 
   get(id: string): AgentIngest | null {
-    const row = this.db.prepare('SELECT * FROM agent_ingests WHERE id = ?').get(id) as IngestRow | undefined
+    const row = this.db.prepare('SELECT * FROM agent_ingests WHERE id = ?').get(id) as
+      IngestRow | undefined
     return row ? rowToIngest(row) : null
   }
 }

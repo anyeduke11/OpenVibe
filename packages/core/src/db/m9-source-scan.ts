@@ -146,9 +146,7 @@ export function saveFindings(
  */
 export function readFindings(db: SqliteDatabase, projectId: string): FindingRow[] {
   const latest = db
-    .prepare(
-      'SELECT MAX(scan_id) AS scan_id FROM lang_topic_findings WHERE project_id = ?',
-    )
+    .prepare('SELECT MAX(scan_id) AS scan_id FROM lang_topic_findings WHERE project_id = ?')
     .get(projectId) as { scan_id: number | null }
   if (latest.scan_id === null) return []
   const rows = db
@@ -210,10 +208,11 @@ export interface ConsentRow {
 /** 读该项目的记忆（**没有行 = 没有记忆** ⇒ 默认全不勾）。 */
 export function readConsent(db: SqliteDatabase, projectId: string): ConsentRow | null {
   const row = db
-    .prepare('SELECT project_id, remember_all, remembered_at FROM lang_source_consent WHERE project_id = ?')
+    .prepare(
+      'SELECT project_id, remember_all, remembered_at FROM lang_source_consent WHERE project_id = ?',
+    )
     .get(projectId) as
-    | { project_id: string; remember_all: number; remembered_at: string }
-    | undefined
+    { project_id: string; remember_all: number; remembered_at: string } | undefined
   if (row === undefined) return null
   return {
     project_id: row.project_id,
@@ -404,26 +403,28 @@ export function readShareByProvider(
     usage_total_tokens: number | null
     usage_known_count: number
   }[]
-  return rows
-    .map((r) => ({
-      provider: r.provider,
-      model: r.model,
-      share_count: Number(r.share_count),
-      snippet_total: Number(r.snippet_total),
-      usage_total_tokens: r.usage_total_tokens === null ? null : Number(r.usage_total_tokens),
-      usage_known_count: Number(r.usage_known_count),
-    }))
-    // ⚠️ **排序放 JS，不放 SQL** ——
-    //   本仓的仓级静态守卫（`tests/order-determinism.test.ts`）只认「末键是单列唯一键」
-    //   的 ORDER BY；这里是**聚合**（`GROUP BY provider, model`），
-    //   给它加裸 `id` 兜底是**取组内任意值**的坏 SQL ⇒ 改在 JS 里排。
-    //   ⚠️ 确定性等价：`(provider, model)` 本身就是分组键 ⇒ 组间唯一 ⇒ 排完是全序。
-    .sort((a, b) => {
-      if (a.share_count !== b.share_count) return b.share_count - a.share_count
-      if (a.provider !== b.provider) return a.provider < b.provider ? -1 : 1
-      if (a.model !== b.model) return a.model < b.model ? -1 : 1
-      return 0
-    })
+  return (
+    rows
+      .map((r) => ({
+        provider: r.provider,
+        model: r.model,
+        share_count: Number(r.share_count),
+        snippet_total: Number(r.snippet_total),
+        usage_total_tokens: r.usage_total_tokens === null ? null : Number(r.usage_total_tokens),
+        usage_known_count: Number(r.usage_known_count),
+      }))
+      // ⚠️ **排序放 JS，不放 SQL** ——
+      //   本仓的仓级静态守卫（`tests/order-determinism.test.ts`）只认「末键是单列唯一键」
+      //   的 ORDER BY；这里是**聚合**（`GROUP BY provider, model`），
+      //   给它加裸 `id` 兜底是**取组内任意值**的坏 SQL ⇒ 改在 JS 里排。
+      //   ⚠️ 确定性等价：`(provider, model)` 本身就是分组键 ⇒ 组间唯一 ⇒ 排完是全序。
+      .sort((a, b) => {
+        if (a.share_count !== b.share_count) return b.share_count - a.share_count
+        if (a.provider !== b.provider) return a.provider < b.provider ? -1 : 1
+        if (a.model !== b.model) return a.model < b.model ? -1 : 1
+        return 0
+      })
+  )
 }
 
 /** 读该项目的出网计数（**新到旧**）。 */

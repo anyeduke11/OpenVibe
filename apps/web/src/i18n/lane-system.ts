@@ -149,7 +149,8 @@ export const sys = {
       title: '本机自证层 · 事件台账',
       note: '本机 · append-only · 可清空 · 不出网',
       body: '这是「本机可复算的自证层」，不是遥测的替代品：两者正交，遥测关掉它照样记账，飞轮圈数也从这里算。',
-      clearHint: '可清空 = 停服务后删除数据目录里的 data/openvibe.db（台账与资产同库，清台账会连资产一起没）；本轮没有单独的清空端点，因此这里只读。',
+      clearHint:
+        '可清空 = 停服务后删除数据目录里的 data/openvibe.db（台账与资产同库，清台账会连资产一起没）；本轮没有单独的清空端点，因此这里只读。',
       empty: '本机还没有事件',
       emptyHint: '组包、注入、回流发生后会在这里留痕。',
       openGrowth: '在成长与统计里筛',
@@ -183,7 +184,8 @@ export const sys = {
       gateHint: '总闸关闭时入口不渲染、调用一律拒绝。出网前展示确切内容；候选一律进待确认队列。',
       adoptionTitle: '采纳率（影子门槛 25%）',
       adoptionEmpty: '待采集：候选经人工确认后出现。',
-      adoptionLowBanner: (rounds: number) => `连续 ${String(rounds)} 轮采纳率低于门槛（25%）——建议关闭提取；新项目将默认不开。`,
+      adoptionLowBanner: (rounds: number) =>
+        `连续 ${String(rounds)} 轮采纳率低于门槛（25%）——建议关闭提取；新项目将默认不开。`,
       providerHint: '推理服务与「解读服务」区共用同一份配置（两线同源）；端点/密钥在那边改。',
       usageTitle: '出网成本台账（按服务分组）',
       usageEmpty: '还没有出网记录。',

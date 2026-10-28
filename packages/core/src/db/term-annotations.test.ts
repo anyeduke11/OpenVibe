@@ -26,9 +26,10 @@ interface LevelItem {
   starter: boolean
 }
 
-const levelsFile = JSON.parse(
-  readFileSync(join(REPO_SEED_DIR, 'term-levels.json'), 'utf8'),
-) as { schemaVersion: number; items: LevelItem[] }
+const levelsFile = JSON.parse(readFileSync(join(REPO_SEED_DIR, 'term-levels.json'), 'utf8')) as {
+  schemaVersion: number
+  items: LevelItem[]
+}
 
 const domainMapFile = JSON.parse(
   readFileSync(join(REPO_SEED_DIR, 'term-domain-map.json'), 'utf8'),
@@ -36,7 +37,9 @@ const domainMapFile = JSON.parse(
 
 // ============ 双源一致性：迁移的 CHECK 字面量 ≡ 常量 ============
 
-const migrationPath = fileURLToPath(new URL('./migrations/0008_terms_learning.sql', import.meta.url))
+const migrationPath = fileURLToPath(
+  new URL('./migrations/0008_terms_learning.sql', import.meta.url),
+)
 const migration = readFileSync(migrationPath, 'utf8')
 
 /**
@@ -114,9 +117,7 @@ describe('UT-TERM-ANN-01 · 迁移 0008 的列与默认值', () => {
     const h = newDb()
     const repo = new TermsRepo(h.db)
     const t = repo.create({ zh: 'x', definition: 'd' })
-    expect(() =>
-      h.db.prepare('UPDATE terms SET level = ? WHERE id = ?').run('L9', t.id),
-    ).toThrow()
+    expect(() => h.db.prepare('UPDATE terms SET level = ? WHERE id = ?').run('L9', t.id)).toThrow()
     h.close()
   })
 })
@@ -231,18 +232,22 @@ describe('UT-TERM-ANN-04 · 标注数据文件', () => {
   })
 
   it('term-scenarios.json 441 条，键与库内自然键一一对应、无重复、无空句', () => {
-    const scn = JSON.parse(
-      readFileSync(join(REPO_SEED_DIR, 'term-scenarios.json'), 'utf8'),
-    ) as { schemaVersion: number; items: { zh: string | null; en: string | null; scenario: string }[] }
+    const scn = JSON.parse(readFileSync(join(REPO_SEED_DIR, 'term-scenarios.json'), 'utf8')) as {
+      schemaVersion: number
+      items: { zh: string | null; en: string | null; scenario: string }[]
+    }
     expect(scn.schemaVersion).toBe(1)
     expect(scn.items).toHaveLength(441)
     const keys = scn.items.map((i) => JSON.stringify([i.zh, i.en]))
     expect(new Set(keys).size, '自然键重复').toBe(441)
-    expect(scn.items.filter((i) => i.scenario.trim() === ''), '有空场景句').toHaveLength(0)
+    expect(
+      scn.items.filter((i) => i.scenario.trim() === ''),
+      '有空场景句',
+    ).toHaveLength(0)
     // 与 term-levels.json 的键集合必须完全相同（两遍回填定位的是同一批词条）
-    const lvl = JSON.parse(
-      readFileSync(join(REPO_SEED_DIR, 'term-levels.json'), 'utf8'),
-    ) as { items: { zh: string | null; en: string | null }[] }
+    const lvl = JSON.parse(readFileSync(join(REPO_SEED_DIR, 'term-levels.json'), 'utf8')) as {
+      items: { zh: string | null; en: string | null }[]
+    }
     expect([...keys].sort()).toEqual(lvl.items.map((i) => JSON.stringify([i.zh, i.en])).sort())
   })
 
@@ -253,9 +258,7 @@ describe('UT-TERM-ANN-04 · 标注数据文件', () => {
       expect(TERM_DOMAINS, `领域不在词表内: ${it.domain}`).toContain(it.domain as never)
     }
     const tags = new Set(domainMapFile.items.map((i) => i.tag))
-    expect(tags.size, '同一 tag 映射到两个领域 ⇒ 取值依赖文件顺序').toBe(
-      domainMapFile.items.length,
-    )
+    expect(tags.size, '同一 tag 映射到两个领域 ⇒ 取值依赖文件顺序').toBe(domainMapFile.items.length)
   })
 
   it('⚠️ 映射表必须覆盖自建词条实际出现的每一个 tags[0]', () => {
@@ -278,7 +281,12 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
   /** 真实种子目录 → 只保留 terms 相关文件，另两个 bundle 不参与本组断言 */
   function seedTermsOnly(dir: string): void {
     mkdirSync(dir, { recursive: true })
-    for (const f of ['terms.json', 'term-levels.json', 'term-domain-map.json', 'term-scenarios.json']) {
+    for (const f of [
+      'terms.json',
+      'term-levels.json',
+      'term-domain-map.json',
+      'term-scenarios.json',
+    ]) {
       cpSync(join(REPO_SEED_DIR, f), join(dir, f))
     }
   }
@@ -357,9 +365,9 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
     runSeed(h.db, dir)
     // 首启后 updated_at 应仍与 created_at 同源（回填未刷新它）
     const drift = (
-      h.db
-        .prepare('SELECT COUNT(*) AS c FROM terms WHERE updated_at <> created_at')
-        .get() as { c: number }
+      h.db.prepare('SELECT COUNT(*) AS c FROM terms WHERE updated_at <> created_at').get() as {
+        c: number
+      }
     ).c
     expect(drift, '回填刷新了 updated_at').toBe(0)
     h.close()
@@ -385,7 +393,7 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
     runSeed(h.db, dir)
     const h1 = new TermsRepo(h.db)
     const nulls = (
-      h.db.prepare("SELECT COUNT(*) AS c FROM terms WHERE seed_hash IS NULL").get() as { c: number }
+      h.db.prepare('SELECT COUNT(*) AS c FROM terms WHERE seed_hash IS NULL').get() as { c: number }
     ).c
     expect(nulls, '有词条被标成「用户改过」⇒ 种子升级通道已冻结').toBe(0)
     expect(h1.list()).toHaveLength(109)
@@ -398,7 +406,10 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, 'term-levels.json'), JSON.stringify({ schemaVersion: 1, items: [] }))
-    writeFileSync(join(dir, 'term-domain-map.json'), JSON.stringify({ schemaVersion: 1, items: [] }))
+    writeFileSync(
+      join(dir, 'term-domain-map.json'),
+      JSON.stringify({ schemaVersion: 1, items: [] }),
+    )
     const repo = new TermsRepo(h.db)
     repo.create({ zh: '按钮', definition: 'd', tags: ['前端', '交互'], source: 'vibe-hub' })
     const ann = applyTermAnnotations(h.db, dir)
@@ -424,9 +435,15 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
     mkdirSync(dir, { recursive: true })
     writeFileSync(
       join(dir, 'term-levels.json'),
-      JSON.stringify({ schemaVersion: 1, items: [{ zh: 'x', en: 'y', level: 'L9', starter: true }] }),
+      JSON.stringify({
+        schemaVersion: 1,
+        items: [{ zh: 'x', en: 'y', level: 'L9', starter: true }],
+      }),
     )
-    writeFileSync(join(dir, 'term-domain-map.json'), JSON.stringify({ schemaVersion: 1, items: [] }))
+    writeFileSync(
+      join(dir, 'term-domain-map.json'),
+      JSON.stringify({ schemaVersion: 1, items: [] }),
+    )
     const ann = applyTermAnnotations(h.db, dir)
     expect(ann.skipped).toBe(1)
     expect(ann.warnings.join(' ')).toContain('难度标注条目非法')

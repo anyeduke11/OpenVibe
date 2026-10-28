@@ -40,7 +40,9 @@ function mixedPlan(): {
   const plan = planInjection({
     files,
     readDisk: (rel) => (rel === 'CLAUDE.md' ? '磁盘上的手改' : '{"a":2}'),
-    lock: { files: [{ path: 'CLAUDE.md', sha256: fileSha256('更早的正文'), managed: true }] } as never,
+    lock: {
+      files: [{ path: 'CLAUDE.md', sha256: fileSha256('更早的正文'), managed: true }],
+    } as never,
     targets: null,
   })
   return { plan, files }

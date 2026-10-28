@@ -43,7 +43,8 @@ export function usePackExports(id: string | null) {
 export function usePackInjections(id: string | null) {
   return useQuery({
     queryKey: ['pack-injections', id],
-    queryFn: () => apiJson<{ items: InjectionOut[]; total: number }>(`/api/packs/${id ?? ''}/injections`),
+    queryFn: () =>
+      apiJson<{ items: InjectionOut[]; total: number }>(`/api/packs/${id ?? ''}/injections`),
     enabled: id !== null && id !== '',
     staleTime: PACK_STALE_TIME,
   })
@@ -89,8 +90,13 @@ export function usePackMutations(id?: string | null) {
   })
   /** 两条通道同一入口（m6a FR-3）：channel 决定目录是否落盘，bundle 恒可下载 */
   const exportPack = useMutation({
-    mutationFn: ({ id: packId, body }: { id: string; body: { version: string; channel: 'download' | 'directory' } }) =>
-      apiJson<ExportOut>(`/api/packs/${packId}/export`, { method: 'POST', body }),
+    mutationFn: ({
+      id: packId,
+      body,
+    }: {
+      id: string
+      body: { version: string; channel: 'download' | 'directory' }
+    }) => apiJson<ExportOut>(`/api/packs/${packId}/export`, { method: 'POST', body }),
     onSuccess: invalidateExports,
   })
 

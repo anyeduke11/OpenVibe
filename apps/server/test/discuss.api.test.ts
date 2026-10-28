@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
-import { FlowTemplatesRepo, ProjectsRepo, setExtractConsent, type SqliteDatabase } from '@openvibe/core'
+import {
+  FlowTemplatesRepo,
+  ProjectsRepo,
+  setExtractConsent,
+  type SqliteDatabase,
+} from '@openvibe/core'
 import type { DiscussOut } from '@openvibe/shared'
 import { buildApp } from '../src/app'
 
@@ -21,7 +26,9 @@ interface Harness {
 
 const openHandles: Harness[] = []
 
-async function makeHarness(options: { llmOutput?: string; discussDailyCallLimit?: number } = {}): Promise<Harness> {
+async function makeHarness(
+  options: { llmOutput?: string; discussDailyCallLimit?: number } = {},
+): Promise<Harness> {
   const handle = newDb()
   const runner = {
     id: 'fake',
@@ -77,7 +84,11 @@ function seedProject(h: Harness): string {
   return new ProjectsRepo(h.db).create({ name: 'discuss-fixture', flowTemplateId: template.id }).id
 }
 
-async function ask(h: Harness, projectId: string, body: object): Promise<{ statusCode: number; json: DiscussOut }> {
+async function ask(
+  h: Harness,
+  projectId: string,
+  body: object,
+): Promise<{ statusCode: number; json: DiscussOut }> {
   return api<DiscussOut>(h, 'POST', `/api/projects/${projectId}/discuss`, body)
 }
 
@@ -109,17 +120,32 @@ describe('AN2 · POST /api/projects/:id/discuss（批次 E）', () => {
   it('DISC-03: 问答只读——业务表逐字不变，local_events 只增 ai_discuss_call（9 键白名单）', async () => {
     const h = await makeHarness()
     const pid = seedProject(h)
-    const tables = ['projects', 'tasks', 'dev_log_entries', 'terms', 'prompts', 'playbooks'] as const
-    const before = tables.map((t) => (h.db.prepare(`SELECT COUNT(*) AS c FROM ${t}`).get() as { c: number }).c)
+    const tables = [
+      'projects',
+      'tasks',
+      'dev_log_entries',
+      'terms',
+      'prompts',
+      'playbooks',
+    ] as const
+    const before = tables.map(
+      (t) => (h.db.prepare(`SELECT COUNT(*) AS c FROM ${t}`).get() as { c: number }).c,
+    )
     await api(h, 'POST', '/api/extract/gate', { enabled: true })
     await ask(h, pid, { question: '状态？', confirm: true })
-    const after = tables.map((t) => (h.db.prepare(`SELECT COUNT(*) AS c FROM ${t}`).get() as { c: number }).c)
+    const after = tables.map(
+      (t) => (h.db.prepare(`SELECT COUNT(*) AS c FROM ${t}`).get() as { c: number }).c,
+    )
     expect(after).toEqual(before)
-    const rows = h.db.prepare(`SELECT payload_json FROM local_events WHERE kind = 'ai_discuss_call'`).all() as {
+    const rows = h.db
+      .prepare(`SELECT payload_json FROM local_events WHERE kind = 'ai_discuss_call'`)
+      .all() as {
       payload_json: string
     }[]
     expect(rows).toHaveLength(1)
-    expect(Object.keys(JSON.parse(rows[0]!.payload_json) as Record<string, unknown>).sort()).toEqual([
+    expect(
+      Object.keys(JSON.parse(rows[0]!.payload_json) as Record<string, unknown>).sort(),
+    ).toEqual([
       'aiModel',
       'aiProvider',
       'candidateCount',
@@ -140,7 +166,10 @@ describe('AN2 · POST /api/projects/:id/discuss（批次 E）', () => {
     const second = await ask(h, pid, { question: '二' })
     expect(second.json.status).toBe('budget-exhausted')
     // discuss 用满配额时提取仍可用（独立计数）
-    const extract = await api<{ status: string }>(h, 'POST', '/api/extract', { project_id: pid, log_ids: ['log_x'] })
+    const extract = await api<{ status: string }>(h, 'POST', '/api/extract', {
+      project_id: pid,
+      log_ids: ['log_x'],
+    })
     expect(extract.json.status).not.toBe('budget-exhausted')
   })
 
@@ -154,7 +183,12 @@ describe('AN2 · POST /api/projects/:id/discuss（批次 E）', () => {
       extractRunner: null,
     })
     openHandles.push({ app, db, handle })
-    await app.inject({ method: 'POST', url: '/api/extract/gate', headers: { authorization: `Bearer ${TOKEN}` }, payload: { enabled: true } })
+    await app.inject({
+      method: 'POST',
+      url: '/api/extract/gate',
+      headers: { authorization: `Bearer ${TOKEN}` },
+      payload: { enabled: true },
+    })
     const template = new FlowTemplatesRepo(db).create({
       name: '流',
       kind: 'light',

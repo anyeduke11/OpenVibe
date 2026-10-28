@@ -150,9 +150,9 @@ describe('M9 P1.5 · 概念层 14 个概念（8 共通 ＋ 6 语言专有）＋ 
     const h = newDb()
     try {
       seedAll(h)
-      const rows = h.db
-        .prepare(`SELECT body_md FROM lang_topic_content`)
-        .all() as { body_md: string }[]
+      const rows = h.db.prepare(`SELECT body_md FROM lang_topic_content`).all() as {
+        body_md: string
+      }[]
       expect(rows.length).toBe(EXPECTED_CONTENTS)
       const uniq = new Set(rows.map((r) => r.body_md))
       expect(uniq.size).toBe(EXPECTED_CONTENTS)
@@ -181,7 +181,9 @@ describe('M9 P1.5 · 概念层 14 个概念（8 共通 ＋ 6 语言专有）＋ 
     try {
       seedAll(h)
       const topicContent = (
-        h.db.prepare(`SELECT COUNT(*) AS c FROM lang_topic_content WHERE ref_kind = 'topic'`).get() as {
+        h.db
+          .prepare(`SELECT COUNT(*) AS c FROM lang_topic_content WHERE ref_kind = 'topic'`)
+          .get() as {
           c: number
         }
       ).c
@@ -244,7 +246,9 @@ describe('M9 P1.5 · 概念层 14 个概念（8 共通 ＋ 6 语言专有）＋ 
       expect(second.reduce((a, r) => a + r.created, 0)).toBe(0)
       // CS2 语义：内容未变 ⇒ 不再无条件覆盖（旧语义 updated=56），而是整批进入 ignored
       expect(second.reduce((a, r) => a + r.updated, 0)).toBe(0)
-      expect(second.reduce((a, r) => a + (r.ignored ?? 0), 0)).toBe(EXPECTED_CONCEPTS + EXPECTED_CONTENTS)
+      expect(second.reduce((a, r) => a + (r.ignored ?? 0), 0)).toBe(
+        EXPECTED_CONCEPTS + EXPECTED_CONTENTS,
+      )
       const concepts = (
         h.db.prepare(`SELECT COUNT(*) AS c FROM lang_concepts`).get() as { c: number }
       ).c
@@ -272,7 +276,9 @@ describe('M9 P1.5 · DL-15 反向变异腿（证明闸确实会红）', () => {
       seedAll(h)
       // 原状：闸 ③ 通过
       const before = (
-        h.db.prepare(`SELECT COUNT(*) AS c FROM lang_topic_content WHERE ref_kind = 'topic'`).get() as {
+        h.db
+          .prepare(`SELECT COUNT(*) AS c FROM lang_topic_content WHERE ref_kind = 'topic'`)
+          .get() as {
           c: number
         }
       ).c
@@ -303,7 +309,9 @@ describe('M9 P1.5 · DL-15 反向变异腿（证明闸确实会红）', () => {
 
       // 闸 ③ 现在红：topic 侧有 2 份
       const after = (
-        h.db.prepare(`SELECT COUNT(*) AS c FROM lang_topic_content WHERE ref_kind = 'topic'`).get() as {
+        h.db
+          .prepare(`SELECT COUNT(*) AS c FROM lang_topic_content WHERE ref_kind = 'topic'`)
+          .get() as {
           c: number
         }
       ).c
@@ -396,7 +404,9 @@ describe('M9 P1.5 · DL-15 两条反证（防止闸过严误伤合法重复）',
 
       // 差异条目**不是**三段内容 ⇒ 闸 ③ 仍绿
       const topicContent = (
-        h.db.prepare(`SELECT COUNT(*) AS c FROM lang_topic_content WHERE ref_kind = 'topic'`).get() as {
+        h.db
+          .prepare(`SELECT COUNT(*) AS c FROM lang_topic_content WHERE ref_kind = 'topic'`)
+          .get() as {
           c: number
         }
       ).c
@@ -439,7 +449,9 @@ describe('M9 P1.5 · DL-15 两条反证（防止闸过严误伤合法重复）',
       expect(contents).toBe(EXPECTED_CONTENTS)
       // 闸 ③ 仍绿
       const topicContent = (
-        h.db.prepare(`SELECT COUNT(*) AS c FROM lang_topic_content WHERE ref_kind = 'topic'`).get() as {
+        h.db
+          .prepare(`SELECT COUNT(*) AS c FROM lang_topic_content WHERE ref_kind = 'topic'`)
+          .get() as {
           c: number
         }
       ).c

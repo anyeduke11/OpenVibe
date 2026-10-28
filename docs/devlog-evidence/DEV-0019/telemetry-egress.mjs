@@ -81,7 +81,7 @@ try {
 
   const summary = async (day) => {
     const res = await fetch(`${adapterOrigin}/summary?day=${day}`)
-    return (await res.json())
+    return await res.json()
   }
 
   // ---------- ② 手配 config.json 后真起 serve ----------
@@ -121,7 +121,11 @@ try {
   const bearer = { authorization: `Bearer ${info.summary.token}` }
   say(`serve ${BASE} firstRun=${String(info.summary.firstRun)}`)
 
-  check('serve 读入手配的端点并回显', info.summary.telemetry?.endpoint === endpoint, JSON.stringify(info.summary.telemetry))
+  check(
+    'serve 读入手配的端点并回显',
+    info.summary.telemetry?.endpoint === endpoint,
+    JSON.stringify(info.summary.telemetry),
+  )
   const saved = JSON.parse(readFileSync(join(HOME, 'config.json'), 'utf8'))
   check('重写 config.json 未抹掉端点', saved.telemetryEndpoint === endpoint)
   // --json 下人读文案一律折叠进 summary.warnings（m6b §5.1），stdout 仍是单个对象
@@ -139,11 +143,16 @@ try {
     })
     return { code: res.status, json: await res.json() }
   }
-  const enqueue = async (event, value) => (await api('/api/telemetry/events', 'POST', { event, value })).json
+  const enqueue = async (event, value) =>
+    (await api('/api/telemetry/events', 'POST', { event, value })).json
 
   // ---------- ③ 开关关着：入队被服务端第三道闸门挡住 ----------
   const offEnq = await enqueue('pack_injected', 'default@1.0.0')
-  check('默认关闭时连队列都不写', offEnq.queued === false && offEnq.reason === 'disabled', JSON.stringify(offEnq))
+  check(
+    '默认关闭时连队列都不写',
+    offEnq.queued === false && offEnq.reason === 'disabled',
+    JSON.stringify(offEnq),
+  )
 
   // ---------- ④ 打开开关，等真 60s 定时器把事件送出去 ----------
   const today = new Date().toISOString().slice(0, 10)
@@ -165,17 +174,32 @@ try {
     if (delivered >= 3) break
   }
   check('60s 内三条真到达接收端', delivered === 3, `total=${String(delivered)}`)
-  check('送达的行才盖 sent_at', queue().filter((r) => r.sentAt !== null).length === 3, `共 ${String(queue().length)} 行`)
+  check(
+    '送达的行才盖 sent_at',
+    queue().filter((r) => r.sentAt !== null).length === 3,
+    `共 ${String(queue().length)} 行`,
+  )
 
   // ---------- ⑤ 关掉开关再入队：既不进队列，也不出网 ----------
   await api('/api/settings/telemetry', 'POST', { enabled: false })
   const off2 = await enqueue('pack_injected', 'should-not-leave')
-  check('关闭后入队被服务端挡住', off2.queued === false && off2.reason === 'disabled', JSON.stringify(off2))
-  check('关闭态带外事件根本没进队列', queue().find((r) => r.value === 'should-not-leave') === undefined)
+  check(
+    '关闭后入队被服务端挡住',
+    off2.queued === false && off2.reason === 'disabled',
+    JSON.stringify(off2),
+  )
+  check(
+    '关闭态带外事件根本没进队列',
+    queue().find((r) => r.value === 'should-not-leave') === undefined,
+  )
 
   const before = (await summary(today)).total ?? 0
   await sleep(10_000)
-  check('关掉后队列仍是那三行（已发不回收）', queue().length === 3, `rows=${String(queue().length)}`)
+  check(
+    '关掉后队列仍是那三行（已发不回收）',
+    queue().length === 3,
+    `rows=${String(queue().length)}`,
+  )
   // 覆盖一整个 60s 窗口：真定时器在关闭态必须一个字节都不发
   let after = before
   for (let i = 0; i < 75; i += 1) {
@@ -183,7 +207,11 @@ try {
     after = (await summary(today)).total ?? 0
     if (after > before) break
   }
-  check('第二个 60s 窗口内计数未增（零外联）', after === before, `total ${String(before)}→${String(after)}`)
+  check(
+    '第二个 60s 窗口内计数未增（零外联）',
+    after === before,
+    `total ${String(before)}→${String(after)}`,
+  )
   db.close()
 
   // ---------- ⑥ 未配端点：--json 与人读两种模式各自怎么说 ----------
@@ -255,7 +283,10 @@ try {
     '人读模式仍打出 Web 产物行（未被本次改动误删）',
     out3.includes('Web 产物') || out3.includes('未托管 Web 产物'),
   )
-  check('人读模式 stdout 干净（无 warn 前缀、无 JSON 对象）', !out3.includes('[warn]') && !out3.includes('"summary"'))
+  check(
+    '人读模式 stdout 干净（无 warn 前缀、无 JSON 对象）',
+    !out3.includes('[warn]') && !out3.includes('"summary"'),
+  )
   check('人读模式未把提示漏到 stderr', !out3err.includes('匿名统计'), out3err.trim())
   rmSync(HOME2, { recursive: true, force: true })
   rmSync(HOME3, { recursive: true, force: true })

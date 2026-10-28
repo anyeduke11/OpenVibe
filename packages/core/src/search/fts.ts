@@ -34,7 +34,12 @@ export interface TermSearchHit {
 
 export function searchTermRowids(db: SqliteDatabase, q: string): TermSearchHit[] {
   const lower = q.toLowerCase()
-  const fieldsOf = (row: { zh: string | null; en: string | null; aliases: string; definition: string }) => {
+  const fieldsOf = (row: {
+    zh: string | null
+    en: string | null
+    aliases: string
+    definition: string
+  }) => {
     const fields: string[] = []
     if (row.zh?.toLowerCase().includes(lower)) fields.push('zh')
     if (row.en?.toLowerCase().includes(lower)) fields.push('en')

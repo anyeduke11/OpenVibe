@@ -42,7 +42,10 @@ const project = (id: string, name: string, localPath: string | null): ProjectOut
 })
 
 const PROJECTS: { items: ProjectOut[]; total: number } = {
-  items: [project('prj_parent', '工作区根', '/w'), project('prj_child', 'OpenVibe 灵典', '/w/openvibe')],
+  items: [
+    project('prj_parent', '工作区根', '/w'),
+    project('prj_child', 'OpenVibe 灵典', '/w/openvibe'),
+  ],
   total: 2,
 }
 
@@ -165,7 +168,12 @@ describe('status 的快照', () => {
     const outcome = await statusAction({ dir: '/w/openvibe' }, { client: fake.client })
     const s = outcome.snapshot
 
-    expect(s.project).toEqual({ id: 'prj_child', name: 'OpenVibe 灵典', status: 'active', localPath: '/w/openvibe' })
+    expect(s.project).toEqual({
+      id: 'prj_child',
+      name: 'OpenVibe 灵典',
+      status: 'active',
+      localPath: '/w/openvibe',
+    })
     expect(s.stage).toEqual({ current: '实现', total: 5, completed: 2 })
     expect(s.checklist.total).toBe(3)
     expect(s.checklist.checked).toBe(1)
@@ -204,7 +212,12 @@ describe('status 的快照', () => {
         '/api/projects/prj_child/context?fields=stage,checklist,tasks,logs,pack': contextFixture({
           pack: { id: null, name: null, version: null, drifted: null, outdated: null },
           truncated: [
-            { section: 'pack', dropped: 4, reason: 'no_lock_file', detail: '读不到 .openvibe/pack.lock.json' },
+            {
+              section: 'pack',
+              dropped: 4,
+              reason: 'no_lock_file',
+              detail: '读不到 .openvibe/pack.lock.json',
+            },
           ],
         }),
       },
@@ -222,7 +235,8 @@ describe('status 的快照', () => {
 
     const down: ApiClient = {
       serverUrl: 'http://127.0.0.1:1',
-      getJson: () => Promise.reject(new ServerUnreachable('http://127.0.0.1:1', 'connect ECONNREFUSED')),
+      getJson: () =>
+        Promise.reject(new ServerUnreachable('http://127.0.0.1:1', 'connect ECONNREFUSED')),
       postJson: () => Promise.reject(new Error('unused')),
     }
     const err = await statusAction({}, { client: down }).catch((e: unknown) => e)
@@ -253,7 +267,9 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
   it('CLI-STATUS-06: 三值表驱动——干净退 0/漂移退 2/解析不出退 1，summary.ok 逐档与退出码一致', async () => {
     const clean = await stubFor(contextFixture())
     const drifted = await stubFor(
-      contextFixture({ pack: { id: 'pk_1', name: '标准包', version: '1.0.0', drifted: true, outdated: false } }),
+      contextFixture({
+        pack: { id: 'pk_1', name: '标准包', version: '1.0.0', drifted: true, outdated: false },
+      }),
     )
     try {
       const cases: {
@@ -264,8 +280,20 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
         why: string
       }[] = [
         { dir: '/w/openvibe', port: clean.url, exit: ExitCode.ok, ok: true, why: '无漂移' },
-        { dir: '/w/openvibe', port: drifted.url, exit: ExitCode.drift, ok: false, why: 'pack 已漂移' },
-        { dir: '/tmp/nope', port: clean.url, exit: ExitCode.error, ok: false, why: '目录未绑定项目' },
+        {
+          dir: '/w/openvibe',
+          port: drifted.url,
+          exit: ExitCode.drift,
+          ok: false,
+          why: 'pack 已漂移',
+        },
+        {
+          dir: '/tmp/nope',
+          port: clean.url,
+          exit: ExitCode.error,
+          ok: false,
+          why: '目录未绑定项目',
+        },
       ]
       for (const c of cases) {
         const res = await runCli(['--json', '--server', c.port, '--token', 't', 'status', c.dir])
@@ -275,7 +303,9 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
         }
         expect(res.status, c.why).toBe(c.exit)
         expect(env.command).toBe('status')
-        expect(env.summary.ok, `${c.why}：summary.ok 必须与退出码 ${String(c.exit)} 一致`).toBe(c.ok)
+        expect(env.summary.ok, `${c.why}：summary.ok 必须与退出码 ${String(c.exit)} 一致`).toBe(
+          c.ok,
+        )
         if (c.exit === ExitCode.error) expect(env.summary.error?.code).toBe('NOT_FOUND')
         else expect(env.summary.exitCode).toBe(c.exit)
         expect(res.stderr).not.toContain('"command"')
@@ -288,7 +318,9 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
 
   it('CLI-STATUS-07: 埋点随退出码上报（0 与 2 都要发），且埋点端点 404 不阻断漂移档', async () => {
     const stub = await stubFor(
-      contextFixture({ pack: { id: 'pk_1', name: '标准包', version: '1.0.0', drifted: true, outdated: false } }),
+      contextFixture({
+        pack: { id: 'pk_1', name: '标准包', version: '1.0.0', drifted: true, outdated: false },
+      }),
     )
     try {
       await runCli(['--json', '--server', stub.url, '--token', 't', 'status', '/w/openvibe'], {
@@ -303,9 +335,19 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
 
       const noTelemetry = await startStubServer({
         projects: PROJECTS,
-        context: contextFixture({ pack: { id: 'pk_1', name: '标准包', version: '1.0.0', drifted: true, outdated: false } }),
+        context: contextFixture({
+          pack: { id: 'pk_1', name: '标准包', version: '1.0.0', drifted: true, outdated: false },
+        }),
       })
-      const res = await runCli(['--json', '--server', noTelemetry.url, '--token', 't', 'status', '/w/openvibe'])
+      const res = await runCli([
+        '--json',
+        '--server',
+        noTelemetry.url,
+        '--token',
+        't',
+        'status',
+        '/w/openvibe',
+      ])
       const env = JSON.parse(res.stdout) as {
         summary: { ok: boolean; exitCode: number; commandRun: { sent: boolean } }
       }

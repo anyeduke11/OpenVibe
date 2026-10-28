@@ -140,9 +140,7 @@ describe('bootstrap 启动序列（dev-plan §1.2 步骤 3/4/6，§4.3）', () =
       .get('default') as { id: string; targets: string }
     expect(ADAPTER_IDS).toEqual(JSON.parse(pack.targets))
     expect(
-      r.db
-        .prepare('SELECT version, channel FROM pack_exports WHERE pack_id = ?')
-        .all(pack.id),
+      r.db.prepare('SELECT version, channel FROM pack_exports WHERE pack_id = ?').all(pack.id),
     ).toEqual([{ version: '1.0.0', channel: 'directory' }])
     expect(r.defaultPack.directoryPath).toBe(packExportDir('default', '1.0.0'))
     expect(readdirSync(r.defaultPack.directoryPath ?? '').length).toBeGreaterThan(0)

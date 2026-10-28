@@ -37,7 +37,13 @@ export class StatusError extends Error {
 export const PROJECTS_PATH = '/api/projects?status=all'
 
 /** status 快照要的五段。assets 不在其中：那是 `openvibe ask assets` 的活儿，不混进进度快照 */
-export const STATUS_FIELDS: readonly ContextField[] = ['stage', 'checklist', 'tasks', 'logs', 'pack']
+export const STATUS_FIELDS: readonly ContextField[] = [
+  'stage',
+  'checklist',
+  'tasks',
+  'logs',
+  'pack',
+]
 
 /** 人读最近日志的条数上限。裁剪**必须留痕**（下方 truncated.note），不能静默少给 */
 export const RECENT_LOGS = 5
@@ -119,7 +125,11 @@ export async function resolveProjectByPath(
     )
   }
   return {
-    project: { id: project.id, name: project.name, localPath: trimTrailingSep(resolve(project.localPath ?? '')) },
+    project: {
+      id: project.id,
+      name: project.name,
+      localPath: trimTrailingSep(resolve(project.localPath ?? '')),
+    },
     absDir,
   }
 }
@@ -247,7 +257,8 @@ export function statusLines(snapshot: StatusSnapshot): string[] {
   } else {
     lines.push(`包 ${pack.name ?? '(未登记)'}@${pack.version ?? '?'}`)
     if (pack.drifted === true) lines.push('  已漂移：跑 `openvibe diff <dir>` 看逐文件明细')
-    if (pack.outdated === true) lines.push('  服务端有更新版本：跑 `openvibe diff <dir>` 看建议命令')
+    if (pack.outdated === true)
+      lines.push('  服务端有更新版本：跑 `openvibe diff <dir>` 看建议命令')
   }
   // 裁剪留痕**不**在这里再打一遍：printer.warn 已经把它送给人读了（--json 下折进
   // summary.warnings），而 summary.truncated 里还有一份给机器读。同一件事打两次只是噪声。
@@ -267,7 +278,10 @@ export function statusHints(snapshot: StatusSnapshot): string[] {
   return hints
 }
 
-export async function statusAction(options: StatusOptions, deps: StatusDeps = {}): Promise<StatusOutcome> {
+export async function statusAction(
+  options: StatusOptions,
+  deps: StatusDeps = {},
+): Promise<StatusOutcome> {
   const client = deps.client
   if (!client) {
     throw new StatusError(

@@ -51,16 +51,22 @@ describe('M9 P1.2 / P1.3 / P1d · runoob python3 84 + go 34 + 冷门 6 入 lang_
       expect(total).toBe(124)
       // DL-14：两 lang 都在
       const langs = (
-        h.db.prepare(`SELECT DISTINCT lang FROM lang_topics ORDER BY lang`).all() as { lang: string }[]
+        h.db.prepare(`SELECT DISTINCT lang FROM lang_topics ORDER BY lang`).all() as {
+          lang: string
+        }[]
       ).map((r) => r.lang)
       expect(langs).toEqual(['go', 'python'])
       // 各门数量
-      const py = (h.db.prepare(`SELECT COUNT(*) AS c FROM lang_topics WHERE lang='python'`).get() as {
-        c: number
-      }).c
-      const go = (h.db.prepare(`SELECT COUNT(*) AS c FROM lang_topics WHERE lang='go'`).get() as {
-        c: number
-      }).c
+      const py = (
+        h.db.prepare(`SELECT COUNT(*) AS c FROM lang_topics WHERE lang='python'`).get() as {
+          c: number
+        }
+      ).c
+      const go = (
+        h.db.prepare(`SELECT COUNT(*) AS c FROM lang_topics WHERE lang='go'`).get() as {
+          c: number
+        }
+      ).c
       expect(py).toBe(85)
       expect(go).toBe(39)
       h.close()
@@ -163,9 +169,9 @@ describe('M9 P1.2 / P1.3 / P1d · runoob python3 84 + go 34 + 冷门 6 入 lang_
         // 全文搜正文片段：只能存在于 `title` / `ref_title`（正页标题），不得命中 `summary`。
         // （DL-02 的本意是「教程正文零进仓」；title 是元数据，正文是 body_md / summary / body 这种。
         //  这里注入式把片段放在 title 里是测试场景，**生产里绝不会这样**——seed builder 决定 title。）
-        const allFields = h.db
-          .prepare(`SELECT summary FROM lang_topics`)
-          .all() as { summary: string }[]
+        const allFields = h.db.prepare(`SELECT summary FROM lang_topics`).all() as {
+          summary: string
+        }[]
         for (const row of allFields) {
           expect(row.summary).not.toContain(SAMPLE_BODY_FRAGMENT)
         }
@@ -214,7 +220,9 @@ describe('M9 P1.2 / P1.3 / P1d · runoob python3 84 + go 34 + 冷门 6 入 lang_
       seedLangTopics(h.db, SEEDS_DIR)
       seedLangTopics(h.db, SEEDS_DIR)
       const rows = h.db
-        .prepare(`SELECT bundle, content_hash FROM seed_registry WHERE bundle LIKE 'lang_topics_%' ORDER BY bundle`)
+        .prepare(
+          `SELECT bundle, content_hash FROM seed_registry WHERE bundle LIKE 'lang_topics_%' ORDER BY bundle`,
+        )
         .all() as { bundle: string; content_hash: string }[]
       expect(rows.map((r) => r.bundle)).toEqual([
         'lang_topics_advanced',

@@ -5,12 +5,7 @@ import { useRoadmapOrder } from '../../hooks/useRoadmapOrder'
 import { useTermMutations } from '../../hooks/useTerms'
 import { CHIP_TONES, chipCls, chipPressed, chipTone, inputCls } from '../ui/styles'
 import { Icon } from '../ui/icons'
-import {
-  AssetEmpty,
-  AssetError,
-  AssetNoResults,
-  AssetSkeleton,
-} from '../library/AssetStates'
+import { AssetEmpty, AssetError, AssetNoResults, AssetSkeleton } from '../library/AssetStates'
 
 // 可按压的 chip：选中与未选中在形制层择一。chipTone('default') 与 chipPressed 各自
 // 带 border/bg/text 三个色类，叠加只会让 Tailwind 任意挑一个生效（顺序不由源码决定），
@@ -132,7 +127,9 @@ export function TermRoadmapView(props: {
             key={s.id}
             className={`${chipTone('default')} cursor-pointer hover:border-line-strong`}
             onClick={() => {
-              document.getElementById(`roadmap-${s.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              document
+                .getElementById(`roadmap-${s.id}`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
               setOpenStations((prev) => new Set(prev).add(s.id))
             }}
           >
@@ -180,9 +177,7 @@ export function TermRoadmapView(props: {
                   <span className="text-sm font-semibold text-ink-body">
                     {zhRoadmap.station(s.stationNo)} · {s.title}
                   </span>
-                  <span className={chipTone('default')}>
-                    {zhRoadmap.count(s.total)}
-                  </span>
+                  <span className={chipTone('default')}>{zhRoadmap.count(s.total)}</span>
                   {ordering && s.id !== '__loose' && (
                     <span className="ml-auto flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <button
@@ -224,9 +219,13 @@ export function TermRoadmapView(props: {
                                 className="w-full rounded px-2 py-1 text-left hover:bg-panel-2"
                                 onClick={() => props.onEdit(term)}
                               >
-                                <span className="text-xs font-medium text-ink-body">{term.zh ?? '—'}</span>
+                                <span className="text-xs font-medium text-ink-body">
+                                  {term.zh ?? '—'}
+                                </span>
                                 {term.en !== null && term.en !== '' && (
-                                  <span className="ml-1.5 text-[11px] text-ink-faint">{term.en}</span>
+                                  <span className="ml-1.5 text-[11px] text-ink-faint">
+                                    {term.en}
+                                  </span>
                                 )}
                                 {brief !== '' && (
                                   <span className="ml-2 text-[11px] text-ink-muted">{brief}</span>
@@ -246,16 +245,23 @@ export function TermRoadmapView(props: {
                     <div>
                       <ul className="space-y-1">
                         {s.loose.map(({ term, brief }) => (
-                          <li key={term.id} className="flex items-center gap-2 rounded px-2 py-1 hover:bg-panel-2">
+                          <li
+                            key={term.id}
+                            className="flex items-center gap-2 rounded px-2 py-1 hover:bg-panel-2"
+                          >
                             <button
                               className="min-w-0 flex-1 text-left"
                               onClick={() => props.onEdit(term)}
                             >
-                              <span className="text-xs font-medium text-ink-body">{term.zh ?? '—'}</span>
+                              <span className="text-xs font-medium text-ink-body">
+                                {term.zh ?? '—'}
+                              </span>
                               {term.en !== null && term.en !== '' && (
                                 <span className="ml-1.5 text-[11px] text-ink-faint">{term.en}</span>
                               )}
-                              {brief !== '' && <span className="ml-2 text-[11px] text-ink-muted">{brief}</span>}
+                              {brief !== '' && (
+                                <span className="ml-2 text-[11px] text-ink-muted">{brief}</span>
+                              )}
                             </button>
                             {/* `w-auto!` 不是笔误，是必须的：inputCls 自带 `w-full`，而 Tailwind v4 生成的 CSS 里
                             `.w-full` 排在 `.w-auto` **之后**，两者同权重 ⇒ `w-full` 恒胜，

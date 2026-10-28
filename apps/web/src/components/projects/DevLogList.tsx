@@ -56,9 +56,7 @@ export function DevLogList(props: {
 
       <div className={cardBodyCls}>
         {props.loading &&
-          [0, 1].map((i) => (
-            <div key={i} className={`${skelCls} mb-2 h-8 w-full`} aria-hidden />
-          ))}
+          [0, 1].map((i) => <div key={i} className={`${skelCls} mb-2 h-8 w-full`} aria-hidden />)}
         {props.error !== null && (
           <div className={noteCls('danger')}>
             <span className={`${noteTitleCls} text-danger`}>{zh.common.failed(props.error)}</span>
@@ -91,37 +89,43 @@ export function DevLogList(props: {
                     {entry.displayNo}
                   </span>
                   <span className="truncate text-sm text-ink-body">
-                    {entry.title === '' ? (entry.body.split('\n')[0]?.slice(0, 40) ?? '') : entry.title}
+                    {entry.title === ''
+                      ? (entry.body.split('\n')[0]?.slice(0, 40) ?? '')
+                      : entry.title}
                   </span>
                   <span className={`${ledgerNumCls} ml-auto shrink-0 text-[11px] text-ink-faint`}>
                     {entry.createdAt}
                   </span>
-                  <Icon name={expanded ? 'fwd' : 'fwd'} size={12} className="shrink-0 text-ink-faint rotate-90" />
+                  <Icon
+                    name={expanded ? 'fwd' : 'fwd'}
+                    size={12}
+                    className="shrink-0 text-ink-faint rotate-90"
+                  />
                 </button>
 
-              {entry.relatedFiles.length > 0 && (
-                <p className="mt-1 text-[11px] text-ink-muted">
-                  {zh.projects.devlog.fields.relatedFiles}: {entry.relatedFiles.join('、')}
+                {entry.relatedFiles.length > 0 && (
+                  <p className="mt-1 text-[11px] text-ink-muted">
+                    {zh.projects.devlog.fields.relatedFiles}: {entry.relatedFiles.join('、')}
+                  </p>
+                )}
+                <p className="mt-0.5 text-[11px] text-ink-muted">
+                  {entry.evidence === null
+                    ? zh.projects.devlog.noEvidence
+                    : `${zh.projects.devlog.fields.command}: ${'`'}${entry.evidence.command}${'`'} · ${
+                        zh.projects.devlog.fields.result
+                      }: ${entry.evidence.resultSummary}`}
                 </p>
-              )}
-              <p className="mt-0.5 text-[11px] text-ink-muted">
-                {entry.evidence === null
-                  ? zh.projects.devlog.noEvidence
-                  : `${zh.projects.devlog.fields.command}: ${'`'}${entry.evidence.command}${'`'} · ${
-                      zh.projects.devlog.fields.result
-                    }: ${entry.evidence.resultSummary}`}
-              </p>
 
-              {expanded && (
-                <>
-                  <div className="html-md mt-2 max-h-[40vh] overflow-auto rounded-md border border-line-hair bg-panel-2 p-2">
-                    <MarkdownPreview source={entry.body} />
-                  </div>
-                  <p className="mt-1 text-[11px] text-ink-faint">{zh.projects.devlog.readOnly}</p>
-                  <ReflowActions entry={entry} projectName={props.projectName} />
-                </>
-              )}
-            </li>
+                {expanded && (
+                  <>
+                    <div className="html-md mt-2 max-h-[40vh] overflow-auto rounded-md border border-line-hair bg-panel-2 p-2">
+                      <MarkdownPreview source={entry.body} />
+                    </div>
+                    <p className="mt-1 text-[11px] text-ink-faint">{zh.projects.devlog.readOnly}</p>
+                    <ReflowActions entry={entry} projectName={props.projectName} />
+                  </>
+                )}
+              </li>
             )
           })}
         </ol>

@@ -38,7 +38,9 @@ export function TelemetryAskCard(props: {
           <Icon name="x" size={13} />
           {zh.telemetryAsk.decline}
         </button>
-        <span className="text-[11.5px] text-ink-muted">{sys.settings.telemetry.askHint(false)}</span>
+        <span className="text-[11.5px] text-ink-muted">
+          {sys.settings.telemetry.askHint(false)}
+        </span>
       </div>
     </section>
   )

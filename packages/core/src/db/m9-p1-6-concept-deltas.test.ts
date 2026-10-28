@@ -70,8 +70,7 @@ function seedAll(h: { db: Parameters<typeof seedConceptDeltas>[0] }): void {
  */
 function conceptIdOf(h: { db: Parameters<typeof seedConceptDeltas>[0] }, slug: string): number {
   const row = h.db.prepare(`SELECT id FROM lang_concepts WHERE slug = ?`).get(slug) as
-    | { id: number }
-    | undefined
+    { id: number } | undefined
   if (!row) throw new Error(`概念不存在: ${slug}`)
   return row.id
 }
@@ -126,9 +125,9 @@ describe('M9 P1.6 · 语言差异层 29 条入库', () => {
     const h = newDb()
     try {
       seedAll(h)
-      const rows = h.db
-        .prepare(`SELECT DISTINCT aspect FROM lang_concept_deltas`)
-        .all() as { aspect: string }[]
+      const rows = h.db.prepare(`SELECT DISTINCT aspect FROM lang_concept_deltas`).all() as {
+        aspect: string
+      }[]
       const allowed = new Set(['语法', '错误模型', '并发模型', '类型系统', '包管理'])
       for (const r of rows) {
         expect(allowed.has(r.aspect), `aspect 越界: ${r.aspect}`).toBe(true)
@@ -186,9 +185,7 @@ describe('M9 P1.6 · DL-24 大版本变更能报出受影响的差异条目', ()
       expect(
         goAffected.some(
           (d) =>
-            d.concept_id === fnConcept &&
-            d.aspect === '类型系统' &&
-            d.since_version === '1.18',
+            d.concept_id === fnConcept && d.aspect === '类型系统' && d.since_version === '1.18',
         ),
         'Go 1.18 的泛型差异没被报出',
       ).toBe(true)
@@ -233,20 +230,14 @@ describe('M9 P1.6 · DL-24 大版本变更能报出受影响的差异条目', ()
       // Go 1.19 → 1.20：「Go 1.18 之前没有泛型」那条（until=1.18）已过期，不该出现
       const goAffected = affectedConceptDeltas(h.db, 'go', '1.19', '1.20')
       const expiredGeneric = goAffected.filter(
-        (d) =>
-          d.concept_id === fnConcept &&
-          d.aspect === '类型系统' &&
-          d.since_version === '1.0',
+        (d) => d.concept_id === fnConcept && d.aspect === '类型系统' && d.since_version === '1.0',
       )
       expect(expiredGeneric.length, '已过期的 Go 泛型差异被误报了').toBe(0)
 
       // Python 3.11 → 3.12：「Python 3.10 之前没有 match」那条（until=3.10）已过期
       const pyAffected = affectedConceptDeltas(h.db, 'python', '3.11', '3.12')
       const expiredMatch = pyAffected.filter(
-        (d) =>
-          d.concept_id === condConcept &&
-          d.aspect === '语法' &&
-          d.since_version === '3.0',
+        (d) => d.concept_id === condConcept && d.aspect === '语法' && d.since_version === '3.0',
       )
       expect(expiredMatch.length, '已过期的 Python match 差异被误报了').toBe(0)
 
@@ -274,10 +265,7 @@ describe('M9 P1.6 · DL-24 大版本变更能报出受影响的差异条目', ()
       const goAffected = affectedConceptDeltas(h.db, 'go', '1.17', '1.18')
       expect(
         goAffected.some(
-          (d) =>
-            d.concept_id === fnConcept &&
-            d.aspect === '类型系统' &&
-            d.since_version === '1.0',
+          (d) => d.concept_id === fnConcept && d.aspect === '类型系统' && d.since_version === '1.0',
         ),
         '区间内到期的 Go 泛型差异被漏报了',
       ).toBe(true)
@@ -297,11 +285,15 @@ describe('M9 P1.6 · DL-24 大版本变更能报出受影响的差异条目', ()
     try {
       seedAll(h)
       const goAffected = affectedConceptDeltas(h.db, 'go', '1.17', '1.18')
-      expect(goAffected.every((d) => d.lang === 'go'), 'Go 的结果里混进了 Python 条目').toBe(true)
+      expect(
+        goAffected.every((d) => d.lang === 'go'),
+        'Go 的结果里混进了 Python 条目',
+      ).toBe(true)
       const pyAffected = affectedConceptDeltas(h.db, 'python', '3.9', '3.10')
-      expect(pyAffected.every((d) => d.lang === 'python'), 'Python 的结果里混进了 Go 条目').toBe(
-        true,
-      )
+      expect(
+        pyAffected.every((d) => d.lang === 'python'),
+        'Python 的结果里混进了 Go 条目',
+      ).toBe(true)
       h.close()
     } catch (err) {
       try {
@@ -396,10 +388,7 @@ describe('M9 P1.6 · DL-24 反向变异腿（证明闸确实会红）', () => {
 
       // 正解：已过期的条目不在结果里
       const correctExpired = affected.filter(
-        (d) =>
-          d.concept_id === fnConcept &&
-          d.aspect === '类型系统' &&
-          d.since_version === '1.0',
+        (d) => d.concept_id === fnConcept && d.aspect === '类型系统' && d.since_version === '1.0',
       )
       expect(correctExpired.length).toBe(0)
 
@@ -411,10 +400,7 @@ describe('M9 P1.6 · DL-24 反向变异腿（证明闸确实会红）', () => {
         return compareParsed(start, parseVersion('1.20')) <= 0
       })
       const buggyExpired = buggy.filter(
-        (d) =>
-          d.concept_id === fnConcept &&
-          d.aspect === '类型系统' &&
-          d.since_version === '1.0',
+        (d) => d.concept_id === fnConcept && d.aspect === '类型系统' && d.since_version === '1.0',
       )
       // ⇒ 漏掉过滤的实现会多报这条 ⇒ 闸能分辨
       expect(buggyExpired.length).toBeGreaterThan(correctExpired.length)
@@ -439,10 +425,7 @@ describe('M9 P1.6 · DL-24 反向变异腿（证明闸确实会红）', () => {
       // Go 1.0 → 1.1：Go 1.18 那条泛型差异此刻还没生效，不该出现
       const affected = affectedConceptDeltas(h.db, 'go', '1.0', '1.1')
       const notYet = affected.filter(
-        (d) =>
-          d.concept_id === fnConcept &&
-          d.aspect === '类型系统' &&
-          d.since_version === '1.18',
+        (d) => d.concept_id === fnConcept && d.aspect === '类型系统' && d.since_version === '1.18',
       )
       expect(notYet.length).toBe(0)
 
@@ -454,10 +437,7 @@ describe('M9 P1.6 · DL-24 反向变异腿（证明闸确实会红）', () => {
         return end === null || compareParsed(end, parseVersion('1.0')) >= 0
       })
       const buggyNotYet = buggy.filter(
-        (d) =>
-          d.concept_id === fnConcept &&
-          d.aspect === '类型系统' &&
-          d.since_version === '1.18',
+        (d) => d.concept_id === fnConcept && d.aspect === '类型系统' && d.since_version === '1.18',
       )
       expect(buggyNotYet.length).toBeGreaterThan(notYet.length)
       h.close()
@@ -480,10 +460,7 @@ describe('M9 P1.6 · DL-24 反向变异腿（证明闸确实会红）', () => {
       // Go 1.18 → 1.19：until=1.18 的条目在变更区间内到期 ⇒ 正确实现要报出
       const affected = affectedConceptDeltas(h.db, 'go', '1.18', '1.19')
       const correct = affected.filter(
-        (d) =>
-          d.concept_id === fnConcept &&
-          d.aspect === '类型系统' &&
-          d.since_version === '1.0',
+        (d) => d.concept_id === fnConcept && d.aspect === '类型系统' && d.since_version === '1.0',
       )
       expect(correct.length).toBe(1)
 
@@ -526,9 +503,9 @@ describe('M9 P1.6 · 版本比较的边界（数字比较而非字符串比较�
   })
 
   it('seed 源文件自检：29 条 ＋ 4 条 supersedes 链（构建期事实）', () => {
-    const seed = JSON.parse(
-      readFileSync(join(SEEDS_DIR, 'lang_concept_deltas.json'), 'utf8'),
-    ) as { items: Array<{ supersedes_index: number; concept_slug: string }> }
+    const seed = JSON.parse(readFileSync(join(SEEDS_DIR, 'lang_concept_deltas.json'), 'utf8')) as {
+      items: Array<{ supersedes_index: number; concept_slug: string }>
+    }
     expect(seed.items.length).toBe(EXPECTED_DELTAS)
     expect(seed.items.filter((i) => i.supersedes_index >= 0).length).toBe(EXPECTED_CHAINS)
   })

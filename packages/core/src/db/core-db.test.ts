@@ -46,7 +46,8 @@ describe('UT-MIGRATION-01 · migration 只前进且幂等', () => {
       '0023_ai_extract_shares',
     ])
     expect(migrate(db)).toEqual([])
-    const count = (db.prepare('SELECT COUNT(*) AS c FROM schema_migrations').get() as { c: number }).c
+    const count = (db.prepare('SELECT COUNT(*) AS c FROM schema_migrations').get() as { c: number })
+      .c
     // ⚠️ **迁移数 = 23**（0023 是第 23 个）⇒ 改迁移就要改这个数（既有纪律）
     expect(count).toBe(23)
     db.close()
@@ -71,9 +72,8 @@ describe('UT-CASCADE-01 · 提示词硬删级联版本', () => {
     expect(repo.versions(prompt.id)).toHaveLength(3)
 
     repo.delete(prompt.id)
-    const count = (
-      h.db.prepare('SELECT COUNT(*) AS c FROM prompt_versions').get() as { c: number }
-    ).c
+    const count = (h.db.prepare('SELECT COUNT(*) AS c FROM prompt_versions').get() as { c: number })
+      .c
     expect(count).toBe(0)
     h.close()
   })
@@ -93,7 +93,8 @@ describe('UT-CASCADE-02 · skill 与项目级联', () => {
       )
       .run(skill.id)
     repo.delete(skill.id)
-    const count = (h.db.prepare('SELECT COUNT(*) AS c FROM skill_versions').get() as { c: number }).c
+    const count = (h.db.prepare('SELECT COUNT(*) AS c FROM skill_versions').get() as { c: number })
+      .c
     expect(count).toBe(0)
     h.close()
   })
@@ -105,7 +106,12 @@ describe('UT-CASCADE-02 · skill 与项目级联', () => {
       name: '个人轻量流',
       kind: 'light',
       stages: [
-        { name: '启动', checklist: [{ id: 'c1', text: '需求一句话写清' }], artifacts: [], prompt: '' },
+        {
+          name: '启动',
+          checklist: [{ id: 'c1', text: '需求一句话写清' }],
+          artifacts: [],
+          prompt: '',
+        },
       ],
     })
     const projects = new ProjectsRepo(h.db)
@@ -187,7 +193,9 @@ function migrateUpTo(db: SqliteDatabase, lastVersion: string): void {
   })
   db.pragma('foreign_keys = OFF')
   try {
-    for (const file of readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith('.sql')).sort()) {
+    for (const file of readdirSync(MIGRATIONS_DIR)
+      .filter((f) => f.endsWith('.sql'))
+      .sort()) {
       const version = file.replace(/\.sql$/, '')
       if (version > lastVersion) break
       runOne(version, readFileSync(join(MIGRATIONS_DIR, file), 'utf8'))
@@ -246,11 +254,9 @@ function countOf(db: SqliteDatabase, table: string): number {
 }
 
 function ledgerRows(db: SqliteDatabase): { version: string; appliedAt: string }[] {
-  return (
-    db
-      .prepare('SELECT version, applied_at AS appliedAt FROM schema_migrations ORDER BY rowid ASC')
-      .all() as { version: string; appliedAt: string }[]
-  )
+  return db
+    .prepare('SELECT version, applied_at AS appliedAt FROM schema_migrations ORDER BY rowid ASC')
+    .all() as { version: string; appliedAt: string }[]
 }
 
 describe('CORE-EVT-01 · 0007 升级的既有库两径（local-event-ledger §7-a）', () => {

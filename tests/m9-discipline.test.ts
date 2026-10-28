@@ -127,14 +127,18 @@ describe('M9 P0.4 · DL-18 未勾选片段不得出网', () => {
   it('越界文件（含 `..`）抛 PayloadAssemblyError（DL-18 的「出网失败可观察」分支）', () => {
     const sneaking: SourceFragment[] = [{ path: '../outside/secret.ts', content: 'x' }]
     expect(() =>
-      assembleAiCallPayload({ projectRoot, files: sneaking, consentIds: new Set(['../outside/secret.ts']) }),
+      assembleAiCallPayload({
+        projectRoot,
+        files: sneaking,
+        consentIds: new Set(['../outside/secret.ts']),
+      }),
     ).toThrow(PayloadAssemblyError)
   })
 
   it('projectRoot 不是绝对路径时抛错（防止 caller 算错根目录）', () => {
-    expect(() =>
-      assembleAiCallPayload({ projectRoot: 'rel/path', files, consentIds }),
-    ).toThrow(PayloadAssemblyError)
+    expect(() => assembleAiCallPayload({ projectRoot: 'rel/path', files, consentIds })).toThrow(
+      PayloadAssemblyError,
+    )
   })
 
   it('空 consentIds 装出空 fragments（**否定式判据必须自证**）', () => {

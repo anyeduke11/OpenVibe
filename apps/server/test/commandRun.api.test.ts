@@ -4,7 +4,11 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type { FastifyInstance } from 'fastify'
 import { newDb, scanForbidden, payloadKeys, type TestDbHandle } from '@openvibe/core/test-support'
-import { CLI_COMMAND_RUN_COMMANDS, CLI_COMMAND_RUN_PAYLOAD_KEYS, type SqliteDatabase } from '@openvibe/core'
+import {
+  CLI_COMMAND_RUN_COMMANDS,
+  CLI_COMMAND_RUN_PAYLOAD_KEYS,
+  type SqliteDatabase,
+} from '@openvibe/core'
 import { buildApp } from '../src/app'
 
 /**
@@ -88,13 +92,11 @@ function ofKind(h: Harness, kind: string): Row[] {
   return rows(h).filter((r) => r.kind === kind)
 }
 
-
 /* ---------------------------------------------------------------------------
  * 禁列扫描（FR-5.1.2 / FR-5.1.3）
  * ------------------------------------------------------------------------- */
 
 const USER = userInfo().username
-
 
 /* ------------------------------------------------------------------------- */
 
@@ -151,9 +153,9 @@ describe('FR-5 · 写入点：合法入参恰好新增一行', () => {
     // 2026-10-16 扩到四值时这里直接红 —— 那是好事（它确实该红），
     // 但红的原因会与「别处的回归」混淆。派生写法让「闭集几值」只有一个真相来源。
     expect(got).toHaveLength(CLI_COMMAND_RUN_COMMANDS.length)
-    expect(got.map((r) => (JSON.parse(r.payload_json) as { command: string }).command).sort()).toEqual(
-      [...CLI_COMMAND_RUN_COMMANDS].sort(),
-    )
+    expect(
+      got.map((r) => (JSON.parse(r.payload_json) as { command: string }).command).sort(),
+    ).toEqual([...CLI_COMMAND_RUN_COMMANDS].sort())
   })
 
   it('**agent 缺省 ⇒ null**（表示「人跑的」）；缺省与显式 null 同义', async () => {
@@ -244,20 +246,25 @@ describe('FR-5.1.2 · 禁列扫描（否定式判据 ⇒ 必须自带自证）',
         null,
         null,
         // ⚠️ 路径藏在**嵌套对象**里：只扫顶层键的扫描器会漏掉它（这条是本节的判据所在）
-        JSON.stringify({ command: 'ask', exitCode: 0, nested: { where: `/Users/${USER}/work/secret-repo` } }),
+        JSON.stringify({
+          command: 'ask',
+          exitCode: 0,
+          nested: { where: `/Users/${USER}/work/secret-repo` },
+        }),
         NOW,
         NOW_DAY,
       )
 
     expect(rows(h)).toHaveLength(1)
     const dirty = rows(h)[0]!
-    expect(scanForbidden(dirty)).toEqual(
-      expect.arrayContaining(['Unix 绝对路径', '本机用户名']),
-    )
+    expect(scanForbidden(dirty)).toEqual(expect.arrayContaining(['Unix 绝对路径', '本机用户名']))
 
     // 对照组：只把 payload 换回写入口径的形状（其余列逐字不动），扫描器必须放行。
     // 少了这一行，就无法区分「扫描器抓到了脏行」与「扫描器对一切非空 payload 都报错」。
-    const clean: Row = { ...dirty, payload_json: JSON.stringify({ command: 'ask', exitCode: 0, agent: null }) }
+    const clean: Row = {
+      ...dirty,
+      payload_json: JSON.stringify({ command: 'ask', exitCode: 0, agent: null }),
+    }
     expect(scanForbidden(clean)).toEqual([])
   })
 
@@ -287,7 +294,19 @@ describe('FR-5.1.2 · 禁列扫描（否定式判据 ⇒ 必须自带自证）',
 describe('FR-6.1 · 入参非法 ⇒ 既有 422，且**不留台账行**', () => {
   it('`command` 非闭集三值 ⇒ 422 VALIDATION_ERROR', async () => {
     const h = await makeHarness()
-    for (const command of ['diff', 'Ask', 'ASK', '', 'ask ', 'ask\n', 'ingest', 'sessions', 42, null, undefined]) {
+    for (const command of [
+      'diff',
+      'Ask',
+      'ASK',
+      '',
+      'ask ',
+      'ask\n',
+      'ingest',
+      'sessions',
+      42,
+      null,
+      undefined,
+    ]) {
       const res = await post(h.app, { command, exitCode: 0, agent: null })
       expect(res.statusCode, JSON.stringify(command)).toBe(422)
       expect(res.json(), JSON.stringify(command)).toMatchObject({ code: 'VALIDATION_ERROR' })
@@ -361,18 +380,25 @@ describe('FR-6.1 · 入参非法 ⇒ 既有 422，且**不留台账行**', () =>
     const h = await makeHarness()
     const res = await post(h.app, { command: 'diff', exitCode: 'x', agent: 7 })
     expect(res.statusCode).toBe(422)
-    const fieldErrors = (res.json() as { details: { fieldErrors: Record<string, string[]> } }).details.fieldErrors
+    const fieldErrors = (res.json() as { details: { fieldErrors: Record<string, string[]> } })
+      .details.fieldErrors
     expect(Object.keys(fieldErrors).sort()).toEqual(['agent', 'command', 'exitCode'])
   })
 })
 
 describe('FR-5.2 · 写入点集中在服务层', () => {
   it('**路由文件里没有台账写入、也不 new 台账 repo**', () => {
-    const src = readFileSync(fileURLToPath(new URL('../src/routes/agent.ts', import.meta.url)), 'utf8')
+    const src = readFileSync(
+      fileURLToPath(new URL('../src/routes/agent.ts', import.meta.url)),
+      'utf8',
+    )
     // 只留注释里的提及不算数：把注释行剥掉再扫，否则本文件自己解释 FR-5.2 就把自己判红
     const code = src
       .split('\n')
-      .filter((l) => !l.trim().startsWith('*') && !l.trim().startsWith('//') && !l.trim().startsWith('/*'))
+      .filter(
+        (l) =>
+          !l.trim().startsWith('*') && !l.trim().startsWith('//') && !l.trim().startsWith('/*'),
+      )
       .join('\n')
     expect(code).not.toMatch(/ledger\.record|localEvents\.record|\.record\(/)
     expect(code).not.toMatch(/LocalEventsRepo/)

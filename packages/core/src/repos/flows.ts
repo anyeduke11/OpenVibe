@@ -94,16 +94,14 @@ export class FlowTemplatesRepo {
   }
 
   get(id: string): FlowTemplateOut | null {
-    const row = this.db
-      .prepare('SELECT * FROM flow_templates WHERE id = ?')
-      .get(id) as FlowRow | undefined
+    const row = this.db.prepare('SELECT * FROM flow_templates WHERE id = ?').get(id) as
+      FlowRow | undefined
     return row ? rowToFlow(row) : null
   }
 
   findByName(name: string): FlowTemplateOut | null {
-    const row = this.db
-      .prepare('SELECT * FROM flow_templates WHERE name = ?')
-      .get(name) as FlowRow | undefined
+    const row = this.db.prepare('SELECT * FROM flow_templates WHERE name = ?').get(name) as
+      FlowRow | undefined
     return row ? rowToFlow(row) : null
   }
 
@@ -124,9 +122,11 @@ export class FlowTemplatesRepo {
       name = `${source.name} 副本${n}`
       n += 1
     }
-    return this.create(
-      { name, kind: 'custom', stages: source.stages.map((s) => structuredClone(s)) },
-    )
+    return this.create({
+      name,
+      kind: 'custom',
+      stages: source.stages.map((s) => structuredClone(s)),
+    })
   }
 
   setSeedHash(id: string, seedHash: string): void {

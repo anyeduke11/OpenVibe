@@ -1,8 +1,19 @@
 import type { FastifyInstance } from 'fastify'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { AppError, AgentIngestBatch, AgentIngestReviewInput, parseContextFields } from '@openvibe/shared'
-import { createAgentService, createCommandRunService, createContextService, PACK_LOCK_REL, type SqliteDatabase } from '@openvibe/core'
+import {
+  AppError,
+  AgentIngestBatch,
+  AgentIngestReviewInput,
+  parseContextFields,
+} from '@openvibe/shared'
+import {
+  createAgentService,
+  createCommandRunService,
+  createContextService,
+  PACK_LOCK_REL,
+  type SqliteDatabase,
+} from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
 
 export interface AgentRouteDeps {

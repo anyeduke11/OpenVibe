@@ -56,10 +56,7 @@ export function LanguageCompare() {
         </header>
         <ol className="flex flex-col gap-1.5">
           {LEARNING_ORDER.map((o) => (
-            <li
-              key={o.no}
-              className="rounded-md border border-line bg-panel px-3 py-2"
-            >
+            <li key={o.no} className="rounded-md border border-line bg-panel px-3 py-2">
               <span className="text-sm text-ink">{o.route}</span>
               <p className="mt-1 text-[13.5px] leading-[1.6] text-ink-body">{o.detail}</p>
             </li>

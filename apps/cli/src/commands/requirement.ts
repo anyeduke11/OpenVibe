@@ -165,9 +165,10 @@ function unreachable(e: unknown): never {
  * 标题为空时**本地就拒**：服务端 `publishRequirement` 也会拒，但那要等一次白跑的网络往返，
  * 而 `--title ""` 是 agent 最容易犯的错（拼接出空串），早失败能给到可执行的提示。
  */
-export function buildRequirement(
-  options: RequirementAddOptions,
-): { project: string; payload: RequirementPayload } {
+export function buildRequirement(options: RequirementAddOptions): {
+  project: string
+  payload: RequirementPayload
+} {
   const project = options.project.trim()
   if (project === '')
     throw new RequirementAddError(
@@ -176,8 +177,12 @@ export function buildRequirement(
     )
   const title = (options.title ?? '').trim()
   if (title === '')
-    throw new RequirementAddError('BAD_TITLE', '需求标题不能为空：--title <text> 必填且不得只有空白')
-  const priority = options.priority === undefined ? DEFAULT_REQUIREMENT_PRIORITY : parsePriority(options.priority)
+    throw new RequirementAddError(
+      'BAD_TITLE',
+      '需求标题不能为空：--title <text> 必填且不得只有空白',
+    )
+  const priority =
+    options.priority === undefined ? DEFAULT_REQUIREMENT_PRIORITY : parsePriority(options.priority)
   return { project, payload: { title, detail: options.detail ?? '', priority } }
 }
 

@@ -46,7 +46,12 @@ export const EXPECTED_FUNCTION_PARAMS: Record<string, readonly string[]> = {
 }
 
 /** `EvidenceKind` 的取值闭集。 */
-export const EXPECTED_EVIDENCE_KINDS: readonly string[] = ['checklist', 'skill', 'task', 'source_hit']
+export const EXPECTED_EVIDENCE_KINDS: readonly string[] = [
+  'checklist',
+  'skill',
+  'task',
+  'source_hit',
+]
 
 /**
  * 入参里**不许出现**的标识符（DL-28 资源层 / DL-34 模式层）—— **按子串判**。

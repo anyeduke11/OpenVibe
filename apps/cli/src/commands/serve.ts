@@ -78,9 +78,7 @@ export async function serveAction(options: ServeOptions = {}): Promise<ServeResu
   const { config, error } = readConfigFile(home)
   if (error)
     emit(
-      config
-        ? `${configPath}：${error}`
-        : `${configPath} 不可用（${error}），令牌已重新生成并覆盖`,
+      config ? `${configPath}：${error}` : `${configPath} 不可用（${error}），令牌已重新生成并覆盖`,
     )
   const token = config?.token ?? randomBytes(32).toString('hex')
   // 遥测端点是用户手写在 config.json 里的（design §11.5）；缺省即结构性零外联

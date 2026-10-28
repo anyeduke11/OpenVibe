@@ -1,13 +1,13 @@
 # SPEC · 出参侧三条边界断言（草案：包产出复查、契约级出参断言、脏行列改「未知」）
 
-| 项 | 值 |
-|------|------|
-| 模块 | 横切能力（校验边界，非 PRD 3.2 的资产模块）——沿用「横切能力用功能名」命名法（dev-plan §0.4 第 5 条） |
-| 优先级 | **RF3-4**（PRD §10.2 表 RF3 行；分析文 §7 Phase 3 表 3-4 行判级预判 **B**）。归属 RF3 而非 RF1 的唯一理由是它不带新功能、只补防线，见 §6.1 |
-| 上游 | PRD §10.2/§10.3；分析文 §4.9（AD8「校验边界：出参侧只补三条，不做全局环绕」）· §7 Phase 3 表 3-4 行（**出口判据单源在那里**）· §2.1 差距表 ㉖ 行「此刻不炸的唯一原因是出参侧没有闸」；`docs/decisions.md` ㉖ |
-| 下游设计 | design §7.3–§7.6（manifest／bundle／lock 的 A 级契约面）、§9（分层：`apps/*` 只做交互与序列化）；`docs/specs/entry-budget.md` §3 的入口体积基线（本项与它有**直接体积冲突**，见 §3-6 与 FR-2） |
-| 关联任务 | **无**。PRD §10.4 第三组原文：「本轮**不建任务组**。RF0–RF5 各阶段开工前须先在 `docs/specs/` 补规格，任务组编号（T14 起）待规格落地后在 `tasks.md` 另起」 |
-| 版本 | **v0.9 草案（2026-10-03，纯新文件；本轮不改任何既有规格）**。按 dev-plan §0.4 第 1/3/4 条**不构成开工依据**：本文件的 FR-2 与上游分析文的建议**方向相反**（把「浏览器 DEV 包一层 safeParse」从默认动作降级为可选增强），这个改判须 owner 认，见 §8.2 待裁① |
+| 项       | 值                                                                                                                                                                                                                                                         |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 模块     | 横切能力（校验边界，非 PRD 3.2 的资产模块）——沿用「横切能力用功能名」命名法（dev-plan §0.4 第 5 条）                                                                                                                                                       |
+| 优先级   | **RF3-4**（PRD §10.2 表 RF3 行；分析文 §7 Phase 3 表 3-4 行判级预判 **B**）。归属 RF3 而非 RF1 的唯一理由是它不带新功能、只补防线，见 §6.1                                                                                                                 |
+| 上游     | PRD §10.2/§10.3；分析文 §4.9（AD8「校验边界：出参侧只补三条，不做全局环绕」）· §7 Phase 3 表 3-4 行（**出口判据单源在那里**）· §2.1 差距表 ㉖ 行「此刻不炸的唯一原因是出参侧没有闸」；`docs/decisions.md` ㉖                                               |
+| 下游设计 | design §7.3–§7.6（manifest／bundle／lock 的 A 级契约面）、§9（分层：`apps/*` 只做交互与序列化）；`docs/specs/entry-budget.md` §3 的入口体积基线（本项与它有**直接体积冲突**，见 §3-6 与 FR-2）                                                             |
+| 关联任务 | **无**。PRD §10.4 第三组原文：「本轮**不建任务组**。RF0–RF5 各阶段开工前须先在 `docs/specs/` 补规格，任务组编号（T14 起）待规格落地后在 `tasks.md` 另起」                                                                                                  |
+| 版本     | **v0.9 草案（2026-10-03，纯新文件；本轮不改任何既有规格）**。按 dev-plan §0.4 第 1/3/4 条**不构成开工依据**：本文件的 FR-2 与上游分析文的建议**方向相反**（把「浏览器 DEV 包一层 safeParse」从默认动作降级为可选增强），这个改判须 owner 认，见 §8.2 待裁① |
 
 ---
 
@@ -20,34 +20,34 @@
 
 ## 2. 范围
 
-| In（本 spec 覆盖） | Out（明确不做，写明理由与去向） |
-|---|---|
-| E1 包产出面：服务端渲染后对 `manifestJson` 过 `PackManifestSchema`，失败显式报错 | 给 72 个端点统一挂响应校验环绕（分析文 §4.9 点名的双输；且 Fastify 侧今天零挂载点，见 §3-6） |
-| E2 契约面：25 个 `*Out` schema 逐个进**契约测试**（拿真响应 `parse`，不是拿类型比较） | 在生产构建的浏览器里加任何运行期校验（22 B 余量不允许，见 §3-6 与 FR-2.3） |
-| E3 行→领域面：9 个 `rowTo*` 的**关键列白名单**断言，失败转「未知」 | 全表全列扫描、启动期一致性体检（另案：`write-selfproof.md` 管磁盘侧，本文件不管） |
-| 「未知」的单一表达方式（一处口径，禁止各页各造） | 把「未知」做成第四套状态词汇（与 `write-selfproof.md` §6.5 同族的警告，见 §6.4） |
-| 出参断言覆盖率作为 MT4 的一个分子（FR-5，供 `docs-governance-check.md` 取数） | 改入参侧任何行为（41 处 `parseOrThrow` 的 422 语义、`fieldErrors` 形状一字不动） |
-| 把 `appMeta.read` 的容错**登记为有意例外**并写清它守的是什么 | 顺手重构 `parseJsonColumn` 的签名或调用点数量（26 处出现、8 个文件，本项不追求减少） |
+| In（本 spec 覆盖）                                                                    | Out（明确不做，写明理由与去向）                                                              |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| E1 包产出面：服务端渲染后对 `manifestJson` 过 `PackManifestSchema`，失败显式报错      | 给 72 个端点统一挂响应校验环绕（分析文 §4.9 点名的双输；且 Fastify 侧今天零挂载点，见 §3-6） |
+| E2 契约面：25 个 `*Out` schema 逐个进**契约测试**（拿真响应 `parse`，不是拿类型比较） | 在生产构建的浏览器里加任何运行期校验（22 B 余量不允许，见 §3-6 与 FR-2.3）                   |
+| E3 行→领域面：9 个 `rowTo*` 的**关键列白名单**断言，失败转「未知」                    | 全表全列扫描、启动期一致性体检（另案：`write-selfproof.md` 管磁盘侧，本文件不管）            |
+| 「未知」的单一表达方式（一处口径，禁止各页各造）                                      | 把「未知」做成第四套状态词汇（与 `write-selfproof.md` §6.5 同族的警告，见 §6.4）             |
+| 出参断言覆盖率作为 MT4 的一个分子（FR-5，供 `docs-governance-check.md` 取数）         | 改入参侧任何行为（41 处 `parseOrThrow` 的 422 语义、`fieldErrors` 形状一字不动）             |
+| 把 `appMeta.read` 的容错**登记为有意例外**并写清它守的是什么                          | 顺手重构 `parseJsonColumn` 的签名或调用点数量（26 处出现、8 个文件，本项不追求减少）         |
 
 ## 3. 现状与实测基线（采样：2026-10-03 工作树；引用提交树 `54789b8`）
 
-| # | 量 | 现测值 | 复算命令 |
-|---|---|---|---|
-| 1 | 入参侧覆盖 | `parseOrThrow`（`apps/server/src/lib/validate.ts:21`）在 routes 内 **41** 个调用点，覆盖 **10/10** 个 route 文件；端点总数 **72**（GET 28／POST 29／PATCH 7／DELETE 7／PUT 1） | `grep -rho 'parseOrThrow(' apps/server/src/routes \| wc -l`；`grep -rhoE 'app\.(get\|post\|patch\|put\|delete)\(' apps/server/src/routes \| wc -l` |
-| 2 | 出参侧运行期校验 | **0**。server 内 `.parse(`/`.safeParse(` 只有两处且都不是出参：`lib/validate.ts:22`（入参）、`lib/telemetry-flush.ts:64`（遥测外发批体，属出口不属 API 出参） | `grep -rn '\.safeParse(\|\.parse(' apps/server/src \| grep -v JSON.parse` |
-| 3 | 已存在但未被调用的出参 schema | **25** 个 `export const *Out = z.object(...)`／`.extend(...)`，分布在 9 个 schema 文件：pack 6／settings 6／prompt 2／term 2／skill 2／task 3／project 2／flow 1／ports 1 | `grep -rc '^export const [A-Za-z]*Out = ' packages/shared/src/schemas/*.ts` |
-| 4 | 同一目录的类型层用法 | `z.infer` **84** 处 ⇒ 与第 3 行合读：schema 的全部现行用途是喂类型，不是跑校验 | `grep -rn 'z\.infer' packages/shared/src/schemas \| wc -l` |
-| 5 | 「导入了但没调用」的实物凭据 | `FlywheelStatsOut` 在 `apps/server/src/routes/settings.ts:11` 是**值导入**（同行其它项写 `type`，它没写），却只在 `:149` 当返回类型标注用 | `grep -n 'FlywheelStatsOut' apps/server/src/routes/settings.ts`（两行，第二行是类型位） |
-| 6 | **浏览器里今天没有 zod** | 生产 dist 内含 `ZodError` 字样的 chunk **0**，尽管 web 有 **24** 处运行期（非 `import type`）`@openvibe/shared` 引用——`packages/shared/package.json` 标了 `"sideEffects": false`，未用到的 `z.object` 构造被摇掉了。负对照：`grep -rl ZodError apps/web/src` **0**（说明不是改名） | `grep -rl 'ZodError' apps/web/dist/assets \| wc -l`（正对照：`grep -rl 'from .zod.' packages/shared/src` = 9） |
-| 7 | 入口体积余量 | 入口 chunk **299,978 B**／预算 300,000 B／**余量 22 B**（`scripts/bundle-check.ts:14` 的 `entryMaxKb: 300`）⇒ 与第 6 行并读：**把 zod 运行期引进入口 = 门禁当场红**，且没有可谈判空间 | `pnpm bundle:check`（口径同 `entry-budget.md` §3-1） |
-| 8 | web 侧调用面 | `apiJson<T>`（`apps/web/src/api/client.ts:47-51`）末行 `return (await res.json()) as T` = 裸断言；`apiJson<` 调用点 **69** 处，全部经这一个函数 | `grep -rn 'apiJson<' apps/web/src \| wc -l` |
-| 9 | DEV 分支的既有先例 | web 源码内 `import.meta.env` **0** 命中 ⇒ FR-2 若走 DEV 分支路线是**新造模式**，不是沿用 | `grep -rn 'import\.meta\.env' apps/web/src \| wc -l` |
-| 10 | 行→领域出口 | `function rowTo*` **9** 个（packs／projects／devlog／flows／prompts／telemetry／skills／tasks／terms 各一），每个仓储一份，无集中出口 | `grep -rho 'function rowTo[A-Za-z]*(' packages/core/src/repos \| wc -l` |
-| 11 | 静默回退点 | `parseJsonColumn<T>(raw, fallback)`：**catch 掉就 return fallback**。在 repos 内出现 **26** 次／8 文件（prompts 7／terms 5／projects 3／packs 3／devlog 3／skills 2／flows 2／util 1 定义） | `grep -rn 'parseJsonColumn' packages/core/src/repos \| wc -l` |
-| 12 | 枚举列裸断言 | `rowToPrompt`（`packages/core/src/repos/prompts.ts:44-46`）连用三处 `as`：`platformMarks`／`useAs`／`status` ⇒ DB 里一个越界字符串会带着合法类型出门 | `sed -n '34,51p' packages/core/src/repos/prompts.ts` |
-| 13 | 同族但**有反向裁定**的点 | `AppMetaRepo.read`（`packages/core/src/repos/appMeta.ts:16-24`）同样「损坏回退 fallback」，且 docblock（`:4-6`）**明写这是刻意的**：「单个键损坏不该拖垮设置页与遥测闸门」 | `sed -n '1,26p' packages/core/src/repos/appMeta.ts` |
-| 14 | 无 try 的 JSON 列 | `apps/server/src/lib/refs.ts:19` `JSON.parse(row.selection) as Record<string, unknown>` 是**裸 parse**（坏了会抛，不是静默）⇒ 与第 11 行是两类病，处方不同 | `grep -n 'JSON.parse' apps/server/src/lib/refs.ts` |
-| 15 | manifest／bundle／lock 校验的**已有**分布 | 运行期 `safeParse` 已有 6 处，全在**读侧**：CLI `pack-source.ts:137`／`:219`（manifest）、`:200`（bundle）；core `inject/lock.ts:62`、`local/lock.ts:56`（lock）。测试侧 `packages/core/src/pack/pack.test.ts:411-412` 已对渲染产物 safeParse | `grep -rn 'Pack\(Manifest\|Bundle\|Lock\)Schema\.' apps packages \| grep -v test` |
+| #   | 量                                        | 现测值                                                                                                                                                                                                                                                                             | 复算命令                                                                                                                                           |
+| --- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 入参侧覆盖                                | `parseOrThrow`（`apps/server/src/lib/validate.ts:21`）在 routes 内 **41** 个调用点，覆盖 **10/10** 个 route 文件；端点总数 **72**（GET 28／POST 29／PATCH 7／DELETE 7／PUT 1）                                                                                                     | `grep -rho 'parseOrThrow(' apps/server/src/routes \| wc -l`；`grep -rhoE 'app\.(get\|post\|patch\|put\|delete)\(' apps/server/src/routes \| wc -l` |
+| 2   | 出参侧运行期校验                          | **0**。server 内 `.parse(`/`.safeParse(` 只有两处且都不是出参：`lib/validate.ts:22`（入参）、`lib/telemetry-flush.ts:64`（遥测外发批体，属出口不属 API 出参）                                                                                                                      | `grep -rn '\.safeParse(\|\.parse(' apps/server/src \| grep -v JSON.parse`                                                                          |
+| 3   | 已存在但未被调用的出参 schema             | **25** 个 `export const *Out = z.object(...)`／`.extend(...)`，分布在 9 个 schema 文件：pack 6／settings 6／prompt 2／term 2／skill 2／task 3／project 2／flow 1／ports 1                                                                                                          | `grep -rc '^export const [A-Za-z]*Out = ' packages/shared/src/schemas/*.ts`                                                                        |
+| 4   | 同一目录的类型层用法                      | `z.infer` **84** 处 ⇒ 与第 3 行合读：schema 的全部现行用途是喂类型，不是跑校验                                                                                                                                                                                                     | `grep -rn 'z\.infer' packages/shared/src/schemas \| wc -l`                                                                                         |
+| 5   | 「导入了但没调用」的实物凭据              | `FlywheelStatsOut` 在 `apps/server/src/routes/settings.ts:11` 是**值导入**（同行其它项写 `type`，它没写），却只在 `:149` 当返回类型标注用                                                                                                                                          | `grep -n 'FlywheelStatsOut' apps/server/src/routes/settings.ts`（两行，第二行是类型位）                                                            |
+| 6   | **浏览器里今天没有 zod**                  | 生产 dist 内含 `ZodError` 字样的 chunk **0**，尽管 web 有 **24** 处运行期（非 `import type`）`@openvibe/shared` 引用——`packages/shared/package.json` 标了 `"sideEffects": false`，未用到的 `z.object` 构造被摇掉了。负对照：`grep -rl ZodError apps/web/src` **0**（说明不是改名） | `grep -rl 'ZodError' apps/web/dist/assets \| wc -l`（正对照：`grep -rl 'from .zod.' packages/shared/src` = 9）                                     |
+| 7   | 入口体积余量                              | 入口 chunk **299,978 B**／预算 300,000 B／**余量 22 B**（`scripts/bundle-check.ts:14` 的 `entryMaxKb: 300`）⇒ 与第 6 行并读：**把 zod 运行期引进入口 = 门禁当场红**，且没有可谈判空间                                                                                              | `pnpm bundle:check`（口径同 `entry-budget.md` §3-1）                                                                                               |
+| 8   | web 侧调用面                              | `apiJson<T>`（`apps/web/src/api/client.ts:47-51`）末行 `return (await res.json()) as T` = 裸断言；`apiJson<` 调用点 **69** 处，全部经这一个函数                                                                                                                                    | `grep -rn 'apiJson<' apps/web/src \| wc -l`                                                                                                        |
+| 9   | DEV 分支的既有先例                        | web 源码内 `import.meta.env` **0** 命中 ⇒ FR-2 若走 DEV 分支路线是**新造模式**，不是沿用                                                                                                                                                                                           | `grep -rn 'import\.meta\.env' apps/web/src \| wc -l`                                                                                               |
+| 10  | 行→领域出口                               | `function rowTo*` **9** 个（packs／projects／devlog／flows／prompts／telemetry／skills／tasks／terms 各一），每个仓储一份，无集中出口                                                                                                                                              | `grep -rho 'function rowTo[A-Za-z]*(' packages/core/src/repos \| wc -l`                                                                            |
+| 11  | 静默回退点                                | `parseJsonColumn<T>(raw, fallback)`：**catch 掉就 return fallback**。在 repos 内出现 **26** 次／8 文件（prompts 7／terms 5／projects 3／packs 3／devlog 3／skills 2／flows 2／util 1 定义）                                                                                        | `grep -rn 'parseJsonColumn' packages/core/src/repos \| wc -l`                                                                                      |
+| 12  | 枚举列裸断言                              | `rowToPrompt`（`packages/core/src/repos/prompts.ts:44-46`）连用三处 `as`：`platformMarks`／`useAs`／`status` ⇒ DB 里一个越界字符串会带着合法类型出门                                                                                                                               | `sed -n '34,51p' packages/core/src/repos/prompts.ts`                                                                                               |
+| 13  | 同族但**有反向裁定**的点                  | `AppMetaRepo.read`（`packages/core/src/repos/appMeta.ts:16-24`）同样「损坏回退 fallback」，且 docblock（`:4-6`）**明写这是刻意的**：「单个键损坏不该拖垮设置页与遥测闸门」                                                                                                         | `sed -n '1,26p' packages/core/src/repos/appMeta.ts`                                                                                                |
+| 14  | 无 try 的 JSON 列                         | `apps/server/src/lib/refs.ts:19` `JSON.parse(row.selection) as Record<string, unknown>` 是**裸 parse**（坏了会抛，不是静默）⇒ 与第 11 行是两类病，处方不同                                                                                                                         | `grep -n 'JSON.parse' apps/server/src/lib/refs.ts`                                                                                                 |
+| 15  | manifest／bundle／lock 校验的**已有**分布 | 运行期 `safeParse` 已有 6 处，全在**读侧**：CLI `pack-source.ts:137`／`:219`（manifest）、`:200`（bundle）；core `inject/lock.ts:62`、`local/lock.ts:56`（lock）。测试侧 `packages/core/src/pack/pack.test.ts:411-412` 已对渲染产物 safeParse                                      | `grep -rn 'Pack\(Manifest\|Bundle\|Lock\)Schema\.' apps packages \| grep -v test`                                                                  |
 
 **与上游的两处不符（照 §10-8 口径登记）**：① 分析文 §4.9 首行「出参 0 校验」在**运行期**意义下成立，但它建议的处方隐含「需要先有 schema」——实际 25 个 schema 已存在（§3-3），本项因此从「建一层」缩成「接上线」。② 分析文 §4.9 表第二行「只在开发模式包一层 safeParse，生产零开销」在本仓**有一个未被上游发现的前提**：生产零开销要求 DCE 真的把 schema 摇掉，而 §3-6/§3-7 实测余量只有 22 B，一次没验证过的 DCE 假设不该押在唯一的预算线上。
 
@@ -107,40 +107,47 @@
 ## 6. 边界与异常
 
 ### 6.1 为什么排 RF3 而不是 RF1
+
 本项零新功能、零新数据面，用户不会在任何界面看到它「出现了」。它的收益全在**下一次漂移发生时**——所以按分析文 §7 的阶段划分（Phase 3 = 闭环与度量），而不是按实现难度。这条排序有代价：见 §8.2 待裁②（是否值得提前到 RF1 尾巴）。
 
 ### 6.2 「两处校验」正是本项要治的病
+
 FR-1 若在服务端两处（预览、导出）各写一次 manifest 校验，就变成了 §4.9 批评的那种双源。所以 FR-1.2 要求复用同一函数，且**新端点接入时以「有没有过那个函数」为验收项**（契约测试里断一次，不靠人记）。
 
 ### 6.3 「假零」是这条边界的失败模式原型
+
 `PackPreviewPane.test.tsx` 的 `05` 号用例已经把「`sizeEstimate` 缺席 ⇒ 整块不渲染，而不是印「≈0 tok」」当成验收（I-1 通则）。FR-3/FR-4 是同一原则换到数据层：**空是一种断言，未知才是诚实**。写 FR-4 时直接引这条既有裁定，不另立论据。
 
 ### 6.4 第四套状态词汇的风险
+
 仓里已经有三套注入状态词（`planner.ts:14` 的 `INJECT_STATUSES`、`apps/cli/src/output.ts:13` 的 `SYNC_STATES`、`retirement.ts:40-60` 的四态），`entry-budget.md` FR-7 正在收敛前两套，`service-layer.md` §8.2 待裁②在议第三套。本项再加一个「未知」，必须**明确它不进那三套**：它是列级诊断标签，不参与状态机迁移、不参与指纹、不参与 lock。这句话不写，将来一定会被误接进状态枚举。
 
 ### 6.5 脏数据怎么造（测试的前置难点）
+
 `rowTo*` 的输入是 DB 行，而仓储写入路径不会产生非法 JSON ⇒ 测试必须**绕过仓储直接写 SQL**。这是可行的（`packages/core/src/test-support/` 已有 DB 夹具设施），但要点明：本项的测试是「构造一个现实中不该出现但会出现的行」，属于**防御性用例**，不得反过来为了让测试通过而给仓储加输入清洗（那是另一件事，判级也不同）。
 
 ### 6.6 性能不是借口，但要设护栏
+
 25 个 schema 里最大的是 `PreviewOut`（含 `files[]` 全文与 `sizeEstimate`），对每次预览响应做整机 `parse` 是可感知的开销。这正是 FR-2 选测试而非运行期环绕的技术原因，不是偷懒。若将来确需运行期校验，护栏是：只 parse **元数据骨架**（`files[].path`／`sha256`／`sizeEstimate`），不 parse `content`。
 
 ### 6.7 与 `write-selfproof.md` 的分工线
+
 两个文件都会碰到「不一致要显式」，但面不同：**本文件的边界在进程内与 HTTP 上（数据是不是我声明的形状）**，`write-selfproof.md` 的边界在**磁盘上**（文件是不是我写出去的那份）。交点是 manifest：manifest 的**形状**合法性归本 FR-1，manifest 里记的哈希与磁盘**是否一致**归 `write-selfproof.md` FR-1。这条线要在两份文件里都写，只写一边等于没写。
 
 ## 7. 验收标准（pass／fail 二值）
 
-| ID | 判据 | pass 条件 |
-|---|---|---|
-| `SRV-OUTV-01` | E1 生效 | 人为让服务端拼出非法 manifest（夹具注入）⇒ 预览请求 5xx + 可读错误，**不返回 200** |
-| `SRV-OUTV-02` | E1 单点 | 预览与目录导出两条路径共用同一个校验函数（源码层一条 grep：校验调用点数 = 1，调用它的位置 = 2） |
-| `IT-OUTV-03` | E2 契约测试 | 25/25 个 `*Out` 各有一条真响应 `parse` 通过的测试；空值／哨兵／空数组三类形状各有覆盖 |
-| `UT-OUTV-04` | E3 白名单断言 | 对 `variables = 'not-json'`、`status = 'weird'` 的行：`rowToPrompt` 产出「未知」诊断，且 `warnings`/诊断通道含列名 |
-| `UT-OUTV-05` | 不静默也不打死 | 同一条脏行：列表页响应 200，脏行带诊断，其余行正常（不得整行丢弃） |
-| `SRV-OUTV-06` | refs 归一 | `lib/refs.ts` 的裸 parse 已并入 FR-3 形态（该文件内 `JSON.parse` 命中数 = 0 或被同一工具包裹） |
-| `UT-OUTV-07` | 值域同源 | 枚举断言用的值域来自 `shared` 常量（源码 grep 不得出现第二份 `['ready','draft',...]` 字面量） |
-| `BUILD-OUTV-01` | 体积不变量 | `pnpm bundle:check` 绿 **且** `grep -rl 'ZodError' apps/web/dist/assets` 命中 0（FR-2.3 的双凭据） |
-| `GOLD-OUTV-01` | 契约零变化 | `tests/golden/` 零 diff（FR-1.4 的凭据：加断言不许动产物字节） |
-| `REG-OUTV-01` | 覆盖率入账 | MT4 覆盖比记录 `0/25 → N/25`，且分子可由一条 grep 复算 |
+| ID              | 判据           | pass 条件                                                                                                          |
+| --------------- | -------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `SRV-OUTV-01`   | E1 生效        | 人为让服务端拼出非法 manifest（夹具注入）⇒ 预览请求 5xx + 可读错误，**不返回 200**                                 |
+| `SRV-OUTV-02`   | E1 单点        | 预览与目录导出两条路径共用同一个校验函数（源码层一条 grep：校验调用点数 = 1，调用它的位置 = 2）                    |
+| `IT-OUTV-03`    | E2 契约测试    | 25/25 个 `*Out` 各有一条真响应 `parse` 通过的测试；空值／哨兵／空数组三类形状各有覆盖                              |
+| `UT-OUTV-04`    | E3 白名单断言  | 对 `variables = 'not-json'`、`status = 'weird'` 的行：`rowToPrompt` 产出「未知」诊断，且 `warnings`/诊断通道含列名 |
+| `UT-OUTV-05`    | 不静默也不打死 | 同一条脏行：列表页响应 200，脏行带诊断，其余行正常（不得整行丢弃）                                                 |
+| `SRV-OUTV-06`   | refs 归一      | `lib/refs.ts` 的裸 parse 已并入 FR-3 形态（该文件内 `JSON.parse` 命中数 = 0 或被同一工具包裹）                     |
+| `UT-OUTV-07`    | 值域同源       | 枚举断言用的值域来自 `shared` 常量（源码 grep 不得出现第二份 `['ready','draft',...]` 字面量）                      |
+| `BUILD-OUTV-01` | 体积不变量     | `pnpm bundle:check` 绿 **且** `grep -rl 'ZodError' apps/web/dist/assets` 命中 0（FR-2.3 的双凭据）                 |
+| `GOLD-OUTV-01`  | 契约零变化     | `tests/golden/` 零 diff（FR-1.4 的凭据：加断言不许动产物字节）                                                     |
+| `REG-OUTV-01`   | 覆盖率入账     | MT4 覆盖比记录 `0/25 → N/25`，且分子可由一条 grep 复算                                                             |
 
 ### 7.7 未验证面（负向登记，不得读成已通过）
 
@@ -152,19 +159,19 @@ FR-1 若在服务端两处（预览、导出）各写一次 manifest 校验，�
 
 ## 8. 依赖
 
-| 方向 | 项 |
-|---|---|
-| 前置 | `entry-budget.md`（FR-2.3 的双凭据依赖它的体积基线与 `bundle:check` 口径）；分析文 §10-8 重采样纪律（§3 全部数字按它登记） |
-| 并行 | `service-layer.md`（E1/E3 的落点在 `toPreviewOut` 与 `rowTo*`，两者都在它的搬迁范围内：**先搬后加断言**，否则同一文件改两遍） |
-| 后置 | `docs-governance-check.md` FR-7（MT4 覆盖比取数）；`context-density.md`（它的分母口径若要断言，依赖本文件的 `*Out` 契约测试先站住） |
-| 不依赖 | `local-event-ledger.md`、`growth-path.md`、`adapter-fixtures.md`（三者的数据面与本项正交） |
+| 方向   | 项                                                                                                                                  |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 前置   | `entry-budget.md`（FR-2.3 的双凭据依赖它的体积基线与 `bundle:check` 口径）；分析文 §10-8 重采样纪律（§3 全部数字按它登记）          |
+| 并行   | `service-layer.md`（E1/E3 的落点在 `toPreviewOut` 与 `rowTo*`，两者都在它的搬迁范围内：**先搬后加断言**，否则同一文件改两遍）       |
+| 后置   | `docs-governance-check.md` FR-7（MT4 覆盖比取数）；`context-density.md`（它的分母口径若要断言，依赖本文件的 `*Out` 契约测试先站住） |
+| 不依赖 | `local-event-ledger.md`、`growth-path.md`、`adapter-fixtures.md`（三者的数据面与本项正交）                                          |
 
 ### 8.2 待裁清单（不代 owner 裁）
 
-| # | 待裁 | 我的倾向与理由 |
-|---|---|---|
-| ① | **FR-2 的改判是否认**：分析文 §4.9 说「浏览器 DEV 包一层 safeParse」，本文件把它降为可选增强 + 默认走契约测试。认不认？ | **认改判**：69 个调用点共用一个 `apiJson<T>`，测试形态覆盖同样完整，却不押 22 B 余量在一条未验证的 DCE 假设上。但这是**否证上游建议**，须签字，不能我自己判 |
-| ② | 排 RF3 还是提前到 RF1 尾巴（`service-layer.md` 搬迁时顺手做 E1/E3，省一次改同一批文件） | 倾向**提前 E3、留 E2**：E3 与仓储搬迁同文件，同做省一次回归；E2 是纯新增测试，任何时点都行 |
-| ③ | **FR-4 加诊断字段是否触 A**：本文件按「不新增键 ⇒ B」写（沿用分析文 §4.9 判级），但「往 `*Out` 加一个键」在 PRD §10.2 的判级表里可能算契约变更 | 倾向**先按不加键设计**（诊断走已有 `warnings[]` 通道，`PreviewOut` 已有该字段），把这条消解掉；若必须加键，**按 A 准备** |
-| ④ | 「未知」的展示文案与位置（列级诊断在 Web 上长什么样：小三角？行内脚注？设置页汇总？） | 不做新交互语言（与 `growth-path.md` FR-4 同一条硬约束）。建议复用既有 warning 展示位，具体待设计侧定 |
-| ⑤ | FR-3.4 的分阶段边界：**做到第几个仓储算本项收口**（只做 prompts？还是 8 个全做？） | 倾向**只做 prompts + packs 两个**即收口：一个 JSON 列最多（7 处）、一个含 `selection`（E3 里后果最重），其余登记为后续。但「收口线画在哪」是 owner 的进度判断，不是我的 |
+| #   | 待裁                                                                                                                                           | 我的倾向与理由                                                                                                                                                          |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ①   | **FR-2 的改判是否认**：分析文 §4.9 说「浏览器 DEV 包一层 safeParse」，本文件把它降为可选增强 + 默认走契约测试。认不认？                        | **认改判**：69 个调用点共用一个 `apiJson<T>`，测试形态覆盖同样完整，却不押 22 B 余量在一条未验证的 DCE 假设上。但这是**否证上游建议**，须签字，不能我自己判             |
+| ②   | 排 RF3 还是提前到 RF1 尾巴（`service-layer.md` 搬迁时顺手做 E1/E3，省一次改同一批文件）                                                        | 倾向**提前 E3、留 E2**：E3 与仓储搬迁同文件，同做省一次回归；E2 是纯新增测试，任何时点都行                                                                              |
+| ③   | **FR-4 加诊断字段是否触 A**：本文件按「不新增键 ⇒ B」写（沿用分析文 §4.9 判级），但「往 `*Out` 加一个键」在 PRD §10.2 的判级表里可能算契约变更 | 倾向**先按不加键设计**（诊断走已有 `warnings[]` 通道，`PreviewOut` 已有该字段），把这条消解掉；若必须加键，**按 A 准备**                                                |
+| ④   | 「未知」的展示文案与位置（列级诊断在 Web 上长什么样：小三角？行内脚注？设置页汇总？）                                                          | 不做新交互语言（与 `growth-path.md` FR-4 同一条硬约束）。建议复用既有 warning 展示位，具体待设计侧定                                                                    |
+| ⑤   | FR-3.4 的分阶段边界：**做到第几个仓储算本项收口**（只做 prompts？还是 8 个全做？）                                                             | 倾向**只做 prompts + packs 两个**即收口：一个 JSON 列最多（7 处）、一个含 `selection`（E3 里后果最重），其余登记为后续。但「收口线画在哪」是 owner 的进度判断，不是我的 |

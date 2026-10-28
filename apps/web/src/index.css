@@ -25,8 +25,9 @@
 /* ---------- token：亮色（暖纸） ---------- */
 @theme {
   /* 字族：Latin/数字一张脸（Outfit），中文系统原生栈 */
-  --font-sans: 'Outfit', 'PingFang SC', 'Hiragino Sans GB', 'HarmonyOS Sans SC', 'MiSans',
-    'Microsoft YaHei', sans-serif;
+  --font-sans:
+    'Outfit', 'PingFang SC', 'Hiragino Sans GB', 'HarmonyOS Sans SC', 'MiSans', 'Microsoft YaHei',
+    sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* 圆角三档 + 全圆 */
@@ -36,11 +37,14 @@
   --radius-full: 9999px;
 
   /* 阴影：三级，颜色通道取自 scrim 的 color-mix（暗态自动加深） */
-  --shadow-1: 0 1px 2px color-mix(in srgb, var(--color-scrim) 5%, transparent),
+  --shadow-1:
+    0 1px 2px color-mix(in srgb, var(--color-scrim) 5%, transparent),
     0 1px 1px color-mix(in srgb, var(--color-scrim) 4%, transparent);
-  --shadow-2: 0 4px 16px -4px color-mix(in srgb, var(--color-scrim) 12%, transparent),
+  --shadow-2:
+    0 4px 16px -4px color-mix(in srgb, var(--color-scrim) 12%, transparent),
     0 2px 4px color-mix(in srgb, var(--color-scrim) 5%, transparent);
-  --shadow-3: 0 24px 48px -16px color-mix(in srgb, var(--color-scrim) 26%, transparent),
+  --shadow-3:
+    0 24px 48px -16px color-mix(in srgb, var(--color-scrim) 26%, transparent),
     0 8px 16px -8px color-mix(in srgb, var(--color-scrim) 12%, transparent);
 
   /* 强调（赭石 · 全站唯一强调色） */

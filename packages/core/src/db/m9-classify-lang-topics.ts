@@ -43,14 +43,38 @@
  */
 const THIRD_PARTY_NAMES = [
   // §1.4 第 100 行 Python stdlib 举例（8 个）
-  'logging', 'pickle', 'subprocess', 'queue', 're', 'csv', 'threading', 'asyncio',
+  'logging',
+  'pickle',
+  'subprocess',
+  'queue',
+  're',
+  'csv',
+  'threading',
+  'asyncio',
   // 同源扩展：runoob 单列的 Python stdlib（§1.4 第 100 行未举例但同档）
-  'urllib', 'sys', 'stringio', 'datetime', 'json', 'xml', 'smtplib',
+  'urllib',
+  'sys',
+  'stringio',
+  'datetime',
+  'json',
+  'xml',
+  'smtplib',
   // §1.4 第 100 行 Python 第三方举例（5 个）
-  'mysql', 'mongodb', 'scrapy', 'selenium', 'pyqt',
+  'mysql',
+  'mongodb',
+  'scrapy',
+  'selenium',
+  'pyqt',
   // 同源扩展：连接器与同族第三方库
-  'mysql-connector', 'pymysql', 'requests', 'openai', 'statistics', 'hashlib',
-  'pyecharts', 'beautifulsoup', 'markdown',
+  'mysql-connector',
+  'pymysql',
+  'requests',
+  'openai',
+  'statistics',
+  'hashlib',
+  'pyecharts',
+  'beautifulsoup',
+  'markdown',
 ] as const
 
 /**
@@ -73,7 +97,12 @@ const KEYWORD_LIBRARY_HITS = ['模块', '驱动'] as const
  */
 const KEYWORD_ENV_HITS = [
   // §1.4 第 101 行明列（Python 7 词组）
-  '教程', '简介', '环境搭建', 'PYCHARM', 'VSCODE', '测验',
+  '教程',
+  '简介',
+  '环境搭建',
+  'PYCHARM',
+  'VSCODE',
+  '测验',
   // 同源扩展：runoob Go 34 条里的"Go 语言环境安装"标题含此
   '环境安装',
   // 同源扩展：runoob Python 84 条里的"Python3 标准库概览"标题含此
@@ -81,7 +110,8 @@ const KEYWORD_ENV_HITS = [
   // 推广项
   '有用的资源',
   // §1.4 没明列但语义同档（虚拟环境是教程性索引）
-  '虚拟环境', '开发工具',
+  '虚拟环境',
+  '开发工具',
   // ⚠️ **刻意不含「实例」「类型注解」**（P1.7 开工时发现，P1.4 规则缺陷）：
   //   这两个词过泛 ——「Python3 实例」（面向对象的实例）与「Python 类型注解」
   //   都是**语言知识点**（§3.7 第 534 行明确把「类型注解」列为 Python 语言专有条目），
@@ -112,11 +142,7 @@ function hasThirdParty(title: string): boolean {
  *
  * 判定：标题去掉语言前缀后恰好等于「模块」（允许中间有空格/版本号）。
  */
-const LANGUAGE_MODULE_EXCEPTIONS = [
-  /^Python\s*3?\s*模块$/,
-  /^Go\s*模块$/,
-  /^Go\s*Modules$/,
-]
+const LANGUAGE_MODULE_EXCEPTIONS = [/^Python\s*3?\s*模块$/, /^Go\s*模块$/, /^Go\s*Modules$/]
 
 /**
  * 标题是否含「库级」关键词。

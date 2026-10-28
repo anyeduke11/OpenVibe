@@ -1,4 +1,9 @@
-import { readProviderCollection, resolveApiKey, selectProviderEntry, isLocalEndpoint } from '../source-ai/provider-config'
+import {
+  readProviderCollection,
+  resolveApiKey,
+  selectProviderEntry,
+  isLocalEndpoint,
+} from '../source-ai/provider-config'
 import { realKeychainStore } from '../source-ai/keychain'
 import type { SqliteDatabase } from '../db'
 
@@ -39,7 +44,10 @@ interface ResolvedProvider {
 }
 
 /** 复用解读链的 provider 配置选型（显式 provider_id → 按项目绑定 → 默认） */
-export async function resolveExtractProvider(db: SqliteDatabase, providerId?: string): Promise<ResolvedProvider | null> {
+export async function resolveExtractProvider(
+  db: SqliteDatabase,
+  providerId?: string,
+): Promise<ResolvedProvider | null> {
   const { collection } = readProviderCollection(db)
   const picked = selectProviderEntry(collection, { providerId })
   if (picked.kind !== 'entry' || picked.entry.kind !== 'openai_http') return null
@@ -89,7 +97,10 @@ async function postChat(p: ResolvedProvider, prompt: string): Promise<string> {
     }),
   })
   if (!res.ok) {
-    throw new ExtractRunnerError('failed', `推理端点返回 ${String(res.status)}（${hostOf(p.endpoint)}）`)
+    throw new ExtractRunnerError(
+      'failed',
+      `推理端点返回 ${String(res.status)}（${hostOf(p.endpoint)}）`,
+    )
   }
   const body = (await res.json()) as { choices?: { message?: { content?: string } }[] }
   const content = body.choices?.[0]?.message?.content ?? ''
@@ -97,7 +108,10 @@ async function postChat(p: ResolvedProvider, prompt: string): Promise<string> {
   return content
 }
 
-export async function createExtractRunner(db: SqliteDatabase, providerId?: string): Promise<ExtractRunner | null> {
+export async function createExtractRunner(
+  db: SqliteDatabase,
+  providerId?: string,
+): Promise<ExtractRunner | null> {
   const p = await resolveExtractProvider(db, providerId)
   if (p === null) return null
   return {

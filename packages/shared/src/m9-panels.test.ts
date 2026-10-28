@@ -40,7 +40,7 @@ function section(heading: string): string {
   let end = lines.length
   for (let i = start + 1; i < lines.length; i += 1) {
     const m = lines[i]!.match(/^(#+)\s/)
-    if (m && (m[1]!.length <= level)) {
+    if (m && m[1]!.length <= level) {
       end = i
       break
     }
@@ -125,7 +125,9 @@ describe('M9 P3 · §3.22.1 双修规划（9 段）', () => {
   })
 
   it('两套模式各自的段序从 1 起（不是连号）', () => {
-    expect(DUAL_PLAN.filter((s) => s.profile === 'master').map((s) => s.no)).toEqual([1, 2, 3, 4, 5])
+    expect(DUAL_PLAN.filter((s) => s.profile === 'master').map((s) => s.no)).toEqual([
+      1, 2, 3, 4, 5,
+    ])
     expect(DUAL_PLAN.filter((s) => s.profile === 'familiar').map((s) => s.no)).toEqual([1, 2, 3, 4])
   })
 

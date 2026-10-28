@@ -91,10 +91,14 @@ function sortedSkills(skills: readonly ManifestSkill[]): ManifestSkill[] {
 }
 
 /** 可进包的技巧（FR-6.2）：published 且选中。排序键与仓储层同律（码点序 + id 兜底） */
-function publishedPlaybooks(playbooks: readonly ManifestPlaybook[] | undefined): ManifestPlaybook[] {
+function publishedPlaybooks(
+  playbooks: readonly ManifestPlaybook[] | undefined,
+): ManifestPlaybook[] {
   return [...(playbooks ?? [])]
     .filter((p) => p.status === 'published')
-    .sort((a, b) => compareCodeUnit(a.scenario, b.scenario) || compareCodeUnit(a.problem, b.problem))
+    .sort(
+      (a, b) => compareCodeUnit(a.scenario, b.scenario) || compareCodeUnit(a.problem, b.problem),
+    )
 }
 
 // ============ 主正文（§7.3 固定节序，空节整体省略） ============

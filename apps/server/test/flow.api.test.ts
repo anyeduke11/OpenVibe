@@ -1,5 +1,13 @@
 import { createHash } from 'node:crypto'
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -77,8 +85,16 @@ async function mkTemplate(h: Harness, name: string, stages: Stage[]): Promise<Fl
   return res.json() as FlowTemplateOut
 }
 
-async function mkProject(h: Harness, flowTemplateId: string, extra: object = {}): Promise<ProjectView> {
-  const res = await injectApi(h, 'POST', '/api/projects', { name: '观测台', flowTemplateId, ...extra })
+async function mkProject(
+  h: Harness,
+  flowTemplateId: string,
+  extra: object = {},
+): Promise<ProjectView> {
+  const res = await injectApi(h, 'POST', '/api/projects', {
+    name: '观测台',
+    flowTemplateId,
+    ...extra,
+  })
   expect(res.statusCode).toBe(201)
   return res.json() as ProjectView
 }
@@ -193,12 +209,12 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
     expect(badDelete.json().code).toBe('BUILTIN_IMMUTABLE')
 
     // 复制出来的才能改——§7.3 的 UI 禁用入口在服务端有对等防线
-    const custom = await injectApi(
-      h,
-      'POST',
-      `/api/flow-templates/${builtin.id}/duplicate`,
-    ).then((r) => r.json() as FlowTemplateOut)
-    const ok = await injectApi(h, 'PATCH', `/api/flow-templates/${custom.id}`, { name: '我的轻量流' })
+    const custom = await injectApi(h, 'POST', `/api/flow-templates/${builtin.id}/duplicate`).then(
+      (r) => r.json() as FlowTemplateOut,
+    )
+    const ok = await injectApi(h, 'PATCH', `/api/flow-templates/${custom.id}`, {
+      name: '我的轻量流',
+    })
     expect(ok.statusCode).toBe(200)
     expect((ok.json() as FlowTemplateOut).name).toBe('我的轻量流')
 
@@ -242,17 +258,13 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
       standardPackVersion: '1.2.0',
     })
     expect(reg.statusCode).toBe(200)
-    const same = (
-      await injectApi(h, 'GET', `/api/projects/${project.id}/injection-status`)
-    ).json()
+    const same = (await injectApi(h, 'GET', `/api/projects/${project.id}/injection-status`)).json()
     expect(same.upToDate).toBe(true)
     expect(same.registered).toEqual({ packId: 'pk_std', version: '1.2.0' })
 
     // 登记版本改为更旧 → 「可更新」提示的判据（工作台文案在 T5c）
     await injectApi(h, 'PATCH', `/api/projects/${project.id}`, { standardPackVersion: '1.1.0' })
-    const stale = (
-      await injectApi(h, 'GET', `/api/projects/${project.id}/injection-status`)
-    ).json()
+    const stale = (await injectApi(h, 'GET', `/api/projects/${project.id}/injection-status`)).json()
     expect(stale.upToDate).toBe(false)
     expect(stale.lockPresent).toBe(true)
   })
@@ -337,7 +349,9 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
       (await injectApi(h, 'PATCH', `/api/tasks/${a.id}`, { status: 'doing', order: 1 })).statusCode,
     ).toBe(200)
 
-    const doing = (await injectApi(h, 'GET', `/api/projects/${project.id}/tasks?status=doing`)).json()
+    const doing = (
+      await injectApi(h, 'GET', `/api/projects/${project.id}/tasks?status=doing`)
+    ).json()
     expect(doing.items.map((t: TaskOut) => [t.title, t.status, t.order])).toEqual([
       ['C', 'doing', 0],
       ['A', 'doing', 1],
@@ -355,9 +369,17 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
       stageName: null,
     })
     expect(edit.statusCode).toBe(200)
-    expect(edit.json()).toMatchObject({ title: 'B 改名', stageName: null, status: 'todo', order: 0 })
+    expect(edit.json()).toMatchObject({
+      title: 'B 改名',
+      stageName: null,
+      status: 'todo',
+      order: 0,
+    })
 
-    const badMove = await injectApi(h, 'PATCH', `/api/tasks/${b.id}`, { status: 'review', order: 0 })
+    const badMove = await injectApi(h, 'PATCH', `/api/tasks/${b.id}`, {
+      status: 'review',
+      order: 0,
+    })
     expect(badMove.statusCode).toBe(422)
     expect(badMove.json().code).toBe('VALIDATION_ERROR')
 
@@ -396,7 +418,11 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
     expect(list.total).toBe(3)
     expect(list.items[0].entryNo).toBe(3) // 新→旧
 
-    const exportRes = await injectApi(h, 'GET', `/api/projects/${project.id}/devlog/export?type=DEV`)
+    const exportRes = await injectApi(
+      h,
+      'GET',
+      `/api/projects/${project.id}/devlog/export?type=DEV`,
+    )
     expect(exportRes.statusCode).toBe(200)
     expect(exportRes.headers['content-disposition']).toContain('DEV_LOG.md')
     const md = exportRes.body
@@ -416,7 +442,8 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
     expect(checkMd.body).toContain('## CHECK-0001 · 走查 m5 §7')
 
     expect(
-      (await injectApi(h, 'GET', `/api/projects/${project.id}/devlog/export?type=BOGUS`)).statusCode,
+      (await injectApi(h, 'GET', `/api/projects/${project.id}/devlog/export?type=BOGUS`))
+        .statusCode,
     ).toBe(422)
   })
 
@@ -424,12 +451,13 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
     const h = await makeHarness()
     const tpl = await mkTemplate(h, '回流流', [stage('复盘', 1)])
     const project = await mkProject(h, tpl.id, { name: '回流实验' })
-    const log = (await injectApi(h, 'POST', `/api/projects/${project.id}/devlog`, {
-      type: 'DEV',
-      title: '发现规则漂移现象',
-      body: '长会话中模型偏离规则文件',
-    }))
-      .json() as DevLogOut
+    const log = (
+      await injectApi(h, 'POST', `/api/projects/${project.id}/devlog`, {
+        type: 'DEV',
+        title: '发现规则漂移现象',
+        body: '长会话中模型偏离规则文件',
+      })
+    ).json() as DevLogOut
 
     const termRes = await injectApi(h, 'POST', '/api/terms', {
       zh: '规则漂移',
@@ -466,9 +494,14 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
 
     expect((await injectApi(h, 'GET', '/api/reflow-origin/trm_ghost')).json().origin).toBeNull()
 
-    const cross = await injectApi(h, 'POST', `/api/projects/${project.id}/devlog/dev_ghost/assets`, {
-      assetId: term.id,
-    })
+    const cross = await injectApi(
+      h,
+      'POST',
+      `/api/projects/${project.id}/devlog/dev_ghost/assets`,
+      {
+        assetId: term.id,
+      },
+    )
     expect(cross.statusCode).toBe(404)
   })
 
@@ -560,7 +593,8 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
     await injectApi(h, 'PATCH', `/api/projects/${project.id}`, { localPath: missing })
     expect((await injectApi(h, 'GET', '/api/projects')).json().total).toBe(1)
     expect(
-      (await injectApi(h, 'PATCH', `/api/projects/${project.id}`, { status: 'archived' })).statusCode,
+      (await injectApi(h, 'PATCH', `/api/projects/${project.id}`, { status: 'archived' }))
+        .statusCode,
     ).toBe(200)
     expect((await injectApi(h, 'GET', '/api/projects')).json().total).toBe(0)
     const archived = (await injectApi(h, 'GET', '/api/projects?status=archived')).json()
@@ -581,18 +615,83 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
       code: string
     }> = [
       { method: 'GET', url: '/api/projects/prj_ghost', status: 404, code: 'NOT_FOUND' },
-      { method: 'PATCH', url: '/api/flow-templates/ft_ghost', payload: { name: 'x' }, status: 404, code: 'NOT_FOUND' },
-      { method: 'POST', url: '/api/flow-templates/ft_ghost/duplicate', status: 404, code: 'NOT_FOUND' },
-      { method: 'POST', url: '/api/projects', payload: { name: '', flowTemplateId: tpl.id }, status: 422, code: 'VALIDATION_ERROR' },
-      { method: 'POST', url: '/api/projects', payload: { name: '缺模板' }, status: 422, code: 'VALIDATION_ERROR' },
-      { method: 'POST', url: '/api/projects', payload: { name: '坏模板', flowTemplateId: 'ft_none' }, status: 404, code: 'NOT_FOUND' },
-      { method: 'POST', url: `/api/projects/${project.id}/stages/current`, payload: { stageName: '不存在' }, status: 422, code: 'VALIDATION_ERROR' },
-      { method: 'POST', url: `/api/projects/${project.id}/tasks`, payload: { title: '   ' }, status: 422, code: 'VALIDATION_ERROR' },
-      { method: 'POST', url: `/api/projects/${project.id}/tasks`, payload: { title: '好', stageName: '不存在' }, status: 422, code: 'VALIDATION_ERROR' },
-      { method: 'PATCH', url: '/api/tasks/tk_ghost', payload: { status: 'doing', order: 0 }, status: 404, code: 'NOT_FOUND' },
+      {
+        method: 'PATCH',
+        url: '/api/flow-templates/ft_ghost',
+        payload: { name: 'x' },
+        status: 404,
+        code: 'NOT_FOUND',
+      },
+      {
+        method: 'POST',
+        url: '/api/flow-templates/ft_ghost/duplicate',
+        status: 404,
+        code: 'NOT_FOUND',
+      },
+      {
+        method: 'POST',
+        url: '/api/projects',
+        payload: { name: '', flowTemplateId: tpl.id },
+        status: 422,
+        code: 'VALIDATION_ERROR',
+      },
+      {
+        method: 'POST',
+        url: '/api/projects',
+        payload: { name: '缺模板' },
+        status: 422,
+        code: 'VALIDATION_ERROR',
+      },
+      {
+        method: 'POST',
+        url: '/api/projects',
+        payload: { name: '坏模板', flowTemplateId: 'ft_none' },
+        status: 404,
+        code: 'NOT_FOUND',
+      },
+      {
+        method: 'POST',
+        url: `/api/projects/${project.id}/stages/current`,
+        payload: { stageName: '不存在' },
+        status: 422,
+        code: 'VALIDATION_ERROR',
+      },
+      {
+        method: 'POST',
+        url: `/api/projects/${project.id}/tasks`,
+        payload: { title: '   ' },
+        status: 422,
+        code: 'VALIDATION_ERROR',
+      },
+      {
+        method: 'POST',
+        url: `/api/projects/${project.id}/tasks`,
+        payload: { title: '好', stageName: '不存在' },
+        status: 422,
+        code: 'VALIDATION_ERROR',
+      },
+      {
+        method: 'PATCH',
+        url: '/api/tasks/tk_ghost',
+        payload: { status: 'doing', order: 0 },
+        status: 404,
+        code: 'NOT_FOUND',
+      },
       { method: 'DELETE', url: '/api/tasks/tk_ghost', status: 404, code: 'NOT_FOUND' },
-      { method: 'POST', url: `/api/projects/${project.id}/devlog`, payload: { type: 'NOPE' }, status: 422, code: 'VALIDATION_ERROR' },
-      { method: 'POST', url: '/api/projects/prj_ghost/devlog', payload: { type: 'DEV' }, status: 404, code: 'NOT_FOUND' },
+      {
+        method: 'POST',
+        url: `/api/projects/${project.id}/devlog`,
+        payload: { type: 'NOPE' },
+        status: 422,
+        code: 'VALIDATION_ERROR',
+      },
+      {
+        method: 'POST',
+        url: '/api/projects/prj_ghost/devlog',
+        payload: { type: 'DEV' },
+        status: 404,
+        code: 'NOT_FOUND',
+      },
       { method: 'DELETE', url: '/api/projects/prj_ghost', status: 404, code: 'NOT_FOUND' },
     ]
     for (const c of cases) {

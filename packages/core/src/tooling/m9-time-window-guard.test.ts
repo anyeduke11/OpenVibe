@@ -168,7 +168,9 @@ describe('M9 · 时间派生量守卫 · 生产侧', () => {
     const uses = findHardCodedDateUses([
       {
         file: 'x.test.ts',
-        text: ["it('a', () => {", "  const at = new Date('2026-10-14T00:00:00.000Z')", '})'].join('\n'),
+        text: ["it('a', () => {", "  const at = new Date('2026-10-14T00:00:00.000Z')", '})'].join(
+          '\n',
+        ),
       },
     ])
     expect(uses).toHaveLength(1)
@@ -181,7 +183,7 @@ describe('M9 · 时间派生量守卫 · 生产侧', () => {
     expect(blocks[0]?.startLine).toBe(1)
   })
 
-  it('⑤ ⚠️ **跨行的 SQL 也能取到表名**（表名与 `date(\'now\')` 不在同一行）', () => {
+  it("⑤ ⚠️ **跨行的 SQL 也能取到表名**（表名与 `date('now')` 不在同一行）", () => {
     const uses = findRelativeWindowUses([PROD_MULTILINE])
     expect(uses).toHaveLength(1)
     expect(uses[0]?.table).toBe('local_events')
@@ -409,7 +411,13 @@ describe('M9 · 时间派生量守卫 · 全仓扫描（真实仓库）', () => 
     const production: SourceFile[] = []
     const tests: SourceFile[] = []
 
-    const roots = ['packages/core/src', 'packages/shared/src', 'apps/server/src', 'apps/web/src', 'apps/cli/src']
+    const roots = [
+      'packages/core/src',
+      'packages/shared/src',
+      'apps/server/src',
+      'apps/web/src',
+      'apps/cli/src',
+    ]
     const walk = (dir: string): void => {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { readdirSync, statSync } = require('node:fs') as typeof import('node:fs')

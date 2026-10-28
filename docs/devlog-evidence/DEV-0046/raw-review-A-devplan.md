@@ -9,7 +9,7 @@
 
 共查 12 条断言，报 8 条不一致，2 条存疑。
 
-1. **:763-769 §6.1 命令矩阵无 `clean` 行**（`| openvibe diff <projectPath> | — | 漂移…`，同 :182 目录树 `commands/{serve,scan,sync,diff}.ts`）。判据：`sed -n '30,42p' docs/specs/m6-cli-injection.md` → `| \`openvibe clean <projectPath> [--dry-run] [--yes] [--force]\` | 退场…FR-6`；`grep -n command( apps/cli/src/index.ts` → `505: .command('clean')`；`ls apps/cli/src/commands/` → 含 `clean.ts`。应：矩阵补 clean 行、树补 clean.ts。
+1. **:763-769 §6.1 命令矩阵无 `clean` 行**（`| openvibe diff <projectPath> | — | 漂移…`，同 :182 目录树 `commands/{serve,scan,sync,diff}.ts`）。判据：`sed -n '30,42p' docs/specs/m6-cli-injection.md` → `| \`openvibe clean <projectPath> [--dry-run] [--yes] [--force]\` | 退场…FR-6`；`grep -n command( apps/cli/src/index.ts`→`505: .command('clean')`；`ls apps/cli/src/commands/`→ 含`clean.ts`。应：矩阵补 clean 行、树补 clean.ts。
 2. **:1373/:1486/:1488「`CLI-CLEAN-*` 现测 29 支」「win32 28 实跑+1 skip」**。判据：`grep -c "^[[:space:]]*it[\.(]" apps/cli/test/clean.test.ts` → **30**（该 grep 形式即 :1486 自称的单源）。新增那支 = `git show --stat 5444450`「CLI-CLEAN-13」。skip 仅 1（`grep -n skipIf` → :595 `CLI-CLEAN-06e`），故应为 darwin/linux 30、win32 29+1。
 3. **:1486「文件支数，与具名 id 数相等」**。判据：`grep -oE 'CLI-CLEAN-[0-9]+[a-z]*' … | sort -u | wc -l` → **31** ≠ 30。两口径不等。
 4. **:1373/:1400/:1488 验收腿「10a–10j」「§7.10 a–j」「clean-a…j」**。判据：spec §7.10 现存 `k. 换包的后果侧（v1.8 补…owner 裁「留，并补测试」）`。应为 a–k（含 e2/e3/f2）。

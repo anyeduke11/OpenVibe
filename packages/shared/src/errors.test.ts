@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { ERROR_CODES, ERROR_HTTP_STATUS, TELEMETRY_EVENTS, LOCAL_EVENT_KINDS } from '@openvibe/shared'
+import {
+  ERROR_CODES,
+  ERROR_HTTP_STATUS,
+  TELEMETRY_EVENTS,
+  LOCAL_EVENT_KINDS,
+} from '@openvibe/shared'
 
 /**
  * `ERROR_CODES` 闭集的守护闸。
@@ -16,13 +21,18 @@ describe('ERROR_CODES 闭集完整性', () => {
   it('每一项都有 HTTP 状态映射，且无多余映射键', () => {
     const missing = ERROR_CODES.filter((c) => ERROR_HTTP_STATUS[c] === undefined)
     expect(missing, `这些错误码没有 HTTP 映射：${missing.join(', ')}`).toEqual([])
-    const extra = Object.keys(ERROR_HTTP_STATUS).filter((k) => !(ERROR_CODES as readonly string[]).includes(k))
+    const extra = Object.keys(ERROR_HTTP_STATUS).filter(
+      (k) => !(ERROR_CODES as readonly string[]).includes(k),
+    )
     expect(extra, `这些 HTTP 映射没有对应错误码：${extra.join(', ')}`).toEqual([])
   })
 
   it('状态码取值合法（100–599）', () => {
     for (const [code, status] of Object.entries(ERROR_HTTP_STATUS)) {
-      expect(Number.isInteger(status) && status >= 100 && status <= 599, `${code} → ${status} 不是合法状态码`).toBe(true)
+      expect(
+        Number.isInteger(status) && status >= 100 && status <= 599,
+        `${code} → ${status} 不是合法状态码`,
+      ).toBe(true)
     }
   })
 
@@ -33,7 +43,9 @@ describe('ERROR_CODES 闭集完整性', () => {
 
   it('台账 kind 与遥测三事件不同名 —— 与错误码闭集同属「无守护双源」家族', () => {
     // 同理：错误码闭集和遥测白名单都是「改了没人发现」的面，这里一并钉住。
-    const overlap = LOCAL_EVENT_KINDS.filter((k) => (TELEMETRY_EVENTS as readonly string[]).includes(k))
+    const overlap = LOCAL_EVENT_KINDS.filter((k) =>
+      (TELEMETRY_EVENTS as readonly string[]).includes(k),
+    )
     expect(overlap).toEqual([])
   })
 })

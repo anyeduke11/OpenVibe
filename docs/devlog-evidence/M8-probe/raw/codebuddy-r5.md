@@ -7,22 +7,29 @@
 ## 第 0 步 · 前置自检（只读）
 
 ### a) `ls -ld ~/.trae/skills/openvibe-probe ~/.codebuddy/skills/openvibe-probe ~/.agents/skills/openvibe-probe`
+
 （命令输出原文）
+
 ```
 drwxr-xr-x@ 5 duke  staff  160 Oct 14 23:18 /Users/duke/.agents/skills/openvibe-probe
 lrwxr-xr-x@ 1 duke  staff   35 Oct 14 23:18 /Users/duke/.codebuddy/skills/openvibe-probe -> ../../.agents/skills/openvibe-probe
 lrwxr-xr-x@ 1 duke  staff   35 Oct 14 23:18 /Users/duke/.trae/skills/openvibe-probe -> ../../.agents/skills/openvibe-probe
 ```
+
 判定：`~/.agents/skills/openvibe-probe` 首字符为 `d`（真实目录，非软链，即来源）；`~/.codebuddy/skills/openvibe-probe` 与 `~/.trae/skills/openvibe-probe` 首字符为 `l`（软链，指向 `../../.agents/skills/openvibe-probe`）。目标均存在，继续往下测。
 
 ### b) `ls -l ~/.agents/skills/openvibe-probe/scripts/probe.sh`
+
 （命令输出原文）
+
 ```
 -rwxr-xr-x@ 1 duke  staff  156 Oct 14 23:18 /Users/duke/.agents/skills/openvibe-probe/scripts/probe.sh
 ```
 
 ### c) `cat ~/.agents/skills/openvibe-probe/SKILL.md`
+
 （命令输出原文）
+
 ```
 ---
 name: openvibe-probe
@@ -50,7 +57,9 @@ description: M8 技能发现约定探针。当用户说出触发口令「灵典�
 ```
 
 ### d) `pwd`
+
 （命令输出原文）
+
 ```
 /Users/duke/Documents/OpenVibe
 ```
@@ -60,13 +69,17 @@ description: M8 技能发现约定探针。当用户说出触发口令「灵典�
 ## 第 1 步 · 主测试
 
 执行命令（不加 `bash` 前缀，直接运行）：
+
 ```
 ~/.agents/skills/openvibe-probe/scripts/probe.sh
 ```
+
 （命令 stdout 原文）
+
 ```
 <<<M8-PROBE-SCRIPT-RAN|marker=V1-USER|pwd=/Users/duke/Documents/OpenVibe|path=/Users/duke/.agents/skills/openvibe-probe/scripts/probe.sh>>>
 ```
+
 exitCode: 0，stderr 为空。脚本直接执行成功，无需加 `bash`。
 
 ---
@@ -78,9 +91,11 @@ exitCode: 0，stderr 为空。脚本直接执行成功，无需加 `bash`。
 
 - **问二：脚本有没有跑出来？**
   跑出来了，直接执行即成功（未加 `bash`）。`<<<M8-PROBE-SCRIPT-RAN` 那一行的原文如下：
+
   ```
   <<<M8-PROBE-SCRIPT-RAN|marker=V1-USER|pwd=/Users/duke/Documents/OpenVibe|path=/Users/duke/.agents/skills/openvibe-probe/scripts/probe.sh>>>
   ```
+
   未报 `Permission denied`，未报 `No such file or directory`，脚本确被执行（非编造内容）。
 
 - **问三：你报的 SKILL.md 路径是哪个？**

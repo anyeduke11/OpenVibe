@@ -57,11 +57,7 @@ interface TopicRow {
  * @param lang 语言
  * @param projectId 项目 id（不传 ⇒ 全库汇总，同一知识点取最高档）
  */
-export function readRoadmap(
-  db: SqliteDatabase,
-  lang: LangCode,
-  projectId?: string,
-): RoadmapView {
+export function readRoadmap(db: SqliteDatabase, lang: LangCode, projectId?: string): RoadmapView {
   // ⚠️ **只收 kind='language'**（DL-12：库级条目不进学习路线）
   const rows = db
     .prepare(
@@ -237,9 +233,8 @@ function readDeltas(db: SqliteDatabase, summary: string, lang: LangCode): TopicD
   if (!summary.startsWith(CONCEPT_MOUNT_PREFIX)) return []
   const title = summary.slice(CONCEPT_MOUNT_PREFIX.length).split('：')[0]?.trim() ?? ''
   if (title === '') return []
-  const concept = db
-    .prepare('SELECT id FROM lang_concepts WHERE title = ?')
-    .get(title) as { id: number } | undefined
+  const concept = db.prepare('SELECT id FROM lang_concepts WHERE title = ?').get(title) as
+    { id: number } | undefined
   if (concept === undefined) return []
   const rows = db
     .prepare(
@@ -274,9 +269,7 @@ function readResources(db: SqliteDatabase, topicId: number): TopicResourceOut[] 
     )
     .all(topicId) as { name: string; url: string; role: TopicResourceOut['role']; tier: string }[]
   const roleOrder: Record<TopicResourceOut['role'], number> = { primary: 0, backup: 1, practice: 2 }
-  return rows.sort(
-    (a, b) => roleOrder[a.role] - roleOrder[b.role] || a.name.localeCompare(b.name),
-  )
+  return rows.sort((a, b) => roleOrder[a.role] - roleOrder[b.role] || a.name.localeCompare(b.name))
 }
 
 /** 读挂接的术语（§3.4 · 只读）。 */

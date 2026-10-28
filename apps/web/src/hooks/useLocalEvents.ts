@@ -46,8 +46,7 @@ export function useLocalEventsSummary(days: LocalEventsWindowDays, now: Date) {
   return useQuery({
     // 带上 from/to：窗变了就是另一个查询，否则切预设会命中旧缓存显示错窗的数
     queryKey: ['local-events', 'summary', from, to],
-    queryFn: () =>
-      apiJson<LocalEventsSummaryOut>(`/api/local-events/summary${qs({ from, to })}`),
+    queryFn: () => apiJson<LocalEventsSummaryOut>(`/api/local-events/summary${qs({ from, to })}`),
     // 台账是本机读，断网/未登录不该反复重试刷错误提示
     retry: false,
     staleTime: 10_000,
@@ -58,8 +57,7 @@ export function useLocalEventsSummary(days: LocalEventsWindowDays, now: Date) {
 export function useClearLocalEvents() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () =>
-      apiJson<LocalEventsClearOut>('/api/local-events/clear', { method: 'POST' }),
+    mutationFn: () => apiJson<LocalEventsClearOut>('/api/local-events/clear', { method: 'POST' }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['local-events'] })
     },

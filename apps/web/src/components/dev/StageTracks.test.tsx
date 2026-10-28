@@ -73,14 +73,9 @@ const GO_STAGE3: StageTrackSeed = {
 }
 
 /** 六行（八格对照面 ⇒ 阶段 0/1 没有 Go 行）。 */
-const TRACKS: StageTrack[] = [
-  PY_STAGE0,
-  PY_STAGE1,
-  PY_STAGE2,
-  GO_STAGE2,
-  PY_STAGE3,
-  GO_STAGE3,
-].map(deriveStageTrack)
+const TRACKS: StageTrack[] = [PY_STAGE0, PY_STAGE1, PY_STAGE2, GO_STAGE2, PY_STAGE3, GO_STAGE3].map(
+  deriveStageTrack,
+)
 
 afterEach(cleanup)
 
@@ -131,7 +126,9 @@ describe('M9 P1f.3 · §3.21 第 1 条 · Go 默认收起（但不是藏起来�
     fireEvent.click(toggle)
     const go = screen.getByLabelText('Go 轨道')
     expect(within(go).getByText(GO_STAGE2.goals[0]!)).toBeTruthy()
-    expect(screen.getByRole('button', { name: '收起 Go 选学' }).getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByRole('button', { name: '收起 Go 选学' }).getAttribute('aria-expanded')).toBe(
+      'true',
+    )
   })
 
   it('⑥ 「收起」≠「隐藏」：Go 块始终在 DOM 里（DL-14 不变）', () => {

@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { AppError } from '@openvibe/shared'
-import {
-  assertRemoteUrl,
-  guardedFetch,
-  isPublicIp,
-  type DnsLookupAll,
-} from '../src/lib/http-guard'
+import { assertRemoteUrl, guardedFetch, isPublicIp, type DnsLookupAll } from '../src/lib/http-guard'
 
 /**
  * 出站守卫单测（DEV-0067）。DNS 相关分支用 lookupImpl 注入固定结果——
@@ -57,16 +52,16 @@ describe('assertRemoteUrl · 协议与主机白名单（DNS 之前）', () => {
       { address: '10.0.0.5', family: 4 },
       { address: '93.184.216.34', family: 4 },
     ]) as unknown as DnsLookupAll
-    await expect(
-      assertRemoteUrl('https://api.github.com/x', [], fakeLookup),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN_ORIGIN' })
+    await expect(assertRemoteUrl('https://api.github.com/x', [], fakeLookup)).rejects.toMatchObject(
+      { code: 'FORBIDDEN_ORIGIN' },
+    )
 
     const failLookup = (async () => {
       throw new Error('NXDOMAIN')
     }) as unknown as DnsLookupAll
-    await expect(
-      assertRemoteUrl('https://api.github.com/x', [], failLookup),
-    ).rejects.toMatchObject({ code: 'REMOTE_UNREACHABLE' })
+    await expect(assertRemoteUrl('https://api.github.com/x', [], failLookup)).rejects.toMatchObject(
+      { code: 'REMOTE_UNREACHABLE' },
+    )
   })
 })
 
@@ -85,19 +80,26 @@ describe('guardedFetch · 重定向逐跳复检', () => {
     }) as typeof fetch
 
     // 未放行 COS 后缀：重定向目标被拦
-    await expect(
-      guardedFetch('https://api.skillhub.cn/file', {}, fetchImpl),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN_ORIGIN' })
+    await expect(guardedFetch('https://api.skillhub.cn/file', {}, fetchImpl)).rejects.toMatchObject(
+      { code: 'FORBIDDEN_ORIGIN' },
+    )
     // 放行后跟随，带回终点内容
     const text = await (
-      await guardedFetch('https://api.skillhub.cn/file', { extraSuffixes: ['myqcloud.com'] }, fetchImpl)
+      await guardedFetch(
+        'https://api.skillhub.cn/file',
+        { extraSuffixes: ['myqcloud.com'] },
+        fetchImpl,
+      )
     ).text()
     expect(text).toBe('内容')
   })
 
   it('重定向到白名单外主机 → 拦截；缺 Location → 拦截', async () => {
     const toEvil = (async () =>
-      new Response(null, { status: 302, headers: { location: 'https://evil.example.com/x' } })) as typeof fetch
+      new Response(null, {
+        status: 302,
+        headers: { location: 'https://evil.example.com/x' },
+      })) as typeof fetch
     await expect(
       guardedFetch('https://api.skillhub.cn/file', { extraSuffixes: ['myqcloud.com'] }, toEvil),
     ).rejects.toMatchObject({ code: 'FORBIDDEN_ORIGIN' })

@@ -44,10 +44,16 @@ export function stringValues(v: unknown, out: string[] = []): string[] {
 const USER = userInfo().username
 
 export const FORBIDDEN: { label: string; re: RegExp }[] = [
-  { label: 'Unix 绝对路径', re: /(^|[\s"'(=:,[])\/(?:Users|home|tmp|var|etc|opt|private|Applications)\// },
+  {
+    label: 'Unix 绝对路径',
+    re: /(^|[\s"'(=:,[])\/(?:Users|home|tmp|var|etc|opt|private|Applications)\//,
+  },
   { label: '任意根目录绝对路径', re: /(^|[\s"'(=:,[])\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+/ },
   { label: 'Windows 绝对路径', re: /[A-Za-z]:\\|\\\\/ },
-  { label: '本机用户名', re: new RegExp(`\\b${USER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i') },
+  {
+    label: '本机用户名',
+    re: new RegExp(`\\b${USER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'),
+  },
   { label: 'home 目录片段', re: new RegExp(homedir().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
 ]
 
@@ -119,7 +125,8 @@ export const FORBIDDEN_COVERAGE: ForbiddenCoverage[] = [
   },
   {
     item: '资产正文 / 会话正文 / body 片段',
-    specRef: 'local-event-ledger.md FR-6.3「资产正文」＋ m8-agent-bridge.md FR-5.1.2「会话正文／body」',
+    specRef:
+      'local-event-ledger.md FR-6.3「资产正文」＋ m8-agent-bridge.md FR-5.1.2「会话正文／body」',
     mechanism: 'writepoint',
     guard: '同上：白名单构造，业务正文根本不会进入台账 payload',
     whyNotRegex: '正文是任意长自由文本；正则只能覆盖「恰好长得像路径」的子集，其余静默漏过',
@@ -137,7 +144,7 @@ export const FORBIDDEN_COVERAGE: ForbiddenCoverage[] = [
     item: 'lang_* 命名空间（lang_topic_findings / lang_source_consent / lang_source_shares / lang_resource_probe）',
     specRef: 'm9-dev-language-roadmap.md v1.6 §3.14–§3.16 / §3.17.1 / §3.21',
     mechanism: 'scanner',
-    guard: 'Unix 绝对路径',  // 与本地台账共用同一道禁列规则
+    guard: 'Unix 绝对路径', // 与本地台账共用同一道禁列规则
   },
 ]
 

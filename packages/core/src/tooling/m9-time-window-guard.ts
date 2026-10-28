@@ -189,7 +189,8 @@ const STRING_LITERAL_PATTERN = /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\
 const METHOD_DECL_PATTERN = /^\s{2}(?:async\s+)?([a-zA-Z_$][\w$]*)\s*[(<]/u
 
 /** 写死的日历日期（带引号的 `YYYY-MM-DD`，后面可跟时间部分）。 */
-const HARDCODED_DATE_PATTERN = /'(\d{4}-\d{2}-\d{2})(?:[T ]\d{2}:\d{2}(?::\d{2})?(?:\.\d{1,3})?Z?)?'/gu
+const HARDCODED_DATE_PATTERN =
+  /'(\d{4}-\d{2}-\d{2})(?:[T ]\d{2}:\d{2}(?::\d{2})?(?:\.\d{1,3})?Z?)?'/gu
 
 /** 「时长」表达式里的一个因子。 */
 interface DurationFactor {

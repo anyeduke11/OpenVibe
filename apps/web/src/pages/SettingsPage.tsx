@@ -36,9 +36,7 @@ export function SettingsPage() {
           <h1 className="text-[30px] font-semibold leading-[1.25] tracking-tight text-ink max-sm:text-[25px]">
             {sys.settings.title}
           </h1>
-          <p className={`${proseCls} mt-1 text-[13.5px] text-ink-muted`}>
-            {sys.settings.subtitle}
-          </p>
+          <p className={`${proseCls} mt-1 text-[13.5px] text-ink-muted`}>{sys.settings.subtitle}</p>
         </div>
         <button
           type="button"

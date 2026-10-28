@@ -6,13 +6,13 @@
 
 `<平台>-r<轮次>.md`，例如：
 
-| 文件 | 哪一轮 |
-|---|---|
-| `trae-r1.md` | Trae，装完**未重启** |
-| `trae-r2.md` | Trae，`Cmd+Q` 完全退出并重开后 |
-| `codebuddy-r3.md` | CodeBuddy，装完**未重启** |
+| 文件              | 哪一轮                              |
+| ----------------- | ----------------------------------- |
+| `trae-r1.md`      | Trae，装完**未重启**                |
+| `trae-r2.md`      | Trae，`Cmd+Q` 完全退出并重开后      |
+| `codebuddy-r3.md` | CodeBuddy，装完**未重启**           |
 | `codebuddy-r4.md` | CodeBuddy，`Cmd+Q` 完全退出并重开后 |
-| `codebuddy-r5.md` | 可选补测：复制一份（非 symlink）后 |
+| `codebuddy-r5.md` | 可选补测：复制一份（非 symlink）后  |
 
 ## 为什么要单独设一个目录
 

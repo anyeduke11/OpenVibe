@@ -90,7 +90,10 @@ function tableRows(lines: string[], from: number, to: number): SpecRow[] {
   for (let i = from; i < to; i += 1) {
     const t = (lines[i] ?? '').trim()
     if (!t.startsWith('|')) continue
-    const cells = t.split('|').slice(1, -1).map((c) => c.trim())
+    const cells = t
+      .split('|')
+      .slice(1, -1)
+      .map((c) => c.trim())
     if (cells.length === 0) continue
     if (cells.every((c) => c === '')) continue
     out.push({ line: i + 1, cells })
@@ -110,7 +113,15 @@ function dataRows(rows: SpecRow[]): SpecRow[] {
 /** 中文数字（一 ~ 九十九）→ 阿拉伯数字。 */
 function cnNum(text: string): number | null {
   const digits: Record<string, number> = {
-    一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9,
+    一: 1,
+    二: 2,
+    三: 3,
+    四: 4,
+    五: 5,
+    六: 6,
+    七: 7,
+    八: 8,
+    九: 9,
   }
   if (text === '十') return 10
   const m = /^十([一二三四五六七八九])$/.exec(text)
@@ -287,7 +298,11 @@ function checkDl44(lines: string[], v: SpecViolation[]): void {
     const declared = firstCnNum(enhRow.answer, '条')
     const actual = enhancementCount(lines)
     if (declared === null) {
-      v.push({ rule: 'DL-44', where: `§0:${enhRow.line}`, detail: '「有几条增强」的行里读不出中文数字' })
+      v.push({
+        rule: 'DL-44',
+        where: `§0:${enhRow.line}`,
+        detail: '「有几条增强」的行里读不出中文数字',
+      })
     } else if (declared !== actual) {
       v.push({
         rule: 'DL-44',
@@ -305,7 +320,11 @@ function checkDl44(lines: string[], v: SpecViolation[]): void {
   } else {
     const declared = firstCnNum(tblRow.answer, '张')
     if (declared === null) {
-      v.push({ rule: 'DL-44', where: `§0:${tblRow.line}`, detail: '「数据落在几张表」的行里读不出中文数字' })
+      v.push({
+        rule: 'DL-44',
+        where: `§0:${tblRow.line}`,
+        detail: '「数据落在几张表」的行里读不出中文数字',
+      })
     } else if (declared !== tables.length) {
       v.push({
         rule: 'DL-44',
@@ -323,7 +342,11 @@ function checkDl44(lines: string[], v: SpecViolation[]): void {
     const declared = firstCnNum(critRow.answer, '条判据')
     const actual = criterionCount(lines)
     if (declared === null) {
-      v.push({ rule: 'DL-44', where: `§0:${critRow.line}`, detail: '「验收怎么算过」的行里读不出中文数字' })
+      v.push({
+        rule: 'DL-44',
+        where: `§0:${critRow.line}`,
+        detail: '「验收怎么算过」的行里读不出中文数字',
+      })
     } else if (declared !== actual) {
       v.push({
         rule: 'DL-44',
@@ -341,7 +364,11 @@ function checkDl44(lines: string[], v: SpecViolation[]): void {
   } else {
     const declared = firstCnNum(phaseRow.answer, '期')
     if (declared === null) {
-      v.push({ rule: 'DL-44', where: `§0:${phaseRow.line}`, detail: '「多少工作量」的行里读不出中文数字' })
+      v.push({
+        rule: 'DL-44',
+        where: `§0:${phaseRow.line}`,
+        detail: '「多少工作量」的行里读不出中文数字',
+      })
     } else if (declared !== phases.length) {
       v.push({
         rule: 'DL-44',
@@ -356,7 +383,11 @@ function checkDl44(lines: string[], v: SpecViolation[]): void {
     const sumDays = phases.reduce((acc, p) => acc + p.days, 0)
     const declared = /≈\s*(\d+)\s*人日/.exec(phaseRow.answer)?.[1]
     if (declared === undefined) {
-      v.push({ rule: 'DL-44', where: `§0:${phaseRow.line}`, detail: '「多少工作量」的行里读不出「≈ N 人日」' })
+      v.push({
+        rule: 'DL-44',
+        where: `§0:${phaseRow.line}`,
+        detail: '「多少工作量」的行里读不出「≈ N 人日」',
+      })
     } else if (Number(declared) !== sumDays) {
       v.push({
         rule: 'DL-44',
@@ -391,7 +422,11 @@ function checkDl44(lines: string[], v: SpecViolation[]): void {
   } else {
     const declared = firstCnNum(waitRow.answer, '条待裁')
     if (declared === null) {
-      v.push({ rule: 'DL-44', where: `§0:${waitRow.line}`, detail: '「卡在哪」的行里读不出中文数字' })
+      v.push({
+        rule: 'DL-44',
+        where: `§0:${waitRow.line}`,
+        detail: '「卡在哪」的行里读不出中文数字',
+      })
     } else if (declared !== ledger.length) {
       v.push({
         rule: 'DL-44',
@@ -682,7 +717,10 @@ function tableBlocks(lines: string[], from: number, to: number): SpecRow[][] {
   for (let i = from; i < to; i += 1) {
     const t = (lines[i] ?? '').trim()
     if (t.startsWith('|')) {
-      const cells = t.split('|').slice(1, -1).map((c) => c.trim())
+      const cells = t
+        .split('|')
+        .slice(1, -1)
+        .map((c) => c.trim())
       current.push({ line: i + 1, cells })
       continue
     }

@@ -87,9 +87,7 @@ describe('WEB-M3T · 术语推荐面板', () => {
   })
 
   it('有领域但没够门槛的词条 ⇒ 空态说的是另一回事', () => {
-    render(
-      <TermRecommendationPanel data={base({ items: [] })} loading={false} error={null} />
-    )
+    render(<TermRecommendationPanel data={base({ items: [] })} loading={false} error={null} />)
     const panel = screen.getByRole('region', { name: '本项目该掌握的术语' })
     expect(panel.textContent).toContain('门槛')
   })
@@ -107,9 +105,7 @@ describe('WEB-M3T · 术语推荐面板', () => {
   })
 
   it('加载中给骨架屏而不是空面板', () => {
-    const { container } = render(
-      <TermRecommendationPanel data={undefined} loading error={null} />,
-    )
+    const { container } = render(<TermRecommendationPanel data={undefined} loading error={null} />)
     expect(container.querySelector('[aria-busy="true"]')).toBeTruthy()
   })
 

@@ -40,26 +40,36 @@ async function makeHarness(): Promise<Harness> {
 }
 
 function seed(h: TestDbHandle): void {
-  h.db.prepare(
-    `INSERT INTO projects (id, name, stages_snapshot, status, local_path, created_at, updated_at)
+  h.db
+    .prepare(
+      `INSERT INTO projects (id, name, stages_snapshot, status, local_path, created_at, updated_at)
      VALUES ('p1', '测试项目', '[]', 'active', '/tmp/p1', '2026-10-21T00:00:00.000Z', '2026-10-21T00:00:00.000Z')`,
-  ).run()
-  h.db.prepare(
-    `INSERT INTO lang_topics (id, lang, slug, title, summary, stage_id, kind)
+    )
+    .run()
+  h.db
+    .prepare(
+      `INSERT INTO lang_topics (id, lang, slug, title, summary, stage_id, kind)
      VALUES (1, 'python', 'py-a', 'A', '', 0, 'language')`,
-  ).run()
-  h.db.prepare(
-    `INSERT INTO lang_topic_profiles (topic_id, profile, depth, required, rank, est_minutes)
+    )
+    .run()
+  h.db
+    .prepare(
+      `INSERT INTO lang_topic_profiles (topic_id, profile, depth, required, rank, est_minutes)
      VALUES (1, 'master', 'full', 1, 1, 60),
             (1, 'vibe', 'headline', 1, 1, 10)`,
-  ).run()
-  h.db.prepare(
-    `INSERT INTO lang_resources (id, lang, name, url, category, tier, level_label, price, lang_label)
+    )
+    .run()
+  h.db
+    .prepare(
+      `INSERT INTO lang_resources (id, lang, name, url, category, tier, level_label, price, lang_label)
      VALUES (1, 'python', '资源一', 'https://example.com/1', 'official', 'a', '0', 'free', 'zh')`,
-  ).run()
-  h.db.prepare(
-    `INSERT INTO lang_topic_resources (topic_id, resource_id, role) VALUES (1, 1, 'primary')`,
-  ).run()
+    )
+    .run()
+  h.db
+    .prepare(
+      `INSERT INTO lang_topic_resources (topic_id, resource_id, role) VALUES (1, 1, 'primary')`,
+    )
+    .run()
 }
 
 describe('M9 增强 6 · GET /api/lang/modes', () => {

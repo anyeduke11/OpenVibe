@@ -234,7 +234,11 @@ describe('M9 P4 · DL-21 · 同意记忆', () => {
 
     const cleared = await del(h, '/api/lang/source/consent?project=p1')
     expect(cleared.statusCode).toBe(200)
-    expect(cleared.json()).toMatchObject({ cleared: true, remember_all: false, remembered_at: null })
+    expect(cleared.json()).toMatchObject({
+      cleared: true,
+      remember_all: false,
+      remembered_at: null,
+    })
 
     const after = await get(h, '/api/lang/source/consent?project=p1')
     expect(after.json()).toMatchObject({ remember_all: false, remembered_at: null })
@@ -377,7 +381,12 @@ describe('M9 · GET /api/lang/source/share-daily（按日出网的分类计数�
     const res = await get(h, '/api/lang/source/share-daily?from=2026-10-20&to=2026-10-21')
     expect(res.statusCode).toBe(200)
     const body = res.json() as {
-      daily: { day: string; share_count: number; memory_applied_count: number; self_ticked_count: number }[]
+      daily: {
+        day: string
+        share_count: number
+        memory_applied_count: number
+        self_ticked_count: number
+      }[]
     }
     expect(body.daily).toHaveLength(1)
     expect(body.daily[0]?.day).toBe('2026-10-20')
@@ -452,7 +461,12 @@ describe('M9 · GET /api/lang/source/share-by-provider（按 provider 分组的�
       .run()
     const res = await get(h, '/api/lang/source/share-by-provider?from=2026-10-20&to=2026-10-21')
     const body = res.json() as {
-      groups: { provider: string; share_count: number; usage_total_tokens: number | null; usage_known_count: number }[]
+      groups: {
+        provider: string
+        share_count: number
+        usage_total_tokens: number | null
+        usage_known_count: number
+      }[]
     }
     expect(body.groups).toHaveLength(1)
     expect(body.groups[0]?.provider).toBe('')

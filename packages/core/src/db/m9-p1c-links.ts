@@ -371,11 +371,7 @@ export function verdictOf(target: LinkTargetReport): LinkVerdict {
 // ============================================================================
 
 export type LinkProbeRule =
-  | 'method-not-head'
-  | 'row-deleted'
-  | 'row-added'
-  | 'state-mismatch'
-  | 'count-mismatch'
+  'method-not-head' | 'row-deleted' | 'row-added' | 'state-mismatch' | 'count-mismatch'
 
 export interface LinkProbeViolation {
   rule: LinkProbeRule

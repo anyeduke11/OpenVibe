@@ -1,8 +1,4 @@
-export {
-  anchorCandidates,
-  type AnchorOutcome,
-  type AnchorSource,
-} from './anchor'
+export { anchorCandidates, type AnchorOutcome, type AnchorSource } from './anchor'
 export {
   createExtractRunner,
   resolveExtractProvider,

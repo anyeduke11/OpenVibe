@@ -56,7 +56,9 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
     <section className={`${cardCls} flex h-[62vh] min-h-0 flex-col`}>
       <header className={cardHeadCls}>
         <h3 className="truncate text-xs font-semibold text-ink-muted">{`${props.title}（${String(total)}）`}</h3>
-        <span className="text-[11px] text-ink-faint">{zh.packs.wizard.picked(props.ids.length)}</span>
+        <span className="text-[11px] text-ink-faint">
+          {zh.packs.wizard.picked(props.ids.length)}
+        </span>
       </header>
       <div className="flex items-center gap-1.5 px-2.5 py-1.5">
         <input
@@ -105,7 +107,9 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
                     {/* 列内 badge 是元信息不是状态 → tag */}
                     <span className={`${tagCls} ml-1.5`}>{props.badge(row)}</span>
                   </span>
-                  <span className="block truncate text-[11px] text-ink-faint">{props.note(row)}</span>
+                  <span className="block truncate text-[11px] text-ink-faint">
+                    {props.note(row)}
+                  </span>
                 </span>
               </label>
             </li>
@@ -123,12 +127,7 @@ export function AssetPicker(props: AssetPickerProps) {
   const skills = useSkillList('')
   const playbooks = usePlaybookList()
   const { value, stale, onChange } = props
-  const staleAll = [
-    ...stale.promptIds,
-    ...stale.termIds,
-    ...stale.skillIds,
-    ...stale.playbookIds,
-  ]
+  const staleAll = [...stale.promptIds, ...stale.termIds, ...stale.skillIds, ...stale.playbookIds]
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">

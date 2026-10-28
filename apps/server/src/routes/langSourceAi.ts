@@ -19,11 +19,7 @@ import {
   type SourceInterpretRunner,
   type SqliteDatabase,
 } from '@openvibe/core'
-import {
-  KEYCHAIN_SERVICE,
-  realKeychainStore,
-  type KeychainStore,
-} from '@openvibe/core'
+import { KEYCHAIN_SERVICE, realKeychainStore, type KeychainStore } from '@openvibe/core'
 import {
   InterpretProviderCollectionSave,
   type InterpretProviderEntry as InterpretProviderEntryType,
@@ -256,7 +252,7 @@ export function registerLangSourceAiRoutes(
           end_line: w?.end_line ?? null,
           lines: w?.lines ?? null,
           // ⚠️ **读不到的原因**（界面据此显示不同的提示，不是同一个兜底）
-          failure: w === undefined ? null : read?.failure ?? null,
+          failure: w === undefined ? null : (read?.failure ?? null),
           topic_slug: f.topic_slug,
           topic_title: f.topic_title,
         }
@@ -423,11 +419,13 @@ export function registerLangSourceAiRoutes(
     }
     const text = formatInterpretMarkdown(summary, { projectRoot: root })
     const filename = `m9-interpret-${safeFileName(summary.project_id)}.md`
-    return reply
-      .header('content-type', 'text/markdown; charset=utf-8')
-      .header('content-disposition', `attachment; filename="${filename}"`)
-      // ⚠️ **文件名由服务端给**（前端不重复实现清洗规则 ⇒ 口径只留一处）
-      .header('x-m9-filename', filename)
-      .send(text)
+    return (
+      reply
+        .header('content-type', 'text/markdown; charset=utf-8')
+        .header('content-disposition', `attachment; filename="${filename}"`)
+        // ⚠️ **文件名由服务端给**（前端不重复实现清洗规则 ⇒ 口径只留一处）
+        .header('x-m9-filename', filename)
+        .send(text)
+    )
   })
 }

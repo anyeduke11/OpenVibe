@@ -1,6 +1,12 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { AppError, TaskCreateInput, TaskUpdateInput, TASK_STATUS, type TaskStatus } from '@openvibe/shared'
+import {
+  AppError,
+  TaskCreateInput,
+  TaskUpdateInput,
+  TASK_STATUS,
+  type TaskStatus,
+} from '@openvibe/shared'
 import { ProjectsRepo, TasksRepo, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
 

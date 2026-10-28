@@ -37,7 +37,9 @@ const L = {
 /** 与 FolderFilterBar 同纪律：形制层择一，三元不散进 JSX（否则 Tailwind 任意挑一个生效） */
 const chipOf = (on: boolean): string =>
   `${chipCls} shrink-0 transition-colors ${
-    on ? chipPressed : 'border-line bg-panel-2 text-ink-muted hover:border-line-strong hover:bg-panel'
+    on
+      ? chipPressed
+      : 'border-line bg-panel-2 text-ink-muted hover:border-line-strong hover:bg-panel'
   }`
 
 export interface DomainCount {

@@ -15,23 +15,43 @@ export interface ExtractConsent {
 
 export function readExtractConsent(db: SqliteDatabase, projectId: string): ExtractConsent | null {
   const row = db
-    .prepare(`SELECT project_id, remember_all, remembered_at FROM ai_extract_consent WHERE project_id = ?`)
-    .get(projectId) as { project_id: string; remember_all: number; remembered_at: string | null } | undefined
+    .prepare(
+      `SELECT project_id, remember_all, remembered_at FROM ai_extract_consent WHERE project_id = ?`,
+    )
+    .get(projectId) as
+    { project_id: string; remember_all: number; remembered_at: string | null } | undefined
   if (row === undefined) return null
-  return { projectId: row.project_id, rememberAll: row.remember_all === 1, rememberedAt: row.remembered_at ?? null }
+  return {
+    projectId: row.project_id,
+    rememberAll: row.remember_all === 1,
+    rememberedAt: row.remembered_at ?? null,
+  }
 }
 
 export function listExtractConsents(db: SqliteDatabase): ExtractConsent[] {
   return (
-    db.prepare(`SELECT project_id, remember_all, remembered_at FROM ai_extract_consent ORDER BY remembered_at DESC, project_id`).all() as {
+    db
+      .prepare(
+        `SELECT project_id, remember_all, remembered_at FROM ai_extract_consent ORDER BY remembered_at DESC, project_id`,
+      )
+      .all() as {
       project_id: string
       remember_all: number
       remembered_at: string | null
     }[]
-  ).map((r) => ({ projectId: r.project_id, rememberAll: r.remember_all === 1, rememberedAt: r.remembered_at ?? null }))
+  ).map((r) => ({
+    projectId: r.project_id,
+    rememberAll: r.remember_all === 1,
+    rememberedAt: r.remembered_at ?? null,
+  }))
 }
 
-export function setExtractConsent(db: SqliteDatabase, projectId: string, rememberAll: boolean, now: string): void {
+export function setExtractConsent(
+  db: SqliteDatabase,
+  projectId: string,
+  rememberAll: boolean,
+  now: string,
+): void {
   db.prepare(
     `INSERT INTO ai_extract_consent (project_id, remember_all, remembered_at) VALUES (?, ?, ?)
      ON CONFLICT(project_id) DO UPDATE SET remember_all = excluded.remember_all, remembered_at = excluded.remembered_at`,
@@ -44,7 +64,11 @@ export function clearExtractConsent(db: SqliteDatabase, projectId: string): void
 }
 
 /** 当日已出网的提取调用次数（预算熔断的现算源；从本机事件台账数，零新增采集点） */
-export function extractCallsToday(db: SqliteDatabase, day: string, kind: 'ai_extract_call' | 'ai_discuss_call' = 'ai_extract_call'): number {
+export function extractCallsToday(
+  db: SqliteDatabase,
+  day: string,
+  kind: 'ai_extract_call' | 'ai_discuss_call' = 'ai_extract_call',
+): number {
   const row = db
     .prepare(`SELECT COUNT(*) AS c FROM local_events WHERE kind = ? AND day = ?`)
     .get(kind, day) as { c: number }

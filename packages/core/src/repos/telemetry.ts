@@ -87,9 +87,9 @@ export class TelemetryRepo {
 
   pendingCount(): number {
     return (
-      this.db
-        .prepare('SELECT COUNT(*) AS n FROM telemetry_events WHERE sent_at IS NULL')
-        .get() as { n: number }
+      this.db.prepare('SELECT COUNT(*) AS n FROM telemetry_events WHERE sent_at IS NULL').get() as {
+        n: number
+      }
     ).n
   }
 }

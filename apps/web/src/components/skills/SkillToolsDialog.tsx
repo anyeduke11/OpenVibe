@@ -88,7 +88,11 @@ export function SkillToolsDialog(props: {
               {(
                 [
                   { icon: 'dl' as const, label: zh.skills.remoteImport, run: props.onOpenRemote },
-                  { icon: 'refresh' as const, label: zh.skills.checkUpdates, run: props.onOpenUpdates },
+                  {
+                    icon: 'refresh' as const,
+                    label: zh.skills.checkUpdates,
+                    run: props.onOpenUpdates,
+                  },
                   { icon: 'layers' as const, label: zh.skills.cleanup, run: props.onOpenCleanup },
                   { icon: 'target' as const, label: zh.skills.review, run: props.onOpenReview },
                 ] as const

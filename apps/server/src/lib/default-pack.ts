@@ -1,11 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import {
-  PacksRepo,
-  bundleJson,
-  directoryFiles,
-  type SqliteDatabase,
-} from '@openvibe/core'
+import { PacksRepo, bundleJson, directoryFiles, type SqliteDatabase } from '@openvibe/core'
 import {
   ADAPTER_IDS,
   PACK_FILE_MANIFEST,
@@ -72,9 +67,8 @@ export interface SeedSelection extends PackSelection {
 export function seedSelection(db: SqliteDatabase): SeedSelection | null {
   const promptIds = seedIds(db, 'prompts')
   const termIds = seedIds(db, 'terms')
-  const flow = db
-    .prepare('SELECT id FROM flow_templates WHERE name = ?')
-    .get(DEFAULT_PACK_FLOW) as { id: string } | undefined
+  const flow = db.prepare('SELECT id FROM flow_templates WHERE name = ?').get(DEFAULT_PACK_FLOW) as
+    { id: string } | undefined
   if (promptIds.length === 0 || termIds.length === 0 || !flow) return null
   return {
     promptIds,
@@ -92,9 +86,9 @@ const VERSION_PROBES = 5
 /** 导出目录里 manifest 归属的包 id；目录不存在/读不到即「无人占用」 */
 function exportDirOwner(dir: string): string | null {
   try {
-    const raw = JSON.parse(
-      readFileSync(join(dir, PACK_FILE_MANIFEST), 'utf8'),
-    ) as { pack?: { id?: unknown } }
+    const raw = JSON.parse(readFileSync(join(dir, PACK_FILE_MANIFEST), 'utf8')) as {
+      pack?: { id?: unknown }
+    }
     return typeof raw.pack?.id === 'string' ? raw.pack.id : null
   } catch {
     return null

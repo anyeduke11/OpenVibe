@@ -50,7 +50,8 @@ describe('DiscussBlock（AgentPanel 问块）', () => {
   it('DISC-W2: 提交 → 回答逐段渲染，来源段带「0:stage」徽标，越界段无徽标；POST 打到 discuss 端点', async () => {
     fetchMock.mockImplementation(async (input: RequestInfo | URL) => {
       const url = String(input)
-      if (url.includes('/api/extract/gate')) return new Response(JSON.stringify({ enabled: true }), { status: 200 })
+      if (url.includes('/api/extract/gate'))
+        return new Response(JSON.stringify({ enabled: true }), { status: 200 })
       if (url.includes('/discuss')) return new Response(JSON.stringify(OK_BODY), { status: 200 })
       return new Response('{}', { status: 200 })
     })

@@ -32,9 +32,7 @@ export function parseJsonColumn<T>(raw: unknown, fallback: T): T {
  */
 export function pinyinKey(text: string): string {
   if (text === '') return ''
-  return pinyin(text, { toneType: 'none' })
-    .toLowerCase()
-    .replaceAll(' ', '')
+  return pinyin(text, { toneType: 'none' }).toLowerCase().replaceAll(' ', '')
 }
 
 /**

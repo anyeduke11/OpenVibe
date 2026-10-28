@@ -112,8 +112,10 @@ function diffPhasesAgainstSpec(db: Db, specRows: readonly SpecPhaseRow[]): strin
       out.push(`${key}：spec 有这一段，库里没有`)
       continue
     }
-    if (row.label !== s.label) out.push(`${key}：标签不等（库「${row.label}」/ spec「${s.label}」）`)
-    if (row.title !== s.title) out.push(`${key}：阶段名不等（库「${row.title}」/ spec「${s.title}」）`)
+    if (row.label !== s.label)
+      out.push(`${key}：标签不等（库「${row.label}」/ spec「${s.label}」）`)
+    if (row.title !== s.title)
+      out.push(`${key}：阶段名不等（库「${row.title}」/ spec「${s.title}」）`)
     if (row.duration_label !== s.duration) {
       out.push(`${key}：耗时不等（库「${row.duration_label}」/ spec「${s.duration}」）`)
     }
@@ -259,7 +261,9 @@ describe('M9 P1d · DL-49 分期路线与附件逐格相等', () => {
   it('变异 ①：把「3–4 周」润色成「约一个月」⇒ 红（润色一次，两版再也对不上）', () => {
     // ⚠️ **精确改 `duration_label` 那一格**（不是全文替换「3–4 周」——
     //   那会先命中 label 里的同一串字，改的就不是耗时了）
-    const dir = tamperedSeedDir((t) => t.replace('"duration_label": "3–4 周"', '"duration_label": "约一个月"'))
+    const dir = tamperedSeedDir((t) =>
+      t.replace('"duration_label": "3–4 周"', '"duration_label": "约一个月"'),
+    )
     try {
       const h = newDb()
       try {
@@ -353,13 +357,14 @@ describe('M9 P1d · DL-33 必学集合逐层包含', () => {
       const rows = readGuardRows(h.db)
       const langOf = readLangOf(h.db)
       const slugOf = new Map(
-        (h.db.prepare(`SELECT id, slug FROM lang_topics`).all() as { id: number; slug: string }[]).map(
-          (r) => [r.id, r.slug],
-        ),
+        (
+          h.db.prepare(`SELECT id, slug FROM lang_topics`).all() as { id: number; slug: string }[]
+        ).map((r) => [r.id, r.slug]),
       )
       for (const cold of COLD_TIER_TOPICS) {
         const entry = [...langOf.entries()].find(
-          ([, lang]) => lang === cold.lang && slugOf.get(Number(lang === cold.lang ? 0 : 0)) === undefined,
+          ([, lang]) =>
+            lang === cold.lang && slugOf.get(Number(lang === cold.lang ? 0 : 0)) === undefined,
         )
         void entry
         const topicId = [...slugOf.entries()].find(([, slug]) => slug === cold.slug)?.[0]
@@ -496,7 +501,9 @@ describe('M9 P1d · DL-36 速成必学必有 est_minutes，精通/熟悉恒 NULL
       const langOf = readLangOf(h.db)
       for (const lang of ['python', 'go'] as const) {
         const sum = rows
-          .filter((r) => r.profile === 'vibe' && r.required === 1 && langOf.get(r.topic_id) === lang)
+          .filter(
+            (r) => r.profile === 'vibe' && r.required === 1 && langOf.get(r.topic_id) === lang,
+          )
           .reduce((a, r) => a + (r.est_minutes ?? 0), 0)
         expect(sum, `${lang} 速成分钟数合计不对`).toBe(vibeTotalMinutes(lang))
       }
@@ -572,7 +579,9 @@ describe('M9 P1d · 模式层与现算逐行对账（口径只留一处）', () 
       seedAll(h)
       const rows = readGuardRows(h.db)
       const topics = h.db
-        .prepare(`SELECT id, lang, slug, stage_id, kind, content_level FROM lang_topics ORDER BY id`)
+        .prepare(
+          `SELECT id, lang, slug, stage_id, kind, content_level FROM lang_topics ORDER BY id`,
+        )
         .all() as ModeTopic[]
       const desired = assignTopicProfiles(topics)
       expect(rows).toHaveLength(234)
@@ -638,7 +647,9 @@ describe('M9 P1d · 模式层与现算逐行对账（口径只留一处）', () 
         .run()
       const rows = readGuardRows(h.db)
       const topics = h.db
-        .prepare(`SELECT id, lang, slug, stage_id, kind, content_level FROM lang_topics ORDER BY id`)
+        .prepare(
+          `SELECT id, lang, slug, stage_id, kind, content_level FROM lang_topics ORDER BY id`,
+        )
         .all() as ModeTopic[]
       const desired = assignTopicProfiles(topics)
       const byKey = new Map(rows.map((r) => [`${String(r.topic_id)}/${r.profile}`, r]))
@@ -661,21 +672,30 @@ describe('M9 P1d · 模式层与现算逐行对账（口径只留一处）', () 
     const h = newDb()
     try {
       seedAll(h)
-      expect(VIBE_ABILITY_LABELS).toEqual(['看得懂', '会运行', '读报错', '会反馈', '小步迭代', '会兜底'])
+      expect(VIBE_ABILITY_LABELS).toEqual([
+        '看得懂',
+        '会运行',
+        '读报错',
+        '会反馈',
+        '小步迭代',
+        '会兜底',
+      ])
       // 「会反馈 / 小步迭代 / 会兜底」是工作流能力 ⇒ 不该出现在任何必学集里
       const workflow = new Set(['会反馈', '小步迭代', '会兜底'])
       const langOf = readLangOf(h.db)
       const slugOf = new Map(
-        (h.db.prepare(`SELECT id, slug FROM lang_topics`).all() as { id: number; slug: string }[]).map(
-          (r) => [r.id, r.slug],
-        ),
+        (
+          h.db.prepare(`SELECT id, slug FROM lang_topics`).all() as { id: number; slug: string }[]
+        ).map((r) => [r.id, r.slug]),
       )
       const vibeRequired = readGuardRows(h.db)
         .filter((r) => r.profile === 'vibe' && r.required === 1)
         .map((r) => slugOf.get(r.topic_id))
       expect(vibeRequired.length).toBeGreaterThan(0)
       // 必学集条数 = 能力映射里的条目数（Python 15 · Go 16）
-      const py = vibeRequired.filter((s) => s?.startsWith('python3') || s?.startsWith('python-')).length
+      const py = vibeRequired.filter(
+        (s) => s?.startsWith('python3') || s?.startsWith('python-'),
+      ).length
       const go = vibeRequired.length - py
       expect(py).toBe(15)
       expect(go).toBe(16)

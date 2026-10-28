@@ -9,14 +9,14 @@
 
 素材清单，全部可在仓库内复查，不含记忆里的数字：
 
-| 类别 | 素材 | 位置 |
-|---|---|---|
-| 开发日志 | DEV-0011…DEV-0021（11 条，含 1 条独立审计） | `DEV_LOG.md` |
-| 门禁实测 | 五闸 rc=0：**381 用例 / 44 文件**、`seed:check` 100/3/20、`bundle:check` 入口 291 kB | `pnpm lint && pnpm typecheck && pnpm test && pnpm seed:check && pnpm bundle:check` |
-| 真机走查 | DEV-0018 T7f（14 step）、DEV-0019 三段（开箱 29 断言 / 遥测外发 / 懒加载网络）、DEV-0020 发布形态 **45 断言 0 FAIL** | `docs/devlog-evidence/DEV-001{8,9}/*.{mjs,sh,txt}`、`docs/devlog-evidence/DEV-0020/publish-walk.txt` |
-| CI | run `35827922105 @ bbf5fc2` 三平台 success；**`fcf04e1` 及其后无 CI** | `gh run list --json headSha,conclusion` |
-| 计时 | 用户侧 **4.3 s**（serve→sync→diff）；构建+pack+装包 **27.6 s**（其中装包 4.1 s，含两次真装包探针）—— 同路径上一轮为 1.0 s / 52.0 s，秒数是瞬时量 | `publish-walk.txt` §4 与装包段 |
-| 会话摘录 | 本轮三次改口 / 两处「未验证 ≠ 通过」，见下方分析 | 本文件 |
+| 类别     | 素材                                                                                                                                             | 位置                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| 开发日志 | DEV-0011…DEV-0021（11 条，含 1 条独立审计）                                                                                                      | `DEV_LOG.md`                                                                                         |
+| 门禁实测 | 五闸 rc=0：**381 用例 / 44 文件**、`seed:check` 100/3/20、`bundle:check` 入口 291 kB                                                             | `pnpm lint && pnpm typecheck && pnpm test && pnpm seed:check && pnpm bundle:check`                   |
+| 真机走查 | DEV-0018 T7f（14 step）、DEV-0019 三段（开箱 29 断言 / 遥测外发 / 懒加载网络）、DEV-0020 发布形态 **45 断言 0 FAIL**                             | `docs/devlog-evidence/DEV-001{8,9}/*.{mjs,sh,txt}`、`docs/devlog-evidence/DEV-0020/publish-walk.txt` |
+| CI       | run `35827922105 @ bbf5fc2` 三平台 success；**`fcf04e1` 及其后无 CI**                                                                            | `gh run list --json headSha,conclusion`                                                              |
+| 计时     | 用户侧 **4.3 s**（serve→sync→diff）；构建+pack+装包 **27.6 s**（其中装包 4.1 s，含两次真装包探针）—— 同路径上一轮为 1.0 s / 52.0 s，秒数是瞬时量 | `publish-walk.txt` §4 与装包段                                                                       |
+| 会话摘录 | 本轮三次改口 / 两处「未验证 ≠ 通过」，见下方分析                                                                                                 | 本文件                                                                                               |
 
 **达成度**：`docs/tasks.md` 九组任务全部收口，DoD 五条里 ①代码 ②测试 ③文档 ✅，④演练 = 自动化半边 ✅ / 人工录屏 ⏳，⑤发布+回流 = 本轮收（回流见阶段 4，发布为 `npm publish` 一步待 owner）。
 
@@ -52,37 +52,38 @@
 **引用可靠性**
 
 - 本轮两处**改口**：① 「`bin[openvibe] was invalid and removed` 是发布阻塞」→ 读 `@npmcli/package-json/lib/normalize.js:50-72`
-  + 实装探针证伪，它只是归一化后的伪警告；② 「npm 装包跑不通」→ 复跑命中预编译包并真下载（`~/.npm/_prebuilds/` 新文件为证），
-  前一轮的 `ETIMEDOUT` 是网络瞬时量。
+  - 实装探针证伪，它只是归一化后的伪警告；② 「npm 装包跑不通」→ 复跑命中预编译包并真下载（`~/.npm/_prebuilds/` 新文件为证），
+    前一轮的 `ETIMEDOUT` 是网络瞬时量。
 - 本轮三处**按未验证处理**（不写成通过）：源码编译回退（本机 CLT 坏）、非 147 ABI 的装包路径、真实 `npm publish`。
 
 ## 阶段 3 决议（retro-3-1 每问题有处理方式 / retro-3-2 定级）
 
-| # | 问题 | 处理 | 级别 | 落点 |
-|---|---|---|---|---|
-| 1 | 驱动器写死种子计数（P-1） | **修**：改为从 `content/seed/*.json` 现算三个数字 | P1 | `onboarding-walk.mjs` 本轮 |
-| 2 | 装包探针污染计时口径 | **修**：计时分段，用户侧与「构建+pack+装包」两栏分开报（C-74 口径已覆盖） | P2 | `publish-walk.txt` §4 |
-| 3 | 手工验证残渣（P-2） | **缓**：36 MB 属并行会话产物，等 owner 放行；机制侧已由「驱动器入库 + 自清断言」收敛 | P1 | DEV-0021⑥ |
-| 4 | 非 147 ABI / 非 macOS 的装包路径无本机证据 | **记录**：写进发布说明「未验证」段，不用 CI 绿抵销 | P0（对外口径） | `docs/release-notes/v0.1.0.md` |
-| 5 | 真实 registry 是镜像，dry-run 打到 npmmirror | **修**：发布命令写死 `--registry=https://registry.npmjs.org`，并进 README/发布说明 | P0 | 维护者段 |
-| 6 | 三处交互证据仍缺 | **缓**：P1.1 待办 #59（Playwright 按 owner 裁定暂不引入，先人工录屏/截图） | P1 | `docs/dev-plan.md` §14-6 |
-| 7 | `fcf04e1` 起无 CI 证据 | **修**：本轮提交后立刻 push + `gh run watch`（三平台） | P0 | 下一步 |
-| 8 | 种子变更后 default 包指纹漂移 | **记录**：发布前种子定稿；发布后改种子须升 `DEFAULT_PACK_VERSION` | P1 | 本文件阶段 2 合规性 |
+| #   | 问题                                         | 处理                                                                                 | 级别           | 落点                           |
+| --- | -------------------------------------------- | ------------------------------------------------------------------------------------ | -------------- | ------------------------------ |
+| 1   | 驱动器写死种子计数（P-1）                    | **修**：改为从 `content/seed/*.json` 现算三个数字                                    | P1             | `onboarding-walk.mjs` 本轮     |
+| 2   | 装包探针污染计时口径                         | **修**：计时分段，用户侧与「构建+pack+装包」两栏分开报（C-74 口径已覆盖）            | P2             | `publish-walk.txt` §4          |
+| 3   | 手工验证残渣（P-2）                          | **缓**：36 MB 属并行会话产物，等 owner 放行；机制侧已由「驱动器入库 + 自清断言」收敛 | P1             | DEV-0021⑥                      |
+| 4   | 非 147 ABI / 非 macOS 的装包路径无本机证据   | **记录**：写进发布说明「未验证」段，不用 CI 绿抵销                                   | P0（对外口径） | `docs/release-notes/v0.1.0.md` |
+| 5   | 真实 registry 是镜像，dry-run 打到 npmmirror | **修**：发布命令写死 `--registry=https://registry.npmjs.org`，并进 README/发布说明   | P0             | 维护者段                       |
+| 6   | 三处交互证据仍缺                             | **缓**：P1.1 待办 #59（Playwright 按 owner 裁定暂不引入，先人工录屏/截图）           | P1             | `docs/dev-plan.md` §14-6       |
+| 7   | `fcf04e1` 起无 CI 证据                       | **修**：本轮提交后立刻 push + `gh run watch`（三平台）                               | P0             | 下一步                         |
+| 8   | 种子变更后 default 包指纹漂移                | **记录**：发布前种子定稿；发布后改种子须升 `DEFAULT_PACK_VERSION`                    | P1             | 本文件阶段 2 合规性            |
 
 ## 阶段 4 回流（retro-4-1 · 术语/提示词/模板改进已入库或建草稿）
 
 第一批回流资产 **5 条词条**，已入 `content/seed/terms.json`（104 → **109**），
 每条的 `example` 就是上面某条决议的实测，可回查：
 
-| 词条 | 来源实证 |
-|---|---|
-| 发布形态走查 published-shape walk | `publish-walk.txt`：45 断言全跑在 `npm pack` 产物上 |
-| 预编译包回退 prebuilt binary fallback | 同日志 §2b/§2c 两支：命中 `node-v147-darwin-arm64` 预编译包 / 编译回退未证 |
-| 清单归一化 manifest normalization | `@npmcli/package-json/lib/normalize.js:50-72` + `scripts/build-cli.ts` 的 `PUBLISH_BIN_PATH` |
-| 镜像注册表 registry mirror | `npm publish --dry-run` 与 `pnpm publish --dry-run` 均打 `Publishing to …npmmirror.com` |
-| 瞬时用户激活 transient user activation | DEV-0019/0020 走查的复制按钮拒绝与 §14-6 的 owner 裁定 |
+| 词条                                   | 来源实证                                                                                     |
+| -------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 发布形态走查 published-shape walk      | `publish-walk.txt`：45 断言全跑在 `npm pack` 产物上                                          |
+| 预编译包回退 prebuilt binary fallback  | 同日志 §2b/§2c 两支：命中 `node-v147-darwin-arm64` 预编译包 / 编译回退未证                   |
+| 清单归一化 manifest normalization      | `@npmcli/package-json/lib/normalize.js:50-72` + `scripts/build-cli.ts` 的 `PUBLISH_BIN_PATH` |
+| 镜像注册表 registry mirror             | `npm publish --dry-run` 与 `pnpm publish --dry-run` 均打 `Publishing to …npmmirror.com`      |
+| 瞬时用户激活 transient user activation | DEV-0019/0020 走查的复制按钮拒绝与 §14-6 的 owner 裁定                                       |
 
 **术语侧之外**：
+
 - 提示词侧：本轮**不入库**（门槛锁 20 条，见阶段 2 合规性），第 21 条起走 DB 草稿。
 - 模板侧建议（P2，未执行）：`retro-4-1` 只要求「已入库或建草稿」，建议下版加一条
   「每条回流资产须附来源反链」——本次复盘即按此写；阶段名与检查项受

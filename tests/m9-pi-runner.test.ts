@@ -143,119 +143,151 @@ const VALID_ANSWER = {
 }
 
 describe('M9 P1g · Pi 包装脚本的命令行契约', () => {
-  it('① stdin 收请求 ⇒ stdout 出**契约 JSON**（stdout 上没有别的）', () => {
-    const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
-    try {
-      const res = runScript(fake, JSON.stringify(REQUEST))
-      expect(res.status).toBe(0)
-      const parsed = SourceInterpretResult.safeParse(JSON.parse(res.stdout))
-      expect(parsed.success).toBe(true)
-      expect(parsed.data?.items[0]?.topic_slug).toBe('py-context-manager')
-    } finally {
-      rmSync(fake.dir, { recursive: true, force: true })
-    }
-  }, TEST_TIMEOUT)
-
-  it('② ⚠️ **model / provider 用实际跑的那一家覆盖模型自述**', () => {
-    const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
-    try {
-      const res = runScript(fake, JSON.stringify(REQUEST))
-      const body = JSON.parse(res.stdout) as { model: string; provider: string }
-      expect(body.model).toBe('fake-model')
-      expect(body.provider).toBe('fake-provider')
-      // ⚠️ 模型自报的名字**不采信**（台账要记事实）
-      expect(body.model).not.toBe('model-self-reported')
-    } finally {
-      rmSync(fake.dir, { recursive: true, force: true })
-    }
-  }, TEST_TIMEOUT)
-
-  it('③ ⚠️ **安全关键**：逐个显式禁掉工具与本机上下文', () => {
-    const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
-    try {
-      runScript(fake, JSON.stringify(REQUEST))
-      const argv = readFileSync(fake.argvFile, 'utf8') as string
-      for (const flag of [
-        '--no-tools',
-        '--no-mcp',
-        '--no-extensions',
-        '--no-skills',
-        '--no-context-files',
-        '--no-session',
-        '--no-approve',
-      ]) {
-        expect(argv.split('\n')).toContain(flag)
+  it(
+    '① stdin 收请求 ⇒ stdout 出**契约 JSON**（stdout 上没有别的）',
+    () => {
+      const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
+      try {
+        const res = runScript(fake, JSON.stringify(REQUEST))
+        expect(res.status).toBe(0)
+        const parsed = SourceInterpretResult.safeParse(JSON.parse(res.stdout))
+        expect(parsed.success).toBe(true)
+        expect(parsed.data?.items[0]?.topic_slug).toBe('py-context-manager')
+      } finally {
+        rmSync(fake.dir, { recursive: true, force: true })
       }
-      // ⚠️ **不许**出现「开工具」的开关
-      expect(argv.split('\n')).not.toContain('--tools')
-      expect(argv.split('\n')).not.toContain('-t')
-    } finally {
-      rmSync(fake.dir, { recursive: true, force: true })
-    }
-  }, TEST_TIMEOUT)
+    },
+    TEST_TIMEOUT,
+  )
 
-  it('④ ⚠️ **提示词走 stdin，不进 argv**（源码会出现在 `ps` 里）', () => {
-    const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
-    try {
-      runScript(fake, JSON.stringify(REQUEST))
-      const argv = readFileSync(fake.argvFile, 'utf8') as string
-      const stdin = readFileSync(fake.stdinFile, 'utf8') as string
-      // ⚠️ **源码片段不许出现在 argv**
-      expect(argv).not.toContain('def __enter__')
-      // ⚠️ 但**必须在 stdin** 里（提示词本体）
-      expect(stdin).toContain('def __enter__')
-      expect(stdin).toContain('py-context-manager')
-    } finally {
-      rmSync(fake.dir, { recursive: true, force: true })
-    }
-  }, TEST_TIMEOUT)
+  it(
+    '② ⚠️ **model / provider 用实际跑的那一家覆盖模型自述**',
+    () => {
+      const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
+      try {
+        const res = runScript(fake, JSON.stringify(REQUEST))
+        const body = JSON.parse(res.stdout) as { model: string; provider: string }
+        expect(body.model).toBe('fake-model')
+        expect(body.provider).toBe('fake-provider')
+        // ⚠️ 模型自报的名字**不采信**（台账要记事实）
+        expect(body.model).not.toBe('model-self-reported')
+      } finally {
+        rmSync(fake.dir, { recursive: true, force: true })
+      }
+    },
+    TEST_TIMEOUT,
+  )
 
-  it('⑤ ⚠️ **工作目录不是项目目录**（纵深防御：上下文文件一律找不到）', () => {
-    const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
-    try {
-      runScript(fake, JSON.stringify(REQUEST))
-      const cwd = readFileSync(fake.cwdFile, 'utf8').trim()
-      expect(cwd).not.toBe(REPO_ROOT)
-    } finally {
-      rmSync(fake.dir, { recursive: true, force: true })
-    }
-  }, TEST_TIMEOUT)
+  it(
+    '③ ⚠️ **安全关键**：逐个显式禁掉工具与本机上下文',
+    () => {
+      const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
+      try {
+        runScript(fake, JSON.stringify(REQUEST))
+        const argv = readFileSync(fake.argvFile, 'utf8') as string
+        for (const flag of [
+          '--no-tools',
+          '--no-mcp',
+          '--no-extensions',
+          '--no-skills',
+          '--no-context-files',
+          '--no-session',
+          '--no-approve',
+        ]) {
+          expect(argv.split('\n')).toContain(flag)
+        }
+        // ⚠️ **不许**出现「开工具」的开关
+        expect(argv.split('\n')).not.toContain('--tools')
+        expect(argv.split('\n')).not.toContain('-t')
+      } finally {
+        rmSync(fake.dir, { recursive: true, force: true })
+      }
+    },
+    TEST_TIMEOUT,
+  )
 
-  it('⑥ ⚠️ 契约版本对不上 ⇒ 失败（**stdout 上不留半个 JSON**）', () => {
-    const fake = makeFakePi(ndjsonWithAnswer({ ...VALID_ANSWER, schema_version: 99 }))
-    try {
-      const res = runScript(fake, JSON.stringify(REQUEST))
-      expect(res.status).not.toBe(0)
-      expect(res.stdout.trim()).toBe('')
-      expect(res.stderr).toContain('版本')
-    } finally {
-      rmSync(fake.dir, { recursive: true, force: true })
-    }
-  }, TEST_TIMEOUT)
+  it(
+    '④ ⚠️ **提示词走 stdin，不进 argv**（源码会出现在 `ps` 里）',
+    () => {
+      const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
+      try {
+        runScript(fake, JSON.stringify(REQUEST))
+        const argv = readFileSync(fake.argvFile, 'utf8') as string
+        const stdin = readFileSync(fake.stdinFile, 'utf8') as string
+        // ⚠️ **源码片段不许出现在 argv**
+        expect(argv).not.toContain('def __enter__')
+        // ⚠️ 但**必须在 stdin** 里（提示词本体）
+        expect(stdin).toContain('def __enter__')
+        expect(stdin).toContain('py-context-manager')
+      } finally {
+        rmSync(fake.dir, { recursive: true, force: true })
+      }
+    },
+    TEST_TIMEOUT,
+  )
 
-  it('⑦ ⚠️ 这一轮被中止 ⇒ 失败（结果不可信）', () => {
-    const aborted = ndjsonWithAnswer(VALID_ANSWER).replace(
-      '{"type":"agent_settled","aborted":false}',
-      '{"type":"agent_settled","aborted":true}',
-    )
-    const fake = makeFakePi(aborted)
-    try {
-      const res = runScript(fake, JSON.stringify(REQUEST))
-      expect(res.status).not.toBe(0)
-      expect(res.stdout.trim()).toBe('')
-    } finally {
-      rmSync(fake.dir, { recursive: true, force: true })
-    }
-  }, TEST_TIMEOUT)
+  it(
+    '⑤ ⚠️ **工作目录不是项目目录**（纵深防御：上下文文件一律找不到）',
+    () => {
+      const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
+      try {
+        runScript(fake, JSON.stringify(REQUEST))
+        const cwd = readFileSync(fake.cwdFile, 'utf8').trim()
+        expect(cwd).not.toBe(REPO_ROOT)
+      } finally {
+        rmSync(fake.dir, { recursive: true, force: true })
+      }
+    },
+    TEST_TIMEOUT,
+  )
 
-  it('⑧ stdin 不合契约 ⇒ 退出码 2（不是 0）', () => {
-    const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
-    try {
-      const res = runScript(fake, JSON.stringify({ schema_version: 99 }))
-      expect(res.status).toBe(2)
-      expect(res.stdout.trim()).toBe('')
-    } finally {
-      rmSync(fake.dir, { recursive: true, force: true })
-    }
-  }, TEST_TIMEOUT)
+  it(
+    '⑥ ⚠️ 契约版本对不上 ⇒ 失败（**stdout 上不留半个 JSON**）',
+    () => {
+      const fake = makeFakePi(ndjsonWithAnswer({ ...VALID_ANSWER, schema_version: 99 }))
+      try {
+        const res = runScript(fake, JSON.stringify(REQUEST))
+        expect(res.status).not.toBe(0)
+        expect(res.stdout.trim()).toBe('')
+        expect(res.stderr).toContain('版本')
+      } finally {
+        rmSync(fake.dir, { recursive: true, force: true })
+      }
+    },
+    TEST_TIMEOUT,
+  )
+
+  it(
+    '⑦ ⚠️ 这一轮被中止 ⇒ 失败（结果不可信）',
+    () => {
+      const aborted = ndjsonWithAnswer(VALID_ANSWER).replace(
+        '{"type":"agent_settled","aborted":false}',
+        '{"type":"agent_settled","aborted":true}',
+      )
+      const fake = makeFakePi(aborted)
+      try {
+        const res = runScript(fake, JSON.stringify(REQUEST))
+        expect(res.status).not.toBe(0)
+        expect(res.stdout.trim()).toBe('')
+      } finally {
+        rmSync(fake.dir, { recursive: true, force: true })
+      }
+    },
+    TEST_TIMEOUT,
+  )
+
+  it(
+    '⑧ stdin 不合契约 ⇒ 退出码 2（不是 0）',
+    () => {
+      const fake = makeFakePi(ndjsonWithAnswer(VALID_ANSWER))
+      try {
+        const res = runScript(fake, JSON.stringify({ schema_version: 99 }))
+        expect(res.status).toBe(2)
+        expect(res.stdout.trim()).toBe('')
+      } finally {
+        rmSync(fake.dir, { recursive: true, force: true })
+      }
+    },
+    TEST_TIMEOUT,
+  )
 })

@@ -33,7 +33,8 @@ export function useSkillList(q: string) {
   const trimmed = q.trim()
   return useQuery({
     queryKey: ['skills', trimmed],
-    queryFn: () => apiJson<{ items: SkillRow[]; total: number }>(`/api/skills${qs({ q: trimmed })}`),
+    queryFn: () =>
+      apiJson<{ items: SkillRow[]; total: number }>(`/api/skills${qs({ q: trimmed })}`),
     staleTime: SKILL_STALE_TIME,
   })
 }
@@ -42,9 +43,7 @@ export function useSkillVersions(skillId: string | null) {
   return useQuery({
     queryKey: ['skill-versions', skillId],
     queryFn: () =>
-      apiJson<{ items: SkillVersionOut[]; total: number }>(
-        `/api/skills/${skillId ?? ''}/versions`,
-      ),
+      apiJson<{ items: SkillVersionOut[]; total: number }>(`/api/skills/${skillId ?? ''}/versions`),
     enabled: skillId !== null && skillId !== '',
     staleTime: SKILL_STALE_TIME,
   })

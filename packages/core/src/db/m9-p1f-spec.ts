@@ -112,9 +112,7 @@ export function parseSpecTrackCells(specText: string): SpecTrackCell[] {
     ] as const) {
       const bold = boldPart(cell)
       const modeWord =
-        bold === null || bold.includes(NO_TRACK_MARK)
-          ? null
-          : normalizeModeWord(bold)
+        bold === null || bold.includes(NO_TRACK_MARK) ? null : normalizeModeWord(bold)
       out.push({
         stageId,
         stageName: normalizeStageName(stageCell),

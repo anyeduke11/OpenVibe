@@ -42,9 +42,7 @@ describe('M9 P1d.5 · 速成专区四块静态内容', () => {
     expect(spec, 'spec §3.17.2 读不出来').not.toBeNull()
 
     // ① 6 项能力
-    expect(spec!.abilities).toEqual(
-      VIBE_ABILITIES.map((a) => ({ name: a.name, detail: a.detail })),
-    )
+    expect(spec!.abilities).toEqual(VIBE_ABILITIES.map((a) => ({ name: a.name, detail: a.detail })))
     // ② 最小知识（Python 7 + Go 7）
     expect(spec!.minimalKnowledge).toEqual([
       ...VIBE_MINIMAL_KNOWLEDGE.python.map((k) => ({
@@ -63,9 +61,7 @@ describe('M9 P1d.5 · 速成专区四块静态内容', () => {
       VIBE_WORKFLOW.map((s) => ({ step: s.step, title: s.title, detail: s.detail })),
     )
     // ④ 6 个翻车点
-    expect(spec!.pitfalls).toEqual(
-      VIBE_PITFALLS.map((p) => ({ name: p.name, detail: p.detail })),
-    )
+    expect(spec!.pitfalls).toEqual(VIBE_PITFALLS.map((p) => ({ name: p.name, detail: p.detail })))
   })
 
   it('② 它们没有建表（库里 lang_* 表一张不多，也没有为这四块建的表）', () => {
@@ -93,8 +89,7 @@ describe('M9 P1d.5 · 速成专区四块静态内容', () => {
       //   （`lang_vibe_resources` 是 §3.1 里的**速成专区资源表**（P1b 的产物），
       //     它装的是 11 条速成资源，**不是**这四块静态内容 ⇒ 不在嫌疑名单里）
       const suspicious = after.filter(
-        (n) =>
-          n !== 'lang_vibe_resources' && /abilit|workflow|pitfall|minimal|static/i.test(n),
+        (n) => n !== 'lang_vibe_resources' && /abilit|workflow|pitfall|minimal|static/i.test(n),
       )
       expect(suspicious, '静态内容被建了表').toEqual([])
       h.close()
@@ -156,8 +151,7 @@ describe('M9 P1d.5 · 速成专区四块静态内容', () => {
     const spec = parseSpecVibeStatic(tampered)
     expect(spec).not.toBeNull()
     const diff = spec!.pitfalls.filter(
-      (p, i) =>
-        p.name !== VIBE_PITFALLS[i]?.name || p.detail !== VIBE_PITFALLS[i]?.detail,
+      (p, i) => p.name !== VIBE_PITFALLS[i]?.name || p.detail !== VIBE_PITFALLS[i]?.detail,
     )
     expect(diff.length, 'spec 与模块分叉没有被检出').toBeGreaterThan(0)
   })

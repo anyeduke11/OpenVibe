@@ -49,7 +49,9 @@ export class TasksRepo {
       .get(projectId) as { n: number }
     const id = newId('task')
     this.db
-      .prepare('INSERT INTO tasks (id, project_id, title, stage_name, status, order_) VALUES (?,?,?,?,?,?)')
+      .prepare(
+        'INSERT INTO tasks (id, project_id, title, stage_name, status, order_) VALUES (?,?,?,?,?,?)',
+      )
       .run(id, projectId, title, input.stageName ?? null, 'todo', head.n)
     return this.mustGet(id)
   }
@@ -61,9 +63,7 @@ export class TasksRepo {
             .prepare('SELECT * FROM tasks WHERE project_id = ? AND status = ? ORDER BY order_, id')
             .all(projectId, status)
         : this.db
-            .prepare(
-              'SELECT * FROM tasks WHERE project_id = ? ORDER BY status, order_, id',
-            )
+            .prepare('SELECT * FROM tasks WHERE project_id = ? ORDER BY status, order_, id')
             .all(projectId)
     ) as TaskRow[]
     return rows.map(rowToTask)
@@ -84,9 +84,7 @@ export class TasksRepo {
     }
     if (patch.stageName !== undefined) {
       this.assertStage(existing.projectId, patch.stageName ?? undefined)
-      this.db
-        .prepare('UPDATE tasks SET stage_name = ? WHERE id = ?')
-        .run(patch.stageName, id)
+      this.db.prepare('UPDATE tasks SET stage_name = ? WHERE id = ?').run(patch.stageName, id)
     }
     if (patch.status !== undefined || patch.order !== undefined) {
       return this.move(id, patch.status ?? existing.status, patch.order ?? existing.order)
@@ -106,10 +104,14 @@ export class TasksRepo {
     const source = row.status
     this.db.transaction(() => {
       const destIds = this.columnIds(row.project_id, status, id)
-      const at = Math.max(0, Math.min(Number.isFinite(targetIndex) ? targetIndex : destIds.length, destIds.length))
+      const at = Math.max(
+        0,
+        Math.min(Number.isFinite(targetIndex) ? targetIndex : destIds.length, destIds.length),
+      )
       destIds.splice(at, 0, id)
       this.renumber(row.project_id, status, destIds)
-      if (source !== status) this.renumber(row.project_id, source, this.columnIds(row.project_id, source, id))
+      if (source !== status)
+        this.renumber(row.project_id, source, this.columnIds(row.project_id, source, id))
     })()
     return this.mustGet(id)
   }
@@ -146,9 +148,9 @@ export class TasksRepo {
   /** 建卡时阶段必须在快照内；快照后续变更造成的旧名由 UI 归入「已移除阶段」（m5 §6.2） */
   private assertStage(projectId: string, stageName?: string): void {
     if (stageName === undefined || stageName === null || stageName === '') return
-    const project = this.db.prepare('SELECT stages_snapshot FROM projects WHERE id = ?').get(
-      projectId,
-    ) as { stages_snapshot: string } | undefined
+    const project = this.db
+      .prepare('SELECT stages_snapshot FROM projects WHERE id = ?')
+      .get(projectId) as { stages_snapshot: string } | undefined
     const stages = (JSON.parse(project?.stages_snapshot ?? '[]') as { name: string }[]) ?? []
     if (!stages.some((s) => s.name === stageName)) {
       throw new AppError('VALIDATION_ERROR', `阶段不存在于项目快照: ${stageName}`)

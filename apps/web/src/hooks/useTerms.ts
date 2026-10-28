@@ -34,8 +34,7 @@ export function useTermSearch(q: string) {
   const trimmed = q.trim()
   return useQuery({
     queryKey: ['term-search', trimmed],
-    queryFn: () =>
-      apiJson<TermSearchBody>(`/api/terms/search?q=${encodeURIComponent(trimmed)}`),
+    queryFn: () => apiJson<TermSearchBody>(`/api/terms/search?q=${encodeURIComponent(trimmed)}`),
     enabled: trimmed !== '',
     staleTime: TERM_STALE_TIME,
   })

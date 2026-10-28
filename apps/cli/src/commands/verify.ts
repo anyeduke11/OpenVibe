@@ -42,12 +42,7 @@ export interface VerifyDeps {
 }
 
 export type VerifyOutcomeState =
-  | 'CONSISTENT'
-  | 'PARTIAL'
-  | 'ORPHAN'
-  | 'DISK_DRIFT'
-  | 'STALE_LOCK'
-  | 'UNMANAGED'
+  'CONSISTENT' | 'PARTIAL' | 'ORPHAN' | 'DISK_DRIFT' | 'STALE_LOCK' | 'UNMANAGED'
 
 export interface VerifyOutcome {
   projectPath: string
@@ -124,7 +119,9 @@ async function probeLatestVersion(
     return { latest: pickExport(list.items, null).version, warnings: [], probedOnline: true }
   } catch (e) {
     const detail =
-      e instanceof ServerUnreachable ? `服务端不可达（${e.detail}）` : ((e as Error).message ?? String(e))
+      e instanceof ServerUnreachable
+        ? `服务端不可达（${e.detail}）`
+        : ((e as Error).message ?? String(e))
     return {
       latest: null,
       warnings: [`包侧未核（${detail}）；lock 与磁盘的比对不受影响`],
@@ -133,7 +130,10 @@ async function probeLatestVersion(
   }
 }
 
-export async function verifyAction(options: VerifyOptions, deps: VerifyDeps = {}): Promise<VerifyOutcome> {
+export async function verifyAction(
+  options: VerifyOptions,
+  deps: VerifyDeps = {},
+): Promise<VerifyOutcome> {
   const projectPath = assertProjectDir(options.projectPath)
   const lockPath = lockPathOf(projectPath)
 
@@ -150,7 +150,9 @@ export async function verifyAction(options: VerifyOptions, deps: VerifyDeps = {}
       newer: null,
       probedOnline: false,
       warnings: [],
-      hints: ['该目录还没有 pack.lock.json：尚未由 OpenVibe 托管。openvibe sync <projectPath> 首次注入'],
+      hints: [
+        '该目录还没有 pack.lock.json：尚未由 OpenVibe 托管。openvibe sync <projectPath> 首次注入',
+      ],
       exitCode: 2,
     }
   }

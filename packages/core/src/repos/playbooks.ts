@@ -175,8 +175,7 @@ export class PlaybooksRepo {
 
   update(id: string, patch: PlaybookUpdateInput): PlaybookOut {
     const existing = this.db.prepare('SELECT * FROM playbooks WHERE id = ?').get(id) as
-      | PlaybookRow
-      | undefined
+      PlaybookRow | undefined
     if (!existing) throw new AppError('NOT_FOUND', `技巧不存在: ${id}`)
     const before = rowToPlaybook(existing)
     // FR-4.2：置真是显式动作。schema 的 superRefine 只看得见本次请求的字段，
@@ -240,8 +239,7 @@ export class PlaybooksRepo {
 
   get(id: string): PlaybookOut | null {
     const row = this.db.prepare('SELECT * FROM playbooks WHERE id = ?').get(id) as
-      | PlaybookRow
-      | undefined
+      PlaybookRow | undefined
     return row ? rowToPlaybook(row) : null
   }
 
@@ -283,7 +281,10 @@ export class PlaybooksRepo {
 
     const missing = input.playbookIds.filter((id) => !found.has(id))
     if (missing.length > 0) {
-      throw new AppError('STALE_SELECTION', `选集中 ${missing.length} 个技巧已删除（m6a §6.2 同源）`)
+      throw new AppError(
+        'STALE_SELECTION',
+        `选集中 ${missing.length} 个技巧已删除（m6a §6.2 同源）`,
+      )
     }
 
     const playbooks = sortForMd(input.playbookIds.map((id) => found.get(id)) as PlaybookOut[])

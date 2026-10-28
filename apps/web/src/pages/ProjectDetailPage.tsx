@@ -148,7 +148,8 @@ export function ProjectDetailPage() {
     pm.update.mutate(
       { id: view.id, patch: { status: status as typeof view.status } },
       {
-        onSuccess: () => toast(status === 'archived' ? zh.projects.archiveDone : zh.projects.statusDone),
+        onSuccess: () =>
+          toast(status === 'archived' ? zh.projects.archiveDone : zh.projects.statusDone),
         onError: (e: Error) => toast(e.message, 'error'),
       },
     )
@@ -242,10 +243,7 @@ export function ProjectDetailPage() {
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
           <h1 className={h1Cls}>{view.name}</h1>
           {view.status !== 'archived' && (
-            <button
-              className={`${btnGhost} ml-auto text-xs`}
-              onClick={() => setStatus('archived')}
-            >
+            <button className={`${btnGhost} ml-auto text-xs`} onClick={() => setStatus('archived')}>
               {zh.projects.status.archived}
             </button>
           )}
@@ -279,9 +277,7 @@ export function ProjectDetailPage() {
           <ChecklistPanel
             stage={activeStage}
             stageProgress={percent}
-            isChecked={(itemId) =>
-              currentStage !== null && isChecked(currentStage, itemId)
-            }
+            isChecked={(itemId) => currentStage !== null && isChecked(currentStage, itemId)}
             onToggle={toggle}
             busyItemId={busyItemId}
             orphans={orphans}

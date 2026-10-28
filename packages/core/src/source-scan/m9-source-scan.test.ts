@@ -203,7 +203,11 @@ describe('M9 P4.1 · DL-17 · T0 不依赖 AI', () => {
 describe('M9 P4 · 模式表与库的一致性', () => {
   it('模式表里的每个 topic_slug 都能在种子里找到（**孤儿检查**）', () => {
     const slugs = new Set<string>()
-    for (const f of ['lang_topics_python3.json', 'lang_topics_go.json', 'lang_topics_advanced.json']) {
+    for (const f of [
+      'lang_topics_python3.json',
+      'lang_topics_go.json',
+      'lang_topics_advanced.json',
+    ]) {
       const raw = JSON.parse(
         readFileSync(join(REPO_ROOT, 'packages/core/src/db/seeds', f), 'utf8'),
       ) as { items?: { slug: string }[] }

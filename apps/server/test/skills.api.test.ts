@@ -299,7 +299,9 @@ describe('T5b · m2 §7 验收映射（扫描 API 行为层）', () => {
     expect(ignoreName.statusCode).toBe(200)
     expect(ignoreName.json.name).toBe('alpha-skill')
 
-    expect((await api(h, 'PATCH', '/api/skills/skl_ghost', { description: 'x' })).statusCode).toBe(404)
+    expect((await api(h, 'PATCH', '/api/skills/skl_ghost', { description: 'x' })).statusCode).toBe(
+      404,
+    )
 
     // 重复扫描同一根不会产出第二条同名 skill
     await scan(h, [root])
@@ -348,8 +350,10 @@ describe('远程导入 / 整理 / 审查（DEV-0067）', () => {
     const fetchImpl = stubFetch({
       'https://api.github.com/repos/anthropics/skills': { default_branch: 'main' },
       'https://api.github.com/repos/anthropics/skills/git/trees/main?recursive=1': tree,
-      'https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf-kit/SKILL.md': GH_SKILL_MD,
-      'https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf-kit/helpers.md': 'helpers',
+      'https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf-kit/SKILL.md':
+        GH_SKILL_MD,
+      'https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf-kit/helpers.md':
+        'helpers',
       // 完整 URL 形态也归一到同一仓库
       'https://api.github.com/repos/other/repo': { default_branch: 'main' },
       'https://api.github.com/repos/other/repo/git/trees/main?recursive=1': tree,
@@ -542,8 +546,10 @@ describe('远程导入 / 整理 / 审查（DEV-0067）', () => {
     const routes: Record<string, string | number | object> = {
       'https://api.github.com/repos/anthropics/skills': { default_branch: 'main' },
       'https://api.github.com/repos/anthropics/skills/git/trees/main?recursive=1': tree,
-      'https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf-kit/SKILL.md': GH_SKILL_MD,
-      'https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf-kit/helpers.md': 'helpers',
+      'https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf-kit/SKILL.md':
+        GH_SKILL_MD,
+      'https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf-kit/helpers.md':
+        'helpers',
     }
     const h = await makeHarness({ remoteFetchImpl: stubFetch(routes) })
 
@@ -554,28 +560,52 @@ describe('远程导入 / 整理 / 审查（DEV-0067）', () => {
       path: 'skills/pdf-kit',
     })
     expect(res.statusCode).toBe(200)
-    expect(res.json).toMatchObject({ discovered: 1, created: 1, origin: 'anthropics/skills/skills/pdf-kit@main' })
+    expect(res.json).toMatchObject({
+      discovered: 1,
+      created: 1,
+      origin: 'anthropics/skills/skills/pdf-kit@main',
+    })
     const item = (await listSkills(h)).json.items[0]
     expect(item?.remoteRef).toBe('github:anthropics/skills@main:skills/pdf-kit')
     // 树指纹 = 目录内 (rel, blobSha) 拼接 sha256（helpers.md 的 rel 是相对 skill 目录的）
-    const expectTree = (await import('node:crypto')).createHash('sha256')
+    const expectTree = (await import('node:crypto'))
+      .createHash('sha256')
       .update('SKILL.md:blobaaa\nhelpers.md:blobbbb\n')
       .digest('hex')
     expect(item?.remoteTreeHash).toBe(expectTree)
 
     // 检查更新：远端树未变 → upToDate
-    const check1 = await api<SkillUpdateCheckReport>(h, 'POST', '/api/skills/remote/check-updates', {})
+    const check1 = await api<SkillUpdateCheckReport>(
+      h,
+      'POST',
+      '/api/skills/remote/check-updates',
+      {},
+    )
     expect(check1.json.summary).toMatchObject({ upToDate: 1, remoteChanged: 0 })
 
     // 远端某文件被改（blob sha 变）→ remoteChanged；重导后建档刷新 → 归零
     tree.tree = tree.tree.map((b) => (b.path.endsWith('helpers.md') ? { ...b, sha: 'blobNEW' } : b))
-    const check2 = await api<SkillUpdateCheckReport>(h, 'POST', '/api/skills/remote/check-updates', {})
+    const check2 = await api<SkillUpdateCheckReport>(
+      h,
+      'POST',
+      '/api/skills/remote/check-updates',
+      {},
+    )
     expect(check2.json.summary).toMatchObject({ remoteChanged: 1 })
     expect(check2.json.items[0]).toMatchObject({ status: 'remoteChanged', name: 'pdf-kit' })
 
     // 存量条目（无追踪指纹）→ notTracked
-    await api(h, 'POST', '/api/skills', { name: 'legacy-remote', description: 'x', source: 'github' })
-    const check3 = await api<SkillUpdateCheckReport>(h, 'POST', '/api/skills/remote/check-updates', {})
+    await api(h, 'POST', '/api/skills', {
+      name: 'legacy-remote',
+      description: 'x',
+      source: 'github',
+    })
+    const check3 = await api<SkillUpdateCheckReport>(
+      h,
+      'POST',
+      '/api/skills/remote/check-updates',
+      {},
+    )
     expect(check3.json.summary).toMatchObject({ remoteChanged: 1, notTracked: 1 })
 
     // 重导拿到新树 → remoteChanged 归零
@@ -585,7 +615,12 @@ describe('远程导入 / 整理 / 审查（DEV-0067）', () => {
       path: 'skills/pdf-kit',
     })
     expect(reimport.json).toMatchObject({ discovered: 1, created: 0 })
-    const check4 = await api<SkillUpdateCheckReport>(h, 'POST', '/api/skills/remote/check-updates', {})
+    const check4 = await api<SkillUpdateCheckReport>(
+      h,
+      'POST',
+      '/api/skills/remote/check-updates',
+      {},
+    )
     expect(check4.json.summary).toMatchObject({ remoteChanged: 0, notTracked: 1 })
   })
 
@@ -612,9 +647,16 @@ describe('远程导入 / 整理 / 审查（DEV-0067）', () => {
     })
     const item = (await listSkills(h)).json.items[0]
     expect(item?.remoteRef).toBe('skillhub:kit')
-    expect(item?.remoteTreeHash).toBe(hashSkillEntries([{ rel: 'SKILL.md', sha256: 'a'.repeat(64) }]).dirHash)
+    expect(item?.remoteTreeHash).toBe(
+      hashSkillEntries([{ rel: 'SKILL.md', sha256: 'a'.repeat(64) }]).dirHash,
+    )
     // stub 清单未变 → 最新；remoteChanged 分支与 GitHub 共享同一对比逻辑（上一用例已覆盖）
-    const check = await api<SkillUpdateCheckReport>(h, 'POST', '/api/skills/remote/check-updates', {})
+    const check = await api<SkillUpdateCheckReport>(
+      h,
+      'POST',
+      '/api/skills/remote/check-updates',
+      {},
+    )
     expect(check.json.summary).toMatchObject({ upToDate: 1, remoteChanged: 0 })
   })
 
@@ -628,7 +670,8 @@ describe('远程导入 / 整理 / 审查（DEV-0067）', () => {
       remoteFetchImpl: stubFetch({
         'https://api.github.com/repos/anthropics/skills': { default_branch: 'main' },
         'https://api.github.com/repos/anthropics/skills/git/trees/main?recursive=1': tree,
-        'https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf-kit/SKILL.md': GH_SKILL_MD,
+        'https://raw.githubusercontent.com/anthropics/skills/main/skills/pdf-kit/SKILL.md':
+          GH_SKILL_MD,
       }),
     })
 
@@ -643,27 +686,44 @@ describe('远程导入 / 整理 / 审查（DEV-0067）', () => {
       .run('anthropics/skills@main', legacy.json.id)
 
     // 检查更新 → notTracked
-    const check1 = await api<SkillUpdateCheckReport>(h, 'POST', '/api/skills/remote/check-updates', {})
+    const check1 = await api<SkillUpdateCheckReport>(
+      h,
+      'POST',
+      '/api/skills/remote/check-updates',
+      {},
+    )
     expect(check1.json.summary).toMatchObject({ notTracked: 1 })
 
     // retrack → 建档（同内容 skipped，但追踪两列写入）；再查 → upToDate
-    const re = await api<{ items: { status: string }[]; summary: { retracked: number; failed: number } }>(
-      h,
-      'POST',
-      '/api/skills/remote/retrack',
-      {},
-    )
+    const re = await api<{
+      items: { status: string }[]
+      summary: { retracked: number; failed: number }
+    }>(h, 'POST', '/api/skills/remote/retrack', {})
     expect(re.statusCode).toBe(200)
     expect(re.json.summary).toMatchObject({ retracked: 1, failed: 0 })
     const item = (await listSkills(h)).json.items[0]
     expect(item?.remoteRef).toBe('github:anthropics/skills@main:skills/pdf-kit')
     expect(item?.remoteTreeHash).not.toBeNull()
-    const check2 = await api<SkillUpdateCheckReport>(h, 'POST', '/api/skills/remote/check-updates', {})
+    const check2 = await api<SkillUpdateCheckReport>(
+      h,
+      'POST',
+      '/api/skills/remote/check-updates',
+      {},
+    )
     expect(check2.json.summary).toMatchObject({ upToDate: 1, notTracked: 0 })
 
     // 解析失败：版本线空串 → failed 逐条报
-    await api(h, 'POST', '/api/skills', { name: 'broken-label', description: 'x', source: 'skillhub' })
-    const re2 = await api<{ summary: { failed: number } }>(h, 'POST', '/api/skills/remote/retrack', {})
+    await api(h, 'POST', '/api/skills', {
+      name: 'broken-label',
+      description: 'x',
+      source: 'skillhub',
+    })
+    const re2 = await api<{ summary: { failed: number } }>(
+      h,
+      'POST',
+      '/api/skills/remote/retrack',
+      {},
+    )
     expect(re2.json.summary.failed).toBe(1)
   })
 })

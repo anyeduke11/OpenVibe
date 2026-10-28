@@ -173,7 +173,9 @@ describe('diff 的磁盘比对（FR-5.1/5.2）', () => {
     expect(out.drifted).toEqual([])
     // 但也没被静默省略 —— 单列报出来
     expect(out.foreign.map((f) => f.path)).toEqual(['TERMS.md'])
-    expect(out.foreign[0]!.actual).toBe(createHash('sha256').update('# 我手改了但这条不受管').digest('hex'))
+    expect(out.foreign[0]!.actual).toBe(
+      createHash('sha256').update('# 我手改了但这条不受管').digest('hex'),
+    )
     // 退出码口径不变：非 clean ⇒ 2
     expect(out.exitCode).toBe(2)
     // 且 hints 里点明这是「未受管」，不是普通漂移
@@ -190,7 +192,11 @@ describe('diff 的磁盘比对（FR-5.1/5.2）', () => {
     mkdirSync(join(project, '.openvibe', 'backup'), { recursive: true })
     writeFileSync(join(project, internalPath), '磁盘上的内容', 'utf8')
     // ⚠️ 这里写 managed=true：判据必须**不依赖 lock 的自觉**
-    lock.files.push({ path: internalPath, sha256: createHash('sha256').update('包里的内容').digest('hex'), managed: true })
+    lock.files.push({
+      path: internalPath,
+      sha256: createHash('sha256').update('包里的内容').digest('hex'),
+      managed: true,
+    })
     writeFileSync(lockPath, JSON.stringify(lock), 'utf8')
 
     const out = await diffAction({ projectPath: project }, {})

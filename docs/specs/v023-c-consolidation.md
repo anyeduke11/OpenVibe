@@ -1,14 +1,14 @@
 # SPEC · v0.2.3 批次 C：核心收拢（G3 · CS1–CS6 + 只读段级 diff）
 
-| 项 | 值 |
-|------|------|
-| 模块 | **v0.2.3 · 批次 C / 目标 G3**。对应 PRD `docs/PRD-v0.2.3-v1.0-20261024.md` 第 4 章的 RQ6（核心收拢，展开为 CS1–CS6）与 RQ4（只读段级 diff） |
-| 优先级 | **P1**。判级构成：CS2 与 RQ4 为 **B**，其余为 **C**（行为不变的重构与文档）。逐项判级见 §4；一切判级均为预判，判级权在 owner（dev-plan §0.3） |
-| 上游 | `docs/PRD-v0.2.3-v1.0-20261024.md`（§1 E4–E7/E9、§5 CS 表、§9 反例 4）· `docs/analysis-2026-10-02-first-principles.md`（AD4-4a 段级 diff；FP5 治理边界：收拢的是维护工时不是记录量）· `docs/specs/m9-dev-language-roadmap.md`（第二产品线声明的对象）· eslint.config.js R1–R5（分层 zone，本 spec 不新增不改语义） |
-| 下游设计 | `docs/design.md` §7.3（整文件受管 + 块标记预埋——段级 diff 的切分依据；**升契约的 4-c 不在本版**）· `packages/core/src/inject/planner.ts`（五状态判定，**不改**）· `tests/golden/`（字节级契约快照，本 spec 全程**零重基**）· `packages/core/package.json`（CS1 的 exports 子路径落点） |
-| 关联任务 | **无**（任务号待本 spec 裁定后在 tasks.md 另起） |
-| 版本 | **v1.0（2026-10-25）**。§8.2 两处按既成事实收口（复盘补记，owner 复盘指令授权）；CS1–CS6 + RQ4 全部落地并有用例背书（[DEV-0118/0139/0140/0141/0147]） |
-| 采样 | 2026-10-24 本机工作树 |
+| 项       | 值                                                                                                                                                                                                                                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 模块     | **v0.2.3 · 批次 C / 目标 G3**。对应 PRD `docs/PRD-v0.2.3-v1.0-20261024.md` 第 4 章的 RQ6（核心收拢，展开为 CS1–CS6）与 RQ4（只读段级 diff）                                                                                                                                                                        |
+| 优先级   | **P1**。判级构成：CS2 与 RQ4 为 **B**，其余为 **C**（行为不变的重构与文档）。逐项判级见 §4；一切判级均为预判，判级权在 owner（dev-plan §0.3）                                                                                                                                                                      |
+| 上游     | `docs/PRD-v0.2.3-v1.0-20261024.md`（§1 E4–E7/E9、§5 CS 表、§9 反例 4）· `docs/analysis-2026-10-02-first-principles.md`（AD4-4a 段级 diff；FP5 治理边界：收拢的是维护工时不是记录量）· `docs/specs/m9-dev-language-roadmap.md`（第二产品线声明的对象）· eslint.config.js R1–R5（分层 zone，本 spec 不新增不改语义） |
+| 下游设计 | `docs/design.md` §7.3（整文件受管 + 块标记预埋——段级 diff 的切分依据；**升契约的 4-c 不在本版**）· `packages/core/src/inject/planner.ts`（五状态判定，**不改**）· `tests/golden/`（字节级契约快照，本 spec 全程**零重基**）· `packages/core/package.json`（CS1 的 exports 子路径落点）                             |
+| 关联任务 | **无**（任务号待本 spec 裁定后在 tasks.md 另起）                                                                                                                                                                                                                                                                   |
+| 版本     | **v1.0（2026-10-25）**。§8.2 两处按既成事实收口（复盘补记，owner 复盘指令授权）；CS1–CS6 + RQ4 全部落地并有用例背书（[DEV-0118/0139/0140/0141/0147]）                                                                                                                                                              |
+| 采样     | 2026-10-24 本机工作树                                                                                                                                                                                                                                                                                              |
 
 ---
 
@@ -20,29 +20,29 @@
 
 ## 2. 范围
 
-| **In** | **Out（明确不做，写明理由与去向）** |
-|---|---|
-| CS1 守卫迁出：`@openvibe/core/tooling` 子出口 + 主出口移除 re-export + scripts/tests 改导入 | **删除守卫功能**。迁出是归位不是裁撤；`docs:check`/`m9:fingerprint` 等闸一条不减 |
-| CS2 种子纪律归一：5 个 m9 播种器接入 seed_hash 三态合并（**唯一一处语义修正**） | **改主通道 `db/seed.ts` 语义**——它是对的，是 m9 侧向它看齐 |
-| CS3 upsert helper（8 处 → 1 处） | **动 `seed_registry` 表结构**（helper 只收拢 SQL 文本，不改 schema） |
-| CS4 死模块处置（4 个，逐条 owner 裁） | **一次性清零 barrel**——CS5 分三批，每批 ≤80，不设死线 |
-| CS6 产品线边界声明 + 迁移号段规则（文档 + 可选机判） | **M9 任何功能增减**（学习线冻结，PRD §3.2） |
-| RQ4 只读段级 diff（报文细化，不改写入） | **段级选择 / 段级受管 / `schemaVersion` 升位**（AD4-4b/4c，留给 RF4 契约定型批：owner 签字 + 独立复核 + golden 重基） |
-| — | **`update` / `rollback` 子命令**（依赖段级写盘，PRD §3.2） |
+| **In**                                                                                      | **Out（明确不做，写明理由与去向）**                                                                                   |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| CS1 守卫迁出：`@openvibe/core/tooling` 子出口 + 主出口移除 re-export + scripts/tests 改导入 | **删除守卫功能**。迁出是归位不是裁撤；`docs:check`/`m9:fingerprint` 等闸一条不减                                      |
+| CS2 种子纪律归一：5 个 m9 播种器接入 seed_hash 三态合并（**唯一一处语义修正**）             | **改主通道 `db/seed.ts` 语义**——它是对的，是 m9 侧向它看齐                                                            |
+| CS3 upsert helper（8 处 → 1 处）                                                            | **动 `seed_registry` 表结构**（helper 只收拢 SQL 文本，不改 schema）                                                  |
+| CS4 死模块处置（4 个，逐条 owner 裁）                                                       | **一次性清零 barrel**——CS5 分三批，每批 ≤80，不设死线                                                                 |
+| CS6 产品线边界声明 + 迁移号段规则（文档 + 可选机判）                                        | **M9 任何功能增减**（学习线冻结，PRD §3.2）                                                                           |
+| RQ4 只读段级 diff（报文细化，不改写入）                                                     | **段级选择 / 段级受管 / `schemaVersion` 升位**（AD4-4b/4c，留给 RF4 契约定型批：owner 签字 + 独立复核 + golden 重基） |
+| —                                                                                           | **`update` / `rollback` 子命令**（依赖段级写盘，PRD §3.2）                                                            |
 
 ## 3. 现状与实测基线（采样：2026-10-24）
 
-| # | 量 | 现测值 | 复算命令 |
-|---|---|---|---|
-| 1 | 守卫模块体量 | `m9-external-content-scan.ts` **836 行**、`m9-time-window-guard.ts` **578 行**，消费者均为 scripts/tests，且从主出口 re-export（`index.ts:64-65` 自注「采集脚本也用它」） | `wc -l packages/core/src/db/m9-external-content-scan.ts packages/core/src/db/m9-time-window-guard.ts`；`grep -n 'm9-external-content-scan' packages/core/src/index.ts` |
-| 2 | 种子双轨 | 主通道 `db/seed.ts`：seed_hash 三态合并 + 用户改动保护；5 个 m9 播种器：一次性 INSERT OR IGNORE，文件头自陈「老库不会自动更新」 | `sed -n '10,25p' packages/core/src/db/m9-p1-seed-lang-topics.ts` |
-| 3 | upsert 复制 | `ON CONFLICT(bundle) DO UPDATE SET content_hash...` 逐字出现 **8 处 / 7 文件** | `grep -rn 'ON CONFLICT(bundle) DO UPDATE SET content_hash' packages/core/src --include='*.ts' \| wc -l` |
-| 4 | 疑似死模块 | 4 个：`m9-topic-terms` / `m9-topic-filter` / `m9-p1b-readme` / `m9-p1f-grade-guard`（仅测试引用） | `grep -rln 'm9-topic-terms' apps packages scripts tests --include='*.ts'`（仅 test 命中） |
-| 5 | barrel 体量 | `packages/core/src/index.ts` **511 行**，约 420 符号，其中 267 个 core 之外零消费 | `wc -l packages/core/src/index.ts` |
-| 6 | 分层强制 | eslint R1–R5 五条 zone + `tests/lint-boundary.test.ts`（规则本身被测试锁住）——CS1 的 zone 变更若违规会当场红 | `sed -n '15,38p' tests/lint-boundary.test.ts` |
-| 7 | 块标记预埋 | 产物首尾已有 `<!-- openvibe:pack=... begin/end -->`；`planner` 按**整文件 sha** 判五状态——RQ4 只加报文，不动判定 | `grep -n 'openvibe:pack' packages/core/src/pack/composer.ts \| head -2` |
-| 8 | 迁移占用 | **0001–0018** 已用，下一空号 **0019**（批次 D 的前置锚点） | `ls packages/core/src/db/migrations/ \| tail -3` |
-| 9 | 测试基线 | 163 文件 / 2095 用例全绿（收拢的安全网） | `pnpm test` |
+| #   | 量           | 现测值                                                                                                                                                                    | 复算命令                                                                                                                                                               |
+| --- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 守卫模块体量 | `m9-external-content-scan.ts` **836 行**、`m9-time-window-guard.ts` **578 行**，消费者均为 scripts/tests，且从主出口 re-export（`index.ts:64-65` 自注「采集脚本也用它」） | `wc -l packages/core/src/db/m9-external-content-scan.ts packages/core/src/db/m9-time-window-guard.ts`；`grep -n 'm9-external-content-scan' packages/core/src/index.ts` |
+| 2   | 种子双轨     | 主通道 `db/seed.ts`：seed_hash 三态合并 + 用户改动保护；5 个 m9 播种器：一次性 INSERT OR IGNORE，文件头自陈「老库不会自动更新」                                           | `sed -n '10,25p' packages/core/src/db/m9-p1-seed-lang-topics.ts`                                                                                                       |
+| 3   | upsert 复制  | `ON CONFLICT(bundle) DO UPDATE SET content_hash...` 逐字出现 **8 处 / 7 文件**                                                                                            | `grep -rn 'ON CONFLICT(bundle) DO UPDATE SET content_hash' packages/core/src --include='*.ts' \| wc -l`                                                                |
+| 4   | 疑似死模块   | 4 个：`m9-topic-terms` / `m9-topic-filter` / `m9-p1b-readme` / `m9-p1f-grade-guard`（仅测试引用）                                                                         | `grep -rln 'm9-topic-terms' apps packages scripts tests --include='*.ts'`（仅 test 命中）                                                                              |
+| 5   | barrel 体量  | `packages/core/src/index.ts` **511 行**，约 420 符号，其中 267 个 core 之外零消费                                                                                         | `wc -l packages/core/src/index.ts`                                                                                                                                     |
+| 6   | 分层强制     | eslint R1–R5 五条 zone + `tests/lint-boundary.test.ts`（规则本身被测试锁住）——CS1 的 zone 变更若违规会当场红                                                              | `sed -n '15,38p' tests/lint-boundary.test.ts`                                                                                                                          |
+| 7   | 块标记预埋   | 产物首尾已有 `<!-- openvibe:pack=... begin/end -->`；`planner` 按**整文件 sha** 判五状态——RQ4 只加报文，不动判定                                                          | `grep -n 'openvibe:pack' packages/core/src/pack/composer.ts \| head -2`                                                                                                |
+| 8   | 迁移占用     | **0001–0018** 已用，下一空号 **0019**（批次 D 的前置锚点）                                                                                                                | `ls packages/core/src/db/migrations/ \| tail -3`                                                                                                                       |
+| 9   | 测试基线     | 163 文件 / 2095 用例全绿（收拢的安全网）                                                                                                                                  | `pnpm test`                                                                                                                                                            |
 
 ## 4. 功能需求（FR）
 
@@ -65,16 +65,16 @@
 
 **第二段范围与逐表设计**（现状 = 第一段实测）：
 
-| 播种器 | 表 | 业务键 | 内容列（入哈希） | 现状语义 | 第二段动作 |
-|---|---|---|---|---|---|
-| m9-p1-5 | `lang_concepts` | `slug` | title / summary / content_level（`updated_at` 记账列） | `ON CONFLICT(slug) DO UPDATE` **无条件覆盖** | ✅ mergeSeedRow 化（clobber 消除）。⚠️ 登记纠缠：p1-5 的「概念挂接」会回写 `lang_topics.summary`（【概念层】前缀）——那是派生态不是种子内容，保持无条件写；与 p1-seed 的 summary 内容列的双源根治留第三段设计题 |
-| m9-p1-5 | `lang_topic_content` | `(ref_kind, ref_id, kind)`——**裁定已落**：迁移 **0020** 去重 + 唯一索引 `uq_lang_topic_content_ref`（历史无键表先按 rowid 保留最新去重） | body_md / content_level（updated_at 记账列仅 INSERT 写入） | update-then-insert（无条件覆盖 body_md） | ✅ mergeSeedRow 化（`LANG_TOPIC_CONTENT_MERGE_SPEC`） |
-| m9-p1-6 | `lang_concept_deltas` | `concept_id + lang + aspect + since_version` | summary / until_version（supersedes 是第二遍按 id 回填的链路数据，不在内容列、保持原样） | `ON CONFLICT(…) DO UPDATE` **无条件覆盖** | ✅ mergeSeedRow 化（第一遍） |
-| m9-p1d | `lang_profile_phases` | `UNIQUE(profile, lang, ord)` | label / title / duration_label / points / outcome | `ON CONFLICT DO UPDATE` 无条件覆盖 | ✅ mergeSeedRow 化（`PROFILE_PHASES_MERGE_SPEC`） |
-| m9-p1d | `lang_topic_profiles` | `(topic_id, profile)`（ON CONFLICT 实测） | depth / required / rank / est_minutes | `ON CONFLICT DO UPDATE` 无条件覆盖 | ✅ mergeSeedRow 化（`TOPIC_PROFILES_MERGE_SPEC`）；「清陈旧行」DELETE 逻辑保持原样 |
-| m9-p1-7 | `lang_topic_edges` | `(topic_id, prereq_topic_id)` | 无内容列 ⇒ 无覆盖面 | INSERT OR IGNORE | ✅ **登记保留 IGNORE**（无内容列即无 clobber 面，引入 merge 只添复杂度） |
-| m9-p1-7 | `lang_topics.stage_id` 写回 | 与 **m9-p1-seed 的 contentColumns（含 stage_id）双写** | — | UPDATE 可重入 | ✅ **裁定改判：写回保留**。理由：存量库的「118 行 stage_id 全 0」修复依赖它（合并的用户态保护会让 0 站位老行永不更新——正是修不动的死结）。双源根治（站位数据并入 topics json、p1-7 只写 edges）留第三段设计题 |
-| m9-p1b | `lang_resources`（键 `lang+name`）/ `lang_vibe_resources`（键 `` `group`+name``，保留字列已由 helper 加引号）/ `lang_topic_resources`（键 `(topic_id, resource_id)`） | 各内容列（is_fav/star/phase_id 为用户态/登记列，仅 INSERT 写入——收藏不被 reseed 冲掉） | INSERT OR IGNORE | ✅ mergeSeedRow 化（三表各一 SPEC） |
+| 播种器  | 表                                                                                                                                                                    | 业务键                                                                                                                                   | 内容列（入哈希）                                                                         | 现状语义                                     | 第二段动作                                                                                                                                                                                                     |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| m9-p1-5 | `lang_concepts`                                                                                                                                                       | `slug`                                                                                                                                   | title / summary / content_level（`updated_at` 记账列）                                   | `ON CONFLICT(slug) DO UPDATE` **无条件覆盖** | ✅ mergeSeedRow 化（clobber 消除）。⚠️ 登记纠缠：p1-5 的「概念挂接」会回写 `lang_topics.summary`（【概念层】前缀）——那是派生态不是种子内容，保持无条件写；与 p1-seed 的 summary 内容列的双源根治留第三段设计题 |
+| m9-p1-5 | `lang_topic_content`                                                                                                                                                  | `(ref_kind, ref_id, kind)`——**裁定已落**：迁移 **0020** 去重 + 唯一索引 `uq_lang_topic_content_ref`（历史无键表先按 rowid 保留最新去重） | body_md / content_level（updated_at 记账列仅 INSERT 写入）                               | update-then-insert（无条件覆盖 body_md）     | ✅ mergeSeedRow 化（`LANG_TOPIC_CONTENT_MERGE_SPEC`）                                                                                                                                                          |
+| m9-p1-6 | `lang_concept_deltas`                                                                                                                                                 | `concept_id + lang + aspect + since_version`                                                                                             | summary / until_version（supersedes 是第二遍按 id 回填的链路数据，不在内容列、保持原样） | `ON CONFLICT(…) DO UPDATE` **无条件覆盖**    | ✅ mergeSeedRow 化（第一遍）                                                                                                                                                                                   |
+| m9-p1d  | `lang_profile_phases`                                                                                                                                                 | `UNIQUE(profile, lang, ord)`                                                                                                             | label / title / duration_label / points / outcome                                        | `ON CONFLICT DO UPDATE` 无条件覆盖           | ✅ mergeSeedRow 化（`PROFILE_PHASES_MERGE_SPEC`）                                                                                                                                                              |
+| m9-p1d  | `lang_topic_profiles`                                                                                                                                                 | `(topic_id, profile)`（ON CONFLICT 实测）                                                                                                | depth / required / rank / est_minutes                                                    | `ON CONFLICT DO UPDATE` 无条件覆盖           | ✅ mergeSeedRow 化（`TOPIC_PROFILES_MERGE_SPEC`）；「清陈旧行」DELETE 逻辑保持原样                                                                                                                             |
+| m9-p1-7 | `lang_topic_edges`                                                                                                                                                    | `(topic_id, prereq_topic_id)`                                                                                                            | 无内容列 ⇒ 无覆盖面                                                                      | INSERT OR IGNORE                             | ✅ **登记保留 IGNORE**（无内容列即无 clobber 面，引入 merge 只添复杂度）                                                                                                                                       |
+| m9-p1-7 | `lang_topics.stage_id` 写回                                                                                                                                           | 与 **m9-p1-seed 的 contentColumns（含 stage_id）双写**                                                                                   | —                                                                                        | UPDATE 可重入                                | ✅ **裁定改判：写回保留**。理由：存量库的「118 行 stage_id 全 0」修复依赖它（合并的用户态保护会让 0 站位老行永不更新——正是修不动的死结）。双源根治（站位数据并入 topics json、p1-7 只写 edges）留第三段设计题  |
+| m9-p1b  | `lang_resources`（键 `lang+name`）/ `lang_vibe_resources`（键 `` `group`+name``，保留字列已由 helper 加引号）/ `lang_topic_resources`（键 `(topic_id, resource_id)`） | 各内容列（is_fav/star/phase_id 为用户态/登记列，仅 INSERT 写入——收藏不被 reseed 冲掉）                                                   | INSERT OR IGNORE                                                                         | ✅ mergeSeedRow 化（三表各一 SPEC）          |
 
 **force 语义**（预判，owner 裁）：默认永远保护用户态；「放弃用户态、强制回种子」做成**显式 CLI 旗标**（未来 `reseed --force` 形态，per-bundle 粒度），server 的 reseed 端点**不提供** force——强制覆盖属于装机者动作，不是面板按钮。替代兜底：覆盖前本来就有备份目录。
 
@@ -120,16 +120,16 @@
 
 ## 7. 验收标准（pass/fail）
 
-| # | 条目 | 判据 |
-|---|---|---|
-| 1 | CS1 | 主出口 grep 0 命中；导出面用例断言；`pnpm lint` / `lint-boundary` 绿 |
-| 2 | CS2 | reseed 生效 + 用户改动保护两条新用例绿；「老库不更新」注释及行为消失 |
-| 3 | CS3 | 复制 grep 归一；播种器用例全绿 |
-| 4 | CS4 | 守卫测试（零生产消费者 = 0）就位；4 模块处置各有 DEV_LOG 登记 |
-| 5 | CS5 | 每批 CI 绿 + 行数下降登记；批次总数 ≤3 |
-| 6 | CS6 | 边界文档落盘并过 docs:check；号段规则可被批次 D 引用 |
-| 7 | RQ4 | 段级报文用例（长文件改 1 行）；五状态与 golden 零变化 |
-| 8 | 全程 | 每条目完成时 `pnpm test` 全绿 + `docs:check` 全绿 + DEV_LOG 登记 |
+| #   | 条目 | 判据                                                                 |
+| --- | ---- | -------------------------------------------------------------------- |
+| 1   | CS1  | 主出口 grep 0 命中；导出面用例断言；`pnpm lint` / `lint-boundary` 绿 |
+| 2   | CS2  | reseed 生效 + 用户改动保护两条新用例绿；「老库不更新」注释及行为消失 |
+| 3   | CS3  | 复制 grep 归一；播种器用例全绿                                       |
+| 4   | CS4  | 守卫测试（零生产消费者 = 0）就位；4 模块处置各有 DEV_LOG 登记        |
+| 5   | CS5  | 每批 CI 绿 + 行数下降登记；批次总数 ≤3                               |
+| 6   | CS6  | 边界文档落盘并过 docs:check；号段规则可被批次 D 引用                 |
+| 7   | RQ4  | 段级报文用例（长文件改 1 行）；五状态与 golden 零变化                |
+| 8   | 全程 | 每条目完成时 `pnpm test` 全绿 + `docs:check` 全绿 + DEV_LOG 登记     |
 
 ## 8. 依赖
 

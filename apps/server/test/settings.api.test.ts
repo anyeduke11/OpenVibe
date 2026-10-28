@@ -261,13 +261,7 @@ describe('GET /api/telemetry/events（本机事件台账 · 只读本地）', ()
       sentAt: null,
     })
     expect(Object.keys(first).sort()).toEqual(['id', 'name', 'props', 'ts'])
-    expect(Object.keys(first.props).sort()).toEqual([
-      'appVersion',
-      'day',
-      'os',
-      'sentAt',
-      'value',
-    ])
+    expect(Object.keys(first.props).sort()).toEqual(['appVersion', 'day', 'os', 'sentAt', 'value'])
   })
 
   it('IT-LEDGER-02: 空台账 200 且 total=0；读端点零副作用（行数与开关都不变）', async () => {
@@ -327,4 +321,3 @@ describe('GET /api/telemetry/events（本机事件台账 · 只读本地）', ()
     expect(anon.statusCode).toBe(401)
   })
 })
-

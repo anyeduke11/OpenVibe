@@ -105,9 +105,7 @@ export function ModeTransferPanel(props: ModeTransferPanelProps) {
             {L.reminder}
           </div>
           {/* 语言名只做一次定位用（两门并行时读者需要知道说的是哪门） */}
-          <p className="text-xs text-ink-muted">
-            {lang === 'python' ? 'Python' : 'Go'}
-          </p>
+          <p className="text-xs text-ink-muted">{lang === 'python' ? 'Python' : 'Go'}</p>
         </div>
       </DialogPanel>
     </Dialog>

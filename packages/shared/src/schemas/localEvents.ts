@@ -21,11 +21,14 @@ import { LOCAL_EVENT_KINDS } from '../constants'
 const DayStamp = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, { message: '日窗需为 YYYY-MM-DD（UTC 日戳）' })
-  .refine((s) => {
-    // 用 UTC 构造再读回：读回值与原串不等 ⇒ 该日期不存在（如 02-30、13 月、2026-02-29）
-    const d = new Date(`${s}T00:00:00.000Z`)
-    return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s
-  }, { message: '不是真实存在的日期（如 2026-10-32、2026-13-01、非闰年的 02-29）' })
+  .refine(
+    (s) => {
+      // 用 UTC 构造再读回：读回值与原串不等 ⇒ 该日期不存在（如 02-30、13 月、2026-02-29）
+      const d = new Date(`${s}T00:00:00.000Z`)
+      return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s
+    },
+    { message: '不是真实存在的日期（如 2026-10-32、2026-13-01、非闰年的 02-29）' },
+  )
 
 export const LocalEventsQuery = z
   .object({

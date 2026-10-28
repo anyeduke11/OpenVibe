@@ -28,7 +28,11 @@ describe('apiJson 的 keepalive 透传', () => {
 
   it('显式 keepalive:true 会进 fetch 的 init', async () => {
     const seen = stubFetch()
-    await apiJson('/api/settings/telemetry', { method: 'POST', body: { enabled: false }, keepalive: true })
+    await apiJson('/api/settings/telemetry', {
+      method: 'POST',
+      body: { enabled: false },
+      keepalive: true,
+    })
     expect(seen[0]?.init?.keepalive).toBe(true)
   })
 

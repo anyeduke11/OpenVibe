@@ -52,7 +52,8 @@ function batchOf(rows: ReturnType<TelemetryRepo['pending']>): TelemetryBatchEven
 /** 单次出队：调用方（定时器或测试）负责串行，不并发重入 */
 export async function flushTelemetryOnce(deps: TelemetryFlushDeps): Promise<FlushResult> {
   const telemetry = new TelemetryRepo(deps.db)
-  if (deps.endpoint === '') return { sent: 0, reason: 'no-endpoint', kept: telemetry.pendingCount() }
+  if (deps.endpoint === '')
+    return { sent: 0, reason: 'no-endpoint', kept: telemetry.pendingCount() }
   if (!new AppMetaRepo(deps.db).read<boolean>(APP_META_KEYS.telemetryEnabled, false)) {
     // §4.6：开关关闭时 pending 记录保留不发送
     return { sent: 0, reason: 'disabled', kept: telemetry.pendingCount() }
@@ -102,7 +103,8 @@ export function startTelemetryFlush(
     busy = true
     void flushTelemetryOnce(deps)
       .then((r) => {
-        if (r.reason === 'error') deps.onError?.(`遥测上报失败（${r.detail ?? '未知'}），${String(r.kept)} 条留在队列`)
+        if (r.reason === 'error')
+          deps.onError?.(`遥测上报失败（${r.detail ?? '未知'}），${String(r.kept)} 条留在队列`)
       })
       .catch((e: unknown) => deps.onError?.(`遥测上报异常：${message(e)}`))
       .finally(() => {

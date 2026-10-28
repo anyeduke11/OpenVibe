@@ -169,10 +169,14 @@ export async function main(): Promise<void> {
   }
   writeFileSync(
     join(STAGE, 'package.json'),
-    `${JSON.stringify(publishManifest(sourceManifest, {
-      version: CLI_VERSION,
-      runtimeExternal: { 'better-sqlite3': betterSqlite3 },
-    }), null, 2)}\n`,
+    `${JSON.stringify(
+      publishManifest(sourceManifest, {
+        version: CLI_VERSION,
+        runtimeExternal: { 'better-sqlite3': betterSqlite3 },
+      }),
+      null,
+      2,
+    )}\n`,
   )
 
   const inputs = Object.keys(result.metafile?.inputs ?? {}).length

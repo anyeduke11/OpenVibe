@@ -99,10 +99,7 @@ export interface ActualNumbers {
 }
 
 export type DocNumberRule =
-  | 'parse-failed'
-  | 'internal-mismatch'
-  | 'spec-plan-mismatch'
-  | 'actual-mismatch'
+  'parse-failed' | 'internal-mismatch' | 'spec-plan-mismatch' | 'actual-mismatch'
 
 export interface DocNumberViolation {
   /** 出了问题的出处 */
@@ -180,9 +177,10 @@ export function parsePlanNodeCount(planText: string): NodeCountContract | null {
   const line = planText.split('\n').find((l) => l.startsWith('- **P1 出口**'))
   if (line === undefined) return null
   const exit = /「lang_topics 节点数 = (\d+)/.exec(line)
-  const real = /实测\s*\*\*Python 语言知识点\s*(\d+)\s*[＋+]\s*Go 语言知识点\s*(\d+)\s*[＝=]\s*(\d+)\*\*/.exec(
-    line,
-  )
+  const real =
+    /实测\s*\*\*Python 语言知识点\s*(\d+)\s*[＋+]\s*Go 语言知识点\s*(\d+)\s*[＝=]\s*(\d+)\*\*/.exec(
+      line,
+    )
   if (!exit || !real) return null
   return {
     pyLanguage: Number(real[1]),

@@ -127,7 +127,10 @@ describe('M9 · provider 配置层 · 读写与脱敏', () => {
 describe('M9 · provider 配置层 · 优先级（配置优先，环境变量兜底）', () => {
   it('配置存在但**关着** ⇒ 没有 runner（**不回退环境变量**）', async () => {
     const d = db()
-    writeProviderCollection(d, collection([entry({ enabled: false, kind: 'command', cmd: '/bin/echo' })]))
+    writeProviderCollection(
+      d,
+      collection([entry({ enabled: false, kind: 'command', cmd: '/bin/echo' })]),
+    )
     const env = { OPENVIBE_M9_INTERPRETER: '/bin/echo' } as NodeJS.ProcessEnv
     expect(await resolveProviderRunner(d, env)).toBeNull()
   })
@@ -138,7 +141,9 @@ describe('M9 · provider 配置层 · 优先级（配置优先，环境变量兜
       d,
       collection([entry({ enabled: true, kind: 'command', cmd: '/bin/cat', provider: 'local' })]),
     )
-    const runner = await resolveProviderRunner(d, { OPENVIBE_M9_INTERPRETER: '/bin/echo' } as NodeJS.ProcessEnv)
+    const runner = await resolveProviderRunner(d, {
+      OPENVIBE_M9_INTERPRETER: '/bin/echo',
+    } as NodeJS.ProcessEnv)
     expect(runner).not.toBeNull()
     expect(runner?.id).toBe('cat')
     expect(runner?.provider).toBe('local')
@@ -157,7 +162,9 @@ describe('M9 · provider 配置层 · 优先级（配置优先，环境变量兜
   it('⚠️ **配坏了也不回退环境变量**（配了要看得见，不能悄悄换一个源）', async () => {
     const d = db()
     writeProviderCollection(d, collection([entry({ enabled: true, kind: 'command', cmd: '' })]))
-    const runner = await resolveProviderRunner(d, { OPENVIBE_M9_INTERPRETER: '/bin/echo' } as NodeJS.ProcessEnv)
+    const runner = await resolveProviderRunner(d, {
+      OPENVIBE_M9_INTERPRETER: '/bin/echo',
+    } as NodeJS.ProcessEnv)
     expect(runner).toBeNull()
   })
 })
@@ -194,7 +201,10 @@ describe('M9 · provider 配置层 · 三档能力探测（不许塌成一个兜
   it('命令形态：**命令存在** ⇒ `ready`', async () => {
     if (process.platform === 'win32') return // /bin/echo 是 POSIX 路径——win32 门控（README 既有纪律：CI win 腿不构成 POSIX 语义用例的证据）
     const d = db()
-    writeProviderCollection(d, collection([entry({ enabled: true, kind: 'command', cmd: '/bin/echo' })]))
+    writeProviderCollection(
+      d,
+      collection([entry({ enabled: true, kind: 'command', cmd: '/bin/echo' })]),
+    )
     const r = await resolveProvider(d, {} as NodeJS.ProcessEnv)
     expect(r.status).toBe('ready')
     expect(r.runner).not.toBeNull()
@@ -202,7 +212,10 @@ describe('M9 · provider 配置层 · 三档能力探测（不许塌成一个兜
 
   it('HTTP 形态：**端点为空** ⇒ `misconfigured`', async () => {
     const d = db()
-    writeProviderCollection(d, collection([entry({ enabled: true, kind: 'openai_http', endpoint: '' })]))
+    writeProviderCollection(
+      d,
+      collection([entry({ enabled: true, kind: 'openai_http', endpoint: '' })]),
+    )
     const r = await resolveProvider(d, {} as NodeJS.ProcessEnv)
     expect(r.status).toBe('misconfigured')
     expect(r.detail).toContain('端点')
@@ -212,7 +225,13 @@ describe('M9 · provider 配置层 · 三档能力探测（不许塌成一个兜
     const d = db()
     writeProviderCollection(
       d,
-      collection([entry({ enabled: true, kind: 'openai_http', endpoint: 'https://api.example.com/v1/chat/completions' })]),
+      collection([
+        entry({
+          enabled: true,
+          kind: 'openai_http',
+          endpoint: 'https://api.example.com/v1/chat/completions',
+        }),
+      ]),
     )
     const r = await resolveProvider(d, {} as NodeJS.ProcessEnv)
     expect(r.status).toBe('misconfigured')
@@ -223,7 +242,13 @@ describe('M9 · provider 配置层 · 三档能力探测（不许塌成一个兜
     const d = db()
     writeProviderCollection(
       d,
-      collection([entry({ enabled: true, kind: 'openai_http', endpoint: 'http://127.0.0.1:11434/v1/chat/completions' })]),
+      collection([
+        entry({
+          enabled: true,
+          kind: 'openai_http',
+          endpoint: 'http://127.0.0.1:11434/v1/chat/completions',
+        }),
+      ]),
     )
     const r = await resolveProvider(d, {} as NodeJS.ProcessEnv)
     expect(r.status).toBe('ready')
@@ -240,7 +265,11 @@ describe('M9 · provider 配置层 · 三档能力探测（不许塌成一个兜
       expect(cap.available).toBe(false)
       expect(cap.status).toBe(c.status)
     }
-    const ready = capabilityOf({ runner: { id: 'r1', model: 'm', provider: 'p', interpret: async () => ({}) as never }, status: 'ready', detail: 'x' })
+    const ready = capabilityOf({
+      runner: { id: 'r1', model: 'm', provider: 'p', interpret: async () => ({}) as never },
+      status: 'ready',
+      detail: 'x',
+    })
     expect(ready.available).toBe(true)
     expect(ready.runner_id).toBe('r1')
   })
@@ -399,10 +428,7 @@ describe('M9 · provider 配置层 · 增强 2 · 多份并存', () => {
 
   it('⑤ ⚠️ **绑定了项目但被关掉** ⇒ 不用它（落到默认那一份）', () => {
     const c = collection(
-      [
-        entry({ id: 'p1', projects: [] }),
-        entry({ id: 'p2', enabled: false, projects: ['pX'] }),
-      ],
+      [entry({ id: 'p1', projects: [] }), entry({ id: 'p2', enabled: false, projects: ['pX'] })],
       'p1',
     )
     expect(selectProviderEntry(c, { projectId: 'pX' })).toMatchObject({
@@ -418,8 +444,21 @@ describe('M9 · provider 配置层 · 增强 2 · 多份并存', () => {
       d,
       collection(
         [
-          entry({ id: 'p1', enabled: true, kind: 'command', cmd: '/bin/echo', provider: 'default-one' }),
-          entry({ id: 'p2', enabled: true, kind: 'command', cmd: '/bin/cat', provider: 'bound-one', projects: ['pX'] }),
+          entry({
+            id: 'p1',
+            enabled: true,
+            kind: 'command',
+            cmd: '/bin/echo',
+            provider: 'default-one',
+          }),
+          entry({
+            id: 'p2',
+            enabled: true,
+            kind: 'command',
+            cmd: '/bin/cat',
+            provider: 'bound-one',
+            projects: ['pX'],
+          }),
         ],
         'p1',
       ),
@@ -456,10 +495,7 @@ describe('M9 · provider 配置层 · 增强 2 · 多份并存', () => {
   })
 
   it('⑧ ⚠️ **集合视图**带上 id / 名称 / 绑定项目（界面要按这些分组）', async () => {
-    const c = collection(
-      [entry({ id: 'p1', name: '云端', projects: ['pA', 'pB'] })],
-      'p1',
-    )
+    const c = collection([entry({ id: 'p1', name: '云端', projects: ['pA', 'pB'] })], 'p1')
     const view = await providerCollectionView(c, memoryKeychainStore())
     expect(view.default_provider_id).toBe('p1')
     expect(view.providers[0]?.id).toBe('p1')

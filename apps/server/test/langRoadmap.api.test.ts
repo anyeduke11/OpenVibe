@@ -278,9 +278,13 @@ describe('M9 · GET /api/lang/resources · 更多筛选维度 ＋ 速成专区�
     const h = await makeHarness()
     seedExtra(h.handle.db)
     const price = await api(h, '/api/lang/resources?price=free')
-    expect((price.json() as { resources: { id: number }[] }).resources.map((r) => r.id)).toEqual([1])
+    expect((price.json() as { resources: { id: number }[] }).resources.map((r) => r.id)).toEqual([
+      1,
+    ])
     const label = await api(h, '/api/lang/resources?lang_label=en')
-    expect((label.json() as { resources: { id: number }[] }).resources.map((r) => r.id)).toEqual([2])
+    expect((label.json() as { resources: { id: number }[] }).resources.map((r) => r.id)).toEqual([
+      2,
+    ])
     const dead = await api(h, '/api/lang/resources?alive=dead')
     expect((dead.json() as { resources: { id: number }[] }).resources.map((r) => r.id)).toEqual([2])
     const fav = await api(h, '/api/lang/resources?fav=1')

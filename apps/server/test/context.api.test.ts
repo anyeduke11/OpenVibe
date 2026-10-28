@@ -152,5 +152,4 @@ describe('§7-n · FR-3.2.1：读不到 pack.lock.json 时形状对', () => {
     // 无 lock 必须**留痕**，否则 agent 会把「读不到」读成「一切正常」
     expect(JSON.stringify(out.truncated)).toContain('pack')
   })
-
 })

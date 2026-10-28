@@ -369,11 +369,7 @@ export function InterpretProviderSection() {
               const isSelected = d.id === selectedId
               const projects = parseCsv(d.projectsRaw)
               return (
-                <li
-                  key={d.id}
-                  className={`${rowCls} last:border-b-0`}
-                  aria-selected={isSelected}
-                >
+                <li key={d.id} className={`${rowCls} last:border-b-0`} aria-selected={isSelected}>
                   <button
                     type="button"
                     className="flex w-full items-start gap-2 px-2.5 py-2 text-left"

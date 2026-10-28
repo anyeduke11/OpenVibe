@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import { btnSecondary, cardBodyCls, cardCls, cardHeadCls, h1Cls, h1SubCls } from '../components/ui/styles'
+import {
+  btnSecondary,
+  cardBodyCls,
+  cardCls,
+  cardHeadCls,
+  h1Cls,
+  h1SubCls,
+} from '../components/ui/styles'
 import { Icon } from '../components/ui/icons'
 import { StageColumn } from '../components/dev/StageColumn'
 import { TopicLayer } from '../components/dev/TopicLayer'
@@ -74,7 +81,7 @@ export function DevAbilityPage() {
     python: useLangRoadmap('python', projectId ?? undefined),
     go: useLangRoadmap('go', projectId ?? undefined),
   }
-  const current = lang === null ? null : views[lang].data ?? null
+  const current = lang === null ? null : (views[lang].data ?? null)
   const detail = useLangTopic(topicId)
 
   const station =
@@ -179,7 +186,11 @@ export function DevAbilityPage() {
             />
             <div className="flex min-w-0 flex-1 flex-col gap-4">
               <TopicLayer
-                station={station ?? current.stations.find((s) => s.stage_no === current.current_stage) ?? null}
+                station={
+                  station ??
+                  current.stations.find((s) => s.stage_no === current.current_stage) ??
+                  null
+                }
                 selectedTopicId={topicId}
                 onSelectTopic={setTopicId}
               />

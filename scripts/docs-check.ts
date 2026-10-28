@@ -15,10 +15,10 @@
  * | FR-2 | 队列行状态枚举合法 ＋ 净状态计数自洽 |
  * | FR-3.4 | 相对链接的目标必须真实存在（FR-3 里唯一纯可判定的一条） |
  * | FR-4 | spec 版本行存在（分式断言）＋ 列数与表头一致 ＋ 版本链单调 |
- * | FR-6 | 触 A 契约的改动须有独立复核记录段 |
  * | FR-9 | 冻结面零 diff（`tests/golden/` **与** `content/seed/` 两面） |
  * | FR-11 | 否定式全局断言必须自带可复算凭据 |
  * | FR-12 | §-引用必须落在目标文件**真实存在**的节上（限定型；裸引用只报数） |
+ * | FR-13 | package.json 引用的 `scripts/*` 必须登记在 dev-plan §1.5 目录树 |
  *
  * **8 ＝ 触发线**，超限即触发复审，处置是**撤回而非调松**（dev-plan §16.10）。
  * 撤回要撤具体某一条 ⇒ 候补清单预先登记在基线文件里，触线时闸直接把它打出来，
@@ -27,6 +27,9 @@
  * ⚠️ **FR-5 已于 2026-10-24 从判据集降级为「只报数的面」**：它本来就只报不判
  * （待裁③ 未闭合，规格 FR-5.3 明写「只报不判」）⇒ 降级**零代价**，检查仍在跑；
  * 腾出的名额由 FR-12 接上，判据条数仍为 8。处置依据：基线 `withdrawalCandidates[0].executed`。
+ *
+ * ⚠️ **FR-6 已于 2026-10-24 从判据集撤回**（新增 FR-13 需腾名额，按 §16.10 候补清单
+ * 第二顺位执行）：它本来就只报不判（检查仍在跑，FR-6.1 通配仍在基线），撤回**零代价**。
  *
  * ## 四块只报数、不判红绿的面（**按 §16.10 原文不计入判据数**）
  *
@@ -270,7 +273,13 @@ export function collectDevRefs(files: { path: string; lines: string[] }[]): DevR
  */
 export function collectDevDates(log: string, refs: DevRef[]): Map<string, DevDateSite[]> {
   const out = new Map<string, DevDateSite[]>()
-  const add = (n: string, d: string | undefined, path: string, line: number, text: string): void => {
+  const add = (
+    n: string,
+    d: string | undefined,
+    path: string,
+    line: number,
+    text: string,
+  ): void => {
     if (!d) return
     const arr = out.get(n) ?? []
     arr.push({ date: d, path, line, text })
@@ -342,7 +351,14 @@ export function collectDevShadowRegistrations(
 }
 
 /** 队列状态闭集（FR-2.1）。**枚举写死在代码里**，新增态必须显式改代码，不能在文档里随手造词。 */
-export const QUEUE_STATES = ['待裁', '待签', '可做待排', '部分授权', '已裁待落', '已裁已落'] as const
+export const QUEUE_STATES = [
+  '待裁',
+  '待签',
+  '可做待排',
+  '部分授权',
+  '已裁待落',
+  '已裁已落',
+] as const
 
 /**
  * 队列号位闭集。2026-10-24 扩到 ㊿：㉞ 行登记「㉟ 保留给 RF1-5 的 11-a」后，v0.2.3 批次
@@ -562,7 +578,13 @@ export function checkSpecVersions(specs: { path: string; lines: string[] }[]): F
 }
 
 /** FR-5 要求的五段（FR-5.1：段名以 DEV_LOG 现行八段式模板为准，不在本文件复制清单） */
-export const REQUIRED_ENTRY_SECTIONS = ['问题描述', '实现思路', '核心变更', '测试验证', '潜在风险'] as const
+export const REQUIRED_ENTRY_SECTIONS = [
+  '问题描述',
+  '实现思路',
+  '核心变更',
+  '测试验证',
+  '潜在风险',
+] as const
 
 /** 「可复算命令」口径（FR-5.2）：反引号跨度内含其一 */
 const RECOMPUTE_HINT =
@@ -591,7 +613,10 @@ export function checkEntrySections(log: string): Finding[] {
     }
     const vIdx = raw.indexOf('**测试验证**')
     if (vIdx >= 0) {
-      const seg = raw.slice(vIdx, raw.indexOf('\n- **', vIdx + 1) < 0 ? vIdx + 2000 : raw.indexOf('\n- **', vIdx + 1))
+      const seg = raw.slice(
+        vIdx,
+        raw.indexOf('\n- **', vIdx + 1) < 0 ? vIdx + 2000 : raw.indexOf('\n- **', vIdx + 1),
+      )
       if (!RECOMPUTE_HINT.test(seg)) {
         out.push({
           rule: 'FR-5.2',
@@ -962,11 +987,9 @@ export function checkSectionRefs(
     return parse(JSON.parse(readFileSync(abs, 'utf8')) as never)
   }
   const aliasIssues = auditAliasTables(
-    readAlias(
-      ALIAS_FILE,
-      (raw) => parseAliases(raw as { aliases?: Record<string, string[]> }),
-      { aliases: new Map<string, string[]>() },
-    ),
+    readAlias(ALIAS_FILE, (raw) => parseAliases(raw as { aliases?: Record<string, string[]> }), {
+      aliases: new Map<string, string[]>(),
+    }),
     readAlias(
       DOC_ALIAS_FILE,
       (raw) => parseDocAliases(raw as { aliases?: Record<string, string> }),
@@ -1015,7 +1038,10 @@ export interface Baseline {
 
 const BASELINE_PATH = 'docs/docs-check-baseline.json'
 
-export function applyBaseline(findings: Finding[], baseline: Baseline): {
+export function applyBaseline(
+  findings: Finding[],
+  baseline: Baseline,
+): {
   findings: Finding[]
   staleBaselineKeys: string[]
 } {
@@ -1033,7 +1059,11 @@ export function applyBaseline(findings: Finding[], baseline: Baseline): {
     const k = matchedKeyOf(f)
     if (k === null) return f
     hit.add(k)
-    return { ...f, level: 'warning' as Level, evidence: `${f.evidence} · 基线：${baseline.known[k]}` }
+    return {
+      ...f,
+      level: 'warning' as Level,
+      evidence: `${f.evidence} · 基线：${baseline.known[k]}`,
+    }
   })
   const stale = keys.filter((k) => !hit.has(k))
   const staleFindings: Finding[] = stale.map((k) => ({
@@ -1120,12 +1150,15 @@ export const JUDGMENT_RULES: { id: string; checks: string }[] = [
   { id: 'FR-2', checks: '队列行状态枚举合法 ＋ 净状态计数自洽' },
   { id: 'FR-3.4', checks: '相对链接的目标必须真实存在（FR-3 里唯一纯可判定的一条）' },
   { id: 'FR-4', checks: 'spec 版本行存在（分式断言）＋ 列数一致 ＋ 版本链单调' },
-  { id: 'FR-6', checks: '触 A 契约的改动须有独立复核记录段' },
+  // FR-6 已于 2026-10-24 按 dev-plan §16.10 的触线处置撤回（基线 withdrawalCandidates[1]）：
+  // 本闸判据数恰为 8 = 上限，新增 FR-13（§1.5 脚本登记）需腾名额，撤 FR-6 —— 它本来就
+  // 只报不判（检查仍在跑，checkReviewRecord 的 FR-6.1 通配仍在基线），撤回零代价。
   { id: 'FR-9', checks: '冻结面零 diff（tests/golden/ 与 content/seed/ 两面）' },
   { id: 'FR-11', checks: '否定式全局断言必须自带可复算凭据' },
   // FR-5 已于 2026-10-24 按 dev-plan §16.10 的触线处置降级为「只报数的面」
   // （它本来就只报不判 ⇒ 零代价；检查仍在跑，见基线 withdrawalCandidates[0].executed）。
   { id: 'FR-12', checks: '§-引用必须落在目标文件真实存在的节上（限定型；裸引用只报数）' },
+  { id: 'FR-13', checks: 'package.json 引用的 scripts/* 必须登记在 dev-plan §1.5 目录树' },
 ]
 
 /** dev-plan §16.10 的触发线：「规则条数 > 8 即触发复审」 */
@@ -1287,7 +1320,11 @@ export function sampleClaimCredentials(
     if (p === null) continue
     const { rc, stdout } = run(p.argv, repoRoot)
     if (rc !== 0) {
-      mismatches.push({ claim: c, actual: null, note: `命令跑不通（退出码 ${rc}）—— 凭据可能已失效或路径已不存在` })
+      mismatches.push({
+        claim: c,
+        actual: null,
+        note: `命令跑不通（退出码 ${rc}）—— 凭据可能已失效或路径已不存在`,
+      })
       continue
     }
     const lines = stdout.split('\n').filter((l) => l !== '')
@@ -1318,7 +1355,9 @@ function countUnparsedClaimWindows(files: { path: string; lines: string[] }[]): 
     f.lines.forEach((line, i) => {
       if (!NEGATIVE_CLAIM_PATTERNS.some((p) => p.re.test(line))) return
       const window = `${line}\n${f.lines[i + 1] ?? ''}\n${f.lines[i + 2] ?? ''}`
-      const hasGrep = [...window.matchAll(/`([^`]+)`/g)].some((m) => /^(grep|rg)\b/.test((m[1] ?? '').trim()))
+      const hasGrep = [...window.matchAll(/`([^`]+)`/g)].some((m) =>
+        /^(grep|rg)\b/.test((m[1] ?? '').trim()),
+      )
       if (!hasGrep) return
       const hasClaim = /→\s*\d+/.test(window) || /同样\s*\d+/.test(window)
       if (!hasClaim) n++
@@ -1408,17 +1447,86 @@ export function checkFrozenSurface(
   return out
 }
 
+/* ════════════════════════════════════════════════════════ FR-13 · §1.5 脚本登记 */
+
+/**
+ * FR-13 · `package.json` 的 scripts 引用的 `scripts/*` 文件，必须登记在 dev-plan §1.5 目录树里。
+ *
+ * ## 它防什么
+ *
+ * §1.5 目录树是 `scripts/` 入口的登记处；但 `package.json` 会新增/改名 scripts 而不改目录树，
+ * 两处就此漂移（本仓已实测两次：`m9:grade-guard` 与 `barrel-audit` 均未登记）。FR-12 管
+ * §-引用，FR-13 管「脚本入口的登记面」—— 同族：文档说一套、代码事实另一套。
+ *
+ * ## 判定口径
+ *
+ * - 从 `package.json` 的 `scripts` 里抽所有 `scripts/<name>` 引用（`node scripts/x.ts`、
+ *   `tsx scripts/x.ts`、`scripts/x.sh` 等一律认），去重；
+ * - 从 `dev-plan.md` 里取 §1.5 的目录树代码块（`### 1.5` 后的 fenced block）；
+ * - 每个被引用文件必须在代码块里出现（`scripts/<name>` 字面命中），缺失即 error。
+ *
+ * ⚠️ **不判反向**（§1.5 里登记但 package.json 不引用）：目录树本来就会登记「计划中的入口」，
+ * 反向收紧会把计划态误判成违规。只防「代码事实先走、文档没跟上」这一种漂移。
+ */
+export function checkScriptsRegistry(pkgScriptsText: string, devPlanText: string): Finding[] {
+  const out: Finding[] = []
+  const scripts = parsePackageScripts(pkgScriptsText)
+  const section = devPlanText.match(/### 1\.5[\s\S]*?```[\s\S]*?```/)
+  const tree = section ? section[0] : ''
+  if (tree === '') {
+    out.push({
+      rule: 'FR-13.1',
+      level: 'error',
+      message: 'dev-plan 里找不到 §1.5 目录树代码块',
+      evidence: 'docs/dev-plan.md',
+    })
+    return out
+  }
+  for (const file of [...new Set(scripts)]) {
+    if (!tree.includes(`scripts/${file}`)) {
+      out.push({
+        rule: 'FR-13.1',
+        level: 'error',
+        message: `package.json 引用 scripts/${file}，但 §1.5 目录树未登记`,
+        evidence: `docs/dev-plan.md §1.5`,
+      })
+    }
+  }
+  return out
+}
+
+/** 从 package.json 的 scripts 文本里抽出引用的 scripts/ 文件名（不含路径前缀）。 */
+export function parsePackageScripts(pkgText: string): string[] {
+  const out: string[] = []
+  for (const m of pkgText.matchAll(/scripts\/([A-Za-z0-9._-]+)/g)) {
+    // `m[1]` 在 TS 里是 `string | undefined`（noUncheckedIndexedAccess）⇒ 必须收窄。
+    const name = m[1]
+    if (name === undefined) continue
+    out.push(name)
+  }
+  return out
+}
+
 export function runAll(repoRoot: string): { findings: Finding[]; metrics: Metrics } {
   const log = readFileSync(join(repoRoot, 'DEV_LOG.md'), 'utf8')
   const decisions = readFileSync(join(repoRoot, 'docs/decisions.md'), 'utf8')
   const specDir = join(repoRoot, 'docs/specs')
   const specs = readdirSync(specDir)
     .filter((f) => f.endsWith('.md'))
-    .map((f) => ({ path: join('docs/specs', f), lines: readFileSync(join(specDir, f), 'utf8').split('\n') }))
+    .map((f) => ({
+      path: join('docs/specs', f),
+      lines: readFileSync(join(specDir, f), 'utf8').split('\n'),
+    }))
 
   const linkFiles = [
-    { path: join(repoRoot, 'docs/PRD.md'), content: readFileSync(join(repoRoot, 'docs/PRD.md'), 'utf8') },
-    { path: join(repoRoot, 'docs/specs/docs-governance-check.md'), content: readFileSync(join(specDir, 'docs-governance-check.md'), 'utf8') },
+    {
+      path: join(repoRoot, 'docs/PRD.md'),
+      content: readFileSync(join(repoRoot, 'docs/PRD.md'), 'utf8'),
+    },
+    {
+      path: join(repoRoot, 'docs/specs/docs-governance-check.md'),
+      content: readFileSync(join(specDir, 'docs-governance-check.md'), 'utf8'),
+    },
   ]
 
   // FR-11 的扫描面：docs/ 与 docs/specs/ 下的全部 md（含 PRD 与计划文）。
@@ -1456,6 +1564,10 @@ export function runAll(repoRoot: string): { findings: Finding[]; metrics: Metric
     ...checkReviewRecord(log),
     ...checkNegativeClaims(docFiles),
     ...checkFrozenSurface(repoRoot),
+    ...checkScriptsRegistry(
+      readFileSync(join(repoRoot, 'package.json'), 'utf8'),
+      readFileSync(join(repoRoot, 'docs/dev-plan.md'), 'utf8'),
+    ),
     // ⚠️ 必须在 applyBaseline **之前**入列：基线的通配登记是按 `规则|*` 压命中项的，
     // 若先过基线，这条「判据集」层面的检查会被任何一条无关规则的通配压掉。
     ...checkRuleBudget(baseline),

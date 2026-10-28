@@ -76,7 +76,14 @@ export function extractUsage(db: SqliteDatabase): ExtractUsageRow[] {
        FROM local_events WHERE kind = 'ai_extract_call'
        GROUP BY provider, model`,
     )
-    .all() as { provider: string; model: string; calls: number; okCalls: number; candidates: number | null; lastAt: string | null }[]
+    .all() as {
+    provider: string
+    model: string
+    calls: number
+    okCalls: number
+    candidates: number | null
+    lastAt: string | null
+  }[]
   return rows.map((r) => ({
     provider: r.provider,
     model: r.model,

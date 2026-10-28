@@ -67,7 +67,9 @@ export function TopicLayer({ station, selectedTopicId, onSelectTopic }: TopicLay
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm text-ink">{t.title}</span>
                     {t.summary !== '' ? (
-                      <span className="block truncate text-[11.5px] text-ink-faint">{t.summary}</span>
+                      <span className="block truncate text-[11.5px] text-ink-faint">
+                        {t.summary}
+                      </span>
                     ) : null}
                   </span>
                   <MasteryChip state={t.state} />

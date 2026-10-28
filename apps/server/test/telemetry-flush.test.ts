@@ -367,9 +367,9 @@ describe('bootstrap 接线 + 真接收端端到端', () => {
     expect(r.telemetry.endpoint).toBe(endpoint)
 
     // 默认关闭：路由里还有第三道闸门，关着连队列都不写
-    expect(await post(r, '/api/telemetry/events', { event: 'pack_injected', value: 'p-1' })).toEqual(
-      { queued: false, reason: 'disabled' },
-    )
+    expect(
+      await post(r, '/api/telemetry/events', { event: 'pack_injected', value: 'p-1' }),
+    ).toEqual({ queued: false, reason: 'disabled' })
     expect(new TelemetryRepo(r.db).pendingCount()).toBe(0)
 
     expect(await post(r, '/api/settings/telemetry', { enabled: true })).toMatchObject({
@@ -452,7 +452,9 @@ describe('bootstrap 接线 + 真接收端端到端', () => {
 
     const summary = await adapter.summary('2026-09-22')
     expect(summary.total).toBe(2)
-    expect(summary.counts).toEqual([{ event: 'pack_injected', value: 'pack-1', os: 'mac', count: 2 }])
+    expect(summary.counts).toEqual([
+      { event: 'pack_injected', value: 'pack-1', os: 'mac', count: 2 },
+    ])
     expect(JSON.stringify(summary)).not.toContain('id_ed25519')
     // 换日不串键：计数按天分
     expect((await adapter.summary('2026-09-21')).total).toBe(0)
@@ -502,7 +504,12 @@ describe('台账写入不读遥测开关（local-event-ledger §7-e）', () => {
       name: '台账解耦验证流',
       kind: 'light',
       stages: [
-        { name: '启动', checklist: [{ id: 'c1', text: '确认边界与验收' }], artifacts: [], prompt: '' },
+        {
+          name: '启动',
+          checklist: [{ id: 'c1', text: '确认边界与验收' }],
+          artifacts: [],
+          prompt: '',
+        },
       ],
     })
     return new ProjectsRepo(db).create({

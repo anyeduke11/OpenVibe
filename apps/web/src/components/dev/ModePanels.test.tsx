@@ -36,7 +36,9 @@ const { MODES, CHOICE_MUTATE, STAGE_MUTATE } = vi.hoisted(() => ({
       { topic_id: 1, profile: 'master' as const, required: 1 as const, rank: 1, est_minutes: 60 },
       { topic_id: 1, profile: 'vibe' as const, required: 1 as const, rank: 1, est_minutes: 10 },
     ],
-    topics: [{ id: 1, lang: 'python' as const, slug: 'py-a', stage_id: 0, kind: 'language' as const }],
+    topics: [
+      { id: 1, lang: 'python' as const, slug: 'py-a', stage_id: 0, kind: 'language' as const },
+    ],
     stage_tracks: [
       {
         stage_id: 0,
@@ -168,24 +170,34 @@ describe('M9 P1g · 阶段 → 推荐档（§3.21：推荐值来自阶段，用�
   })
 
   it('④ ⚠️ 用户覆盖了推荐 ⇒ 界面**说出来**（不悄悄改）', () => {
-    setEffective('vibe', 'user', {
-      stage_id: 1,
-      profile: 'familiar',
-      lang: 'python',
-      note: null,
-    }, true)
+    setEffective(
+      'vibe',
+      'user',
+      {
+        stage_id: 1,
+        profile: 'familiar',
+        lang: 'python',
+        note: null,
+      },
+      true,
+    )
     render(<ModePanels lang="python" projectId="p1" />)
     expect(screen.getByText('你覆盖了阶段推荐')).toBeTruthy()
     setEffective(null, 'unset')
   })
 
   it('⑤ ⚠️ 「改用推荐档」⇒ 交出去的是**一次模式选择**（不是改阶段）', () => {
-    setEffective('vibe', 'user', {
-      stage_id: 1,
-      profile: 'familiar',
-      lang: 'python',
-      note: null,
-    }, true)
+    setEffective(
+      'vibe',
+      'user',
+      {
+        stage_id: 1,
+        profile: 'familiar',
+        lang: 'python',
+        note: null,
+      },
+      true,
+    )
     render(<ModePanels lang="python" projectId="p1" />)
     const btn = screen.getByText('改用推荐档')
     fireEvent.click(btn)

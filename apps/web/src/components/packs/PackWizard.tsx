@@ -14,7 +14,19 @@ import { usePackExports, usePackList, usePackMutations, usePackPreview } from '.
 import { useFlowTemplates } from '../../hooks/useFlows'
 import { zh } from '../../i18n/zh'
 import { toast } from '../ui/Toaster'
-import { btnGhost, btnPrimary, chipPressed, chipTone, h1Cls, h1SubCls, inputCls, labelCls, noteCls, segCls, segItemCls } from '../ui/styles'
+import {
+  btnGhost,
+  btnPrimary,
+  chipPressed,
+  chipTone,
+  h1Cls,
+  h1SubCls,
+  inputCls,
+  labelCls,
+  noteCls,
+  segCls,
+  segItemCls,
+} from '../ui/styles'
 import { laneEngineering } from '../../i18n/lane-engineering'
 import { AssetPicker, type AssetIds } from './AssetPicker'
 import { PackPreviewPane } from './PackPreviewPane'
@@ -42,7 +54,8 @@ const MAIN_PATH_HINT: Record<AdapterId, string> = {
 /** 把 STALE_SELECTION 的 details 归一成四栏 id 清单（resolve.ts 的 StaleDetails 形状） */
 function toAssetIds(details: unknown): AssetIds {
   const d = (details ?? {}) as Partial<Record<keyof AssetIds | 'flowTemplateId', unknown>>
-  const list = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
+  const list = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
   return {
     promptIds: list(d.promptIds),
     termIds: list(d.termIds),
@@ -71,14 +84,18 @@ export function PackWizard(props: { initial: PackOut | null }) {
   }
   const [name, setName] = useState(initial?.name ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
-  const [flowTemplateId, setFlowTemplateId] = useState<string>(initial?.selection.flowTemplateId ?? '')
+  const [flowTemplateId, setFlowTemplateId] = useState<string>(
+    initial?.selection.flowTemplateId ?? '',
+  )
   const [assets, setAssets] = useState<AssetIds>({
     promptIds: initial?.selection.promptIds ?? [],
     termIds: initial?.selection.termIds ?? [],
     skillIds: initial?.selection.skillIds ?? [],
     playbookIds: initial?.selection.playbookIds ?? [],
   })
-  const [targets, setTargets] = useState<AdapterId[]>(initial?.targets ?? ['claude-code', 'generic-agents'])
+  const [targets, setTargets] = useState<AdapterId[]>(
+    initial?.targets ?? ['claude-code', 'generic-agents'],
+  )
   const [version, setVersion] = useState('1.0.0')
   const [stale, setStale] = useState<AssetIds>(EMPTY_STALE)
   const [saving, setSaving] = useState(false)
@@ -92,9 +109,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
   const lastExport = exports.data?.items[0]
   /** §6.2：预览失败常因引用资产被删，明细用于把失效项带回第 3 步标红 */
   const previewStale =
-    preview.isError &&
-    preview.error instanceof ApiError &&
-    preview.error.code === 'STALE_SELECTION'
+    preview.isError && preview.error instanceof ApiError && preview.error.code === 'STALE_SELECTION'
       ? toAssetIds(preview.error.details)
       : undefined
 
@@ -192,7 +207,11 @@ export function PackWizard(props: { initial: PackOut | null }) {
       const out = await exportPack.mutateAsync({ id: savedId, body: { version, channel } })
       setResult(out)
       setStale(EMPTY_STALE)
-      toast(out.status === 'created' ? zh.packs.preview.done(out.export.version) : zh.packs.preview.idempotent(out.export.version))
+      toast(
+        out.status === 'created'
+          ? zh.packs.preview.done(out.export.version)
+          : zh.packs.preview.idempotent(out.export.version),
+      )
       if (out.directoryPath !== null) toast(zh.packs.preview.written(out.directoryPath))
       if (channel === 'download') {
         const a = document.createElement('a')
@@ -222,9 +241,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
         className="mt-0.5"
         checked={targets.includes(id)}
         onChange={() =>
-          setTargets((cur) =>
-            cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id],
-          )
+          setTargets((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))
         }
       />
       <span className="min-w-0">
@@ -433,7 +450,11 @@ export function PackWizard(props: { initial: PackOut | null }) {
         </button>
         {step < STEPS.length - 1 ? (
           <button className={btnPrimary} disabled={saving} onClick={() => void next()}>
-            {saving ? zh.packs.wizard.saving : step === 3 ? zh.packs.wizard.saveNext : zh.packs.wizard.next}
+            {saving
+              ? zh.packs.wizard.saving
+              : step === 3
+                ? zh.packs.wizard.saveNext
+                : zh.packs.wizard.next}
           </button>
         ) : (
           <button className={btnGhost} disabled={saving} onClick={() => void saveDefinition()}>

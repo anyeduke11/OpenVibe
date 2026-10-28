@@ -70,8 +70,7 @@ export function useCheckStates(id: string | null) {
 export function useInjectionStatus(id: string | null) {
   return useQuery({
     queryKey: ['injection-status', id],
-    queryFn: () =>
-      apiJson<InjectionStatusOut>(`/api/projects/${id ?? ''}/injection-status`),
+    queryFn: () => apiJson<InjectionStatusOut>(`/api/projects/${id ?? ''}/injection-status`),
     enabled: id !== null && id !== '',
     staleTime: 0,
     refetchOnWindowFocus: true,

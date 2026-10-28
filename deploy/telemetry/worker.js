@@ -99,7 +99,11 @@ export function createTelemetryWorker(kv) {
       }
 
       if (request.method !== 'POST') {
-        return json(200, { service: 'openvibe-telemetry', events: [...EVENTS], batchMax: MAX_BATCH })
+        return json(200, {
+          service: 'openvibe-telemetry',
+          events: [...EVENTS],
+          batchMax: MAX_BATCH,
+        })
       }
 
       let body

@@ -39,10 +39,7 @@ import { assembleInterpretRequest, type InterpretCandidate } from './assemble'
 import { findDivergences } from './divergence'
 import { fingerprintRequest, recordInterpretCall } from './ledger'
 import { readSnippets } from './snippet'
-import {
-  InterpretRunnerError,
-  type SourceInterpretRunner,
-} from './runner'
+import { InterpretRunnerError, type SourceInterpretRunner } from './runner'
 import type {
   ConsentDetail,
   ConsentSource,
@@ -233,10 +230,7 @@ export async function interpretSourceFindings(
     const durationMs = Math.max(0, now().getTime() - started.getTime())
     const items = result.items
     const riskCount = items.reduce((sum, it) => sum + it.risks.length, 0)
-    const divergences = findDivergences(
-      items,
-      deterministicStatesBySlug(db, opts.projectId),
-    )
+    const divergences = findDivergences(items, deterministicStatesBySlug(db, opts.projectId))
     // ⚠️ **台账记「配置的那家」而不是「模型自报的那家」** ——
     //   `result.model` / `result.provider` 是**模型的自述**（可能是猜的），
     //   而 runner 身上那两个是**配好的**（事实）⇒ 台账要记事实。
@@ -295,8 +289,7 @@ export async function interpretSourceFindings(
   } catch (err) {
     // ⑤ 失败 ⇒ **降级**：记台账 ＋ 如实返回；**确定性层一动不动**
     const durationMs = Math.max(0, now().getTime() - started.getTime())
-    const reason =
-      err instanceof InterpretRunnerError ? err.reason : 'runner-failed'
+    const reason = err instanceof InterpretRunnerError ? err.reason : 'runner-failed'
     const message = err instanceof Error ? err.message : String(err)
     recordInterpretCall(
       db,

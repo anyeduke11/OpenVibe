@@ -71,7 +71,12 @@ describe('LIB-FOLDER-02 · 筛选语义与改造前一致（精确匹配，非�
   it('「全部」chip 恒可点，且它的选中态与 folder 筛选无关（folder 为 undefined 时按下）', () => {
     const onToggle = vi.fn()
     render(
-      <FolderFilterBar paths={['/a']} selected={undefined} onToggle={onToggle} onDropPrompt={vi.fn()} />,
+      <FolderFilterBar
+        paths={['/a']}
+        selected={undefined}
+        onToggle={onToggle}
+        onDropPrompt={vi.fn()}
+      />,
     )
     const all = screen.getByRole('button', { name: '全部' })
     expect(all.getAttribute('aria-pressed')).toBe('true')

@@ -64,14 +64,10 @@ export function findLayeringViolations(rows: readonly ProfileGuardRow[]): string
     const vibe = m.get('vibe')
     if (master === undefined || familiar === undefined || vibe === undefined) continue
     if (isRequired(vibe.required) && !isRequired(familiar.required)) {
-      out.push(
-        `topic_id=${String(topicId)}：速成必学但熟悉不必学 ⇒ 破坏「速成 ⊆ 熟悉」`,
-      )
+      out.push(`topic_id=${String(topicId)}：速成必学但熟悉不必学 ⇒ 破坏「速成 ⊆ 熟悉」`)
     }
     if (isRequired(familiar.required) && !isRequired(master.required)) {
-      out.push(
-        `topic_id=${String(topicId)}：熟悉必学但精通不必学 ⇒ 破坏「熟悉 ⊆ 精通」`,
-      )
+      out.push(`topic_id=${String(topicId)}：熟悉必学但精通不必学 ⇒ 破坏「熟悉 ⊆ 精通」`)
     }
   }
   return out
@@ -131,9 +127,7 @@ export function findEstMinutesViolations(rows: readonly ProfileGuardRow[]): stri
     if (r.profile === 'vibe') {
       if (isRequired(r.required)) {
         if (r.est_minutes === null || r.est_minutes <= 0) {
-          out.push(
-            `topic_id=${String(r.topic_id)}：速成必学却没有 est_minutes（须为正整数）`,
-          )
+          out.push(`topic_id=${String(r.topic_id)}：速成必学却没有 est_minutes（须为正整数）`)
         }
       } else if (r.est_minutes !== null) {
         out.push(

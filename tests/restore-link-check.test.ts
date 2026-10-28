@@ -98,9 +98,7 @@ describe('extractSection · 取整节', () => {
   })
 
   it('`§17` 与 `17` 是同一个节', () => {
-    expect(extractSection(MARKDOWN, '§17')?.heading).toBe(
-      extractSection(MARKDOWN, '17')?.heading,
-    )
+    expect(extractSection(MARKDOWN, '§17')?.heading).toBe(extractSection(MARKDOWN, '17')?.heading)
   })
 
   it('节末空行不算本节（两侧同样剔除 ⇒ 比对对称）', () => {
@@ -205,8 +203,7 @@ describe('collectSectionRefs · §-指针抽取', () => {
 /* ════════════════════════════════════════════════════════ 落空判定 */
 
 describe('classifyTarget · 指针落空判定', () => {
-  const judge = (p: SectionPointer): PointerStatus =>
-    classifyTarget(p, '.', REPO)
+  const judge = (p: SectionPointer): PointerStatus => classifyTarget(p, '.', REPO)
 
   it('目标文件存在且有该节 ⇒ ok', () => {
     expect(judge(qualified('docs/tasks.md', '2c'))).toBe('ok')

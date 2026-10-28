@@ -54,7 +54,9 @@ describe('M9 P1f.4 · DL-43 变异腿（深链解析恒空）', () => {
   it('变异体下，三个锚点**全部**落回默认档（深链彻底失效）', () => {
     for (const hash of ['#mode-vibe', '#mode-master', '#mode-familiar']) {
       window.history.replaceState(null, '', `/${hash}`)
-      const { container, unmount } = render(<ModeDeepLink views={VIEWS} fallbackProfile="familiar" />)
+      const { container, unmount } = render(
+        <ModeDeepLink views={VIEWS} fallbackProfile="familiar" />,
+      )
       const section = container.querySelector('[aria-label="模式内容"]')
       expect(section!.getAttribute('data-profile')).toBe('familiar')
       unmount()

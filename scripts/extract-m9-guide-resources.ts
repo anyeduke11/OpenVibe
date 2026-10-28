@@ -168,7 +168,9 @@ function main(): void {
   }
   const missingTier = all.filter((r) => tierMap[r.u ?? ''] === undefined)
   if (missingTier.length > 0) {
-    problems.push(`TIER 里没有的 URL ${String(missingTier.length)} 条：${missingTier.map((r) => r.n).join(' / ')}`)
+    problems.push(
+      `TIER 里没有的 URL ${String(missingTier.length)} 条：${missingTier.map((r) => r.n).join(' / ')}`,
+    )
   }
   const urlCount = new Map<string, number>()
   for (const r of all) urlCount.set(r.u ?? '', (urlCount.get(r.u ?? '') ?? 0) + 1)
@@ -211,7 +213,11 @@ function main(): void {
         got[v] += n
       }
       const want = nec.distribution[profile]
-      if (got.required !== want.required || got.recommended !== want.recommended || got.optional !== want.optional) {
+      if (
+        got.required !== want.required ||
+        got.recommended !== want.recommended ||
+        got.optional !== want.optional
+      ) {
         problems.push(
           `${profile} 档：矩阵 × tier 现算 ${String(got.required)}/${String(got.recommended)}/${String(got.optional)}，` +
             `spec 记 ${String(want.required)}/${String(want.recommended)}/${String(want.optional)}`,

@@ -58,9 +58,24 @@ async function mkTerm(h: Harness, input: object): Promise<TermOut> {
 describe('T4c · m3 §7 验收映射（API 行为层）', () => {
   it('IT-API-TERM-01（§7.2）: 中文字串 / 英文主名 / 别名三径命中并带 matches 偏移', async () => {
     const h = await makeHarness()
-    await mkTerm(h, { zh: '规则漂移', en: 'rule drift', aliases: ['drift'], definition: '长会话中模型逐渐偏离规则文件约束的现象' })
-    await mkTerm(h, { zh: '检索增强生成', en: 'RAG', aliases: ['RAG'], definition: '检索外部知识再生成' })
-    await mkTerm(h, { zh: '幻觉', en: 'hallucination', aliases: ['大模型幻觉'], definition: '看似合理实则错误的输出' })
+    await mkTerm(h, {
+      zh: '规则漂移',
+      en: 'rule drift',
+      aliases: ['drift'],
+      definition: '长会话中模型逐渐偏离规则文件约束的现象',
+    })
+    await mkTerm(h, {
+      zh: '检索增强生成',
+      en: 'RAG',
+      aliases: ['RAG'],
+      definition: '检索外部知识再生成',
+    })
+    await mkTerm(h, {
+      zh: '幻觉',
+      en: 'hallucination',
+      aliases: ['大模型幻觉'],
+      definition: '看似合理实则错误的输出',
+    })
 
     const drift = await injectApi(h, 'GET', '/api/terms/search?q=' + encodeURIComponent('漂移'))
     expect(drift.statusCode).toBe(200)
@@ -77,7 +92,11 @@ describe('T4c · m3 §7 验收映射（API 行为层）', () => {
     const rag = await injectApi(h, 'GET', '/api/terms/search?q=RAG')
     expect(rag.json().items.map((i: { term: TermOut }) => i.term.zh)).toEqual(['检索增强生成'])
 
-    const alias = await injectApi(h, 'GET', '/api/terms/search?q=' + encodeURIComponent('大模型幻觉'))
+    const alias = await injectApi(
+      h,
+      'GET',
+      '/api/terms/search?q=' + encodeURIComponent('大模型幻觉'),
+    )
     expect(alias.json().items[0].term.zh).toBe('幻觉')
     expect(alias.json().items[0].matchedFields).toContain('aliases')
 
@@ -88,8 +107,16 @@ describe('T4c · m3 §7 验收映射（API 行为层）', () => {
 
   it('IT-TERM-RENDER-01（§7.3）: 同一选集两次渲染 sha256 相同，definition 的 | 转义不破表', async () => {
     const h = await makeHarness()
-    const a = await mkTerm(h, { zh: '规则漂移', en: 'rule drift', definition: '偏离规则文件的现象' })
-    const b = await mkTerm(h, { zh: '术语表', en: 'glossary', definition: '列序为 术语 | English | 别名 | 定义' })
+    const a = await mkTerm(h, {
+      zh: '规则漂移',
+      en: 'rule drift',
+      definition: '偏离规则文件的现象',
+    })
+    const b = await mkTerm(h, {
+      zh: '术语表',
+      en: 'glossary',
+      definition: '列序为 术语 | English | 别名 | 定义',
+    })
     const c = await mkTerm(h, { zh: '幻觉', en: 'hallucination', definition: '看似合理实则错误' })
     const names = ['规则漂移', '术语表', '幻觉']
     const orderOf = (md: string): string[] =>
@@ -133,7 +160,13 @@ describe('T4c · m3 §7 验收映射（API 行为层）', () => {
     new PacksRepo(h.handle.db).create({
       name: 'term-pack',
       description: '',
-      selection: { promptIds: [], termIds: [target.id], skillIds: [], playbookIds: [], flowTemplateId: null },
+      selection: {
+        promptIds: [],
+        termIds: [target.id],
+        skillIds: [],
+        playbookIds: [],
+        flowTemplateId: null,
+      },
       targets: ['claude-code'],
     })
 
@@ -154,7 +187,11 @@ describe('T4c · m3 §7 验收映射（API 行为层）', () => {
   it('IT-ERR-02（§7.5）: zh/en 全空 422 且不入库；空选集与失效选集错误码分明', async () => {
     const h = await makeHarness()
 
-    const bothEmpty = await injectApi(h, 'POST', '/api/terms', { zh: '', en: '', definition: '定义' })
+    const bothEmpty = await injectApi(h, 'POST', '/api/terms', {
+      zh: '',
+      en: '',
+      definition: '定义',
+    })
     expect(bothEmpty.statusCode).toBe(422)
     expect(bothEmpty.json().code).toBe('VALIDATION_ERROR')
     expect(bothEmpty.json().details.fieldErrors.zh).toBeTruthy()
@@ -191,21 +228,36 @@ describe('T4c · m3 §7 验收映射（API 行为层）', () => {
     expect(termsBundle?.status).toBe('imported')
     expect(termsBundle?.warnings).toEqual([])
     expect(termsBundle?.created).toBeGreaterThanOrEqual(60)
-    expect((first.find((r) => r.bundle === 'flow-templates')?.created ?? 0) + (first.find((r) => r.bundle === 'flow-templates')?.updated ?? 0)).toBe(7)
+    expect(
+      (first.find((r) => r.bundle === 'flow-templates')?.created ?? 0) +
+        (first.find((r) => r.bundle === 'flow-templates')?.updated ?? 0),
+    ).toBe(7)
 
-    const count = (db.prepare("SELECT COUNT(*) AS n FROM terms WHERE source='openvibe-seed'").get() as { n: number }).n
+    const count = (
+      db.prepare("SELECT COUNT(*) AS n FROM terms WHERE source='openvibe-seed'").get() as {
+        n: number
+      }
+    ).n
     expect(count).toBe(termsBundle?.created)
 
     // 二次启动：contentHash 命中登记表 → 全 bundle skipped，计数不变
     const second = runSeed(db, SEED_DIR)
     expect(second.every((r) => r.status === 'skipped')).toBe(true)
     expect(
-      (db.prepare("SELECT COUNT(*) AS n FROM terms WHERE source='openvibe-seed'").get() as { n: number }).n,
+      (
+        db.prepare("SELECT COUNT(*) AS n FROM terms WHERE source='openvibe-seed'").get() as {
+          n: number
+        }
+      ).n,
     ).toBe(count)
 
     const list = await injectApi(h, 'GET', '/api/terms')
     expect(list.json().total).toBe(count)
-    const search = await injectApi(h, 'GET', '/api/terms/search?q=' + encodeURIComponent('规则漂移'))
+    const search = await injectApi(
+      h,
+      'GET',
+      '/api/terms/search?q=' + encodeURIComponent('规则漂移'),
+    )
     expect(search.json().items[0].term.en).toBe('rule drift')
 
     // 全量选集渲染：无表格错位（每数据行恰 5 个裸 |）

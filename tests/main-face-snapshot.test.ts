@@ -22,7 +22,9 @@ const TOOLING_INDEX = join(HERE, '..', 'packages', 'core', 'src', 'tooling', 'in
 const live = parseExportsOfFile(INDEX)
 const liveNames = live.map((e) => e.name).sort()
 const liveValueSet = new Set(Object.keys(core))
-const snapshotted = readFileSync(SNAPSHOT, 'utf8').split('\n').filter((l) => l !== '')
+const snapshotted = readFileSync(SNAPSHOT, 'utf8')
+  .split('\n')
+  .filter((l) => l !== '')
 
 describe('主出口面快照（core-main-exports.txt）', () => {
   it('快照与源级导出面逐符号一致（type 也算契约；差一个都是契约变更）', () => {

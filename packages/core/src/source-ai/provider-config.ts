@@ -12,7 +12,12 @@ import {
 } from '@openvibe/shared'
 import { APP_META_KEYS, AppMetaRepo } from '../repos/appMeta'
 import type { SqliteDatabase } from '../db'
-import { CommandInterpretRunner, commandExists, runnerFromEnv, type SourceInterpretRunner } from './runner'
+import {
+  CommandInterpretRunner,
+  commandExists,
+  runnerFromEnv,
+  type SourceInterpretRunner,
+} from './runner'
 import { HttpInterpretRunner } from './http-runner'
 import {
   KEYCHAIN_ACCOUNT,
@@ -396,7 +401,10 @@ export interface ProviderResolution {
  *
  * ⚠️ **关掉就是关掉** ⇒ 返回 `null`（上层按「不可用」处理）。
  */
-function runnerOfEntry(entry: InterpretProviderEntryType, apiKey: string): SourceInterpretRunner | null {
+function runnerOfEntry(
+  entry: InterpretProviderEntryType,
+  apiKey: string,
+): SourceInterpretRunner | null {
   if (!entry.enabled) return null
   return runnerFromProviderConfig(entry, apiKey)
 }
@@ -459,7 +467,11 @@ async function probeEntry(
   apiKey: string,
 ): Promise<ProviderResolution> {
   if (!entry.enabled) {
-    return { runner: null, status: 'unconfigured', detail: 'AI 解读已关闭（设置页「AI 解读」节可打开）' }
+    return {
+      runner: null,
+      status: 'unconfigured',
+      detail: 'AI 解读已关闭（设置页「AI 解读」节可打开）',
+    }
   }
   if (entry.kind === 'command') {
     const cmd = entry.cmd.trim()

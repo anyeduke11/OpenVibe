@@ -90,9 +90,7 @@ function validateRelatedIds(db: SqliteDatabase, selfId: string, ids: string[]): 
   const found = new Set(
     (
       db
-        .prepare(
-          `SELECT id FROM terms WHERE id IN (${unique.map(() => '?').join(',')})`,
-        )
+        .prepare(`SELECT id FROM terms WHERE id IN (${unique.map(() => '?').join(',')})`)
         .all(...unique) as { id: string }[]
     ).map((r) => r.id),
   )
@@ -117,10 +115,7 @@ function sortForMd(terms: TermOut[], orderBy: TermsOrderBy): TermOut[] {
   return [...terms].sort(
     (a, b) =>
       compareCodeUnit(keyOf(a), keyOf(b)) ||
-      compareCodeUnit(
-        (a.en || a.zh || '').toLowerCase(),
-        (b.en || b.zh || '').toLowerCase(),
-      ) ||
+      compareCodeUnit((a.en || a.zh || '').toLowerCase(), (b.en || b.zh || '').toLowerCase()) ||
       compareCodeUnit(a.id, b.id),
   )
 }
@@ -166,8 +161,7 @@ export class TermsRepo {
 
   update(id: string, patch: TermUpdateInput): TermOut {
     const existing = this.db.prepare('SELECT * FROM terms WHERE id = ?').get(id) as
-      | TermRow
-      | undefined
+      TermRow | undefined
     if (!existing) throw new AppError('NOT_FOUND', `词条不存在: ${id}`)
     const before = rowToTerm(existing)
     const zh = patch.zh !== undefined ? patch.zh : before.zh
@@ -267,7 +261,10 @@ export class TermsRepo {
 
     const missing = input.termIds.filter((id) => !found.has(id))
     if (missing.length > 0) {
-      throw new AppError('STALE_SELECTION', `选集中 ${missing.length} 个词条已删除（m6a §6.2 同源）`)
+      throw new AppError(
+        'STALE_SELECTION',
+        `选集中 ${missing.length} 个词条已删除（m6a §6.2 同源）`,
+      )
     }
 
     const terms = input.termIds.map((id) => found.get(id)) as TermOut[]
@@ -349,7 +346,13 @@ export class TermsRepo {
     return rows.map(rowToTerm)
   }
 
-  seedItemHash(item: { zh?: string; en?: string; aliases: string[]; definition: string; example: string }): string {
+  seedItemHash(item: {
+    zh?: string
+    en?: string
+    aliases: string[]
+    definition: string
+    example: string
+  }): string {
     return sha256Hex(
       stableJson({
         zh: item.zh ?? null,

@@ -178,7 +178,9 @@ function collectOne(repoRoot: string, path: string, status: string): DirtyFile[]
       content = ''
     }
     const lines = content.split('\n').filter((l) => l.length > 0)
-    return [{ path, status, added: lines.length, removed: 0, addedLines: lines.slice(0, ADDED_LINE_CAP) }]
+    return [
+      { path, status, added: lines.length, removed: 0, addedLines: lines.slice(0, ADDED_LINE_CAP) },
+    ]
   }
   const numstat = git(['diff', '--numstat', '-M', '--', path], repoRoot).split('\n')[0] ?? ''
   const [a, r] = numstat.split('\t')
@@ -214,22 +216,71 @@ function collectOne(repoRoot: string, path: string, status: string): DirtyFile[]
  * 而非「直接提交」—— 方向是安全的。
  */
 export const OWNED: Rule[] = [
-  { label: '本会话·CLI', reason: 'M8 CLI 命令与其测试（ask/status/session/requirement）', pattern: /^apps\/cli\/(src|test)\// },
-  { label: '本会话·服务端', reason: 'M8 端点、台账写入点与其测试', pattern: /^apps\/server\/(src|test)\// },
-  { label: '本会话·核心', reason: '0-f 台账 repo、agentService、commandRunService、inject', pattern: /^packages\/core\/src\// },
-  { label: '本会话·shared', reason: 'shared schema、CLI 命令登记与常量', pattern: /^packages\/shared\/src\// },
-  { label: '本会话·闸与脚本', reason: '变异腿执行器、归属核验工具、文档治理闸及其判据测试', pattern: /^(scripts\/(mutation-run|ownership-check|docs-check)\.ts|tests\/)/ },
-  { label: '本会话·配置', reason: 'vitest 并发上限与 package.json 脚本登记', pattern: /^(vitest\.config\.ts|package\.json)$/ },
-  { label: '本会话·文档', reason: 'M8/台账/服务层规格、README、DEV_LOG、治理闸基线与输出规范', pattern: /^(README\.md|DEV_LOG\.md|CLAUDE\.md|docs\/dev-plan-v0\.2\.1\.md|docs\/specs\/|docs\/docs-check-baseline\.json)/ },
-  { label: '本会话·CI', reason: '第六道闸 docs:check 的追加（只增不改既有五闸）', pattern: /^\.github\/workflows\/ci\.yml$/ },
+  {
+    label: '本会话·CLI',
+    reason: 'M8 CLI 命令与其测试（ask/status/session/requirement）',
+    pattern: /^apps\/cli\/(src|test)\//,
+  },
+  {
+    label: '本会话·服务端',
+    reason: 'M8 端点、台账写入点与其测试',
+    pattern: /^apps\/server\/(src|test)\//,
+  },
+  {
+    label: '本会话·核心',
+    reason: '0-f 台账 repo、agentService、commandRunService、inject',
+    pattern: /^packages\/core\/src\//,
+  },
+  {
+    label: '本会话·shared',
+    reason: 'shared schema、CLI 命令登记与常量',
+    pattern: /^packages\/shared\/src\//,
+  },
+  {
+    label: '本会话·闸与脚本',
+    reason: '变异腿执行器、归属核验工具、文档治理闸及其判据测试',
+    pattern: /^(scripts\/(mutation-run|ownership-check|docs-check)\.ts|tests\/)/,
+  },
+  {
+    label: '本会话·配置',
+    reason: 'vitest 并发上限与 package.json 脚本登记',
+    pattern: /^(vitest\.config\.ts|package\.json)$/,
+  },
+  {
+    label: '本会话·文档',
+    reason: 'M8/台账/服务层规格、README、DEV_LOG、治理闸基线与输出规范',
+    pattern:
+      /^(README\.md|DEV_LOG\.md|CLAUDE\.md|docs\/dev-plan-v0\.2\.1\.md|docs\/specs\/|docs\/docs-check-baseline\.json)/,
+  },
+  {
+    label: '本会话·CI',
+    reason: '第六道闸 docs:check 的追加（只增不改既有五闸）',
+    pattern: /^\.github\/workflows\/ci\.yml$/,
+  },
 ]
 
 export const FORBIDDEN: Rule[] = [
-  { label: '禁区·并行会话前端', reason: 'apps/web 60 个文件属并行会话，本会话未授权改动', pattern: /^apps\/web\// },
-  { label: '禁区·M4 回退', reason: '并行会话把已落地的 M4 文档回退，属他人改动', pattern: /^docs\/(dev-plan|decisions|tasks)\.md$/ },
+  {
+    label: '禁区·并行会话前端',
+    reason: 'apps/web 60 个文件属并行会话，本会话未授权改动',
+    pattern: /^apps\/web\//,
+  },
+  {
+    label: '禁区·M4 回退',
+    reason: '并行会话把已落地的 M4 文档回退，属他人改动',
+    pattern: /^docs\/(dev-plan|decisions|tasks)\.md$/,
+  },
   { label: '禁区·M4 回退', reason: '并行会话回退的 M4 规格', pattern: /^docs\/specs\/m[46]-/ },
-  { label: '禁区·navCounts', reason: '并行会话的 navCounts 相关文件', pattern: /navCounts|schemas\/nav\.ts$/ },
-  { label: '禁区·演示目录', reason: 'demo/ 与 redesign/ 不属本会话', pattern: /^(demo|redesign)\// },
+  {
+    label: '禁区·navCounts',
+    reason: '并行会话的 navCounts 相关文件',
+    pattern: /navCounts|schemas\/nav\.ts$/,
+  },
+  {
+    label: '禁区·演示目录',
+    reason: 'demo/ 与 redesign/ 不属本会话',
+    pattern: /^(demo|redesign)\//,
+  },
 ]
 
 /**
@@ -269,7 +320,9 @@ export const SELF_QUOTING: RegExp[] = [
 
 export function renderReport(r: OwnershipReport): string {
   const out: string[] = []
-  out.push(`ownership:check —— 可提交 ${r.commitCount} · 禁区留存 ${r.holdCount} · 待人工判定 ${r.reviewCount}`)
+  out.push(
+    `ownership:check —— 可提交 ${r.commitCount} · 禁区留存 ${r.holdCount} · 待人工判定 ${r.reviewCount}`,
+  )
   out.push('')
   const groups: [Verdict['verdict'], string][] = [
     ['hold', '⛔ 禁区（不可提交）'],
@@ -301,9 +354,7 @@ function main(argv: string[]): number {
   const asJson = args.includes('--json')
   const markerIdx = args.indexOf('--marker')
   const markers =
-    markerIdx >= 0 && args[markerIdx + 1]
-      ? [new RegExp(args[markerIdx + 1]!)]
-      : DEFAULT_MARKERS
+    markerIdx >= 0 && args[markerIdx + 1] ? [new RegExp(args[markerIdx + 1]!)] : DEFAULT_MARKERS
   const repoRoot = process.cwd()
   const report = classify(collectDirty(repoRoot), {
     forbidden: FORBIDDEN,
@@ -311,7 +362,9 @@ function main(argv: string[]): number {
     markers,
     selfQuoting: SELF_QUOTING,
   })
-  process.stdout.write(asJson ? `${JSON.stringify(report, null, 2)}\n` : `${renderReport(report)}\n`)
+  process.stdout.write(
+    asJson ? `${JSON.stringify(report, null, 2)}\n` : `${renderReport(report)}\n`,
+  )
   return report.reviewCount > 0 || report.holdCount > 0 ? 1 : 0
 }
 

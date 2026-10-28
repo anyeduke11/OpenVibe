@@ -58,10 +58,7 @@ export function readTopicProfiles(db: SqliteDatabase): TopicProfileLite[] {
       est_minutes: r.est_minutes,
     }))
     .sort(
-      (a, b) =>
-        a.topic_id - b.topic_id ||
-        a.profile.localeCompare(b.profile) ||
-        a.rank - b.rank,
+      (a, b) => a.topic_id - b.topic_id || a.profile.localeCompare(b.profile) || a.rank - b.rank,
     )
 }
 
@@ -72,9 +69,7 @@ export function readTopicProfiles(db: SqliteDatabase): TopicProfileLite[] {
  *   算站数时**必须**排除（DL-12：库级不进学习路线）。
  */
 export function readTopicStages(db: SqliteDatabase): TopicStageLite[] {
-  const rows = db
-    .prepare('SELECT id, lang, slug, stage_id, kind FROM lang_topics')
-    .all() as {
+  const rows = db.prepare('SELECT id, lang, slug, stage_id, kind FROM lang_topics').all() as {
     id: number
     lang: 'python' | 'go'
     slug: string
@@ -114,15 +109,19 @@ export interface ResourceWithTopics {
  * @param limit 最多读多少条资源（界面只展示一小节）
  */
 export function readResourcesWithTopics(db: SqliteDatabase, limit = 20): ResourceWithTopics[] {
-  const resources = db
-    .prepare('SELECT id, name, url FROM lang_resources')
-    .all() as { id: number; name: string; url: string }[]
-  const links = db
-    .prepare('SELECT topic_id, resource_id FROM lang_topic_resources')
-    .all() as { topic_id: number; resource_id: number }[]
-  const titles = db
-    .prepare('SELECT id, title FROM lang_topics')
-    .all() as { id: number; title: string }[]
+  const resources = db.prepare('SELECT id, name, url FROM lang_resources').all() as {
+    id: number
+    name: string
+    url: string
+  }[]
+  const links = db.prepare('SELECT topic_id, resource_id FROM lang_topic_resources').all() as {
+    topic_id: number
+    resource_id: number
+  }[]
+  const titles = db.prepare('SELECT id, title FROM lang_topics').all() as {
+    id: number
+    title: string
+  }[]
   const titleById = new Map<number, string>(titles.map((t) => [t.id, t.title]))
   const byResource = new Map<number, number[]>()
   for (const l of links) {
@@ -130,20 +129,18 @@ export function readResourcesWithTopics(db: SqliteDatabase, limit = 20): Resourc
     list.push(l.topic_id)
     byResource.set(l.resource_id, list)
   }
-  return resources
-    .slice(0, limit)
-    .map((r) => {
-      const topicIds = (byResource.get(r.id) ?? []).sort((a, b) => a - b)
-      return {
-        id: r.id,
-        name: r.name,
-        url: r.url,
-        topic_ids: topicIds,
-        topic_titles: topicIds
-          .filter((id) => titleById.has(id))
-          .map((id) => ({ id, title: titleById.get(id) as string })),
-      }
-    })
+  return resources.slice(0, limit).map((r) => {
+    const topicIds = (byResource.get(r.id) ?? []).sort((a, b) => a - b)
+    return {
+      id: r.id,
+      name: r.name,
+      url: r.url,
+      topic_ids: topicIds,
+      topic_titles: topicIds
+        .filter((id) => titleById.has(id))
+        .map((id) => ({ id, title: titleById.get(id) as string })),
+    }
+  })
 }
 
 /**

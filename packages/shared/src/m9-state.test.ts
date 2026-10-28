@@ -120,7 +120,14 @@ describe('M9 P2.1 · DL-25 源码证据封顶「在用」', () => {
   it('源码 ＋ 非源码 5 次（够 N）⇒ 仍停在「在用」（封顶压过阈值）', () => {
     const node: TopicNode = { id: 1, prereqTopicIds: [] }
     const input = makeInput([node], {
-      1: [src('pkg/mod.go'), ev('checklist', 'a'), ev('checklist', 'b'), ev('checklist', 'c'), ev('checklist', 'd'), ev('checklist', 'e')],
+      1: [
+        src('pkg/mod.go'),
+        ev('checklist', 'a'),
+        ev('checklist', 'b'),
+        ev('checklist', 'c'),
+        ev('checklist', 'd'),
+        ev('checklist', 'e'),
+      ],
     })
     expect(countEvidence(input.byTopic.get(1)).nonSourceCount).toBe(5)
     expect(computeState(node, input)).toBe('active')
@@ -175,7 +182,9 @@ describe('M9 P2.1 · 前置条件按「降级」实现（§3.3 的两条「且�
       { id: 1, prereqTopicIds: [] },
       { id: 2, prereqTopicIds: [1] },
     ]
-    const input = makeInput(nodes, { 2: [ev('checklist', 'a'), ev('checklist', 'b'), ev('checklist', 'c')] })
+    const input = makeInput(nodes, {
+      2: [ev('checklist', 'a'), ev('checklist', 'b'), ev('checklist', 'c')],
+    })
     expect(computeState(nodes[1]!, input)).toBe('active')
   })
 
@@ -224,7 +233,10 @@ describe('M9 P2.1 · 前置条件按「降级」实现（§3.3 的两条「且�
     ]
     // 2 有足够证据（自身「掌握」），但 1 没有 ⇒ 2 的最终状态是「在用」
     // ⇒ 3 比前置的**最终状态** ⇒ 3 拿不到「掌握」。
-    const input = makeInput(nodes, { 2: [ev('checklist', 'a'), ev('checklist', 'b'), ev('checklist', 'c')], 3: [ev('checklist', 'a'), ev('checklist', 'b'), ev('checklist', 'c')] })
+    const input = makeInput(nodes, {
+      2: [ev('checklist', 'a'), ev('checklist', 'b'), ev('checklist', 'c')],
+      3: [ev('checklist', 'a'), ev('checklist', 'b'), ev('checklist', 'c')],
+    })
     expect(ownStateOf(2, input)).toBe('mastered')
     expect(computeState(nodes[1]!, input)).toBe('active')
     expect(computeState(nodes[2]!, input)).toBe('active')

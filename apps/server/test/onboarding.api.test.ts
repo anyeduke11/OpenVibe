@@ -84,8 +84,7 @@ async function api<T = unknown>(
   return { statusCode: res.statusCode, json: (res.body === '' ? null : res.json()) as T }
 }
 
-const count = (h: Harness, sql: string): number =>
-  (h.db.prepare(sql).get() as { n: number }).n
+const count = (h: Harness, sql: string): number => (h.db.prepare(sql).get() as { n: number }).n
 
 /** 走完一次真实首启：播种 + 组装预置包，返回 default 包 id */
 async function seededPack(h: Harness): Promise<string> {
@@ -140,7 +139,9 @@ describe('POST /api/settings/onboarding（FR-2.3 向导完成标记）', () => {
     expect(on.json).toEqual({ onboardingDone: true })
     expect((await api<SettingsOut>(h, 'GET', '/api/settings')).json.onboardingDone).toBe(true)
     expect(
-      h.db.prepare('SELECT value FROM app_meta WHERE key = ?').get(APP_META_KEYS.onboardingDone) as {
+      h.db
+        .prepare('SELECT value FROM app_meta WHERE key = ?')
+        .get(APP_META_KEYS.onboardingDone) as {
         value: string
       },
     ).toEqual({ value: 'true' })
@@ -247,7 +248,8 @@ describe('POST /api/settings/reseed + 预置 default 包（FR-1，D-3）', () =>
     const packId = await seededPack(h)
     // repos 的 update 会把 seed_hash 置空，这里直接落同一状态以聚焦选集比对
     expect(
-      h.db.prepare('UPDATE terms SET seed_hash = NULL WHERE rowid = (SELECT MIN(rowid) FROM terms)')
+      h.db
+        .prepare('UPDATE terms SET seed_hash = NULL WHERE rowid = (SELECT MIN(rowid) FROM terms)')
         .run().changes,
     ).toBe(1)
 
@@ -288,7 +290,13 @@ describe('POST /api/settings/reseed + 预置 default 包（FR-1，D-3）', () =>
     expect(res.statusCode).toBe(200)
     // 五条：四个 bundle（terms / flow-templates / prompts / playbooks，m4 FR-9.2 加了第四条）
     // ＋ term-annotations 学习化标注回填（目录整个缺失时它同样读不到文件，口径一致报 error）
-    expect(Object.values(res.json.seed.bundles)).toEqual(['error', 'error', 'error', 'error', 'error'])
+    expect(Object.values(res.json.seed.bundles)).toEqual([
+      'error',
+      'error',
+      'error',
+      'error',
+      'error',
+    ])
     expect(res.json.seed.warnings.join(' ')).toContain('种子文件处理失败')
     expect(res.json.defaultPack).toMatchObject({
       status: 'failed',

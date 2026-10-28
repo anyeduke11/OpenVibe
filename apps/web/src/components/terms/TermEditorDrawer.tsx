@@ -99,10 +99,7 @@ export function TermEditorDrawer(props: {
   )
 
   const toggleTag = (tag: string) =>
-    set(
-      'tags',
-      form.tags.includes(tag) ? form.tags.filter((t) => t !== tag) : [...form.tags, tag],
-    )
+    set('tags', form.tags.includes(tag) ? form.tags.filter((t) => t !== tag) : [...form.tags, tag])
 
   const save = () => {
     if (form.zh.trim() === '' && form.en.trim() === '') {
@@ -159,7 +156,11 @@ export function TermEditorDrawer(props: {
               {zh.editor.cancel}
             </button>
             <button className={btnPrimary} disabled={pending} onClick={save}>
-              {pending ? zh.terms.editor.saving : term === null ? zh.terms.editor.create : zh.terms.editor.save}
+              {pending
+                ? zh.terms.editor.saving
+                : term === null
+                  ? zh.terms.editor.create
+                  : zh.terms.editor.save}
             </button>
           </>
         }
@@ -235,15 +236,18 @@ export function TermEditorDrawer(props: {
                 )
               })}
             </div>
-            {form.tags.filter((t) => !(CONTROLLED_TAG_VOCAB as readonly string[]).includes(t)).length >
-              0 && (
+            {form.tags.filter((t) => !(CONTROLLED_TAG_VOCAB as readonly string[]).includes(t))
+              .length > 0 && (
               <div className="mt-1.5 flex flex-wrap gap-1">
                 {form.tags
                   .filter((t) => !(CONTROLLED_TAG_VOCAB as readonly string[]).includes(t))
                   .map((t) => (
                     <span key={t} className={chipTone('default')}>
                       #{t}
-                      <button className="ml-1 text-ink-faint hover:text-ink-body" onClick={() => toggleTag(t)}>
+                      <button
+                        className="ml-1 text-ink-faint hover:text-ink-body"
+                        onClick={() => toggleTag(t)}
+                      >
                         ✕
                       </button>
                     </span>
@@ -312,7 +316,12 @@ export function TermEditorDrawer(props: {
                     {labelOf(id)}
                     <button
                       className="ml-1 text-ink-faint hover:text-ink-body"
-                      onClick={() => set('relatedTermIds', form.relatedTermIds.filter((x) => x !== id))}
+                      onClick={() =>
+                        set(
+                          'relatedTermIds',
+                          form.relatedTermIds.filter((x) => x !== id),
+                        )
+                      }
                     >
                       ✕
                     </button>

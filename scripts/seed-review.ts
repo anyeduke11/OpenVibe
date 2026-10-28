@@ -68,7 +68,9 @@ out.push(
 )
 out.push('')
 if (goneTerms.length > 0) {
-  out.push(`本轮移除（与既有词条重叠或价值偏低）：${goneTerms.map((k) => k.split('\u0000')[0]).join('、')}`)
+  out.push(
+    `本轮移除（与既有词条重叠或价值偏低）：${goneTerms.map((k) => k.split('\u0000')[0]).join('、')}`,
+  )
   out.push('')
 }
 out.push(`## 术语（新增 ${newTerms.length} 条，逐条待校）`)
@@ -76,7 +78,8 @@ out.push('')
 out.push('| # | zh | en | 标签 | 定义（待校：是否准确、有无夸大） | example（待校：是否成立） |')
 out.push('| --- | --- | --- | --- | --- | --- |')
 newTerms.forEach((t, i) => {
-  const cell = (s: string | undefined): string => (s ?? '').replaceAll('|', '\\|').replaceAll('\n', ' ')
+  const cell = (s: string | undefined): string =>
+    (s ?? '').replaceAll('|', '\\|').replaceAll('\n', ' ')
   out.push(
     `| ${i + 1} | ${cell(t.zh)} | ${cell(t.en)} | ${(t.tags ?? []).join('/')} | ${cell(t.definition)} | ${cell(t.example) || '（无）'} |`,
   )
@@ -87,7 +90,8 @@ out.push('')
 out.push('| # | title | useAs | 平台标记 | 变量 | 字节 | 意图（待校：指令是否可执行、有无空话） |')
 out.push('| --- | --- | --- | --- | --- | --- | --- |')
 newPrompts.forEach((p, i) => {
-  const cell = (s: string | undefined): string => (s ?? '').replaceAll('|', '\\|').replaceAll('\n', ' ')
+  const cell = (s: string | undefined): string =>
+    (s ?? '').replaceAll('|', '\\|').replaceAll('\n', ' ')
   out.push(
     `| ${i + 1} | ${cell(p.title)} | ${p.useAs ?? 'reference'} | ${(p.platformMarks ?? []).join(' ')} | ${varsOf(p.content).join(', ') || '—'} | ${Buffer.byteLength(p.content, 'utf8')} | ${cell(p.description)} |`,
   )

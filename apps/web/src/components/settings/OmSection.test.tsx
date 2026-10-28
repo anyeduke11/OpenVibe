@@ -47,9 +47,7 @@ const FULL_OM = {
 
 describe('OmSection（设置页 OM 区）', () => {
   it('OM-W1: 有数据 → 密度行、Top5、时间行齐；必标「估算」', async () => {
-    fetchMock.mockResolvedValue(
-      new Response(JSON.stringify(FULL_OM), { status: 200 }),
-    )
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(FULL_OM), { status: 200 }))
     renderOm()
     await waitFor(() => expect(screen.getByText(/包 default@1\.0\.0/)).toBeTruthy())
     expect(screen.getByText(/1200 token ÷ 3 项资产 ≈ 400 token\/条/)).toBeTruthy()

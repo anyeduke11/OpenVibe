@@ -20,12 +20,15 @@ export function TermsMdPreview(props: { termIds: string[]; orderBy: TermsOrderBy
     toast(zh.terms.preview.downloaded)
   }
 
-  if (termIds.length === 0) return <p className="text-sm text-ink-faint">{zh.terms.preview.empty}</p>
+  if (termIds.length === 0)
+    return <p className="text-sm text-ink-faint">{zh.terms.preview.empty}</p>
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="flex items-center gap-2">
-        <span className="tabular-nums text-xs text-ink-muted">{zh.terms.selection.label(termIds.length)}</span>
+        <span className="tabular-nums text-xs text-ink-muted">
+          {zh.terms.selection.label(termIds.length)}
+        </span>
         <span className="ml-auto" />
         <button
           className={btnGhost}

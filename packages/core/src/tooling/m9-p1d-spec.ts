@@ -222,12 +222,13 @@ export function parseSpecVibeStatic(specText: string): SpecVibeStatic | null {
   if (tables.length < 4) return null
 
   const cells = (line: string): string[] =>
-    line.split('|').slice(1, -1).map((c) => c.replace(/\*\*/g, '').trim())
+    line
+      .split('|')
+      .slice(1, -1)
+      .map((c) => c.replace(/\*\*/g, '').trim())
 
   const dataRows = (t: string[]): string[][] =>
-    t
-      .map(cells)
-      .filter((r) => r.length >= 3 && !/^-+$/.test(r[0] ?? '') && !/^#/.test(r[0] ?? ''))
+    t.map(cells).filter((r) => r.length >= 3 && !/^-+$/.test(r[0] ?? '') && !/^#/.test(r[0] ?? ''))
 
   const abilities = dataRows(tables[0]!).map((r) => ({
     name: r[1] ?? '',

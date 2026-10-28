@@ -26,11 +26,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
-import {
-  classifyKind,
-  strictLibraryClassifier,
-  _internals,
-} from './m9-classify-lang-topics'
+import { classifyKind, strictLibraryClassifier, _internals } from './m9-classify-lang-topics'
 
 const SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))
 const PY = 'lang_topics_python3.json'
@@ -134,9 +130,7 @@ describe('M9 P1.4 · DL-13 清单必须带 kind 且可复算', () => {
     // 反向变异腿断言「闸确实会红」，不是闸本身。
     // 先验原始 seed：闸 ③ 通过（mismatch = 0）
     const origSeed = loadSeed(PY)
-    const origMismatch = origSeed.items.filter(
-      (it) => it.kind !== classifyKind(it.title),
-    ).length
+    const origMismatch = origSeed.items.filter((it) => it.kind !== classifyKind(it.title)).length
     expect(origMismatch).toBe(0)
 
     // 注入：把 §1.4 严格库级条目 "Python logging 模块" 的 kind 改成 'language'
@@ -153,8 +147,8 @@ describe('M9 P1.4 · DL-13 清单必须带 kind 且可复算', () => {
     ).length
     expect(newMismatch).toBeGreaterThan(0)
     // 闸 ②（TS 复算）仍 31（与 kind 字段无关）
-    const tsStrict = tampered.items.filter(
-      (it: { title: string; kind: string }) => strictLibraryClassifier(it.title),
+    const tsStrict = tampered.items.filter((it: { title: string; kind: string }) =>
+      strictLibraryClassifier(it.title),
     ).length
     expect(tsStrict).toBe(PY_STRICT_EXPECTED)
   })
@@ -182,8 +176,8 @@ describe('M9 P1.4 · DL-13 清单必须带 kind 且可复算', () => {
     ).length
     expect(newMismatch).toBeGreaterThan(0)
     // 闸 ②（TS 复算）仍 31
-    const tsStrict = tampered.items.filter(
-      (it: { title: string; kind: string }) => strictLibraryClassifier(it.title),
+    const tsStrict = tampered.items.filter((it: { title: string; kind: string }) =>
+      strictLibraryClassifier(it.title),
     ).length
     expect(tsStrict).toBe(PY_STRICT_EXPECTED)
   })
@@ -255,7 +249,16 @@ describe('M9 P1.4 · DL-13 配套：单源数据内部一致性（防止 THIRD_P
     expect(_internals.KEYWORD_ENV_HITS).toBeDefined()
     // 关键不变量：§1.4 第 100 行 8 个 stdlib 举例必须全部在清单里
     const tpLower = new Set(_internals.THIRD_PARTY_NAMES.map((s) => s.toLowerCase()))
-    for (const n of ['logging', 'pickle', 'subprocess', 'queue', 're', 'csv', 'threading', 'asyncio']) {
+    for (const n of [
+      'logging',
+      'pickle',
+      'subprocess',
+      'queue',
+      're',
+      'csv',
+      'threading',
+      'asyncio',
+    ]) {
       expect(tpLower.has(n), `§1.4 第 100 行 stdlib 举例「${n}」不在 THIRD_PARTY_NAMES`).toBe(true)
     }
     // 关键不变量：§1.4 第 100 行 5 个第三方举例必须全部在清单里

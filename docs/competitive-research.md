@@ -10,17 +10,17 @@
 
 ## 一、竞品总览
 
-| 项目 | 定位 | 与本项目重叠度 | 关键差距 |
-|------|------|:---:|------|
-| [legeling/PromptHub](https://github.com/legeling/PromptHub) | 本地优先的 Prompt/Skill/Agent 资产工作台（桌面+Web+CLI） | ★★★★☆（最高） | 纯个人工具：无团队协作、无项目流程管理、无术语库、无技巧库 |
-| [BloopAI/vibe-kanban](https://github.com/BloopAI/vibe-kanban) | AI 编码代理的看板编排器（并行跑 agent、worktree、diff 审查） | ★★☆☆☆ | 只管「代理执行过程」，不管资产沉淀与标准分发 |
-| [PatrickJS/awesome-cursorrules](https://github.com/PatrickJS/awesome-cursorrules) + cursor.directory | Cursor 规则文件集合（约 40k stars，257+ 规则） | ★★☆☆☆ | 静态收藏夹，无管理/版本/分发能力 |
-| [skills.sh](https://skills.sh) + [VoltAgent/awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) | Agent Skill 的浏览/安装渠道（1000+ skills，兼容 Claude Code/Cursor/Codex 等） | ★★☆☆☆ | 是「商店」不是「工作台」：装完即止，无项目级编排与团队治理 |
-| [Langfuse](https://langfuse.com) / [Agenta](https://agenta.ai) / Pezzo | LLMOps 提示词管理与评估平台 | ★★☆☆☆ | 面向生产环境 LLM 应用的调用链/观测/AB 测试，非编码工作台 |
-| [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD)（约 48k stars） | 多角色 AI 代理的全生命周期开发方法论框架 | ★★★☆☆ | 有流程无资产库：方法论+模板以文件形式分发，无 GUI 工作台、无提示词/术语管理 |
-| [github/spec-kit](https://github.com/github/spec-kit) / [OpenSpec](https://github.com/Fission-AI/OpenSpec) | 规格驱动开发（spec-driven）脚手架 | ★★★☆☆ | 同上：流程工具，资产与知识沉淀缺位 |
-| [Pimzino/claude-code-spec-workflow](https://github.com/Pimzino/claude-code-spec-workflow) | Claude Code 上的 spec 驱动工作流（重心已转向 MCP 版） | ★★☆☆☆ | 单平台、单流程 |
-| SuperClaude Framework / [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code) | Claude Code 增强配置框架 / 资源清单 | ★☆☆☆☆ | 配置资产本身，不是管理工具 |
+| 项目                                                                                                                 | 定位                                                                          | 与本项目重叠度 | 关键差距                                                                    |
+| -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | :------------: | --------------------------------------------------------------------------- |
+| [legeling/PromptHub](https://github.com/legeling/PromptHub)                                                          | 本地优先的 Prompt/Skill/Agent 资产工作台（桌面+Web+CLI）                      | ★★★★☆（最高）  | 纯个人工具：无团队协作、无项目流程管理、无术语库、无技巧库                  |
+| [BloopAI/vibe-kanban](https://github.com/BloopAI/vibe-kanban)                                                        | AI 编码代理的看板编排器（并行跑 agent、worktree、diff 审查）                  |     ★★☆☆☆      | 只管「代理执行过程」，不管资产沉淀与标准分发                                |
+| [PatrickJS/awesome-cursorrules](https://github.com/PatrickJS/awesome-cursorrules) + cursor.directory                 | Cursor 规则文件集合（约 40k stars，257+ 规则）                                |     ★★☆☆☆      | 静态收藏夹，无管理/版本/分发能力                                            |
+| [skills.sh](https://skills.sh) + [VoltAgent/awesome-agent-skills](https://github.com/VoltAgent/awesome-agent-skills) | Agent Skill 的浏览/安装渠道（1000+ skills，兼容 Claude Code/Cursor/Codex 等） |     ★★☆☆☆      | 是「商店」不是「工作台」：装完即止，无项目级编排与团队治理                  |
+| [Langfuse](https://langfuse.com) / [Agenta](https://agenta.ai) / Pezzo                                               | LLMOps 提示词管理与评估平台                                                   |     ★★☆☆☆      | 面向生产环境 LLM 应用的调用链/观测/AB 测试，非编码工作台                    |
+| [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD)（约 48k stars）                                          | 多角色 AI 代理的全生命周期开发方法论框架                                      |     ★★★☆☆      | 有流程无资产库：方法论+模板以文件形式分发，无 GUI 工作台、无提示词/术语管理 |
+| [github/spec-kit](https://github.com/github/spec-kit) / [OpenSpec](https://github.com/Fission-AI/OpenSpec)           | 规格驱动开发（spec-driven）脚手架                                             |     ★★★☆☆      | 同上：流程工具，资产与知识沉淀缺位                                          |
+| [Pimzino/claude-code-spec-workflow](https://github.com/Pimzino/claude-code-spec-workflow)                            | Claude Code 上的 spec 驱动工作流（重心已转向 MCP 版）                         |     ★★☆☆☆      | 单平台、单流程                                                              |
+| SuperClaude Framework / [awesome-claude-code](https://github.com/hesreallyhim/awesome-claude-code)                   | Claude Code 增强配置框架 / 资源清单                                           |     ★☆☆☆☆      | 配置资产本身，不是管理工具                                                  |
 
 ## 二、重点竞品深挖
 
@@ -49,12 +49,12 @@
 
 ### 2.3 空白地带（机会）
 
-| 空白点 | 现状 | 本项目对应模块 |
-|--------|------|------|
-| vibe 术语库 | 无任何工具管理（散落在博客/推文/翻译不一） | M3 术语库 |
-| 技巧/避坑沉淀 | 散落在 awesome 清单和文章里，不可结构化检索 | M4 技巧库 |
-| 团队级标准分发 | 无人做「标准包」一键注入 + 版本治理 | M6 标准包与注入 + M7 协作 |
-| 资产↔流程闭环 | 管资产的不懂流程，管流程的不存资产 | 标准化飞轮（PRD 第 5 章） |
+| 空白点         | 现状                                        | 本项目对应模块            |
+| -------------- | ------------------------------------------- | ------------------------- |
+| vibe 术语库    | 无任何工具管理（散落在博客/推文/翻译不一）  | M3 术语库                 |
+| 技巧/避坑沉淀  | 散落在 awesome 清单和文章里，不可结构化检索 | M4 技巧库                 |
+| 团队级标准分发 | 无人做「标准包」一键注入 + 版本治理         | M6 标准包与注入 + M7 协作 |
+| 资产↔流程闭环  | 管资产的不懂流程，管流程的不存资产          | 标准化飞轮（PRD 第 5 章） |
 
 ## 三、定位图
 

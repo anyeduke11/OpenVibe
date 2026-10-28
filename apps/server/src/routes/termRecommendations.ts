@@ -12,7 +12,10 @@ export interface TermRecommendationRouteDeps {
  * P4 落地时在这里加 query 参数 `?ai=1`，并在**降级时如实把 source 留在 'baseline'**
  * —— FR-6.3.3 最后一行：不得把基线结果包装成 AI 的输出。
  */
-export function registerTermRecommendationRoutes(app: FastifyInstance, deps: TermRecommendationRouteDeps): void {
+export function registerTermRecommendationRoutes(
+  app: FastifyInstance,
+  deps: TermRecommendationRouteDeps,
+): void {
   const service = createTermRecommendService({ db: deps.db })
 
   app.get('/api/projects/:id/term-recommendations', async (req) => {

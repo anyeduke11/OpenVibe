@@ -31,9 +31,7 @@ describe('UT-PB-02 · 反例可空（FR-1.1 / FR-6.3）', () => {
     expect(PlaybookCreateInput.safeParse(base).data?.antiPractice).toBe('')
     expect(PlaybookCreateInput.safeParse({ ...base, antiPractice: '' }).success).toBe(true)
 
-    const md = renderPlaybooksMdTable('选集', [
-      { ...base, antiPractice: '', verified: false },
-    ])
+    const md = renderPlaybooksMdTable('选集', [{ ...base, antiPractice: '', verified: false }])
     const row = md.split('\n')[6] ?? ''
     expect(row.endsWith('|  |')).toBe(true)
     expect(row).not.toContain('反例：')
@@ -82,9 +80,9 @@ describe('UT-PB-04 · verified 收紧（FR-4.1 / §6.1）', () => {
     expect(PlaybookCreateInput.safeParse({ ...base, verified: true, evidence: [] }).success).toBe(
       false,
     )
-    expect(
-      PlaybookCreateInput.safeParse({ ...base, verified: false, evidence: [] }).success,
-    ).toBe(true)
+    expect(PlaybookCreateInput.safeParse({ ...base, verified: false, evidence: [] }).success).toBe(
+      true,
+    )
     const ok = PlaybookCreateInput.safeParse({
       ...base,
       verified: true,
@@ -130,7 +128,10 @@ describe('UT-PB-06 · PLAYBOOKS.md 渲染契约（FR-6.1 / FR-4.3）', () => {
     expect(lines[6]).toContain('| 是 |')
     expect(lines[7]).toMatch(/\|\s*\|$/)
     // 裸 `|` 存原文、转义只发生一次
-    expect(renderPlaybooksMdTable('x', [{ ...base, practice: 'A | B', antiPractice: '', verified: false }]))
-      .toContain('A \\| B')
+    expect(
+      renderPlaybooksMdTable('x', [
+        { ...base, practice: 'A | B', antiPractice: '', verified: false },
+      ]),
+    ).toContain('A \\| B')
   })
 })

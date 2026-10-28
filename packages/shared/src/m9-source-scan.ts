@@ -47,11 +47,7 @@ export type ConsentSource = 'explicit_tick' | 'remembered'
  * | `unknown` | **历史行**（细分列之前写的行） |
  */
 export type ConsentDetail =
-  | 'memory_applied'
-  | 'user_reticked'
-  | 'user_partial'
-  | 'no_memory'
-  | 'unknown'
+  'memory_applied' | 'user_reticked' | 'user_partial' | 'no_memory' | 'unknown'
 
 /** 命中的可信度（§3.8.2 第 2 条：两档不混）。 */
 export type ScanConfidence = 'confirmed' | 'possible'

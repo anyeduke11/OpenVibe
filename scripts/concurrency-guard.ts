@@ -280,7 +280,10 @@ function worktreeContent(repoRoot: string, path: string): string | null {
 }
 
 /** index 与工作树的行数差（git 视角 ⇒ 行尾/属性过滤都已算进去） */
-function numstat(repoRoot: string, path: string): { worktreeOnly: number | null; stagedOnly: number | null } {
+function numstat(
+  repoRoot: string,
+  path: string,
+): { worktreeOnly: number | null; stagedOnly: number | null } {
   const out = git(repoRoot, ['diff', '--numstat', '--', path])
   if (out === null) return { worktreeOnly: null, stagedOnly: null }
   const line = out.split('\n')[0] ?? ''
@@ -427,10 +430,16 @@ export function renderGuard(input: {
 
   if (input.drift.length > 0) {
     out.push(`── 规则 A · 暂存与工作树分歧（命中 ${input.drift.length} 个文件）`)
-    out.push('  为什么危险：这次提交提交的是**暂存区（index）**的内容；工作树上更新的内容不会进这次提交。')
-    out.push('    并行会话正在写的段落就停在这个文件的工作树里 —— 谁整文件改写并暂存，别人的在编内容就会被静默丢掉。')
+    out.push(
+      '  为什么危险：这次提交提交的是**暂存区（index）**的内容；工作树上更新的内容不会进这次提交。',
+    )
+    out.push(
+      '    并行会话正在写的段落就停在这个文件的工作树里 —— 谁整文件改写并暂存，别人的在编内容就会被静默丢掉。',
+    )
     out.push('  怎么处置：')
-    out.push('    ① 多出来的内容是**别人会话正在写的** ⇒ 别整文件暂存：改用局部暂存（git add -p <文件>），')
+    out.push(
+      '    ① 多出来的内容是**别人会话正在写的** ⇒ 别整文件暂存：改用局部暂存（git add -p <文件>），',
+    )
     out.push('       或把这个文件整个留在工作树（git restore --staged <文件>）。')
     out.push('    ② 多出来的内容是**你自己后来又改的**，且确实要提交暂存区那一版 ⇒ 显式放行：')
     out.push(`       ${ALLOW_PARTIAL_STAGE_ENV}=1 git commit -m "..."`)
@@ -458,11 +467,15 @@ export function renderGuard(input: {
 
   if (input.markers.length > 0) {
     out.push(`── 规则 B · 回退特征（命中 ${input.markers.length} 处）`)
-    out.push('  为什么危险：已暂存内容里出现了本仓登记过的回退特征字样 ⇒ 可能把已修内容以旧措辞提交。')
+    out.push(
+      '  为什么危险：已暂存内容里出现了本仓登记过的回退特征字样 ⇒ 可能把已修内容以旧措辞提交。',
+    )
     out.push('    这类内容一旦入库就是历史，事后要改就得再改一次。')
     out.push('  怎么处置：')
     out.push('    ① 命中行确实是回退 ⇒ 改回新措辞后重新暂存（git add <文件>）再提交。')
-    out.push('    ② 命中行**不是**回退（本仓既有词汇误伤）⇒ 请在报告里点名行号与原文，由 owner 决定是否调判据。')
+    out.push(
+      '    ② 命中行**不是**回退（本仓既有词汇误伤）⇒ 请在报告里点名行号与原文，由 owner 决定是否调判据。',
+    )
     out.push('    ⚠️ 规则 B 不提供放行开关：回退态入库不可逆。')
     out.push('       （确实要跳过这一次：用 git commit --no-verify —— 但请先确认命中行无害。）')
     for (const m of input.markers) {

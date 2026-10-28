@@ -43,7 +43,9 @@ import {
 
 const SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))
 /** 计算层的源码（守卫要扫的是**它**，不是测试文件） */
-const CALC_SRC_FILE = fileURLToPath(new URL('../../../shared/src/m9-mode-interaction.ts', import.meta.url))
+const CALC_SRC_FILE = fileURLToPath(
+  new URL('../../../shared/src/m9-mode-interaction.ts', import.meta.url),
+)
 
 type Db = Parameters<typeof seedTopicProfiles>[0]
 
@@ -121,17 +123,15 @@ function oracleVibeMapping(db: Db, lang: 'python' | 'go'): TransferMappingEntry[
 /** 独立复算：该语言的站总数（distinct stage_id，只数语言级） */
 function oracleStationCount(db: Db, lang: 'python' | 'go'): number {
   const r = db
-    .prepare(`SELECT COUNT(DISTINCT stage_id) AS n FROM lang_topics WHERE lang = ? AND kind = 'language'`)
+    .prepare(
+      `SELECT COUNT(DISTINCT stage_id) AS n FROM lang_topics WHERE lang = ? AND kind = 'language'`,
+    )
     .get(lang) as { n: number }
   return r.n
 }
 
 /** 独立复算：某条资源在本模式下是不是「本模式必学」（直查 SQL） */
-function oracleResourceIsRequired(
-  db: Db,
-  resourceId: number,
-  profile: LangProfile,
-): boolean {
+function oracleResourceIsRequired(db: Db, resourceId: number, profile: LangProfile): boolean {
   const r = db
     .prepare(
       `SELECT COUNT(*) AS n
@@ -340,7 +340,9 @@ describe('M9 P1e · DL-39 资源模式标记（§3.20）', () => {
       expect(resourceModeLabel('master', after, profiles)).toBe('仅扩展阅读')
 
       // 闸：拿**变更前**的期望去对**变更后**的结果 ⇒ 必报违规
-      expect(findResourceLabelViolations(h.db, 'master', { [victim!.id]: '本模式必学' })).not.toEqual([])
+      expect(
+        findResourceLabelViolations(h.db, 'master', { [victim!.id]: '本模式必学' }),
+      ).not.toEqual([])
     } finally {
       h.close()
     }
@@ -359,12 +361,12 @@ describe('M9 P1e · DL-39 资源模式标记（§3.20）', () => {
         const topicIds = readAttachedTopicIds(h.db, r.id)
         const vibe = resourceModeLabel('vibe', topicIds, profiles)
         const master = resourceModeLabel('master', topicIds, profiles)
-        expect(
-          oracleResourceIsRequired(h.db, r.id, 'vibe') ? '本模式必学' : '仅扩展阅读',
-        ).toBe(vibe)
-        expect(
-          oracleResourceIsRequired(h.db, r.id, 'master') ? '本模式必学' : '仅扩展阅读',
-        ).toBe(master)
+        expect(oracleResourceIsRequired(h.db, r.id, 'vibe') ? '本模式必学' : '仅扩展阅读').toBe(
+          vibe,
+        )
+        expect(oracleResourceIsRequired(h.db, r.id, 'master') ? '本模式必学' : '仅扩展阅读').toBe(
+          master,
+        )
         if (vibe !== master) flipped += 1
       }
       expect(flipped).toBeGreaterThan(0)
@@ -434,7 +436,9 @@ function readAllSlugs(): string[] {
   const h = newDb()
   try {
     seedAll(h)
-    return (h.db.prepare(`SELECT slug FROM lang_topics`).all() as { slug: string }[]).map((r) => r.slug)
+    return (h.db.prepare(`SELECT slug FROM lang_topics`).all() as { slug: string }[]).map(
+      (r) => r.slug,
+    )
   } finally {
     h.close()
   }

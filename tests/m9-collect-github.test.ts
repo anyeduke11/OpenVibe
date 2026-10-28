@@ -129,14 +129,16 @@ describe('M9 另三源 · README 解析（清单型源）', () => {
   })
 
   it('② 一个列表项只取**第一个**链接（后面的在描述文字里）', () => {
-    const md = '## S\n- [PynamoDB](https://example.invalid/a)：[Amazon DynamoDB](https://example.invalid/b) 的一个 Python 风格接口。\n'
+    const md =
+      '## S\n- [PynamoDB](https://example.invalid/a)：[Amazon DynamoDB](https://example.invalid/b) 的一个 Python 风格接口。\n'
     const items = parseReadmeItems(md, APCN)
     expect(items).toHaveLength(1)
     expect(items[0]!.url).toBe('https://example.invalid/a')
   })
 
   it('③ 锚点链接（目录）不算条目', () => {
-    const md = '## Contents\n- [Actor Model](#actor-model)\n## 真实小节\n- [Ergo](https://example.invalid/e)\n'
+    const md =
+      '## Contents\n- [Actor Model](#actor-model)\n## 真实小节\n- [Ergo](https://example.invalid/e)\n'
     const items = parseReadmeItems(md, AGO)
     expect(items).toHaveLength(1)
     expect(items[0]!.url).toBe('https://example.invalid/e')

@@ -86,10 +86,10 @@ export function compareVersions(a: string | number[], b: string | number[]): num
 }
 
 /** 差额的生效区间。`end` 为 null 表示"至今仍生效"（直到版本未填）。 */
-export function deltaInterval(delta: {
-  since_version: string
-  until_version: string | null
-}): { start: number[]; end: number[] | null } {
+export function deltaInterval(delta: { since_version: string; until_version: string | null }): {
+  start: number[]
+  end: number[] | null
+} {
   return {
     start: parseVersion(delta.since_version),
     end: delta.until_version === null ? null : parseVersion(delta.until_version),

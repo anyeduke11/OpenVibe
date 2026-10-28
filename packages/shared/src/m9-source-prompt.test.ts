@@ -122,9 +122,11 @@ describe('M9 P1g · Pi 事件流 ⇒ 最终 assistant 正文', () => {
   })
 
   it('⑤ ⚠️ 坏行**跳过**（Pi 的 stdout 可能混进非 JSON 行）', () => {
-    const stream = ['not json at all', '', '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"text","text":"好"}]}}'].join(
-      '\n',
-    )
+    const stream = [
+      'not json at all',
+      '',
+      '{"type":"turn_end","message":{"role":"assistant","content":[{"type":"text","text":"好"}]}}',
+    ].join('\n')
     expect(extractAssistantTextFromEvents(stream)).toBe('好')
   })
 

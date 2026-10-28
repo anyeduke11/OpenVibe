@@ -140,11 +140,7 @@ export function resolveConfig(
   const warnings: string[] = []
   const { config, error } = readConfigFile(home)
   if (error)
-    warnings.push(
-      config
-        ? `${path}：${error}`
-        : `无法使用 ${path}：${error}，已回退默认配置`,
-    )
+    warnings.push(config ? `${path}：${error}` : `无法使用 ${path}：${error}，已回退默认配置`)
 
   let serverUrl: string
   let port: number

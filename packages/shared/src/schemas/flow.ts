@@ -3,9 +3,7 @@ import { FLOW_KINDS } from '../constants'
 
 export const StageSchema = z.object({
   name: z.string().min(1),
-  checklist: z
-    .array(z.object({ id: z.string().min(1), text: z.string().min(1) }))
-    .default([]),
+  checklist: z.array(z.object({ id: z.string().min(1), text: z.string().min(1) })).default([]),
   artifacts: z.array(z.string()).default([]),
   /** 问答段的提示词模板（DEV-0074，可选 additive）：含 {{变量}} 时该阶段可问答生成正文；
    *  空/缺省=传统检查清单阶段。问答运行时同名变量跨阶段继承（上下文传递）。

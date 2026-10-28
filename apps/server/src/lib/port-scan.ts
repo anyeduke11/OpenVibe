@@ -294,7 +294,9 @@ export interface ListenersResult {
 }
 
 /** 本机 TCP LISTEN 查询：darwin/linux 走 lsof，win32 走 netstat；不可用则降级为 warning */
-export async function listListeners(runner: CommandRunner = defaultRunner): Promise<ListenersResult> {
+export async function listListeners(
+  runner: CommandRunner = defaultRunner,
+): Promise<ListenersResult> {
   if (process.platform === 'win32') {
     try {
       return { listeners: parseNetstatListen(await runner('netstat', ['-ano', '-p', 'tcp'])) }

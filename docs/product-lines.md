@@ -6,13 +6,13 @@
 
 ## 两条产品线
 
-| | **分发线（核心）** | **学习线（第二产品线）** |
-|---|---|---|
-| 回答的问题 | 「把规则/知识编译成 AI 可用的项目上下文并分发出去」 | 「owner 自己的开发学习：学什么、到哪个阶段、怎么学」 |
-| 里程碑 | M1–M8 + v0.2.3 批次 A/B | M9 |
-| 用户旅程 | 库 → 组包 → 注入 → diff/verify → 回流 | 站位图 → 模式选择 → 资源清单 → 源码解读 |
-| 代码面 | apps/server 的 M1–M8 路由、CLI 五+九命令、`core/{pack,inject,search,repos,services}` | `lang*` 三组路由（24 条）、`core/db/m9-*` 的产品半、web `/dev` `/resources` |
-| Web 面 | `/library` `/terms` `/skills` `/flows` `/projects` `/packs` `/growth` `/settings` | `/dev` `/resources` |
+|            | **分发线（核心）**                                                                   | **学习线（第二产品线）**                                                    |
+| ---------- | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| 回答的问题 | 「把规则/知识编译成 AI 可用的项目上下文并分发出去」                                  | 「owner 自己的开发学习：学什么、到哪个阶段、怎么学」                        |
+| 里程碑     | M1–M8 + v0.2.3 批次 A/B                                                              | M9                                                                          |
+| 用户旅程   | 库 → 组包 → 注入 → diff/verify → 回流                                                | 站位图 → 模式选择 → 资源清单 → 源码解读                                     |
+| 代码面     | apps/server 的 M1–M8 路由、CLI 五+九命令、`core/{pack,inject,search,repos,services}` | `lang*` 三组路由（24 条）、`core/db/m9-*` 的产品半、web `/dev` `/resources` |
+| Web 面     | `/library` `/terms` `/skills` `/flows` `/projects` `/packs` `/growth` `/settings`    | `/dev` `/resources`                                                         |
 
 ## 共享面（两线都依赖，改动需双侧评估）
 
@@ -30,11 +30,11 @@
 
 `packages/core/src/db/migrations/` 按域分段，**核心域与 lang 域不混号**：
 
-| 号段 | 域 | 现状 |
-|---|---|---|
-| 0001–0010 | 核心域（资产/项目/台账/agent） | 已用 |
-| 0011–0018 | **lang 域**（学习线，`lang_*` 表） | 已用 |
-| 0019 起 | 核心域下一号 | 空闲 |
+| 号段          | 域                                                                                         | 现状                                                                |
+| ------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| 0001–0010     | 核心域（资产/项目/台账/agent）                                                             | 已用                                                                |
+| 0011–0018     | **lang 域**（学习线，`lang_*` 表）                                                         | 已用                                                                |
+| 0019 起       | 核心域下一号                                                                               | 空闲                                                                |
 | lang 域下一个 | **0019 之后的下一个空号由批次 D 的迁移规则定**（v0.2.3 PRD 批次 D 前置：CS6 号段规则先落） | 规则 = 两种域各自**单调取号、跳过对方域已占号**，不再按域预留连续段 |
 
 判定口径：看迁移文件名的目标表——建/改 `lang_*` 表的属 lang 域，其余属核心域。
@@ -45,21 +45,21 @@
 这些列由播种器在 reseed 时**无条件重写**（派生自种子数据或现算），三态合并的用户保护**不覆盖**它们——
 用户手改派生列会在下一轮 reseed 被冲掉。根治方向各列自明；改「派生 ⇒ 用户内容」的定性 = owner 裁定。
 
-| 列 | 派生源 | 写入点 | 用户可改？ | 根治方向 |
-|---|---|---|---|---|
-| `lang_topics.summary`（【概念层】前缀） | 概念挂接（p1-5） | `m9-p1-5-concept-content.ts` 的挂接回写 | 名义上可改但会被冲 | 挂接数据并入 topics json 或独立表 |
-| `lang_topics.stage_id` | 分站分配（p1-7 写回） | `m9-p1-7-topic-stages.ts`（保留写回，DEV-0141 裁定②） | 同上 | 站位并入 topics json、p1-7 只写 edges |
-| `lang_concept_deltas.supersedes` | 种子链路第二遍回填 | `m9-p1-6-concept-deltas.ts` | 同上 | 链路数据随种子 json 单源化 |
-| `lang_topic_profiles` 的清陈旧行 DELETE | `assignTopicProfiles` 现算 | `m9-p1d-seed-profiles.ts` | —（整行派生） | 现算结果与库的差集语义已在行注释声明 |
+| 列                                      | 派生源                     | 写入点                                                | 用户可改？         | 根治方向                              |
+| --------------------------------------- | -------------------------- | ----------------------------------------------------- | ------------------ | ------------------------------------- |
+| `lang_topics.summary`（【概念层】前缀） | 概念挂接（p1-5）           | `m9-p1-5-concept-content.ts` 的挂接回写               | 名义上可改但会被冲 | 挂接数据并入 topics json 或独立表     |
+| `lang_topics.stage_id`                  | 分站分配（p1-7 写回）      | `m9-p1-7-topic-stages.ts`（保留写回，DEV-0141 裁定②） | 同上               | 站位并入 topics json、p1-7 只写 edges |
+| `lang_concept_deltas.supersedes`        | 种子链路第二遍回填         | `m9-p1-6-concept-deltas.ts`                           | 同上               | 链路数据随种子 json 单源化            |
+| `lang_topic_profiles` 的清陈旧行 DELETE | `assignTopicProfiles` 现算 | `m9-p1d-seed-profiles.ts`                             | —（整行派生）      | 现算结果与库的差集语义已在行注释声明  |
 
 ## 收拢台账（批次 C 进度）
 
-| 步骤 | 状态 |
-|---|---|
-| CS3 upsert SQL 归一（8 处 → `seedRegistryUpsert` 单源） | ✅ 本批 |
-| CS1 工具面子出口（5 模块迁出主 barrel + `tests/tooling-face.test.ts` 闸） | ✅ 本批 + **物理归位 v2 完成**（5 模块文件与其测试已迁 `src/tooling/`，级联：mode-assign/necessity/tests 的相对导入随迁） |
-| CS4 最终处置 | ✅ **接入生产**：topic-terms → `GET /api/lang/topics/:id` 的 `attached_terms`；topic-filter → `GET /api/lang/topics`（含 coverage/options）；p1b-readme → `GET /api/lang/resources/readme`；grade-guard → `pnpm m9:grade-guard` 闸（仓库卫生守卫，无 server 接缝，生产化 = 独立闸） |
-| CS6 产品线声明 + 号段规则 | ✅ 本文件 |
-| CS2 种子纪律归一 | ✅ **两段完成**：第一段（0019 + `mergeSeedRow` + lang_topics）＋ 第二段（0020 唯一索引 + p1-5/p1-6/p1d/p1b 全部播种器三态化）——**全部播种内容表的单源纪律归一**，覆盖式 clobber 面清零。登记：p1-7 edges 保留 IGNORE（无内容列）；stage_id 双源写回留第三段设计题；p1-5 概念挂接回写 summary 是派生态 |
-| CS5 barrel 收敛 | ✅ 工具 `pnpm barrel:audit` 交付；**首批即收官**：CS1 摘除工具面后，主出口 388 符号零消费仅 1（`InjectAskFn` 别名）已摘，现值 **0**——此前的「267 零消费」实为工具面家族的错位 |
-| RQ4 只读段级 diff | ✅ `diffSections` 纯函数 + diff 命令挂接（包侧可达时段级明细，离线降级文件级；五状态判定与 golden 不动） |
+| 步骤                                                                      | 状态                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CS3 upsert SQL 归一（8 处 → `seedRegistryUpsert` 单源）                   | ✅ 本批                                                                                                                                                                                                                                                                                               |
+| CS1 工具面子出口（5 模块迁出主 barrel + `tests/tooling-face.test.ts` 闸） | ✅ 本批 + **物理归位 v2 完成**（5 模块文件与其测试已迁 `src/tooling/`，级联：mode-assign/necessity/tests 的相对导入随迁）                                                                                                                                                                             |
+| CS4 最终处置                                                              | ✅ **接入生产**：topic-terms → `GET /api/lang/topics/:id` 的 `attached_terms`；topic-filter → `GET /api/lang/topics`（含 coverage/options）；p1b-readme → `GET /api/lang/resources/readme`；grade-guard → `pnpm m9:grade-guard` 闸（仓库卫生守卫，无 server 接缝，生产化 = 独立闸）                   |
+| CS6 产品线声明 + 号段规则                                                 | ✅ 本文件                                                                                                                                                                                                                                                                                             |
+| CS2 种子纪律归一                                                          | ✅ **两段完成**：第一段（0019 + `mergeSeedRow` + lang_topics）＋ 第二段（0020 唯一索引 + p1-5/p1-6/p1d/p1b 全部播种器三态化）——**全部播种内容表的单源纪律归一**，覆盖式 clobber 面清零。登记：p1-7 edges 保留 IGNORE（无内容列）；stage_id 双源写回留第三段设计题；p1-5 概念挂接回写 summary 是派生态 |
+| CS5 barrel 收敛                                                           | ✅ 工具 `pnpm barrel:audit` 交付；**首批即收官**：CS1 摘除工具面后，主出口 388 符号零消费仅 1（`InjectAskFn` 别名）已摘，现值 **0**——此前的「267 零消费」实为工具面家族的错位                                                                                                                         |
+| RQ4 只读段级 diff                                                         | ✅ `diffSections` 纯函数 + diff 命令挂接（包侧可达时段级明细，离线降级文件级；五状态判定与 golden 不动）                                                                                                                                                                                              |

@@ -313,10 +313,7 @@ describe('M9 P1.7 · DL-26 §3.1 表数可复算（总数 + 分解两条都断�
     expect(orig.length).toBe(EXPECTED_STAGE_TABLES)
 
     // 注入：在 §3.1 区间里加一张不存在的表
-    const tampered = sec.replace(
-      /^lang_concepts/m,
-      'lang_fake_table（伪造的表）\nlang_concepts',
-    )
+    const tampered = sec.replace(/^lang_concepts/m, 'lang_fake_table（伪造的表）\nlang_concepts')
     const after = [...new Set([...tampered.matchAll(/^lang_[a-z_]+/gm)].map((m) => m[0]))]
     // 闸红：总数不再是 17
     expect(after.length).not.toBe(EXPECTED_STAGE_TABLES)

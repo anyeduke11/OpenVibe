@@ -144,9 +144,7 @@ export interface PlanDecideApplyResult {
  * @throws `InjectError` — `PATH_REJECTED`（待写路径没有已校验的绝对路径 ⇒ 防线被绕过，宁可整包中止）
  *   / `NEED_TTY` / `NO_ASKER`
  */
-export async function planDecideApply(
-  input: PlanDecideApplyInput,
-): Promise<PlanDecideApplyResult> {
+export async function planDecideApply(input: PlanDecideApplyInput): Promise<PlanDecideApplyResult> {
   const { warningsOut } = input
 
   // 核验先行：整包安全防线。违规即整包中止（m6b §6.1/§6.3）

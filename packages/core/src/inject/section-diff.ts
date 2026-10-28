@@ -54,8 +54,7 @@ function regionOf(
   actualLines: string[],
   missing = false,
 ): SectionRegion {
-  const same =
-    !missing && expectedLines.join('\n') === actualLines.join('\n')
+  const same = !missing && expectedLines.join('\n') === actualLines.join('\n')
   return {
     region,
     expectedLines: expectedLines.length,
@@ -88,7 +87,11 @@ export function diffSections(expected: string, actual: string): SectionDiffResul
     regions.push(regionOf('受管块', e.managed, [], true))
     const free = [...a.before, ...a.after]
     regions.push(regionOf('块外自由区', [...e.before, ...e.after], free, false))
-    return { regions, managedChanged: true, freeChanged: free.join('\n') !== [...e.before, ...e.after].join('\n') }
+    return {
+      regions,
+      managedChanged: true,
+      freeChanged: free.join('\n') !== [...e.before, ...e.after].join('\n'),
+    }
   }
 
   regions.push(regionOf('块外自由区', [...e.before, ...e.after], [...a.before, ...a.after]))

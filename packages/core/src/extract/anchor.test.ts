@@ -51,7 +51,10 @@ describe('anchorCandidates（QG3 幻觉防线，纯函数）', () => {
   })
 
   it('重复候选（同 quote 两条）各自独立判定，均命中则均通过', () => {
-    const { passed } = anchorCandidates([c({ title: 'A' }), c({ title: 'B' })], [src(0, '含原文句')])
+    const { passed } = anchorCandidates(
+      [c({ title: 'A' }), c({ title: 'B' })],
+      [src(0, '含原文句')],
+    )
     expect(passed.map((p) => p.title)).toEqual(['A', 'B'])
   })
 

@@ -1,5 +1,10 @@
 import type { SqliteDatabase } from '../db'
-import { adoptionStats, ADOPTION_THRESHOLD, ADOPTION_WINDOW_MIN, type AdoptionKindStat } from './adoption'
+import {
+  adoptionStats,
+  ADOPTION_THRESHOLD,
+  ADOPTION_WINDOW_MIN,
+  type AdoptionKindStat,
+} from './adoption'
 
 /**
  * AN5 第二段：采纳率快照与「连续 N 轮低于门槛」判定（QG1 的时间序列面）。
@@ -34,7 +39,15 @@ export function writeAdoptionSnapshots(db: SqliteDatabase, now: string): Adoptio
       `INSERT INTO adoption_snapshots (kind, round_no, published, rejected, rate, below, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
     ).run(k.kind, roundNo, k.published, k.rejected, k.rate, k.belowThreshold ? 1 : 0, now)
-    out.push({ kind: k.kind, roundNo, published: k.published, rejected: k.rejected, rate: k.rate, below: k.belowThreshold, createdAt: now })
+    out.push({
+      kind: k.kind,
+      roundNo,
+      published: k.published,
+      rejected: k.rejected,
+      rate: k.rate,
+      below: k.belowThreshold,
+      createdAt: now,
+    })
   }
   return out
 }
@@ -51,7 +64,9 @@ export interface ConsecutiveLowVerdict {
 export function consecutiveLowAdoption(db: SqliteDatabase): ConsecutiveLowVerdict[] {
   const kinds = ['term_candidate', 'prompt_candidate', 'playbook_candidate'] as const
   return kinds.map((kind) => {
-    const rows = db.prepare(`SELECT round_no, rate FROM adoption_snapshots WHERE kind = ?`).all(kind) as {
+    const rows = db
+      .prepare(`SELECT round_no, rate FROM adoption_snapshots WHERE kind = ?`)
+      .all(kind) as {
       round_no: number
       rate: number | null
     }[]

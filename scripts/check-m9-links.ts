@@ -142,7 +142,9 @@ async function main(): Promise<void> {
   const targets = planLinkTargets(db)
   const rowsBefore = countRows(db)
   const mainRows = (db.prepare('SELECT COUNT(*) AS c FROM lang_resources').get() as { c: number }).c
-  const vibeRows = (db.prepare('SELECT COUNT(*) AS c FROM lang_vibe_resources').get() as { c: number }).c
+  const vibeRows = (
+    db.prepare('SELECT COUNT(*) AS c FROM lang_vibe_resources').get() as { c: number }
+  ).c
 
   if (!args.execute) {
     console.log('[m9:links] 计划（dry-run —— 没发任何请求，库也没动）')
@@ -164,7 +166,9 @@ async function main(): Promise<void> {
     console.log(`[m9:links] 巡检完成 —— ${new Date(report.checkedAt).toISOString()}`)
     console.log(`  请求 ${String(report.requestedUrls)} 个 URL（方法 ${report.method}）`)
     console.log(`  失败 ${String(report.failedUrls)} 个 · 判死 ${String(report.markedDead)} 行`)
-    console.log(`  疑似 ${String(report.markedSuspect)} 行 · 已过时 ${String(report.outdatedRows)} 行`)
+    console.log(
+      `  疑似 ${String(report.markedSuspect)} 行 · 已过时 ${String(report.outdatedRows)} 行`,
+    )
     for (const target of report.targets) {
       const verdict = verdictOf(target)
       if (args.all || verdict.liveness !== 'ok' || verdict.outdated) {

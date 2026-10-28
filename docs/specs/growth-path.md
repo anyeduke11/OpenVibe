@@ -1,13 +1,13 @@
 # SPEC · 成长路径（草案：F0–F3 阶段机、渐进披露五硬约束、六项能力 C1–C6 的接线）
 
-| 项 | 值 |
-|------|------|
-| 模块 | 横切能力（成长面：覆盖 M1 提示词／M2 Skill／M3 术语／M5 流程／M6 标准包五个模块的**视图与判定层**，本身不是第六类资产）——沿用「横切能力用功能名」命名法（dev-plan §0.4 第 5 条）；能力代号 **CP1–CP6**、动作代号 **2-1…2-7**、阶段代号 **F0–F3**（PRD §10.0 右列） |
-| 优先级 | **RF2 全段**（PRD §10.2 表 RF2 行：**七项 2-1…2-7，判级 B×6 · C×1，依赖 1-5，周期 3–4 周**；分析文 §7 Phase 2 表）。这是 v0.2.0 里**唯一以「用户会不会用」而非「系统能不能跑」为对象的阶段** |
-| 上游 | PRD §10.2/§10.3/§10.4 第二组；PRD 附录 D 的 **D28**（RF2 采纳 + 五红线 + 否证触发器）；分析文 **§5 全章**（§5.1 阶段模型 · §5.2 信号 · §5.3 披露五规则与分页表 · §5.4 C1–C6 · §5.5 接线图）· §2.1 表 **J2** 行（五类资产衰变率差一个数量级却共用一套 `status`）· §3.2 命题四推论（「不该给所有资产加同一个 `level` 字段」）；`docs/specs/local-event-ledger.md`（信号源，**硬前置**） |
-| 下游设计 | `docs/specs/onboarding.md`（C6 成长面板的接位与三步向导不动）、`docs/specs/m4-playbook.md` §2 Out（**CP4 的边界来源，本文件不推翻**）、`docs/specs/m3-glossary.md`／`m1-prompt-library.md`／`m2-skill-registry.md`（三类资产的时效展示语义）、design §7（本文件的**负边界**：新字段一律不进 pack 契约） |
-| 关联任务 | **无**。PRD §10.4 第三组原文：「本轮**不建任务组**。RF0–RF5 各阶段开工前须先在 `docs/specs/` 补规格，任务组编号（T14 起）待规格落地后在 `tasks.md` 另起」 |
-| 版本 | **v0.9 草案（2026-10-03，纯新文件；本轮不改任何既有规格）**。按 dev-plan §0.4 第 1/3/4 条**不构成开工依据**，且本文件的前置比其它八份更硬：D28 的否证触发器是 **§10-1 的五人走查**，走查未做之前 CP1／CP2／CP6 三项**只是设计图**（触发即撤回，只留 CP3+CP5），见 §6.4 |
+| 项       | 值                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 模块     | 横切能力（成长面：覆盖 M1 提示词／M2 Skill／M3 术语／M5 流程／M6 标准包五个模块的**视图与判定层**，本身不是第六类资产）——沿用「横切能力用功能名」命名法（dev-plan §0.4 第 5 条）；能力代号 **CP1–CP6**、动作代号 **2-1…2-7**、阶段代号 **F0–F3**（PRD §10.0 右列）                                                                                                                    |
+| 优先级   | **RF2 全段**（PRD §10.2 表 RF2 行：**七项 2-1…2-7，判级 B×6 · C×1，依赖 1-5，周期 3–4 周**；分析文 §7 Phase 2 表）。这是 v0.2.0 里**唯一以「用户会不会用」而非「系统能不能跑」为对象的阶段**                                                                                                                                                                                          |
+| 上游     | PRD §10.2/§10.3/§10.4 第二组；PRD 附录 D 的 **D28**（RF2 采纳 + 五红线 + 否证触发器）；分析文 **§5 全章**（§5.1 阶段模型 · §5.2 信号 · §5.3 披露五规则与分页表 · §5.4 C1–C6 · §5.5 接线图）· §2.1 表 **J2** 行（五类资产衰变率差一个数量级却共用一套 `status`）· §3.2 命题四推论（「不该给所有资产加同一个 `level` 字段」）；`docs/specs/local-event-ledger.md`（信号源，**硬前置**） |
+| 下游设计 | `docs/specs/onboarding.md`（C6 成长面板的接位与三步向导不动）、`docs/specs/m4-playbook.md` §2 Out（**CP4 的边界来源，本文件不推翻**）、`docs/specs/m3-glossary.md`／`m1-prompt-library.md`／`m2-skill-registry.md`（三类资产的时效展示语义）、design §7（本文件的**负边界**：新字段一律不进 pack 契约）                                                                               |
+| 关联任务 | **无**。PRD §10.4 第三组原文：「本轮**不建任务组**。RF0–RF5 各阶段开工前须先在 `docs/specs/` 补规格，任务组编号（T14 起）待规格落地后在 `tasks.md` 另起」                                                                                                                                                                                                                             |
+| 版本     | **v0.9 草案（2026-10-03，纯新文件；本轮不改任何既有规格）**。按 dev-plan §0.4 第 1/3/4 条**不构成开工依据**，且本文件的前置比其它八份更硬：D28 的否证触发器是 **§10-1 的五人走查**，走查未做之前 CP1／CP2／CP6 三项**只是设计图**（触发即撤回，只留 CP3+CP5），见 §6.4                                                                                                                |
 
 ---
 
@@ -20,34 +20,34 @@
 
 ## 2. 范围
 
-| In（本 spec 覆盖） | Out（明确不做，写明理由与去向） |
-|---|---|
-| 2-1 资产 `audience`／`freshness` 两列 + 四类资产各自的时效展示语义 | **把新字段写进 pack 契约**（manifest／selection／lock）——分析文 J2 行自陈「B（schema 加列）→ **部分 A（若进 pack 契约）**」，本文件停在 B（FR-1.5） |
-| 2-2 CP1 成长阶段机：`(模块 × F0–F3)` 向量 + 四条毕业信号的判定 | 账号／团队维度的阶段（本地单用户产品；跨人阶段属 M7=RF5，且那里今天只有形状） |
-| 2-3 CP3 渐进披露层：五条硬约束 + 五张页面的差异默认值 | **隐藏数据或隐藏错误**（规则 1/2 是硬约束，任何「简化」都不得吞信息，见 §6.2） |
-| 2-4 CP6 成长面板：接在既有飞轮卡片位，显示四阶段进度与本机统计 | 遥测增长看板（`dev-plan §15.5` 第 6 行的同名异物，**不是**本项，见 §6.5） |
-| 2-5 CP2 推荐引擎 **v0**：≤3 条、剧本快照确定、空库不推荐 | 任何学习算法、任何「AI 猜你想做什么」（v0 是**固定规则表**，FR-7.4；模型化不在 RF2） |
-| 2-6 CP5 教学内容内嵌：每个 FR 页面一处锚点，文案进 i18n | 新建教程站／外部文档跳转（内嵌是本项的定义性特征） |
-| 2-7 CP4 复盘候选**确定性**提取（显式标记 → 候选 → 人工确认入库） | **LLM 推断式提取**（须先有独立 B 级裁定 + 质量判据，FR-9.3 写死）；也不推翻 `m4-playbook.md §2 Out` |
-| 升级时刻的一次性卡片（复用 `TelemetryAskCard`／`OnboardingBar` 形制） | 新造交互语言、模态打断（规则 5）；「阶段」当权限（§6.6） |
+| In（本 spec 覆盖）                                                    | Out（明确不做，写明理由与去向）                                                                                                                     |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2-1 资产 `audience`／`freshness` 两列 + 四类资产各自的时效展示语义    | **把新字段写进 pack 契约**（manifest／selection／lock）——分析文 J2 行自陈「B（schema 加列）→ **部分 A（若进 pack 契约）**」，本文件停在 B（FR-1.5） |
+| 2-2 CP1 成长阶段机：`(模块 × F0–F3)` 向量 + 四条毕业信号的判定        | 账号／团队维度的阶段（本地单用户产品；跨人阶段属 M7=RF5，且那里今天只有形状）                                                                       |
+| 2-3 CP3 渐进披露层：五条硬约束 + 五张页面的差异默认值                 | **隐藏数据或隐藏错误**（规则 1/2 是硬约束，任何「简化」都不得吞信息，见 §6.2）                                                                      |
+| 2-4 CP6 成长面板：接在既有飞轮卡片位，显示四阶段进度与本机统计        | 遥测增长看板（`dev-plan §15.5` 第 6 行的同名异物，**不是**本项，见 §6.5）                                                                           |
+| 2-5 CP2 推荐引擎 **v0**：≤3 条、剧本快照确定、空库不推荐              | 任何学习算法、任何「AI 猜你想做什么」（v0 是**固定规则表**，FR-7.4；模型化不在 RF2）                                                                |
+| 2-6 CP5 教学内容内嵌：每个 FR 页面一处锚点，文案进 i18n               | 新建教程站／外部文档跳转（内嵌是本项的定义性特征）                                                                                                  |
+| 2-7 CP4 复盘候选**确定性**提取（显式标记 → 候选 → 人工确认入库）      | **LLM 推断式提取**（须先有独立 B 级裁定 + 质量判据，FR-9.3 写死）；也不推翻 `m4-playbook.md §2 Out`                                                 |
+| 升级时刻的一次性卡片（复用 `TelemetryAskCard`／`OnboardingBar` 形制） | 新造交互语言、模态打断（规则 5）；「阶段」当权限（§6.6）                                                                                            |
 
 ## 3. 现状与实测基线（采样：2026-10-03 工作树；提交树 `54789b8`）
 
-| # | 量 | 现测值 | 复算命令 |
-|---|---|---|---|
-| 1 | 新手第一眼面对的量 | 工作树种子：**术语 109 条／提示词 21 条／流程模板 7 个**；导航固定七项（库／术语／Skill／流程／项目／标准包／设置）＋ `OnboardingBar` + `FlywheelCard` 常驻顶栏 | `python3 -c` 读 `content/seed/{terms,prompts,flow-templates}.json` 的 `items` 长度；导航项数见 `docs/dev-plan.md` 的 AppShell 段 |
-| 2 | 阶段与信号词表现状 | `grep -rnE 'level\|difficulty\|audience\|maturity' packages/core/src/db/migrations/*.sql` → **0 命中**；`stage_view_switched`／`flow_template_run`／`growthStage` 全仓 → **0 命中** | 同上两条 |
-| 3 | **接线三零件的入库状态（本文件最重要的更正）** | `packages/shared/src/roadmap.ts`（`TERM_ROADMAP`）、`packages/shared/src/interview.ts`（`interviewPrompt`）、`apps/web/src/components/terms/TermRoadmapView.tsx`、`apps/web/src/hooks/useRoadmapOrder.ts`、`FlowRunDialog.tsx`、`VariableFillPanel.tsx` **六件全部 UNTRACKED**；`git grep -n 'TERM_ROADMAP\|interviewPrompt' HEAD` → **零命中**；`content/seed/flow-templates.json` **HEAD 3 条／工作树 7 条**。⇒ 分析文 §5.5「三块零件都已存在且有测试」**只对上午的工作树成立** | `git ls-files --others --exclude-standard`（17 个未入库文件）＋ `git grep -c TERM_ROADMAP HEAD \|\| true` |
-| 4 | `TERM_ROADMAP` 的站数 | 工作树现测 **9 站**（core／frontend／backend／product／testing／stack／ai／git／design）。分析文 §5.5 写「已有 4 站」——**不可复算**，本文件按现测走 | `grep -cE '^ +\{? ?id: ' packages/shared/src/roadmap.ts` |
-| 5 | 「7 个模板里 4 个问答式」的可判性 | 工作树 7 条模板的 `kind` 值域 = `light` 2／`spec_driven` 3／`retro` 2，**没有「问答」这一 kind**；按名称含「问答」只有 2 条（发布闸问答、周度复盘问答）⇒ 分析文这句**无机读指代**，不得作为判据引用 | `python3 -c` 打印 `items` 的 `kind` 分布 |
-| 6 | 四类资产的「来源」字段**三套不同** | `prompts`：只有 `seed_hash`（无 `source`）；`terms`：`source`（默认 `manual`）+ `seed_hash`；`skills`：只有 `source CHECK('local','manual','github','skillhub')`（无 `seed_hash`，0004 重建表时扩的值域）；`flow_templates`：`builtin INTEGER` + `seed_hash` ⇒ 分析文 §5.1 的 F2 判据「`source != seed`」**在四类里一句都落不了地**（`seed` 不是任何一列的取值） | `awk '/CREATE TABLE prompts/,/\);/' packages/core/src/db/migrations/0001_init.sql`（余三类同法；skills 见 0004） |
-| 7 | 加列的两种既有形制 | **可空无约束列** = `ALTER TABLE skills ADD COLUMN remote_ref TEXT`（0005，一条语句）；**带 CHECK 值域的列** = 官方 12 步重建（0004，注释原文「**SQLite 不能 ALTER CHECK 约束**」，并说明 runner 迁移期临时关外键以免 `ON DELETE CASCADE` 清空 `skill_versions`） | `sed -n '1,20p' packages/core/src/db/migrations/0004_skill_remote_sources.sql` |
-| 8 | 四条毕业信号今天的可判性 | **F0 半可判**：`injections(pack_id, pack_version, project_path, injected_at)` 有行即「端到端注入过」；`project_check_states(project_id, stage_name, item_id, checked_at)` 有行即「勾过清单」——两支 SQL 今天就能跑。**F3 半可判**：`injections` 按 `pack_id` 聚合 `count(distinct project_path) >= 3`（注意 `pack_id` **可空**）。**F1 不可判**：「用过 ≥2 个流程模板」只能看到 `projects.flow_template_id`（**建项目时选了哪个**，不等于跑过），`asset_updated` 无源。**F2 半可判**：`pack_exports` × `standard_packs.name != 'default'` 可判「导出过非预置包」，「自建资产」无源 | DDL 见 `0001_init.sql`；`grep -n 'CREATE TABLE injections' -A6 packages/core/src/db/migrations/0001_init.sql` |
-| 9 | PRD 对「现有表够不够」的既有结论 | §10.4.1 的 **J7 结论**：「现有 16 张实表无一能机读计数『工作台真实使用 ≥10 次』⇒ AD2（=D29）不撤回」。本文件第 8 行**不与之冲突也不重开它**：被排除的是那一个复合口径，而不是每条信号 | 引 PRD §10.4.1 J7 段（节锚，不复制表格） |
-| 10 | 一次性卡片的既有形制 | `TelemetryAskCard` props `{askState, onChoose}`，只在「首次注入后且 `askState=unset`」出现、选「暂不」落 `declined`；`OnboardingBar` props `{step, onSkip, onDone}`（步骤③轮询 lock）。两个组件均已在 `apps/web/src/components/onboarding/` 下、且 `TelemetryAskCard.tsx` 直接 import `TELEMETRY_EVENTS` 常量 | `grep -n 'TelemetryAskCard\|OnboardingBar' docs/dev-plan.md`（组件契约表两行）＋ `ls apps/web/src/components/onboarding/` |
-| 11 | 阶段向量能存的现成位置 | `app_meta` 是跨进程 KV 的唯一权威处，`APP_META_KEYS` 现有 **3 键**（`telemetryEnabled`／`telemetryAskState`／`onboardingDone`，`packages/core/src/repos/appMeta.ts:7-11`），读回按 fallback 容错——**`telemetryAskState` 就是「一次性、拒绝后不再打扰」这个形制的既有实现** | `sed -n '1,20p' packages/core/src/repos/appMeta.ts` |
-| 12 | 回流链的既有覆盖面（C4 的落点） | **读链已有**：`GET /api/reflow-origin/:assetId`（`apps/server/src/routes/devlog.ts:62`）＋ `ReflowOriginOut`（`packages/shared/src/schemas/task.ts:59`）＋ `FlywheelStatsOut.reflows`（`schemas/settings.ts:71`）＋ 飞轮统计里的 `reflows` 聚合。**写链只有 link**，没有候选提取 | `grep -rn 'reflow' apps/server/src packages/shared/src/schemas` |
-| 13 | 术语正文的实际位置（影响 F0 术语视图） | 主规则文件里术语只有一行「见 TERMS.md（N 条）」，正文在 `TERMS.md`（`packages/core/src/pack/composer.ts:123-126`）⇒ 「F0 只显示第 1 站」这类披露只能作用于**界面**，不可能作用于注入产物（产物是全集，这是设计事实不是缺陷） | `grep -n 'PACK_SECTION_TERMS' -A3 packages/core/src/pack/composer.ts` |
+| #   | 量                                             | 现测值                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | 复算命令                                                                                                                         |
+| --- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | 新手第一眼面对的量                             | 工作树种子：**术语 109 条／提示词 21 条／流程模板 7 个**；导航固定七项（库／术语／Skill／流程／项目／标准包／设置）＋ `OnboardingBar` + `FlywheelCard` 常驻顶栏                                                                                                                                                                                                                                                                                                                                                                                                                   | `python3 -c` 读 `content/seed/{terms,prompts,flow-templates}.json` 的 `items` 长度；导航项数见 `docs/dev-plan.md` 的 AppShell 段 |
+| 2   | 阶段与信号词表现状                             | `grep -rnE 'level\|difficulty\|audience\|maturity' packages/core/src/db/migrations/*.sql` → **0 命中**；`stage_view_switched`／`flow_template_run`／`growthStage` 全仓 → **0 命中**                                                                                                                                                                                                                                                                                                                                                                                               | 同上两条                                                                                                                         |
+| 3   | **接线三零件的入库状态（本文件最重要的更正）** | `packages/shared/src/roadmap.ts`（`TERM_ROADMAP`）、`packages/shared/src/interview.ts`（`interviewPrompt`）、`apps/web/src/components/terms/TermRoadmapView.tsx`、`apps/web/src/hooks/useRoadmapOrder.ts`、`FlowRunDialog.tsx`、`VariableFillPanel.tsx` **六件全部 UNTRACKED**；`git grep -n 'TERM_ROADMAP\|interviewPrompt' HEAD` → **零命中**；`content/seed/flow-templates.json` **HEAD 3 条／工作树 7 条**。⇒ 分析文 §5.5「三块零件都已存在且有测试」**只对上午的工作树成立**                                                                                                 | `git ls-files --others --exclude-standard`（17 个未入库文件）＋ `git grep -c TERM_ROADMAP HEAD \|\| true`                        |
+| 4   | `TERM_ROADMAP` 的站数                          | 工作树现测 **9 站**（core／frontend／backend／product／testing／stack／ai／git／design）。分析文 §5.5 写「已有 4 站」——**不可复算**，本文件按现测走                                                                                                                                                                                                                                                                                                                                                                                                                               | `grep -cE '^ +\{? ?id: ' packages/shared/src/roadmap.ts`                                                                         |
+| 5   | 「7 个模板里 4 个问答式」的可判性              | 工作树 7 条模板的 `kind` 值域 = `light` 2／`spec_driven` 3／`retro` 2，**没有「问答」这一 kind**；按名称含「问答」只有 2 条（发布闸问答、周度复盘问答）⇒ 分析文这句**无机读指代**，不得作为判据引用                                                                                                                                                                                                                                                                                                                                                                               | `python3 -c` 打印 `items` 的 `kind` 分布                                                                                         |
+| 6   | 四类资产的「来源」字段**三套不同**             | `prompts`：只有 `seed_hash`（无 `source`）；`terms`：`source`（默认 `manual`）+ `seed_hash`；`skills`：只有 `source CHECK('local','manual','github','skillhub')`（无 `seed_hash`，0004 重建表时扩的值域）；`flow_templates`：`builtin INTEGER` + `seed_hash` ⇒ 分析文 §5.1 的 F2 判据「`source != seed`」**在四类里一句都落不了地**（`seed` 不是任何一列的取值）                                                                                                                                                                                                                  | `awk '/CREATE TABLE prompts/,/\);/' packages/core/src/db/migrations/0001_init.sql`（余三类同法；skills 见 0004）                 |
+| 7   | 加列的两种既有形制                             | **可空无约束列** = `ALTER TABLE skills ADD COLUMN remote_ref TEXT`（0005，一条语句）；**带 CHECK 值域的列** = 官方 12 步重建（0004，注释原文「**SQLite 不能 ALTER CHECK 约束**」，并说明 runner 迁移期临时关外键以免 `ON DELETE CASCADE` 清空 `skill_versions`）                                                                                                                                                                                                                                                                                                                  | `sed -n '1,20p' packages/core/src/db/migrations/0004_skill_remote_sources.sql`                                                   |
+| 8   | 四条毕业信号今天的可判性                       | **F0 半可判**：`injections(pack_id, pack_version, project_path, injected_at)` 有行即「端到端注入过」；`project_check_states(project_id, stage_name, item_id, checked_at)` 有行即「勾过清单」——两支 SQL 今天就能跑。**F3 半可判**：`injections` 按 `pack_id` 聚合 `count(distinct project_path) >= 3`（注意 `pack_id` **可空**）。**F1 不可判**：「用过 ≥2 个流程模板」只能看到 `projects.flow_template_id`（**建项目时选了哪个**，不等于跑过），`asset_updated` 无源。**F2 半可判**：`pack_exports` × `standard_packs.name != 'default'` 可判「导出过非预置包」，「自建资产」无源 | DDL 见 `0001_init.sql`；`grep -n 'CREATE TABLE injections' -A6 packages/core/src/db/migrations/0001_init.sql`                    |
+| 9   | PRD 对「现有表够不够」的既有结论               | §10.4.1 的 **J7 结论**：「现有 16 张实表无一能机读计数『工作台真实使用 ≥10 次』⇒ AD2（=D29）不撤回」。本文件第 8 行**不与之冲突也不重开它**：被排除的是那一个复合口径，而不是每条信号                                                                                                                                                                                                                                                                                                                                                                                             | 引 PRD §10.4.1 J7 段（节锚，不复制表格）                                                                                         |
+| 10  | 一次性卡片的既有形制                           | `TelemetryAskCard` props `{askState, onChoose}`，只在「首次注入后且 `askState=unset`」出现、选「暂不」落 `declined`；`OnboardingBar` props `{step, onSkip, onDone}`（步骤③轮询 lock）。两个组件均已在 `apps/web/src/components/onboarding/` 下、且 `TelemetryAskCard.tsx` 直接 import `TELEMETRY_EVENTS` 常量                                                                                                                                                                                                                                                                     | `grep -n 'TelemetryAskCard\|OnboardingBar' docs/dev-plan.md`（组件契约表两行）＋ `ls apps/web/src/components/onboarding/`        |
+| 11  | 阶段向量能存的现成位置                         | `app_meta` 是跨进程 KV 的唯一权威处，`APP_META_KEYS` 现有 **3 键**（`telemetryEnabled`／`telemetryAskState`／`onboardingDone`，`packages/core/src/repos/appMeta.ts:7-11`），读回按 fallback 容错——**`telemetryAskState` 就是「一次性、拒绝后不再打扰」这个形制的既有实现**                                                                                                                                                                                                                                                                                                        | `sed -n '1,20p' packages/core/src/repos/appMeta.ts`                                                                              |
+| 12  | 回流链的既有覆盖面（C4 的落点）                | **读链已有**：`GET /api/reflow-origin/:assetId`（`apps/server/src/routes/devlog.ts:62`）＋ `ReflowOriginOut`（`packages/shared/src/schemas/task.ts:59`）＋ `FlywheelStatsOut.reflows`（`schemas/settings.ts:71`）＋ 飞轮统计里的 `reflows` 聚合。**写链只有 link**，没有候选提取                                                                                                                                                                                                                                                                                                  | `grep -rn 'reflow' apps/server/src packages/shared/src/schemas`                                                                  |
+| 13  | 术语正文的实际位置（影响 F0 术语视图）         | 主规则文件里术语只有一行「见 TERMS.md（N 条）」，正文在 `TERMS.md`（`packages/core/src/pack/composer.ts:123-126`）⇒ 「F0 只显示第 1 站」这类披露只能作用于**界面**，不可能作用于注入产物（产物是全集，这是设计事实不是缺陷）                                                                                                                                                                                                                                                                                                                                                      | `grep -n 'PACK_SECTION_TERMS' -A3 packages/core/src/pack/composer.ts`                                                            |
 
 ## 4. 数据与核心概念
 
@@ -137,46 +137,54 @@
 ## 6. 边界与异常
 
 ### 6.1 前置不是建议：三件事任一未做，RF2 就是空转
+
 ① §3-3 的六个未入库零件（含 17 个 untracked 文件里的产品代码）必须先由它们的作者入库——**入库笔不是我这一轮能做的，我也不 stage**；② `local-event-ledger.md`（1-5）必须落地，否则 F1 两支信号无源（FR-2.2）；③ `service-layer.md`（1-1）必须落地，否则 `growthService` 无处安放。这三条都在 PRD §10.2 的「依赖 1-5」里，本文件把它拆成可核的三件。
 
 ### 6.2 「渐进披露」最大的失败模式是变成隐藏
+
 一旦某条规则写成「F0 不显示版本历史」，它就越界了（规则 1）。可执行的判据是：每条披露规则的实现里必须能找到「查看全部」那一支的测试；找不到测试 = 没实现规则，实现了隐藏。
 
 ### 6.3 阶段判据不可复算就等于没有
+
 分析文给的 `source != seed` 在今天**一句都落不了地**（§3-6：四类资产的来源字段三套不同、`seed` 不是任何取值）。本文件因此把「非种子」判据落到 `payload_json.origin`，并要求它由**服务层写入时**盖章（一处），而不是事后从 `seed_hash` 反推——`seed_hash` 只证明「曾经与种子同形」，删种子后它就变成沉默。这条必须写进实现，否则 F2 的判据会在下一次 reseed 后漂移。
 
 ### 6.4 D28 的否证触发器（本文件的存亡条款）
+
 PRD 附录 D 的 **D28** 采纳 RF2 时配了否证触发器：**分析文 §10-1 的五人走查**。走查若证伪「阶段模型对真实用户有意义」，则**撤回 CP1／CP2／CP6，只保留 CP3 + CP5**（披露硬约束与教学内嵌即使没有阶段机也成立）。走查排在 RF2 开工**之前**，已登记进队列。⇒ 本文件写 CP1/CP2/CP6 的三份 FR 时一律带「否证后可整体移除」的形状：它们只读信号、只改默认值、只加卡片，**不改任何数据结构不变量**，所以撤回成本接近零。这条设计约束是刻意的，不是巧合。
 
 ### 6.5 同名异物：「飞轮面板」
+
 `dev-plan §15.5` 第 6 行已裁定过一次同名异物：tasks 变体备案里的「飞轮遥测面板」指**未做的遥测看板**（归 P2），代码里 `FlywheelCard.tsx` 是**已交付的本地五项统计卡片**。FR-6 接的是后者。本文件的措辞一律写「成长面板（接 `FlywheelCard` 位）」，**不得**简写成「飞轮面板」，否则下一轮会按「P1 该有面板」重复排工或按「面板归 P2」误判已交付功能是缺陷。
 
 ### 6.6 阶段不是权限，也不是筛选器
+
 `audience`／F0–F3 都不构成访问控制。任何「F0 看不到某资产」的实现都是 §6.2 的越界；任何「按 audience 过滤搜索结果」同样越界（默认过滤 = 隐藏）。规则 1 的精确表述是：**差别只发生在默认值上**。
 
 ### 6.7 第四套状态词汇的风险（与另三份文件同族）
+
 仓里已有 `INJECT_STATUSES`／`SYNC_STATES`／`retirement` 四态三套词汇（`entry-budget.md` FR-7 正在收敛前两套）。F0–F3 是**第四套**，且它语义上完全无关（那是成长，这是写入结果）。因此：阶段值的常量名必须显式带 `GROWTH_` 前缀、不得进注入报文、不得进 lock、不得进 manifest。这句边界不写，一年后一定有人拿 `status` 复用。
 
 ### 6.8 隐私：与遥测三事件「不同名、不同表、不同出口」
+
 沿用分析文 §5.2 末段与 `local-event-ledger.md` FR-2/FR-6 的三不同。本文件额外承担一条：**阶段本身永不出网**。设置页两节并排的呈现由台账那份文件负责，本文件只保证「成长面板与推荐引擎产生的所有数都来自本机台账 + 本机表」，并把它写成断言。
 
 ## 7. 验收标准（pass／fail 二值）
 
-| ID | 判据 | pass 条件 |
-|---|---|---|
-| `UT-GROW-01` | 迁移向前兼容 | 加列后旧库打开无迁移错误；旧行的新列为 `NULL`；0005 形制（一条 ALTER）与 0004 形制（重建）按 FR-1.2 的选择各自有例 |
-| `UT-GROW-02` | 四信号取数 | 四条判据各一支纯函数测试；F0/F3 用既有表构造，F1/F2 用台账事件构造；**断言不读任何「非种子」表列**（FR-2.2、§6.3） |
-| `UT-GROW-03` | 四个剧本的向量快照 | 分析文 C1 原文「造 4 个用户剧本（各阶段各一），断言阶段向量与预期一致；重置后可复现」⇒ 4 份剧本 + 1 份重置往返 |
-| `UT-GROW-04` | 单调与回退分离 | 清空台账后 `maxReached` 不变、`currentView` 可切；两者不同时被一个动作改动 |
-| `SRV-GROW-01` | 阶段向量端点 | 单一读端点返回向量 + 触发信号列表（规则 3 要「为什么」能被答出来）；无写端点（越级/重置走既有 settings 写链） |
-| `WEB-GROW-02` | 五条硬约束逐条有例 | 每规则 ≥1 条断言；**规则 2 那条必须在 F0 视图下断言冲突仍然可见**；规则 1 每条披露都配「查看全部」的可达测试 |
-| `WEB-GROW-03` | 升级卡形制 | 与 `TelemetryAskCard` 共用三态语义但**不同标记键**；declined 后不再出现；接受后不改 `maxReached` |
-| `WEB-GROW-04` | 成长面板回落 | 事件序列 → 面板数字；清空 → 数字回落而阶段不降级（FR-6.3）；`FlywheelCard` 既有五项不受影响 |
-| `SRV-GROW-05` | 推荐 v0 三件 | 固定剧本集合确定；空库返回空数组（不是默认推荐）；每条推荐带理由字符串且非硬编码占位 |
-| `SRV-GROW-06` | 候选不自动入库 | 提取 → 候选存在；**不确认则四类资产表行数不变**（FR-9.2 的主断言） |
-| `UT-GROW-07` | 零 LLM 依赖 | 本 RF 段全部实现内 `grep -rniE 'llm\|model\|prompt-infer\|openai\|anthropic'`（新增产品代码部分）命中 0（FR-9.3 的可执行形态） |
-| `WEB-GROW-08` | 教学锚点覆盖 | 每个 FR 页面 ≥1 处；文案全在命名空间文件里，组件内硬编码中文命中 0（FR-8.2） |
-| `GOLD-GROW-01` | 不进契约 | `tests/golden/` 零 diff；`audience`／`freshness`／阶段值在 manifest／lock／`selection` 三处 grep 命中 0（FR-1.5、§6.7） |
+| ID             | 判据               | pass 条件                                                                                                                      |
+| -------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `UT-GROW-01`   | 迁移向前兼容       | 加列后旧库打开无迁移错误；旧行的新列为 `NULL`；0005 形制（一条 ALTER）与 0004 形制（重建）按 FR-1.2 的选择各自有例             |
+| `UT-GROW-02`   | 四信号取数         | 四条判据各一支纯函数测试；F0/F3 用既有表构造，F1/F2 用台账事件构造；**断言不读任何「非种子」表列**（FR-2.2、§6.3）             |
+| `UT-GROW-03`   | 四个剧本的向量快照 | 分析文 C1 原文「造 4 个用户剧本（各阶段各一），断言阶段向量与预期一致；重置后可复现」⇒ 4 份剧本 + 1 份重置往返                 |
+| `UT-GROW-04`   | 单调与回退分离     | 清空台账后 `maxReached` 不变、`currentView` 可切；两者不同时被一个动作改动                                                     |
+| `SRV-GROW-01`  | 阶段向量端点       | 单一读端点返回向量 + 触发信号列表（规则 3 要「为什么」能被答出来）；无写端点（越级/重置走既有 settings 写链）                  |
+| `WEB-GROW-02`  | 五条硬约束逐条有例 | 每规则 ≥1 条断言；**规则 2 那条必须在 F0 视图下断言冲突仍然可见**；规则 1 每条披露都配「查看全部」的可达测试                   |
+| `WEB-GROW-03`  | 升级卡形制         | 与 `TelemetryAskCard` 共用三态语义但**不同标记键**；declined 后不再出现；接受后不改 `maxReached`                               |
+| `WEB-GROW-04`  | 成长面板回落       | 事件序列 → 面板数字；清空 → 数字回落而阶段不降级（FR-6.3）；`FlywheelCard` 既有五项不受影响                                    |
+| `SRV-GROW-05`  | 推荐 v0 三件       | 固定剧本集合确定；空库返回空数组（不是默认推荐）；每条推荐带理由字符串且非硬编码占位                                           |
+| `SRV-GROW-06`  | 候选不自动入库     | 提取 → 候选存在；**不确认则四类资产表行数不变**（FR-9.2 的主断言）                                                             |
+| `UT-GROW-07`   | 零 LLM 依赖        | 本 RF 段全部实现内 `grep -rniE 'llm\|model\|prompt-infer\|openai\|anthropic'`（新增产品代码部分）命中 0（FR-9.3 的可执行形态） |
+| `WEB-GROW-08`  | 教学锚点覆盖       | 每个 FR 页面 ≥1 处；文案全在命名空间文件里，组件内硬编码中文命中 0（FR-8.2）                                                   |
+| `GOLD-GROW-01` | 不进契约           | `tests/golden/` 零 diff；`audience`／`freshness`／阶段值在 manifest／lock／`selection` 三处 grep 命中 0（FR-1.5、§6.7）        |
 
 ### 7.7 未验证面（负向登记，不得读成已通过）
 
@@ -189,20 +197,20 @@ PRD 附录 D 的 **D28** 采纳 RF2 时配了否证触发器：**分析文 §10-
 
 ## 8. 依赖
 
-| 方向 | 项 |
-|---|---|
-| 硬前置 | `local-event-ledger.md`（1-5：`asset_updated`／`flow_template_run`／`stage_view_switched` 三个 kind 是本文件 F1 与「工作台真实使用」的唯一源）；`service-layer.md`（1-1：`growthService` 的落点）；§3-3 那六个未入库文件必须先入库；**§10-1 五人走查**（D28 否证触发器，排在 RF2 前） |
-| 并行 | `entry-budget.md`（FR-8.2 的命名空间落点）；`context-density.md`（面板若要显示密度，取那份文件的派生字段）；`write-selfproof.md`（冲突屏的段级差异是 FR-5.6 那一行的载体） |
-| 后置 | `m7-team-collab.md`（F3 的团队分支；其使用统计**必须**建在本台账上，见那份文件的 §8.2 残留①）；`onboarding.md`（C6 接位与「`injection_confirmed` 是 MT2 首次见效时间的右端点」） |
-| 明确不依赖 | `adapter-fixtures.md`（平台契约与成长面正交）；`docs-governance-check.md`（文档治理与用户成长正交） |
+| 方向       | 项                                                                                                                                                                                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 硬前置     | `local-event-ledger.md`（1-5：`asset_updated`／`flow_template_run`／`stage_view_switched` 三个 kind 是本文件 F1 与「工作台真实使用」的唯一源）；`service-layer.md`（1-1：`growthService` 的落点）；§3-3 那六个未入库文件必须先入库；**§10-1 五人走查**（D28 否证触发器，排在 RF2 前） |
+| 并行       | `entry-budget.md`（FR-8.2 的命名空间落点）；`context-density.md`（面板若要显示密度，取那份文件的派生字段）；`write-selfproof.md`（冲突屏的段级差异是 FR-5.6 那一行的载体）                                                                                                            |
+| 后置       | `m7-team-collab.md`（F3 的团队分支；其使用统计**必须**建在本台账上，见那份文件的 §8.2 残留①）；`onboarding.md`（C6 接位与「`injection_confirmed` 是 MT2 首次见效时间的右端点」）                                                                                                      |
+| 明确不依赖 | `adapter-fixtures.md`（平台契约与成长面正交）；`docs-governance-check.md`（文档治理与用户成长正交）                                                                                                                                                                                   |
 
 ### 8.2 待裁清单（不代 owner 裁）
 
-| # | 待裁 | 我的倾向与理由 |
-|---|---|---|
-| ① | **`freshness` 的值域**（四类资产各自的时效档位怎么表达：枚举？时间戳？版本串？还是每类各一套列？） | 倾向**每类各一套、共享一个读接口**（`freshnessLabel(kind) → string`），因为分析文 §3.2 明令不要折成一个数；但「四类四套」会让迁移与 UI 各做四遍，是否值当由 owner 判 |
-| ② | **阶段向量的存储位置与维度数**：`app_meta` 一份 JSON（五键）还是新表？要不要按项目再切一层 | 倾向 `app_meta` 一份 JSON + **不按项目切**：五键 KV 不值得一张表，按项目切没有信号源支撑（§4）。但这决定「重置」与「越级记忆」的实现面，须签字 |
-| ③ | **`stage_advanced` 算 flows 还是 packs 的信号**（清单是项目阶段，模板也挂在项目上，两套模块名重叠） | 倾向算 **flows**（阶段来自模板），并把「项目当前阶段」的推进视为 flows 的使用证据；这条映射直接改 F0/F1 的到达速度 |
-| ④ | **走查未做之前，CP1／CP2／CP6 算不算可开工项**：§6.4 的否证触发器把撤回条件写得很清楚，但没有规定「先走查还是先实现」 | 倾向**先走查后实现**（PRD §10.4 第二组已把 §10-1 排在 RF2 前），但走查是 owner 的组织动作，不是我能自证的完成条件 |
-| ⑤ | **队列 ㉕ 的冲突默认值**：FR-5.6 把分析文建议（只改 Web 预选 + 默认倒向保留本地 + 同屏如实标注）写进来了，但 ㉕ 本身仍待裁，且这是**唯一一处**Web 与 CLI 默认值可以不同的地方 | 倾向采 (a) 案：产品头号承诺是「不静默覆盖用户手改」，默认倒向保留本地是对的；CLI 的 `--yes` 是无交互语义，不构成矛盾。但「两个界面默认不同」本身是要 owner 认的体验决定 |
-| ⑥ | **FR-1.1 的加列范围**：`audience` 是否真需要进 `flow_templates`（模板的「面向谁」在现有 7 条模板里没有区分度） | 倾向**先不加** `flow_templates.audience`，等 FR-7 的推荐真的需要模板面向标签时再加——一次加四列里有一列是猜测，猜错的列会长期挂在 schema 里 |
+| #   | 待裁                                                                                                                                                                          | 我的倾向与理由                                                                                                                                                          |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ①   | **`freshness` 的值域**（四类资产各自的时效档位怎么表达：枚举？时间戳？版本串？还是每类各一套列？）                                                                            | 倾向**每类各一套、共享一个读接口**（`freshnessLabel(kind) → string`），因为分析文 §3.2 明令不要折成一个数；但「四类四套」会让迁移与 UI 各做四遍，是否值当由 owner 判    |
+| ②   | **阶段向量的存储位置与维度数**：`app_meta` 一份 JSON（五键）还是新表？要不要按项目再切一层                                                                                    | 倾向 `app_meta` 一份 JSON + **不按项目切**：五键 KV 不值得一张表，按项目切没有信号源支撑（§4）。但这决定「重置」与「越级记忆」的实现面，须签字                          |
+| ③   | **`stage_advanced` 算 flows 还是 packs 的信号**（清单是项目阶段，模板也挂在项目上，两套模块名重叠）                                                                           | 倾向算 **flows**（阶段来自模板），并把「项目当前阶段」的推进视为 flows 的使用证据；这条映射直接改 F0/F1 的到达速度                                                      |
+| ④   | **走查未做之前，CP1／CP2／CP6 算不算可开工项**：§6.4 的否证触发器把撤回条件写得很清楚，但没有规定「先走查还是先实现」                                                         | 倾向**先走查后实现**（PRD §10.4 第二组已把 §10-1 排在 RF2 前），但走查是 owner 的组织动作，不是我能自证的完成条件                                                       |
+| ⑤   | **队列 ㉕ 的冲突默认值**：FR-5.6 把分析文建议（只改 Web 预选 + 默认倒向保留本地 + 同屏如实标注）写进来了，但 ㉕ 本身仍待裁，且这是**唯一一处**Web 与 CLI 默认值可以不同的地方 | 倾向采 (a) 案：产品头号承诺是「不静默覆盖用户手改」，默认倒向保留本地是对的；CLI 的 `--yes` 是无交互语义，不构成矛盾。但「两个界面默认不同」本身是要 owner 认的体验决定 |
+| ⑥   | **FR-1.1 的加列范围**：`audience` 是否真需要进 `flow_templates`（模板的「面向谁」在现有 7 条模板里没有区分度）                                                                | 倾向**先不加** `flow_templates.audience`，等 FR-7 的推荐真的需要模板面向标签时再加——一次加四列里有一列是猜测，猜错的列会长期挂在 schema 里                              |

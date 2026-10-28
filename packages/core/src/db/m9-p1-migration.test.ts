@@ -108,14 +108,10 @@ describe('M9 P1.1 · 0011 迁移 + §3.1 知识拓扑表', () => {
     const h = newDb()
     // 先插两个合法 topic
     h.db
-      .prepare(
-        "INSERT INTO lang_topics (lang, slug, title, stage_id) VALUES ('python','a','A',0)",
-      )
+      .prepare("INSERT INTO lang_topics (lang, slug, title, stage_id) VALUES ('python','a','A',0)")
       .run()
     h.db
-      .prepare(
-        "INSERT INTO lang_topics (lang, slug, title, stage_id) VALUES ('python','b','B',0)",
-      )
+      .prepare("INSERT INTO lang_topics (lang, slug, title, stage_id) VALUES ('python','b','B',0)")
       .run()
     const ids = (
       h.db.prepare("SELECT id, slug FROM lang_topics WHERE slug IN ('a','b')").all() as {
@@ -156,9 +152,7 @@ describe('M9 P1.1 · 0011 迁移 + §3.1 知识拓扑表', () => {
       h.db.prepare("SELECT id FROM lang_topics WHERE slug='topic-x'").get() as { id: number }
     ).id
     const termId = (
-      h.db
-        .prepare("SELECT id FROM terms WHERE id='t-goroutine'")
-        .get() as { id: string }
+      h.db.prepare("SELECT id FROM terms WHERE id='t-goroutine'").get() as { id: string }
     ).id
     expect(() =>
       h.db
@@ -194,11 +188,7 @@ describe('M9 P1.1 · 0011 迁移 + §3.1 知识拓扑表', () => {
       )
       .run()
     // delta-2 引用 delta-1 作为 superseded
-    h.db
-      .prepare(
-        `UPDATE lang_concept_deltas SET supersedes = 1 WHERE id = 2`,
-      )
-      .run()
+    h.db.prepare(`UPDATE lang_concept_deltas SET supersedes = 1 WHERE id = 2`).run()
     // 删 delta-1 ⇒ delta-2.supersedes 应被 SET NULL（不级联删除 delta-2）
     h.db.prepare('DELETE FROM lang_concept_deltas WHERE id = 1').run()
     const second = h.db

@@ -69,9 +69,7 @@ export function SourceConsentSection() {
       title={L.title}
       icon="lock"
       hint={L.hint}
-      aside={
-        <span className={tagCls}>{`${String(items.length)} 个项目`}</span>
-      }
+      aside={<span className={tagCls}>{`${String(items.length)} 个项目`}</span>}
     >
       {items.length === 0 ? (
         <p className="text-[13.5px] text-ink-muted">{L.empty}</p>

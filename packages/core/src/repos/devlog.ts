@@ -50,9 +50,7 @@ export class DevLogRepo {
   create(projectId: string, input: DevLogCreateInput): DevLogOut {
     const assign = this.db.transaction(() => {
       const row = this.db
-        .prepare(
-          'SELECT MAX(entry_no) AS n FROM dev_log_entries WHERE project_id = ? AND type = ?',
-        )
+        .prepare('SELECT MAX(entry_no) AS n FROM dev_log_entries WHERE project_id = ? AND type = ?')
         .get(projectId, input.type) as { n: number | null }
       return (row.n ?? 0) + 1
     })
@@ -98,8 +96,7 @@ export class DevLogRepo {
 
   get(id: string): DevLogOut | null {
     const row = this.db.prepare('SELECT * FROM dev_log_entries WHERE id = ?').get(id) as
-      | LogRow
-      | undefined
+      LogRow | undefined
     return row ? rowToLog(row) : null
   }
 
@@ -170,7 +167,11 @@ export class DevLogRepo {
       }
       if (e.body) lines.push('', e.body)
       if (e.evidence) {
-        lines.push('', `- 测试命令: \`${e.evidence.command}\``, `- 结果: ${e.evidence.resultSummary}`)
+        lines.push(
+          '',
+          `- 测试命令: \`${e.evidence.command}\``,
+          `- 结果: ${e.evidence.resultSummary}`,
+        )
       }
       lines.push('')
     }

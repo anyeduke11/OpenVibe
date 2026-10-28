@@ -174,7 +174,8 @@ export function useLangScan() {
 }
 
 /** 读该项目的「记住我的选择」＋ 出网计数。 */
-export function useLangConsent(projectId: string | null) {  return useQuery({
+export function useLangConsent(projectId: string | null) {
+  return useQuery({
     queryKey: ['lang-consent', projectId ?? ''],
     queryFn: () =>
       apiJson<LangConsentResponse>(

@@ -14,7 +14,15 @@ import { resolveProjectByPath } from './status'
  */
 
 /** FR-4.1.1 的问题词闭集。顺序即报错文案与文档里的展示顺序 */
-export const ASK_KEYWORDS = ['status', 'next', 'checklist', 'assets', 'terms', 'playbook', 'logs'] as const
+export const ASK_KEYWORDS = [
+  'status',
+  'next',
+  'checklist',
+  'assets',
+  'terms',
+  'playbook',
+  'logs',
+] as const
 export type AskKeyword = (typeof ASK_KEYWORDS)[number]
 
 /**
@@ -87,11 +95,17 @@ export function answerOf(keyword: AskKeyword, ctx: ProjectContextOut): Record<st
   switch (keyword) {
     case 'status':
       return {
-        stage: { current: ctx.stage.current, total: ctx.stage.total, completed: ctx.stage.completed },
+        stage: {
+          current: ctx.stage.current,
+          total: ctx.stage.total,
+          completed: ctx.stage.completed,
+        },
         projectStatus: ctx.project.status,
       }
     case 'next': {
-      const pending = ctx.checklist.items.filter((i) => !i.checked).map((i) => ({ id: i.id, label: i.label }))
+      const pending = ctx.checklist.items
+        .filter((i) => !i.checked)
+        .map((i) => ({ id: i.id, label: i.label }))
       const tasks = ctx.tasks.items.filter((t) => t.status !== 'done')
       return {
         pendingChecklist: pending,
@@ -141,39 +155,56 @@ export function askLines(outcome: AskOutcome): string[] {
   switch (outcome.question) {
     case 'status': {
       const s = a.stage as { current: string | null; total: number; completed: number }
-      lines.push(`阶段 ${s.current ?? '(未开始)'}（第 ${s.completed}/${s.total} 阶段）· 项目状态 ${a.projectStatus as string}`)
+      lines.push(
+        `阶段 ${s.current ?? '(未开始)'}（第 ${s.completed}/${s.total} 阶段）· 项目状态 ${a.projectStatus as string}`,
+      )
       break
     }
     case 'next': {
       const pending = a.pendingChecklist as { label: string }[]
       const counts = a.taskCounts as { todo: number; doing: number; done: number }
-      lines.push(`未完检查项 ${pending.length}：${pending.map((i) => i.label).join('、') || '(无)'}`)
+      lines.push(
+        `未完检查项 ${pending.length}：${pending.map((i) => i.label).join('、') || '(无)'}`,
+      )
       lines.push(`未完任务 待办 ${counts.todo} 进行中 ${counts.doing}（已完成 ${counts.done}）`)
       for (const t of a.openTasks as { title: string; status: string }[])
         lines.push(`  ${t.status} ${t.title}`)
       break
     }
     case 'checklist': {
-      const c = a.checklist as { stageName: string | null; total: number; checked: number; pending: { label: string }[] }
+      const c = a.checklist as {
+        stageName: string | null
+        total: number
+        checked: number
+        pending: { label: string }[]
+      }
       lines.push(`阶段 ${c.stageName ?? '(无)'}：${c.checked}/${c.total} 已勾`)
       for (const i of c.pending) lines.push(`  未完 ${i.label}`)
       break
     }
     case 'assets': {
       const as = a.assets as { prompts: number; skills: number; terms: number; playbooks: number }
-      lines.push(`资产 提示词 ${as.prompts} 技能 ${as.skills} 术语 ${as.terms} 玩法 ${as.playbooks}`)
+      lines.push(
+        `资产 提示词 ${as.prompts} 技能 ${as.skills} 术语 ${as.terms} 玩法 ${as.playbooks}`,
+      )
       break
     }
     case 'terms':
-      lines.push(`术语 ${(a.terms as { count: number }).count} 条（该端点只给计数，条目在 Web 资产库）`)
+      lines.push(
+        `术语 ${(a.terms as { count: number }).count} 条（该端点只给计数，条目在 Web 资产库）`,
+      )
       break
     case 'playbook':
       lines.push(`玩法 ${(a.playbook as { count: number }).count} 条（同上，只给计数）`)
       break
     case 'logs': {
-      const l = a.logs as { total: number; items: { type: string; entryNo: number; title: string }[] }
+      const l = a.logs as {
+        total: number
+        items: { type: string; entryNo: number; title: string }[]
+      }
       lines.push(`日志 ${l.total} 条：`)
-      for (const i of l.items) lines.push(`  ${i.type}-${String(i.entryNo).padStart(4, '0')} ${i.title}`)
+      for (const i of l.items)
+        lines.push(`  ${i.type}-${String(i.entryNo).padStart(4, '0')} ${i.title}`)
       break
     }
   }
@@ -213,7 +244,8 @@ export async function askAction(options: AskOptions, deps: AskDeps = {}): Promis
     let projectId: string
     if (options.project !== undefined) {
       projectId = options.project.trim()
-      if (projectId === '') throw new AskError('USAGE', '--project 给了空串：请给项目 id，或省略以按当前目录解析')
+      if (projectId === '')
+        throw new AskError('USAGE', '--project 给了空串：请给项目 id，或省略以按当前目录解析')
     } else {
       const resolved = await resolveProjectByPath(client, '.', deps.cwd)
       projectId = resolved.project.id

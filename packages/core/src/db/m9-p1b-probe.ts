@@ -51,7 +51,10 @@ export const FAIL_THRESHOLD = 2
  */
 export type ProbeTableName = 'lang_resources' | 'lang_vibe_resources'
 
-export const PROBE_TABLE_NAMES: readonly ProbeTableName[] = ['lang_resources', 'lang_vibe_resources']
+export const PROBE_TABLE_NAMES: readonly ProbeTableName[] = [
+  'lang_resources',
+  'lang_vibe_resources',
+]
 
 /**
  * 每张表一条 SQL —— **算式只有一份**，SQL 只回答「哪张表」。

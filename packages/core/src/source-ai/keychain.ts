@@ -90,7 +90,11 @@ async function detect(): Promise<KeychainSupport> {
 }
 
 /** 写一把 key（**秘密走 stdin**，不进 argv）。 */
-async function store(service: string, account: string, secret: string): Promise<KeychainWriteResult> {
+async function store(
+  service: string,
+  account: string,
+  secret: string,
+): Promise<KeychainWriteResult> {
   // ⚠️ **`-w` 放最后且不带值** ⇒ `security` 从 stdin 读密码（读两遍）
   //   ⇒ 秘密**不进命令行**（不进 `ps` 的进程表）。
   const payload = `${secret}\n${secret}\n`

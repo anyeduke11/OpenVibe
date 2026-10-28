@@ -1,13 +1,13 @@
 # OpenVibe MVP 设计方案（design）
 
-| 项 | 值 |
-|------|------|
-| 文档定位 | 怎么实现：选型、结构、数据、API、**标准包文件契约★**、**adapter 清单★**、安全、测试 |
-| 上游 | [proposal.md](./proposal.md)、[specs/](./specs/)（行为规格，本文实现之） |
-| 下游 | [tasks.md](./tasks.md)（按本文结构排任务） |
-| 状态 | **已冻结**（2026-09-27 队列 ⑤ 翻转）—— ★ §7/§8 两节为 PRD P0 必交付契约，已随 P0 门禁 G2/G3 冻结，向后兼容承诺生效；其余章节按 `docs/dev-plan.md` §0.3 判级就地修订。**要再翻这一行只能由 owner 裁决，落点是 `docs/decisions.md` 队列** |
-| 版本 | v0.1.1（2026-09-27，**队列 ⑤ 裁「翻状态 + 版本并存」**：状态行翻为已冻结、新增下方「契约版 ≠ 文档版」一行；上一版 v0.1 = 2026-09-20 初稿，其间 §7/§8 的契约版独立走到 v1.3，文档版一次未动 ⇒ 并存口径自本版起生效） |
-| 契约版 ≠ 文档版 | 契约版本以 §7、§8 **各节标题**为准（本文头不抄当前值，取数 `grep -nE '^## (7\|8)\. ' docs/design.md`）；文档版只在整体口径变化时升，两版各自单调、互不映射 |
+| 项              | 值                                                                                                                                                                                                                                      |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 文档定位        | 怎么实现：选型、结构、数据、API、**标准包文件契约★**、**adapter 清单★**、安全、测试                                                                                                                                                     |
+| 上游            | [proposal.md](./proposal.md)、[specs/](./specs/)（行为规格，本文实现之）                                                                                                                                                                |
+| 下游            | [tasks.md](./tasks.md)（按本文结构排任务）                                                                                                                                                                                              |
+| 状态            | **已冻结**（2026-09-27 队列 ⑤ 翻转）—— ★ §7/§8 两节为 PRD P0 必交付契约，已随 P0 门禁 G2/G3 冻结，向后兼容承诺生效；其余章节按 `docs/dev-plan.md` §0.3 判级就地修订。**要再翻这一行只能由 owner 裁决，落点是 `docs/decisions.md` 队列** |
+| 版本            | v0.1.1（2026-09-27，**队列 ⑤ 裁「翻状态 + 版本并存」**：状态行翻为已冻结、新增下方「契约版 ≠ 文档版」一行；上一版 v0.1 = 2026-09-20 初稿，其间 §7/§8 的契约版独立走到 v1.3，文档版一次未动 ⇒ 并存口径自本版起生效）                     |
+| 契约版 ≠ 文档版 | 契约版本以 §7、§8 **各节标题**为准（本文头不抄当前值，取数 `grep -nE '^## (7\|8)\. ' docs/design.md`）；文档版只在整体口径变化时升，两版各自单调、互不映射                                                                              |
 
 ---
 
@@ -21,21 +21,21 @@
 
 ## 2. 技术选型（proposal A7 工作默认；替换点集中在 §3 的包边界）
 
-| 层 | 选择 | 理由（一句话） | 替换成本 |
-|----|------|----------------|----------|
-| 运行时 | Node.js 22 LTS + TypeScript 5（strict） | 前后端 CLI 同语言，类型三端共享 | 高（全栈换） |
-| Monorepo | pnpm workspaces（**不引入 turborepo**） | 9 个包规模下 `pnpm -r` 脚本足够，少一个构建黑盒 | 低 |
-| Web | React 18 + Vite + TanStack Query v5 | 标准 SPA；服务端状态缓存交给 Query，免自研状态机 | 中 |
-| UI | Tailwind CSS v4 + Radix Primitives | 无组件库锁定，可访问性原语现成 | 中 |
-| 编辑器 | CodeMirror 6（@uiw/react-codemirror） | Markdown 编辑够用且轻（Monaco 过重，Electron 才需要） | 低 |
-| Diff | jsdiff（diff-lines）+ 自绘高亮 | 版本对比只需行级统一 diff | 低 |
-| Server | Fastify 5 | 内置 JSON Schema 校验与 `app.inject()` 测试注入，性能冗余 | 中 |
-| DB | better-sqlite3（编译内置 FTS5）+ 手写 migration | 同步 API 好写好测；无 ORM 魔法，FTS5 触发器直达（见 §12） | 高（数据层） |
-| 校验 | zod（packages/shared 统一 schema，三端复用） | API 边界与 CLI 参数共用一套类型 | 低 |
-| CLI | commander + @clack/prompts + picocolors | 参数解析 + 漂亮的交互确认，依赖极轻 | 低 |
-| ID | nanoid + 类型前缀（`prm_`/`pk_`…） | 日志与外键肉眼可辨 | — |
-| 测试 | vitest（单测/集成，含 CLI 临时目录与真 serve 子进程）+ 裸 CDP 走查驱动器；**不引入 Playwright**（owner 裁定 D21，2026-09-23；原计划「Playwright E2E 一条龙」作废，见 §13） | 见 §13 | 中 |
-| 质量 | ESLint + Prettier + GitHub Actions（lint/test/seed:check，**三平台矩阵 macOS/Linux/Windows——澄清 D5 硬要求**；T8f 起再加 bundle:check：入口 ≤300kB、任一 chunk ≤500kB，见 dev-plan §5.1） | CI 见 tasks T1 | 低 |
+| 层       | 选择                                                                                                                                                                                      | 理由（一句话）                                            | 替换成本     |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | ------------ |
+| 运行时   | Node.js 22 LTS + TypeScript 5（strict）                                                                                                                                                   | 前后端 CLI 同语言，类型三端共享                           | 高（全栈换） |
+| Monorepo | pnpm workspaces（**不引入 turborepo**）                                                                                                                                                   | 9 个包规模下 `pnpm -r` 脚本足够，少一个构建黑盒           | 低           |
+| Web      | React 18 + Vite + TanStack Query v5                                                                                                                                                       | 标准 SPA；服务端状态缓存交给 Query，免自研状态机          | 中           |
+| UI       | Tailwind CSS v4 + Radix Primitives                                                                                                                                                        | 无组件库锁定，可访问性原语现成                            | 中           |
+| 编辑器   | CodeMirror 6（@uiw/react-codemirror）                                                                                                                                                     | Markdown 编辑够用且轻（Monaco 过重，Electron 才需要）     | 低           |
+| Diff     | jsdiff（diff-lines）+ 自绘高亮                                                                                                                                                            | 版本对比只需行级统一 diff                                 | 低           |
+| Server   | Fastify 5                                                                                                                                                                                 | 内置 JSON Schema 校验与 `app.inject()` 测试注入，性能冗余 | 中           |
+| DB       | better-sqlite3（编译内置 FTS5）+ 手写 migration                                                                                                                                           | 同步 API 好写好测；无 ORM 魔法，FTS5 触发器直达（见 §12） | 高（数据层） |
+| 校验     | zod（packages/shared 统一 schema，三端复用）                                                                                                                                              | API 边界与 CLI 参数共用一套类型                           | 低           |
+| CLI      | commander + @clack/prompts + picocolors                                                                                                                                                   | 参数解析 + 漂亮的交互确认，依赖极轻                       | 低           |
+| ID       | nanoid + 类型前缀（`prm_`/`pk_`…）                                                                                                                                                        | 日志与外键肉眼可辨                                        | —            |
+| 测试     | vitest（单测/集成，含 CLI 临时目录与真 serve 子进程）+ 裸 CDP 走查驱动器；**不引入 Playwright**（owner 裁定 D21，2026-09-23；原计划「Playwright E2E 一条龙」作废，见 §13）                | 见 §13                                                    | 中           |
+| 质量     | ESLint + Prettier + GitHub Actions（lint/test/seed:check，**三平台矩阵 macOS/Linux/Windows——澄清 D5 硬要求**；T8f 起再加 bundle:check：入口 ≤300kB、任一 chunk ≤500kB，见 dev-plan §5.1） | CI 见 tasks T1                                            | 低           |
 
 ## 3. Monorepo 结构（对齐 PRD 4.3，细化到目录）
 
@@ -123,26 +123,27 @@ telemetry_events(id PK, event, value, day, os, app_version, queued_at, sent_at);
 ```
 
 要点：
+
 - **标签/数组用 JSON 列**（MVP 量级 ≤ 万级，`json_each` 过滤足够；FTS 同时索引标签文本）。
 - **版本/勾选/任务/日志全部 `ON DELETE CASCADE`**——spec 中的「级联删除」验收由外键保证。
 - `seed_hash` 列支撑种子升级导入的「用户改过则跳过」判定（§15）。
 
 ## 6. API 设计（REST/JSON，前缀 /api，统一错误体 `{code, message, details?}`）
 
-| 资源 | 端点（方法 路径） | 备注 |
-|------|------------------|------|
-| 健康 | `GET /health` | 无鉴权，含版本与 DB 状态 |
-| 提示词 | `GET/POST /prompts`、`GET/PATCH/DELETE /prompts/:id`、`GET /prompts/:id/versions`、`POST /prompts/:id/versions/:no/restore`、`POST /prompts/import`、`GET /prompts/export` | 分页 `?page&size&tag&folder&platform&status&q` |
-| Skill | `GET/POST /skills`、`PATCH/DELETE /skills/:id`、`GET /skills/:id/versions`、`POST /skills/scan` | |
-| 术语 | `GET/POST /terms`、`PATCH/DELETE /terms/:id`、`GET /terms/search`、`POST /terms/render-terms-md` | |
-| 流程模板 | `GET/POST /flow-templates`、`PATCH/DELETE /flow-templates/:id`、`POST /flow-templates/:id/duplicate` | builtin PATCH/DELETE → 403 |
-| 项目 | `GET/POST /projects`、`GET/PATCH/DELETE /projects/:id`、`POST /projects/:id/stages/current`、`GET /projects/:id/injection-status`、`GET /injection-status?dir=` | injection-status 读 lock 文件（只读）；`?dir=` 变体供开箱步③轮询未入库目录，`dir` 须绝对路径且已存在（404/422），响应同 `InjectionStatusOut`，不做目录列举 |
-| 任务 | `GET/POST /projects/:id/tasks`、`PATCH/DELETE /tasks/:id` | 拖拽 = PATCH status/order |
-| 日志 | `GET/POST /projects/:id/devlog`、`GET /projects/:id/devlog/export` | |
-| 标准包 | `GET/POST /packs`、`GET/PATCH/DELETE /packs/:id`、`POST /packs/:id/preview`、`POST /packs/:id/export`、`GET /packs/:id/exports`、`POST /injections` | export body `{version, channel}`；409 见 m6a FR-4 |
-| 全局搜索 | `GET /search?type=prompt\|term&q=` | |
-| 设置 | `GET /settings`、`POST /settings/onboarding`、`POST /settings/reseed`、`GET/POST /settings/telemetry`（C-3，2026-09-20：D13 遥测开关/询问状态读写，实现级见 dev-plan §3.10/§4.6。T8，2026-09-22 补 C-56 两行：`GET /settings` 响应含 `onboardingDone`；`onboarding` 写 `app_meta` 完成标记，`done=false` 即「重新显示向导」；`reseed` 重播种子并按 onboarding FR-1 口径重建 default 包，返回 `{seed, defaultPack, settings}`） | |
-| 飞轮统计 | `GET /stats`、`POST /telemetry/events` | T8（onboarding FR-3 + C-50 出队出口）：`/stats` 五数全本地 SQL 聚合（`assets/packs/injections/reflows/loops`），`loops` 按项目去重且要求同一项目「登记的包有导出 ∧ 该路径有注入记录 ∧ 有带资产引用的日志」三者同链；`/telemetry/events` 单事件入队，开关关闭时返回 `{queued:false, reason:'disabled'}` 且连队列都不写 |
+| 资源     | 端点（方法 路径）                                                                                                                                                                                                                                                                                                                                                                                                              | 备注                                                                                                                                                                                                                                                                                                                  |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 健康     | `GET /health`                                                                                                                                                                                                                                                                                                                                                                                                                  | 无鉴权，含版本与 DB 状态                                                                                                                                                                                                                                                                                              |
+| 提示词   | `GET/POST /prompts`、`GET/PATCH/DELETE /prompts/:id`、`GET /prompts/:id/versions`、`POST /prompts/:id/versions/:no/restore`、`POST /prompts/import`、`GET /prompts/export`                                                                                                                                                                                                                                                     | 分页 `?page&size&tag&folder&platform&status&q`                                                                                                                                                                                                                                                                        |
+| Skill    | `GET/POST /skills`、`PATCH/DELETE /skills/:id`、`GET /skills/:id/versions`、`POST /skills/scan`                                                                                                                                                                                                                                                                                                                                |                                                                                                                                                                                                                                                                                                                       |
+| 术语     | `GET/POST /terms`、`PATCH/DELETE /terms/:id`、`GET /terms/search`、`POST /terms/render-terms-md`                                                                                                                                                                                                                                                                                                                               |                                                                                                                                                                                                                                                                                                                       |
+| 流程模板 | `GET/POST /flow-templates`、`PATCH/DELETE /flow-templates/:id`、`POST /flow-templates/:id/duplicate`                                                                                                                                                                                                                                                                                                                           | builtin PATCH/DELETE → 403                                                                                                                                                                                                                                                                                            |
+| 项目     | `GET/POST /projects`、`GET/PATCH/DELETE /projects/:id`、`POST /projects/:id/stages/current`、`GET /projects/:id/injection-status`、`GET /injection-status?dir=`                                                                                                                                                                                                                                                                | injection-status 读 lock 文件（只读）；`?dir=` 变体供开箱步③轮询未入库目录，`dir` 须绝对路径且已存在（404/422），响应同 `InjectionStatusOut`，不做目录列举                                                                                                                                                            |
+| 任务     | `GET/POST /projects/:id/tasks`、`PATCH/DELETE /tasks/:id`                                                                                                                                                                                                                                                                                                                                                                      | 拖拽 = PATCH status/order                                                                                                                                                                                                                                                                                             |
+| 日志     | `GET/POST /projects/:id/devlog`、`GET /projects/:id/devlog/export`                                                                                                                                                                                                                                                                                                                                                             |                                                                                                                                                                                                                                                                                                                       |
+| 标准包   | `GET/POST /packs`、`GET/PATCH/DELETE /packs/:id`、`POST /packs/:id/preview`、`POST /packs/:id/export`、`GET /packs/:id/exports`、`POST /injections`                                                                                                                                                                                                                                                                            | export body `{version, channel}`；409 见 m6a FR-4                                                                                                                                                                                                                                                                     |
+| 全局搜索 | `GET /search?type=prompt\|term&q=`                                                                                                                                                                                                                                                                                                                                                                                             |                                                                                                                                                                                                                                                                                                                       |
+| 设置     | `GET /settings`、`POST /settings/onboarding`、`POST /settings/reseed`、`GET/POST /settings/telemetry`（C-3，2026-09-20：D13 遥测开关/询问状态读写，实现级见 dev-plan §3.10/§4.6。T8，2026-09-22 补 C-56 两行：`GET /settings` 响应含 `onboardingDone`；`onboarding` 写 `app_meta` 完成标记，`done=false` 即「重新显示向导」；`reseed` 重播种子并按 onboarding FR-1 口径重建 default 包，返回 `{seed, defaultPack, settings}`） |                                                                                                                                                                                                                                                                                                                       |
+| 飞轮统计 | `GET /stats`、`POST /telemetry/events`                                                                                                                                                                                                                                                                                                                                                                                         | T8（onboarding FR-3 + C-50 出队出口）：`/stats` 五数全本地 SQL 聚合（`assets/packs/injections/reflows/loops`），`loops` 按项目去重且要求同一项目「登记的包有导出 ∧ 该路径有注入记录 ∧ 有带资产引用的日志」三者同链；`/telemetry/events` 单事件入队，开关关闭时返回 `{queued:false, reason:'disabled'}` 且连队列都不写 |
 
 分页默认 size=50；列表响应统一 `{items, total, page}`。鉴权规则见 §11。
 
@@ -152,33 +153,48 @@ telemetry_events(id PK, event, value, day, os, app_version, queued_at, sent_at);
 
 ### 7.1 两种交付形态
 
-| 形态 | 用途 | 结构 |
-|------|------|------|
-| 目录导出 `~/.openvibe/packs/<name>@<version>/` | git 共享 / 离线 `sync --dir` | `openvibe.pack.json` + `files/`（按真实相对路径展开） |
-| 单文件 bundle `openvibe-pack-<name>-<version>.json` | HTTP 下载 / `sync --file` | `{ "bundleSchemaVersion": 1, "manifest": <7.2 全文>, "files": [{"path", "content"}] }` |
+| 形态                                                | 用途                         | 结构                                                                                   |
+| --------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- |
+| 目录导出 `~/.openvibe/packs/<name>@<version>/`      | git 共享 / 离线 `sync --dir` | `openvibe.pack.json` + `files/`（按真实相对路径展开）                                  |
+| 单文件 bundle `openvibe-pack-<name>-<version>.json` | HTTP 下载 / `sync --file`    | `{ "bundleSchemaVersion": 1, "manifest": <7.2 全文>, "files": [{"path", "content"}] }` |
 
 ### 7.2 `openvibe.pack.json`（manifest）schema
 
 ```jsonc
 {
   "schemaVersion": 1,
-  "pack": { "id": "pk_x", "name": "default", "version": "1.0.0",
-             "description": "", "exportedAt": "2026-09-20T02:00:00Z",
-             "generator": "openvibe/0.1.0" },
-  "targets": ["claude-code", "generic-agents"],        // ⊂ adapter 注册表（§8）
-  "flow": {                                             // 未选流程则 null
-    "templateName": "个人轻量流", "kind": "light",
-    "stages": [ { "name": "启动", "checklist": ["需求一句话写清"],
-                  "artifacts": ["需求便签"] } ]
+  "pack": {
+    "id": "pk_x",
+    "name": "default",
+    "version": "1.0.0",
+    "description": "",
+    "exportedAt": "2026-09-20T02:00:00Z",
+    "generator": "openvibe/0.1.0",
   },
-  "prompts": [ { "title": "代码审查请求", "useAs": "rule",
-                 "platformMarks": ["generic"], "contentHash": "…", "content": "…" } ],
-  "terms":   [ { "zh": "规则漂移", "en": "rule drift", "aliases": [],
-                 "definition": "…", "example": "" } ],
-  "skills":  [ { "name": "pdf", "description": "…", "skillDir": "~/.claude/skills/pdf",
-                 "versionLabel": "v3" } ],
-  "files":   [ { "path": "CLAUDE.md", "sha256": "…" } ],   // 渲染产物登记（7.4 的全集）
-  "fingerprint": "…"                                       // 7.6
+  "targets": ["claude-code", "generic-agents"], // ⊂ adapter 注册表（§8）
+  "flow": {
+    // 未选流程则 null
+    "templateName": "个人轻量流",
+    "kind": "light",
+    "stages": [{ "name": "启动", "checklist": ["需求一句话写清"], "artifacts": ["需求便签"] }],
+  },
+  "prompts": [
+    {
+      "title": "代码审查请求",
+      "useAs": "rule",
+      "platformMarks": ["generic"],
+      "contentHash": "…",
+      "content": "…",
+    },
+  ],
+  "terms": [
+    { "zh": "规则漂移", "en": "rule drift", "aliases": [], "definition": "…", "example": "" },
+  ],
+  "skills": [
+    { "name": "pdf", "description": "…", "skillDir": "~/.claude/skills/pdf", "versionLabel": "v3" },
+  ],
+  "files": [{ "path": "CLAUDE.md", "sha256": "…" }], // 渲染产物登记（7.4 的全集）
+  "fingerprint": "…", // 7.6
 }
 ```
 
@@ -190,15 +206,20 @@ manifest 内嵌资产**内容快照**（prompts 含全文、terms 全字段）�
 
 ```markdown
 <!-- openvibe:pack=<name>@<version> begin (regenerate: npx openvibe-cli sync) -->
+
 # OpenVibe 标准包：<name>@<version>
 
 > 本文件由 OpenVibe 生成。要修改标准，请回资产库改后重新注入；
 > 本地手改会被 `openvibe diff` 漂移检测发现。
 
-## 工作流程            ← flow.stages 逐阶段：### 阶段名 + 清单 + 产物行
-## 行为规则            ← prompts[useAs=rule]：#### 标题 + 正文
-## 术语表              ← 恒一行：「见 TERMS.md（N 条）」；未生成 TERMS.md 时内联同 7.4 表格
-## 任务提示词参考      ← prompts[useAs=reference]：#### 标题 + 正文（保留 {{变量}} 占位）
+## 工作流程 ← flow.stages 逐阶段：### 阶段名 + 清单 + 产物行
+
+## 行为规则 ← prompts[useAs=rule]：#### 标题 + 正文
+
+## 术语表 ← 恒一行：「见 TERMS.md（N 条）」；未生成 TERMS.md 时内联同 7.4 表格
+
+## 任务提示词参考 ← prompts[useAs=reference]：#### 标题 + 正文（保留 {{变量}} 占位）
+
 <!-- openvibe:end -->
 ```
 
@@ -215,7 +236,7 @@ manifest 内嵌资产**内容快照**（prompts 含全文、terms 全字段）�
 > AI 与团队共用的词汇标准；新词请先入库再使用。
 
 | 术语 | English | 别名 | 定义 |
-|------|---------|------|------|
+| ---- | ------- | ---- | ---- |
 ```
 
 **CHECKLIST.md**：`# 项目检查清单 · <pack>@<ver>` + 每阶段 `## 阶段 N · <名>`，清单项 `- [ ] 文本`，产物行 `**产物**: a、b`。
@@ -229,10 +250,12 @@ manifest 内嵌资产**内容快照**（prompts 含全文、terms 全字段）�
 ### 7.5 `.openvibe/pack.lock.json`（CLI 写入目标项目）
 
 ```jsonc
-{ "schemaVersion": 1,
+{
+  "schemaVersion": 1,
   "pack": { "id": "pk_x", "name": "default", "version": "1.0.0", "fingerprint": "…" },
   "injectedAt": "2026-09-20T02:11:00Z",
-  "files": [ { "path": "CLAUDE.md", "sha256": "<期望哈希>", "managed": true } ] }
+  "files": [{ "path": "CLAUDE.md", "sha256": "<期望哈希>", "managed": true }],
+}
 ```
 
 `managed=true` 的文件参与 UPDATE/DRIFT 判定（m6b FR-2.2）；`--target` 过滤未写入的文件也登记期望哈希（`managed=false`），供后续补齐。
@@ -263,35 +286,35 @@ semver（`MAJOR.MINOR.PATCH`）；`(packId, version)` 唯一；同版本重导�
 
 ```ts
 interface Adapter {
-  id: string;                        // manifest.targets 取值
+  id: string // manifest.targets 取值
   /** 给定包内容 → 本平台应生成的文件集（path + 是否复用主正文） */
-  plan(pack: ResolvedPack): PlannedFile[];
+  plan(pack: ResolvedPack): PlannedFile[]
 }
 ```
 
 **专用 adapter**（决定写入文件，MVP 六个）：
 
-| adapter id | MVP | 写入文件 | 格式要点 | 契约依据（核验 2026-09-20） |
-|------------|:---:|----------|----------|------------------------------|
-| `claude-code` | ✅ | `CLAUDE.md` | 项目根单文件规则 | Claude Code 官方 memory 文件约定 |
-| `cursor` | ✅ | `.cursor/rules/openvibe.mdc` | YAML frontmatter（description/globs/alwaysApply），新版规则目录 | Cursor rules（`.cursor/rules/*.mdc`） |
-| `generic-agents` | ✅ | `AGENTS.md` | 项目根通用约定（Codex 等读 AGENTS.md 的代理） | agents.md 社区惯例 |
-| `codebuddy` | ✅ | `CODEBUDDY.md` | 项目根单文件规则，正文复用主模板；CodeBuddy 无此文件时回退读 AGENTS.md | CodeBuddy 官网最佳实践 + 腾讯云文档 |
-| `trae` | ✅ | `.trae/rules/openvibe.md` | **v1.2 改用自定义文件名**（裁定 D10）：社区与半官方来源确认 `.trae/rules/` 支持多规则文件共存，自定义名避免覆盖用户已有 `project_rules.md`；frontmatter 用 `{ description, alwaysApply: true }`（**T6 真机复核推翻原 `trigger: always`**：二进制仅认 `globs`/`alwaysApply`/`description`/`scene`，未知键丢弃 ⇒ `trigger` 不触发自动加载） | Trae CN 二进制一手证据（`alwaysApply===!0?AlwaysApply:…` 解析分支 + `.trae/rules/` 多文件判定）；见 `trae-frontmatter-probe.txt` / DEV-0016 C-26 |
-| `minicode` | ✅ | `MINI.md` | 项目根单文件规则，正文复用主模板（MiniCode 的 `/init` 约定） | GitHub README 实证（`/init` scaffold `.mini-code/` + `MINI.md`；1.1k★ MIT） |
-| `windsurf` | P1 | `.windsurf/rules/openvibe.md` | 随 M2 完整版 skill 分发一起交付 | Windsurf rules 目录 |
-| `gemini` | P1 可选 | `GEMINI.md` | 一行接入（同主模板），需求出现即加 | Gemini CLI 约定 |
-| `copilot` | P1 可选 | `.github/copilot-instructions.md` | 一行接入（同主模板）；竞品 rulesync 已验证该契约（competitive-analysis §8.5 借鉴②） | GitHub Copilot 约定 |
+| adapter id       |   MVP   | 写入文件                          | 格式要点                                                                                                                                                                                                                                                                                                                                  | 契约依据（核验 2026-09-20）                                                                                                                      |
+| ---------------- | :-----: | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `claude-code`    |   ✅    | `CLAUDE.md`                       | 项目根单文件规则                                                                                                                                                                                                                                                                                                                          | Claude Code 官方 memory 文件约定                                                                                                                 |
+| `cursor`         |   ✅    | `.cursor/rules/openvibe.mdc`      | YAML frontmatter（description/globs/alwaysApply），新版规则目录                                                                                                                                                                                                                                                                           | Cursor rules（`.cursor/rules/*.mdc`）                                                                                                            |
+| `generic-agents` |   ✅    | `AGENTS.md`                       | 项目根通用约定（Codex 等读 AGENTS.md 的代理）                                                                                                                                                                                                                                                                                             | agents.md 社区惯例                                                                                                                               |
+| `codebuddy`      |   ✅    | `CODEBUDDY.md`                    | 项目根单文件规则，正文复用主模板；CodeBuddy 无此文件时回退读 AGENTS.md                                                                                                                                                                                                                                                                    | CodeBuddy 官网最佳实践 + 腾讯云文档                                                                                                              |
+| `trae`           |   ✅    | `.trae/rules/openvibe.md`         | **v1.2 改用自定义文件名**（裁定 D10）：社区与半官方来源确认 `.trae/rules/` 支持多规则文件共存，自定义名避免覆盖用户已有 `project_rules.md`；frontmatter 用 `{ description, alwaysApply: true }`（**T6 真机复核推翻原 `trigger: always`**：二进制仅认 `globs`/`alwaysApply`/`description`/`scene`，未知键丢弃 ⇒ `trigger` 不触发自动加载） | Trae CN 二进制一手证据（`alwaysApply===!0?AlwaysApply:…` 解析分支 + `.trae/rules/` 多文件判定）；见 `trae-frontmatter-probe.txt` / DEV-0016 C-26 |
+| `minicode`       |   ✅    | `MINI.md`                         | 项目根单文件规则，正文复用主模板（MiniCode 的 `/init` 约定）                                                                                                                                                                                                                                                                              | GitHub README 实证（`/init` scaffold `.mini-code/` + `MINI.md`；1.1k★ MIT）                                                                      |
+| `windsurf`       |   P1    | `.windsurf/rules/openvibe.md`     | 随 M2 完整版 skill 分发一起交付                                                                                                                                                                                                                                                                                                           | Windsurf rules 目录                                                                                                                              |
+| `gemini`         | P1 可选 | `GEMINI.md`                       | 一行接入（同主模板），需求出现即加                                                                                                                                                                                                                                                                                                        | Gemini CLI 约定                                                                                                                                  |
+| `copilot`        | P1 可选 | `.github/copilot-instructions.md` | 一行接入（同主模板）；竞品 rulesync 已验证该契约（competitive-analysis §8.5 借鉴②）                                                                                                                                                                                                                                                       | GitHub Copilot 约定                                                                                                                              |
 
 **兼容矩阵**（不新增 adapter——这些平台直接读上述产物文件，打包预览页据此展示「本包覆盖平台」）：
 
-| 平台 | 读哪个产物 | 证据强度 |
-|------|-----------|----------|
-| Codex / OpenCode / Cline / Qwen Code | `AGENTS.md` | 强（社区惯例） |
-| Trae CN | `AGENTS.md` | **一手证据**（二进制含「Include AGENTS.md in context」且默认开启 + T6 GUI 暗号实测：与 `.trae/rules/openvibe.md` 并存时 AGENTS.md 仍被自动读入，见 DEV-0016 C-39） |
-| zcode | `AGENTS.md` | **一手证据**（zcode 自身按 AGENTS.md 约定加载用户/项目指令） |
-| Kimi Code（Kimi for Coding） | `AGENTS.md`（感知链 AGENTS.md → .cursor/rules）；借鉴 CLAUDE.md 机制 | **较强**（官方 CLI 文档 + 借鉴机制报道；子 Agent 感知缺陷为 bug 非设计——T6 真机抽测一次） |
-| Claude Code 之外的 CLAUDE.md 兼容代理 | `CLAUDE.md` | — |
+| 平台                                  | 读哪个产物                                                           | 证据强度                                                                                                                                                           |
+| ------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Codex / OpenCode / Cline / Qwen Code  | `AGENTS.md`                                                          | 强（社区惯例）                                                                                                                                                     |
+| Trae CN                               | `AGENTS.md`                                                          | **一手证据**（二进制含「Include AGENTS.md in context」且默认开启 + T6 GUI 暗号实测：与 `.trae/rules/openvibe.md` 并存时 AGENTS.md 仍被自动读入，见 DEV-0016 C-39） |
+| zcode                                 | `AGENTS.md`                                                          | **一手证据**（zcode 自身按 AGENTS.md 约定加载用户/项目指令）                                                                                                       |
+| Kimi Code（Kimi for Coding）          | `AGENTS.md`（感知链 AGENTS.md → .cursor/rules）；借鉴 CLAUDE.md 机制 | **较强**（官方 CLI 文档 + 借鉴机制报道；子 Agent 感知缺陷为 bug 非设计——T6 真机抽测一次）                                                                          |
+| Claude Code 之外的 CLAUDE.md 兼容代理 | `CLAUDE.md`                                                          | —                                                                                                                                                                  |
 
 辅助产物（TERMS/CHECKLIST/SKILLS.md、manifest）**不属 adapter**，由 composer 按 selection 直接生成——adapter 只回答「主规则文件写到哪、什么壳」。新增平台 = 新增一个 Adapter 模块 + 注册，其余零改动（风险表「平台契约变化」的隔离解法）；兼容平台 = 只改兼容矩阵一行文档，零代码。
 
@@ -305,15 +328,15 @@ interface Adapter {
 
 ## 10. Web 信息架构（apps/web）
 
-| 路由 | 页面 | 主要交互 |
-|------|------|----------|
-| `/library` | 提示词库 | 列表+侧栏文件夹树+过滤器（m1 FR-3）；编辑抽屉（编辑/预览/版本/diff/回滚）；导入导出 |
-| `/terms` | 术语库 | 搜索+多选+TERMS.md 预览（m3 FR-3/4） |
-| `/skills` | Skill 台账 | 列表+扫描按钮（m2 FR-1） |
-| `/flows` | 流程模板 | 模板卡+复制自定义+阶段编辑器（m5 FR-2） |
-| `/projects`、`/projects/:id` | 项目列表/工作台 | 健康摘要+阶段条+看板+日志 Tab+回流入口（m5 FR-1/3/4/5/7）+注入状态 |
-| `/packs`、`/packs/new` | 标准包 | 5 步向导+预览+导出历史（m6a FR-1/2/3） |
-| `/settings` | 设置 | 服务信息/数据目录/种子重播/备份说明 |
+| 路由                         | 页面            | 主要交互                                                                            |
+| ---------------------------- | --------------- | ----------------------------------------------------------------------------------- |
+| `/library`                   | 提示词库        | 列表+侧栏文件夹树+过滤器（m1 FR-3）；编辑抽屉（编辑/预览/版本/diff/回滚）；导入导出 |
+| `/terms`                     | 术语库          | 搜索+多选+TERMS.md 预览（m3 FR-3/4）                                                |
+| `/skills`                    | Skill 台账      | 列表+扫描按钮（m2 FR-1）                                                            |
+| `/flows`                     | 流程模板        | 模板卡+复制自定义+阶段编辑器（m5 FR-2）                                             |
+| `/projects`、`/projects/:id` | 项目列表/工作台 | 健康摘要+阶段条+看板+日志 Tab+回流入口（m5 FR-1/3/4/5/7）+注入状态                  |
+| `/packs`、`/packs/new`       | 标准包          | 5 步向导+预览+导出历史（m6a FR-1/2/3）                                              |
+| `/settings`                  | 设置            | 服务信息/数据目录/种子重播/备份说明                                                 |
 
 侧栏固定导航（库/术语/Skill/流程/项目/标准包/设置）；服务端状态用 TanStack Query（staleTime 默认 15s，写后失效精确 key）；中文 UI（A1）。
 
@@ -344,14 +367,14 @@ interface Adapter {
 
 ## 13. 测试策略
 
-| 层 | 对象与重点 | 目标数（MVP 退出） |
-|----|-----------|--------------------|
-| 单元（vitest） | pack composer 确定性（golden 文件快照）、fingerprint、validate（§7.7 全规则）、变量提取正则、FTS 路由（≥3 / <3）、entryNo 分配、seed 幂等 | ≥ 120 用例 |
-| 集成（vitest + app.inject + 临时 DB） | 全部 API 路由含 403/409/422 分支；skills 扫描（临时目录夹具）；导入导出往返 | ≥ 60 |
-| CLI 集成（vitest + 临时项目目录 + `--json`） | sync 五状态机分支、dry-run 零写入（全树哈希对比）、备份恢复、diff 退出码、路径攻击样本 | ≥ 25 |
-| E2E 主链（vitest，**不是 Playwright**） | **飞轮一条龙**：首启播种 → 建提示词 → 建项目 → 组包导出 → CLI sync 到临时目录 → 手改文件 → diff 报漂移 → 日志回流建术语草稿。实装 = `E2E-FLOW-01` 八腿（`apps/cli/test/e2e-flow.test.ts`：起**真 serve 子进程** + 真 HTTP + 真 CLI 退出码，1.57 s 连跑三遍稳定；不走 `import @openvibe/server` 以守 apps/cli 的 R4 边界）。**2026-09-23 owner 裁定 D21：不引入 Playwright**，原「Playwright 一条龙」口径作废 | 主链 1 条 ✅已收（DEV-0020）；3 条冒烟（导入→复制；术语搜索→TERMS.md；开箱向导三步）**✅已收（2026-09-24，DEV-0025）：驱动器 `docs/devlog-evidence/DEV-0025/three-smokes.mjs` 用真鼠标点击 + 真中文 `insertText` + 进程外 `pbpaste` 反查跑通三条场景链，有头 FAIL=0 SKIP=0；无头 FAIL=0 且两条系统剪贴板腿按设计记 SKIP（不可判 ≠ 通过）。数字单源见 dev-plan §15.4b** |
-| 浏览器走查（裸 CDP，驱动器入库） | 发布形态与首启体验的真实浏览器证据（**注意**：现有三支驱动器用合成事件，测不到剪贴板/中文输入/Radix 焦点，不等价于「真实用户动作」证据；S-2 探针已于 2026-09-23 跑完并证明 `Input.dispatch*` 真输入可以补上这一层，但**判据①系统剪贴板只在有头 Chrome 成立**，无头 CI 拿不到 ⇒ 队列 ⑧ 已按 owner 2026-09-27 裁定把**无头形态做成 `ci.yml` 的常驻闸**：剪贴板两腿在其中记为 SKIP，且 `EXPECT_SKIP=2` 把「不可判的条数」本身钉成断言；有头腿（真剪贴板逐字节）仍按发布节奏人工跑，留档 `three-smokes-headed.txt`。细节与限制单源见 dev-plan §15.4-S2 与 §15.4b） | 3 支在库：`docs/devlog-evidence/DEV-0019/{onboarding,lazy-chunk}-walk.mjs`、`DEV-0020/publish-walk.mjs`（45 断言，装包产物口径）；真输入底座 1 支：`DEV-0024/s2-cdp-real-input.mjs`；**真输入场景链 1 支：`DEV-0025/three-smokes.mjs`（三条冒烟，2026-09-24 收口）** |
-| 契约快照 | 对固定夹具 pack 的全部产物文件做字节级快照测试（防无意改动契约） | 3 夹具 |
+| 层                                           | 对象与重点                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 目标数（MVP 退出）                                                                                                                                                                                                                                                                                                                                                     |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 单元（vitest）                               | pack composer 确定性（golden 文件快照）、fingerprint、validate（§7.7 全规则）、变量提取正则、FTS 路由（≥3 / <3）、entryNo 分配、seed 幂等                                                                                                                                                                                                                                                                                                                                                                                                                      | ≥ 120 用例                                                                                                                                                                                                                                                                                                                                                             |
+| 集成（vitest + app.inject + 临时 DB）        | 全部 API 路由含 403/409/422 分支；skills 扫描（临时目录夹具）；导入导出往返                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | ≥ 60                                                                                                                                                                                                                                                                                                                                                                   |
+| CLI 集成（vitest + 临时项目目录 + `--json`） | sync 五状态机分支、dry-run 零写入（全树哈希对比）、备份恢复、diff 退出码、路径攻击样本                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | ≥ 25                                                                                                                                                                                                                                                                                                                                                                   |
+| E2E 主链（vitest，**不是 Playwright**）      | **飞轮一条龙**：首启播种 → 建提示词 → 建项目 → 组包导出 → CLI sync 到临时目录 → 手改文件 → diff 报漂移 → 日志回流建术语草稿。实装 = `E2E-FLOW-01` 八腿（`apps/cli/test/e2e-flow.test.ts`：起**真 serve 子进程** + 真 HTTP + 真 CLI 退出码，1.57 s 连跑三遍稳定；不走 `import @openvibe/server` 以守 apps/cli 的 R4 边界）。**2026-09-23 owner 裁定 D21：不引入 Playwright**，原「Playwright 一条龙」口径作废                                                                                                                                                   | 主链 1 条 ✅已收（DEV-0020）；3 条冒烟（导入→复制；术语搜索→TERMS.md；开箱向导三步）**✅已收（2026-09-24，DEV-0025）：驱动器 `docs/devlog-evidence/DEV-0025/three-smokes.mjs` 用真鼠标点击 + 真中文 `insertText` + 进程外 `pbpaste` 反查跑通三条场景链，有头 FAIL=0 SKIP=0；无头 FAIL=0 且两条系统剪贴板腿按设计记 SKIP（不可判 ≠ 通过）。数字单源见 dev-plan §15.4b** |
+| 浏览器走查（裸 CDP，驱动器入库）             | 发布形态与首启体验的真实浏览器证据（**注意**：现有三支驱动器用合成事件，测不到剪贴板/中文输入/Radix 焦点，不等价于「真实用户动作」证据；S-2 探针已于 2026-09-23 跑完并证明 `Input.dispatch*` 真输入可以补上这一层，但**判据①系统剪贴板只在有头 Chrome 成立**，无头 CI 拿不到 ⇒ 队列 ⑧ 已按 owner 2026-09-27 裁定把**无头形态做成 `ci.yml` 的常驻闸**：剪贴板两腿在其中记为 SKIP，且 `EXPECT_SKIP=2` 把「不可判的条数」本身钉成断言；有头腿（真剪贴板逐字节）仍按发布节奏人工跑，留档 `three-smokes-headed.txt`。细节与限制单源见 dev-plan §15.4-S2 与 §15.4b） | 3 支在库：`docs/devlog-evidence/DEV-0019/{onboarding,lazy-chunk}-walk.mjs`、`DEV-0020/publish-walk.mjs`（45 断言，装包产物口径）；真输入底座 1 支：`DEV-0024/s2-cdp-real-input.mjs`；**真输入场景链 1 支：`DEV-0025/three-smokes.mjs`（三条冒烟，2026-09-24 收口）**                                                                                                   |
+| 契约快照                                     | 对固定夹具 pack 的全部产物文件做字节级快照测试（防无意改动契约）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | 3 夹具                                                                                                                                                                                                                                                                                                                                                                 |
 
 > **自动化定位约定（队列 ⑨，owner 2026-09-27 裁「改可访问名 + 成文约定」）**：Web 侧三颗承担「关闭」语义的按钮，**可访问名必须互不相同**——弹窗头部 `✕` = `关闭弹窗`、弹窗页脚 = `关闭`（无 `aria-label`，文本即可访问名）、toast = `关闭提示`。这条唯一性由 `apps/web/src/components/ui/Dialog.test.tsx` 钉住（含一条反证：删 `aria-label` 必红），并隐含**同一时刻至多一支弹窗**这个前提。**但可见文本仍是两个「关闭」加一颗 `✕`**，所以按文本定位仍必须限定在 `[role="dialog"]` 作用域内——驱动器 `docs/devlog-evidence/DEV-0025/three-smokes.mjs` 的 `dlgBtnExpr` 就是这个形态，改可访问名不能把它换掉。两条路各自成立、互不替代：新增一颗关闭按钮时，**名字与查询限定要一起想**。
 
@@ -380,24 +403,24 @@ interface Adapter {
 > 编号说明（2026-09-23 改写，原文已过期）：本表是**设计决策**（技术取舍），当前到 **D18**；PRD 附录 D 是 **owner 裁定**（产品决策），当前到 **D22**。两表历史上各自从 D1 起编号，故 **D1–D17 区间存在重号**（例：PRD D13 = 遥测「惊喜时刻」询问，本表 D13 = 遥测三类白名单），正文引用裸「D7/D13」时以所在文档判断归属。
 > **本轮起的约定**：新决策取**全局下一空号**（P1.1 的 D19–D22 即按此取号——若按 PRD 本表续号会得 D18，与本表既有 D18 撞车）。owner 裁定不在本表复述正文，只留一行指针（反漂移，见 dev-plan §0.3）。
 
-| # | 决策 | 备选与否决理由 |
-|---|------|----------------|
-| D1 | Fastify 而非 Express/Hono | 内置 schema 校验 + inject 测试；Hono 生态尚薄 |
-| D2 | better-sqlite3 + 手写 migration，不上 ORM | FTS 触发器/确定性 SQL 直控；Drizzle 对 FTS 无抽象收益 |
-| D3 | FTS5 trigram + LIKE 降级 | 见 §12；ICU 分词引入 native 构建链 |
-| D4 | CodeMirror 6 而非 Monaco | 包体积 1/10，Markdown 场景够用 |
-| D5 | 不引入 turborepo | 9 包规模 `pnpm -r` 足够；少一层缓存黑盒 |
-| D6 | bundle 用 JSON 而非 tar/zip | 零依赖、可读可 diff、内容内联天然防「漏文件」 |
-| D7 | MVP 整文件管理，不做块级合并 | 块级合并状态机复杂度大；标记已预埋（§7.3），P1 升级路径清晰 |
-| D8 | Origin 校验 + Bearer token 双通道 | 见 §11；session/cookie 对本地单用户过重 |
-| D9 | 提示词删除为硬删（无回收站） | 版本表级联简单可靠；误删场景以导出备份兜底（P1 再评估软删） |
-| D10 | 项目物化 stagesSnapshot | 模板再改不破坏存量项目（m5 FR-2.4）；代价是模板更新不回溯 |
-| D11 | 产物确定性（文件内零时间戳） | git/diff/幂等三收益；时间集中在 manifest/lock |
-| D12 | ID = 前缀 + nanoid | 日志可读性；不用自增 int 防跨库迁移冲突 |
-| D13 | 遥测三类白名单 + 默认关 + 单出口函数 | §11.5；对写文件的 CLI，遥测透明度即信任底线（澄清 D3） |
-| D14 | 首启向导每步必须真实副作用（真预览/真注入/真 diff） | specs/onboarding.md；演示动画式向导是社区产品的负资产（澄清 D4） |
-| D15 | 国内平台走「专用 adapter ×3 + 兼容矩阵」而非每平台一 adapter | §8；codebuddy/trae/minicode 有专有文件契约故专用，zcode/Kimi/Codex 等读 AGENTS.md 走矩阵零代码覆盖（owner 裁定 D7，2026-09-20 核验；minicode 经 README 实证升为专用，D9） |
-| D16 | 向导「我已注入」用 lock 文件自动检测替代诚实按钮 | specs/onboarding.md FR-2.4（D11）；本地服务有权限读测试目录，自动点亮消灭误报完成 |
-| D17 | 遥测端点自写极简（单文件 Worker）而非自托管 Umami | §11.5（D12）；三类事件不需要分析面板，零运维零月费 |
-| D18 | 遥测询问放在首次注入成功的「惊喜时刻」，一次性、双入口共享本地标记 | §11.5（裁定 D13）；设置页深处的开关几乎无人发现，转化率不可比；拒绝即终点，不追讨 |
-| — | **owner 裁定 D19–D22（2026-09-23 P1.1 开档）**——本表按上面的约定不复述其正文，只留此指针。对设计侧承重两条：**D21** 改写本文 §2 测试行与 §13 E2E 行口径（不引入 Playwright）；**D19 的 T10 两项新增**（CLI `clean`、预览响应 `sizeEstimate`）**不触 design §7/§8 冻结契约**，凭据是 golden 三夹具零 diff（`specs/m6-standard-pack.md` 验收 12），非本文自述 | PRD 附录 D、dev-plan §15、`specs/m6-cli-injection.md` FR-6、`specs/m6-standard-pack.md` FR-6 |
+| #   | 决策                                                                                                                                                                                                                                                                                                                                                        | 备选与否决理由                                                                                                                                                            |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Fastify 而非 Express/Hono                                                                                                                                                                                                                                                                                                                                   | 内置 schema 校验 + inject 测试；Hono 生态尚薄                                                                                                                             |
+| D2  | better-sqlite3 + 手写 migration，不上 ORM                                                                                                                                                                                                                                                                                                                   | FTS 触发器/确定性 SQL 直控；Drizzle 对 FTS 无抽象收益                                                                                                                     |
+| D3  | FTS5 trigram + LIKE 降级                                                                                                                                                                                                                                                                                                                                    | 见 §12；ICU 分词引入 native 构建链                                                                                                                                        |
+| D4  | CodeMirror 6 而非 Monaco                                                                                                                                                                                                                                                                                                                                    | 包体积 1/10，Markdown 场景够用                                                                                                                                            |
+| D5  | 不引入 turborepo                                                                                                                                                                                                                                                                                                                                            | 9 包规模 `pnpm -r` 足够；少一层缓存黑盒                                                                                                                                   |
+| D6  | bundle 用 JSON 而非 tar/zip                                                                                                                                                                                                                                                                                                                                 | 零依赖、可读可 diff、内容内联天然防「漏文件」                                                                                                                             |
+| D7  | MVP 整文件管理，不做块级合并                                                                                                                                                                                                                                                                                                                                | 块级合并状态机复杂度大；标记已预埋（§7.3），P1 升级路径清晰                                                                                                               |
+| D8  | Origin 校验 + Bearer token 双通道                                                                                                                                                                                                                                                                                                                           | 见 §11；session/cookie 对本地单用户过重                                                                                                                                   |
+| D9  | 提示词删除为硬删（无回收站）                                                                                                                                                                                                                                                                                                                                | 版本表级联简单可靠；误删场景以导出备份兜底（P1 再评估软删）                                                                                                               |
+| D10 | 项目物化 stagesSnapshot                                                                                                                                                                                                                                                                                                                                     | 模板再改不破坏存量项目（m5 FR-2.4）；代价是模板更新不回溯                                                                                                                 |
+| D11 | 产物确定性（文件内零时间戳）                                                                                                                                                                                                                                                                                                                                | git/diff/幂等三收益；时间集中在 manifest/lock                                                                                                                             |
+| D12 | ID = 前缀 + nanoid                                                                                                                                                                                                                                                                                                                                          | 日志可读性；不用自增 int 防跨库迁移冲突                                                                                                                                   |
+| D13 | 遥测三类白名单 + 默认关 + 单出口函数                                                                                                                                                                                                                                                                                                                        | §11.5；对写文件的 CLI，遥测透明度即信任底线（澄清 D3）                                                                                                                    |
+| D14 | 首启向导每步必须真实副作用（真预览/真注入/真 diff）                                                                                                                                                                                                                                                                                                         | specs/onboarding.md；演示动画式向导是社区产品的负资产（澄清 D4）                                                                                                          |
+| D15 | 国内平台走「专用 adapter ×3 + 兼容矩阵」而非每平台一 adapter                                                                                                                                                                                                                                                                                                | §8；codebuddy/trae/minicode 有专有文件契约故专用，zcode/Kimi/Codex 等读 AGENTS.md 走矩阵零代码覆盖（owner 裁定 D7，2026-09-20 核验；minicode 经 README 实证升为专用，D9） |
+| D16 | 向导「我已注入」用 lock 文件自动检测替代诚实按钮                                                                                                                                                                                                                                                                                                            | specs/onboarding.md FR-2.4（D11）；本地服务有权限读测试目录，自动点亮消灭误报完成                                                                                         |
+| D17 | 遥测端点自写极简（单文件 Worker）而非自托管 Umami                                                                                                                                                                                                                                                                                                           | §11.5（D12）；三类事件不需要分析面板，零运维零月费                                                                                                                        |
+| D18 | 遥测询问放在首次注入成功的「惊喜时刻」，一次性、双入口共享本地标记                                                                                                                                                                                                                                                                                          | §11.5（裁定 D13）；设置页深处的开关几乎无人发现，转化率不可比；拒绝即终点，不追讨                                                                                         |
+| —   | **owner 裁定 D19–D22（2026-09-23 P1.1 开档）**——本表按上面的约定不复述其正文，只留此指针。对设计侧承重两条：**D21** 改写本文 §2 测试行与 §13 E2E 行口径（不引入 Playwright）；**D19 的 T10 两项新增**（CLI `clean`、预览响应 `sizeEstimate`）**不触 design §7/§8 冻结契约**，凭据是 golden 三夹具零 diff（`specs/m6-standard-pack.md` 验收 12），非本文自述 | PRD 附录 D、dev-plan §15、`specs/m6-cli-injection.md` FR-6、`specs/m6-standard-pack.md` FR-6                                                                              |

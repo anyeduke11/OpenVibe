@@ -6,7 +6,14 @@ import { DevLogRepo } from '../repos/devlog'
 import { AppError } from '@openvibe/shared'
 
 const stages = [
-  { name: '启动', checklist: [{ id: 'c1', text: '需求一句话写清' }, { id: 'c2', text: '建日志' }], artifacts: [] },
+  {
+    name: '启动',
+    checklist: [
+      { id: 'c1', text: '需求一句话写清' },
+      { id: 'c2', text: '建日志' },
+    ],
+    artifacts: [],
+  },
   { name: '开发', checklist: [{ id: 'c3', text: '小步提交' }], artifacts: [] },
 ]
 
@@ -86,7 +93,12 @@ describe('UT-ENTRYNO-01 · 日志编号分配与导出', () => {
     const project = projects.create({ name: 'demo', flowTemplateId: template.id })
     const logs = new DevLogRepo(h.db)
 
-    const e1 = logs.create(project.id, { type: 'DEV', title: '首条', body: 'b', relatedFiles: ['src/a.ts'] })
+    const e1 = logs.create(project.id, {
+      type: 'DEV',
+      title: '首条',
+      body: 'b',
+      relatedFiles: ['src/a.ts'],
+    })
     const e2 = logs.create(project.id, { type: 'DEV', title: '', body: '', relatedFiles: [] })
     const c1 = logs.create(project.id, { type: 'CHECK', title: '', body: '', relatedFiles: [] })
     const e3 = logs.create(project.id, { type: 'DEV', title: '', body: '', relatedFiles: [] })

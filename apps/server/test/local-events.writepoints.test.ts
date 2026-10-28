@@ -108,28 +108,39 @@ const PAYLOAD_KEYS: Record<string, string[]> = {
   stage_view_switched: ['origin'],
 }
 
-
 /* ------------------------------------------------------------------------- */
 
 describe('§7-d · 生产写入点：asset_created 五类资产各一条', () => {
   it('五类资产各产生一条，subject_type/subject_id/payload 齐备', async () => {
     const h = await makeHarness()
 
-    const prompt = (await api(h.app, 'POST', '/api/prompts', { title: '代码审查', content: '审查代码' })).json()
+    const prompt = (
+      await api(h.app, 'POST', '/api/prompts', { title: '代码审查', content: '审查代码' })
+    ).json()
     const skill = (
-      await api(h.app, 'POST', '/api/skills', { name: 'my-skill', description: '手工', source: 'manual' })
+      await api(h.app, 'POST', '/api/skills', {
+        name: 'my-skill',
+        description: '手工',
+        source: 'manual',
+      })
     ).json()
     const term = (
       await api(h.app, 'POST', '/api/terms', { en: 'RAG', zh: '检索增强生成', definition: '定义' })
     ).json()
     const playbook = (
-      await api(h.app, 'POST', '/api/playbooks', { scenario: '投产评审', problem: 'p', practice: 'q' })
+      await api(h.app, 'POST', '/api/playbooks', {
+        scenario: '投产评审',
+        problem: 'p',
+        practice: 'q',
+      })
     ).json()
     const flow = (
       await api(h.app, 'POST', '/api/flow-templates', {
         name: '五项清单',
         kind: 'custom',
-        stages: [{ name: '开发', checklist: [{ id: '开发-c1', text: 'x' }], artifacts: [], prompt: '' }],
+        stages: [
+          { name: '开发', checklist: [{ id: '开发-c1', text: 'x' }], artifacts: [], prompt: '' },
+        ],
       })
     ).json()
 
@@ -156,7 +167,10 @@ describe('§7-d · 生产写入点：asset_created 五类资产各一条', () =>
       expect(r.project_id, who).toBeNull()
       expect(r.day, who).toBe(NOW_DAY)
       expect(payloadKeys(r), who).toEqual(PAYLOAD_KEYS.asset_created)
-      expect(JSON.parse(r.payload_json), who).toMatchObject({ assetType: r.subject_type, origin: 'user' })
+      expect(JSON.parse(r.payload_json), who).toMatchObject({
+        assetType: r.subject_type,
+        origin: 'user',
+      })
     }
   })
 
@@ -372,7 +386,10 @@ describe('§7-d · 生产写入点：stage_view_switched（切换到另一个阶
 
 describe('§7-d · 生产写入点：flow_template_run（建项目即跑模板）', () => {
   /** 建一个真实模板再拿它开项目 —— 写入点记的是「这个模板被用了」，不是任意 id */
-  async function runTemplate(h: Harness, name: string): Promise<{ templateId: string; projectId: string }> {
+  async function runTemplate(
+    h: Harness,
+    name: string,
+  ): Promise<{ templateId: string; projectId: string }> {
     const tpl = (
       await api(h.app, 'POST', '/api/flow-templates', {
         name,
@@ -429,7 +446,8 @@ describe('§7-d · payload 禁列（FR-6.3）', () => {
     const prompt = (
       await api(h.app, 'POST', '/api/prompts', {
         title: '含正文与占位符的提示词',
-        content: '审查 {{language}} 代码，关注：{{task}}，项目本地路径 /Users/duke/work/secret-repo',
+        content:
+          '审查 {{language}} 代码，关注：{{task}}，项目本地路径 /Users/duke/work/secret-repo',
       })
     ).json()
     const tpl = (
@@ -477,7 +495,10 @@ describe('§7-d · payload 禁列（FR-6.3）', () => {
         'prm_x',
         null,
         // 动态家目录：CI runner 上同样触发「本机用户名」判定（写死 /Users/duke 只在 owner 机器绿）
-        JSON.stringify({ assetType: 'prompt', nested: { where: join(homedir(), 'work', 'secret-repo') } }),
+        JSON.stringify({
+          assetType: 'prompt',
+          nested: { where: join(homedir(), 'work', 'secret-repo') },
+        }),
         NOW,
         NOW_DAY,
       )
@@ -488,7 +509,10 @@ describe('§7-d · payload 禁列（FR-6.3）', () => {
     )
     // 对照组：只把 payload 换回写入口径的形状（其余列逐字不动），扫描器必须放行。
     // 少了这一行，就无法区分「扫描器抓到了脏行」与「扫描器对一切非空 payload 都报错」。
-    const clean: Row = { ...only(h, 'asset_created'), payload_json: JSON.stringify({ assetType: 'prompt', origin: 'user' }) }
+    const clean: Row = {
+      ...only(h, 'asset_created'),
+      payload_json: JSON.stringify({ assetType: 'prompt', origin: 'user' }),
+    }
     expect(scanForbidden(clean)).toEqual([])
   })
 

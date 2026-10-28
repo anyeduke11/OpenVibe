@@ -85,7 +85,16 @@ export type TermLevel = (typeof TERM_LEVELS)[number]
  * 造两套的结果就是两套都对不上。用于筛选条与卡片的枚举，不是 DB 约束：
  * `terms.domain` 列刻意不设 CHECK（理由见 0008 迁移注释），口径靠写入边界的 Zod 收口。
  */
-export const TERM_DOMAINS = ['前端', '后端', 'AI', '产品', '测试', '技术栈', 'Git', '设计风格'] as const
+export const TERM_DOMAINS = [
+  '前端',
+  '后端',
+  'AI',
+  '产品',
+  '测试',
+  '技术栈',
+  'Git',
+  '设计风格',
+] as const
 export type TermDomain = (typeof TERM_DOMAINS)[number]
 /** m4 §3：published 才是可进包口径（FR-6.2 只渲染 published） */
 export const PLAYBOOK_STATUS = ['draft', 'published'] as const
@@ -323,7 +332,10 @@ export const AGENT_PAYLOAD_KEYS = Object.fromEntries(
 export type AgentPayloadKind = keyof typeof AGENT_PAYLOAD_SHAPE
 
 /** `kind` 与 `day` 的联合索引口径（FR-1.2）；day 落列不现算，照 telemetry_events 先例 */
-export const LOCAL_EVENT_INDEXES = ['idx_local_events_kind_day', 'idx_local_events_created_at'] as const
+export const LOCAL_EVENT_INDEXES = [
+  'idx_local_events_kind_day',
+  'idx_local_events_created_at',
+] as const
 
 /* ---------------------------------------------------------------------------
  * M8 · 回流写入面（m8-agent-bridge.md FR-2.1）

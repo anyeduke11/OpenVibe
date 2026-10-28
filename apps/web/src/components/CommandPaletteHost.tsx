@@ -29,7 +29,13 @@ export function CommandPaletteHost() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() !== 'k' || !(e.metaKey || e.ctrlKey)) return
       const t = e.target as HTMLElement | null
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable))
+      if (
+        t &&
+        (t.tagName === 'INPUT' ||
+          t.tagName === 'TEXTAREA' ||
+          t.tagName === 'SELECT' ||
+          t.isContentEditable)
+      )
         return
       e.preventDefault()
       // 已载入过则直接开关，不重复 import

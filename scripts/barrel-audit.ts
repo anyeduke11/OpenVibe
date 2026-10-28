@@ -24,7 +24,8 @@ const INDEX = join(ROOT, 'packages/core/src/index.ts')
 function walk(dir: string): string[] {
   const out: string[] = []
   for (const entry of readdirSync(dir)) {
-    if (entry === 'node_modules' || entry === 'dist' || entry === '.git' || entry.startsWith('.')) continue
+    if (entry === 'node_modules' || entry === 'dist' || entry === '.git' || entry.startsWith('.'))
+      continue
     const abs = join(dir, entry)
     if (statSync(abs).isDirectory()) out.push(...walk(abs))
     else if (abs.endsWith('.ts') || abs.endsWith('.tsx')) out.push(abs)
@@ -57,13 +58,18 @@ const markdown = process.argv.includes('--markdown')
 if (markdown) {
   console.log(`## 主出口零消费符号审计（${new Date().toISOString().slice(0, 10)}）`)
   console.log('')
-  console.log(`导出符号共 **${exported.length}**；零消费 **${zero.length}**（类型 ${types.length} / 值 ${values.length}）。`)
+  console.log(
+    `导出符号共 **${exported.length}**；零消费 **${zero.length}**（类型 ${types.length} / 值 ${values.length}）。`,
+  )
   console.log('')
   console.log('| 符号 | 类别 | 定义模块 |')
   console.log('|---|---|---|')
-  for (const e of zero) console.log(`| \`${e.name}\` | ${e.isType ? 'type' : 'value'} | ${e.module} |`)
+  for (const e of zero)
+    console.log(`| \`${e.name}\` | ${e.isType ? 'type' : 'value'} | ${e.module} |`)
 } else {
-  console.log(`主出口符号：${exported.length}；零消费：${zero.length}（类型 ${types.length} / 值 ${values.length}）`)
+  console.log(
+    `主出口符号：${exported.length}；零消费：${zero.length}（类型 ${types.length} / 值 ${values.length}）`,
+  )
   console.log('CS5 建议批次：先清类型（批一），值符号逐个复核后清（批二/三）。')
   for (const e of zero) console.log(`  ${e.isType ? 'type' : 'value'}  ${e.name}  (${e.module})`)
 }

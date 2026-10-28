@@ -8,8 +8,7 @@ import type { SqliteDatabase } from './index'
  * 统一经 `seedRegistryUpsert` 登记。语义不变：同 bundle 幂等，content_hash 与 imported_at
  * 随最近一次播种推进（不参与跳过逻辑，纯诊断用途——各行自述同款）。
  */
-const SEED_REGISTRY_UPSERT_SQL =
-  `INSERT INTO seed_registry (bundle, content_hash, imported_at) VALUES (?, ?, ?)
+const SEED_REGISTRY_UPSERT_SQL = `INSERT INTO seed_registry (bundle, content_hash, imported_at) VALUES (?, ?, ?)
    ON CONFLICT(bundle) DO UPDATE SET content_hash = excluded.content_hash, imported_at = excluded.imported_at`
 
 export function seedRegistryUpsert(

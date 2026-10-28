@@ -70,9 +70,7 @@ import { readFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { guardedWrite } from './m9-write-guard'
-import {
- 
-} from '@openvibe/core'
+import {} from '@openvibe/core'
 import { computeFreshness, STALE_SOURCE_KEYS, type SourceFreshness } from '@openvibe/core/tooling'
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -182,10 +180,7 @@ export function decodeEntities(raw: string): string {
  *   ① 连续空格（`Python3  数据类型转换`）② 排版连字符（`&#8211;` ⇒ `–` ⇒ `-`）。
  */
 export function normalizeTitle(raw: string): string {
-  return decodeEntities(raw)
-    .replace(/[‐-―]/g, '-')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return decodeEntities(raw).replace(/[‐-―]/g, '-').replace(/\s+/g, ' ').trim()
 }
 
 /**
@@ -558,14 +553,18 @@ function renderInventory(
 function renderDiff(cfg: SourceConfig, diff: InventoryDiff): string {
   const lines: string[] = []
   lines.push(`── ${cfg.key} · ${cfg.pageUrl}`)
-  lines.push(`   条数：库 ${String(cfg.expectedTotal)} → 源 ${String(cfg.expectedTotal + diff.countChanged)}（差 ${String(diff.countChanged)}）`)
+  lines.push(
+    `   条数：库 ${String(cfg.expectedTotal)} → 源 ${String(cfg.expectedTotal + diff.countChanged)}（差 ${String(diff.countChanged)}）`,
+  )
   if (diff.added.length > 0) {
     lines.push(`   源站新增 ${String(diff.added.length)} 条：`)
-    for (const it of diff.added.slice(0, 10)) lines.push(`     + ${it.section} · ${it.title} · ${it.url}`)
+    for (const it of diff.added.slice(0, 10))
+      lines.push(`     + ${it.section} · ${it.title} · ${it.url}`)
   }
   if (diff.removed.length > 0) {
     lines.push(`   源站消失 ${String(diff.removed.length)} 条：`)
-    for (const it of diff.removed.slice(0, 10)) lines.push(`     - ${it.section} · ${it.title} · ${it.url}`)
+    for (const it of diff.removed.slice(0, 10))
+      lines.push(`     - ${it.section} · ${it.title} · ${it.url}`)
   }
   if (diff.urlChanged.length > 0) {
     lines.push(`   链接换了地址 ${String(diff.urlChanged.length)} 条：`)
@@ -828,8 +827,8 @@ async function main(argv: string[]): Promise<number> {
     check: argv.includes('--check'),
     json: argv.includes('--json'),
     offline: argv.includes('--offline'),
-    htmlDir: argv.includes('--html-dir') ? argv[argv.indexOf('--html-dir') + 1] ?? null : null,
-    only: argv.includes('--source') ? argv[argv.indexOf('--source') + 1] ?? null : null,
+    htmlDir: argv.includes('--html-dir') ? (argv[argv.indexOf('--html-dir') + 1] ?? null) : null,
+    only: argv.includes('--source') ? (argv[argv.indexOf('--source') + 1] ?? null) : null,
     stamp: new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19),
   }
   const outcomes = await collectSources(opts)

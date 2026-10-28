@@ -96,7 +96,10 @@ async function startIngestStub(respond: unknown = ACCEPTED): Promise<IngestStub>
     req.on('data', (c: Buffer) => chunks.push(c))
     req.on('end', () => {
       const raw = Buffer.concat(chunks).toString('utf8')
-      const record: IngestStub['requests'][number] = { method: req.method ?? 'GET', url: req.url ?? '/' }
+      const record: IngestStub['requests'][number] = {
+        method: req.method ?? 'GET',
+        url: req.url ?? '/',
+      }
       if (raw !== '') {
         try {
           record.body = JSON.parse(raw)
@@ -191,15 +194,17 @@ describe('requirement add 的请求体：单一写端点 + 人工确认门（FR-
   it('CLI-REQ-03: 必填项缺失/空白与非法 priority ⇒ 本地零请求', async () => {
     const fake = fakeClient({ post: { [AGENT_INGEST_PATH]: ACCEPTED } })
 
-    const noProject = await requirementAddAction({ project: '  ', title: 'x' }, { client: fake.client }).catch(
-      (e: unknown) => e,
-    )
+    const noProject = await requirementAddAction(
+      { project: '  ', title: 'x' },
+      { client: fake.client },
+    ).catch((e: unknown) => e)
     expect((noProject as RequirementAddError).code).toBe('USAGE')
     expect((noProject as Error).message).toContain('--project')
 
-    const noTitle = await requirementAddAction({ project: 'prj_1', title: '   ' }, { client: fake.client }).catch(
-      (e: unknown) => e,
-    )
+    const noTitle = await requirementAddAction(
+      { project: 'prj_1', title: '   ' },
+      { client: fake.client },
+    ).catch((e: unknown) => e)
     expect((noTitle as RequirementAddError).code).toBe('BAD_TITLE')
     expect((noTitle as Error).message).toContain('--title')
 
@@ -225,10 +230,18 @@ describe('requirement add 的请求体：单一写端点 + 人工确认门（FR-
     const batch = (
       over: Partial<AgentIngestBatchResult> & Pick<AgentIngestBatchResult, 'items'>,
     ): AgentIngestBatchResult => ({ accepted: 0, duplicate: 0, conflict: 0, rejected: 0, ...over })
-    const cases: { name: string; res: AgentIngestBatchResult; code: string | undefined; exit: number }[] = [
+    const cases: {
+      name: string
+      res: AgentIngestBatchResult
+      code: string | undefined
+      exit: number
+    }[] = [
       {
         name: 'rejected',
-        res: batch({ rejected: 1, items: [{ index: 0, status: 'rejected', reason: 'payload 超限' }] }),
+        res: batch({
+          rejected: 1,
+          items: [{ index: 0, status: 'rejected', reason: 'payload 超限' }],
+        }),
         code: 'INGEST_REJECTED',
         exit: ExitCode.error,
       },
@@ -237,7 +250,12 @@ describe('requirement add 的请求体：单一写端点 + 人工确认门（FR-
         res: batch({
           conflict: 1,
           items: [
-            { index: 0, status: 'conflict', existingKeySha: 'aaaaaaaa', incomingKeySha: 'bbbbbbbb' },
+            {
+              index: 0,
+              status: 'conflict',
+              existingKeySha: 'aaaaaaaa',
+              incomingKeySha: 'bbbbbbbb',
+            },
           ],
         }),
         code: 'INGEST_CONFLICT',
@@ -253,43 +271,60 @@ describe('requirement add 的请求体：单一写端点 + 人工确认门（FR-
 
     for (const c of cases) {
       const fake = fakeClient({ post: { [AGENT_INGEST_PATH]: c.res } })
-      const outcome = await requirementAddAction({ project: 'prj_1', title: '逐条结果' }, { client: fake.client })
+      const outcome = await requirementAddAction(
+        { project: 'prj_1', title: '逐条结果' },
+        { client: fake.client },
+      )
       expect(outcome.item.status, c.name).toBe(c.res.items[0]?.status)
       expect(outcome.exitCode, c.name).toBe(c.exit)
       expect(outcome.error?.code, c.name).toBe(c.code)
       // 失败两态必须留下服务端给的理由，否则调用方无从判断该不该换键重试
-      if (c.exit === ExitCode.error) expect(outcome.warnings.join('\n'), c.name).toContain('逐条结果为')
+      if (c.exit === ExitCode.error)
+        expect(outcome.warnings.join('\n'), c.name).toContain('逐条结果为')
     }
   })
 
   it('CLI-REQ-06: 服务端回空 items ⇒ 判 BAD_RESPONSE 退 1，绝不默认按成功收工', async () => {
     const fake = fakeClient({
-      post: { [AGENT_INGEST_PATH]: { accepted: 0, duplicate: 0, conflict: 0, rejected: 0, items: [] } },
+      post: {
+        [AGENT_INGEST_PATH]: { accepted: 0, duplicate: 0, conflict: 0, rejected: 0, items: [] },
+      },
     })
-    const err = await requirementAddAction({ project: 'prj_1', title: '协议异常' }, { client: fake.client }).catch(
-      (e: unknown) => e,
-    )
+    const err = await requirementAddAction(
+      { project: 'prj_1', title: '协议异常' },
+      { client: fake.client },
+    ).catch((e: unknown) => e)
     expect((err as RequirementAddError).code).toBe('BAD_RESPONSE')
     expect((err as Error).message).toContain(AGENT_INGEST_PATH)
   })
 
   it('CLI-REQ-07: 无客户端 / 服务端不可达 ⇒ 自由 code + 「先跑 openvibe serve」，且不进 ERROR_CODES 闭集', async () => {
-    const offline = await requirementAddAction({ project: 'prj_1', title: '离线' }, {}).catch((e: unknown) => e)
+    const offline = await requirementAddAction({ project: 'prj_1', title: '离线' }, {}).catch(
+      (e: unknown) => e,
+    )
     expect((offline as RequirementAddError).code).toBe('SERVER_REQUIRED')
     expect((offline as Error).message).toContain('openvibe serve')
 
     const down: ApiClient = {
       serverUrl: 'http://127.0.0.1:1',
       getJson: () => Promise.reject(new Error('unused')),
-      postJson: () => Promise.reject(new ServerUnreachable('http://127.0.0.1:1', 'connect ECONNREFUSED')),
+      postJson: () =>
+        Promise.reject(new ServerUnreachable('http://127.0.0.1:1', 'connect ECONNREFUSED')),
     }
-    const err = await requirementAddAction({ project: 'prj_1', title: '离线' }, { client: down }).catch(
-      (e: unknown) => e,
-    )
+    const err = await requirementAddAction(
+      { project: 'prj_1', title: '离线' },
+      { client: down },
+    ).catch((e: unknown) => e)
     expect((err as RequirementAddError).code).toBe('SERVER_UNREACHABLE')
     expect((err as Error).message).toContain('openvibe serve')
     // CLI 层自由 code 不进服务端信封的 12 项闭集（FR-6.2）
-    for (const code of ['SERVER_REQUIRED', 'SERVER_UNREACHABLE', 'BAD_PRIORITY', 'BAD_TITLE', 'BAD_RESPONSE'])
+    for (const code of [
+      'SERVER_REQUIRED',
+      'SERVER_UNREACHABLE',
+      'BAD_PRIORITY',
+      'BAD_TITLE',
+      'BAD_RESPONSE',
+    ])
       expect(ERROR_CODES as readonly string[]).not.toContain(code)
   })
 })
@@ -391,9 +426,21 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
     try {
       const res = await runCli(
         [
-          '--json', '--server', stub.url, '--token', 't',
-          'requirement', 'add', '--project', 'prj_1', '--title', '接入 M8 第四只 CLI 命令',
-          '--detail', '走 POST /api/agent/ingest', '--priority', 'P1',
+          '--json',
+          '--server',
+          stub.url,
+          '--token',
+          't',
+          'requirement',
+          'add',
+          '--project',
+          'prj_1',
+          '--title',
+          '接入 M8 第四只 CLI 命令',
+          '--detail',
+          '走 POST /api/agent/ingest',
+          '--priority',
+          'P1',
         ],
         { home, env: { OPENVIBE_AGENT: 'claude-code' } },
       )
@@ -492,10 +539,26 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
     const home = tempHome()
     try {
       const res = await runCli(
-        ['--json', '--server', stub.url, '--token', 't', 'requirement', 'add', '--project', 'prj_1', '--title', 'x', '--priority', 'P9'],
+        [
+          '--json',
+          '--server',
+          stub.url,
+          '--token',
+          't',
+          'requirement',
+          'add',
+          '--project',
+          'prj_1',
+          '--title',
+          'x',
+          '--priority',
+          'P9',
+        ],
         { home },
       )
-      const env = JSON.parse(res.stdout) as { summary: { ok: boolean; error: { code: string; message: string } } }
+      const env = JSON.parse(res.stdout) as {
+        summary: { ok: boolean; error: { code: string; message: string } }
+      }
       expect(res.status).toBe(ExitCode.error)
       expect(env.summary.ok).toBe(false)
       expect(env.summary.error.code).toBe('BAD_PRIORITY')
@@ -511,7 +574,19 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
     const home = tempHome()
     // 127.0.0.1:1 无人监听 ⇒ 连不上，等价于「serve 未启动」
     const res = await runCli(
-      ['--json', '--server', 'http://127.0.0.1:1', '--token', 't', 'requirement', 'add', '--project', 'prj_1', '--title', 'x'],
+      [
+        '--json',
+        '--server',
+        'http://127.0.0.1:1',
+        '--token',
+        't',
+        'requirement',
+        'add',
+        '--project',
+        'prj_1',
+        '--title',
+        'x',
+      ],
       { home },
     )
     const env = JSON.parse(res.stdout) as {
@@ -538,7 +613,19 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
     const home = tempHome()
     try {
       const res = await runCli(
-        ['--json', '--server', stub.url, '--token', 't', 'requirement', 'add', '--project', 'prj_1', '--title', 'x'],
+        [
+          '--json',
+          '--server',
+          stub.url,
+          '--token',
+          't',
+          'requirement',
+          'add',
+          '--project',
+          'prj_1',
+          '--title',
+          'x',
+        ],
         { home },
       )
       const env = JSON.parse(res.stdout) as {
@@ -577,7 +664,19 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
     const stub = await startIngestStub()
     try {
       const res = await runCli(
-        ['--json', '--server', stub.url, '--token', 't', 'requirement', 'add', '--project', 'prj_1', '--title', 'x'],
+        [
+          '--json',
+          '--server',
+          stub.url,
+          '--token',
+          't',
+          'requirement',
+          'add',
+          '--project',
+          'prj_1',
+          '--title',
+          'x',
+        ],
         { home: tempHome() },
       )
       const env = JSON.parse(res.stdout) as { summary: { ok: boolean; exitCode: number } }
@@ -596,7 +695,9 @@ describe('入参组装（纯函数面）', () => {
       project: 'prj_1',
       payload: { title: '标题', detail: '', priority: 'P2' },
     })
-    expect(buildRequirement({ project: 'prj_1', title: 't', priority: 'p0' }).payload.priority).toBe('P0')
+    expect(
+      buildRequirement({ project: 'prj_1', title: 't', priority: 'p0' }).payload.priority,
+    ).toBe('P0')
     expect(() => buildRequirement({ project: 'prj_1', title: 't', priority: 'urgent' })).toThrow(
       RequirementAddError,
     )

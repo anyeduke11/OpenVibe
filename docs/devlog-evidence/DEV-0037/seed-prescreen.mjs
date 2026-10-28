@@ -14,7 +14,9 @@ const bi = a.indexOf('--base-ref')
 const BASE = bi >= 0 ? (a[bi + 1] ?? 'HEAD') : '6c33b50'
 const load = (rel, ref) =>
   JSON.parse(
-    ref ? execFileSync('git', ['show', `${ref}:${rel}`], { encoding: 'utf8' }) : readFileSync(join(REPO, rel), 'utf8'),
+    ref
+      ? execFileSync('git', ['show', `${ref}:${rel}`], { encoding: 'utf8' })
+      : readFileSync(join(REPO, rel), 'utf8'),
   ).items
 
 const terms = load('content/seed/terms.json', null)
@@ -24,7 +26,20 @@ const prompts = load('content/seed/prompts.json', null)
 const pBase = new Set(load('content/seed/prompts.json', BASE).map((p) => p.title))
 const freshP = prompts.filter((p) => !pBase.has(p.title))
 
-const HYPER = ['最', '唯一', '绝不', '永远', '完美', '无缝', '极大', '必然', '根本无法', '一律', '所有', '任何']
+const HYPER = [
+  '最',
+  '唯一',
+  '绝不',
+  '永远',
+  '完美',
+  '无缝',
+  '极大',
+  '必然',
+  '根本无法',
+  '一律',
+  '所有',
+  '任何',
+]
 const long = (s) => [...(s ?? '')].length
 
 function screenTerm(t, all) {
@@ -47,11 +62,14 @@ function screenTerm(t, all) {
   // S5 近义重叠：与其他词条的 en 归一相同，或 zh 互为包含
   const norm = (s) => (s ?? '').toLowerCase().replace(/[\s-]/g, '')
   const dup = all.filter(
-    (o) => o !== t && (norm(o.en) === norm(t.en) || (o.zh && t.zh && (o.zh.includes(t.zh) || t.zh.includes(o.zh)))),
+    (o) =>
+      o !== t &&
+      (norm(o.en) === norm(t.en) || (o.zh && t.zh && (o.zh.includes(t.zh) || t.zh.includes(o.zh)))),
   )
   if (dup.length) hits.push(`S5 与[${dup.map((o) => o.zh).join(',')}]重叠`)
   // S6 示例与定义主题脱节：中文 2-gram 重合率
-  const grams = (s) => new Set([...s].map((_, i) => s.slice(i, i + 2)).filter((g) => /[\u4e00-\u9fa5]{2}/.test(g)))
+  const grams = (s) =>
+    new Set([...s].map((_, i) => s.slice(i, i + 2)).filter((g) => /[\u4e00-\u9fa5]{2}/.test(g)))
   const gd = grams(d)
   const ge = grams(e)
   const rate = ge.size ? [...ge].filter((g) => gd.has(g)).length / ge.size : 0
@@ -75,8 +93,12 @@ for (const p of freshP) {
   // 提示词正文：变量是否被正文真的用到、有无「请确保/尽量」式空话
   const body = p.content ?? ''
   const vars = [...body.matchAll(/\{\{\s*([A-Za-z_][\w-]*)\s*\}\}/g)].map((m) => m[1])
-  const hollow = ['请确保', '尽量', '尽可能', '适当地', '合理地', '注意'].filter((w) => body.includes(w))
+  const hollow = ['请确保', '尽量', '尽可能', '适当地', '合理地', '注意'].filter((w) =>
+    body.includes(w),
+  )
   if (hollow.length) hits.push(`P1 空话词[${hollow.join(',')}]`)
   if (vars.length === 0 && p.useAs === 'reference') hits.push('P2 无变量占位')
-  console.log(`| ${p.title} | ${p.useAs ?? 'reference'} | ${hits.length} | ${hits.join(' ; ') || '（无命中）'} |`)
+  console.log(
+    `| ${p.title} | ${p.useAs ?? 'reference'} | ${hits.length} | ${hits.join(' ; ') || '（无命中）'} |`,
+  )
 }

@@ -166,7 +166,9 @@ describe('TERMVIEW-01 · 筛选条三段各管各的维度', () => {
       />,
     )
     expect(screen.getByRole('button', { name: '前端 1' }).getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByRole('button', { name: '全部 1' }).getAttribute('aria-pressed')).toBe('false')
+    expect(screen.getByRole('button', { name: '全部 1' }).getAttribute('aria-pressed')).toBe(
+      'false',
+    )
   })
 })
 
@@ -176,7 +178,11 @@ describe('TERMVIEW-02 · 卡片三段式', () => {
   it('有场景句时：场景句直出，定义默认收起', () => {
     render(
       <TermCard
-        term={term({ id: 'a', zh: '按钮', scenario: '鼠标移上去会变色、点下去就有反应的那块小方块。' })}
+        term={term({
+          id: 'a',
+          zh: '按钮',
+          scenario: '鼠标移上去会变色、点下去就有反应的那块小方块。',
+        })}
         relatedTerms={[]}
         selected={false}
         onToggleSelect={vi.fn()}
@@ -191,8 +197,12 @@ describe('TERMVIEW-02 · 卡片三段式', () => {
 
   it('⚠️ 场景句为空 ⇒ 定义直出（否则卡片只剩一个标题，读起来像残次品）', () => {
     render(
-      <TermCard term={term({ id: 'b', zh: '自建词', scenario: '' })} relatedTerms={[]}
-        selected={false} onToggleSelect={vi.fn()} />,
+      <TermCard
+        term={term({ id: 'b', zh: '自建词', scenario: '' })}
+        relatedTerms={[]}
+        selected={false}
+        onToggleSelect={vi.fn()}
+      />,
     )
     expect(screen.getByText('定义')).toBeTruthy()
     expect(screen.queryByRole('button', { name: '看定义' })).toBeNull()
@@ -201,22 +211,34 @@ describe('TERMVIEW-02 · 卡片三段式', () => {
   it('选中态按钮文案随 selected 变，且回调传的是词条 id', () => {
     const onToggleSelect = vi.fn()
     const { rerender } = render(
-      <TermCard term={term({ id: 'c1', zh: 'x' })} relatedTerms={[]} selected={false}
-        onToggleSelect={onToggleSelect} />,
+      <TermCard
+        term={term({ id: 'c1', zh: 'x' })}
+        relatedTerms={[]}
+        selected={false}
+        onToggleSelect={onToggleSelect}
+      />,
     )
     fireEvent.click(screen.getByRole('button', { name: '加入选集' }))
     expect(onToggleSelect).toHaveBeenCalledWith('c1')
     rerender(
-      <TermCard term={term({ id: 'c1', zh: 'x' })} relatedTerms={[]} selected
-        onToggleSelect={onToggleSelect} />,
+      <TermCard
+        term={term({ id: 'c1', zh: 'x' })}
+        relatedTerms={[]}
+        selected
+        onToggleSelect={onToggleSelect}
+      />,
     )
     expect(screen.getByRole('button', { name: '已选' }).getAttribute('aria-pressed')).toBe('true')
   })
 
   it('相关词解析不到就不渲染那一段（不留空标题）', () => {
     render(
-      <TermCard term={term({ id: 'd', zh: 'x', relatedTermIds: ['missing'] })} relatedTerms={[]}
-        selected={false} onToggleSelect={vi.fn()} />,
+      <TermCard
+        term={term({ id: 'd', zh: 'x', relatedTermIds: ['missing'] })}
+        relatedTerms={[]}
+        selected={false}
+        onToggleSelect={vi.fn()}
+      />,
     )
     expect(screen.queryByText('相关')).toBeNull()
   })
@@ -247,8 +269,12 @@ describe('TERMVIEW-03 · 分区与区内排序', () => {
       term({ id: '3', zh: '丙', domain: '后端' }),
     ]
     render(
-      <TermCardGrid terms={terms} allTerms={terms} selectedIds={new Set()}
-        onToggleSelect={vi.fn()} />,
+      <TermCardGrid
+        terms={terms}
+        allTerms={terms}
+        selectedIds={new Set()}
+        onToggleSelect={vi.fn()}
+      />,
     )
     const heads = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent ?? '')
     expect(heads[0]).toMatch(/^前端/)
@@ -263,8 +289,12 @@ describe('TERMVIEW-03 · 分区与区内排序', () => {
       term({ id: '3', zh: '中等不必看', level: 'L2', starter: false, domain: 'AI' }),
     ]
     render(
-      <TermCardGrid terms={terms} allTerms={terms} selectedIds={new Set()}
-        onToggleSelect={vi.fn()} />,
+      <TermCardGrid
+        terms={terms}
+        allTerms={terms}
+        selectedIds={new Set()}
+        onToggleSelect={vi.fn()}
+      />,
     )
     const order = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent ?? '')
     expect(order).toEqual(['难但必看', '简单不必看', '中等不必看'])
@@ -273,8 +303,13 @@ describe('TERMVIEW-03 · 分区与区内排序', () => {
   it('筛选后为空 ⇒ 给「当前筛选没命中」并能一键清除（FR-4.4）', () => {
     const onClearFilters = vi.fn()
     render(
-      <TermCardGrid terms={[]} allTerms={[]} selectedIds={new Set()}
-        onToggleSelect={vi.fn()} onClearFilters={onClearFilters} />,
+      <TermCardGrid
+        terms={[]}
+        allTerms={[]}
+        selectedIds={new Set()}
+        onToggleSelect={vi.fn()}
+        onClearFilters={onClearFilters}
+      />,
     )
     expect(screen.getByText(/当前筛选没命中/)).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: '清除筛选' }))
@@ -309,7 +344,9 @@ describe('TERMVIEW-04 · 场景句回退搜索（FR-5.2）', () => {
     expect(searchByScenario('   ', pool)).toEqual([])
     // 自证：把早退去掉后，上面两条会返回什么（空串是 '' 的子串 ⇒ 全库都命中）
     const withoutEarlyReturn = (q: string, terms: TermOut[]) =>
-      q.trim() === '' ? [] : terms.filter((t) => t.scenario.toLowerCase().includes(q.trim().toLowerCase()))
+      q.trim() === ''
+        ? []
+        : terms.filter((t) => t.scenario.toLowerCase().includes(q.trim().toLowerCase()))
     // 断言「早退不是可有可无」：非空查询下二者一致，说明早退唯一的作用就是挡空查询
     expect(searchByScenario('糊一层', pool).map((t) => t.id)).toEqual(
       withoutEarlyReturn('糊一层', pool).map((t) => t.id),

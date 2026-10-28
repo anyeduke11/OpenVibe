@@ -34,13 +34,7 @@ export interface LedgerDeps {
 }
 
 /** 资产类 kind 的 `subject_type` 闭集（FR-6.3「只放枚举值」的落法） */
-export const ASSET_SUBJECT_TYPES = [
-  'prompt',
-  'skill',
-  'term',
-  'playbook',
-  'flow_template',
-] as const
+export const ASSET_SUBJECT_TYPES = ['prompt', 'skill', 'term', 'playbook', 'flow_template'] as const
 export type AssetSubjectType = (typeof ASSET_SUBJECT_TYPES)[number]
 
 export function resolveLedger(deps: LedgerDeps): LedgerWriter {
@@ -65,5 +59,10 @@ export function assetEventInput(
   assetType: AssetSubjectType,
   assetId: string,
 ): LocalEventInput {
-  return { kind, subjectType: assetType, subjectId: assetId, payload: { assetType, origin: 'user' } }
+  return {
+    kind,
+    subjectType: assetType,
+    subjectId: assetId,
+    payload: { assetType, origin: 'user' },
+  }
 }

@@ -88,7 +88,8 @@ const AGENT_MAX_LEN = 64
  */
 function agentViolation(value: string): string | null {
   if (value.length > AGENT_MAX_LEN) return `agent 超过 ${AGENT_MAX_LEN} 字符`
-  if (/[/\\~]/.test(value)) return 'agent 不得含路径分隔符（绝对路径 / 项目名 / 用户名属 FR-5.1.2 禁列）'
+  if (/[/\\~]/.test(value))
+    return 'agent 不得含路径分隔符（绝对路径 / 项目名 / 用户名属 FR-5.1.2 禁列）'
   return null
 }
 

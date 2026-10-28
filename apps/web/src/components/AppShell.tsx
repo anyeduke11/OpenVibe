@@ -28,7 +28,10 @@ import { btnGhost } from './ui/styles'
 const RESOURCES_LABEL = '学习资源'
 
 /** 四组八项（DESIGN.md Layout）。count 走单端点 `/api/nav-counts`，不是七个请求。 */
-const NAV: { group: string; items: { to: string; label: string; icon: IconName; count?: (c: Counts) => number }[] }[] = [
+const NAV: {
+  group: string
+  items: { to: string; label: string; icon: IconName; count?: (c: Counts) => number }[]
+}[] = [
   {
     group: nav.group.overview,
     items: [{ to: '/', label: nav.workbench, icon: 'home' }],
@@ -96,7 +99,11 @@ function ThemeSwitch() {
   const { theme, toggle } = useTheme()
   const dark = theme === 'dark'
   return (
-    <div className="flex items-center gap-0.5 rounded-sm border border-line bg-panel-2 p-0.5" role="group" aria-label={common.theme.aria}>
+    <div
+      className="flex items-center gap-0.5 rounded-sm border border-line bg-panel-2 p-0.5"
+      role="group"
+      aria-label={common.theme.aria}
+    >
       {[
         { key: 'paper', label: common.theme.paper, icon: 'sun' as IconName },
         { key: 'dark', label: common.theme.night, icon: 'moon' as IconName },
@@ -125,10 +132,21 @@ function ThemeSwitch() {
 
 function Sidebar() {
   const { data } = useNavCounts()
-  const counts = (data ?? { prompts: 0, terms: 0, playbooks: 0, skills: 0, flows: 0, projects: 0, packs: 0 }) as Counts
+  const counts = (data ?? {
+    prompts: 0,
+    terms: 0,
+    playbooks: 0,
+    skills: 0,
+    flows: 0,
+    projects: 0,
+    packs: 0,
+  }) as Counts
   return (
     <aside className="flex w-[216px] shrink-0 flex-col border-r border-line bg-canvas max-lg:h-auto max-lg:w-full max-lg:flex-row max-lg:overflow-x-auto max-lg:border-b max-lg:border-r-0">
-      <nav className="flex flex-1 flex-col gap-3.5 overflow-y-auto p-2.5 max-lg:flex-row max-lg:gap-1 max-lg:overflow-visible max-lg:p-2" aria-label="主导航">
+      <nav
+        className="flex flex-1 flex-col gap-3.5 overflow-y-auto p-2.5 max-lg:flex-row max-lg:gap-1 max-lg:overflow-visible max-lg:p-2"
+        aria-label="主导航"
+      >
         {NAV.map((g) => (
           <div key={g.group} className="max-lg:contents">
             <div className="px-2.5 pb-1 text-[11.5px] text-ink-faint max-lg:hidden">{g.group}</div>
@@ -150,12 +168,21 @@ function Sidebar() {
                     <>
                       {/* 激活指示条：2px 赭石，贴左沿（DESIGN.md Layout） */}
                       {isActive && (
-                        <span aria-hidden className="absolute -left-2.5 top-1.5 bottom-1.5 w-[2px] rounded-r bg-accent max-lg:hidden" />
+                        <span
+                          aria-hidden
+                          className="absolute -left-2.5 top-1.5 bottom-1.5 w-[2px] rounded-r bg-accent max-lg:hidden"
+                        />
                       )}
-                      <Icon name={it.icon} size={15} className={isActive ? 'text-accent-deep' : 'text-ink-faint'} />
+                      <Icon
+                        name={it.icon}
+                        size={15}
+                        className={isActive ? 'text-accent-deep' : 'text-ink-faint'}
+                      />
                       <span className="flex-1">{it.label}</span>
                       {it.count && (
-                        <span className={`text-[11.5px] tabular-nums ${isActive ? 'text-accent-deep' : 'text-ink-faint'}`}>
+                        <span
+                          className={`text-[11.5px] tabular-nums ${isActive ? 'text-accent-deep' : 'text-ink-faint'}`}
+                        >
                           {String(it.count(counts))}
                         </span>
                       )}
@@ -180,7 +207,11 @@ function Sidebar() {
 /** 分包后页面 chunk 在路上的占位（Suspense 只包 Outlet，顶栏与侧栏不跟着闪） */
 function PageLoading() {
   return (
-    <div role="status" aria-busy className="flex items-center gap-2 px-7 py-5 text-sm text-ink-faint">
+    <div
+      role="status"
+      aria-busy
+      className="flex items-center gap-2 px-7 py-5 text-sm text-ink-faint"
+    >
       <span className="h-1.5 w-16 animate-pulse rounded-full bg-panel-2" />
       {common.loading}
     </div>

@@ -8,7 +8,12 @@ const HASH = 'a'.repeat(64)
 
 function workspace(): { dir: string; close(): void } {
   const dir = mkdtempSync(join(tmpdir(), 'ov-lock-test-'))
-  return { dir, close() { rmSync(dir, { recursive: true, force: true }) } }
+  return {
+    dir,
+    close() {
+      rmSync(dir, { recursive: true, force: true })
+    },
+  }
 }
 
 function writeLock(dir: string, content: string): string {
@@ -72,9 +77,7 @@ describe('UT-LOCK-02 · 异常口径不得波及他字段（m5 §6.1/§6.4）', 
     expect(
       readInjectionStatus({ localPath: join(w.dir, 'nope'), registered: null }).lockPresent,
     ).toBe(false)
-    expect(
-      readInjectionStatus({ localPath: w.dir, registered: null }).lockPresent,
-    ).toBe(false)
+    expect(readInjectionStatus({ localPath: w.dir, registered: null }).lockPresent).toBe(false)
     w.close()
   })
 
@@ -92,9 +95,9 @@ describe('UT-LOCK-02 · 异常口径不得波及他字段（m5 §6.1/§6.4）', 
     expect(readInjectionStatus({ localPath: w.dir, registered: null }).error).toBe('lock 文件异常')
 
     const filePath = writeLock(w.dir, lockJson())
-    expect(
-      readInjectionStatus({ localPath: filePath, registered: null }).error,
-    ).toBe('lock 文件异常')
+    expect(readInjectionStatus({ localPath: filePath, registered: null }).error).toBe(
+      'lock 文件异常',
+    )
     w.close()
   })
 })

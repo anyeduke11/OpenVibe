@@ -5,7 +5,16 @@ import { zh } from '../../i18n/zh'
 import type { PromptFilters } from '../../hooks/usePrompts'
 import { AssetEmpty, AssetError, AssetNoResults, AssetSkeleton } from '../library/AssetStates'
 import { Icon, type IconName } from '../ui/icons'
-import { btnDanger, btnGhost, btnPrimary, btnSecondary, chipTone, rowCls, tagCls, tagMonoCls } from '../ui/styles'
+import {
+  btnDanger,
+  btnGhost,
+  btnPrimary,
+  btnSecondary,
+  chipTone,
+  rowCls,
+  tagCls,
+  tagMonoCls,
+} from '../ui/styles'
 
 /**
  * 状态 chip 归到六形制，且**恒为三通道**（图标 + 文字 + 颜色）。
@@ -93,7 +102,9 @@ export function PromptList(props: {
                       </span>
                     ))}
                     {p.variables.length > 0 && (
-                      <span className={`${tagMonoCls} shrink-0 border-warn-line bg-warn-soft text-warn`}>
+                      <span
+                        className={`${tagMonoCls} shrink-0 border-warn-line bg-warn-soft text-warn`}
+                      >
                         {`{{${p.variables.join(', ')}}}`}
                       </span>
                     )}

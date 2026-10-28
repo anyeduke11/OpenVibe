@@ -16,10 +16,9 @@ import { publishManifest } from '../scripts/build-cli'
  */
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..')
-const cliManifest = JSON.parse(readFileSync(join(REPO, 'apps', 'cli', 'package.json'), 'utf8')) as Record<
-  string,
-  unknown
->
+const cliManifest = JSON.parse(
+  readFileSync(join(REPO, 'apps', 'cli', 'package.json'), 'utf8'),
+) as Record<string, unknown>
 const coreManifest = JSON.parse(
   readFileSync(join(REPO, 'packages', 'core', 'package.json'), 'utf8'),
 ) as { dependencies: Record<string, string> }

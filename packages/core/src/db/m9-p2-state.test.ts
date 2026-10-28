@@ -42,9 +42,7 @@ import { MASTERY_THRESHOLD_N, type TopicEvidence } from '@openvibe/shared'
 const SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))
 const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
 const SERVICE_SOURCE = fileURLToPath(new URL('./m9-p2-state.ts', import.meta.url))
-const SHARED_SOURCE = fileURLToPath(
-  new URL('../../../shared/src/m9-state.ts', import.meta.url),
-)
+const SHARED_SOURCE = fileURLToPath(new URL('../../../shared/src/m9-state.ts', import.meta.url))
 
 /** 夹具的**仓库相对路径**（⚠️ 零本机路径 —— 绝对路径不进库）。 */
 const FIXTURE_REFS: Record<string, string> = {
@@ -344,7 +342,10 @@ describe('M9 P2 · DL-25 源码夹具腿（P0 四支夹具）', () => {
       makeProject(h.db, 'p1')
       makeTopic(h.db, 1, 'go-goroutine')
       const evidence = new Map<number, readonly TopicEvidence[]>([
-        [1, [{ kind: 'source_hit', ref: FIXTURE_REFS.goRepeat!, count: fixtureHitCount('goRepeat') }]],
+        [
+          1,
+          [{ kind: 'source_hit', ref: FIXTURE_REFS.goRepeat!, count: fixtureHitCount('goRepeat') }],
+        ],
       ])
       expect(deriveTopicStates(h.db, evidence).get(1)).toBe('active')
     } finally {
@@ -445,9 +446,10 @@ describe('M9 P2 · DL-28 / DL-34 推导路径守卫', () => {
 describe('M9 P2 · DL-05 / DL-07 文案守卫', () => {
   it('全仓 0 命中（界面不得出现「你已掌握」/「未触及」）', () => {
     const hits = findForbiddenMasteryCopyInRepo(REPO_ROOT)
-    expect(hits, hits.map((h) => `${h.file}:${h.line} ${h.pattern} — ${h.text}`).join('\n')).toEqual(
-      [],
-    )
+    expect(
+      hits,
+      hits.map((h) => `${h.file}:${h.line} ${h.pattern} — ${h.text}`).join('\n'),
+    ).toEqual([])
   })
 
   it('守卫自证：注入一条必被报出（DL-05 的反证腿）', () => {
@@ -461,9 +463,7 @@ describe('M9 P2 · DL-05 / DL-07 文案守卫', () => {
   })
 
   it('反证：**规则说明里**引用这些词不算命中（注释被剔掉）', () => {
-    expect(
-      findForbiddenMasteryCopy('// DL-05：判定文案不得出现「你已掌握」这类表述'),
-    ).toEqual([])
+    expect(findForbiddenMasteryCopy('// DL-05：判定文案不得出现「你已掌握」这类表述')).toEqual([])
     expect(
       findForbiddenMasteryCopy('/* 规则：界面不得出现「未触及」三个字 */ const x = 1'),
     ).toEqual([])

@@ -1,11 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import {
-  applyTermAnnotations,
-  openDatabase,
-  TermsRepo,
-  type SqliteDatabase,
-} from '@openvibe/core'
+import { applyTermAnnotations, openDatabase, TermsRepo, type SqliteDatabase } from '@openvibe/core'
 import type { TermCreateInput } from '@openvibe/shared'
 
 /**
@@ -28,7 +23,15 @@ const API = `${SITE}/api/agent/v1`
 const CONCURRENCY = 6
 const TIMEOUT_MS = 15_000
 /** 站点上非词条路径（sitemap 里会出现） */
-const NON_TERM_PATHS = new Set(['', 'en', 'practice', 'courses', 'anti-ai-flavor', 'changelog', 'vibehub-skill'])
+const NON_TERM_PATHS = new Set([
+  '',
+  'en',
+  'practice',
+  'courses',
+  'anti-ai-flavor',
+  'changelog',
+  'vibehub-skill',
+])
 /**
  * 标签别名表（改名韧性，DEV-0077）：vibe-hub 站方改子分类名时，在这里加一条
  * `{ "站方新名": "规范路线组名" }`（规范组名见 packages/shared/src/roadmap.ts），
@@ -50,7 +53,9 @@ function parseArgs(): Args {
   }
   const db = get('db')
   if (db === undefined || db === '') {
-    console.error('用法：npx tsx scripts/import-vibehub.ts --db <sqlite 路径> [--dry-run] [--limit N]')
+    console.error(
+      '用法：npx tsx scripts/import-vibehub.ts --db <sqlite 路径> [--dry-run] [--limit N]',
+    )
     process.exit(2)
   }
   const limitRaw = get('limit')
@@ -79,7 +84,9 @@ async function fetchText(url: string): Promise<string> {
       await new Promise((r) => setTimeout(r, 800 * (attempt + 1)))
     }
   }
-  throw new Error(`重试 3 次仍失败: ${url}（${lastErr instanceof Error ? lastErr.message : String(lastErr)}）`)
+  throw new Error(
+    `重试 3 次仍失败: ${url}（${lastErr instanceof Error ? lastErr.message : String(lastErr)}）`,
+  )
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
@@ -122,7 +129,11 @@ function slugsFromSitemap(xml: string): string[] {
   return [...slugs].sort()
 }
 
-async function mapWithConcurrency<T, R>(items: readonly T[], n: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  n: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
   const results: R[] = new Array(items.length)
   let cursor = 0
   const workers = Array.from({ length: Math.min(n, items.length) }, async () => {
@@ -144,14 +155,52 @@ const clip = (s: string, max: number): string =>
 
 /** 路线组的全集（roadmap.ts 的组名平铺）；别名表的目标必须是其中之一 */
 const ROADMAP_GROUPS: ReadonlySet<string> = new Set([
-  '基础概念', '方法论', '工具平台', '质量工程', '协作流程', '风险陷阱', '提示工程', '数据与存储',
-  '网页基础', '按钮与链接', '表单', '内容展示', '弹窗与提示', '导航', '官网区块', '页面布局',
-  'CSS 布局', '文字', '外观', '动画', '鼠标',
-  '网络与地址', '接口与数据', '数据库', '后端开发', '账号与权限', '上线与排错',
-  '用户与需求', '产品规划', '数据与验证', '测试',
-  '开发工具', '技术栈', '编程语言', '前端框架', 'CSS 与组件',
-  'AI 基础', '上下文', '请求与输出', 'Agent 与工具', '连接与配置', '规则与扩展', '权限与运行', '性能与成本',
-  'Git', '设计风格',
+  '基础概念',
+  '方法论',
+  '工具平台',
+  '质量工程',
+  '协作流程',
+  '风险陷阱',
+  '提示工程',
+  '数据与存储',
+  '网页基础',
+  '按钮与链接',
+  '表单',
+  '内容展示',
+  '弹窗与提示',
+  '导航',
+  '官网区块',
+  '页面布局',
+  'CSS 布局',
+  '文字',
+  '外观',
+  '动画',
+  '鼠标',
+  '网络与地址',
+  '接口与数据',
+  '数据库',
+  '后端开发',
+  '账号与权限',
+  '上线与排错',
+  '用户与需求',
+  '产品规划',
+  '数据与验证',
+  '测试',
+  '开发工具',
+  '技术栈',
+  '编程语言',
+  '前端框架',
+  'CSS 与组件',
+  'AI 基础',
+  '上下文',
+  '请求与输出',
+  'Agent 与工具',
+  '连接与配置',
+  '规则与扩展',
+  '权限与运行',
+  '性能与成本',
+  'Git',
+  '设计风格',
 ])
 
 function loadTagAliases(): Record<string, string> {
@@ -169,7 +218,11 @@ function loadTagAliases(): Record<string, string> {
   }
 }
 
-function lessonToInput(l: Lesson, aliases: Record<string, string>, unknownTags: Set<string>): TermCreateInput {
+function lessonToInput(
+  l: Lesson,
+  aliases: Record<string, string>,
+  unknownTags: Set<string>,
+): TermCreateInput {
   const defParts = [l.tagline, l.description, l.explanation].filter(
     (x): x is string => typeof x === 'string' && x.trim() !== '',
   )
@@ -188,7 +241,9 @@ function lessonToInput(l: Lesson, aliases: Record<string, string>, unknownTags: 
 
   // 标签归一：原始 tags 先过别名表；仍不在路线组的标签计入「未识别」报告（词条照常导入，
   // 只是标签不命中路线视图的站/组——用页内「归组」或补别名表后重导修正）
-  const rawTags = [l.macroCategory, l.category].filter((t) => typeof t === 'string' && t.trim() !== '')
+  const rawTags = [l.macroCategory, l.category].filter(
+    (t) => typeof t === 'string' && t.trim() !== '',
+  )
   const tags = rawTags
     .map((t) => aliases[t] ?? t)
     .filter((t) => {
@@ -233,7 +288,9 @@ async function main() {
   const sitemap = await fetchText(`${SITE}/sitemap.xml`)
   const allSlugs = slugsFromSitemap(sitemap)
   const slugs = args.limit === undefined ? allSlugs : allSlugs.slice(0, args.limit)
-  console.log(`    词条 slug ${String(allSlugs.length)} 个${args.limit === undefined ? '' : `（本次取前 ${String(slugs.length)}）`}`)
+  console.log(
+    `    词条 slug ${String(allSlugs.length)} 个${args.limit === undefined ? '' : `（本次取前 ${String(slugs.length)}）`}`,
+  )
 
   console.log(`[2/4] 拉取 lesson 详情（并发 ${String(CONCURRENCY)}）…`)
   const lessons: Lesson[] = []
@@ -263,14 +320,20 @@ async function main() {
   for (const lesson of lessons) {
     const zhKey = `zh:${lesson.title.toLowerCase()}`
     const enKey = lesson.secondaryTitle ? `en:${lesson.secondaryTitle.toLowerCase()}` : null
-    if (existingKeys.has(zhKey) || (enKey !== null && existingKeys.has(enKey)) || seenNew.has(zhKey)) {
+    if (
+      existingKeys.has(zhKey) ||
+      (enKey !== null && existingKeys.has(enKey)) ||
+      seenNew.has(zhKey)
+    ) {
       dupCount += 1
       continue
     }
     seenNew.add(zhKey)
     pending.push({ slug: lesson.id, input: lessonToInput(lesson, tagAliases, unknownTags), lesson })
   }
-  console.log(`    新词条 ${String(pending.length)}，与现有 ${String(existing.length)} 条去重命中 ${String(dupCount)}`)
+  console.log(
+    `    新词条 ${String(pending.length)}，与现有 ${String(existing.length)} 条去重命中 ${String(dupCount)}`,
+  )
   if (unknownTags.size > 0) {
     console.log(
       `    ⚠ 未识别标签 ${String(unknownTags.size)} 个（词条已导入但不命中学习路线，页内可归组；或加入 ${ALIAS_FILE} 后重导）：`,
@@ -280,7 +343,9 @@ async function main() {
 
   if (args.dryRun) {
     pending.slice(0, 8).forEach((p) => {
-      console.log(`  · ${p.input.zh}（${p.input.en ?? '—'}）[${(p.input.tags ?? []).join('/')}] def=${String(bytes(p.input.definition))}B`)
+      console.log(
+        `  · ${p.input.zh}（${p.input.en ?? '—'}）[${(p.input.tags ?? []).join('/')}] def=${String(bytes(p.input.definition))}B`,
+      )
     })
     console.log(`  dry-run 结束，未写库。`)
     return
@@ -328,8 +393,10 @@ async function main() {
   // 幂等，重跑无副作用；顺带把上一次导入漏掉的旧词条一并对齐。
   const ann = applyTermAnnotations(db, join(process.cwd(), 'content', 'seed'))
   console.log(
-    `学习化标注：回填 ${String(ann.updated)} 次 · 未命中/未归类 ${String(ann.skipped)} 条`
-      + (ann.warnings.length > 0 ? ` · ⚠ ${String(ann.warnings.length)} 条告警（前 3 条：${ann.warnings.slice(0, 3).join('；')}）` : ''),
+    `学习化标注：回填 ${String(ann.updated)} 次 · 未命中/未归类 ${String(ann.skipped)} 条` +
+      (ann.warnings.length > 0
+        ? ` · ⚠ ${String(ann.warnings.length)} 条告警（前 3 条：${ann.warnings.slice(0, 3).join('；')}）`
+        : ''),
   )
 
   console.log(

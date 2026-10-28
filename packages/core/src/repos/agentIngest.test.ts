@@ -40,7 +40,10 @@ const base = () => ({
 describe('幂等三态（FR-2.2）', () => {
   it('键不存在 ⇒ accepted，且落库即 pending', () => {
     const repo = new AgentIngestRepo(db)
-    const r = repo.ingest({ ...base(), idempotencyKey: 'k1', payload: { body: 'a' } }, '2026-10-14T00:00:00Z')
+    const r = repo.ingest(
+      { ...base(), idempotencyKey: 'k1', payload: { body: 'a' } },
+      '2026-10-14T00:00:00Z',
+    )
     expect(r.status).toBe('accepted')
     const got = repo.get((r as { id: string }).id)!
     expect(got.status).toBe('pending')
@@ -50,10 +53,18 @@ describe('幂等三态（FR-2.2）', () => {
 
   it('同键同载荷重放 3 次 ⇒ 恰 1 条，后两次 duplicate', () => {
     const repo = new AgentIngestRepo(db)
-    const first = repo.ingest({ ...base(), idempotencyKey: 'k2', payload: { body: 'a' } }, '2026-10-14T00:00:00Z')
+    const first = repo.ingest(
+      { ...base(), idempotencyKey: 'k2', payload: { body: 'a' } },
+      '2026-10-14T00:00:00Z',
+    )
     expect(first.status).toBe('accepted')
     for (let i = 0; i < 2; i++) {
-      expect(repo.ingest({ ...base(), idempotencyKey: 'k2', payload: { body: 'a' } }, '2026-10-14T00:00:01Z').status).toBe('duplicate')
+      expect(
+        repo.ingest(
+          { ...base(), idempotencyKey: 'k2', payload: { body: 'a' } },
+          '2026-10-14T00:00:01Z',
+        ).status,
+      ).toBe('duplicate')
     }
     const rows = db.prepare('SELECT COUNT(*) AS c FROM agent_ingests').get() as { c: number }
     expect(rows.c).toBe(1)
@@ -62,19 +73,35 @@ describe('幂等三态（FR-2.2）', () => {
 
   it('**键序不同但内容相同**也算 duplicate —— agent 重试时 JSON.stringify 键序不保证稳定', () => {
     const repo = new AgentIngestRepo(db)
-    expect(repo.ingest({ ...base(), idempotencyKey: 'k3', payload: { a: 1, b: 2 } }, '2026-10-14T00:00:00Z').status).toBe('accepted')
+    expect(
+      repo.ingest(
+        { ...base(), idempotencyKey: 'k3', payload: { a: 1, b: 2 } },
+        '2026-10-14T00:00:00Z',
+      ).status,
+    ).toBe('accepted')
     // 变异腿：若 digest 不做键序归一，这一条会判成 conflict ⇒ 本条必红
-    expect(repo.ingest({ ...base(), idempotencyKey: 'k3', payload: { b: 2, a: 1 } }, '2026-10-14T00:00:01Z').status).toBe('duplicate')
+    expect(
+      repo.ingest(
+        { ...base(), idempotencyKey: 'k3', payload: { b: 2, a: 1 } },
+        '2026-10-14T00:00:01Z',
+      ).status,
+    ).toBe('duplicate')
     closeAll()
   })
 
   it('同键异载荷 ⇒ conflict：**先到者内容逐字未变**，但状态被标成 conflict 以便人工介入', () => {
     const repo = new AgentIngestRepo(db)
-    const first = repo.ingest({ ...base(), idempotencyKey: 'k4', payload: { body: '原始' } }, '2026-10-14T00:00:00Z')
+    const first = repo.ingest(
+      { ...base(), idempotencyKey: 'k4', payload: { body: '原始' } },
+      '2026-10-14T00:00:00Z',
+    )
     const id = (first as { id: string }).id
     const before = repo.get(id)!
 
-    const second = repo.ingest({ ...base(), idempotencyKey: 'k4', payload: { body: '篡改' } }, '2026-10-14T00:00:01Z')
+    const second = repo.ingest(
+      { ...base(), idempotencyKey: 'k4', payload: { body: '篡改' } },
+      '2026-10-14T00:00:01Z',
+    )
     expect(second.status).toBe('conflict')
 
     const after = repo.get(id)!
@@ -88,8 +115,14 @@ describe('幂等三态（FR-2.2）', () => {
 
   it('冲突响应只给双方 sha 前 8 位，**不回显完整载荷**（回显等于泄露另一个会话的内容）', () => {
     const repo = new AgentIngestRepo(db)
-    repo.ingest({ ...base(), idempotencyKey: 'k5', payload: { body: '机密内容甲' } }, '2026-10-14T00:00:00Z')
-    const c = repo.ingest({ ...base(), idempotencyKey: 'k5', payload: { body: '机密内容乙' } }, '2026-10-14T00:00:01Z')
+    repo.ingest(
+      { ...base(), idempotencyKey: 'k5', payload: { body: '机密内容甲' } },
+      '2026-10-14T00:00:00Z',
+    )
+    const c = repo.ingest(
+      { ...base(), idempotencyKey: 'k5', payload: { body: '机密内容乙' } },
+      '2026-10-14T00:00:01Z',
+    )
     if (c.status !== 'conflict') throw new Error('应为 conflict')
     expect(c.existingKeySha).toHaveLength(8)
     expect(c.incomingKeySha).toHaveLength(8)
@@ -105,14 +138,19 @@ describe('幂等三态（FR-2.2）', () => {
 describe('入参与归属（FR-2.4）', () => {
   it('空幂等键 ⇒ VALIDATION_ERROR', () => {
     const repo = new AgentIngestRepo(db)
-    expect(() => repo.ingest({ ...base(), idempotencyKey: '   ', payload: {} }, '2026-10-14T00:00:00Z')).toThrow(AppError)
+    expect(() =>
+      repo.ingest({ ...base(), idempotencyKey: '   ', payload: {} }, '2026-10-14T00:00:00Z'),
+    ).toThrow(AppError)
     closeAll()
   })
 
   it('项目不存在 ⇒ NOT_FOUND（不是 422）', () => {
     const repo = new AgentIngestRepo(db)
     try {
-      repo.ingest({ ...base(), projectId: 'prj_不存在', idempotencyKey: 'k6', payload: {} }, '2026-10-14T00:00:00Z')
+      repo.ingest(
+        { ...base(), projectId: 'prj_不存在', idempotencyKey: 'k6', payload: {} },
+        '2026-10-14T00:00:00Z',
+      )
       throw new Error('本该抛错')
     } catch (e) {
       expect((e as AppError).code).toBe('NOT_FOUND')
@@ -123,7 +161,10 @@ describe('入参与归属（FR-2.4）', () => {
   it('kind 不在闭集内 ⇒ 被数据库 CHECK 拒（不是应用层静默通过）', () => {
     const repo = new AgentIngestRepo(db)
     expect(() =>
-      repo.ingest({ ...base(), kind: 'evil' as never, idempotencyKey: 'k7', payload: {} }, '2026-10-14T00:00:00Z'),
+      repo.ingest(
+        { ...base(), kind: 'evil' as never, idempotencyKey: 'k7', payload: {} },
+        '2026-10-14T00:00:00Z',
+      ),
     ).toThrow()
     closeAll()
   })
@@ -132,7 +173,10 @@ describe('入参与归属（FR-2.4）', () => {
 describe('人工裁决（FR-5 一律 pending 的对面）', () => {
   it('review 后转 published 并写 reviewed_at', () => {
     const repo = new AgentIngestRepo(db)
-    const r = repo.ingest({ ...base(), idempotencyKey: 'k8', payload: { body: 'a' } }, '2026-10-14T00:00:00Z')
+    const r = repo.ingest(
+      { ...base(), idempotencyKey: 'k8', payload: { body: 'a' } },
+      '2026-10-14T00:00:00Z',
+    )
     const id = (r as { id: string }).id
     const out = repo.review(id, 'published', null, '2026-10-14T01:00:00Z')
     expect(out.status).toBe('published')
@@ -142,8 +186,14 @@ describe('人工裁决（FR-5 一律 pending 的对面）', () => {
 
   it('冲突记录不能直接裁决（先到者要先决定保留哪一方的幂等键）', () => {
     const repo = new AgentIngestRepo(db)
-    repo.ingest({ ...base(), idempotencyKey: 'k9', payload: { body: '甲' } }, '2026-10-14T00:00:00Z')
-    repo.ingest({ ...base(), idempotencyKey: 'k9', payload: { body: '乙' } }, '2026-10-14T00:00:01Z')
+    repo.ingest(
+      { ...base(), idempotencyKey: 'k9', payload: { body: '甲' } },
+      '2026-10-14T00:00:00Z',
+    )
+    repo.ingest(
+      { ...base(), idempotencyKey: 'k9', payload: { body: '乙' } },
+      '2026-10-14T00:00:01Z',
+    )
     expect(() => repo.review('ain_不存在', 'published', null, '2026-10-14T01:00:00Z')).toThrow()
     closeAll()
   })

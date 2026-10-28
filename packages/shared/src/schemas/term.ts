@@ -5,10 +5,12 @@ import { utf8ByteLength } from '../utils'
 /** source 取值：openvibe-seed | manual | vibe-hub | project:<项目名>（m3 §3；vibe-hub 为 DEV-0075 外部术语源溯源） */
 export const TERM_SOURCE_RE = /^(openvibe-seed|manual|vibe-hub|ai-extract|project:.+)$/
 
-const definitionSchema = z.string().min(1).refine(
-  (s) => utf8ByteLength(s) <= LIMITS.termDefinitionMaxBytes,
-  { message: `definition 超过 ${LIMITS.termDefinitionMaxBytes} 字节上限` },
-)
+const definitionSchema = z
+  .string()
+  .min(1)
+  .refine((s) => utf8ByteLength(s) <= LIMITS.termDefinitionMaxBytes, {
+    message: `definition 超过 ${LIMITS.termDefinitionMaxBytes} 字节上限`,
+  })
 
 const exampleSchema = z.string().refine((s) => utf8ByteLength(s) <= LIMITS.termExampleMaxBytes, {
   message: `example 超过 ${LIMITS.termExampleMaxBytes} 字节上限`,
@@ -56,10 +58,13 @@ const termFields = z.object({
   scenario: scenarioSchema.default(''),
 })
 
-export const TermCreateInput = termFields.refine((t) => (t.zh ?? '') !== '' || (t.en ?? '') !== '', {
-  message: 'zh 与 en 至少一项非空（m3 §6.1）',
-  path: ['zh'],
-})
+export const TermCreateInput = termFields.refine(
+  (t) => (t.zh ?? '') !== '' || (t.en ?? '') !== '',
+  {
+    message: 'zh 与 en 至少一项非空（m3 §6.1）',
+    path: ['zh'],
+  },
+)
 export type TermCreateInput = z.input<typeof TermCreateInput>
 
 export const TermUpdateInput = z
@@ -75,7 +80,7 @@ export const TermUpdateInput = z
     level: z.enum(TERM_LEVELS).optional(),
     starter: z.boolean().optional(),
     domain: z.enum(TERM_DOMAINS).nullable().optional(),
-  scenario: scenarioSchema.optional(),
+    scenario: scenarioSchema.optional(),
   })
   .refine((t) => t.zh !== '' || t.en !== '' || (t.zh === undefined && t.en === undefined), {
     message: 'zh 与 en 不得同时置空',
@@ -91,20 +96,20 @@ export type TermUpdateInput = z.infer<typeof TermUpdateInput>
  */
 export const TermOut = termFields
   .extend({
-  /**
-   * 读侧刻意比写入侧宽松（`string` 而非 TERM_DOMAINS 的 enum）：`terms.domain` 列上
-   * 刻意没有 DB CHECK（理由见 0008 迁移注释），外部来源可能写进词表外的值。
-   * 读到就原样返回、由界面归入「未归类」，**不要在这里抛** —— 那会让一条上游新领域
-   * 直接 500 掉整个词库列表。
-   */
-  domain: z.string().nullable().default(null),
-  scenario: z.string().default(''),
-  id: z.string(),
-  seedHash: z.string().nullable(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  /** 派生只读：zh 的带声调注音串（词级，供头词 ruby）；zh 缺省时为空串 */
-  pinyin: z.string(),
+    /**
+     * 读侧刻意比写入侧宽松（`string` 而非 TERM_DOMAINS 的 enum）：`terms.domain` 列上
+     * 刻意没有 DB CHECK（理由见 0008 迁移注释），外部来源可能写进词表外的值。
+     * 读到就原样返回、由界面归入「未归类」，**不要在这里抛** —— 那会让一条上游新领域
+     * 直接 500 掉整个词库列表。
+     */
+    domain: z.string().nullable().default(null),
+    scenario: z.string().default(''),
+    id: z.string(),
+    seedHash: z.string().nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    /** 派生只读：zh 的带声调注音串（词级，供头词 ruby）；zh 缺省时为空串 */
+    pinyin: z.string(),
   })
   .refine((t) => (t.zh ?? '') !== '' || (t.en ?? '') !== '', {
     message: 'zh 与 en 至少一项非空（m3 §6.1）',

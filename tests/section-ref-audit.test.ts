@@ -201,7 +201,9 @@ describe('⭐ 变异腿 · 闸必须能红（且不是恒红）', () => {
   })
 
   it('在引用方**新增**一条指向不存在节的引用 ⇒ 审计当场抓到', () => {
-    const targets = new Map<string, SectionIndex>([['docs/specs/target.md', indexSections('## 7. 甲\n')]])
+    const targets = new Map<string, SectionIndex>([
+      ['docs/specs/target.md', indexSections('## 7. 甲\n')],
+    ])
     const clean = auditSectionRefs([{ path: 'docs/source.md', content: source }], targets)
     expect(clean.dangling).toHaveLength(0)
 
@@ -381,18 +383,14 @@ describe('buildReport · 对账表', () => {
 
 describe('indexSections · 「第 N 章」式顶层节（回归腿）', () => {
   it('`## 第 2 章 · …` 被索引成节号 `2`（不是只索引到 `2.1`）', () => {
-    const idx = indexSections(
-      ['## 第 2 章 · 现状量化', '', '### 2.1 差距的优先级', ''].join('\n'),
-    )
+    const idx = indexSections(['## 第 2 章 · 现状量化', '', '### 2.1 差距的优先级', ''].join('\n'))
     // ⭐ 回归点：早期只认「数字开头」的标题 ⇒ 顶层 `2` 缺失 ⇒ 引用「§2」被误判断链。
     expect(idx.sections.has('2')).toBe(true)
     expect(idx.sections.has('2.1')).toBe(true)
   })
 
   it('`## 第 2 章` 的子标题挂到 `2` 下 ⇒ `§2.1` 判条目型（绿）', () => {
-    const idx = indexSections(
-      ['## 第 2 章 · 现状量化', '', '### 2.1 差距的优先级', ''].join('\n'),
-    )
+    const idx = indexSections(['## 第 2 章 · 现状量化', '', '### 2.1 差距的优先级', ''].join('\n'))
     expect(idx.labels.get('2')?.has('2.1')).toBe(true)
     // `2.1` 本身就是编号标题 ⇒ 判「标题型」（绿）
     expect(classifyRef('2.1', idx)).toBe('heading')
@@ -605,7 +603,14 @@ describe('resolveBareRef · 文档别名优先于节号别名', () => {
 
   it('前缀命中文档别名且目标确能解 ⇒ 收窄成唯一目标', () => {
     const docAliases = parseDocAliases({ aliases: { m5: 'docs/specs/m5.md' } })
-    const r = resolveBareRef('7', 'docs/source.md', targets, { aliases: new Map() }, docAliases, 'm5')
+    const r = resolveBareRef(
+      '7',
+      'docs/source.md',
+      targets,
+      { aliases: new Map() },
+      docAliases,
+      'm5',
+    )
     expect(r.candidates).toEqual(['docs/specs/m5.md'])
     expect(r.resolvers).toEqual(['docs/specs/m5.md'])
     expect(r.viaDocAlias).toBe(true)
@@ -617,7 +622,14 @@ describe('resolveBareRef · 文档别名优先于节号别名', () => {
       ...targets,
       ['docs/specs/m5.md', indexSections('## 4. 甲\n')], // ⇒ m5.md 里没有 §7
     ])
-    const r = resolveBareRef('7', 'docs/source.md', mutated, { aliases: new Map() }, docAliases, 'm5')
+    const r = resolveBareRef(
+      '7',
+      'docs/source.md',
+      mutated,
+      { aliases: new Map() },
+      docAliases,
+      'm5',
+    )
     // 写错只是「不收窄」—— 机器退回全仓自找，仍给出正确指向（信息不丢）
     expect(r.candidates).not.toContain('docs/specs/m5.md')
     expect(r.resolvers).toContain('docs/specs/other.md')
@@ -651,32 +663,63 @@ describe('verifyReportFreshness · 对账表过期检测', () => {
   ].join('\n')
 
   it('拆分影响面与实算一致 ⇒ 新鲜', () => {
-    const r = verifyReportFreshness(report, new Map([['16', 3], ['18', 1]]))
+    const r = verifyReportFreshness(
+      report,
+      new Map([
+        ['16', 3],
+        ['18', 1],
+      ]),
+    )
     expect(r.fresh).toBe(true)
     expect(r.declared).toBe(2)
     expect(r.actual).toBe(2)
   })
 
   it('⭐ 变异腿：引用处数变了 ⇒ 报过期（这张表不能再直接用来做拆分决策）', () => {
-    const r = verifyReportFreshness(report, new Map([['16', 4], ['18', 1]]))
+    const r = verifyReportFreshness(
+      report,
+      new Map([
+        ['16', 4],
+        ['18', 1],
+      ]),
+    )
     expect(r.fresh).toBe(false)
     expect(r.mismatched).toContain('16')
   })
 
   it('新增了一个节号 ⇒ 报过期', () => {
-    const r = verifyReportFreshness(report, new Map([['16', 3], ['18', 1], ['15', 2]]))
+    const r = verifyReportFreshness(
+      report,
+      new Map([
+        ['16', 3],
+        ['18', 1],
+        ['15', 2],
+      ]),
+    )
     expect(r.fresh).toBe(false)
     expect(r.mismatched).toContain('15')
   })
 
   it('只比「节号 + 处数」：**不比引用位置**（位置随编辑漂移，比位置会天天假红）', () => {
     const moved = report.replace('`docs/PRD.md:7`', '`docs/PRD.md:999`')
-    const r = verifyReportFreshness(moved, new Map([['16', 3], ['18', 1]]))
+    const r = verifyReportFreshness(
+      moved,
+      new Map([
+        ['16', 3],
+        ['18', 1],
+      ]),
+    )
     expect(r.fresh).toBe(true)
   })
 
   it('第 4 节（附面）里的数字**不参与**判定', () => {
-    const r = verifyReportFreshness(report, new Map([['16', 3], ['18', 1]]))
+    const r = verifyReportFreshness(
+      report,
+      new Map([
+        ['16', 3],
+        ['18', 1],
+      ]),
+    )
     expect(r.declared).toBe(2)
   })
 })

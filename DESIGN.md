@@ -3,35 +3,35 @@
 name: OpenVibe · 灵典
 description: 暖纸 · 可读性工作台（V2）—— 一张暖纸底 + 一枚强调色 + 四阶墨色，每个文字档在它能落到的每种底上都过 AA；信任靠读得清与列对齐，不靠印章
 colors:
-  accent: "#A8501C"           # 赭石 · 全站唯一强调色：主按钮 / 激活导航 / 链接 / 选中态 / 强调 chip
-  accent-deep: "#7C3811"      # 赭石深 · 主按钮 hover、soft 容器上的文字
-  accent-soft: "#F7E8D7"      # 强调洗底 · 激活项/选中 chip 的容器
-  accent-line: "#E4C9AB"      # 强调描边 · 只在 accent-soft 容器上使用
-  on-accent: "#FFFAF3"        # 强调实心上的文字（不是纯白）
-  canvas: "#FAF5EC"           # 暖纸 · 应用画布
-  panel: "#FFFDF9"            # 纸面 · 卡片/输入/浮层
-  panel-2: "#F8F1E6"          # 悬浮/斑马/次级容器（fill 的替代）
-  panel-sunk: "#F1E7D8"       # 下沉容器 · 代码块/pre（fill-soft 的替代）
-  line-hair: "#EFE5D5"        # 行分隔（表格行、卡头下沿）
-  line: "#E3D6C1"             # 常规描边
-  line-strong: "#CDBCA2"      # 强描边 · 输入框、按钮、区块边界
-  ink: "#2A2018"              # 浓墨 · 标题/强调（不是纯黑）
-  ink-body: "#4A3B2D"         # 正文
-  ink-muted: "#6A5846"        # 次要说明（可承载长文本）
-  ink-faint: "#75634C"        # 元信息/标签，不承载长文本；对四种纸底最低 4.71:1
-  scrim: "#2A2018"            # 遮罩与阴影的颜色通道源（调用点带 alpha，如 bg-scrim/40）
-  ok: "#3D6B37"               # 松绿降为纯状态色（成功/一致/通过）
-  ok-soft: "#ECF2E3"
-  ok-line: "#C6DCBB"
-  warn: "#92610E"             # 琥珀 · 漂移/需注意
-  warn-soft: "#F9EFD7"
-  warn-line: "#E6CF9D"
-  danger: "#AB3527"           # 砖红 · 错误/破坏（V1 的朱砂语义已撤销）
-  danger-soft: "#FBE7E2"
-  danger-line: "#EEC2B8"
-  info: "#2B5A74"             # 青蓝 · 中性提示/反链
-  info-soft: "#E4EDF2"
-  info-line: "#BDD3DF"
+  accent: '#A8501C' # 赭石 · 全站唯一强调色：主按钮 / 激活导航 / 链接 / 选中态 / 强调 chip
+  accent-deep: '#7C3811' # 赭石深 · 主按钮 hover、soft 容器上的文字
+  accent-soft: '#F7E8D7' # 强调洗底 · 激活项/选中 chip 的容器
+  accent-line: '#E4C9AB' # 强调描边 · 只在 accent-soft 容器上使用
+  on-accent: '#FFFAF3' # 强调实心上的文字（不是纯白）
+  canvas: '#FAF5EC' # 暖纸 · 应用画布
+  panel: '#FFFDF9' # 纸面 · 卡片/输入/浮层
+  panel-2: '#F8F1E6' # 悬浮/斑马/次级容器（fill 的替代）
+  panel-sunk: '#F1E7D8' # 下沉容器 · 代码块/pre（fill-soft 的替代）
+  line-hair: '#EFE5D5' # 行分隔（表格行、卡头下沿）
+  line: '#E3D6C1' # 常规描边
+  line-strong: '#CDBCA2' # 强描边 · 输入框、按钮、区块边界
+  ink: '#2A2018' # 浓墨 · 标题/强调（不是纯黑）
+  ink-body: '#4A3B2D' # 正文
+  ink-muted: '#6A5846' # 次要说明（可承载长文本）
+  ink-faint: '#75634C' # 元信息/标签，不承载长文本；对四种纸底最低 4.71:1
+  scrim: '#2A2018' # 遮罩与阴影的颜色通道源（调用点带 alpha，如 bg-scrim/40）
+  ok: '#3D6B37' # 松绿降为纯状态色（成功/一致/通过）
+  ok-soft: '#ECF2E3'
+  ok-line: '#C6DCBB'
+  warn: '#92610E' # 琥珀 · 漂移/需注意
+  warn-soft: '#F9EFD7'
+  warn-line: '#E6CF9D'
+  danger: '#AB3527' # 砖红 · 错误/破坏（V1 的朱砂语义已撤销）
+  danger-soft: '#FBE7E2'
+  danger-line: '#EEC2B8'
+  info: '#2B5A74' # 青蓝 · 中性提示/反链
+  info-soft: '#E4EDF2'
+  info-line: '#BDD3DF'
 typography:
   display:
     fontFamily: '"Outfit", "PingFang SC", "Hiragino Sans GB", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei", sans-serif'
@@ -74,60 +74,60 @@ spacing:
   xl: 24px
   2xl: 32px
 shadows:
-  1: "0 1px 2px color-mix(in srgb, var(--color-scrim) 5%, transparent), 0 1px 1px color-mix(in srgb, var(--color-scrim) 4%, transparent)"
-  2: "0 4px 16px -4px color-mix(in srgb, var(--color-scrim) 12%, transparent), 0 2px 4px color-mix(in srgb, var(--color-scrim) 5%, transparent)"
-  3: "0 24px 48px -16px color-mix(in srgb, var(--color-scrim) 26%, transparent), 0 8px 16px -8px color-mix(in srgb, var(--color-scrim) 12%, transparent)"
+  1: '0 1px 2px color-mix(in srgb, var(--color-scrim) 5%, transparent), 0 1px 1px color-mix(in srgb, var(--color-scrim) 4%, transparent)'
+  2: '0 4px 16px -4px color-mix(in srgb, var(--color-scrim) 12%, transparent), 0 2px 4px color-mix(in srgb, var(--color-scrim) 5%, transparent)'
+  3: '0 24px 48px -16px color-mix(in srgb, var(--color-scrim) 26%, transparent), 0 8px 16px -8px color-mix(in srgb, var(--color-scrim) 12%, transparent)'
 components:
   button-primary:
-    backgroundColor: "{colors.accent}"
-    textColor: "{colors.on-accent}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.accent}'
+    textColor: '{colors.on-accent}'
+    rounded: '{rounded.sm}'
   button-primary-hover:
-    backgroundColor: "{colors.accent-deep}"
+    backgroundColor: '{colors.accent-deep}'
   button-secondary:
-    backgroundColor: "{colors.panel}"
-    textColor: "{colors.ink-body}"
-    borderColor: "{colors.line-strong}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.panel}'
+    textColor: '{colors.ink-body}'
+    borderColor: '{colors.line-strong}'
+    rounded: '{rounded.sm}'
   button-danger:
-    backgroundColor: "{colors.danger-soft}"
-    textColor: "{colors.danger}"
-    borderColor: "{colors.danger-line}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.danger-soft}'
+    textColor: '{colors.danger}'
+    borderColor: '{colors.danger-line}'
+    rounded: '{rounded.sm}'
   input:
-    backgroundColor: "{colors.panel}"
-    borderColor: "{colors.line-strong}"
-    focusBorderColor: "{colors.accent}"
-    rounded: "{rounded.sm}"
+    backgroundColor: '{colors.panel}'
+    borderColor: '{colors.line-strong}'
+    focusBorderColor: '{colors.accent}'
+    rounded: '{rounded.sm}'
   card:
-    backgroundColor: "{colors.panel}"
-    borderColor: "{colors.line}"
-    rounded: "{rounded.md}"
+    backgroundColor: '{colors.panel}'
+    borderColor: '{colors.line}'
+    rounded: '{rounded.md}'
   nav-link:
-    textColor: "{colors.ink-muted}"
-    activeTextColor: "{colors.accent-deep}"
-    activeBackgroundColor: "{colors.accent-soft}"
+    textColor: '{colors.ink-muted}'
+    activeTextColor: '{colors.accent-deep}'
+    activeBackgroundColor: '{colors.accent-soft}'
   chip:
-    textColor: "{colors.ink-muted}"
-    backgroundColor: "{colors.panel-sunk}"
-    borderColor: "{colors.line}"
-    rounded: "{rounded.full}"
+    textColor: '{colors.ink-muted}'
+    backgroundColor: '{colors.panel-sunk}'
+    borderColor: '{colors.line}'
+    rounded: '{rounded.full}'
   tag:
-    textColor: "{colors.ink-muted}"
-    backgroundColor: "{colors.panel-2}"
-    borderColor: "{colors.line-hair}"
-    rounded: "{rounded.sm}"
+    textColor: '{colors.ink-muted}'
+    backgroundColor: '{colors.panel-2}'
+    borderColor: '{colors.line-hair}'
+    rounded: '{rounded.sm}'
   table-header:
-    textColor: "{colors.ink-faint}"
-    borderColor: "{colors.line}"
+    textColor: '{colors.ink-faint}'
+    borderColor: '{colors.line}'
   toast:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.canvas}"
-    rounded: "{rounded.full}"
+    backgroundColor: '{colors.ink}'
+    textColor: '{colors.canvas}'
+    rounded: '{rounded.full}'
 motion:
   duration: 160ms
-  easing: "cubic-bezier(.2,.7,.3,1)"
-  reducedMotion: "全部关闭"
+  easing: 'cubic-bezier(.2,.7,.3,1)'
+  reducedMotion: '全部关闭'
 ---
 
 # OpenVibe · 灵典 —「暖纸 · 可读性工作台（V2）」
@@ -139,10 +139,12 @@ motion:
 **Product context:** OpenVibe（灵典）是本地优先的 vibe coding 标准化工作台：把提示词/术语/Skill/流程/标准包变成可注入六类 AI 编码工具的工程标准。中文优先，起步服务个人开发者，架构预留小团队。UI 形态是 127.0.0.1:8787 的本地工具型 React SPA（Tailwind 4 + Radix 原语，无组件库锁定），非营销站。
 
 **Mode per surface:**
+
 - 操作面（工作台/项目/标准包/设置/Skill）：**Operate** —— 台账密度，卡片 + 表格 + chip，秩序优先
 - 内容面（术语库/提示词正文/TERMS.md 与包预览）：**Read** —— 15px/1.72 正文、68ch 行长闸门、`pre.code` 折行不裁切
 
 **Key characteristics（前五秒印象）:**
+
 - 暖纸白画布 + 暖墨字，**没有一处纯黑、没有一处冷灰**
 - 顶栏 58px（品牌 tile + 版本 + 主题）+ 侧栏 216px（四组八项带计数），像工具不像官网
 - 赭石只在四处：主按钮、激活导航、链接、选中态——其余全是墨阶与纸面
@@ -158,6 +160,7 @@ motion:
 **Light or dark:** 亮「暖纸」为默认，暗「暖夜」为同构对偶——**29 个颜色 token 两套各一份**，只换光照不换层级。暗态不反相、不转冷，保持暖相：赭石提为暖金 `#E9A63F`（赭石原值 `#A8501C` 落在暖夜画布 `#16120F` 上只有 **3.40:1**，够大字阈却不够正文 AA），文字墨阶整体转亮。
 
 **Token 语义约定：**
+
 - `accent`（赭石 #A8501C）= 唯一强调通道：主按钮实心、侧栏激活项、链接、`aria-pressed` 选中段、强调 chip。**不再**有第二种权威色。
 - `on-accent`（#FFFAF3）而非纯白：暖底上的实心按钮字色也要带纸温。
 - `danger`（砖红 #AB3527）接管 V1 朱砂的"红"位，但**只表示错误与破坏**——V1 那条「红 = 批准」的语义已撤销，破坏性动作一律 `.btn.danger` + 二次确认。
@@ -167,20 +170,20 @@ motion:
 
 **可读性保证（可复算，WCAG 2.1 相对亮度 / sRGB / 正文阈 4.5、大字阈 3.0）：**
 
-| 主题 | 文字 token | 最低配对 | 实测 |
-|------|-----------|----------|------|
-| 暖纸 | ink | on panel | **15.68** |
-| 暖纸 | ink-body | on panel-2 | **9.58** |
-| 暖纸 | ink-muted | on panel-2 | **6.04** |
-| 暖纸 | ink-faint | on panel-sunk | **4.71** |
-| 暖纸 | accent / accent-deep | on canvas / accent-soft | **4.89 / 7.19** |
-| 暖纸 | ok · warn · danger · info | on 各自 -soft | **5.47 · 4.66 · 5.39 · 6.28** |
-| 暖夜 | ink | on canvas | **16.22** |
-| 暖夜 | ink-body | on panel-2 | **11.02** |
-| 暖夜 | ink-muted | on accent-soft | **5.94** |
-| 暖夜 | ink-faint | on panel-2 | **4.85** |
-| 暖夜 | on-accent | on accent / accent-deep | **8.60 / 10.17** |
-| 暖夜 | ok · warn · danger · info | on 各自 -soft | **6.84 · 7.52 · 5.74 · 6.74** |
+| 主题 | 文字 token                | 最低配对                | 实测                          |
+| ---- | ------------------------- | ----------------------- | ----------------------------- |
+| 暖纸 | ink                       | on panel                | **15.68**                     |
+| 暖纸 | ink-body                  | on panel-2              | **9.58**                      |
+| 暖纸 | ink-muted                 | on panel-2              | **6.04**                      |
+| 暖纸 | ink-faint                 | on panel-sunk           | **4.71**                      |
+| 暖纸 | accent / accent-deep      | on canvas / accent-soft | **4.89 / 7.19**               |
+| 暖纸 | ok · warn · danger · info | on 各自 -soft           | **5.47 · 4.66 · 5.39 · 6.28** |
+| 暖夜 | ink                       | on canvas               | **16.22**                     |
+| 暖夜 | ink-body                  | on panel-2              | **11.02**                     |
+| 暖夜 | ink-muted                 | on accent-soft          | **5.94**                      |
+| 暖夜 | ink-faint                 | on panel-2              | **4.85**                      |
+| 暖夜 | on-accent                 | on accent / accent-deep | **8.60 / 10.17**              |
+| 暖夜 | ok · warn · danger · info | on 各自 -soft           | **6.84 · 7.52 · 5.74 · 6.74** |
 
 复算命令与登记口径见 `docs/specs/theme.md` §7.4（同一条 node 表达式，双主题全配对）。
 
@@ -218,6 +221,7 @@ motion:
 ## Elevation & Depth
 
 层级靠**线 + 极轻的暖影**双通道：
+
 - 线：`line-hair`（行分隔）/ `line`（卡片描边）/ `line-strong`（输入、按钮、区块边界）。
 - 影：三级 token（`shadow-1/2/3`），全部**只做扩散、不做硬边**，颜色通道取自 `scrim` 的 `color-mix`（1px offset、低 alpha），因此暗态自动加深而不需要第二套阴影声明。
 - `shadow-1` 给卡片/按钮，`shadow-2` 给浮层（Popover/Toast），`shadow-3` 只给抽屉与遮罩上的浮层。
@@ -282,33 +286,33 @@ motion:
 
 **撤案的四个 V1 招牌**（均为 owner 2026-09-29 主动选择的风险项，2026-10-01 由同一 owner 裁定撤销）：
 
-| V1 | V2 | 落点影响 |
-|----|----|----------|
-| 书脊竖排侧栏（76px，`writing-mode: vertical-rl`，单字导航） | 顶栏 58px + 侧栏 216px 四组八项 | `AppShell.tsx` 重写；`.v-rl` 退场；**顺带作废** `m4-playbook.md` FR-10.2「书脊单字冲突」与队列「书脊第 8 字待裁」 |
-| 朱砂朱批（`seal` 四件套，"使生效"的权威红） | 赭石 `accent` 五件套（强调即赭石）；红只剩 `danger` | 朱砂色调用点 5 处全部改指 accent；`--color-seal*` / `on-seal` 删除 |
-| 验印章 `.seal-badge` + 落章动效（含 −1.5° 微旋） | 「预览即产物」改为 `ok` chip（图标 + 文字） | `.seal-badge(.zi/.animate)`、`@keyframes seal-stamp-in` 退场；`PackPreviewPane` 换 chip |
-| ruby 注音头词 + 思源宋体字标 | 无注音展示；无衬线字标 | `.term-ruby` 与 `--font-serif` 退场，两支宋体 woff2（79,156 B）删除；**`TermOut.pinyin` 字段保留**（排序口径） |
+| V1                                                          | V2                                                  | 落点影响                                                                                                          |
+| ----------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 书脊竖排侧栏（76px，`writing-mode: vertical-rl`，单字导航） | 顶栏 58px + 侧栏 216px 四组八项                     | `AppShell.tsx` 重写；`.v-rl` 退场；**顺带作废** `m4-playbook.md` FR-10.2「书脊单字冲突」与队列「书脊第 8 字待裁」 |
+| 朱砂朱批（`seal` 四件套，"使生效"的权威红）                 | 赭石 `accent` 五件套（强调即赭石）；红只剩 `danger` | 朱砂色调用点 5 处全部改指 accent；`--color-seal*` / `on-seal` 删除                                                |
+| 验印章 `.seal-badge` + 落章动效（含 −1.5° 微旋）            | 「预览即产物」改为 `ok` chip（图标 + 文字）         | `.seal-badge(.zi/.animate)`、`@keyframes seal-stamp-in` 退场；`PackPreviewPane` 换 chip                           |
+| ruby 注音头词 + 思源宋体字标                                | 无注音展示；无衬线字标                              | `.term-ruby` 与 `--font-serif` 退场，两支宋体 woff2（79,156 B）删除；**`TermOut.pinyin` 字段保留**（排序口径）    |
 
 **token 改名表**（Phase A 的执行依据；调用点普查 `node docs/devlog-evidence/DEV-0080/census.mjs`（仓内驱动器，采样 sha `30e7fee`；原 `/tmp/openvibe-v2/census.js` 已丢失，仓内件复现同值））：
 
-| V1 token（引用数） | V2 归属 | 说明 |
-|--------------------|---------|------|
-| `brand`(64) / `brand-soft`(25) | 按**角色**分流：链接 / 激活 / 强调 → `accent`(+`accent-soft`)；台账状态"一致" → `ok` | 一色分两职，逐调用点判读，不能全局替换 |
-| `seal`(3) / `seal-deep`(1) / `on-seal`(1) / `seal-wash`(0) | `accent` / `accent-deep` / `on-accent` / `accent-soft` | `seal-wash` 已零引用（只被 `.seal-badge` 的 var 用到） |
-| `fill-soft`(51) / `fill`(8) | `panel-2` / `panel-sunk` | 表面按"悬浮 vs 下沉"命名，不再按"填充" |
-| `canvas` #FAF9F6 / `panel` #FFFFFF | #FAF5EC / #FFFDF9 | 面板不再纯白，画布转暖 |
-| `danger-*` 六档 / `warn-*` 六档 / `success-*` 四档 / `info-*` 三档（oklch） | 每族三档 `solid / -soft / -line`（hex） | 状态族从 19 支收敛到 12 支；`success` 族改名 `ok` |
+| V1 token（引用数）                                                          | V2 归属                                                                              | 说明                                                   |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| `brand`(64) / `brand-soft`(25)                                              | 按**角色**分流：链接 / 激活 / 强调 → `accent`(+`accent-soft`)；台账状态"一致" → `ok` | 一色分两职，逐调用点判读，不能全局替换                 |
+| `seal`(3) / `seal-deep`(1) / `on-seal`(1) / `seal-wash`(0)                  | `accent` / `accent-deep` / `on-accent` / `accent-soft`                               | `seal-wash` 已零引用（只被 `.seal-badge` 的 var 用到） |
+| `fill-soft`(51) / `fill`(8)                                                 | `panel-2` / `panel-sunk`                                                             | 表面按"悬浮 vs 下沉"命名，不再按"填充"                 |
+| `canvas` #FAF9F6 / `panel` #FFFFFF                                          | #FAF5EC / #FFFDF9                                                                    | 面板不再纯白，画布转暖                                 |
+| `danger-*` 六档 / `warn-*` 六档 / `success-*` 四档 / `info-*` 三档（oklch） | 每族三档 `solid / -soft / -line`（hex）                                              | 状态族从 19 支收敛到 12 支；`success` 族改名 `ok`      |
 
 **墨阶七档收敛为四档**（按角色归并，`on panel` 实测前 → 后）：
 
-| V1（引用数） | V2 | 对比度 |
-|--------------|----|--------|
-| `ink-strong`(4) | `ink` | 15.50 → **15.68** |
-| `ink`(23) + `ink-body`(22) | `ink-body` | 10.98 / 9.41 → **10.57** |
-| `ink-muted`(46) + **`ink-subtle`(124)** | `ink-muted` | 5.47 / **3.48** → **6.67** |
-| **`ink-faint`(118)** + `ink-ghost`(4) | `ink-faint` | **2.19** / 1.51 → **5.67** |
-| `fill-soft`(51) / `fill`(8) | `panel-2` / `panel-sunk` | 表面按"悬浮 vs 下沉"命名，不再按"填充" |
-| `canvas` #FAF9F6 / `panel` #FFFFFF | #FAF5EC / #FFFDF9 | 面板不再纯白，画布转暖 |
+| V1（引用数）                                                                | V2                                      | 对比度                                            |
+| --------------------------------------------------------------------------- | --------------------------------------- | ------------------------------------------------- |
+| `ink-strong`(4)                                                             | `ink`                                   | 15.50 → **15.68**                                 |
+| `ink`(23) + `ink-body`(22)                                                  | `ink-body`                              | 10.98 / 9.41 → **10.57**                          |
+| `ink-muted`(46) + **`ink-subtle`(124)**                                     | `ink-muted`                             | 5.47 / **3.48** → **6.67**                        |
+| **`ink-faint`(118)** + `ink-ghost`(4)                                       | `ink-faint`                             | **2.19** / 1.51 → **5.67**                        |
+| `fill-soft`(51) / `fill`(8)                                                 | `panel-2` / `panel-sunk`                | 表面按"悬浮 vs 下沉"命名，不再按"填充"            |
+| `canvas` #FAF9F6 / `panel` #FFFFFF                                          | #FAF5EC / #FFFDF9                       | 面板不再纯白，画布转暖                            |
 | `danger-*` 六档 / `warn-*` 六档 / `success-*` 四档 / `info-*` 三档（oklch） | 每族三档 `solid / -soft / -line`（hex） | 状态族从 19 支收敛到 12 支；`success` 族改名 `ok` |
 
 V2 颜色 token 共 **29 支**（V1 为 40 支），双主题各一份；原型自带的 `--canvas-2` 因零引用不带入（否则撞「声明必被引用」那道闸）。
@@ -317,17 +321,17 @@ V2 颜色 token 共 **29 支**（V1 为 40 支），双主题各一份；原型�
 
 ## Decisions Log
 
-| Date | Decision | Rationale |
-|------|----------|-----------|
-| 2026-09-29 | 设计系统「墨松账本 · 书斋版」立项（/design-consultation） | 记忆点裁定为「中文开发者的 native 工作台」；产品灵魂（lock/指纹/diff）映射为「账本 + 验印」母题 |
-| 2026-09-29 | 拒绝 Fontshare 字体（Satoshi/General Sans），选 Source Sans 3 + JetBrains Mono | ITF Free Font License 禁止再分发字体文件，无法随 CLI tarball 打包；OFL 字体可再分发可子集化（license 实查于 fontshare.com） |
-| 2026-09-29 | 中文走系统原生栈，不引 CJK webfont | native 感来自排印质量而非字体堆料；CJK webfont 数 MB 且会撞 bundle:check 闸门（入口 ≤300kB / chunk ≤500kB） |
-| 2026-09-29 | 风险升级：书脊侧栏 / 注音头词 / 朱批主色（收窄为「使生效」动作） | owner 在 D6 明确选择「换更冒险的风险项」；D7 未答，按推荐项全收并内置朱批缓和（不含所有主按钮） |
-| 2026-09-29 | 冲突处置默认「保留本地」出现在模拟屏与组件规范 | 设计建议，与「手改不被无声覆盖」的承诺对齐；产品默认值变更属行为裁定，归 dev-plan 队列，非本文档单方面生效 |
-| 2026-10-01 | **全盘换肤为「暖纸 V2」，撤销 V1 的松绿品牌 / 朱砂朱批 / 书脊侧栏 / ruby 注音 / 验印落章** | owner 明确要求以 `docs/prototypes/暖系-暖纸V2-可读性交互Demo-20260929.html` 为准重构前端 UI/UX；根因是 V1 有 242 处调用点承载文字却不过 AA（ink-faint 2.19、ink-subtle 3.48），V2 全配对 ≥4.5 |
-| 2026-10-01 | Latin 由 Source Sans 3 改 Outfit；思源宋体随衬线字标一并退场 | 原型指定 Outfit；两道前置实查通过——license URL 内嵌 OFL、GSUB 含 `tnum`（fonttools 4.63 实测 latin 可变子集）；字体资产 139,288 B → 63,568 B |
-| 2026-10-01 | 暗主题属性值仍叫 `dark`，不采用原型的 `night` | 改值要付两处代价：`localStorage` 里已存的 `'dark'` 会被判为未知值而无声回亮；治理闸第 2 道按 `\[data-theme='dark'\]` 字面匹配暗块。原型那只是 demo 的选择器名，非设计决策 |
-| 2026-10-01 | `ink-faint` 由原型 #806E5A 改深为 **#75634C** | 原型在自己的 `panel-2` / `panel-sunk` 底上只有 4.36 / 4.00——换肤若原样照抄会新造 sub-AA；改值后四底最低 4.71，代价是 faint 与 muted 的间距收窄 |
-| 2026-10-01 | 断点沿用 Tailwind 默认档，就近映射原型的 1080/900/560 → `lg/md/sm` | 仓内已有 38 处响应式变体，为 5–8% 的像素差新增 `--breakpoint-*` 并重写不划算；折叠语义逐条照搬 |
-| 2026-10-01 | 阴影改为「scrim 的 color-mix」三级 token | 保住暗块「只允许 `--color-*`」这条不变量：阴影随主题自动换浓淡，暗块不需要 `--shadow-*` 覆盖 |
+| Date       | Decision                                                                                                                                                            | Rationale                                                                                                                                                                                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-29 | 设计系统「墨松账本 · 书斋版」立项（/design-consultation）                                                                                                           | 记忆点裁定为「中文开发者的 native 工作台」；产品灵魂（lock/指纹/diff）映射为「账本 + 验印」母题                                                                                                                                                                                              |
+| 2026-09-29 | 拒绝 Fontshare 字体（Satoshi/General Sans），选 Source Sans 3 + JetBrains Mono                                                                                      | ITF Free Font License 禁止再分发字体文件，无法随 CLI tarball 打包；OFL 字体可再分发可子集化（license 实查于 fontshare.com）                                                                                                                                                                  |
+| 2026-09-29 | 中文走系统原生栈，不引 CJK webfont                                                                                                                                  | native 感来自排印质量而非字体堆料；CJK webfont 数 MB 且会撞 bundle:check 闸门（入口 ≤300kB / chunk ≤500kB）                                                                                                                                                                                  |
+| 2026-09-29 | 风险升级：书脊侧栏 / 注音头词 / 朱批主色（收窄为「使生效」动作）                                                                                                    | owner 在 D6 明确选择「换更冒险的风险项」；D7 未答，按推荐项全收并内置朱批缓和（不含所有主按钮）                                                                                                                                                                                              |
+| 2026-09-29 | 冲突处置默认「保留本地」出现在模拟屏与组件规范                                                                                                                      | 设计建议，与「手改不被无声覆盖」的承诺对齐；产品默认值变更属行为裁定，归 dev-plan 队列，非本文档单方面生效                                                                                                                                                                                   |
+| 2026-10-01 | **全盘换肤为「暖纸 V2」，撤销 V1 的松绿品牌 / 朱砂朱批 / 书脊侧栏 / ruby 注音 / 验印落章**                                                                          | owner 明确要求以 `docs/prototypes/暖系-暖纸V2-可读性交互Demo-20260929.html` 为准重构前端 UI/UX；根因是 V1 有 242 处调用点承载文字却不过 AA（ink-faint 2.19、ink-subtle 3.48），V2 全配对 ≥4.5                                                                                                |
+| 2026-10-01 | Latin 由 Source Sans 3 改 Outfit；思源宋体随衬线字标一并退场                                                                                                        | 原型指定 Outfit；两道前置实查通过——license URL 内嵌 OFL、GSUB 含 `tnum`（fonttools 4.63 实测 latin 可变子集）；字体资产 139,288 B → 63,568 B                                                                                                                                                 |
+| 2026-10-01 | 暗主题属性值仍叫 `dark`，不采用原型的 `night`                                                                                                                       | 改值要付两处代价：`localStorage` 里已存的 `'dark'` 会被判为未知值而无声回亮；治理闸第 2 道按 `\[data-theme='dark'\]` 字面匹配暗块。原型那只是 demo 的选择器名，非设计决策                                                                                                                    |
+| 2026-10-01 | `ink-faint` 由原型 #806E5A 改深为 **#75634C**                                                                                                                       | 原型在自己的 `panel-2` / `panel-sunk` 底上只有 4.36 / 4.00——换肤若原样照抄会新造 sub-AA；改值后四底最低 4.71，代价是 faint 与 muted 的间距收窄                                                                                                                                               |
+| 2026-10-01 | 断点沿用 Tailwind 默认档，就近映射原型的 1080/900/560 → `lg/md/sm`                                                                                                  | 仓内已有 38 处响应式变体，为 5–8% 的像素差新增 `--breakpoint-*` 并重写不划算；折叠语义逐条照搬                                                                                                                                                                                               |
+| 2026-10-01 | 阴影改为「scrim 的 color-mix」三级 token                                                                                                                            | 保住暗块「只允许 `--color-*`」这条不变量：阴影随主题自动换浓淡，暗块不需要 `--shadow-*` 覆盖                                                                                                                                                                                                 |
 | 2026-10-21 | **`.tag` 形制登记进本文档**（M9-P3.7）；同批**按实现订正 chip 描述**：默认形制是中性的 `panel-sunk` 底（不是「soft 三件套」）、字号 **11px**（11.5px 是 `.tag` 的） | `.tag` 早就在仓里用了 **36 处 / 15 个文件**却**从未登记**，`m9-dev-language-roadmap.md` §3.5 把它点名为「本仓已有的待办缺口」；⚠️ **描述与实现分叉时，实现是已交付的事实** ⇒ 文档向 `apps/web/src/components/ui/styles.ts` 的 `CHIP_TONES` / `tagCls` 对齐，而不是反过来改 39 处调用点的观感 |

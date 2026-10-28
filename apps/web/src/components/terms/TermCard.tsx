@@ -36,7 +36,9 @@ function Highlight({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, at)}
-      <mark className="rounded-sm bg-accent-soft text-accent-deep">{text.slice(at, at + q.length)}</mark>
+      <mark className="rounded-sm bg-accent-soft text-accent-deep">
+        {text.slice(at, at + q.length)}
+      </mark>
       {text.slice(at + q.length)}
     </>
   )
@@ -61,9 +63,7 @@ export function TermCard(props: {
         <h3 className="text-[15px] leading-tight font-semibold text-ink">{term.zh ?? term.en}</h3>
         {term.en ? <span className="text-[12.5px] text-ink-muted">{term.en}</span> : null}
         <span className={`${chipCls} border-line bg-panel-2 text-ink-muted`}>{term.level}</span>
-        {term.starter ? (
-          <span className={`${chipCls} ${chipPressed}`}>{L.starter}</span>
-        ) : null}
+        {term.starter ? <span className={`${chipCls} ${chipPressed}`}>{L.starter}</span> : null}
       </header>
 
       {hasScenario ? (
@@ -77,7 +77,9 @@ export function TermCard(props: {
       <div className="flex flex-wrap items-center gap-1.5">
         <button
           type="button"
-          className={selected ? `${btnGhost} border-accent-line bg-accent-soft text-accent-deep` : btnGhost}
+          className={
+            selected ? `${btnGhost} border-accent-line bg-accent-soft text-accent-deep` : btnGhost
+          }
           aria-pressed={selected}
           onClick={() => onToggleSelect(term.id)}
         >
@@ -93,7 +95,8 @@ export function TermCard(props: {
           >
             {open ? L.collapse : L.expand}
           </button>
-        ) : null}        {relatedTerms.length > 0 ? (
+        ) : null}{' '}
+        {relatedTerms.length > 0 ? (
           <span className="flex flex-wrap items-center gap-1">
             <span className="text-[11.5px] text-ink-faint">{L.related}</span>
             {relatedTerms.map((r) => (

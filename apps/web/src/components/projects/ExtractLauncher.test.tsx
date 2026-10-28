@@ -19,7 +19,20 @@ afterEach(() => {
 })
 
 const entry = (id: string, title: string, body: string): DevLogOut =>
-  ({ id, projectId: 'p1', type: 'DEV', entryNo: 1, displayNo: 'DEV-0001', title, body, relatedFiles: [], evidence: null, linkedAssetIds: [], createdAt: '2026-10-24', author: null }) as unknown as DevLogOut
+  ({
+    id,
+    projectId: 'p1',
+    type: 'DEV',
+    entryNo: 1,
+    displayNo: 'DEV-0001',
+    title,
+    body,
+    relatedFiles: [],
+    evidence: null,
+    linkedAssetIds: [],
+    createdAt: '2026-10-24',
+    author: null,
+  }) as unknown as DevLogOut
 
 const renderLauncher = (entries: DevLogOut[]): void => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -74,7 +87,7 @@ describe('ExtractLauncher（日志区提取入口）', () => {
     fireEvent.click(launch)
     await waitFor(() => expect(screen.getByText(/确认出网提取/)).toBeTruthy())
     // 确认屏展示两条日志的标题与正文预览（红线 3：出网前展示确切内容）
-    expect(screen.getAllByText(/环境型红/).length).toBeGreaterThan(1)  // 列表行 + 确认屏预览各一处
+    expect(screen.getAllByText(/环境型红/).length).toBeGreaterThan(1) // 列表行 + 确认屏预览各一处
     expect(screen.getByText(/先复现/)).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: /提取并记住/ }))
@@ -83,7 +96,10 @@ describe('ExtractLauncher（日志区提取入口）', () => {
     const calls = fetchMock.mock.calls.filter((c) => String(c[0]).endsWith('/api/extract'))
     expect(calls.length).toBe(1)
     const rawBody = calls[0]?.[1]?.body
-    const body = (typeof rawBody === 'string' ? JSON.parse(rawBody) : (rawBody as { confirm: boolean; remember: boolean; log_ids: string[] }))
+    const body =
+      typeof rawBody === 'string'
+        ? JSON.parse(rawBody)
+        : (rawBody as { confirm: boolean; remember: boolean; log_ids: string[] })
     expect(body.confirm).toBe(true)
     expect(body.remember).toBe(true)
     expect(body.log_ids).toEqual(['l1', 'l2'])

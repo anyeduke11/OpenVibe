@@ -17,7 +17,14 @@ import { parseContextFields, CONTEXT_FIELDS, AGENT_PAYLOAD_KEYS } from '@openvib
 function fixture() {
   const h = newDb()
   const stages = [
-    { name: '启动', checklist: [{ id: 'c1', text: '需求一句话' }, { id: 'c2', text: '定范围' }], artifacts: [] },
+    {
+      name: '启动',
+      checklist: [
+        { id: 'c1', text: '需求一句话' },
+        { id: 'c2', text: '定范围' },
+      ],
+      artifacts: [],
+    },
     { name: '设计', checklist: [{ id: 'd1', text: '画流程' }], artifacts: [] },
   ]
   const template = new FlowTemplatesRepo(h.db).create({ name: '轻量流', kind: 'light', stages })
@@ -122,7 +129,13 @@ describe('FR-3.2 · 出参形状与「假零禁止」', () => {
     projects.update(projectId, { localPath: '/tmp/openvibe-ctx' })
     const svc = createContextService({
       db: h.db,
-      readLock: () => ({ packId: 'pk_1', name: '默认包', version: '1.0.0', drifted: true, outdated: false }),
+      readLock: () => ({
+        packId: 'pk_1',
+        name: '默认包',
+        version: '1.0.0',
+        drifted: true,
+        outdated: false,
+      }),
     })
     const out = svc.build(projectId, ['pack'])
     expect(out.pack.drifted).toBe(true)
@@ -244,7 +257,11 @@ describe('FR-3.4 · 预算裁剪：顺序固定 ＋ 每次必留痕', () => {
   it('**钉死上游排序方向**：`DevLogRepo.list` 必须是最新在前，否则裁剪会静默变成「留最旧的」', () => {
     const { h, projectId } = fixture()
     withLogs(h, projectId, 3, 10)
-    const out = createContextService({ db: h.db, readLock: noLock }).build(projectId, ['logs'], undefined)
+    const out = createContextService({ db: h.db, readLock: noLock }).build(
+      projectId,
+      ['logs'],
+      undefined,
+    )
     expect(out.logs.items.map((l) => l.title)).toEqual(['第 2 条', '第 1 条', '第 0 条'])
     h.close()
   })

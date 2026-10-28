@@ -84,12 +84,15 @@ function seedTerm(
 function seedBaselineFixture(h: TestDbHandle) {
   const tReview = seedTerm(h, { zh: '复盘', domain: '产品' })
   const tAccept = seedTerm(h, { zh: '验收标准', domain: '测试' })
-  const tSplit = seedTerm(h, { zh: '分而治之', domain: '产品', aliases: ['任务拆分'], starter: true })
+  const tSplit = seedTerm(h, {
+    zh: '分而治之',
+    domain: '产品',
+    aliases: ['任务拆分'],
+    starter: true,
+  })
   const tCold = seedTerm(h, { zh: '冷门深水', domain: '产品' })
   const projectId = seedProject(h, {
-    stages: [
-      { name: '复盘', checklist: ['任务拆分有依赖序', '输入输出/边界/验收标准逐条可测'] },
-    ],
+    stages: [{ name: '复盘', checklist: ['任务拆分有依赖序', '输入输出/边界/验收标准逐条可测'] }],
   })
   return { projectId, tReview, tAccept, tSplit, tCold }
 }
@@ -121,15 +124,28 @@ describe('P3 · FR-6.2 基线打分', () => {
   it('⚠️ 项目领域由阶段名反推：阶段名一改，结论就翻（证明 1.5 因子不是恒等）', () => {
     const h = newDb()
     const terms = new TermsRepo(h.db)
-    const tSplit = seedTerm(h, { zh: '分而治之', domain: '产品', aliases: ['任务拆分'], starter: true })
+    const tSplit = seedTerm(h, {
+      zh: '分而治之',
+      domain: '产品',
+      aliases: ['任务拆分'],
+      starter: true,
+    })
     // 阶段名换成与任何术语都无关的串 ⇒ 推不出项目领域 ⇒ 1.5 消失 ⇒ 2.0+0.5=2.5 < 3.0
-    const projectId = seedProject(h, { stages: [{ name: '无关阶段', checklist: ['任务拆分有依赖序'] }] })
+    const projectId = seedProject(h, {
+      stages: [{ name: '无关阶段', checklist: ['任务拆分有依赖序'] }],
+    })
     const r = createTermRecommendService({ db: h.db }).recommend(projectId)
 
     expect(r.projectDomains).toEqual([])
     expect(r.items.find((i) => i.termId === tSplit)).toBeUndefined()
     // 自证：把阶段名换回「复盘」并补一条名为「复盘」的同领域术语，结论必须回来
-    terms.create({ zh: '复盘', definition: '定义', status: 'active', domain: '产品' as never, starter: false })
+    terms.create({
+      zh: '复盘',
+      definition: '定义',
+      status: 'active',
+      domain: '产品' as never,
+      starter: false,
+    })
     const project2 = seedProject(h, { stages: [{ name: '复盘', checklist: ['任务拆分有依赖序'] }] })
     const r2 = createTermRecommendService({ db: h.db }).recommend(project2)
     expect(r2.projectDomains).toEqual(['产品'])

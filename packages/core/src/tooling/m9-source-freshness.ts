@@ -311,7 +311,8 @@ export function validateFreshness(
         file,
         where: 'source_freshness.computed_at',
         rule: 'missing-computed-at',
-        detail: '新鲜度块没有可用的 `computed_at` ⇒ `age_days` 不可复算（**不许拿「今天」当参照日**）',
+        detail:
+          '新鲜度块没有可用的 `computed_at` ⇒ `age_days` 不可复算（**不许拿「今天」当参照日**）',
       })
     } else {
       const expected = daysBetween(new Date(`${f.last_pushed_at}T00:00:00Z`), ref)

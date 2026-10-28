@@ -199,9 +199,12 @@ export async function diffAction(options: DiffOptions, deps: DiffDeps = {}): Pro
           if (actual === null) continue
           sections.push({ path: d.path, result: diffSections(expected, actual) })
         }
-        if (sections.length > 0) hints.push('块外自由区的差异属于你，同步覆盖建议永远倒向保留本地（永不触碰）')
+        if (sections.length > 0)
+          hints.push('块外自由区的差异属于你，同步覆盖建议永远倒向保留本地（永不触碰）')
       } catch (e) {
-        warnings.push(`段级差异不可用（${e instanceof ServerUnreachable ? `服务端不可达（${e.detail}）` : (e as Error).message ?? String(e)}）；文件级报告不受影响`)
+        warnings.push(
+          `段级差异不可用（${e instanceof ServerUnreachable ? `服务端不可达（${e.detail}）` : ((e as Error).message ?? String(e))}）；文件级报告不受影响`,
+        )
       }
     }
   } else {

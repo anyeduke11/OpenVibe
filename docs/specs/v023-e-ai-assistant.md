@@ -1,14 +1,14 @@
 # SPEC · v0.2.3 批次 E/F：AI 问答与生态（G4 · AN2 项目问答 + AN3 MCP 上下文服务）
 
-| 项 | 值 |
-|------|------|
-| 模块 | **v0.2.3 · 批次 E（问答）+ 批次 F（生态，可整体裁剪）/ 目标 G4**。对应 PRD `docs/PRD-v0.2.3-v1.0-20261024.md` 第 4 章的 AN2（项目问答：`ask` 保留 + `discuss` 并列新增）与 AN3（MCP 上下文服务）。提取闭环（AN1/AN4/AN5）在 `v023-d-ai-extract.md` |
-| 优先级 | **P1（AI 线内）**。判级构成：FR-1/2/5/6 为 **B**，FR-3/4/7 为 **C**。逐项判级见 §4；一切判级均为预判，判级权在 owner（dev-plan §0.3） |
-| 上游 | `docs/PRD-v0.2.3-v1.0-20261024.md`（§4 AN2/AN3、§6 架构、§7 批次 E/F、§9 反例 8/9）· `docs/specs/m8-agent-bridge.md` FR-4（`openvibe ask` 确定性契约与 context API 的 `?fields=`/`?budget=` 纪律，**本 spec 的复用单源与不修订对象**）· `docs/specs/m8-agent-panel.md`（AgentPanel 三子块形制）· `apps/cli/src/commands/ask.ts`（`ASK_KEYWORDS` 七词闭集与 `askLines` 同源纪律） |
-| 下游设计 | `GET /api/projects/:id/context`（fields 白名单 + budget 字符预算 + `truncated` 可见性——discuss 的上下文组装直接复用）· `docs/design.md` §11.5（遥测白名单，本 spec **不触碰**）· `packages/core/src/source-ai/`（provider/runner/redact 复用，同批次 D）· MCP（Model Context Protocol）stdio 形态——子进程 **无网络监听**，与「只听回环 + 关闭即零外联」根设定兼容 |
-| 关联任务 | **无**（任务号待本 spec 裁定后在 tasks.md 另起） |
-| 版本 | **v1.0（2026-10-25）**。§8.2 三处全部裁定（③ 手写 MCP / ① `discuss` 命名 / ② 与提取共闸共行+预算独立）；批次 E（AN2 问答，[DEV-0146]）与批次 F（AN3 MCP，[DEV-0145]）均已落地——§7 验收全部有对应用例（DISC-01…06 / DISC-CLI-01…03 / DISC-W1…2 / MCP-01…07 / ask 19 支零回归） |
-| 采样 | 2026-10-24 本机工作树 |
+| 项       | 值                                                                                                                                                                                                                                                                                                                                                                               |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 模块     | **v0.2.3 · 批次 E（问答）+ 批次 F（生态，可整体裁剪）/ 目标 G4**。对应 PRD `docs/PRD-v0.2.3-v1.0-20261024.md` 第 4 章的 AN2（项目问答：`ask` 保留 + `discuss` 并列新增）与 AN3（MCP 上下文服务）。提取闭环（AN1/AN4/AN5）在 `v023-d-ai-extract.md`                                                                                                                               |
+| 优先级   | **P1（AI 线内）**。判级构成：FR-1/2/5/6 为 **B**，FR-3/4/7 为 **C**。逐项判级见 §4；一切判级均为预判，判级权在 owner（dev-plan §0.3）                                                                                                                                                                                                                                            |
+| 上游     | `docs/PRD-v0.2.3-v1.0-20261024.md`（§4 AN2/AN3、§6 架构、§7 批次 E/F、§9 反例 8/9）· `docs/specs/m8-agent-bridge.md` FR-4（`openvibe ask` 确定性契约与 context API 的 `?fields=`/`?budget=` 纪律，**本 spec 的复用单源与不修订对象**）· `docs/specs/m8-agent-panel.md`（AgentPanel 三子块形制）· `apps/cli/src/commands/ask.ts`（`ASK_KEYWORDS` 七词闭集与 `askLines` 同源纪律） |
+| 下游设计 | `GET /api/projects/:id/context`（fields 白名单 + budget 字符预算 + `truncated` 可见性——discuss 的上下文组装直接复用）· `docs/design.md` §11.5（遥测白名单，本 spec **不触碰**）· `packages/core/src/source-ai/`（provider/runner/redact 复用，同批次 D）· MCP（Model Context Protocol）stdio 形态——子进程 **无网络监听**，与「只听回环 + 关闭即零外联」根设定兼容                |
+| 关联任务 | **无**（任务号待本 spec 裁定后在 tasks.md 另起）                                                                                                                                                                                                                                                                                                                                 |
+| 版本     | **v1.0（2026-10-25）**。§8.2 三处全部裁定（③ 手写 MCP / ① `discuss` 命名 / ② 与提取共闸共行+预算独立）；批次 E（AN2 问答，[DEV-0146]）与批次 F（AN3 MCP，[DEV-0145]）均已落地——§7 验收全部有对应用例（DISC-01…06 / DISC-CLI-01…03 / DISC-W1…2 / MCP-01…07 / ask 19 支零回归）                                                                                                    |
+| 采样     | 2026-10-24 本机工作树                                                                                                                                                                                                                                                                                                                                                            |
 
 ---
 
@@ -20,27 +20,27 @@
 
 ## 2. 范围
 
-| **In** | **Out（明确不做，写明理由与去向）** |
-|---|---|
-| 服务端 discuss 端点：上下文组装（复用 context API 纪律）→ LLM → 逐段来源标注（FR-1） | **多轮对话 / 对话历史持久化 / agent 规划**（PRD §3.2：单轮即算即走，上下文每次现组装，与「不做后台常驻」根设定一致） |
-| CLI `openvibe discuss` 命令（FR-2） | **改 `openvibe ask` 任何语义**（七词闭集 + 确定性输出是外部 agent 的契约；`ASK_KEYWORDS` 一字不动） |
-| AgentPanel「问」块（FR-3） | **通用聊天界面**（无历史侧栏、无会话管理、无插件）——回答落点就是面板一个块 + CLI stdout |
-| MCP stdio 服务：`project_context` / `search_assets` / `pack_diff` 三只读 tool（FR-5） | **任何写端点经 MCP 暴露**（ingest/注入/删除全部不可达——MCP 是只读面，写通道仍是 M8 桥 + 人工确认） |
-| `ai_discuss_call` 台账 kind（FR-6） | **MCP 离线模式**（首版不支持，登记发布说明——stdio 服务依赖本地 serve） |
-| — | **来源标注从 LLM 输出解析**——来源列表由服务端随回答返回，LLM 无权声明出处（红线 9） |
+| **In**                                                                                | **Out（明确不做，写明理由与去向）**                                                                                  |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 服务端 discuss 端点：上下文组装（复用 context API 纪律）→ LLM → 逐段来源标注（FR-1）  | **多轮对话 / 对话历史持久化 / agent 规划**（PRD §3.2：单轮即算即走，上下文每次现组装，与「不做后台常驻」根设定一致） |
+| CLI `openvibe discuss` 命令（FR-2）                                                   | **改 `openvibe ask` 任何语义**（七词闭集 + 确定性输出是外部 agent 的契约；`ASK_KEYWORDS` 一字不动）                  |
+| AgentPanel「问」块（FR-3）                                                            | **通用聊天界面**（无历史侧栏、无会话管理、无插件）——回答落点就是面板一个块 + CLI stdout                              |
+| MCP stdio 服务：`project_context` / `search_assets` / `pack_diff` 三只读 tool（FR-5） | **任何写端点经 MCP 暴露**（ingest/注入/删除全部不可达——MCP 是只读面，写通道仍是 M8 桥 + 人工确认）                   |
+| `ai_discuss_call` 台账 kind（FR-6）                                                   | **MCP 离线模式**（首版不支持，登记发布说明——stdio 服务依赖本地 serve）                                               |
+| —                                                                                     | **来源标注从 LLM 输出解析**——来源列表由服务端随回答返回，LLM 无权声明出处（红线 9）                                  |
 
 ## 3. 现状与实测基线（采样：2026-10-24）
 
-| # | 量 | 现测值 | 复算命令 |
-|---|---|---|---|
-| 1 | `ask` 契约 | `ASK_KEYWORDS` 七项（`status/next/checklist/assets/terms/playbook/logs`）；不接 LLM（FR-4.1.1）；自由文本抛 `AskError('UNKNOWN_QUERY')` | `sed -n '1,25p' apps/cli/src/commands/ask.ts` |
-| 2 | context API | `GET /api/projects/:id/context`：`?fields=` 白名单（非法值 422 并列全段名）、`?budget=` 字符预算、按 `logs → assets → checklist` 顺序砍且每次写 `truncated` | `grep -n 'truncated\|budget' packages/core/src/services/contextService.ts \| head -4` |
-| 3 | AgentPanel | 三子块顺序写死：上下文预览 → 待确认回流 → 接入指引；`PendingIngestList` 纯文本渲染红线——「问」块作为第四子块并入时沿用同纪律 | `sed -n '1,40p' apps/web/src/components/agent/AgentPanel.tsx` |
-| 4 | `CLI_COMMANDS` 漂移闸 | 新增 CLI 命令必须登记单源（`cliCommands.api.test.ts` 断言集合相等）——`discuss` 与 `mcp` 都要走这道闸 | `sed -n '99p' apps/server/test/cliCommands.api.test.ts` |
-| 5 | provider/capability | 复用批次 D 的同一套探测（`ready` 才渲染入口，不发网络请求探测） | `grep -n 'resolveProvider' packages/core/src/source-ai/provider-config.ts \| head -2` |
-| 6 | diff 只读快照 | `pack_diff` tool 的数据源 = 既有 `diff` 只读比对（退出码 0 一致 / 2 漂移语义现成） | `grep -n "command('diff'" apps/cli/src/index.ts` |
-| 7 | MCP 参考面 | 仓内**零 MCP 实现**（全仓 grep 0 命中）⇒ 三 tool 的 stdio JSON-RPC 形态是新写面，协议实现选择见 §8.2 待裁③ | `grep -rn 'model context protocol\|mcp' packages apps --include='*.ts' -i \| wc -l` |
-| 8 | 测试基线 | 163 文件 / 2095 用例全绿 | `pnpm test` |
+| #   | 量                    | 现测值                                                                                                                                                      | 复算命令                                                                              |
+| --- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 1   | `ask` 契约            | `ASK_KEYWORDS` 七项（`status/next/checklist/assets/terms/playbook/logs`）；不接 LLM（FR-4.1.1）；自由文本抛 `AskError('UNKNOWN_QUERY')`                     | `sed -n '1,25p' apps/cli/src/commands/ask.ts`                                         |
+| 2   | context API           | `GET /api/projects/:id/context`：`?fields=` 白名单（非法值 422 并列全段名）、`?budget=` 字符预算、按 `logs → assets → checklist` 顺序砍且每次写 `truncated` | `grep -n 'truncated\|budget' packages/core/src/services/contextService.ts \| head -4` |
+| 3   | AgentPanel            | 三子块顺序写死：上下文预览 → 待确认回流 → 接入指引；`PendingIngestList` 纯文本渲染红线——「问」块作为第四子块并入时沿用同纪律                                | `sed -n '1,40p' apps/web/src/components/agent/AgentPanel.tsx`                         |
+| 4   | `CLI_COMMANDS` 漂移闸 | 新增 CLI 命令必须登记单源（`cliCommands.api.test.ts` 断言集合相等）——`discuss` 与 `mcp` 都要走这道闸                                                        | `sed -n '99p' apps/server/test/cliCommands.api.test.ts`                               |
+| 5   | provider/capability   | 复用批次 D 的同一套探测（`ready` 才渲染入口，不发网络请求探测）                                                                                             | `grep -n 'resolveProvider' packages/core/src/source-ai/provider-config.ts \| head -2` |
+| 6   | diff 只读快照         | `pack_diff` tool 的数据源 = 既有 `diff` 只读比对（退出码 0 一致 / 2 漂移语义现成）                                                                          | `grep -n "command('diff'" apps/cli/src/index.ts`                                      |
+| 7   | MCP 参考面            | 仓内**零 MCP 实现**（全仓 grep 0 命中）⇒ 三 tool 的 stdio JSON-RPC 形态是新写面，协议实现选择见 §8.2 待裁③                                                  | `grep -rn 'model context protocol\|mcp' packages apps --include='*.ts' -i \| wc -l`   |
+| 8   | 测试基线              | 163 文件 / 2095 用例全绿                                                                                                                                    | `pnpm test`                                                                           |
 
 ## 4. 功能需求（FR）
 
@@ -100,16 +100,16 @@ discuss 前后**全部业务表逐字不变**（用例遍历既有表行数与�
 
 ## 7. 验收标准（pass/fail）
 
-| # | 条目 | 判据 |
-|---|---|---|
-| 1 | `ask` 零回归 | 既有 ask 用例全绿零改动（并列不覆盖的回归证明） |
-| 2 | discuss 服务端 | 回答含逐段来源标注；伪造来源不可发生（来源列表服务端返回）；上下文不足 ⇒ 明示而非编造 |
-| 3 | discuss 只读 | 前后业务表逐字不变；`local_events` 只增 `ai_discuss_call` |
-| 4 | CLI discuss | 登记 `CLI_COMMANDS` + 漂移闸绿；serve 不可达人话提示；`--json` 单对象 |
-| 5 | 问块 UI | 未 ready 不渲染；纯文本渲染红线；`truncated` 徽标 |
-| 6 | MCP | ✅ 批次 F 已落地：握手 + 三 tool schema（MCP-01/02）；无写端点暴露（只 dispatch 三名 + 未知即拒，MCP-06）；无 `listen` 调用（MCP-05 静态断言）；serve 不可达人话含「先 openvibe serve」（MCP-04）；另补 EOF 干净退出（MCP-07）与 drift 修复（本地比对）|
-| 7 | 台账 | `ai_discuss_call` 9 键白名单守卫；与 `ai_extract_call` 同笔迁移 |
-| 8 | 回归 | `pnpm test` 用例数只增不减；docs:check 全绿 |
+| #   | 条目           | 判据                                                                                                                                                                                                                                                    |
+| --- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `ask` 零回归   | 既有 ask 用例全绿零改动（并列不覆盖的回归证明）                                                                                                                                                                                                         |
+| 2   | discuss 服务端 | 回答含逐段来源标注；伪造来源不可发生（来源列表服务端返回）；上下文不足 ⇒ 明示而非编造                                                                                                                                                                   |
+| 3   | discuss 只读   | 前后业务表逐字不变；`local_events` 只增 `ai_discuss_call`                                                                                                                                                                                               |
+| 4   | CLI discuss    | 登记 `CLI_COMMANDS` + 漂移闸绿；serve 不可达人话提示；`--json` 单对象                                                                                                                                                                                   |
+| 5   | 问块 UI        | 未 ready 不渲染；纯文本渲染红线；`truncated` 徽标                                                                                                                                                                                                       |
+| 6   | MCP            | ✅ 批次 F 已落地：握手 + 三 tool schema（MCP-01/02）；无写端点暴露（只 dispatch 三名 + 未知即拒，MCP-06）；无 `listen` 调用（MCP-05 静态断言）；serve 不可达人话含「先 openvibe serve」（MCP-04）；另补 EOF 干净退出（MCP-07）与 drift 修复（本地比对） |
+| 7   | 台账           | `ai_discuss_call` 9 键白名单守卫；与 `ai_extract_call` 同笔迁移                                                                                                                                                                                         |
+| 8   | 回归           | `pnpm test` 用例数只增不减；docs:check 全绿                                                                                                                                                                                                             |
 
 ## 8. 依赖
 

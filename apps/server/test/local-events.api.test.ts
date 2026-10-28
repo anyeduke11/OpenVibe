@@ -53,7 +53,10 @@ function api(app: FastifyInstance, method: 'GET' | 'POST', url: string) {
 describe('§7-g · 鉴权与双闸生效', () => {
   it('**无 token ⇒ 既有 401 形态**（证明端点落在全局 auth 插件内，不是绕过它自建鉴权）', async () => {
     const { app } = await makeHarness()
-    const res = await app.inject({ method: 'GET', url: '/api/local-events/summary?from=2026-10-01&to=2026-11-01' })
+    const res = await app.inject({
+      method: 'GET',
+      url: '/api/local-events/summary?from=2026-10-01&to=2026-11-01',
+    })
     expect(res.statusCode).toBe(401)
     expect(res.json()).toMatchObject({ code: 'UNAUTHORIZED' })
   })
@@ -76,7 +79,10 @@ describe('§7-h · 时间窗：`[from, to)` 含头不含尾，且与累计可区
     const { app, db } = await makeHarness()
     const repo = new LocalEventsRepo(db)
     for (const day of ['2026-10-10', '2026-10-11', '2026-10-12', '2026-10-13']) {
-      repo.record({ kind: 'stage_view_switched', projectId: 'prj_1' }, new Date(`${day}T12:00:00.000Z`))
+      repo.record(
+        { kind: 'stage_view_switched', projectId: 'prj_1' },
+        new Date(`${day}T12:00:00.000Z`),
+      )
     }
     const res = await api(app, 'GET', '/api/local-events/summary?from=2026-10-11&to=2026-10-12')
     const out = res.json() as LocalEventsSummaryOut
@@ -92,7 +98,9 @@ describe('§7-h · 时间窗：`[from, to)` 含头不含尾，且与累计可区
     repo.record({ kind: 'stage_view_switched' }, new Date('2026-10-11T12:00:00.000Z'))
     repo.record({ kind: 'flow_template_run' }, new Date('2026-10-11T12:00:00.000Z'))
 
-    const out = (await api(app, 'GET', '/api/local-events/summary?from=2026-10-11&to=2026-10-12')).json() as LocalEventsSummaryOut
+    const out = (
+      await api(app, 'GET', '/api/local-events/summary?from=2026-10-11&to=2026-10-12')
+    ).json() as LocalEventsSummaryOut
     expect(out.windowTotal).toBe(2)
     expect(out.cumulativeTotal).toBe(3)
     expect(out.byKind).toEqual([
@@ -159,7 +167,9 @@ describe('§7-i · 一键清空', () => {
     repo.record({ kind: 'stage_view_switched' }, new Date('2026-10-10T12:00:00.000Z'))
     await api(app, 'POST', '/api/local-events/clear')
     expect(repo.countAll()).toBe(0)
-    const out = (await api(app, 'GET', '/api/local-events/summary?from=2020-01-01&to=2030-01-01')).json() as LocalEventsSummaryOut
+    const out = (
+      await api(app, 'GET', '/api/local-events/summary?from=2020-01-01&to=2030-01-01')
+    ).json() as LocalEventsSummaryOut
     expect(out.cumulativeTotal).toBe(0)
   })
 

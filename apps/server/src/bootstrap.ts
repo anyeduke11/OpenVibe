@@ -56,7 +56,8 @@ const HERE = dirname(fileURLToPath(import.meta.url))
  */
 let proxyInstalled = false
 export function installProxyDispatcher(env: NodeJS.ProcessEnv = process.env): string | null {
-  const proxy = env.OPENVIBE_PROXY ?? env.HTTPS_PROXY ?? env.https_proxy ?? env.HTTP_PROXY ?? env.http_proxy
+  const proxy =
+    env.OPENVIBE_PROXY ?? env.HTTPS_PROXY ?? env.https_proxy ?? env.HTTP_PROXY ?? env.http_proxy
   if (proxy === undefined || proxy === '' || proxyInstalled) {
     return proxyInstalled ? (proxy ?? null) : null
   }

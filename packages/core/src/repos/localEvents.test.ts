@@ -25,7 +25,9 @@ describe('LocalEventsRepo · record（唯一写入点，FR-3）', () => {
     const h = newDb()
     const repo = new LocalEventsRepo(h.db)
     const id = repo.record({ kind: KIND, projectId: 'prj_1' }, new Date('2026-10-15T23:30:00.000Z'))
-    const row = h.db.prepare('SELECT id, day, created_at FROM local_events WHERE id = ?').get(id) as {
+    const row = h.db
+      .prepare('SELECT id, day, created_at FROM local_events WHERE id = ?')
+      .get(id) as {
       id: number
       day: string
       created_at: string
@@ -41,7 +43,9 @@ describe('LocalEventsRepo · record（唯一写入点，FR-3）', () => {
     const h = newDb()
     const repo = new LocalEventsRepo(h.db)
     repo.record({ kind: KIND }, new Date('2026-10-15T00:00:00.000Z'))
-    const row = h.db.prepare('SELECT payload_json FROM local_events').get() as { payload_json: string }
+    const row = h.db.prepare('SELECT payload_json FROM local_events').get() as {
+      payload_json: string
+    }
     expect(JSON.parse(row.payload_json)).toEqual({})
     h.close()
   })

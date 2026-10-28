@@ -1,4 +1,3 @@
-
 // M10/D：提取链（候选三态合并入 pending 管道；总闸/同意/预算/锚定/采纳率）
 export {
   runExtraction,
@@ -34,10 +33,14 @@ export {
   type ConsecutiveLowVerdict,
   type AdoptionStatsWithHistory,
 } from './extract'
-export { mergeSeedRow, seedRowHash, type SeedMergeSpec, type SeedMergeAction } from './db/seed-merge'
+export {
+  mergeSeedRow,
+  seedRowHash,
+  type SeedMergeSpec,
+  type SeedMergeAction,
+} from './db/seed-merge'
 
-
-export { M9_FIXTURES, M9_FIXTURE_NAMES, type M9FixtureName } from "./fixtures/m9"
+export { M9_FIXTURES, M9_FIXTURE_NAMES, type M9FixtureName } from './fixtures/m9'
 // packages/core —— 领域核心：db / repos / search（R3：禁止依赖任何 app）
 export { openDatabase, defaultDbPath, openvibeHome, type SqliteDatabase } from './db'
 // CS4（v0.2.3 批次 C）：知识点-术语挂接 / 站点过滤 / 资源 README 导出 —— M9 学习线的产品面
@@ -114,14 +117,43 @@ export {
   isRuleFile,
   type ImportFile,
 } from './importers'
-export { AgentIngestRepo, type AgentIngest, type IngestInput, type IngestOutcome } from './repos/agentIngest'
-export { LocalEventsRepo, dayOf, type LocalEventInput, type LocalEventSummary } from './repos/localEvents'
+export {
+  AgentIngestRepo,
+  type AgentIngest,
+  type IngestInput,
+  type IngestOutcome,
+} from './repos/agentIngest'
+export {
+  LocalEventsRepo,
+  dayOf,
+  type LocalEventInput,
+  type LocalEventSummary,
+} from './repos/localEvents'
 /* --- 服务层（service-layer.md 第五个服务；写入点集中在此，不散落 route）--- */
-export { createAgentService, AGENT_BATCH_LIMITS, type AgentServiceDeps, type IngestBatchResult } from './services/agentService'
+export {
+  createAgentService,
+  AGENT_BATCH_LIMITS,
+  type AgentServiceDeps,
+  type IngestBatchResult,
+} from './services/agentService'
 export { createContextService, type ContextServiceDeps } from './services/contextService'
 export { createTermRecommendService, type TermRecommendDeps } from './services/termRecommendService'
-export { createCommandRunService, CLI_COMMAND_RUN_COMMANDS, CLI_COMMAND_RUN_PAYLOAD_KEYS, type CliCommandRunCommand, type CommandRunInput, type CommandRunServiceDeps } from './services/commandRunService'
-export { assembleAiCallPayload, toRelativePath, PayloadAssemblyError, type AssembleOpts, type AiCallPayload, type SourceFragment } from './services/m9-payload'
+export {
+  createCommandRunService,
+  CLI_COMMAND_RUN_COMMANDS,
+  CLI_COMMAND_RUN_PAYLOAD_KEYS,
+  type CliCommandRunCommand,
+  type CommandRunInput,
+  type CommandRunServiceDeps,
+} from './services/commandRunService'
+export {
+  assembleAiCallPayload,
+  toRelativePath,
+  PayloadAssemblyError,
+  type AssembleOpts,
+  type AiCallPayload,
+  type SourceFragment,
+} from './services/m9-payload'
 // P1b · 资源层种子导入器 —— **巡检脚本的 --seed 走它**（口径只留一处）
 export {
   seedLangResources,
@@ -134,9 +166,23 @@ export {
   TOPIC_RESOURCES_MERGE_SPEC,
 } from './db/m9-p1b-seed-resources'
 // P1 · 知识点种子导入器 —— 巡检脚本 --seed 时用它（挂接行引用知识点）
-export { seedLangTopics, type M9SeedBundleResult, LANG_TOPICS_MERGE_SPEC, M9_SEEDS_DIR } from './db/m9-p1-seed-lang-topics'
-export { seedConceptContent, type M9ConceptSeedResult, LANG_CONCEPTS_MERGE_SPEC, LANG_TOPIC_CONTENT_MERGE_SPEC } from './db/m9-p1-5-concept-content'
-export { seedConceptDeltas, type M9DeltaSeedResult, DELTAS_MERGE_SPEC } from './db/m9-p1-6-concept-deltas'
+export {
+  seedLangTopics,
+  type M9SeedBundleResult,
+  LANG_TOPICS_MERGE_SPEC,
+  M9_SEEDS_DIR,
+} from './db/m9-p1-seed-lang-topics'
+export {
+  seedConceptContent,
+  type M9ConceptSeedResult,
+  LANG_CONCEPTS_MERGE_SPEC,
+  LANG_TOPIC_CONTENT_MERGE_SPEC,
+} from './db/m9-p1-5-concept-content'
+export {
+  seedConceptDeltas,
+  type M9DeltaSeedResult,
+  DELTAS_MERGE_SPEC,
+} from './db/m9-p1-6-concept-deltas'
 export { seedTopicEdges, type M9EdgeSeedResult } from './db/m9-p1-7-topic-stages'
 // P1b/P1c · 失效巡检的**状态机**（§3.14 写死的那三行）—— 唯一出处
 export {
@@ -469,10 +515,7 @@ export {
 
 export { divergenceText, findDivergences } from './source-ai/divergence'
 
-export {
-  formatInterpretMarkdown,
-  type ExportInterpretOptions,
-} from './source-ai/export'
+export { formatInterpretMarkdown, type ExportInterpretOptions } from './source-ai/export'
 
 export {
   fingerprintRequest,
@@ -480,10 +523,7 @@ export {
   type InterpretCallRecord,
 } from './source-ai/ledger'
 
-export {
-  interpretSourceFindings,
-  type InterpretOptions,
-} from './source-ai/interpret-service'
+export { interpretSourceFindings, type InterpretOptions } from './source-ai/interpret-service'
 
 export {
   HttpInterpretRunner,

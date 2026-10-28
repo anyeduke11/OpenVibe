@@ -17,9 +17,7 @@ const disk =
   (rel: string): string | null =>
     map[rel] ?? null
 
-const declaredOf = (
-  entries: readonly (readonly [string, string, boolean])[],
-): DeclaredFile[] =>
+const declaredOf = (entries: readonly (readonly [string, string, boolean])[]): DeclaredFile[] =>
   entries.map(([path, content, managed]) => ({
     path,
     sha256: fileSha256(content),
@@ -146,9 +144,7 @@ describe('UT-SVC-03 · 三条既有路径对同一输入的映射（FR-2.2）', 
     expect(sum.drifted).toEqual([
       { path: 'SKILLS.md', expected: fileSha256('包内容2\n'), actual: fileSha256('用户手改\n') },
     ])
-    expect(sum.foreign).toEqual([
-      { path: 'UNMANAGED.md', actual: fileSha256('用户手改\n') },
-    ])
+    expect(sum.foreign).toEqual([{ path: 'UNMANAGED.md', actual: fileSha256('用户手改\n') }])
 
     // retirement 侧：四态原样 + action 映射原样（--force 未给 ⇒ DRIFT 只 keep）
     expect(clean.files.map((f) => [f.path, f.state, f.action])).toEqual([

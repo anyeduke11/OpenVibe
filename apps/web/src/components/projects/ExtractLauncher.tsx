@@ -21,7 +21,10 @@ export function ExtractLauncher(props: { projectId: string; entries: DevLogOut[]
 
   const enabled = (gate.data?.enabled ?? false) && props.entries.length > 0
   const remembered = useMemo(
-    () => (consents.data?.consents ?? []).some((c) => c.project_id === props.projectId && c.remember_all),
+    () =>
+      (consents.data?.consents ?? []).some(
+        (c) => c.project_id === props.projectId && c.remember_all,
+      ),
     [consents.data, props.projectId],
   )
 
@@ -119,7 +122,7 @@ export function ExtractLauncher(props: { projectId: string; entries: DevLogOut[]
             <div className="mt-2 text-[12px] text-ink-body">
               {run.data.status === 'ok'
                 ? `候选 ${String(run.data.candidateCount)} 条：${String(run.data.passedCount)} 条进入待确认队列，${String(run.data.droppedCount)} 条因锚定校验被丢弃`
-                : (run.data.warnings.join('；') || run.data.status)}
+                : run.data.warnings.join('；') || run.data.status}
             </div>
           )}
         </DialogPanel>

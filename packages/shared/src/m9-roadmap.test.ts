@@ -23,7 +23,14 @@ import {
 } from './m9-roadmap'
 
 function topic(id: number, stageId: number, state: RoadmapTopic['state']): RoadmapTopic {
-  return { id, slug: `t${String(id)}`, title: `T${String(id)}`, summary: '', stage_id: stageId, state }
+  return {
+    id,
+    slug: `t${String(id)}`,
+    title: `T${String(id)}`,
+    summary: '',
+    stage_id: stageId,
+    state,
+  }
 }
 
 describe('M9 P3.2 · 站号换算（0 起 ↔ 1 起）', () => {

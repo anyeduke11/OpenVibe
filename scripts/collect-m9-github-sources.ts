@@ -60,9 +60,7 @@ import {
   type InventoryDiff,
 } from './collect-m9-sources'
 import { guardedWrite, writeDiffIsEmpty, type WriteDiff } from './m9-write-guard'
-import {
- 
-} from '@openvibe/core'
+import {} from '@openvibe/core'
 import { computeFreshness, STALE_SOURCE_KEYS, type SourceFreshness } from '@openvibe/core/tooling'
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -149,8 +147,7 @@ export const GITHUB_SOURCES: GithubSourceConfig[] = [
     inventoryFile: 'xinliangnote-go-inventory.json',
     expectedTotal: 43,
     verify: 'tree-api',
-    note:
-      '⭐ 五源里最适合当学习路线的一个：顶层目录带编号前缀，天然有序；标题是真实工程问题而非语法名词。',
+    note: '⭐ 五源里最适合当学习路线的一个：顶层目录带编号前缀，天然有序；标题是真实工程问题而非语法名词。',
   },
   {
     key: 'walter201230-python',
@@ -166,8 +163,7 @@ export const GITHUB_SOURCES: GithubSourceConfig[] = [
     inventoryFile: 'walter201230-python-inventory.json',
     expectedTotal: 101,
     verify: 'tree-api',
-    note:
-      '⚠️ 章节目录 python0…python28 是有序的，但每章内容是 .png 脑图 ⇒ 不可文本抽取，只能当导航用。',
+    note: '⚠️ 章节目录 python0…python28 是有序的，但每章内容是 .png 脑图 ⇒ 不可文本抽取，只能当导航用。',
   },
   {
     key: 'awesome-python-cn',
@@ -268,9 +264,7 @@ export function githubBlobUrl(cfg: GithubSourceConfig, path: string): string {
  *   只取 md 才对应「教程篇目」这个口径。
  */
 export function parseTreeItems(paths: string[], cfg: GithubSourceConfig): CollectedItem[] {
-  const mdPaths = paths
-    .filter((p) => p.endsWith('.md'))
-    .sort((a, b) => naturalCompare(a, b))
+  const mdPaths = paths.filter((p) => p.endsWith('.md')).sort((a, b) => naturalCompare(a, b))
   const items: CollectedItem[] = []
   for (const p of mdPaths) {
     const file = p.split('/').pop()!
@@ -429,7 +423,8 @@ export async function fetchReadmeMarkdown(cfg: GithubSourceConfig): Promise<stri
     encoding?: string
   }
   if (typeof data.content !== 'string') throw new Error(`README 取不到内容: ${cfg.key}`)
-  const raw = data.encoding === 'base64' ? Buffer.from(data.content, 'base64').toString('utf8') : data.content
+  const raw =
+    data.encoding === 'base64' ? Buffer.from(data.content, 'base64').toString('utf8') : data.content
   return raw
 }
 
@@ -488,7 +483,11 @@ export function renderAuxStructure(
   const xinliang = rows.find((r) => r.cfg.key === 'xinliangnote-go')
   const apcn = rows.find((r) => r.cfg.key === 'awesome-python-cn')
   const ago = rows.find((r) => r.cfg.key === 'awesome-go')
-  const ordered = runoobCounts.python + runoobCounts.go + (walter?.items.length ?? 0) + (xinliang?.items.length ?? 0)
+  const ordered =
+    runoobCounts.python +
+    runoobCounts.go +
+    (walter?.items.length ?? 0) +
+    (xinliang?.items.length ?? 0)
   const unordered = (apcn?.items.length ?? 0) + (ago?.items.length ?? 0)
   return {
     _readme:
@@ -762,7 +761,9 @@ export function decideGithubExitCode(outcomes: GithubOutcome[]): GithubVerdict {
     if (drifted && cfg?.gate === 'advisory') {
       advisory.push(
         `${o.source} 漂移 ${String(diff.countChanged >= 0 ? '+' : '')}${String(diff.countChanged)} 条` +
-          (diff.added.length > 0 ? `（新增 ${String(diff.added.length)} / 消失 ${String(diff.removed.length)}）` : ''),
+          (diff.added.length > 0
+            ? `（新增 ${String(diff.added.length)} / 消失 ${String(diff.removed.length)}）`
+            : ''),
       )
       continue
     }
@@ -779,7 +780,10 @@ export function decideGithubExitCode(outcomes: GithubOutcome[]): GithubVerdict {
     })
   }
   const v = decideCheckExitCode(blocking)
-  const detail = advisory.length > 0 ? `${v.detail}；另 ${advisory.length} 个 advisory 源漂移（不阻断）` : v.detail
+  const detail =
+    advisory.length > 0
+      ? `${v.detail}；另 ${advisory.length} 个 advisory 源漂移（不阻断）`
+      : v.detail
   return { code: v.code, label: v.label, detail, advisory }
 }
 
@@ -801,7 +805,9 @@ function renderGithubDiff(
   afterCount: number,
 ): string[] {
   const lines: string[] = [`── ${cfg.key} · ${cfg.title}`]
-  lines.push(`   条数：库 ${String(beforeCount)} → 源 ${String(afterCount)}（差 ${diff.countChanged >= 0 ? '+' : ''}${String(diff.countChanged)}）`)
+  lines.push(
+    `   条数：库 ${String(beforeCount)} → 源 ${String(afterCount)}（差 ${diff.countChanged >= 0 ? '+' : ''}${String(diff.countChanged)}）`,
+  )
   if (diff.added.length > 0) {
     lines.push(`   新增 ${String(diff.added.length)} 条：`)
     for (const it of diff.added.slice(0, 10)) lines.push(`     + ${it.section} · ${it.title}`)
@@ -878,7 +884,7 @@ async function main(argv: string[]): Promise<number> {
     write: argv.includes('--write'),
     check: argv.includes('--check'),
     json: argv.includes('--json'),
-    only: argv.includes('--source') ? argv[argv.indexOf('--source') + 1] ?? null : null,
+    only: argv.includes('--source') ? (argv[argv.indexOf('--source') + 1] ?? null) : null,
   }
   const now = new Date()
   const stamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19)
@@ -911,7 +917,9 @@ async function main(argv: string[]): Promise<number> {
     for (const a of verdict.advisory) {
       process.stdout.write(`   ⚠️ advisory（不阻断）：${a}\n`)
     }
-    process.stdout.write(`\n判定：${verdict.label} —— ${verdict.detail}（退出码 ${String(verdict.code)}）\n`)
+    process.stdout.write(
+      `\n判定：${verdict.label} —— ${verdict.detail}（退出码 ${String(verdict.code)}）\n`,
+    )
   }
   return opts.check ? verdict.code : 0
 }

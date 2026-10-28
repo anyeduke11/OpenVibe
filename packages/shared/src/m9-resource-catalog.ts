@@ -24,7 +24,11 @@
 //
 // `resourceModeLabel` 由「本模式必学集合」反查派生（§3.20）⇒ 判定口径**只在 shared 一处**，
 // 本文件**只调用它**，不另写一份。
-import { resourceModeLabel, type ResourceModeLabel, type TopicProfileLite } from './m9-mode-interaction'
+import {
+  resourceModeLabel,
+  type ResourceModeLabel,
+  type TopicProfileLite,
+} from './m9-mode-interaction'
 import type { LangProfile } from './m9-modes'
 
 /** 资源页的一行（**读端给的形状**）。 */

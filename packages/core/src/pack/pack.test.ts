@@ -487,7 +487,13 @@ describe('UT-RESOLVE-01 · selection → 内容快照（m6a §6.2）', () => {
       { id: 'pk_1', name: 'default', description: '', targets: ['claude-code'] },
       selectionOf(f),
       '1.0.0',
-      { prompts: f.prompts, terms: f.terms, skills: f.skills, playbooks: f.playbooks, flows: f.flows },
+      {
+        prompts: f.prompts,
+        terms: f.terms,
+        skills: f.skills,
+        playbooks: f.playbooks,
+        flows: f.flows,
+      },
     )
     expect(resolved.prompts[0]).toEqual({
       title: '代码审查请求',
@@ -519,7 +525,13 @@ describe('UT-RESOLVE-01 · selection → 内容快照（m6a §6.2）', () => {
         { id: 'pk_1', name: 'default', description: '', targets: ['claude-code'] },
         selectionOf(f),
         '1.0.0',
-        { prompts: f.prompts, terms: f.terms, skills: f.skills, playbooks: f.playbooks, flows: f.flows },
+        {
+          prompts: f.prompts,
+          terms: f.terms,
+          skills: f.skills,
+          playbooks: f.playbooks,
+          flows: f.flows,
+        },
       )
       expect.unreachable()
     } catch (err) {
@@ -538,7 +550,13 @@ describe('UT-RESOLVE-01 · selection → 内容快照（m6a §6.2）', () => {
         { id: 'pk_1', name: 'default', description: '', targets: ['claude-code'] },
         { promptIds: [], termIds: [], skillIds: [], playbookIds: [], flowTemplateId: null },
         '1.0.0',
-        { prompts: f.prompts, terms: f.terms, skills: f.skills, playbooks: f.playbooks, flows: f.flows },
+        {
+          prompts: f.prompts,
+          terms: f.terms,
+          skills: f.skills,
+          playbooks: f.playbooks,
+          flows: f.flows,
+        },
       ),
     ).toThrowError(/EMPTY|空/)
     f.h.close()

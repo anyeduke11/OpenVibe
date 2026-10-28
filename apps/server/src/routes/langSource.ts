@@ -141,12 +141,7 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', 'project_id 与 remember_all 必填')
     }
-    const row = setConsent(
-      deps.db,
-      parsed.data.project_id,
-      parsed.data.remember_all,
-      now(),
-    )
+    const row = setConsent(deps.db, parsed.data.project_id, parsed.data.remember_all, now())
     return { remember_all: row.remember_all, remembered_at: row.remembered_at }
   })
 
@@ -208,12 +203,7 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
       throw new AppError('VALIDATION_ERROR', 'from 晚于 to')
     }
     return {
-      daily: readShareDaily(
-        deps.db,
-        parsed.data.from,
-        parsed.data.to,
-        parsed.data.project,
-      ),
+      daily: readShareDaily(deps.db, parsed.data.from, parsed.data.to, parsed.data.project),
     }
   })
 
@@ -238,12 +228,7 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
       throw new AppError('VALIDATION_ERROR', 'from 晚于 to')
     }
     return {
-      groups: readShareByProvider(
-        deps.db,
-        parsed.data.from,
-        parsed.data.to,
-        parsed.data.project,
-      ),
+      groups: readShareByProvider(deps.db, parsed.data.from, parsed.data.to, parsed.data.project),
     }
   })
 }

@@ -95,7 +95,9 @@ describe('M9 P4.5 · DL-21 · 设置页「源码授权记忆」区', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /清除/ })[0] as HTMLElement)
 
     await waitFor(() => {
-      const call = fetchMock.mock.calls.find((c) => (c[1] as { method?: string })?.method === 'DELETE')
+      const call = fetchMock.mock.calls.find(
+        (c) => (c[1] as { method?: string })?.method === 'DELETE',
+      )
       expect(call, '必须真的发出一次 DELETE').toBeTruthy()
       expect(String(call?.[0])).toBe('/api/lang/source/consent?project=p1')
     })

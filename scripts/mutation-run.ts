@@ -79,10 +79,10 @@ export function diagnosisFor(leg: MutationLeg, failed: number, passed: number): 
   if (failed > 0) return []
   return [
     `已排除：变异没打上（锚点替换已断言唯一命中 ${leg.invert ? '（反向腿）' : ''}）。`,
-    `待查 ①：测试未走到被改的分支 —— 本腿红 ${failed} 支、绿 ${passed} 支。`
-      + `在被改分支里加一次性标记或计数器再跑一次，即可区分「分支没被执行」与「分支执行了但判据没盯它」。`,
-    `待查 ②：判据本身太弱或已是永真 —— 构造一条**已知坏输入**直接喂进去。`
-      + `本仓踩过的实例：非法样例恰好落在两条分支的交集里、两次调用落在同一毫秒。`,
+    `待查 ①：测试未走到被改的分支 —— 本腿红 ${failed} 支、绿 ${passed} 支。` +
+      `在被改分支里加一次性标记或计数器再跑一次，即可区分「分支没被执行」与「分支执行了但判据没盯它」。`,
+    `待查 ②：判据本身太弱或已是永真 —— 构造一条**已知坏输入**直接喂进去。` +
+      `本仓踩过的实例：非法样例恰好落在两条分支的交集里、两次调用落在同一毫秒。`,
     `手段：跑**反向变异**（把 null 当 true、把 0 当正常）验证 —— 正向能红不够，反向也要红。`,
     `注意：反向变异红 ${leg.invert ? '（本腿已是反向腿）' : '（需在清单里加 invert: true 的腿）'}。`,
   ]
@@ -134,7 +134,11 @@ function tailOf(stdout: string, n = 30): string {
  */
 export type LegRunner = (testCmd: string[], repoRoot: string) => { stdout: string }
 
-export function runLeg(leg: MutationLeg, repoRoot: string, run: LegRunner = defaultRunner): LegResult {
+export function runLeg(
+  leg: MutationLeg,
+  repoRoot: string,
+  run: LegRunner = defaultRunner,
+): LegResult {
   const started = Date.now()
   // 用 resolve 而非 join：join 遇绝对路径会拼出垃圾路径。允许 leg.file 传绝对路径，
   // 是为了让测试能在**真仓库 cwd 下**变异一个临时文件 —— 既能验「默认路径真跑 vitest」，
@@ -195,7 +199,9 @@ export function runLeg(leg: MutationLeg, repoRoot: string, run: LegRunner = defa
     }
 
     const meets =
-      leg.expect !== undefined ? summary.failed === leg.expect : summary.failed >= (leg.expectMin ?? 1)
+      leg.expect !== undefined
+        ? summary.failed === leg.expect
+        : summary.failed >= (leg.expectMin ?? 1)
     return {
       name: leg.name,
       file: leg.file,
@@ -239,12 +245,16 @@ export function runLegs(legs: MutationLeg[], repoRoot: string): RunReport {
 
 export function renderReport(report: RunReport): string {
   const out: string[] = []
-  out.push(`mutation:run —— 共 ${report.legs.length} 腿，按期望红 ${report.okCount}，未达 ${report.failCount}`)
+  out.push(
+    `mutation:run —— 共 ${report.legs.length} 腿，按期望红 ${report.okCount}，未达 ${report.failCount}`,
+  )
   out.push('')
   for (const l of report.legs) {
     const mark = l.status === 'ok' ? '✅' : '❌'
     out.push(`${mark} ${l.name}`)
-    out.push(`   ${l.file} · 锚点命中 ${l.anchorHits} · 红 ${l.failed} / 绿 ${l.passed} · ${l.status} · ${l.durationMs}ms`)
+    out.push(
+      `   ${l.file} · 锚点命中 ${l.anchorHits} · 红 ${l.failed} / 绿 ${l.passed} · ${l.status} · ${l.durationMs}ms`,
+    )
     for (const d of l.diagnosis) out.push(`   ${d}`)
     if (l.tail) {
       out.push('   ── vitest 输出尾部 ──')
@@ -279,7 +289,9 @@ function main(argv: string[]): number {
     return 2
   }
   const report = runLegs(legs, process.cwd())
-  process.stdout.write(asJson ? `${JSON.stringify(report, null, 2)}\n` : `${renderReport(report)}\n`)
+  process.stdout.write(
+    asJson ? `${JSON.stringify(report, null, 2)}\n` : `${renderReport(report)}\n`,
+  )
   return report.failCount > 0 ? 1 : 0
 }
 

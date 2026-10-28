@@ -28,7 +28,7 @@ function holder(lockPath) {
         `setTimeout(()=>{fs.writeSync(fd,JSON.stringify({pid:4242,command:'sync-holder'})+'\\n');fs.closeSync(fd)}, ${String(WINDOW_MS)})`,
       lockPath,
     ],
-    { stdio: 'ignore' }
+    { stdio: 'ignore' },
   )
   return child
 }

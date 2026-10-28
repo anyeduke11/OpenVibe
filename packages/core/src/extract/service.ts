@@ -1,9 +1,5 @@
 import { createHash } from 'node:crypto'
-import {
-  buildExtractPrompt,
-  EXTRACT_SCHEMA_VERSION,
-  type ExtractPromptLog,
-} from '@openvibe/shared'
+import { buildExtractPrompt, EXTRACT_SCHEMA_VERSION, type ExtractPromptLog } from '@openvibe/shared'
 import { AppMetaRepo, APP_META_KEYS } from '../repos/appMeta'
 import { AgentIngestRepo } from '../repos/agentIngest'
 import { LocalEventsRepo } from '../repos/localEvents'
@@ -70,11 +66,12 @@ interface ParsedCandidate {
   log_index: number
 }
 
-const KIND_TO_INGEST: Record<string, 'term_candidate' | 'prompt_candidate' | 'playbook_candidate'> = {
-  term: 'term_candidate',
-  prompt: 'prompt_candidate',
-  playbook: 'playbook_candidate',
-}
+const KIND_TO_INGEST: Record<string, 'term_candidate' | 'prompt_candidate' | 'playbook_candidate'> =
+  {
+    term: 'term_candidate',
+    prompt: 'prompt_candidate',
+    playbook: 'playbook_candidate',
+  }
 
 export function extractGateOpen(db: SqliteDatabase): boolean {
   return new AppMetaRepo(db).read<boolean>(APP_META_KEYS.aiExtractEnabled, false) === true
@@ -82,12 +79,21 @@ export function extractGateOpen(db: SqliteDatabase): boolean {
 
 export function runExtraction(
   db: SqliteDatabase,
-  input: { projectId: string; logIds: string[]; confirm?: boolean; remember?: boolean; providerId?: string },
+  input: {
+    projectId: string
+    logIds: string[]
+    confirm?: boolean
+    remember?: boolean
+    providerId?: string
+  },
   deps: ExtractServiceDeps = {},
 ): Promise<ExtractOutcome> {
   const now = deps.now ?? (() => new Date())
   const warnings: string[] = []
-  const empty = (status: ExtractOutcome['status'], provider: string | null = null): ExtractOutcome => ({
+  const empty = (
+    status: ExtractOutcome['status'],
+    provider: string | null = null,
+  ): ExtractOutcome => ({
     status,
     provider,
     candidateCount: 0,
@@ -115,7 +121,9 @@ export function runExtraction(
     .all(input.projectId, ...input.logIds) as LogRow[]
   if (rows.length === 0) {
     return Promise.resolve(
-      Object.assign(empty('error'), { warnings: ['没有命中任何开发日志（检查 log_ids 是否属于该项目）'] }),
+      Object.assign(empty('error'), {
+        warnings: ['没有命中任何开发日志（检查 log_ids 是否属于该项目）'],
+      }),
     )
   }
   const missing = input.logIds.length - rows.length
@@ -172,7 +180,9 @@ export function runExtraction(
       if (obj.schema_version !== EXTRACT_SCHEMA_VERSION || !Array.isArray(obj.candidates)) {
         record({ result: 'error', failureReason: 'schema-version-mismatch' })
         return Object.assign(empty('error', runner.provider), {
-          warnings: [`LLM 输出的 schema_version 不是 ${String(EXTRACT_SCHEMA_VERSION)}（已记台账）`],
+          warnings: [
+            `LLM 输出的 schema_version 不是 ${String(EXTRACT_SCHEMA_VERSION)}（已记台账）`,
+          ],
         })
       }
       const candidates = (obj.candidates as ParsedCandidate[]).filter(
@@ -199,7 +209,10 @@ export function runExtraction(
         }
         const sourceLog = rows[c.log_index]
         if (sourceLog === undefined) continue
-        const bodyHash = createHash('sha256').update(`${c.title}\n${c.body}`).digest('hex').slice(0, 16)
+        const bodyHash = createHash('sha256')
+          .update(`${c.title}\n${c.body}`)
+          .digest('hex')
+          .slice(0, 16)
         try {
           const out = repo.ingest(
             {
@@ -237,7 +250,10 @@ export function runExtraction(
         candidateCount,
         passedCount: passed.length,
         droppedCount: dropped.length,
-        consent: deriveExtractConsent((consent?.rememberAll ?? false) === true, input.confirm === true),
+        consent: deriveExtractConsent(
+          (consent?.rememberAll ?? false) === true,
+          input.confirm === true,
+        ),
         createdAt: now().toISOString(),
       })
       if (input.confirm === true && input.remember === true) {
@@ -263,7 +279,9 @@ export function runExtraction(
   }
 
   const runnerPromise =
-    deps.runner !== undefined ? Promise.resolve(deps.runner) : createExtractRunner(db, input.providerId)
+    deps.runner !== undefined
+      ? Promise.resolve(deps.runner)
+      : createExtractRunner(db, input.providerId)
   return runnerPromise.then((runner) => {
     if (runner === null) return empty('unavailable')
     // ② 预算熔断（次数制；**本机端点豁免**——spec §8.2②：本机推理零外联不占预算；

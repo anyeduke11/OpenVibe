@@ -84,46 +84,45 @@ export function CommandPalette(props: { onClose: () => void }) {
   }, [])
 
   // 搜索：trim 后 ≥1 字符即查；输入变化时取消上一轮，避免旧结果覆盖新结果
-  const search = useCallback(
-    (term: string, ctrl: AbortController) => {
-      setPhase({ phase: 'searching' })
-      void Promise.all([
-        apiJson<{ items: { id: string; title: string }[] }>(`/api/prompts${qs({ q: term, size: 5 })}`),
-        apiJson<{ items: { term: { id: string; zh: string; en: string } }[] }>(
-          `/api/terms/search${qs({ q: term })}`,
-        ),
-        apiJson<{ items: { id: string; name: string; latestVersion: string }[] }>(
-          `/api/skills${qs({ q: term })}`,
-        ),
-      ])
-        .then(([prompts, terms, skills]) => {
-          if (ctrl.signal.aborted) return
-          const next: Hit[] = [
-            ...prompts.items.map((p) => ({ id: `p:${p.id}`, label: p.title, to: '/library' })),
-            ...terms.items.map((t) => ({
-              id: `t:${t.term.id}`,
-              label: t.term.zh,
-              hint: t.term.en,
-              to: '/terms',
-            })),
-            ...skills.items.slice(0, 5).map((s) => ({
-              id: `s:${s.id}`,
-              label: s.name,
-              hint: s.latestVersion,
-              to: '/skills',
-            })),
-          ]
-          setHits(next)
-          setPhase({ phase: 'ready' })
-        })
-        .catch(() => {
-          if (ctrl.signal.aborted) return
-          // 搜索失败不让面板不可用：页面组仍在，只是少了结果（状态要说出来 + 给重试）
-          setPhase({ phase: 'failed' })
-        })
-    },
-    [],
-  )
+  const search = useCallback((term: string, ctrl: AbortController) => {
+    setPhase({ phase: 'searching' })
+    void Promise.all([
+      apiJson<{ items: { id: string; title: string }[] }>(
+        `/api/prompts${qs({ q: term, size: 5 })}`,
+      ),
+      apiJson<{ items: { term: { id: string; zh: string; en: string } }[] }>(
+        `/api/terms/search${qs({ q: term })}`,
+      ),
+      apiJson<{ items: { id: string; name: string; latestVersion: string }[] }>(
+        `/api/skills${qs({ q: term })}`,
+      ),
+    ])
+      .then(([prompts, terms, skills]) => {
+        if (ctrl.signal.aborted) return
+        const next: Hit[] = [
+          ...prompts.items.map((p) => ({ id: `p:${p.id}`, label: p.title, to: '/library' })),
+          ...terms.items.map((t) => ({
+            id: `t:${t.term.id}`,
+            label: t.term.zh,
+            hint: t.term.en,
+            to: '/terms',
+          })),
+          ...skills.items.slice(0, 5).map((s) => ({
+            id: `s:${s.id}`,
+            label: s.name,
+            hint: s.latestVersion,
+            to: '/skills',
+          })),
+        ]
+        setHits(next)
+        setPhase({ phase: 'ready' })
+      })
+      .catch(() => {
+        if (ctrl.signal.aborted) return
+        // 搜索失败不让面板不可用：页面组仍在，只是少了结果（状态要说出来 + 给重试）
+        setPhase({ phase: 'failed' })
+      })
+  }, [])
 
   useEffect(() => {
     const term = q.trim()
@@ -153,11 +152,7 @@ export function CommandPalette(props: { onClose: () => void }) {
     for (const h of hits) {
       out.push({
         id: h.id,
-        group: h.id.startsWith('t:')
-          ? 'term'
-          : h.id.startsWith('s:')
-            ? 'skill'
-            : 'prompt',
+        group: h.id.startsWith('t:') ? 'term' : h.id.startsWith('s:') ? 'skill' : 'prompt',
         label: h.label,
         hint: h.hint,
         icon: h.id.startsWith('t:') ? 'term' : h.id.startsWith('s:') ? 'box' : 'doc',
@@ -305,35 +300,35 @@ export function CommandPalette(props: { onClose: () => void }) {
               </div>
             </li>
           ) : (
-              items.map((it, i) => {
-                const head = it.group !== lastGroup
-                lastGroup = it.group
-                return (
-                  <li key={it.id}>
-                    {head && (
-                      <div className="px-3 pb-1 pt-2 text-[11px] text-ink-faint">
-                        {GROUP_LABEL[it.group]}
-                      </div>
+            items.map((it, i) => {
+              const head = it.group !== lastGroup
+              lastGroup = it.group
+              return (
+                <li key={it.id}>
+                  {head && (
+                    <div className="px-3 pb-1 pt-2 text-[11px] text-ink-faint">
+                      {GROUP_LABEL[it.group]}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={i === sel}
+                    onMouseMove={() => setSel(i)}
+                    onClick={() => {
+                      close()
+                      it.run()
+                    }}
+                    className={`${rowCls} flex w-full items-baseline gap-2 px-3 py-1.5 text-left text-sm text-ink-body`}
+                  >
+                    <Icon name={it.icon} size={14} className="self-center text-ink-faint" />
+                    <span className="min-w-0 grow truncate">{it.label}</span>
+                    {it.hint && (
+                      <span className="shrink-0 text-[11px] text-ink-muted">{it.hint}</span>
                     )}
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={i === sel}
-                      onMouseMove={() => setSel(i)}
-                      onClick={() => {
-                        close()
-                        it.run()
-                      }}
-                      className={`${rowCls} flex w-full items-baseline gap-2 px-3 py-1.5 text-left text-sm text-ink-body`}
-                    >
-                      <Icon name={it.icon} size={14} className="self-center text-ink-faint" />
-                      <span className="min-w-0 grow truncate">{it.label}</span>
-                      {it.hint && (
-                        <span className="shrink-0 text-[11px] text-ink-muted">{it.hint}</span>
-                      )}
-                    </button>
-                  </li>
-                )
+                  </button>
+                </li>
+              )
             })
           )}
         </ul>
@@ -343,7 +338,11 @@ export function CommandPalette(props: { onClose: () => void }) {
           <span className="num">↵ {zh.palette.enter}</span>
           <span>esc {zh.palette.close}</span>
           <span className="hidden sm:inline">{sys.palette.navHint}</span>
-          <button type="button" className={`${btnGhost} ml-auto px-2 py-0.5 text-[11px]`} onClick={close}>
+          <button
+            type="button"
+            className={`${btnGhost} ml-auto px-2 py-0.5 text-[11px]`}
+            onClick={close}
+          >
             {zh.palette.close}
           </button>
         </div>

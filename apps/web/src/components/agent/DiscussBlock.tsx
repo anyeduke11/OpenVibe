@@ -84,14 +84,19 @@ export function DiscussBlock(props: { projectId: string }) {
                   {seg.source_ref !== null && (
                     <span
                       className="ml-1 rounded-sm px-1 align-baseline font-mono text-[10px]"
-                      style={{ background: 'var(--color-accent-soft)', color: 'var(--color-accent-text)' }}
+                      style={{
+                        background: 'var(--color-accent-soft)',
+                        color: 'var(--color-accent-text)',
+                      }}
                     >
                       {`${String(seg.source_ref)}:${result.sources[seg.source_ref] ?? '?'}`}
                     </span>
                   )}
                 </p>
               ))}
-              {result.truncated && <p className="mt-1 text-[11px] text-ink-faint">{agentZh.discuss.truncated}</p>}
+              {result.truncated && (
+                <p className="mt-1 text-[11px] text-ink-faint">{agentZh.discuss.truncated}</p>
+              )}
               {result.warnings.length > 0 && (
                 <p className="mt-1 text-[11px] text-ink-muted">{result.warnings.join('；')}</p>
               )}

@@ -24,10 +24,7 @@ const SOURCE = readFileSync(STATE_MODULE, 'utf8')
 describe('M9 P2 · DL-28 / DL-34 类型层结构守卫 · 正支', () => {
   it('真实的掌握度计算模块：零违规', () => {
     const violations = checkStateModuleShape(SOURCE)
-    expect(
-      violations,
-      violations.map((v) => `[${v.rule}] ${v.detail}`).join('\n'),
-    ).toEqual([])
+    expect(violations, violations.map((v) => `[${v.rule}] ${v.detail}`).join('\n')).toEqual([])
   })
 })
 
@@ -75,7 +72,7 @@ describe('M9 P2 · DL-28 / DL-34 类型层结构守卫 · 变异腿', () => {
   it('变异腿 ⑤：函数体里读了一个模式字段 ⇒ 红', () => {
     const mutated = SOURCE.replace(
       '  const own = ownStateOf(id, input)',
-      '  const ceiling = required.includes(id) ? \'mastered\' : ownStateOf(id, input)',
+      "  const ceiling = required.includes(id) ? 'mastered' : ownStateOf(id, input)",
     )
     expect(mutated).not.toBe(SOURCE)
     const violations = checkStateModuleShape(mutated)
@@ -85,7 +82,7 @@ describe('M9 P2 · DL-28 / DL-34 类型层结构守卫 · 变异腿', () => {
   it('变异腿 ⑥：函数体里读了一个资源字段 ⇒ 红', () => {
     const mutated = SOURCE.replace(
       '  const own = ownStateOf(id, input)',
-      '  const ceiling = resourceIds.includes(id) ? \'mastered\' : ownStateOf(id, input)',
+      "  const ceiling = resourceIds.includes(id) ? 'mastered' : ownStateOf(id, input)",
     )
     expect(mutated).not.toBe(SOURCE)
     const violations = checkStateModuleShape(mutated)

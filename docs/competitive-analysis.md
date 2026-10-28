@@ -1,12 +1,12 @@
 # OpenVibe 深度对比分析报告
 
-| 项 | 值 |
-|------|------|
-| 文档定位 | 与市面同类开源项目的深度对比：能力矩阵、重点深挖、平台覆盖、SWOT、竞争策略 |
-| 对比基准 | **OpenVibe PRD v0.1.4（定义态，未发布）**——对比的是已冻结的产品定义，不是已实现产品；诚实声明：定义态无真实用户数据，成熟度列一律如实标注 |
+| 项       | 值                                                                                                                                                     |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 文档定位 | 与市面同类开源项目的深度对比：能力矩阵、重点深挖、平台覆盖、SWOT、竞争策略                                                                             |
+| 对比基准 | **OpenVibe PRD v0.1.4（定义态，未发布）**——对比的是已冻结的产品定义，不是已实现产品；诚实声明：定义态无真实用户数据，成熟度列一律如实标注              |
 | 数据快照 | 2026-09-20（Web 检索 + GitHub 核实；与同日早间的 [competitive-research.md](./competitive-research.md) 立项快照互补，**本文含其后发现的重大市场变化**） |
-| 上游 | PRD v0.1.4、design.md §7/§8（契约与 adapter） |
-| 版本 | v1.0（2026-09-20） |
+| 上游     | PRD v0.1.4、design.md §7/§8（契约与 adapter）                                                                                                          |
+| 版本     | v1.0（2026-09-20）                                                                                                                                     |
 
 ---
 
@@ -19,40 +19,40 @@
 
 ## 二、对比对象总览（14 个，四象限）
 
-| 象限 | 项目 | 形态 | 规模/状态（快照日） | 与 OpenVibe 重叠 |
-|------|------|------|---------------------|-------------------|
-| 资产管家 | [legeling/PromptHub](https://github.com/legeling/PromptHub) | Electron+Web+CLI | 1.7k★，AGPL-3.0，活跃（已知 skill 更新误报 bug [#168](https://github.com/legeling/PromptHub/issues/168)） | ★★★★☆ |
-| 资产管家 | [xingkongliang/skills-manager](https://github.com/xingkongliang/skills-manager) | 桌面应用 | 新兴，宣称支持 50+ 工具 | ★★★☆☆ |
-| 规则同步新锐 | [dyoshikawa/rulesync](https://github.com/dyoshikawa/rulesync) | Node CLI（+PyPI 1.0.0，2026-04） | 小而美，"one source of truth" | ★★★★☆（M6 直接重叠） |
-| 规则同步新锐 | [danielcinome/rulix](https://github.com/danielcinome/rulix) | TS CLI | 新兴，"One ruleset. Every AI coding tool." | ★★★☆☆ |
-| 规则同步新锐 | [botingw/rulebook-ai](https://github.com/botingw/rulebook-ai) | CLI | 新兴，「打包并部署专家环境（规则+上下文+工具）」 | ★★★★☆（最接近「标准包」概念） |
-| 规则同步新锐 | agent-rules-sync / AgentSync(Rust) / Unblocked / MDPilot / [AI Rules Manager](https://open-vsx.org/extension/ikaladev/ai-rules-manager) | CLI/服务/插件/移动端 | 各自小众 | ★★☆☆☆ |
-| 流程框架 | [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD) | 方法论+模板+CLI | ~48.4k★，MIT | ★★★☆☆ |
-| 流程框架 | [github/spec-kit](https://github.com/github/spec-kit) | CLI 脚手架 | ~90k★，**维护存疑**（[讨论 #1482](https://github.com/github/spec-kit/discussions/1482)，2026-09-20 检索复核存在） | ★★★☆☆ |
-| 分发渠道 | [skills.sh](https://skills.sh)（+VS Code 插件）/ awesome 清单们 | Web/插件 | 1000+ skills | ★★☆☆☆ |
+| 象限         | 项目                                                                                                                                    | 形态                             | 规模/状态（快照日）                                                                                               | 与 OpenVibe 重叠              |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 资产管家     | [legeling/PromptHub](https://github.com/legeling/PromptHub)                                                                             | Electron+Web+CLI                 | 1.7k★，AGPL-3.0，活跃（已知 skill 更新误报 bug [#168](https://github.com/legeling/PromptHub/issues/168)）         | ★★★★☆                         |
+| 资产管家     | [xingkongliang/skills-manager](https://github.com/xingkongliang/skills-manager)                                                         | 桌面应用                         | 新兴，宣称支持 50+ 工具                                                                                           | ★★★☆☆                         |
+| 规则同步新锐 | [dyoshikawa/rulesync](https://github.com/dyoshikawa/rulesync)                                                                           | Node CLI（+PyPI 1.0.0，2026-04） | 小而美，"one source of truth"                                                                                     | ★★★★☆（M6 直接重叠）          |
+| 规则同步新锐 | [danielcinome/rulix](https://github.com/danielcinome/rulix)                                                                             | TS CLI                           | 新兴，"One ruleset. Every AI coding tool."                                                                        | ★★★☆☆                         |
+| 规则同步新锐 | [botingw/rulebook-ai](https://github.com/botingw/rulebook-ai)                                                                           | CLI                              | 新兴，「打包并部署专家环境（规则+上下文+工具）」                                                                  | ★★★★☆（最接近「标准包」概念） |
+| 规则同步新锐 | agent-rules-sync / AgentSync(Rust) / Unblocked / MDPilot / [AI Rules Manager](https://open-vsx.org/extension/ikaladev/ai-rules-manager) | CLI/服务/插件/移动端             | 各自小众                                                                                                          | ★★☆☆☆                         |
+| 流程框架     | [BMAD-METHOD](https://github.com/bmad-code-org/BMAD-METHOD)                                                                             | 方法论+模板+CLI                  | ~48.4k★，MIT                                                                                                      | ★★★☆☆                         |
+| 流程框架     | [github/spec-kit](https://github.com/github/spec-kit)                                                                                   | CLI 脚手架                       | ~90k★，**维护存疑**（[讨论 #1482](https://github.com/github/spec-kit/discussions/1482)，2026-09-20 检索复核存在） | ★★★☆☆                         |
+| 分发渠道     | [skills.sh](https://skills.sh)（+VS Code 插件）/ awesome 清单们                                                                         | Web/插件                         | 1000+ skills                                                                                                      | ★★☆☆☆                         |
 
 ## 三、全量能力矩阵
 
 图例：✅ 完整可用 ｜ ⚠️ 部分/简陋 ｜ ❌ 无 ｜ 📐 OpenVibe 为**定义态**（按冻结的规格承诺）
 
-| 能力维度 | OpenVibe 📐 | PromptHub | rulesync | Rulix | rulebook-ai | BMAD | spec-kit |
-|----------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| 提示词 CRUD/版本/变量/搜索 | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Skill 台账（扫描/登记） | ⚠️ 瘦身 | ✅ 强 | ❌ | ❌ | ⚠️ 工具部分 | ❌ | ❌ |
-| **术语库（中英/别名/TERMS.md）** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| 技巧库（playbook） | ❌ P2 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| 项目工作台（看板/检查清单/日志） | ✅ | ❌ | ❌ | ❌ | ❌ | ⚠️ 模板即流程无看板 | ⚠️ 同左 |
-| 流程模板可视化裁剪 | ✅ | ❌ | ❌ | ❌ | ❌ | ❌（文件模板） | ❌（脚手架） |
-| **标准包组装（选资产→打包→版本）** | ✅ | ❌（Rules 快照非组装） | ❌（单源文件） | ❌（单源规则） | ⚠️ 打包但无资产库可挑 | ❌ | ❌ |
-| 多平台注入/同步 | ✅ 6+矩阵 | ✅ 15+ 平台（skill 分发） | ✅ 5 种文件 | ⚠️ 3 系 | ⚠️ 多工具 | ❌ | ❌ |
-| 冲突保护（dry-run/备份/diff） | ✅ 三重 | ⚠️ 快照机制 | ❌ | ❌ | 未知 | ❌ | ❌ |
-| 指纹/漂移检测 | ✅ | ✅（SHA-256 skill 指纹） | ❌ | ❌ | ❌ | ❌ | ❌ |
-| 复盘回流（日志→资产草稿） | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| 团队协作/评审 | ❌ P2 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| 开箱体验（预置包+向导） | ✅ | ⚠️ 内置技能商店 | ❌ | ❌ | ⚠️ | ✅ 脚手架即开箱 | ✅ |
-| GUI | ✅ Web | ✅ 桌面+Web | ❌ | ❌ | ❌ | ❌ | ❌ |
-| 本地优先/离线 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| 规则质量校验（长度/含糊度/token 预算） | ❌ | ❌ | ❌ | ✅ **独有** | ❌ | ❌ | ❌ |
+| 能力维度                               | OpenVibe 📐 |         PromptHub         |    rulesync    |     Rulix      |      rulebook-ai      |        BMAD         |   spec-kit   |
+| -------------------------------------- | :---------: | :-----------------------: | :------------: | :------------: | :-------------------: | :-----------------: | :----------: |
+| 提示词 CRUD/版本/变量/搜索             |     ✅      |            ✅             |       ❌       |       ❌       |          ❌           |         ❌          |      ❌      |
+| Skill 台账（扫描/登记）                |   ⚠️ 瘦身   |           ✅ 强           |       ❌       |       ❌       |      ⚠️ 工具部分      |         ❌          |      ❌      |
+| **术语库（中英/别名/TERMS.md）**       |     ✅      |            ❌             |       ❌       |       ❌       |          ❌           |         ❌          |      ❌      |
+| 技巧库（playbook）                     |    ❌ P2    |            ❌             |       ❌       |       ❌       |          ❌           |         ❌          |      ❌      |
+| 项目工作台（看板/检查清单/日志）       |     ✅      |            ❌             |       ❌       |       ❌       |          ❌           | ⚠️ 模板即流程无看板 |   ⚠️ 同左    |
+| 流程模板可视化裁剪                     |     ✅      |            ❌             |       ❌       |       ❌       |          ❌           |   ❌（文件模板）    | ❌（脚手架） |
+| **标准包组装（选资产→打包→版本）**     |     ✅      |  ❌（Rules 快照非组装）   | ❌（单源文件） | ❌（单源规则） | ⚠️ 打包但无资产库可挑 |         ❌          |      ❌      |
+| 多平台注入/同步                        |  ✅ 6+矩阵  | ✅ 15+ 平台（skill 分发） |  ✅ 5 种文件   |    ⚠️ 3 系     |       ⚠️ 多工具       |         ❌          |      ❌      |
+| 冲突保护（dry-run/备份/diff）          |   ✅ 三重   |        ⚠️ 快照机制        |       ❌       |       ❌       |         未知          |         ❌          |      ❌      |
+| 指纹/漂移检测                          |     ✅      | ✅（SHA-256 skill 指纹）  |       ❌       |       ❌       |          ❌           |         ❌          |      ❌      |
+| 复盘回流（日志→资产草稿）              |     ✅      |            ❌             |       ❌       |       ❌       |          ❌           |         ❌          |      ❌      |
+| 团队协作/评审                          |    ❌ P2    |            ❌             |       ❌       |       ❌       |          ❌           |         ❌          |      ❌      |
+| 开箱体验（预置包+向导）                |     ✅      |      ⚠️ 内置技能商店      |       ❌       |       ❌       |          ⚠️           |   ✅ 脚手架即开箱   |      ✅      |
+| GUI                                    |   ✅ Web    |        ✅ 桌面+Web        |       ❌       |       ❌       |          ❌           |         ❌          |      ❌      |
+| 本地优先/离线                          |     ✅      |            ✅             |       ✅       |       ✅       |          ✅           |         ✅          |      ✅      |
+| 规则质量校验（长度/含糊度/token 预算） |     ❌      |            ❌             |       ❌       |  ✅ **独有**   |          ❌           |         ❌          |      ❌      |
 
 **矩阵三句话结论**：① 资产管理单点战 PromptHub 最全，OpenVibe 不与其拼广度（M2 瘦身的正确性再次确认）；② 「组装 + 版本治理 + 冲突保护 + 回流」的组合无人具备——规则同步新锐们有「同步」没有「治理」，PromptHub 有「指纹」没有「组装」；③ Rulix 的规则质量校验是全场独有且值得借鉴的功能。
 
@@ -89,38 +89,38 @@
 
 ## 五、平台覆盖对比（OpenVibe 核心差异化证据）
 
-| 平台 | OpenVibe 📐 | PromptHub | rulesync | Rulix | rulebook-ai |
-|------|:---:|:---:|:---:|:---:|:---:|
-| Claude Code（CLAUDE.md） | ✅ | ✅（skill 目录） | ✅ | ✅ | ✅ |
-| Cursor（.mdc） | ✅ | ✅（skill 目录） | ✅ | ✅ | ⚠️ |
-| Codex/AGENTS.md 系 | ✅ | ⚠️ | ✅ | ✅ | ⚠️ |
-| **CodeBuddy（CODEBUDDY.md）** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Trae（.trae/rules）** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **MiniCode（MINI.md）** | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **zcode / Kimi Code（AGENTS.md）** | ✅（矩阵） | ❌ | ⚠️（Kimi 非显式） | ❌ | ❌ |
-| Windsurf | P1 | ✅ | ❌ | ❌ | ⚠️ |
-| Gemini（GEMINI.md） | P1 可选 | ❌ | ✅ | ❌ | ❌ |
-| Copilot（copilot-instructions.md） | **建议列 P1** | ❌ | ✅ | ❌ | ❌ |
+| 平台                               |  OpenVibe 📐  |    PromptHub     |     rulesync      | Rulix | rulebook-ai |
+| ---------------------------------- | :-----------: | :--------------: | :---------------: | :---: | :---------: |
+| Claude Code（CLAUDE.md）           |      ✅       | ✅（skill 目录） |        ✅         |  ✅   |     ✅      |
+| Cursor（.mdc）                     |      ✅       | ✅（skill 目录） |        ✅         |  ✅   |     ⚠️      |
+| Codex/AGENTS.md 系                 |      ✅       |        ⚠️        |        ✅         |  ✅   |     ⚠️      |
+| **CodeBuddy（CODEBUDDY.md）**      |      ✅       |        ❌        |        ❌         |  ❌   |     ❌      |
+| **Trae（.trae/rules）**            |      ✅       |        ❌        |        ❌         |  ❌   |     ❌      |
+| **MiniCode（MINI.md）**            |      ✅       |        ❌        |        ❌         |  ❌   |     ❌      |
+| **zcode / Kimi Code（AGENTS.md）** |  ✅（矩阵）   |        ❌        | ⚠️（Kimi 非显式） |  ❌   |     ❌      |
+| Windsurf                           |      P1       |        ✅        |        ❌         |  ❌   |     ⚠️      |
+| Gemini（GEMINI.md）                |    P1 可选    |        ❌        |        ✅         |  ❌   |     ❌      |
+| Copilot（copilot-instructions.md） | **建议列 P1** |        ❌        |        ✅         |  ❌   |     ❌      |
 
 **结论**：规则文件契约层的**国内平台覆盖是全场独占**（竞品全部停留在国际三件套 + skill 目录分发）；这是「中文社区优先」定位（D1）在产品层的具体兑现，也是传播素材的第一张牌。
 
 ## 六、架构与契约对比
 
-| 维度 | OpenVibe 📐 | PromptHub | 规则同步新锐 | BMAD/spec-kit |
-|------|--------------|-----------|--------------|----------------|
-| 形态 | 自部署 Web + CLI（本地优先） | Electron+Web+CLI | 纯 CLI | CLI/模板文件 |
-| 存储 | SQLite+FTS5（单文件可迁移） | SQLite + WebDAV/S3 同步 | 文件系统 | git 仓库 |
-| 标准格式 | 开放：纯 MD/JSON manifest + schemaVersion（冻结 v1/v1.2，golden 快照防漂移） | 私有库 + 导出 | 单源文件（事实上开放） | 开放 MD 模板 |
-| 版本治理 | semver 不可变导出 + fingerprint + lock 漂移检测 | skill 版本指纹 | ❌ | git 即版本 |
-| 冲突语义 | 五状态机（NEW/IN_SYNC/UPDATE/CONFLICT/DRIFT）+ 三重保护 | 快照 + 手动 | ❌ 覆盖即写 | ❌ |
-| 遥测 | 可选匿名三类白名单（默认关） | 无（本地优先） | 无 | 无 |
-| 协议 | Apache-2.0 | **AGPL-3.0（代码隔离墙）** | MIT 系 | MIT/MIT |
+| 维度     | OpenVibe 📐                                                                  | PromptHub                  | 规则同步新锐           | BMAD/spec-kit |
+| -------- | ---------------------------------------------------------------------------- | -------------------------- | ---------------------- | ------------- |
+| 形态     | 自部署 Web + CLI（本地优先）                                                 | Electron+Web+CLI           | 纯 CLI                 | CLI/模板文件  |
+| 存储     | SQLite+FTS5（单文件可迁移）                                                  | SQLite + WebDAV/S3 同步    | 文件系统               | git 仓库      |
+| 标准格式 | 开放：纯 MD/JSON manifest + schemaVersion（冻结 v1/v1.2，golden 快照防漂移） | 私有库 + 导出              | 单源文件（事实上开放） | 开放 MD 模板  |
+| 版本治理 | semver 不可变导出 + fingerprint + lock 漂移检测                              | skill 版本指纹             | ❌                     | git 即版本    |
+| 冲突语义 | 五状态机（NEW/IN_SYNC/UPDATE/CONFLICT/DRIFT）+ 三重保护                      | 快照 + 手动                | ❌ 覆盖即写            | ❌            |
+| 遥测     | 可选匿名三类白名单（默认关）                                                 | 无（本地优先）             | 无                     | 无            |
+| 协议     | Apache-2.0                                                                   | **AGPL-3.0（代码隔离墙）** | MIT 系                 | MIT/MIT       |
 
 ## 七、SWOT（定义态视角）
 
-| | 有利 | 不利 |
-|---|------|------|
-| **内部** | **S**：标准化飞轮全链路独占（组装-治理-注入-回流）；国内平台规则契约独占；术语库差异化；契约已冻结可快速开工；AGENTS.md 标准东风 | **W**：0 用户 0 star，冷启动全靠内容与 dogfooding；单人开发 6.5 周 vs 竞品既有成熟度；规则同步品类已有多玩家，教育市场的活可能被别人干了 |
+|          | 有利                                                                                                                                                | 不利                                                                                                                                                                 |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **内部** | **S**：标准化飞轮全链路独占（组装-治理-注入-回流）；国内平台规则契约独占；术语库差异化；契约已冻结可快速开工；AGENTS.md 标准东风                    | **W**：0 用户 0 star，冷启动全靠内容与 dogfooding；单人开发 6.5 周 vs 竞品既有成熟度；规则同步品类已有多玩家，教育市场的活可能被别人干了                             |
 | **外部** | **O**：spec-kit 维护裂缝；PromptHub 不做流程/知识/中文；AGENTS.md 生态扩张自动扩大兼容矩阵收益；国内平台（CodeBuddy/Trae/Kimi）崛起期无配套标准工具 | **T**：规则同步品类 2026H1 集中爆发，窗口收窄；平台原生资产同步若在 P1 期间上线（PRD 风险表）价值锚需加速转向流程/知识；PromptHub 若补齐中文平台与规则契约则正面相撞 |
 
 ## 八、竞争策略结论（七条）

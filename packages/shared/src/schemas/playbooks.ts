@@ -10,26 +10,33 @@ import { DevLogEvidence } from './task'
 export const PLAYBOOK_SOURCE_RE = /^(openvibe-seed|manual|reflow|ai-extract)$/
 
 /** 四段长度一律按 UTF-8 字节比 LIMITS（m4 §3 字节族口径，与 termDefinitionMaxBytes 同法） */
-const scenarioSchema = z.string().min(1).refine(
-  (s) => utf8ByteLength(s) <= LIMITS.playbookScenarioMaxBytes,
-  { message: `scenario 超过 ${LIMITS.playbookScenarioMaxBytes} 字节上限` },
-)
+const scenarioSchema = z
+  .string()
+  .min(1)
+  .refine((s) => utf8ByteLength(s) <= LIMITS.playbookScenarioMaxBytes, {
+    message: `scenario 超过 ${LIMITS.playbookScenarioMaxBytes} 字节上限`,
+  })
 
-const problemSchema = z.string().min(1).refine(
-  (s) => utf8ByteLength(s) <= LIMITS.playbookProblemMaxBytes,
-  { message: `problem 超过 ${LIMITS.playbookProblemMaxBytes} 字节上限` },
-)
+const problemSchema = z
+  .string()
+  .min(1)
+  .refine((s) => utf8ByteLength(s) <= LIMITS.playbookProblemMaxBytes, {
+    message: `problem 超过 ${LIMITS.playbookProblemMaxBytes} 字节上限`,
+  })
 
-const practiceSchema = z.string().min(1).refine(
-  (s) => utf8ByteLength(s) <= LIMITS.playbookPracticeMaxBytes,
-  { message: `practice 超过 ${LIMITS.playbookPracticeMaxBytes} 字节上限` },
-)
+const practiceSchema = z
+  .string()
+  .min(1)
+  .refine((s) => utf8ByteLength(s) <= LIMITS.playbookPracticeMaxBytes, {
+    message: `practice 超过 ${LIMITS.playbookPracticeMaxBytes} 字节上限`,
+  })
 
 /** 反例可空（FR-1.1），但给上限：空串与超长都是同一个键把守 */
-const antiPracticeSchema = z.string().refine(
-  (s) => utf8ByteLength(s) <= LIMITS.playbookAntiPracticeMaxBytes,
-  { message: `antiPractice 超过 ${LIMITS.playbookAntiPracticeMaxBytes} 字节上限` },
-)
+const antiPracticeSchema = z
+  .string()
+  .refine((s) => utf8ByteLength(s) <= LIMITS.playbookAntiPracticeMaxBytes, {
+    message: `antiPractice 超过 ${LIMITS.playbookAntiPracticeMaxBytes} 字节上限`,
+  })
 
 /** 字段本体单源：入参 / 出参共用，避免三处各写一遍形状 */
 const playbookFields = z.object({

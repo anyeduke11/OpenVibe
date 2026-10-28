@@ -23,7 +23,12 @@ export function checkLocalPath(localPath: string | null | undefined): LocalPathC
     return { exists: false, isDir: false, lockExists: false, warning: '路径当前不存在' }
   }
   if (!isDirectory) {
-    return { exists: true, isDir: false, lockExists: false, warning: 'localPath 不是目录，按未注入处理' }
+    return {
+      exists: true,
+      isDir: false,
+      lockExists: false,
+      warning: 'localPath 不是目录，按未注入处理',
+    }
   }
   return { exists: true, isDir: true, lockExists: existsSync(join(localPath, PACK_LOCK_REL)) }
 }

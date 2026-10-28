@@ -24,7 +24,10 @@ export const LANG_STALE_TIME = 15_000
 
 /** 一门语言的路线视图。 */
 export function useLangRoadmap(lang: LangCode, projectId?: string) {
-  const qs = projectId === undefined ? `lang=${lang}` : `lang=${lang}&project=${encodeURIComponent(projectId)}`
+  const qs =
+    projectId === undefined
+      ? `lang=${lang}`
+      : `lang=${lang}&project=${encodeURIComponent(projectId)}`
   return useQuery({
     queryKey: ['lang-roadmap', lang, projectId ?? ''],
     queryFn: () => apiJson<RoadmapOut>(`/api/lang/roadmap?${qs}`),

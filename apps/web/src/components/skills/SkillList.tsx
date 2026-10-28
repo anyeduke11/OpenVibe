@@ -1,11 +1,6 @@
 import type { SkillRow } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
-import {
-  AssetEmpty,
-  AssetError,
-  AssetNoResults,
-  AssetSkeleton,
-} from '../library/AssetStates'
+import { AssetEmpty, AssetError, AssetNoResults, AssetSkeleton } from '../library/AssetStates'
 import { Icon } from '../ui/icons'
 import { btnGhost, btnPrimary, ledgerHeadCls, ledgerNumCls, tagMonoCls } from '../ui/styles'
 
@@ -52,7 +47,9 @@ export function SkillList(props: {
             <th className="w-60 px-5 py-1.5">{zh.skills.columns.name}</th>
             <th className="px-2 py-1.5">{zh.skills.columns.description}</th>
             <th className="w-24 px-2 py-1.5">{zh.skills.columns.source}</th>
-            <th className="w-14 px-2 py-1.5 whitespace-nowrap text-right">{zh.skills.columns.versions}</th>
+            <th className="w-14 px-2 py-1.5 whitespace-nowrap text-right">
+              {zh.skills.columns.versions}
+            </th>
             <th className="w-40 px-2 py-1.5">{zh.skills.columns.installed}</th>
             <th className="w-32 px-2 py-1.5 whitespace-nowrap">{zh.projects.labels.updatedAt}</th>
             <th className="w-28 px-2 py-1.5" />
@@ -74,7 +71,9 @@ export function SkillList(props: {
               </td>
               {/* 来源是元信息 → tag；本地扫描来的才是强调态 */}
               <td className="px-2 py-2">
-                <span className={`${tagMonoCls} whitespace-nowrap`}>{zh.skills.sources[s.source]}</span>
+                <span className={`${tagMonoCls} whitespace-nowrap`}>
+                  {zh.skills.sources[s.source]}
+                </span>
               </td>
               {/* 数字列：tabular-nums 右对齐，列不跳动（Readability Contract 第 6 条） */}
               <td className={`${ledgerNumCls} px-2 py-2 text-xs text-ink-muted`}>
@@ -92,10 +91,15 @@ export function SkillList(props: {
                   ))}
                 </div>
               </td>
-              <td className="mono px-2 py-2 text-[11px] whitespace-nowrap text-ink-faint">{s.updatedAt}</td>
+              <td className="mono px-2 py-2 text-[11px] whitespace-nowrap text-ink-faint">
+                {s.updatedAt}
+              </td>
               <td className="px-2 py-2">
                 <span className="flex items-center justify-end gap-1">
-                  <button className={`${btnGhost} whitespace-nowrap px-2`} onClick={() => props.onEdit(s)}>
+                  <button
+                    className={`${btnGhost} whitespace-nowrap px-2`}
+                    onClick={() => props.onEdit(s)}
+                  >
                     {zh.flows.actions.edit}
                   </button>
                   <button

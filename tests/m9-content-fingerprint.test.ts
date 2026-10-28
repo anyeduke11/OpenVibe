@@ -172,21 +172,34 @@ describe('M9 内容指纹 · §3.2 灰区的补偿控制', () => {
       'scripts/某普通采集脚本.ts',
       "const x = doc.querySelector('p').textContent\n",
     )
-    expect(hits.some((h) => h.rule === 'body-scraper'), '普通脚本的正文抽取器没被报出').toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'body-scraper'),
+      '普通脚本的正文抽取器没被报出',
+    ).toBe(true)
   })
 
   it('③ 补偿控制之一：`sha256` 字段必须是 64 位十六进制（塞正文进去会红）', () => {
-    const bad = JSON.stringify({ items: [{ url: 'https://x.invalid/a', sha256: '这是一段正文不是摘要'.repeat(4), bytes: 10 }] })
+    const bad = JSON.stringify({
+      items: [{ url: 'https://x.invalid/a', sha256: '这是一段正文不是摘要'.repeat(4), bytes: 10 }],
+    })
     const hits = scanExternalJson(FINGERPRINT_FILE, bad)
-    expect(hits.some((h) => h.rule === 'hash-not-hex'), '非 hex 的摘要没被报出').toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'hash-not-hex'),
+      '非 hex 的摘要没被报出',
+    ).toBe(true)
   })
 
   it('④ 补偿控制之二：字段闭集 ⇒ **正文没有字段可放**', () => {
     const schema = EXTERNAL_FILE_SCHEMAS[FINGERPRINT_FILE]!
     expect(schema.itemKeys).toEqual(['bytes', 'sha256', 'url'])
-    const bad = JSON.stringify({ items: [{ url: 'https://x.invalid/a', sha256: 'a'.repeat(64), bytes: 1, body_md: '正文' }] })
+    const bad = JSON.stringify({
+      items: [{ url: 'https://x.invalid/a', sha256: 'a'.repeat(64), bytes: 1, body_md: '正文' }],
+    })
     const hits = scanExternalJson(FINGERPRINT_FILE, bad)
-    expect(hits.some((h) => h.rule === 'unknown-field'), '多出来的正文字段没被报出').toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'unknown-field'),
+      '多出来的正文字段没被报出',
+    ).toBe(true)
   })
 
   it('⑤ 补偿控制之三：产物**仍在扫描面内**（真的被扫，不是登记了就算）', () => {

@@ -33,17 +33,21 @@ describe('dirHash 算法（m2 FR-1.3）', () => {
   })
 
   it('frontmatter 容错解析：缺失 name 回退目录名', () => {
-    expect(parseSkillFrontmatter('---\nname: pdf\ndescription: 解析 PDF\n---\nbody')).toMatchObject({
-      name: 'pdf',
-      description: '解析 PDF',
-      ok: true,
-    })
+    expect(parseSkillFrontmatter('---\nname: pdf\ndescription: 解析 PDF\n---\nbody')).toMatchObject(
+      {
+        name: 'pdf',
+        description: '解析 PDF',
+        ok: true,
+      },
+    )
     expect(parseSkillFrontmatter('# 无 frontmatter').ok).toBe(false)
   })
 
   it('frontmatter 剥引号（DEV-0067）：YAML 语法引号不是名字的一部分', () => {
     expect(
-      parseSkillFrontmatter('---\nname: "PRD to Prototype"\ndescription: \'单引号描述\'\n---\nbody'),
+      parseSkillFrontmatter(
+        '---\nname: "PRD to Prototype"\ndescription: \'单引号描述\'\n---\nbody',
+      ),
     ).toMatchObject({ name: 'PRD to Prototype', description: '单引号描述', ok: true })
     // 值内部的引号保留
     expect(parseSkillFrontmatter('---\nname: say-"hi"\n---\nbody').name).toBe('say-"hi"')
@@ -171,7 +175,11 @@ describe('远程导入落账 upsertRemote（DEV-0067）', () => {
 
     expect(
       repo.upsertRemote(
-        entry({ dirHash: 'changed', versionLabel: 'anthropics/skills@v2', remoteTreeHash: 'treehash-v2' }),
+        entry({
+          dirHash: 'changed',
+          versionLabel: 'anthropics/skills@v2',
+          remoteTreeHash: 'treehash-v2',
+        }),
       ),
     ).toBe('updated')
     const vers = repo.versions(one?.id ?? '')
@@ -185,7 +193,10 @@ describe('远程导入落账 upsertRemote（DEV-0067）', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ov-remote-merge-'))
     try {
       mkdirSync(join(dir, 'pdf-kit'))
-      writeFileSync(join(dir, 'pdf-kit', 'SKILL.md'), '---\nname: pdf-kit\ndescription: 本地版\n---\nbody')
+      writeFileSync(
+        join(dir, 'pdf-kit', 'SKILL.md'),
+        '---\nname: pdf-kit\ndescription: 本地版\n---\nbody',
+      )
       repo.scan([dir])
       const local = repo.list()[0]
       expect(local?.skillDir).toBe(join(dir, 'pdf-kit'))
@@ -277,9 +288,9 @@ describe('重复整理与内置审查（DEV-0067）', () => {
     expect(reviewSkill({ name: 'ok-name', description: '', content: null })).toContainEqual(
       expect.objectContaining({ code: 'description-empty', severity: 'fail' }),
     )
-    expect(reviewSkill({ name: 'ok-name', description: '把资料整理成表格', content: null })).toContainEqual(
-      expect.objectContaining({ code: 'description-no-trigger', severity: 'info' }),
-    )
+    expect(
+      reviewSkill({ name: 'ok-name', description: '把资料整理成表格', content: null }),
+    ).toContainEqual(expect.objectContaining({ code: 'description-no-trigger', severity: 'info' }))
     expect(reviewSkill({ name: 'ok-name', description: 'd', content: null })).toContainEqual(
       expect.objectContaining({ code: 'review-metadata-only', severity: 'info' }),
     )
@@ -288,9 +299,15 @@ describe('重复整理与内置审查（DEV-0067）', () => {
       description: 'Use when …',
       content: '---\nname: ok-name\n---\nkey = sk-abcdefghijklmnopqrstuvwx',
     })
-    expect(secret).toContainEqual(expect.objectContaining({ code: 'possible-secret', severity: 'fail' }))
+    expect(secret).toContainEqual(
+      expect.objectContaining({ code: 'possible-secret', severity: 'fail' }),
+    )
     expect(
-      reviewSkill({ name: 'ok-name', description: 'Use when …', content: '读 /Users/alice/secrets 下的文件' }),
+      reviewSkill({
+        name: 'ok-name',
+        description: 'Use when …',
+        content: '读 /Users/alice/secrets 下的文件',
+      }),
     ).toContainEqual(expect.objectContaining({ code: 'leaks-user-path', severity: 'warn' }))
     // 降噪（DEV-0068）：fenced code block 内的示例 IP/路径不报，正文里的照报
     const withCodeBlock = reviewSkill({
@@ -536,7 +553,12 @@ describe('整合与名称修复（DEV-0073）', () => {
       expect(keepHash).not.toBe('')
 
       const mkCopy = (name: string, hash: string, targets: string[]) => {
-        const s = repo.create({ name, description: '', source: 'manual', installedTargets: targets })
+        const s = repo.create({
+          name,
+          description: '',
+          source: 'manual',
+          installedTargets: targets,
+        })
         handle.db
           .prepare('UPDATE skill_versions SET dir_hash = ?, file_count = 1 WHERE skill_id = ?')
           .run(hash, s.id)
@@ -555,7 +577,12 @@ describe('整合与名称修复（DEV-0073）', () => {
       repo.update(keep.id, { installedTargets: ['claude-code'] })
 
       const result = repo.mergeSkills(keep.id, [copyA.id, copyB.id, manualExtra.id])
-      expect(result).toMatchObject({ keptName: 'keep', absorbed: 3, versionsMoved: 1, versionsDropped: 2 })
+      expect(result).toMatchObject({
+        keptName: 'keep',
+        absorbed: 3,
+        versionsMoved: 1,
+        versionsDropped: 2,
+      })
 
       const merged = repo.get(keep.id)
       expect([...(merged?.installedTargets ?? [])].sort()).toEqual(['claude-code', 'cursor'])
@@ -613,12 +640,13 @@ describe('整合与名称修复（DEV-0073）', () => {
         installedTargets: [],
       })
       mkdirSync(join(dir, 'quoted'))
-      writeFileSync(join(dir, 'quoted', 'SKILL.md'), '---\nname: "gh-fix-ci"\ndescription: d\n---\nbody')
-      handle.db.prepare('UPDATE skills SET skill_dir = ?, source = ? WHERE id = ?').run(
-        join(dir, 'quoted'),
-        'local',
-        quoted.id,
+      writeFileSync(
+        join(dir, 'quoted', 'SKILL.md'),
+        '---\nname: "gh-fix-ci"\ndescription: d\n---\nbody',
       )
+      handle.db
+        .prepare('UPDATE skills SET skill_dir = ?, source = ? WHERE id = ?')
+        .run(join(dir, 'quoted'), 'local', quoted.id)
       const r1 = repo.repairName(quoted.id)
       expect(r1.status).toBe('renamed')
       expect(r1.newName).toBe('gh-fix-ci')
@@ -673,11 +701,9 @@ describe('整合与名称修复（DEV-0073）', () => {
         source: 'manual',
         installedTargets: [],
       })
-      handle.db.prepare('UPDATE skills SET skill_dir = ?, source = ? WHERE id = ?').run(
-        join(dir, 'broken'),
-        'local',
-        manual.id,
-      )
+      handle.db
+        .prepare('UPDATE skills SET skill_dir = ?, source = ? WHERE id = ?')
+        .run(join(dir, 'broken'), 'local', manual.id)
       const r = repo.repairName(manual.id)
       expect(r.status).toBe('failed')
       expect(repo.get(manual.id)?.name).toBe('Bad Name')

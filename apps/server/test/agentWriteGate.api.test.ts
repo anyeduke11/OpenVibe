@@ -18,7 +18,11 @@ const TOKEN = 'test-token'
 const WEB_SRC = join(process.cwd(), 'apps/web/src')
 const open: { app: FastifyInstance; handle: TestDbHandle }[] = []
 
-async function harness(): Promise<{ app: FastifyInstance; projectId: string; db: TestDbHandle['db'] }> {
+async function harness(): Promise<{
+  app: FastifyInstance
+  projectId: string
+  db: TestDbHandle['db']
+}> {
   const handle = newDb()
   const { app } = await buildApp({ db: handle.db, token: TOKEN })
   const template = new FlowTemplatesRepo(handle.db).create({
@@ -26,7 +30,10 @@ async function harness(): Promise<{ app: FastifyInstance; projectId: string; db:
     kind: 'light',
     stages: [{ name: '启动', checklist: [{ id: 'c1', text: '需求一句话' }], artifacts: [] }],
   })
-  const projectId = new ProjectsRepo(handle.db).create({ name: '写闸演示', flowTemplateId: template.id }).id
+  const projectId = new ProjectsRepo(handle.db).create({
+    name: '写闸演示',
+    flowTemplateId: template.id,
+  }).id
   open.push({ app, handle })
   return { app, projectId, db: handle.db }
 }
@@ -94,7 +101,7 @@ describe('WEB-M8E-11 · 开关关闭时回流写入被拒，且**一条都不记
       headers: { authorization: `Bearer ${TOKEN}` },
     })
     const c = h.db
-      .prepare("SELECT COUNT(*) AS c FROM agent_ingests WHERE project_id = ?")
+      .prepare('SELECT COUNT(*) AS c FROM agent_ingests WHERE project_id = ?')
       .get(h.projectId) as { c: number }
     expect(c.c).toBe(0)
   })

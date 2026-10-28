@@ -190,9 +190,7 @@ export const SkillDuplicatesReport = z.object({
     }),
   ),
   /** source=local 且 skill_dir 在磁盘上已消失（目录被删/移动） */
-  stale: z.array(
-    z.object({ id: z.string(), name: z.string(), skillDir: z.string() }),
-  ),
+  stale: z.array(z.object({ id: z.string(), name: z.string(), skillDir: z.string() })),
   /** 名称不符合 SKILL.md 规范（带引号残留 / 不在小写连字符约定内）——报告级，删除或修复（DEV-0073 起带建议名） */
   nameAnomalies: z.array(
     z.object({

@@ -60,10 +60,7 @@ export function shortHash(s: string): string {
   return h.toString(16).padStart(8, '0').slice(0, 8)
 }
 
-export function PendingIngestList(props: {
-  projectId: string | null
-  onGoToInstall: () => void
-}) {
+export function PendingIngestList(props: { projectId: string | null; onGoToInstall: () => void }) {
   const q = useAgentIngests(props.projectId)
   const review = useReviewIngest(props.projectId)
   const [onlyConflict, setOnlyConflict] = useState(false)
@@ -88,15 +85,15 @@ export function PendingIngestList(props: {
       ) : null}
       {/** FR-5.4：三态各有各的语义与 CTA，不许合并（FR-5.4.1.1） */}
       {q.isError ? (
-        <AgentEmptyStateBox
-          value={{ state: 'error', onRetry: () => void q.refetch() }}
-        />
+        <AgentEmptyStateBox value={{ state: 'error', onRetry: () => void q.refetch() }} />
       ) : items.length === 0 ? (
         // 「从未有过回流」⇒ empty 态，CTA 滚到安装指引（FR-5.4.1）
         <AgentEmptyStateBox value={{ state: 'empty', onGoToInstall: props.onGoToInstall }} />
       ) : shown.length === 0 ? (
         // 「有数据但被筛没了」⇒ no-result 态，CTA 清除筛选
-        <AgentEmptyStateBox value={{ state: 'no-result', onClearFilter: () => setOnlyConflict(false) }} />
+        <AgentEmptyStateBox
+          value={{ state: 'no-result', onClearFilter: () => setOnlyConflict(false) }}
+        />
       ) : (
         <ul className="divide-y divide-line-hair">
           {shown.map((item) => (
@@ -132,7 +129,9 @@ function IngestRow(props: {
       <span className={`text-xs ${isConflict ? 'font-bold text-warn' : 'text-ink-muted'}`}>
         {isConflict ? agentZh.ingest.statusConflict : agentZh.ingest.statusPending}
       </span>
-      {isConflict ? <ConflictActions item={it} busy={props.busy} onReview={props.onReview} /> : null}
+      {isConflict ? (
+        <ConflictActions item={it} busy={props.busy} onReview={props.onReview} />
+      ) : null}
     </li>
   )
 }
@@ -167,7 +166,9 @@ function ConflictActions(props: {
             type="button"
             className={cls}
             disabled={props.busy}
-            onClick={() => props.onReview({ ingestId: item.id, to: 'rejected', reason: 'keep-first' })}
+            onClick={() =>
+              props.onReview({ ingestId: item.id, to: 'rejected', reason: 'keep-first' })
+            }
           >
             {agentZh.ingest.keepFirst}
           </button>
@@ -176,7 +177,11 @@ function ConflictActions(props: {
             className={cls}
             disabled={props.busy}
             onClick={() =>
-              props.onReview({ ingestId: item.id, to: 'rejected', reason: 'accept-and-retry-with-new-key' })
+              props.onReview({
+                ingestId: item.id,
+                to: 'rejected',
+                reason: 'accept-and-retry-with-new-key',
+              })
             }
           >
             {agentZh.ingest.acceptThis}

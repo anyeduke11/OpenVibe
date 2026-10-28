@@ -49,9 +49,7 @@ export function TermCardGrid(props: {
     }
     // 有领域的分区按 TERM_DOMAINS 的词表次序（那是筛选条 chip 的次序，读起来才对得上），
     // 未归类固定垫底。词表外的领域排到有领域之后、未归类之前。
-    const KNOWN = new Set([
-      '前端', '后端', 'AI', '产品', '测试', '技术栈', 'Git', '设计风格',
-    ])
+    const KNOWN = new Set(['前端', '后端', 'AI', '产品', '测试', '技术栈', 'Git', '设计风格'])
     return [...m.entries()].sort((a, b) => {
       const ra = a[0] === '' ? 2 : KNOWN.has(a[0]) ? 0 : 1
       const rb = b[0] === '' ? 2 : KNOWN.has(b[0]) ? 0 : 1

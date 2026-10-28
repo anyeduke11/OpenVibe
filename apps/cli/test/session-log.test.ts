@@ -4,7 +4,11 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { DEVLOG_TYPES, ERROR_CODES, type DevLogOut } from '@openvibe/shared'
 import { ServerUnreachable, type ApiClient } from '../src/client'
-import { SESSION_LOG_EVIDENCE_COMMAND, SessionLogError, sessionLogAction } from '../src/commands/session'
+import {
+  SESSION_LOG_EVIDENCE_COMMAND,
+  SessionLogError,
+  sessionLogAction,
+} from '../src/commands/session'
 import { ExitCode } from '../src/output'
 import { fakeClient } from './helpers/fake-client'
 import { runCli, tempHome } from './helpers/cli-run'
@@ -66,7 +70,12 @@ describe('session log 的请求体（既有 DevLogCreateInput 形制）', () => 
         title: '接上 M8 CLI 三只命令',
         body: 'ask/status/session 全部经 HTTP',
         evidence: 'pnpm typecheck rc=0',
-        related: ['docs/specs/m8-agent-bridge.md', 'docs/specs/m8-agent-bridge.md', '  ', 'src/index.ts,src/ask.ts'],
+        related: [
+          'docs/specs/m8-agent-bridge.md',
+          'docs/specs/m8-agent-bridge.md',
+          '  ',
+          'src/index.ts,src/ask.ts',
+        ],
       },
       { client: fake.client },
     )
@@ -96,15 +105,17 @@ describe('session log 的请求体（既有 DevLogCreateInput 形制）', () => 
   it('CLI-SESSION-03: --type 只认 DEV/CHECK；--project 缺/空 ⇒ 本地零请求', async () => {
     const fake = fakeClient({ post: { '/api/projects/prj_1/devlog': DEVLOG } })
 
-    const badType = await sessionLogAction({ project: 'prj_1', type: 'DEVLOG' }, { client: fake.client }).catch(
-      (e: unknown) => e,
-    )
+    const badType = await sessionLogAction(
+      { project: 'prj_1', type: 'DEVLOG' },
+      { client: fake.client },
+    ).catch((e: unknown) => e)
     expect((badType as SessionLogError).code).toBe('BAD_TYPE')
     for (const t of DEVLOG_TYPES) expect((badType as Error).message).toContain(t)
 
-    const noProject = await sessionLogAction({ project: '  ', type: 'DEV' }, { client: fake.client }).catch(
-      (e: unknown) => e,
-    )
+    const noProject = await sessionLogAction(
+      { project: '  ', type: 'DEV' },
+      { client: fake.client },
+    ).catch((e: unknown) => e)
     expect((noProject as SessionLogError).code).toBe('USAGE')
     expect((noProject as Error).message).toContain('--project')
     expect(fake.paths()).toEqual([])
@@ -120,7 +131,8 @@ describe('session log 的请求体（既有 DevLogCreateInput 形制）', () => 
     const down: ApiClient = {
       serverUrl: 'http://127.0.0.1:1',
       getJson: () => Promise.reject(new Error('unused')),
-      postJson: () => Promise.reject(new ServerUnreachable('http://127.0.0.1:1', 'connect ECONNREFUSED')),
+      postJson: () =>
+        Promise.reject(new ServerUnreachable('http://127.0.0.1:1', 'connect ECONNREFUSED')),
     }
     const err = await sessionLogAction({ project: 'prj_1', type: 'DEV' }, { client: down }).catch(
       (e: unknown) => e,
@@ -135,7 +147,8 @@ describe('session log 的请求体（既有 DevLogCreateInput 形制）', () => 
 
 describe('CLI 侧不碰本地磁盘（FR-4.4 红线）', () => {
   it('CLI-SESSION-05: 三个命令模块零禁列命中（node:fs / 写类 API / DB 驱动）', () => {
-    for (const mod of MODULES) expect(scanForForbidden(readFileSync(join(SRC_DIR, mod), 'utf8')), mod).toEqual([])
+    for (const mod of MODULES)
+      expect(scanForForbidden(readFileSync(join(SRC_DIR, mod), 'utf8')), mod).toEqual([])
   })
 
   it('CLI-SESSION-06: 扫描器自证——脏样本必须被逐条报出，干净样本放行', () => {
@@ -172,10 +185,23 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
     try {
       const res = await runCli(
         [
-          '--json', '--server', stub.url, '--token', 't',
-          'session', 'log', '--project', 'prj_1', '--type', 'DEV',
-          '--title', '接上 M8 CLI 三只命令', '--evidence', 'pnpm typecheck rc=0',
-          '--related', 'docs/specs/m8-agent-bridge.md',
+          '--json',
+          '--server',
+          stub.url,
+          '--token',
+          't',
+          'session',
+          'log',
+          '--project',
+          'prj_1',
+          '--type',
+          'DEV',
+          '--title',
+          '接上 M8 CLI 三只命令',
+          '--evidence',
+          'pnpm typecheck rc=0',
+          '--related',
+          'docs/specs/m8-agent-bridge.md',
         ],
         { home, env: { OPENVIBE_AGENT: 'claude-code' } },
       )
@@ -194,10 +220,12 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
         exitCode: 0,
         agent: 'claude-code',
       })
-      expect(stub.requests.find((r) => r.url === '/api/projects/prj_1/devlog')?.body).toMatchObject({
-        type: 'DEV',
-        relatedFiles: ['docs/specs/m8-agent-bridge.md'],
-      })
+      expect(stub.requests.find((r) => r.url === '/api/projects/prj_1/devlog')?.body).toMatchObject(
+        {
+          type: 'DEV',
+          relatedFiles: ['docs/specs/m8-agent-bridge.md'],
+        },
+      )
       // 成功腿同样不许在本机留痕：连 ~/.openvibe 都没建出来
       expect(readdirSync(home)).toEqual([])
     } finally {
@@ -209,7 +237,19 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
     const home = tempHome()
     // 127.0.0.1:1 无人监听 ⇒ 连不上，等价于「serve 未启动」
     const res = await runCli(
-      ['--json', '--server', 'http://127.0.0.1:1', '--token', 't', 'session', 'log', '--project', 'prj_1', '--type', 'DEV'],
+      [
+        '--json',
+        '--server',
+        'http://127.0.0.1:1',
+        '--token',
+        't',
+        'session',
+        'log',
+        '--project',
+        'prj_1',
+        '--type',
+        'DEV',
+      ],
       { home },
     )
     const env = JSON.parse(res.stdout) as {
@@ -232,7 +272,19 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
     const stub = await startStubServer({ devlog: DEVLOG, commandRun: { ok: true } })
     try {
       const res = await runCli(
-        ['--json', '--server', stub.url, '--token', 't', 'session', 'log', '--project', 'prj_1', '--type', 'CHECK'],
+        [
+          '--json',
+          '--server',
+          stub.url,
+          '--token',
+          't',
+          'session',
+          'log',
+          '--project',
+          'prj_1',
+          '--type',
+          'CHECK',
+        ],
         { home: tempHome() },
       )
       const env = JSON.parse(res.stdout) as { summary: { ok: boolean; exitCode: number } }

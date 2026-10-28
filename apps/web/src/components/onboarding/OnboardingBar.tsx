@@ -221,7 +221,11 @@ export function OnboardingBar(props: OnboardingBarProps) {
           </>
         ) : (
           step < 3 && (
-            <button type="button" className={btnPrimary} onClick={() => props.onStepChange(step + 1)}>
+            <button
+              type="button"
+              className={btnPrimary}
+              onClick={() => props.onStepChange(step + 1)}
+            >
               {zh.onboarding.next}
               <Icon name="fwd" size={13} />
             </button>
@@ -273,7 +277,11 @@ function StepAssets(props: { seed: SettingsOut['seed'] | undefined }) {
   )
 }
 
-function StepPackPreview(props: { found: boolean; loading: boolean; preview: PreviewOut | undefined }) {
+function StepPackPreview(props: {
+  found: boolean
+  loading: boolean
+  preview: PreviewOut | undefined
+}) {
   if (!props.found) {
     return (
       <div>

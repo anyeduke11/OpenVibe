@@ -277,7 +277,11 @@ function parseBudget(raw: string): number {
   return n
 }
 
-async function runDiscuss(question: string, opts: DiscussCmdOptions, global: GlobalOptions): Promise<void> {
+async function runDiscuss(
+  question: string,
+  opts: DiscussCmdOptions,
+  global: GlobalOptions,
+): Promise<void> {
   const printer = printerFor('discuss', global)
   try {
     const client = clientFrom(global, printer)
@@ -285,7 +289,13 @@ async function runDiscuss(question: string, opts: DiscussCmdOptions, global: Glo
       {
         question,
         project: opts.project,
-        fields: opts.fields !== undefined ? opts.fields.split(',').map((f) => f.trim()).filter((f) => f !== '') : undefined,
+        fields:
+          opts.fields !== undefined
+            ? opts.fields
+                .split(',')
+                .map((f) => f.trim())
+                .filter((f) => f !== '')
+            : undefined,
         budget: opts.budget,
         confirm: opts.confirm,
         remember: opts.remember,
@@ -453,7 +463,9 @@ async function runVerify(projectPath: string, global: GlobalOptions): Promise<vo
     printer.info(`核验 ${outcome.state}：${outcome.reason}`)
     for (const m of outcome.missing) printer.info(`缺失 ${m}`)
     for (const d of outcome.drifted)
-      printer.info(`漂移 ${d.path}（lock ${d.expected.slice(0, 8)} → 磁盘 ${d.actual.slice(0, 8)}）`)
+      printer.info(
+        `漂移 ${d.path}（lock ${d.expected.slice(0, 8)} → 磁盘 ${d.actual.slice(0, 8)}）`,
+      )
     for (const o of outcome.orphan) printer.info(`未登记产物 ${o}`)
     for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
     printer.result({
@@ -732,7 +744,10 @@ interface RequirementAddCmdOptions {
  *   幂等键与逐条状态，而 `--json` 的全部意义就是让脚本读得到这些。
  *   退出码仍由 outcome 决定，`summary.ok` 照旧**从退出码推导**，两者不可能打架。
  */
-async function runRequirementAdd(cmd: RequirementAddCmdOptions, global: GlobalOptions): Promise<void> {
+async function runRequirementAdd(
+  cmd: RequirementAddCmdOptions,
+  global: GlobalOptions,
+): Promise<void> {
   const printer = printerFor('requirement', global)
   let client: ApiClient | undefined
   try {
@@ -847,7 +862,9 @@ export function buildProgram(): Command {
 
   program
     .command('verify')
-    .description('三方一致性核验：包版本 / lock / 磁盘（只读，输出 CONSISTENT / PARTIAL / ORPHAN / DISK_DRIFT / STALE_LOCK / UNMANAGED 之一）')
+    .description(
+      '三方一致性核验：包版本 / lock / 磁盘（只读，输出 CONSISTENT / PARTIAL / ORPHAN / DISK_DRIFT / STALE_LOCK / UNMANAGED 之一）',
+    )
     .argument('<projectPath>', '目标项目目录')
     .action(async (projectPath: string) => {
       await runVerify(projectPath, program.opts<GlobalOptions>())
@@ -858,7 +875,10 @@ export function buildProgram(): Command {
     .description('向 AI 问本项目的问题（回答逐段标注来源：每段都可追溯到项目的真实数据）')
     .argument('<question>', '问题（自由文本）')
     .option('--project <id|dir>', '目标项目（id 或本地目录；缺省按当前目录解析）')
-    .option('--fields <list>', '只要这些上下文段（逗号分隔：stage,checklist,tasks,logs,pack,assets）')
+    .option(
+      '--fields <list>',
+      '只要这些上下文段（逗号分隔：stage,checklist,tasks,logs,pack,assets）',
+    )
     .option('--budget <n>', '上下文字符预算上限', parseBudget)
     .option('--confirm', '显式同意本次上下文出网（首次必带）')
     .option('--remember', '记住本项目同意（配合 --confirm）')
@@ -868,7 +888,9 @@ export function buildProgram(): Command {
 
   program
     .command('mcp')
-    .description('以 stdio 形态运行 MCP 服务（AI IDE 的只读上下文工具面：project_context / search_assets / pack_diff）')
+    .description(
+      '以 stdio 形态运行 MCP 服务（AI IDE 的只读上下文工具面：project_context / search_assets / pack_diff）',
+    )
     .allowExcessArguments(false)
     .action(async () => {
       const global = program.opts<GlobalOptions>()

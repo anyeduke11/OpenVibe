@@ -69,7 +69,8 @@ function treeFingerprint(entries: readonly { rel: string; blobSha: string }[]): 
 
 function repoRef(input: string): string {
   // 接受 owner/repo 或完整仓库 URL；归一到 owner/repo，拒绝 path traversal 形态
-  const m = input.match(/github\.com\/([\w.-]+)\/([\w.-]+)/) ?? input.match(/^([\w.-]+)\/([\w.-]+)$/)
+  const m =
+    input.match(/github\.com\/([\w.-]+)\/([\w.-]+)/) ?? input.match(/^([\w.-]+)\/([\w.-]+)$/)
   if (m === null) {
     throw new AppError('VALIDATION_ERROR', `仓库格式应为 owner/repo 或 GitHub 仓库 URL: ${input}`)
   }
@@ -130,7 +131,10 @@ export async function importFromGithub(
   }
   const allBlobs = (tree.tree ?? []).filter((t) => t.type === 'blob')
   // path 过滤（DEV-0068）：只保留子目录下的 blob（'/' 前缀保证不误命中同前缀名目录）
-  const blobs = subPath === undefined ? allBlobs : allBlobs.filter((b) => b.path.startsWith(`${subPath}/`) || b.path === subPath)
+  const blobs =
+    subPath === undefined
+      ? allBlobs
+      : allBlobs.filter((b) => b.path.startsWith(`${subPath}/`) || b.path === subPath)
   if (subPath !== undefined && blobs.length === 0) {
     throw new AppError('NOT_FOUND', `仓库 ${repo}@${branch} 中不存在路径 ${subPath}（或为空目录）`)
   }
@@ -146,7 +150,9 @@ export async function importFromGithub(
     ),
   ].sort()
   if (roots.length > CAPS.maxSkillsPerRepo) {
-    warnings.push(`仓库含 ${String(roots.length)} 个 skill，超出单次上限 ${String(CAPS.maxSkillsPerRepo)}，已截断`)
+    warnings.push(
+      `仓库含 ${String(roots.length)} 个 skill，超出单次上限 ${String(CAPS.maxSkillsPerRepo)}，已截断`,
+    )
     roots.length = CAPS.maxSkillsPerRepo
   }
 
@@ -177,7 +183,11 @@ export async function importFromGithub(
     await Promise.all(
       files.map(async (f) => {
         try {
-          const text = await guardedText(`${GH_RAW}/${repo}/${encodeURIComponent(branch)}/${f.path}`, [], fetchImpl)
+          const text = await guardedText(
+            `${GH_RAW}/${repo}/${encodeURIComponent(branch)}/${f.path}`,
+            [],
+            fetchImpl,
+          )
           contents.set(f.path, text)
         } catch {
           warnings.push(`跳过无法下载的文件: ${f.path}`)
@@ -194,7 +204,8 @@ export async function importFromGithub(
     if (skillMd === null) continue
     const { dirHash, fileCount } = hashSkillEntries(digests)
     const fm = parseSkillFrontmatter(skillMd)
-    const fallbackName = root === '' ? repo.split('/')[1] ?? repo : root.split('/').at(-1) ?? root
+    const fallbackName =
+      root === '' ? (repo.split('/')[1] ?? repo) : (root.split('/').at(-1) ?? root)
     entries.push({
       name: fm.name ?? fallbackName,
       description: fm.description ?? '',
@@ -306,13 +317,13 @@ export async function importFromSkillhub(
   } catch {
     warnings.push('SKILL.md 拉取失败，名称/描述回退到 SkillHub 元数据')
   }
-  const fm = skillMd === null ? { ok: false } as const : parseSkillFrontmatter(skillMd)
+  const fm = skillMd === null ? ({ ok: false } as const) : parseSkillFrontmatter(skillMd)
   const version = files.version ?? detail.latestVersion?.version ?? '0'
   return {
     origin: `skillhub.cn/skills/${slug}@${version}`,
     entries: [
       {
-        name: fm.ok === true && fm.name !== undefined ? fm.name : detail.name ?? slug,
+        name: fm.ok === true && fm.name !== undefined ? fm.name : (detail.name ?? slug),
         description:
           (fm.ok === true ? fm.description : undefined) ??
           detail.description_zh ??
@@ -483,7 +494,9 @@ export async function checkRemoteUpdates(
           typeof f.path === 'string' && typeof f.sha256 === 'string',
       )
       if (manifest.length === 0) throw new Error('远端未返回文件清单')
-      const remoteHash = hashSkillEntries(manifest.map((f) => ({ rel: f.path, sha256: f.sha256 }))).dirHash
+      const remoteHash = hashSkillEntries(
+        manifest.map((f) => ({ rel: f.path, sha256: f.sha256 })),
+      ).dirHash
       const same = remoteHash === skill.remoteTreeHash
       items.push({
         skillId: skill.skillId,
@@ -531,8 +544,15 @@ export async function retrackRemoteSkills(
   candidates: RetrackCandidate[],
   commit: (entry: RemoteSkillEntry) => void,
   fetchImpl: FetchLike = fetch,
-): Promise<{ results: { skillId: string; name: string; status: 'retracked' | 'failed'; note?: string }[] }> {
-  const results: { skillId: string; name: string; status: 'retracked' | 'failed'; note?: string }[] = []
+): Promise<{
+  results: { skillId: string; name: string; status: 'retracked' | 'failed'; note?: string }[]
+}> {
+  const results: {
+    skillId: string
+    name: string
+    status: 'retracked' | 'failed'
+    note?: string
+  }[] = []
   for (const candidate of candidates) {
     const label = candidate.versionLabel ?? ''
     const at = label.lastIndexOf('@')

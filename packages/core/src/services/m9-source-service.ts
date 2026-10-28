@@ -31,11 +31,7 @@ import {
   saveFindings,
   type FindingRow,
 } from '../db/m9-source-scan'
-import {
-  deriveTopicStates,
-  loadPersistedEvidence,
-  saveTopicStates,
-} from '../db/m9-p2-state'
+import { deriveTopicStates, loadPersistedEvidence, saveTopicStates } from '../db/m9-p2-state'
 import { scanProjectSource } from '../source-scan/scan'
 import type { SourceScanResult, TopicEvidence } from '@openvibe/shared'
 
@@ -56,9 +52,8 @@ export class SourceServiceError extends Error {
 
 /** 读项目的根目录（**必须是存在的绝对路径**）。 */
 export function readProjectRoot(db: SqliteDatabase, projectId: string): string {
-  const row = db
-    .prepare('SELECT id, local_path FROM projects WHERE id = ?')
-    .get(projectId) as { id: string; local_path: string | null } | undefined
+  const row = db.prepare('SELECT id, local_path FROM projects WHERE id = ?').get(projectId) as
+    { id: string; local_path: string | null } | undefined
   if (row === undefined) {
     throw new SourceServiceError('project-not-found', `项目 ${projectId} 不存在`)
   }
@@ -67,7 +62,10 @@ export function readProjectRoot(db: SqliteDatabase, projectId: string): string {
     throw new SourceServiceError('project-no-local-path', `项目 ${projectId} 没有设置本地目录`)
   }
   if (!isAbsolute(path)) {
-    throw new SourceServiceError('local-path-not-absolute', `项目 ${projectId} 的本地目录不是绝对路径`)
+    throw new SourceServiceError(
+      'local-path-not-absolute',
+      `项目 ${projectId} 的本地目录不是绝对路径`,
+    )
   }
   if (!existsSync(path) || !statSync(path).isDirectory()) {
     throw new SourceServiceError('local-path-missing', `项目 ${projectId} 的本地目录不存在`)

@@ -23,11 +23,7 @@ import type { SqliteDatabase } from './index'
  */
 
 export type SeedMergeAction =
-  | 'created'
-  | 'unchanged'
-  | 'updated'
-  | 'user-modified'
-  | 'legacy-adopted'
+  'created' | 'unchanged' | 'updated' | 'user-modified' | 'legacy-adopted'
 
 export interface SeedMergeSpec {
   table: string
@@ -64,8 +60,7 @@ export function mergeSeedRow(
        FROM ${q(spec.table)} WHERE ${where}`,
     )
     .get(keyParams(spec, record)) as
-    | (Record<string, string | number | null> & { seed_hash: string | null })
-    | undefined
+    (Record<string, string | number | null> & { seed_hash: string | null }) | undefined
 
   if (existing === undefined) {
     const cols = [...allColumns, 'seed_hash']
@@ -119,7 +114,10 @@ function pickRecord(
   return out
 }
 
-function keyParams(spec: SeedMergeSpec, record: SeedRecord): Record<string, string | number | null> {
+function keyParams(
+  spec: SeedMergeSpec,
+  record: SeedRecord,
+): Record<string, string | number | null> {
   const out: Record<string, string | number | null> = {}
   for (const c of spec.keyColumns) out[c] = record[c] ?? null
   return out

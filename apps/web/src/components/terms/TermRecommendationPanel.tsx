@@ -11,7 +11,10 @@ import { cardCls, chipTone, skelCls, tagCls } from '../ui/styles'
  * 否则那条判据（AI-M3T-03）没有可被证伪的对照。
  */
 
-const REASON_LABEL: Record<TermRecommendationsResponse['items'][number]['reasons'][number]['kind'], string> = {
+const REASON_LABEL: Record<
+  TermRecommendationsResponse['items'][number]['reasons'][number]['kind'],
+  string
+> = {
   checklist: '清单命中',
   stage: '阶段名',
   skill: '绑定 Skill',
@@ -84,11 +87,17 @@ export function TermRecommendationPanel({ data, loading, error }: TermRecommenda
                   {/* FR-6.4：必须显示「为什么推给你」——没有这句用户无从判断该不该信 */}
                   <p className="mt-0.5 text-[11px] text-ink-muted">
                     {item.reasons
-                      .map((r) => (r.kind === 'domain' ? `${REASON_LABEL[r.kind]}「${r.text}」` : `${REASON_LABEL[r.kind]}：${r.text}`))
+                      .map((r) =>
+                        r.kind === 'domain'
+                          ? `${REASON_LABEL[r.kind]}「${r.text}」`
+                          : `${REASON_LABEL[r.kind]}：${r.text}`,
+                      )
                       .join('　')}
                   </p>
                 </div>
-                <span className={`${chipTone('info')} shrink-0`}>{`${item.score.toFixed(1)} 分`}</span>
+                <span
+                  className={`${chipTone('info')} shrink-0`}
+                >{`${item.score.toFixed(1)} 分`}</span>
               </li>
             ))}
           </ul>

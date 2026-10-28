@@ -126,8 +126,7 @@ export class ProjectsRepo {
 
   get(id: string): ProjectOut | null {
     const row = this.db.prepare('SELECT * FROM projects WHERE id = ?').get(id) as
-      | ProjectRow
-      | undefined
+      ProjectRow | undefined
     return row ? rowToProject(row) : null
   }
 
@@ -137,7 +136,9 @@ export class ProjectsRepo {
       options.includeArchived
         ? this.db.prepare('SELECT * FROM projects ORDER BY updated_at DESC, id ASC').all()
         : this.db
-            .prepare("SELECT * FROM projects WHERE status != 'archived' ORDER BY updated_at DESC, id ASC")
+            .prepare(
+              "SELECT * FROM projects WHERE status != 'archived' ORDER BY updated_at DESC, id ASC",
+            )
             .all()
     ) as ProjectRow[]
     return rows.map(rowToProject)
@@ -176,7 +177,9 @@ export class ProjectsRepo {
 
   listCheckStates(id: string): { stageName: string; itemId: string; checkedAt: string }[] {
     const rows = this.db
-      .prepare('SELECT stage_name, item_id, checked_at FROM project_check_states WHERE project_id=?')
+      .prepare(
+        'SELECT stage_name, item_id, checked_at FROM project_check_states WHERE project_id=?',
+      )
       .all(id) as { stage_name: string; item_id: string; checked_at: string }[]
     return rows.map((r) => ({
       stageName: r.stage_name,
@@ -189,9 +192,7 @@ export class ProjectsRepo {
   healthSummary(id: string): ProjectHealthSummary {
     const project = this.get(id)
     if (!project) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
-    const checked = new Set(
-      this.listCheckStates(id).map((c) => `${c.stageName}::${c.itemId}`),
-    )
+    const checked = new Set(this.listCheckStates(id).map((c) => `${c.stageName}::${c.itemId}`))
     let total = 0
     let unchecked = 0
     for (const stage of project.stagesSnapshot) {

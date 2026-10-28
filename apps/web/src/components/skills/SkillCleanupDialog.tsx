@@ -73,8 +73,7 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
     const group = report?.sameContent.find((g) => g.dirHash === dirHash)
     if (group === undefined) return
     // 默认保留项：有本地目录的优先（可用性最高），否则第一个；radio 可覆盖
-    const fallback =
-      group.skills.find((s) => s.skillDir !== null)?.id ?? group.skills[0]?.id ?? ''
+    const fallback = group.skills.find((s) => s.skillDir !== null)?.id ?? group.skills[0]?.id ?? ''
     const keepId = keepers[dirHash] ?? fallback
     const absorbIds = memberIds.filter((id) => id !== keepId)
     if (absorbIds.length === 0) {
@@ -94,9 +93,10 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
   }
 
   const repairSelected = () => {
-    const anomalyIds = report?.nameAnomalies
-      .filter((a) => selected.has(a.id) && a.suggestedName !== null)
-      .map((a) => a.id) ?? []
+    const anomalyIds =
+      report?.nameAnomalies
+        .filter((a) => selected.has(a.id) && a.suggestedName !== null)
+        .map((a) => a.id) ?? []
     if (anomalyIds.length === 0) {
       toast(zh.skills.cleanupDialog.repairNothing, 'error')
       return
@@ -116,10 +116,13 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
   const rescan = async () => {
     setBusy(true)
     try {
-      const r = await apiJson<{ discovered: number; created: number; updated: number }>('/api/skills/scan', {
-        method: 'POST',
-        body: {},
-      })
+      const r = await apiJson<{ discovered: number; created: number; updated: number }>(
+        '/api/skills/scan',
+        {
+          method: 'POST',
+          body: {},
+        },
+      )
       toast(zh.skills.cleanupDialog.rescanDone(r.created, r.updated))
       refresh()
     } catch (e) {
@@ -129,14 +132,21 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
     }
   }
 
-  const section = (title: string, hint: string, actions: React.ReactNode, rows: React.ReactNode) => (
+  const section = (
+    title: string,
+    hint: string,
+    actions: React.ReactNode,
+    rows: React.ReactNode,
+  ) => (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-medium text-ink-body">{title}</p>
         <div className="flex gap-1">{actions}</div>
       </div>
       <p className="text-[11px] text-ink-muted">{hint}</p>
-      <div className="max-h-48 space-y-1 overflow-auto rounded-md border border-line p-2">{rows}</div>
+      <div className="max-h-48 space-y-1 overflow-auto rounded-md border border-line p-2">
+        {rows}
+      </div>
     </div>
   )
 
@@ -154,14 +164,18 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
               disabled={selected.size === 0 || busy}
               onClick={() => void deleteSelected()}
             >
-              {busy ? zh.skills.cleanupDialog.deleting : zh.skills.cleanupDialog.deleteSelected(selected.size)}
+              {busy
+                ? zh.skills.cleanupDialog.deleting
+                : zh.skills.cleanupDialog.deleteSelected(selected.size)}
             </button>
           </>
         }
       >
         <div className="space-y-3 text-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-ink-muted">{dup.isPending ? zh.skills.cleanupDialog.running : ''}</p>
+            <p className="text-xs text-ink-muted">
+              {dup.isPending ? zh.skills.cleanupDialog.running : ''}
+            </p>
             <button className={btnGhost} disabled={dup.isPending} onClick={() => dup.mutate()}>
               {zh.skills.cleanupDialog.refresh}
             </button>
@@ -201,10 +215,19 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
                             setKeepers((prev) => ({ ...prev, [group.dirHash]: s.id }))
                           }
                         />
-                        <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggle(s.id)} />
-                        <span className={`font-medium ${keepId === s.id ? 'text-accent' : 'text-ink-body'}`}>{s.name}</span>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(s.id)}
+                          onChange={() => toggle(s.id)}
+                        />
+                        <span
+                          className={`font-medium ${keepId === s.id ? 'text-accent' : 'text-ink-body'}`}
+                        >
+                          {s.name}
+                        </span>
                         <span className="text-ink-faint">
-                          {zh.skills.sources[s.source as keyof typeof zh.skills.sources] ?? s.source}
+                          {zh.skills.sources[s.source as keyof typeof zh.skills.sources] ??
+                            s.source}
                           {s.skillDir !== null && ` · ${s.skillDir}`}
                         </span>
                       </div>
@@ -213,7 +236,12 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
                       <button
                         className={btnGhost}
                         disabled={merge.isPending}
-                        onClick={() => mergeGroup(group.dirHash, group.skills.map((s) => s.id))}
+                        onClick={() =>
+                          mergeGroup(
+                            group.dirHash,
+                            group.skills.map((s) => s.id),
+                          )
+                        }
                       >
                         {zh.skills.cleanupDialog.mergeGroup}
                       </button>
@@ -233,7 +261,11 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
               </button>,
               report.stale.map((s) => (
                 <label key={s.id} className="flex cursor-pointer items-center gap-2 text-xs">
-                  <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggle(s.id)} />
+                  <input
+                    type="checkbox"
+                    checked={selected.has(s.id)}
+                    onChange={() => toggle(s.id)}
+                  />
                   <span className="font-medium text-ink-body">{s.name}</span>
                   <span className="mono truncate text-ink-faint">{s.skillDir}</span>
                 </label>
@@ -246,7 +278,9 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
               zh.skills.cleanupDialog.nameAnomalies(report.nameAnomalies.length),
               zh.skills.cleanupDialog.anomalyHint,
               <button className={btnGhost} disabled={repair.isPending} onClick={repairSelected}>
-                {repair.isPending ? zh.skills.cleanupDialog.repairing : zh.skills.cleanupDialog.repairSelected}
+                {repair.isPending
+                  ? zh.skills.cleanupDialog.repairing
+                  : zh.skills.cleanupDialog.repairSelected}
               </button>,
               report.nameAnomalies.map((s) => (
                 <label key={s.id} className="flex cursor-pointer items-center gap-2 text-xs">

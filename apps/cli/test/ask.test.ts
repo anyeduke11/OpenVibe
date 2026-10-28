@@ -100,9 +100,10 @@ describe('ask 的问题词闭集（FR-4.1.1）', () => {
   it('CLI-ASK-01: 非法词 → UNKNOWN_QUERY，且错误信息把七个合法词**全**列出来，零请求', async () => {
     const fake = fakeClient({ get: { '/api/projects?status=all': PROJECTS } })
 
-    const err = await askAction({ question: '这个项目做完能上线吗' }, { client: fake.client }).catch(
-      (e: unknown) => e,
-    )
+    const err = await askAction(
+      { question: '这个项目做完能上线吗' },
+      { client: fake.client },
+    ).catch((e: unknown) => e)
 
     expect(err).toBeInstanceOf(AskError)
     expect((err as AskError).code).toBe('UNKNOWN_QUERY')
@@ -118,9 +119,14 @@ describe('ask 的问题词闭集（FR-4.1.1）', () => {
     expect([...ASK_KEYWORDS]).toHaveLength(7)
     for (const keyword of ASK_KEYWORDS) {
       const fake = fakeClient({
-        get: { [`/api/projects/prj_1/context?fields=${ASK_FIELDS[keyword].join(',')}`]: contextFixture() },
+        get: {
+          [`/api/projects/prj_1/context?fields=${ASK_FIELDS[keyword].join(',')}`]: contextFixture(),
+        },
       })
-      const outcome = await askAction({ question: ` ${keyword.toUpperCase()} `, project: 'prj_1' }, { client: fake.client })
+      const outcome = await askAction(
+        { question: ` ${keyword.toUpperCase()} `, project: 'prj_1' },
+        { client: fake.client },
+      )
       expect(outcome.question).toBe(keyword)
     }
     const fake = fakeClient({})
@@ -150,10 +156,16 @@ describe('ask 七个关键词 → context 的哪一段（FR-3.3 的 ?fields= 裁
       const fake = fakeClient({
         get: { [`/api/projects/prj_1/context?fields=${fields}`]: contextFixture() },
       })
-      const outcome = await askAction({ question: keyword, project: 'prj_1' }, { client: fake.client })
+      const outcome = await askAction(
+        { question: keyword, project: 'prj_1' },
+        { client: fake.client },
+      )
       expect(fake.paths(), keyword).toEqual([`GET /api/projects/prj_1/context?fields=${fields}`])
       expect(outcome.fields, keyword).toEqual(fields.split(','))
-      expect(fake.calls.every((c) => c.method === 'GET'), keyword).toBe(true)
+      expect(
+        fake.calls.every((c) => c.method === 'GET'),
+        keyword,
+      ).toBe(true)
     }
   })
 })
@@ -188,7 +200,10 @@ describe('ask 的答案塑形与项目解析', () => {
         '/api/projects/prj_1/context?fields=stage': contextFixture(),
       },
     })
-    const inCwd = await askAction({ question: 'status' }, { client: fake.client, cwd: '/w/openvibe' })
+    const inCwd = await askAction(
+      { question: 'status' },
+      { client: fake.client, cwd: '/w/openvibe' },
+    )
     expect(fake.paths()).toEqual([
       'GET /api/projects?status=all',
       'GET /api/projects/prj_1/context?fields=stage',
@@ -207,7 +222,10 @@ describe('ask 的答案塑形与项目解析', () => {
     ]
     const fake = fakeClient({ get: { '/api/projects/prj_1/context?fields=stage': ctx } })
 
-    const outcome = await askAction({ question: 'status', project: 'prj_1' }, { client: fake.client })
+    const outcome = await askAction(
+      { question: 'status', project: 'prj_1' },
+      { client: fake.client },
+    )
 
     expect(outcome.truncated).toEqual(ctx.truncated)
     expect(outcome.warnings.join('\n')).toContain('预算不足，日志段保留最近 5 条')
@@ -221,7 +239,8 @@ describe('ask 的答案塑形与项目解析', () => {
 
     const down: ApiClient = {
       serverUrl: 'http://127.0.0.1:1',
-      getJson: () => Promise.reject(new ServerUnreachable('http://127.0.0.1:1', 'connect ECONNREFUSED')),
+      getJson: () =>
+        Promise.reject(new ServerUnreachable('http://127.0.0.1:1', 'connect ECONNREFUSED')),
       postJson: () => Promise.reject(new Error('unused')),
     }
     const err = await askAction({ question: 'status', project: 'prj_1' }, { client: down }).catch(
@@ -235,12 +254,17 @@ describe('ask 的答案塑形与项目解析', () => {
   it('CLI-ASK-08: 服务端 4xx 的 code 原样上抛，CLI 不改写', async () => {
     const fake = fakeClient({
       get: {
-        '/api/projects/prj_1/context?fields=stage': new ApiError(404, 'NOT_FOUND', '项目不存在: prj_1'),
+        '/api/projects/prj_1/context?fields=stage': new ApiError(
+          404,
+          'NOT_FOUND',
+          '项目不存在: prj_1',
+        ),
       },
     })
-    const err = await askAction({ question: 'status', project: 'prj_1' }, { client: fake.client }).catch(
-      (e: unknown) => e,
-    )
+    const err = await askAction(
+      { question: 'status', project: 'prj_1' },
+      { client: fake.client },
+    ).catch((e: unknown) => e)
     expect((err as { code?: string }).code).toBe('NOT_FOUND')
   })
 })
@@ -254,7 +278,11 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
   let clean: Awaited<ReturnType<typeof startStubServer>>
 
   beforeAll(async () => {
-    clean = await startStubServer({ projects: PROJECTS, context: contextFixture(), commandRun: { ok: true } })
+    clean = await startStubServer({
+      projects: PROJECTS,
+      context: contextFixture(),
+      commandRun: { ok: true },
+    })
   })
 
   afterAll(async () => {
@@ -264,7 +292,15 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
   for (const keyword of ASK_KEYWORDS) {
     it(`CLI-ASK-09[${keyword}]: ok 档——stdout 恰好一个 JSON 对象，summary.ok=true 且与退出码 0 一致`, async () => {
       const res = await run([
-        '--json', '--server', clean.url, '--token', 'test-token', 'ask', keyword, '--project', 'prj_1',
+        '--json',
+        '--server',
+        clean.url,
+        '--token',
+        'test-token',
+        'ask',
+        keyword,
+        '--project',
+        'prj_1',
       ])
       // 整个 stdout 能 JSON.parse ⇒ 它恰好是一个 JSON 文档（两个对象会解析失败）
       const env = JSON.parse(res.stdout) as {
@@ -287,7 +323,13 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
     const stub = await startStubServer({ projects: PROJECTS, context: contextFixture() })
     try {
       const res = await run([
-        '--json', '--server', stub.url, '--token', 'test-token', 'ask', '什么时候能上线',
+        '--json',
+        '--server',
+        stub.url,
+        '--token',
+        'test-token',
+        'ask',
+        '什么时候能上线',
       ])
       const env = JSON.parse(res.stdout) as {
         command: string
@@ -308,15 +350,32 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
   })
 
   it('CLI-ASK-11: 埋点——结束时 POST {command,exitCode,agent}，agent 取 OPENVIBE_AGENT；未给则 null', async () => {
-    const stub = await startStubServer({ projects: PROJECTS, context: contextFixture(), commandRun: { ok: true } })
+    const stub = await startStubServer({
+      projects: PROJECTS,
+      context: contextFixture(),
+      commandRun: { ok: true },
+    })
     try {
-      await run(['--json', '--server', stub.url, '--token', 't', 'ask', 'status', '--project', 'prj_1'], 'claude-code')
+      await run(
+        ['--json', '--server', stub.url, '--token', 't', 'ask', 'status', '--project', 'prj_1'],
+        'claude-code',
+      )
       const posted = stub.requests.filter((r) => r.url === '/api/agent/command-run')
       expect(posted).toHaveLength(1)
       expect(posted[0]?.method).toBe('POST')
       expect(posted[0]?.body).toEqual({ command: 'ask', exitCode: 0, agent: 'claude-code' })
 
-      await run(['--json', '--server', stub.url, '--token', 't', 'ask', 'status', '--project', 'prj_1'])
+      await run([
+        '--json',
+        '--server',
+        stub.url,
+        '--token',
+        't',
+        'ask',
+        'status',
+        '--project',
+        'prj_1',
+      ])
       expect(stub.requests.filter((r) => r.url === '/api/agent/command-run')[1]?.body).toEqual({
         command: 'ask',
         exitCode: 0,
@@ -332,12 +391,26 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
     const stub = await startStubServer({ projects: PROJECTS, context: contextFixture() })
     try {
       const res = await run([
-        '--json', '--server', stub.url, '--token', 't', 'ask', 'status', '--project', 'prj_1',
+        '--json',
+        '--server',
+        stub.url,
+        '--token',
+        't',
+        'ask',
+        'status',
+        '--project',
+        'prj_1',
       ])
-      const env = JSON.parse(res.stdout) as { summary: { ok: boolean; commandRun: { sent: boolean; reason: string } } }
+      const env = JSON.parse(res.stdout) as {
+        summary: { ok: boolean; commandRun: { sent: boolean; reason: string } }
+      }
       expect(res.status).toBe(0)
       expect(env.summary.ok).toBe(true)
-      expect(env.summary.commandRun).toEqual({ sent: false, reason: 'error', detail: expect.any(String) })
+      expect(env.summary.commandRun).toEqual({
+        sent: false,
+        reason: 'error',
+        detail: expect.any(String),
+      })
     } finally {
       await stub.close()
     }
@@ -349,11 +422,23 @@ describe('--json 契约与三值退出码（m8 §7-p，真子进程）', () => {
     // 造漂移（pack.drifted=true）后重跑全部七词，仍全部退 0 —— 这条把「不可达」钉成事实。
     const ctx = contextFixture()
     ctx.pack = { id: 'pk_1', name: '标准包', version: '1.0.0', drifted: true, outdated: false }
-    const stub = await startStubServer({ projects: PROJECTS, context: ctx, commandRun: { ok: true } })
+    const stub = await startStubServer({
+      projects: PROJECTS,
+      context: ctx,
+      commandRun: { ok: true },
+    })
     try {
       for (const keyword of ASK_KEYWORDS) {
         const res = await run([
-          '--json', '--server', stub.url, '--token', 't', 'ask', keyword, '--project', 'prj_1',
+          '--json',
+          '--server',
+          stub.url,
+          '--token',
+          't',
+          'ask',
+          keyword,
+          '--project',
+          'prj_1',
         ])
         expect(res.status, keyword).toBe(0)
       }

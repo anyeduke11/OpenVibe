@@ -65,8 +65,7 @@ export const agentZh = {
     statusPending: '待确认',
     statusConflict: '键冲突',
     /** conflict 行的处理提示（FR-5.6：只给入口不给策略） */
-    conflictHint:
-      '同一幂等键上出现了两笔不同载荷。先到的那条不会被自动改动，请你来定留哪一条。',
+    conflictHint: '同一幂等键上出现了两笔不同载荷。先到的那条不会被自动改动，请你来定留哪一条。',
     conflictDetail: '冲突详情',
     hashLabel: '载荷指纹',
     /** 只显示短 hash，**不请求也不显示完整载荷**（FR-6.3） */

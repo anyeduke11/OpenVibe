@@ -10,17 +10,15 @@ import {
  * 遥测端点 URL（T8d）：公网只收 https；回环 http 放行，好让本地端到端用例
  * 能起一个真 HTTP 接收端而不必为此配证书。
  */
-export const TelemetryEndpointUrl = z
-  .string()
-  .refine((v) => {
-    try {
-      const u = new URL(v)
-      if (u.protocol === 'https:') return true
-      return u.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]', '::1'].includes(u.hostname)
-    } catch {
-      return false
-    }
-  }, 'telemetryEndpoint 需是 https URL（回环 http 仅限本机自测）')
+export const TelemetryEndpointUrl = z.string().refine((v) => {
+  try {
+    const u = new URL(v)
+    if (u.protocol === 'https:') return true
+    return u.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]', '::1'].includes(u.hostname)
+  } catch {
+    return false
+  }
+}, 'telemetryEndpoint 需是 https URL（回环 http 仅限本机自测）')
 
 /**
  * `~/.openvibe/config.json`（design §4，serve 首启生成，权限 0600）。
@@ -239,13 +237,10 @@ export type TelemetryLedgerOut = z.infer<typeof TelemetryLedgerOut>
  * 有意不同——它是个纯读端点，坏参数不该把整个侧栏打挂。
  * 上限 200 是硬夹取：超限按 200 返回，不回落 50。
  */
-export const TelemetryLedgerLimit = z.preprocess(
-  (raw) => {
-    const n = Number(raw)
-    return Number.isInteger(n) ? n : Number.NaN
-  },
-  z.number().int().min(1).max(TELEMETRY_EVENTS_LIMIT_MAX),
-)
+export const TelemetryLedgerLimit = z.preprocess((raw) => {
+  const n = Number(raw)
+  return Number.isInteger(n) ? n : Number.NaN
+}, z.number().int().min(1).max(TELEMETRY_EVENTS_LIMIT_MAX))
 export type TelemetryLedgerLimit = z.infer<typeof TelemetryLedgerLimit>
 
 /** M8-E 的写侧总闸（`m8-agent-panel.md` FR-5.5.2.1）。**默认关**（缺行即 false） */

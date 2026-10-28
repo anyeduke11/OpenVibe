@@ -17,9 +17,7 @@ export function ExportHistoryPanel(props: { packId: string }) {
         <thead className={`text-left ${ledgerHeadCls}`}>
           <tr>
             <th className="w-20 border-b border-line px-2 py-1.5">{zh.packs.exports.version}</th>
-            <th className="w-32 border-b border-line px-2 py-1.5">
-              {zh.packs.exports.channel}
-            </th>
+            <th className="w-32 border-b border-line px-2 py-1.5">{zh.packs.exports.channel}</th>
             <th className="border-b border-line px-2 py-1.5">{zh.packs.exports.fingerprint}</th>
             <th className="w-40 border-b border-line px-2 py-1.5 text-right">
               {zh.packs.exports.exportedAt}

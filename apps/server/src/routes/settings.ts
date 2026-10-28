@@ -184,7 +184,15 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
   app.post('/api/settings/reseed/m9', async () => {
     // M9 语言线的种子目录是 core/db/seeds（采集脚本写、reseed 读），不是主通道的 content/seed
     const dir = M9_SEEDS_DIR
-    const run = (r: { bundle: string; status: string; created: number; updated?: number; ignored?: number; userModified?: number; warnings?: string[] }): unknown => ({
+    const run = (r: {
+      bundle: string
+      status: string
+      created: number
+      updated?: number
+      ignored?: number
+      userModified?: number
+      warnings?: string[]
+    }): unknown => ({
       bundle: r.bundle,
       status: r.status,
       created: r.created,
@@ -280,8 +288,7 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
   app.get('/api/stats', async (): Promise<FlywheelStatsOut> => {
     const one = (sql: string): number => (deps.db.prepare(sql).get() as { c: number }).c
     return {
-      assets:
-        countOf(deps.db, 'prompts') + countOf(deps.db, 'terms') + countOf(deps.db, 'skills'),
+      assets: countOf(deps.db, 'prompts') + countOf(deps.db, 'terms') + countOf(deps.db, 'skills'),
       packs: countOf(deps.db, 'standard_packs'),
       injections: countOf(deps.db, 'injections'),
       reflows: one(

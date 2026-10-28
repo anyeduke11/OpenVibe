@@ -79,8 +79,7 @@ export function ResourceModeChip(props: ResourceModeChipProps) {
   // 点开时列出「这条覆盖了本模式必学里的哪几条」—— 复用既有挂接，不另存清单（§3.20）
   const required = requiredTopicIds(profile, profiles)
   const covered = topicIds.filter((id) => required.has(id))
-  const titleOf = (id: number): string =>
-    topicTitles.find((t) => t.id === id)?.title ?? `#${id}`
+  const titleOf = (id: number): string => topicTitles.find((t) => t.id === id)?.title ?? `#${id}`
 
   return (
     <span className="inline-flex flex-col items-start gap-1">

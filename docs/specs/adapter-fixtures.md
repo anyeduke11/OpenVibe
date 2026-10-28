@@ -1,13 +1,13 @@
 # SPEC · 平台契约夹具与矩阵生成（草案：每 adapter 一份产物夹具、矩阵由代码生成、真机探针可复跑）
 
-| 项 | 值 |
-|------|------|
-| 模块 | 横切能力（平台契约面，非 PRD 3.2 的资产模块）——沿用「横切能力用功能名」命名法（dev-plan §0.4 第 5 条） |
-| 优先级 | **RF1-4**（PRD §10.2 表 RF1 行；分析文 §7 Phase 1 表 1-4 行判级预判 **B**）。**本文件的判级是四处待裁里最不稳的一条**，见 §8.2 待裁① |
-| 上游 | PRD §10.2/§10.3；分析文 §4.7（AD6「从文档矩阵到夹具 + 探针」）· §7 Phase 1 表 1-4 行（**出口判据单源在那里**：「每个 adapter 一份 golden；`adapter-matrix.md` 由脚本生成且 CI 校验未手改」）；PRD 第 9 章「AI 读不到规则」的静默无效风险面 |
-| 下游设计 | design §8（平台 adapter 清单 v1.3，**A 级契约面**）、§7.4（各产物文件格式）、§7.6（指纹与码点序）；`docs/specs/m6-standard-pack.md` 的覆盖平台展示面 |
-| 关联任务 | **无**。PRD §10.4 第三组原文：「本轮**不建任务组**。RF0–RF5 各阶段开工前须先在 `docs/specs/` 补规格，任务组编号（T14 起）待规格落地后在 `tasks.md` 另起」 |
-| 版本 | **v0.9 草案（2026-10-03，纯新文件；本轮不改任何既有规格）**。按 dev-plan §0.4 第 1/3/4 条**不构成开工依据**：判级未定（§8.2 待裁①）就无从确定它要不要走 A 级链——**这条不是形式问题，它决定 `.zwork/commit0083a.py` 那道拦 `tests/golden/` 的闸要不要显式放行** |
+| 项       | 值                                                                                                                                                                                                                                                             |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 模块     | 横切能力（平台契约面，非 PRD 3.2 的资产模块）——沿用「横切能力用功能名」命名法（dev-plan §0.4 第 5 条）                                                                                                                                                         |
+| 优先级   | **RF1-4**（PRD §10.2 表 RF1 行；分析文 §7 Phase 1 表 1-4 行判级预判 **B**）。**本文件的判级是四处待裁里最不稳的一条**，见 §8.2 待裁①                                                                                                                           |
+| 上游     | PRD §10.2/§10.3；分析文 §4.7（AD6「从文档矩阵到夹具 + 探针」）· §7 Phase 1 表 1-4 行（**出口判据单源在那里**：「每个 adapter 一份 golden；`adapter-matrix.md` 由脚本生成且 CI 校验未手改」）；PRD 第 9 章「AI 读不到规则」的静默无效风险面                     |
+| 下游设计 | design §8（平台 adapter 清单 v1.3，**A 级契约面**）、§7.4（各产物文件格式）、§7.6（指纹与码点序）；`docs/specs/m6-standard-pack.md` 的覆盖平台展示面                                                                                                           |
+| 关联任务 | **无**。PRD §10.4 第三组原文：「本轮**不建任务组**。RF0–RF5 各阶段开工前须先在 `docs/specs/` 补规格，任务组编号（T14 起）待规格落地后在 `tasks.md` 另起」                                                                                                      |
+| 版本     | **v0.9 草案（2026-10-03，纯新文件；本轮不改任何既有规格）**。按 dev-plan §0.4 第 1/3/4 条**不构成开工依据**：判级未定（§8.2 待裁①）就无从确定它要不要走 A 级链——**这条不是形式问题，它决定 `.zwork/commit0083a.py` 那道拦 `tests/golden/` 的闸要不要显式放行** |
 
 ---
 
@@ -22,27 +22,27 @@
 
 ## 2. 范围
 
-| In（本 spec 覆盖） | Out（明确不做，写明理由与去向） |
-|---|---|
-| 每 adapter 一份产物夹具（最小 pack 输入 → 期望字节）进 golden 体系 | 改任何 adapter 的实际产出（**契约零变化**：改了产物就是 A 级，见 §6.5） |
-| 存在性闸：注册表内每个 id 必须有夹具 | 把 design §8 的**六行专用 adapter 表**整体生成化（其「格式要点」「契约依据」两列不在代码里，见 §6.1） |
-| `COMPAT_MATRIX` 的 7 行兼容平台 → 生成文档 + CI 校验未手改 | 新增平台（`windsurf`/`gemini`/`copilot` 仍在 design §8 的 P1 行，不随本项提前） |
-| DEV-0016 三支探针提为可复跑驱动器（照既有 `.mjs` 形制） | 把探针升级为 CI 的必跑腿（真机探针依赖本机装有 Trae/Cursor，CI 上没有；见 §7.7-②） |
-| 「上次真机复跑时间」的登记面（发布说明 + 机器可读一处） | 动 `schemaVersion`／lock 形状／`COMPAT_MATRIX` 语义（矩阵只**生成**，不增删行） |
-| 大小写与嵌套路径的独立断言（FR-4） | 六平台 GUI 端到端自动化（那是走查驱动器的事，不属本项） |
+| In（本 spec 覆盖）                                                 | Out（明确不做，写明理由与去向）                                                                       |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| 每 adapter 一份产物夹具（最小 pack 输入 → 期望字节）进 golden 体系 | 改任何 adapter 的实际产出（**契约零变化**：改了产物就是 A 级，见 §6.5）                               |
+| 存在性闸：注册表内每个 id 必须有夹具                               | 把 design §8 的**六行专用 adapter 表**整体生成化（其「格式要点」「契约依据」两列不在代码里，见 §6.1） |
+| `COMPAT_MATRIX` 的 7 行兼容平台 → 生成文档 + CI 校验未手改         | 新增平台（`windsurf`/`gemini`/`copilot` 仍在 design §8 的 P1 行，不随本项提前）                       |
+| DEV-0016 三支探针提为可复跑驱动器（照既有 `.mjs` 形制）            | 把探针升级为 CI 的必跑腿（真机探针依赖本机装有 Trae/Cursor，CI 上没有；见 §7.7-②）                    |
+| 「上次真机复跑时间」的登记面（发布说明 + 机器可读一处）            | 动 `schemaVersion`／lock 形状／`COMPAT_MATRIX` 语义（矩阵只**生成**，不增删行）                       |
+| 大小写与嵌套路径的独立断言（FR-4）                                 | 六平台 GUI 端到端自动化（那是走查驱动器的事，不属本项）                                               |
 
 ## 3. 现状与实测基线（采样：2026-10-03 工作树；引用提交树 `54789b8` 的行号）
 
-| # | 量 | 现测值 | 复算命令 |
-|---|---|---|---|
-| 1 | `tests/golden/` 现有内容 | 3 个快照目录 **G1／G2／G3** + 三个脚本 `artifacts.ts`(1124 B)／`compose.ts`(614 B)／`fixtures.ts`(6854 B)；**零** adapter 专属夹具目录 | `find tests/golden -type f \| sort` |
-| 2 | **golden 是否覆盖各平台产物字节** | **覆盖，且六个平台全在其中**：`G1/files/{AGENTS,CLAUDE,TERMS}.md`、`G2/files/.trae/rules/openvibe.md`+`{CODEBUDDY,MINI}.md`、`G3/files/.cursor/rules/openvibe.mdc`+9 个根级文件 ⇒ 路径、嵌套、大小写**都在快照文件名里被冻住了** | `find tests/golden -type f \| grep -c files/`（=14） |
-| 3 | adapter 单测现有覆盖面 | `packages/adapters/src/adapters.test.ts`（130 行，4 个 describe）：`UT-ADAPTER-01` 注册表一一对应 + **六条路径逐字冻结**（`:25-32` 的 `expectPath`）+ frontmatter 有无（`:40-46`）；`UT-ADAPTER-02` cursor/trae 的 frontmatter **字节级**（`:50-71`）；`UT-ADAPTER-03` 去重/码点序/未知 id 报错；`UT-ADAPTER-04` 矩阵 `reads` 必须指向已存在产物（`:104-108`） | `grep -n 'describe(' packages/adapters/src/adapters.test.ts` |
-| 4 | 矩阵文档 | **不存在**：`docs/specs/adapter-matrix.md` 无此文件；`COMPAT_MATRIX`（`compat.ts:12`，7 行）与 design §8 的表格是**两份人肉平行维护** | `ls docs/specs/ \| grep -i matrix`（空）；`grep -c 'platform:' packages/adapters/src/compat.ts`（=7） |
-| 5 | 实现体积极薄的具体数字 | 六个 adapter 里 **4 个 11 行**（`claude-code`/`codebuddy`/`generic-agents`/`minicode`），`cursor` 26、`trae` 32；`registry.ts` 72、`compat.ts` 48、`index.ts` 11 | `wc -l packages/adapters/src/*.ts` |
-| 6 | 真机探针现状 | `docs/devlog-evidence/DEV-0016/` 内 3 支一次性文本：`trae-frontmatter-probe.txt`（首行含时间戳 `2026-09-21T16:47:37Z`）、`codex-agents-probe.txt`、`trae-gui-manual-check.txt`。**全仓 11 支可复跑 `.mjs` 驱动器中，与 adapter 相关的 0 支** | `find docs -name '*.mjs' \| wc -l`（=11）；`grep -rln 'trae\|cursor\|frontmatter' docs/devlog-evidence/*/*.mjs`（空） |
-| 7 | 契约依据的日期挂在哪 | design §8 的表头写死「契约依据（核验 2026-09-20）」——**日期在表头，不在行上**，无法表达「trae 复验过、codebuddy 没复验」 | `grep -n '契约依据' docs/design.md` |
-| 8 | 覆盖平台的展示面 | Web 只印名字：`apps/web/src/components/packs/PackPreviewPane.tsx:40` `preview.coveredPlatforms.join(' / ')`；服务端由 `pack-assemble.ts:39` 注入 `coveredPlatforms` | `grep -n 'coveredPlatforms' apps/web/src/components/packs/PackPreviewPane.tsx` |
+| #   | 量                                | 现测值                                                                                                                                                                                                                                                                                                                                                         | 复算命令                                                                                                              |
+| --- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| 1   | `tests/golden/` 现有内容          | 3 个快照目录 **G1／G2／G3** + 三个脚本 `artifacts.ts`(1124 B)／`compose.ts`(614 B)／`fixtures.ts`(6854 B)；**零** adapter 专属夹具目录                                                                                                                                                                                                                         | `find tests/golden -type f \| sort`                                                                                   |
+| 2   | **golden 是否覆盖各平台产物字节** | **覆盖，且六个平台全在其中**：`G1/files/{AGENTS,CLAUDE,TERMS}.md`、`G2/files/.trae/rules/openvibe.md`+`{CODEBUDDY,MINI}.md`、`G3/files/.cursor/rules/openvibe.mdc`+9 个根级文件 ⇒ 路径、嵌套、大小写**都在快照文件名里被冻住了**                                                                                                                               | `find tests/golden -type f \| grep -c files/`（=14）                                                                  |
+| 3   | adapter 单测现有覆盖面            | `packages/adapters/src/adapters.test.ts`（130 行，4 个 describe）：`UT-ADAPTER-01` 注册表一一对应 + **六条路径逐字冻结**（`:25-32` 的 `expectPath`）+ frontmatter 有无（`:40-46`）；`UT-ADAPTER-02` cursor/trae 的 frontmatter **字节级**（`:50-71`）；`UT-ADAPTER-03` 去重/码点序/未知 id 报错；`UT-ADAPTER-04` 矩阵 `reads` 必须指向已存在产物（`:104-108`） | `grep -n 'describe(' packages/adapters/src/adapters.test.ts`                                                          |
+| 4   | 矩阵文档                          | **不存在**：`docs/specs/adapter-matrix.md` 无此文件；`COMPAT_MATRIX`（`compat.ts:12`，7 行）与 design §8 的表格是**两份人肉平行维护**                                                                                                                                                                                                                          | `ls docs/specs/ \| grep -i matrix`（空）；`grep -c 'platform:' packages/adapters/src/compat.ts`（=7）                 |
+| 5   | 实现体积极薄的具体数字            | 六个 adapter 里 **4 个 11 行**（`claude-code`/`codebuddy`/`generic-agents`/`minicode`），`cursor` 26、`trae` 32；`registry.ts` 72、`compat.ts` 48、`index.ts` 11                                                                                                                                                                                               | `wc -l packages/adapters/src/*.ts`                                                                                    |
+| 6   | 真机探针现状                      | `docs/devlog-evidence/DEV-0016/` 内 3 支一次性文本：`trae-frontmatter-probe.txt`（首行含时间戳 `2026-09-21T16:47:37Z`）、`codex-agents-probe.txt`、`trae-gui-manual-check.txt`。**全仓 11 支可复跑 `.mjs` 驱动器中，与 adapter 相关的 0 支**                                                                                                                   | `find docs -name '*.mjs' \| wc -l`（=11）；`grep -rln 'trae\|cursor\|frontmatter' docs/devlog-evidence/*/*.mjs`（空） |
+| 7   | 契约依据的日期挂在哪              | design §8 的表头写死「契约依据（核验 2026-09-20）」——**日期在表头，不在行上**，无法表达「trae 复验过、codebuddy 没复验」                                                                                                                                                                                                                                       | `grep -n '契约依据' docs/design.md`                                                                                   |
+| 8   | 覆盖平台的展示面                  | Web 只印名字：`apps/web/src/components/packs/PackPreviewPane.tsx:40` `preview.coveredPlatforms.join(' / ')`；服务端由 `pack-assemble.ts:39` 注入 `coveredPlatforms`                                                                                                                                                                                            | `grep -n 'coveredPlatforms' apps/web/src/components/packs/PackPreviewPane.tsx`                                        |
 
 **结论性更正（必须写在规格里，不是脚注）**：分析文 §4.7 现状句「现在 golden 只覆盖 3 个 manifest，不覆盖各平台产物文件的**形状**（frontmatter 键、路径、大小写）」——按 §3-1..3 的实测，**这句不成立**：六个平台的产物字节与路径都在 G1/G2/G3 里，frontmatter 键在 `UT-ADAPTER-02` 里逐字节冻结。⇒ 本项的真实目标不是「补覆盖」，是**补归因、补存在性闸、补文档同源、补复跑能力**。这个差别会改变工作量估计与 §7 的验收腿，所以写进规格而不是留给实现者重新发现。
 
@@ -73,12 +73,12 @@
 
 ## 5. 输入 / 输出
 
-| 方向 | 内容 | 形态 |
-|---|---|---|
-| 入 | 固定最小 `ResolvedPack`（六个夹具共用一份生成器） | `tests/golden/fixtures.ts` 扩展，不新增第二份输入定义 |
-| 出 | `tests/golden/adapters/<id>/{files/, fingerprint.txt?}` | 与 G1/G2/G3 同族形态（`artifacts.ts:12` 的 `goldenArtifacts` 复用，不另写一套走查） |
-| 出 | `adapter-matrix.md`（生成物） | 7 行表 + 头部「GENERATED FROM compat.ts — DO NOT EDIT」一行 + 生成命令 |
-| 出 | 探针驱动器 | `.mjs`，stdout 即凭据；日志落 `docs/devlog-evidence/` |
+| 方向 | 内容                                                    | 形态                                                                                |
+| ---- | ------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| 入   | 固定最小 `ResolvedPack`（六个夹具共用一份生成器）       | `tests/golden/fixtures.ts` 扩展，不新增第二份输入定义                               |
+| 出   | `tests/golden/adapters/<id>/{files/, fingerprint.txt?}` | 与 G1/G2/G3 同族形态（`artifacts.ts:12` 的 `goldenArtifacts` 复用，不另写一套走查） |
+| 出   | `adapter-matrix.md`（生成物）                           | 7 行表 + 头部「GENERATED FROM compat.ts — DO NOT EDIT」一行 + 生成命令              |
+| 出   | 探针驱动器                                              | `.mjs`，stdout 即凭据；日志落 `docs/devlog-evidence/`                               |
 
 ## 6. 边界与异常
 
@@ -92,20 +92,20 @@
 
 ## 7. 验收标准（pass/fail）
 
-| # | 条目 | 判据 | 测试 ID |
-|---|---|---|---|
-| a | 六个 adapter 各有一份产物夹具，输入同源 | `tests/golden/adapters/<id>/` 六支齐备 | `GOLD-ADP-01` |
-| b | FR-2.1 存在性闸**双向**成立 | 集合相等断言；**变异腿**：删一个夹具目录 ⇒ 必判红；多加一个不存在的 id ⇒ 必判红 | `GOLD-ADP-02` |
-| c | 夹具可复算：连续两次重生成逐字节相同 | 无时间戳／无路径／无 locale 依赖 | `GOLD-ADP-03` |
-| d | 夹具与 pack 快照分层：改 composer 正文不使六支夹具红 | 变异腿（临时改一行正文模板 ⇒ 只有 G1/G2/G3 红） | `ADP-FIX-01` |
-| e | 夹具期望字节 = adapter 现产出，非手写 | 重生成后与提交树内容逐字相同 | `ADP-FIX-02` |
-| f | FR-4 两条路径不变量成立 | 两两非大小写变体 + 无前缀嵌套，纯枚举断言 | `ADP-FIX-03` |
-| g | 矩阵文档由脚本生成且内容 ≡ `COMPAT_MATRIX` | 生成 → cmp 通过；**变异腿**：手改文档 ⇒ CI 红并打印 diff | `ADP-FIX-04` |
-| h | 生成物不被治理电池误判 | 待裁②选定后，该位置的检查 2/检查 8 结果如实登记（**不得靠放宽电池实现**） | `ADP-FIX-05` |
-| i | 探针驱动器可复跑；缺依赖 ⇒ SKIP 且 `EXPECT_SKIP` 数恰好相等 | 本机跑一次 + 无 IDE 环境跑一次，两日志都入库 | `ADP-FIX-06` |
-| j | 复跑时间在机器可读处 + 两处人类可读处一致 | 三处比对；**变异腿**：只改一处 ⇒ 有一致性测试红 | `ADP-FIX-07` |
-| k | 六个平台的产物字节与提交树 `54789b8` 逐字不变（**契约零变化**） | pack 快照与既有 `UT-ADAPTER-*` 断言未改 | `GOLD-ADP-04` |
-| l | 现有闸零放松：`bundle:check` 余量不减、`seed:check` 三精确值不变、三平台 CI 与 `three-smokes` 的 skip 口径不变 | 三条外部凭据 | `GOLD-ADP-05` |
+| #   | 条目                                                                                                           | 判据                                                                            | 测试 ID       |
+| --- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------- |
+| a   | 六个 adapter 各有一份产物夹具，输入同源                                                                        | `tests/golden/adapters/<id>/` 六支齐备                                          | `GOLD-ADP-01` |
+| b   | FR-2.1 存在性闸**双向**成立                                                                                    | 集合相等断言；**变异腿**：删一个夹具目录 ⇒ 必判红；多加一个不存在的 id ⇒ 必判红 | `GOLD-ADP-02` |
+| c   | 夹具可复算：连续两次重生成逐字节相同                                                                           | 无时间戳／无路径／无 locale 依赖                                                | `GOLD-ADP-03` |
+| d   | 夹具与 pack 快照分层：改 composer 正文不使六支夹具红                                                           | 变异腿（临时改一行正文模板 ⇒ 只有 G1/G2/G3 红）                                 | `ADP-FIX-01`  |
+| e   | 夹具期望字节 = adapter 现产出，非手写                                                                          | 重生成后与提交树内容逐字相同                                                    | `ADP-FIX-02`  |
+| f   | FR-4 两条路径不变量成立                                                                                        | 两两非大小写变体 + 无前缀嵌套，纯枚举断言                                       | `ADP-FIX-03`  |
+| g   | 矩阵文档由脚本生成且内容 ≡ `COMPAT_MATRIX`                                                                     | 生成 → cmp 通过；**变异腿**：手改文档 ⇒ CI 红并打印 diff                        | `ADP-FIX-04`  |
+| h   | 生成物不被治理电池误判                                                                                         | 待裁②选定后，该位置的检查 2/检查 8 结果如实登记（**不得靠放宽电池实现**）       | `ADP-FIX-05`  |
+| i   | 探针驱动器可复跑；缺依赖 ⇒ SKIP 且 `EXPECT_SKIP` 数恰好相等                                                    | 本机跑一次 + 无 IDE 环境跑一次，两日志都入库                                    | `ADP-FIX-06`  |
+| j   | 复跑时间在机器可读处 + 两处人类可读处一致                                                                      | 三处比对；**变异腿**：只改一处 ⇒ 有一致性测试红                                 | `ADP-FIX-07`  |
+| k   | 六个平台的产物字节与提交树 `54789b8` 逐字不变（**契约零变化**）                                                | pack 快照与既有 `UT-ADAPTER-*` 断言未改                                         | `GOLD-ADP-04` |
+| l   | 现有闸零放松：`bundle:check` 余量不减、`seed:check` 三精确值不变、三平台 CI 与 `three-smokes` 的 skip 口径不变 | 三条外部凭据                                                                    | `GOLD-ADP-05` |
 
 - **7.7 未验证面**（负向登记，不得读成已通过）：① **夹具全绿 ≠ 平台真读了它**（§6.7），本项不改变这一事实；② 探针在 CI 上恒 SKIP（CI 无那六个 IDE），所以 §7-i 的人类环境凭据只能来自 owner 本机；③ `windsurf`/`gemini`/`copilot` 三平台的契约依旧只有文档级证据（design §8 的 P1 行）；④ 待裁①落定前，本项要不要走 golden 重基链与 A 级复核**未知**，§7 的 b/c/e 三条可能整批改道。
 
@@ -114,9 +114,9 @@
 - **8.1 上游**：`compat.ts`（矩阵本体）、`registry.ts`（id 与路径真源）、design §7.4/§7.6/§8；`tests/golden/{fixtures,compose,artifacts}.ts` 的既有生成形制。依赖 `service-layer.md`（1-1）仅为「夹具的输入构造」一处，不构成硬阻塞。
 - **8.2 待裁清单**（owner 裁前，本文件不构成开工依据）：
 
-| # | 待裁项 | 候选与推荐 |
-|---|---|---|
-| ① | **判 A 还是 B**（往 `tests/golden/` **新增**基线文件）。分析文 §4.7 判 B；dev-plan §0.3 的 A 级定义**含「golden 快照」**，判定规则是「拿不准往高级别归」 | (a) 判 B，加文件不触既有快照；(b) 判 A，走完整链。**推荐按 (b) 准备、由 owner 决定降到 (a)**：实际流程上这道闸已经是 A 形状——`.zwork/commit0083a.py` 会拦下任何碰 `tests/golden/` 的提交，放行必须是**显式动作**，不得 `--no-verify`。判 B 只改登记措辞，不改要走的流程 |
-| ② | 生成物 `adapter-matrix.md` 住哪 | (a) `docs/` 下非 `specs/` 子目录；(b) `docs/specs/` + 给电池的生成物豁免；(c) `packages/adapters/` 原地生成、`docs/` 只放链接。**推荐 (a)**：(b) 要为一份生成物放宽两条检查，代价大于收益；(c) 让文档离读者太远 |
-| ③ | design §8 六行表要不要生成化（§6.1：其「格式要点／契约依据」两列不在代码里） | (a) 本项不做，另立；(b) 把两列搬进 `registry.ts`（新增元数据）后整表生成——但**动 design §8 = A 级**。**推荐 (a)**，且明确登记「design §8 仍是手写」这一残余风险，别让本 spec 读起来像已解决 |
-| ④ | 复跑时间的机器可读载体（`PROBE_LAST_RUN` 常量 vs 夹具侧车 json） | (a) 常量：编译期可见、能被单测直接引用，但要进 `packages/adapters/src`（产品包里放时间戳有点脏）；(b) 侧车 json：干净，但一致性测试要跨包读文件。**推荐 (b)**——产品包不该携带「我们什么时候验证过」这类元数据 |
+| #   | 待裁项                                                                                                                                                   | 候选与推荐                                                                                                                                                                                                                                                              |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ①   | **判 A 还是 B**（往 `tests/golden/` **新增**基线文件）。分析文 §4.7 判 B；dev-plan §0.3 的 A 级定义**含「golden 快照」**，判定规则是「拿不准往高级别归」 | (a) 判 B，加文件不触既有快照；(b) 判 A，走完整链。**推荐按 (b) 准备、由 owner 决定降到 (a)**：实际流程上这道闸已经是 A 形状——`.zwork/commit0083a.py` 会拦下任何碰 `tests/golden/` 的提交，放行必须是**显式动作**，不得 `--no-verify`。判 B 只改登记措辞，不改要走的流程 |
+| ②   | 生成物 `adapter-matrix.md` 住哪                                                                                                                          | (a) `docs/` 下非 `specs/` 子目录；(b) `docs/specs/` + 给电池的生成物豁免；(c) `packages/adapters/` 原地生成、`docs/` 只放链接。**推荐 (a)**：(b) 要为一份生成物放宽两条检查，代价大于收益；(c) 让文档离读者太远                                                         |
+| ③   | design §8 六行表要不要生成化（§6.1：其「格式要点／契约依据」两列不在代码里）                                                                             | (a) 本项不做，另立；(b) 把两列搬进 `registry.ts`（新增元数据）后整表生成——但**动 design §8 = A 级**。**推荐 (a)**，且明确登记「design §8 仍是手写」这一残余风险，别让本 spec 读起来像已解决                                                                             |
+| ④   | 复跑时间的机器可读载体（`PROBE_LAST_RUN` 常量 vs 夹具侧车 json）                                                                                         | (a) 常量：编译期可见、能被单测直接引用，但要进 `packages/adapters/src`（产品包里放时间戳有点脏）；(b) 侧车 json：干净，但一致性测试要跨包读文件。**推荐 (b)**——产品包不该携带「我们什么时候验证过」这类元数据                                                           |

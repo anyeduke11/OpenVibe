@@ -1,10 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import {
-  AppError,
-  PlaybookCreateInput,
-  PlaybookUpdateInput,
-} from '@openvibe/shared'
+import { AppError, PlaybookCreateInput, PlaybookUpdateInput } from '@openvibe/shared'
 import { PlaybooksRepo, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
 import { referencedPackNames } from '../lib/refs'

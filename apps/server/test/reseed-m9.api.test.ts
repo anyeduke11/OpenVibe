@@ -41,7 +41,11 @@ afterEach(() => {
   }
 })
 
-async function api<T = unknown>(h: Harness, method: 'GET' | 'POST', url: string): Promise<{ statusCode: number; json: T }> {
+async function api<T = unknown>(
+  h: Harness,
+  method: 'GET' | 'POST',
+  url: string,
+): Promise<{ statusCode: number; json: T }> {
   const res = await h.app.inject({
     method,
     url,

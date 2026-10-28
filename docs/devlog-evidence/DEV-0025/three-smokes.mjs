@@ -47,7 +47,10 @@ const CHROME_CANDIDATES = {
     // 写死 C:\ 不可靠（Program Files 可被重定向），故三级兜底：镜像导出的 ChromeBinPath
     // （此变量名本机未验，取不到就走下一级）→ %ProgramFiles% 展开 → PATH 里的 chrome。
     process.env.ChromeBinPath ?? '',
-    join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Google\\Chrome\\Application\\chrome.exe'),
+    join(
+      process.env.ProgramFiles ?? 'C:\\Program Files',
+      'Google\\Chrome\\Application\\chrome.exe',
+    ),
     join(
       process.env['ProgramFiles(x86)'] ?? 'C:\\Program Files (x86)',
       'Google\\Chrome\\Application\\chrome.exe',
@@ -58,11 +61,9 @@ function findChrome() {
   const fromEnv = process.env.CHROME_BIN
   if (fromEnv !== undefined && fromEnv !== '') return fromEnv
   for (const p of CHROME_CANDIDATES[process.platform] ?? []) if (existsSync(p)) return p
-  const probe = spawnSync(
-    process.platform === 'win32' ? 'where' : 'which',
-    CHROME_LOOKUP,
-    { encoding: 'utf8' },
-  )
+  const probe = spawnSync(process.platform === 'win32' ? 'where' : 'which', CHROME_LOOKUP, {
+    encoding: 'utf8',
+  })
   const hit = probe.stdout
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -198,7 +199,8 @@ const apiUrl = async (path, method, body) => {
     headers: { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  if (res.code >= 400) throw new Error(`${method} ${path} → ${String(res.code)} ${res.body.slice(0, 200)}`)
+  if (res.code >= 400)
+    throw new Error(`${method} ${path} → ${String(res.code)} ${res.body.slice(0, 200)}`)
   return JSON.parse(res.body)
 }
 
@@ -410,10 +412,13 @@ async function go(path) {
 
 function flushEvidence() {
   try {
-    const head = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: REPO, encoding: 'utf8' })
-      .stdout.trim()
+    const head = spawnSync('git', ['rev-parse', '--short', 'HEAD'], {
+      cwd: REPO,
+      encoding: 'utf8',
+    }).stdout.trim()
     const dirty = spawnSync('git', ['status', '--porcelain'], { cwd: REPO, encoding: 'utf8' })
-      .stdout.split('\n').filter(Boolean).length
+      .stdout.split('\n')
+      .filter(Boolean).length
     const tag = HEADLESS ? '' : '-headed'
     // EVIDENCE_SUFFIX 决定落盘文件名后缀：不带它，本机每重跑一次就原地覆盖一次已入库的凭据
     // （DEV-0051 风险③写下这条，7 小时后我自己踩了）。复跑请 `EVIDENCE_SUFFIX=-20260927`。
@@ -520,17 +525,21 @@ try {
   check(
     'SM-1e 中文检索真发出了带该 q 的请求',
     hitReq !== '',
-    hitReq === '' ? `窗口内 0 条命中（共 ${String(requests.length)} 条请求）` : hitReq.slice(0, 120),
+    hitReq === ''
+      ? `窗口内 0 条命中（共 ${String(requests.length)} 条请求）`
+      : hitReq.slice(0, 120),
   )
-  check(
-    `SM-1f 列表收窄到刚导入那条「${MD_TITLE}」`,
-    await waitForText(MD_TITLE, 8_000),
-  )
-  const dbRow = (JSON.parse((await api(`/api/prompts?size=20&q=${encodeURIComponent(MD_TITLE)}`)).body).items ?? []).find((p) => p.title === MD_TITLE)
+  check(`SM-1f 列表收窄到刚导入那条「${MD_TITLE}」`, await waitForText(MD_TITLE, 8_000))
+  const dbRow = (
+    JSON.parse((await api(`/api/prompts?size=20&q=${encodeURIComponent(MD_TITLE)}`)).body).items ??
+    []
+  ).find((p) => p.title === MD_TITLE)
   check(
     'SM-1g 服务端存回的 content 与磁盘字节逐字节相等',
     dbRow !== undefined && dbRow.content === ON_DISK,
-    dbRow === undefined ? 'API 查不到该条' : `服务端 ${String(dbRow.content.length)} 字符 / 磁盘 ${String(ON_DISK.length)} 字符`,
+    dbRow === undefined
+      ? 'API 查不到该条'
+      : `服务端 ${String(dbRow.content.length)} 字符 / 磁盘 ${String(ON_DISK.length)} 字符`,
   )
 
   if (HAS_PASTEBOARD) setPasteboard(SENTINEL)
@@ -575,7 +584,9 @@ try {
   const dl2 = Date.now() + 4_000
   let req2 = ''
   while (Date.now() < dl2) {
-    req2 = requests.find((u) => u.includes('/api/terms/search') && decodeURIComponent(u).includes(Q2)) ?? ''
+    req2 =
+      requests.find((u) => u.includes('/api/terms/search') && decodeURIComponent(u).includes(Q2)) ??
+      ''
     if (req2 !== '') break
     await sleep(100)
   }
@@ -745,11 +756,11 @@ try {
 // ================= 汇总 =================
 say('\n== 判据归属（三条各自独立）')
 say('  SM-1：导入报告新建 1 条 + 服务端 content == 磁盘字节 + 真点击复制后 pbpaste == 磁盘字节')
-say('  SM-2：真发出中文检索请求 + 结果含该术语 + 预览 == 服务端字节 + 真点击复制后 pbpaste == 同一字节')
-say('  SM-3：三步全真点击推进 + sync 后自动点亮 + 真点击完成/暂不且刷新不再询问')
 say(
-  `  SM-1=${V.sm1 ? '过' : '不过'} SM-2=${V.sm2 ? '过' : '不过'} SM-3=${V.sm3 ? '过' : '不过'}`,
+  '  SM-2：真发出中文检索请求 + 结果含该术语 + 预览 == 服务端字节 + 真点击复制后 pbpaste == 同一字节',
 )
+say('  SM-3：三步全真点击推进 + sync 后自动点亮 + 真点击完成/暂不且刷新不再询问')
+say(`  SM-1=${V.sm1 ? '过' : '不过'} SM-2=${V.sm2 ? '过' : '不过'} SM-3=${V.sm3 ? '过' : '不过'}`)
 say(
   `结果：FAIL=${String(failures)} SKIP=${String(skipped)} · 形态=${HEADLESS ? 'headless=new' : 'headed'} ⇒ ` +
     (HEADLESS
@@ -788,7 +799,10 @@ check(
 const leftovers = readdirSync(tmpdir())
   .filter((n) => n.startsWith('ov-smoke-'))
   .map((n) => join(tmpdir(), n))
-info('本机 ov-smoke-* 临时目录（rmSync 前）', `${String(leftovers.length)} 个 ${leftovers.join(' ')}`)
+info(
+  '本机 ov-smoke-* 临时目录（rmSync 前）',
+  `${String(leftovers.length)} 个 ${leftovers.join(' ')}`,
+)
 // win32 上 Chrome 的 pid 判死之后，profile 目录里的文件句柄仍可短暂被占（实测 `Account Web Data`
 // EBUSY）。原先这里是裸 rmSync：26 条断言全绿也会以未捕获异常收场，红得没有信息量。重试到净。
 let rmErr = null

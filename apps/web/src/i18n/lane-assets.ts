@@ -15,7 +15,8 @@ export const laneRoadmap = {
   station: (n: number) => `第 ${n} 站`,
   count: (n: number) => `${String(n)} 条`,
   loose: '未入路线',
-  looseHint: '这些词条的标签不在学习路线里。用行尾下拉「归组」写入路线标签（一次归位、永久生效），或点编辑手动处理。',
+  looseHint:
+    '这些词条的标签不在学习路线里。用行尾下拉「归组」写入路线标签（一次归位、永久生效），或点编辑手动处理。',
   emptyGroup: '（暂无）',
   related: (n: number) => `关联 ${n}`,
   empty: '库为空——先导入或新建词条。',

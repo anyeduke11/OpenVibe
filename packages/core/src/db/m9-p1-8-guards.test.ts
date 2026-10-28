@@ -48,11 +48,7 @@ import {
   termsFingerprint,
   termsRowCount,
 } from './m9-topic-terms'
-import {
-  filterTopics,
-  langCoverage,
-  topicFilterOptions,
-} from './m9-topic-filter'
+import { filterTopics, langCoverage, topicFilterOptions } from './m9-topic-filter'
 import type { SqliteDatabase } from './index'
 
 const SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))
@@ -93,10 +89,7 @@ describe('M9 P1.8 · DL-02 教程正文零进仓', () => {
     }
     // 反证：这些文件**确实**会被扫出违规（`body_md` 是正文字段名）⇒ 排除是必要的
     const contentPath = join(REPO_ROOT, SELF_AUTHORED_CONTENT_FILES[0])
-    const hits = scanExternalFile(
-      SELF_AUTHORED_CONTENT_FILES[0],
-      readFileSync(contentPath, 'utf8'),
-    )
+    const hits = scanExternalFile(SELF_AUTHORED_CONTENT_FILES[0], readFileSync(contentPath, 'utf8'))
     expect(
       hits.some((h) => h.rule === 'body-field'),
       '自撰内容层若扫不出违规，说明排除规则不是必要的（那它就只是个侥幸）',
@@ -106,19 +99,29 @@ describe('M9 P1.8 · DL-02 教程正文零进仓', () => {
   it('变异 ①：注入成段中文散文 ⇒ 散文规则必须报出（且**只**报散文）', () => {
     const sample = syntheticProseSample()
     const hits = scanExternalJson('probe.json', JSON.stringify({ items: [{ title: sample }] }))
-    expect(hits.some((h) => h.rule === 'prose-run'), '成段散文没被报出').toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'prose-run'),
+      '成段散文没被报出',
+    ).toBe(true)
     // ⚠️ 样本刻意压在长度上限之内 ⇒ 不该被长度规则顺带命中
     expect(sample.length).toBeLessThanOrEqual(80)
-    expect(hits.some((h) => h.rule === 'metadata-too-long'), '样本越界了，测的不是散文规则').toBe(
-      false,
-    )
+    expect(
+      hits.some((h) => h.rule === 'metadata-too-long'),
+      '样本越界了，测的不是散文规则',
+    ).toBe(false)
   })
 
   it('变异 ②：注入超长但无汉字的**非 URL** 元数据 ⇒ 长度规则必须报出（且不报散文）', () => {
     const sample = syntheticPaddedMetadataSample()
     const hits = scanExternalJson('probe.json', JSON.stringify({ items: [{ summary: sample }] }))
-    expect(hits.some((h) => h.rule === 'metadata-too-long'), '超长元数据没被报出').toBe(true)
-    expect(hits.some((h) => h.rule === 'prose-run'), '样本越界了，测的不是长度规则').toBe(false)
+    expect(
+      hits.some((h) => h.rule === 'metadata-too-long'),
+      '超长元数据没被报出',
+    ).toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'prose-run'),
+      '样本越界了，测的不是长度规则',
+    ).toBe(false)
   })
 
   // ⚠️ **长度规则分两档**（URL 有自己的上限）—— 这三支是「放宽是按形状的」的证明：
@@ -129,14 +132,22 @@ describe('M9 P1.8 · DL-02 教程正文零进仓', () => {
     const sample = syntheticRealisticUrlSample()
     expect(sample.length).toBeGreaterThan(80)
     const hits = scanExternalJson('probe.json', JSON.stringify({ items: [{ url: sample }] }))
-    expect(hits.filter((h) => h.rule === 'metadata-too-long' || h.rule === 'url-too-long')).toEqual([])
+    expect(hits.filter((h) => h.rule === 'metadata-too-long' || h.rule === 'url-too-long')).toEqual(
+      [],
+    )
   })
 
   it('变异 ⑤：超长 URL（> 300）⇒ 必须被 `url-too-long` 报出（不是悄悄放行）', () => {
     const sample = syntheticLongUrlSample()
     const hits = scanExternalJson('probe.json', JSON.stringify({ items: [{ url: sample }] }))
-    expect(hits.some((h) => h.rule === 'url-too-long'), '超长 URL 没被报出').toBe(true)
-    expect(hits.some((h) => h.rule === 'metadata-too-long'), 'URL 不该走非 URL 那一档').toBe(false)
+    expect(
+      hits.some((h) => h.rule === 'url-too-long'),
+      '超长 URL 没被报出',
+    ).toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'metadata-too-long'),
+      'URL 不该走非 URL 那一档',
+    ).toBe(false)
   })
 
   // ⚠️ **逐字段长度覆写**（M9 P1b 实测引入）：附件的 `d`（资源描述）最长 115 字符（主清单）
@@ -159,7 +170,10 @@ describe('M9 P1.8 · DL-02 教程正文零进仓', () => {
     const parsed = JSON.parse(raw) as { items: Record<string, unknown>[] }
     parsed.items[0] = { ...parsed.items[0], summary: 'x'.repeat(131) }
     const hits = scanExternalJson(RES_SEED, JSON.stringify(parsed))
-    expect(hits.some((h) => h.rule === 'metadata-too-long'), '超上限的描述没被报出').toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'metadata-too-long'),
+      '超上限的描述没被报出',
+    ).toBe(true)
   })
 
   it('覆写③：**没登记覆写的字段**（name）超 80 ⇒ 照旧被报出（覆写是逐字段的）', () => {
@@ -167,7 +181,10 @@ describe('M9 P1.8 · DL-02 教程正文零进仓', () => {
     const parsed = JSON.parse(raw) as { items: Record<string, unknown>[] }
     parsed.items[0] = { ...parsed.items[0], name: 'x'.repeat(100) }
     const hits = scanExternalJson(RES_SEED, JSON.stringify(parsed))
-    expect(hits.some((h) => h.rule === 'metadata-too-long'), 'name 超长没被报出').toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'metadata-too-long'),
+      'name 超长没被报出',
+    ).toBe(true)
   })
 
   it('覆写④：反证 —— **没有覆写**的同一份内容 ⇒ 必须被报出（证明覆写是放行的原因）', () => {
@@ -175,7 +192,10 @@ describe('M9 P1.8 · DL-02 教程正文零进仓', () => {
     const parsed = JSON.parse(raw) as { items: Record<string, unknown>[] }
     parsed.items[0] = { ...parsed.items[0], summary: 'x'.repeat(115) }
     const hits = scanExternalJson('probe.json', JSON.stringify(parsed))
-    expect(hits.some((h) => h.rule === 'metadata-too-long'), '没覆写的文件没被报出').toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'metadata-too-long'),
+      '没覆写的文件没被报出',
+    ).toBe(true)
   })
 
   it('变异 ③：数据区塞 HTML 标签 ⇒ 必须报出', () => {
@@ -183,7 +203,10 @@ describe('M9 P1.8 · DL-02 教程正文零进仓', () => {
       'probe.json',
       JSON.stringify({ items: [{ title: 'Python3 教程', note: '<p>一整段网页正文</p>' }] }),
     )
-    expect(hits.some((h) => h.rule === 'html-in-data'), '数据区的 HTML 没被报出').toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'html-in-data'),
+      '数据区的 HTML 没被报出',
+    ).toBe(true)
   })
 
   it('变异 ④：采集脚本出现正文抽取器 ⇒ 必须报出', () => {
@@ -191,7 +214,10 @@ describe('M9 P1.8 · DL-02 教程正文零进仓', () => {
       'probe.py',
       ['from bs4 import BeautifulSoup', "soup = BeautifulSoup(html, 'html.parser')"].join('\n'),
     )
-    expect(hits.some((h) => h.rule === 'body-scraper'), '正文抽取器痕迹没被报出').toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'body-scraper'),
+      '正文抽取器痕迹没被报出',
+    ).toBe(true)
   })
 
   it('变异 ⑤：清单里出现正文字段名（body / content）⇒ 必须报出', () => {
@@ -199,7 +225,10 @@ describe('M9 P1.8 · DL-02 教程正文零进仓', () => {
       'probe.json',
       JSON.stringify({ items: [{ title: 'x', body: '某段正文' }] }),
     )
-    expect(hits.some((h) => h.rule === 'body-field'), '正文字段名没被报出').toBe(true)
+    expect(
+      hits.some((h) => h.rule === 'body-field'),
+      '正文字段名没被报出',
+    ).toBe(true)
   })
 
   it('变异 ⑥：清单里出现**未登记字段**（自造键名藏正文）⇒ 必须报出', () => {
@@ -258,7 +287,9 @@ describe('M9 P1.8 · DL-06 挂接不反向写 terms', () => {
       seedLangTopics(h.db, SEEDS_DIR)
       insertTerm(h.db, 'trm_a', '甲')
       insertTerm(h.db, 'trm_b', '乙')
-      const topic = h.db.prepare(`SELECT id FROM lang_topics WHERE slug = ?`).get('python3-function') as {
+      const topic = h.db
+        .prepare(`SELECT id FROM lang_topics WHERE slug = ?`)
+        .get('python3-function') as {
         id: number
       }
       const before = termsFingerprint(h.db)
@@ -286,7 +317,9 @@ describe('M9 P1.8 · DL-06 挂接不反向写 terms', () => {
     try {
       seedLangTopics(h.db, SEEDS_DIR)
       insertTerm(h.db, 'trm_a', '甲')
-      const topic = h.db.prepare(`SELECT id FROM lang_topics WHERE slug = ?`).get('python3-function') as {
+      const topic = h.db
+        .prepare(`SELECT id FROM lang_topics WHERE slug = ?`)
+        .get('python3-function') as {
         id: number
       }
       attachTopicTerms(h.db, topic.id, ['trm_a'])
@@ -310,7 +343,9 @@ describe('M9 P1.8 · DL-06 挂接不反向写 terms', () => {
     try {
       seedLangTopics(h.db, SEEDS_DIR)
       insertTerm(h.db, 'trm_a', '甲')
-      const topic = h.db.prepare(`SELECT id FROM lang_topics WHERE slug = ?`).get('python3-function') as {
+      const topic = h.db
+        .prepare(`SELECT id FROM lang_topics WHERE slug = ?`)
+        .get('python3-function') as {
         id: number
       }
       const before = termsRowCount(h.db)
@@ -319,7 +354,9 @@ describe('M9 P1.8 · DL-06 挂接不反向写 terms', () => {
       expect(res.missing).toEqual(['trm_不存在'])
       // ⚠️ 缺失的术语**没有被建出来**
       expect(termsRowCount(h.db)).toBe(before)
-      const created = h.db.prepare(`SELECT COUNT(*) AS c FROM terms WHERE id = ?`).get('trm_不存在') as {
+      const created = h.db
+        .prepare(`SELECT COUNT(*) AS c FROM terms WHERE id = ?`)
+        .get('trm_不存在') as {
         c: number
       }
       expect(created.c).toBe(0)
@@ -339,7 +376,9 @@ describe('M9 P1.8 · DL-06 挂接不反向写 terms', () => {
     try {
       seedLangTopics(h.db, SEEDS_DIR)
       for (const id of ['trm_a', 'trm_b', 'trm_c', 'trm_d']) insertTerm(h.db, id, `术语${id}`)
-      const topic = h.db.prepare(`SELECT id FROM lang_topics WHERE slug = ?`).get('python3-function') as {
+      const topic = h.db
+        .prepare(`SELECT id FROM lang_topics WHERE slug = ?`)
+        .get('python3-function') as {
         id: number
       }
       const res = attachTopicTerms(h.db, topic.id, ['trm_a', 'trm_b', 'trm_c', 'trm_d'])
@@ -362,7 +401,9 @@ describe('M9 P1.8 · DL-06 挂接不反向写 terms', () => {
     try {
       seedLangTopics(h.db, SEEDS_DIR)
       insertTerm(h.db, 'trm_x', '闭包')
-      const topic = h.db.prepare(`SELECT id FROM lang_topics WHERE slug = ?`).get('python3-function') as {
+      const topic = h.db
+        .prepare(`SELECT id FROM lang_topics WHERE slug = ?`)
+        .get('python3-function') as {
         id: number
       }
       const res = attachTopicTermByNaturalKey(h.db, topic.id, '闭包')
@@ -384,7 +425,9 @@ describe('M9 P1.8 · DL-06 挂接不反向写 terms', () => {
     try {
       seedLangTopics(h.db, SEEDS_DIR)
       insertTerm(h.db, 'trm_a', '甲')
-      const topic = h.db.prepare(`SELECT id FROM lang_topics WHERE slug = ?`).get('python3-function') as {
+      const topic = h.db
+        .prepare(`SELECT id FROM lang_topics WHERE slug = ?`)
+        .get('python3-function') as {
         id: number
       }
       const before = termsFingerprint(h.db)
@@ -418,7 +461,9 @@ describe('M9 P1.8 · DL-06 挂接不反向写 terms', () => {
       const rowsBefore = termsRowCount(h.db)
       h.db.prepare(`UPDATE terms SET definition = ? WHERE id = ?`).run('被改过的定义', 'trm_a')
       expect(termsRowCount(h.db)).toBe(rowsBefore)
-      expect(termsChanged(before, termsFingerprint(h.db)), '行数没变但内容变了却没被检出').toBe(true)
+      expect(termsChanged(before, termsFingerprint(h.db)), '行数没变但内容变了却没被检出').toBe(
+        true,
+      )
       h.close()
     } catch (err) {
       try {
@@ -509,9 +554,10 @@ describe('M9 P1.8 · DL-14 两门数据都在且可筛选', () => {
         ],
       ]
       for (const [filter, sql] of cases) {
-        expect(filterTopics(h.db, filter).length, `筛选 ${JSON.stringify(filter)} 与直接 SQL 不一致`).toBe(
-          direct(sql),
-        )
+        expect(
+          filterTopics(h.db, filter).length,
+          `筛选 ${JSON.stringify(filter)} 与直接 SQL 不一致`,
+        ).toBe(direct(sql))
       }
       // ⚠️ 站过滤**蕴含** kind='language'：否则站 0 会混进 46 条库级条目（DL-12 牙 ①）
       const stage0 = filterTopics(h.db, { stage: 0 })
@@ -538,7 +584,10 @@ describe('M9 P1.8 · DL-14 两门数据都在且可筛选', () => {
       expect(opts.langs, 'Go 数据删光了但筛选器还提供 Go').not.toContain('go')
       expect(opts.langs.length, '筛选器只给一门了').toBe(1)
       const cov = langCoverage(h.db)
-      expect(cov.find((c) => c.lang === 'go'), 'Go 的覆盖量还在').toBeUndefined()
+      expect(
+        cov.find((c) => c.lang === 'go'),
+        'Go 的覆盖量还在',
+      ).toBeUndefined()
       h.close()
     } catch (err) {
       try {

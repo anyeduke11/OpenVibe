@@ -172,12 +172,7 @@ export async function scanProjectSource(opts: ScanProjectOptions): Promise<Sourc
 
   if (toolchain.available) {
     try {
-      const out = await scanGoParser(
-        opts.root,
-        goListing.files,
-        goSpecs,
-        opts.goBin ?? 'go',
-      )
+      const out = await scanGoParser(opts.root, goListing.files, goSpecs, opts.goBin ?? 'go')
       goHits = out.hits as RawHit[]
       goFileCount = out.file_count
       goVersion = toolchain.version
@@ -225,9 +220,10 @@ export function modeOf(result: SourceScanResult, lang: LangCode): ScannerMode | 
 }
 
 /** 命中按可信度分档（**confirmed 在前，possible 在后**；两档不混在一个列表里）。 */
-export function splitByConfidence(
-  findings: readonly SourceFinding[],
-): { confirmed: SourceFinding[]; possible: SourceFinding[] } {
+export function splitByConfidence(findings: readonly SourceFinding[]): {
+  confirmed: SourceFinding[]
+  possible: SourceFinding[]
+} {
   const confirmed: SourceFinding[] = []
   const possible: SourceFinding[] = []
   for (const f of findings) {

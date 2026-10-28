@@ -101,7 +101,11 @@ export function createBridgeInstallService(deps: BridgeInstallServiceDeps) {
         fieldErrors[field] = [`${field} 必须是字符串`]
         continue
       }
-      const why = valueViolation(field, raw, field === 'adapter' ? ADAPTER_MAX_LEN : PACK_VERSION_MAX_LEN)
+      const why = valueViolation(
+        field,
+        raw,
+        field === 'adapter' ? ADAPTER_MAX_LEN : PACK_VERSION_MAX_LEN,
+      )
       if (why) fieldErrors[field] = [why]
     }
 

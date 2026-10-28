@@ -39,7 +39,9 @@ describe('UT-EXAMPLE-01 · shared 基础能力', () => {
 
   it('两段式：fillVariables 替换已填/保留未填；interviewPrompt 从变量清单生成问参段（DEV-0084）', () => {
     const content = '仓库：{{repo_url}}｜分支：{{branch}}'
-    expect(fillVariables(content, { repo_url: 'https://x' })).toBe('仓库：https://x｜分支：{{branch}}')
+    expect(fillVariables(content, { repo_url: 'https://x' })).toBe(
+      '仓库：https://x｜分支：{{branch}}',
+    )
     expect(fillVariables(content, {})).toBe(content)
 
     const seg1 = interviewPrompt(['repo_url', 'branch', 'version'])

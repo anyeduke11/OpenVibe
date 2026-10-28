@@ -1,14 +1,14 @@
 # SPEC · v0.2.3 批次 B：首圈飞轮与自证（G2 · dogfooding 协议 + verify + 输出侧度量）
 
-| 项 | 值 |
-|------|------|
-| 模块 | **v0.2.3 · 批次 B / 目标 G2**。对应 PRD `docs/PRD-v0.2.3-v1.0-20261024.md` 第 4 章的 RQ2（首圈真实飞轮协议）、RQ3（`openvibe verify` 三方一致性）、RQ5（输出侧度量 OM1/OM2） |
-| 优先级 | **P1**。判级构成：FR-4/5/6 为 **B**，FR-1/2/3 为 **C**（协议与报告纪律）。逐项判级见 §4；一切判级均为预判，判级权在 owner（dev-plan §0.3） |
-| 上游 | `docs/PRD-v0.2.3-v1.0-20261024.md`（§0 G2、§4 RQ2/RQ3/RQ5、§7 批次 B、§9 反例 3/10）· `docs/analysis-2026-10-02-first-principles.md`（AD3-L2 verify 四态、MT1/MT2 度量定义、其 §10-10 的口径纪律）· `docs/tasks.md` §5（D15 证伪线与 M5-lite 预案，单源） |
+| 项       | 值                                                                                                                                                                                                                                                                                                                                                    |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 模块     | **v0.2.3 · 批次 B / 目标 G2**。对应 PRD `docs/PRD-v0.2.3-v1.0-20261024.md` 第 4 章的 RQ2（首圈真实飞轮协议）、RQ3（`openvibe verify` 三方一致性）、RQ5（输出侧度量 OM1/OM2）                                                                                                                                                                          |
+| 优先级   | **P1**。判级构成：FR-4/5/6 为 **B**，FR-1/2/3 为 **C**（协议与报告纪律）。逐项判级见 §4；一切判级均为预判，判级权在 owner（dev-plan §0.3）                                                                                                                                                                                                            |
+| 上游     | `docs/PRD-v0.2.3-v1.0-20261024.md`（§0 G2、§4 RQ2/RQ3/RQ5、§7 批次 B、§9 反例 3/10）· `docs/analysis-2026-10-02-first-principles.md`（AD3-L2 verify 四态、MT1/MT2 度量定义、其 §10-10 的口径纪律）· `docs/tasks.md` §5（D15 证伪线与 M5-lite 预案，单源）                                                                                             |
 | 下游设计 | `docs/design.md` §7.5（lock 形状，**不改动**——verify 现算不落盘）· `packages/core/src/inject/`（`fingerprintOf`/`fileSha256`/`lock.ts` 既有原语）· `local_events` 表与 `GET /api/local-events/summary`（本机事件台账，M8 已落地）· `injections` 表（D15 ② 腿已占用，**不重复计数**——分析文 §10.4.1 穷举结论）· `estimateTokens`（OM1 的既有单点估算） |
-| 关联任务 | **无**（任务号待本 spec 裁定后在 tasks.md 另起） |
-| 版本 | **v1.0（2026-10-24）**。§8.2 两处已闭合（owner 2026-10-24 指令「批次 B 收尾」授权落笔）。FR-4 verify 已落地（DEV-0113）；FR-5/6 OM 已落地（GET /api/om + 设置页 OmSection，DEV-0114）；FR-1/2 的协议文档就绪（`docs/devlog-evidence/v023-first-lap-protocol.md`），执行窗口 = 批次 A publish 之后 |
-| 采样 | 2026-10-24 本机工作树 |
+| 关联任务 | **无**（任务号待本 spec 裁定后在 tasks.md 另起）                                                                                                                                                                                                                                                                                                      |
+| 版本     | **v1.0（2026-10-24）**。§8.2 两处已闭合（owner 2026-10-24 指令「批次 B 收尾」授权落笔）。FR-4 verify 已落地（DEV-0113）；FR-5/6 OM 已落地（GET /api/om + 设置页 OmSection，DEV-0114）；FR-1/2 的协议文档就绪（`docs/devlog-evidence/v023-first-lap-protocol.md`），执行窗口 = 批次 A publish 之后                                                     |
+| 采样     | 2026-10-24 本机工作树                                                                                                                                                                                                                                                                                                                                 |
 
 ---
 
@@ -20,27 +20,27 @@
 
 ## 2. 范围
 
-| **In** | **Out（明确不做，写明理由与去向）** |
-|---|---|
+| **In**                                                                                | **Out（明确不做，写明理由与去向）**                                                                                                                     |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | dogfooding 协议（两真实项目、完整飞轮、观察窗 ≥1 周）与《飞轮首圈报告》模板（FR-1/2） | **对照组周**（分析增强建议：不开 OpenVibe 的对照周）。首版不做的理由：协议本身已证伪线化（D15），对照组是锦上添花；列为报告「后续增强」占位，owner 可裁 |
-| `openvibe verify` 只读命令 + 四态 + 退出码（FR-4） | **verify 结果写进 lock**（分析文 AD3 明确建议不写；一致性每次现算）|
-| `sync` 启动时内部 verify 与 PARTIAL 提示（FR-4.4） | **自动修复**。PARTIAL 只提示「上次注入可能中断」，修复动作永远是人发起（sync/clean/手工） |
-| OM1 有效上下文密度 + OM2 首次见效时间（FR-5/6） | **MT3 往返成本、MT4 验证覆盖比等其余 MT 指标**（分析文 §9.1）——本版只做两个最小指标，其余随 RF3 另议 |
-| 采纳率之外的首圈数据面（冲突处置分布、diff 退出码分布） | **看板拖拽的自动化证据**（E10 残留之一）——属 web 测试面，归 `v023-c-consolidation.md` 的回归范围外另议；本报告如实登记其仍缺失 |
-| — | **遥测白名单任何变更**；**OM 数据的任何出网通道** |
+| `openvibe verify` 只读命令 + 四态 + 退出码（FR-4）                                    | **verify 结果写进 lock**（分析文 AD3 明确建议不写；一致性每次现算）                                                                                     |
+| `sync` 启动时内部 verify 与 PARTIAL 提示（FR-4.4）                                    | **自动修复**。PARTIAL 只提示「上次注入可能中断」，修复动作永远是人发起（sync/clean/手工）                                                               |
+| OM1 有效上下文密度 + OM2 首次见效时间（FR-5/6）                                       | **MT3 往返成本、MT4 验证覆盖比等其余 MT 指标**（分析文 §9.1）——本版只做两个最小指标，其余随 RF3 另议                                                    |
+| 采纳率之外的首圈数据面（冲突处置分布、diff 退出码分布）                               | **看板拖拽的自动化证据**（E10 残留之一）——属 web 测试面，归 `v023-c-consolidation.md` 的回归范围外另议；本报告如实登记其仍缺失                          |
+| —                                                                                     | **遥测白名单任何变更**；**OM 数据的任何出网通道**                                                                                                       |
 
 ## 3. 现状与实测基线（采样：2026-10-24）
 
-| # | 量 | 现测值 | 复算命令 |
-|---|---|---|---|
-| 1 | `verify` 命令 | **不存在**（CLI 无此注册名） | `grep -rn "command('verify'" apps/cli/src/index.ts`（0 命中） |
-| 2 | 三方哈希原语 | **全部已在 core**：`fingerprintOf`（包内容）、`fileSha256`、lock 的 `files[].sha256`、磁盘现算——verify 无需新算法 | `grep -n 'export function fingerprintOf\|fileSha256' packages/core/src/pack/fingerprint.ts` |
-| 3 | lock 比对现状 | `diff` 只比「磁盘 vs lock」两方（clean/drifted/missing 三态）；「包内容 vs lock」一侧未接入 | `grep -n 'diffPackLock' packages/core/src/inject/lock.ts \| head -2` |
-| 4 | 本机事件台账 | `local_events` 已落地（迁移 0007/0010/0012），23 类 kind 闭集；`GET /api/local-events/summary` 聚合端点在 | `grep -n 'LOCAL_EVENT_KINDS' packages/shared/src/constants.ts` |
-| 5 | D15 两腿的机读源 | ① 工作台使用 = `stage_view_switched` / `flow_template_run` 等 kind（M8 落地后可数）；② DEV 日志 = `dev_log_entries` 表（**已被 D15 ② 占用，OM 不重复启用**——分析文 §10.4.1 穷举） | `grep -rn 'stage_view_switched\|flow_template_run' packages/shared/src/constants.ts` |
-| 6 | token 估算 | `estimateTokens` 单点估算已存在（OM1 复用，不新造分词器） | `grep -rn 'estimateTokens' packages/core/src --include='*.ts' \| head -3` |
-| 7 | injection_confirmed 事件 | kind 闭集已含（AN4 引用的 9 键台账之外的既有写入点） | `grep -rn 'injection_confirmed' packages apps --include='*.ts' \| grep -v test \| head -3` |
-| 8 | 测试基线 | 163 文件 / 2095 用例全绿 | `pnpm test` |
+| #   | 量                       | 现测值                                                                                                                                                                            | 复算命令                                                                                    |
+| --- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| 1   | `verify` 命令            | **不存在**（CLI 无此注册名）                                                                                                                                                      | `grep -rn "command('verify'" apps/cli/src/index.ts`（0 命中）                               |
+| 2   | 三方哈希原语             | **全部已在 core**：`fingerprintOf`（包内容）、`fileSha256`、lock 的 `files[].sha256`、磁盘现算——verify 无需新算法                                                                 | `grep -n 'export function fingerprintOf\|fileSha256' packages/core/src/pack/fingerprint.ts` |
+| 3   | lock 比对现状            | `diff` 只比「磁盘 vs lock」两方（clean/drifted/missing 三态）；「包内容 vs lock」一侧未接入                                                                                       | `grep -n 'diffPackLock' packages/core/src/inject/lock.ts \| head -2`                        |
+| 4   | 本机事件台账             | `local_events` 已落地（迁移 0007/0010/0012），23 类 kind 闭集；`GET /api/local-events/summary` 聚合端点在                                                                         | `grep -n 'LOCAL_EVENT_KINDS' packages/shared/src/constants.ts`                              |
+| 5   | D15 两腿的机读源         | ① 工作台使用 = `stage_view_switched` / `flow_template_run` 等 kind（M8 落地后可数）；② DEV 日志 = `dev_log_entries` 表（**已被 D15 ② 占用，OM 不重复启用**——分析文 §10.4.1 穷举） | `grep -rn 'stage_view_switched\|flow_template_run' packages/shared/src/constants.ts`        |
+| 6   | token 估算               | `estimateTokens` 单点估算已存在（OM1 复用，不新造分词器）                                                                                                                         | `grep -rn 'estimateTokens' packages/core/src --include='*.ts' \| head -3`                   |
+| 7   | injection_confirmed 事件 | kind 闭集已含（AN4 引用的 9 键台账之外的既有写入点）                                                                                                                              | `grep -rn 'injection_confirmed' packages apps --include='*.ts' \| grep -v test \| head -3`  |
+| 8   | 测试基线                 | 163 文件 / 2095 用例全绿                                                                                                                                                          | `pnpm test`                                                                                 |
 
 ## 4. 功能需求（FR）
 
@@ -96,15 +96,15 @@
 
 ## 7. 验收标准（pass/fail）
 
-| # | 条目 | 判据 |
-|---|---|---|
-| 1 | verify 四态 | 各一支用例（人为造中间态：半途 kill 注入 / 手改 lock / 手放新文件）；verify 前后项目目录逐字节不变 |
-| 2 | verify 接线 | 退出码 0/2/1；`--json` 单对象；`CLI_COMMANDS` 登记 + 漂移闸绿 |
-| 3 | sync 前置提示 | 造 PARTIAL 中间态 ⇒ sync 启动输出含「上次注入可能中断」且不阻断 |
-| 4 | OM1 | 同一包两次现算结果确定（同输入同值）；Top5 可归因；面板标注「估算」 |
-| 5 | OM2 | 空数据显示「待采集」；有事件时墙钟差与事件时间戳一致 |
-| 6 | 首圈报告 | 固定节齐全且每节附导出命令；摩擦清单 ≥5 条带复现步骤；D15 判定节有明确触发/不触发结论 |
-| 7 | 回归 | `pnpm test` 用例数只增不减；golden 零变化；docs:check 全绿 |
+| #   | 条目          | 判据                                                                                               |
+| --- | ------------- | -------------------------------------------------------------------------------------------------- |
+| 1   | verify 四态   | 各一支用例（人为造中间态：半途 kill 注入 / 手改 lock / 手放新文件）；verify 前后项目目录逐字节不变 |
+| 2   | verify 接线   | 退出码 0/2/1；`--json` 单对象；`CLI_COMMANDS` 登记 + 漂移闸绿                                      |
+| 3   | sync 前置提示 | 造 PARTIAL 中间态 ⇒ sync 启动输出含「上次注入可能中断」且不阻断                                    |
+| 4   | OM1           | 同一包两次现算结果确定（同输入同值）；Top5 可归因；面板标注「估算」                                |
+| 5   | OM2           | 空数据显示「待采集」；有事件时墙钟差与事件时间戳一致                                               |
+| 6   | 首圈报告      | 固定节齐全且每节附导出命令；摩擦清单 ≥5 条带复现步骤；D15 判定节有明确触发/不触发结论              |
+| 7   | 回归          | `pnpm test` 用例数只增不减；golden 零变化；docs:check 全绿                                         |
 
 ## 8. 依赖
 

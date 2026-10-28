@@ -58,7 +58,9 @@ function sandbox(): string {
 }
 
 function itemsIn(dir: string, file: string): Record<string, unknown>[] {
-  const bundle = JSON.parse(readFileSync(join(dir, file), 'utf8')) as { items: Record<string, unknown>[] }
+  const bundle = JSON.parse(readFileSync(join(dir, file), 'utf8')) as {
+    items: Record<string, unknown>[]
+  }
   return bundle.items
 }
 
@@ -74,78 +76,100 @@ afterAll(() => {
 })
 
 describe('SCRIPT-SEED-00 · 正向基线 + 覆盖口只读', () => {
-  it('不带 OPENVIBE_SEED_DIR 时按仓库真种子通过（exit 0）', () => {
-    const run = runSeedCheck()
-    expect(run.status, run.out).toBe(0)
-    expect(run.out).toContain('[seed:check] 通过')
-  }, TEST_TIMEOUT)
+  it(
+    '不带 OPENVIBE_SEED_DIR 时按仓库真种子通过（exit 0）',
+    () => {
+      const run = runSeedCheck()
+      expect(run.status, run.out).toBe(0)
+      expect(run.out).toContain('[seed:check] 通过')
+    },
+    TEST_TIMEOUT,
+  )
 
-  it('带 OPENVIBE_SEED_DIR 指向真种子的逐字节副本时同样通过，且脚本不改写副本', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'openvibe-seed-copy-'))
-    sandboxes.push(dir)
-    const originals = SEED_FILES.map((f) => readFileSync(join(REAL_SEED_DIR, f)))
-    for (const [i, f] of SEED_FILES.entries()) writeFileSync(join(dir, f), originals[i]!)
+  it(
+    '带 OPENVIBE_SEED_DIR 指向真种子的逐字节副本时同样通过，且脚本不改写副本',
+    () => {
+      const dir = mkdtempSync(join(tmpdir(), 'openvibe-seed-copy-'))
+      sandboxes.push(dir)
+      const originals = SEED_FILES.map((f) => readFileSync(join(REAL_SEED_DIR, f)))
+      for (const [i, f] of SEED_FILES.entries()) writeFileSync(join(dir, f), originals[i]!)
 
-    expect(runSeedCheck(dir).status).toBe(0)
+      expect(runSeedCheck(dir).status).toBe(0)
 
-    for (const [i, f] of SEED_FILES.entries()) {
-      expect(readFileSync(join(dir, f)).equals(originals[i]!), `${f} 被脚本改写`).toBe(true)
-    }
-  }, TEST_TIMEOUT)
+      for (const [i, f] of SEED_FILES.entries()) {
+        expect(readFileSync(join(dir, f)).equals(originals[i]!), `${f} 被脚本改写`).toBe(true)
+      }
+    },
+    TEST_TIMEOUT,
+  )
 })
 
 describe('SCRIPT-SEED-01 · seed-content §7.1 词条数量门槛', () => {
-  it('词条数压到门槛之下（截到 95 条）→ 非零，并点名「95 条 < 门槛 100 条」', () => {
-    const dir = sandbox()
-    sandboxes.push(dir)
-    const total = itemsIn(dir, 'terms.json').length
-    expect(runSeedCheck(dir).status, '篡改前必须先通过').toBe(0)
+  it(
+    '词条数压到门槛之下（截到 95 条）→ 非零，并点名「95 条 < 门槛 100 条」',
+    () => {
+      const dir = sandbox()
+      sandboxes.push(dir)
+      const total = itemsIn(dir, 'terms.json').length
+      expect(runSeedCheck(dir).status, '篡改前必须先通过').toBe(0)
 
-    // 门槛是绝对值 100，「删 5 条」只在种子恰好 104 条时等价于「掉到门槛之下」；
-    // 种子只增不减（DEV-0022 回流即 104→109），故按目标绝对量截，断言字面量随之固定。
-    const dropTo = 95
-    expect(total, '夹具前提：真种子须高于截断目标').toBeGreaterThan(dropTo)
-    writeItems(dir, 'terms.json', itemsIn(dir, 'terms.json').slice(0, dropTo))
-    const run = runSeedCheck(dir)
-    expect(run.status).not.toBe(0)
-    expect(run.out).toContain(`terms.json · 数量 — ${String(dropTo)} 条 < 门槛 100 条`)
-  }, TEST_TIMEOUT)
+      // 门槛是绝对值 100，「删 5 条」只在种子恰好 104 条时等价于「掉到门槛之下」；
+      // 种子只增不减（DEV-0022 回流即 104→109），故按目标绝对量截，断言字面量随之固定。
+      const dropTo = 95
+      expect(total, '夹具前提：真种子须高于截断目标').toBeGreaterThan(dropTo)
+      writeItems(dir, 'terms.json', itemsIn(dir, 'terms.json').slice(0, dropTo))
+      const run = runSeedCheck(dir)
+      expect(run.status).not.toBe(0)
+      expect(run.out).toContain(`terms.json · 数量 — ${String(dropTo)} 条 < 门槛 100 条`)
+    },
+    TEST_TIMEOUT,
+  )
 })
 
 describe('SCRIPT-SEED-02 · seed-content §7.3 模板 3/7/4 阶段逐字一致', () => {
-  it('阶段名改一个字 → 非零并点名模板与差异阶段', () => {
-    const dir = sandbox()
-    sandboxes.push(dir)
-    expect(runSeedCheck(dir).status, '篡改前必须先通过').toBe(0)
+  it(
+    '阶段名改一个字 → 非零并点名模板与差异阶段',
+    () => {
+      const dir = sandbox()
+      sandboxes.push(dir)
+      expect(runSeedCheck(dir).status, '篡改前必须先通过').toBe(0)
 
-    const items = itemsIn(dir, 'flow-templates.json')
-    const light = items.find((i) => i['name'] === '个人轻量流')
-    expect(light).toBeDefined()
-    const stages = (light!['stages'] ?? []) as { name: string }[]
-    expect(stages.map((s) => s.name)).toEqual(['启动', '开发', '复盘'])
-    stages[2] = { ...stages[2]!, name: '回顾' }
-    writeItems(dir, 'flow-templates.json', items)
+      const items = itemsIn(dir, 'flow-templates.json')
+      const light = items.find((i) => i['name'] === '个人轻量流')
+      expect(light).toBeDefined()
+      const stages = (light!['stages'] ?? []) as { name: string }[]
+      expect(stages.map((s) => s.name)).toEqual(['启动', '开发', '复盘'])
+      stages[2] = { ...stages[2]!, name: '回顾' }
+      writeItems(dir, 'flow-templates.json', items)
 
-    const run = runSeedCheck(dir)
-    expect(run.status).not.toBe(0)
-    expect(run.out).toContain('flow-templates.json · 个人轻量流 — 阶段名需逐字一致，收到 启动 / 开发 / 回顾')
-  }, TEST_TIMEOUT)
+      const run = runSeedCheck(dir)
+      expect(run.status).not.toBe(0)
+      expect(run.out).toContain(
+        'flow-templates.json · 个人轻量流 — 阶段名需逐字一致，收到 启动 / 开发 / 回顾',
+      )
+    },
+    TEST_TIMEOUT,
+  )
 
-  it('Spec 驱动流删掉一个阶段 → 非零并点名「阶段数期望 7，收到 6」', () => {
-    const dir = sandbox()
-    sandboxes.push(dir)
-    expect(runSeedCheck(dir).status, '篡改前必须先通过').toBe(0)
+  it(
+    'Spec 驱动流删掉一个阶段 → 非零并点名「阶段数期望 7，收到 6」',
+    () => {
+      const dir = sandbox()
+      sandboxes.push(dir)
+      expect(runSeedCheck(dir).status, '篡改前必须先通过').toBe(0)
 
-    const items = itemsIn(dir, 'flow-templates.json')
-    const spec = items.find((i) => i['name'] === 'Spec 驱动流')
-    expect(spec).toBeDefined()
-    const stages = spec!['stages'] as { name: string }[]
-    expect(stages.length).toBe(7)
-    spec!['stages'] = stages.slice(0, -1)
-    writeItems(dir, 'flow-templates.json', items)
+      const items = itemsIn(dir, 'flow-templates.json')
+      const spec = items.find((i) => i['name'] === 'Spec 驱动流')
+      expect(spec).toBeDefined()
+      const stages = spec!['stages'] as { name: string }[]
+      expect(stages.length).toBe(7)
+      spec!['stages'] = stages.slice(0, -1)
+      writeItems(dir, 'flow-templates.json', items)
 
-    const run = runSeedCheck(dir)
-    expect(run.status).not.toBe(0)
-    expect(run.out).toContain('Spec 驱动流 — 阶段数期望 7，收到 6')
-  }, TEST_TIMEOUT)
+      const run = runSeedCheck(dir)
+      expect(run.status).not.toBe(0)
+      expect(run.out).toContain('Spec 驱动流 — 阶段数期望 7，收到 6')
+    },
+    TEST_TIMEOUT,
+  )
 })

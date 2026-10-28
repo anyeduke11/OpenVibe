@@ -31,15 +31,26 @@ const raw = readFileSync(resolve(file), 'utf8')
 const fileHash = createHash('sha256').update(raw).digest('hex').slice(0, 16)
 
 // ── 结构化校验（docs/vibe-retro.md §5：固定复盘思考模型的六节骨架，缺则拒绝）──
-const REQUIRED_SECTIONS = ['总评', '逐批判定', '声称对照', '遗留清单', '数字复算', '复盘自评'] as const
+const REQUIRED_SECTIONS = [
+  '总评',
+  '逐批判定',
+  '声称对照',
+  '遗留清单',
+  '数字复算',
+  '复盘自评',
+] as const
 const wantVer = String(RETRO_SCHEMA_VERSION)
 if (!new RegExp(`^retro-schema: *${wantVer}$`, 'm').test(raw)) {
-  console.error(`⛔ 报告头缺 \`retro-schema: ${wantVer}\` 声明（docs/vibe-retro.md §5 骨架 v${wantVer}；版本常量单源在 shared/extract-prompt.ts）`)
+  console.error(
+    `⛔ 报告头缺 \`retro-schema: ${wantVer}\` 声明（docs/vibe-retro.md §5 骨架 v${wantVer}；版本常量单源在 shared/extract-prompt.ts）`,
+  )
   process.exit(1)
 }
 const missingSections = REQUIRED_SECTIONS.filter((t) => !new RegExp(`^## ${t}\\s*$`, 'm').test(raw))
 if (missingSections.length > 0) {
-  console.error(`⛔ 复盘骨架缺 ${String(missingSections.length)} 节：${missingSections.join('、')}（固定思考模型六节，见 docs/vibe-retro.md §5）`)
+  console.error(
+    `⛔ 复盘骨架缺 ${String(missingSections.length)} 节：${missingSections.join('、')}（固定思考模型六节，见 docs/vibe-retro.md §5）`,
+  )
   process.exit(1)
 }
 
@@ -77,24 +88,29 @@ if (sections.length === 0) {
   process.exit(1)
 }
 
-console.log(`报告：${String(sections.length)} 节 → 项目 ${projectId}（全部落 pending，Web 确认后入库）`)
-const results = await client.postJson<{ accepted: number; duplicate: number; conflict: number; rejected: number; items: { status: string }[] }>(
-  '/api/agent/ingest',
-  {
-    projectId,
-    items: sections.map((sec, i) => ({
-      kind: 'dev_log',
-      idempotencyKey: `vibe-retro:${fileHash}:${String(i)}`,
-      payload: {
-        type,
-        title: `复盘 · ${sec.title}`,
-        body: sec.body.trim().slice(0, 60_000),
-        relatedFiles: [],
-      },
-      sourcePlatform: 'vibe-retro',
-    })),
-  },
+console.log(
+  `报告：${String(sections.length)} 节 → 项目 ${projectId}（全部落 pending，Web 确认后入库）`,
 )
+const results = await client.postJson<{
+  accepted: number
+  duplicate: number
+  conflict: number
+  rejected: number
+  items: { status: string }[]
+}>('/api/agent/ingest', {
+  projectId,
+  items: sections.map((sec, i) => ({
+    kind: 'dev_log',
+    idempotencyKey: `vibe-retro:${fileHash}:${String(i)}`,
+    payload: {
+      type,
+      title: `复盘 · ${sec.title}`,
+      body: sec.body.trim().slice(0, 60_000),
+      relatedFiles: [],
+    },
+    sourcePlatform: 'vibe-retro',
+  })),
+})
 
 console.log(
   `回流完成：accepted ${String(results.accepted)} / duplicate ${String(results.duplicate)} / conflict ${String(results.conflict)} / rejected ${String(results.rejected)}`,

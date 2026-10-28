@@ -1,4 +1,9 @@
-import { DUAL_PLAN, DUAL_PLAN_HEADINGS, DUAL_PLAN_NOTES, type DualPlanSegment } from '@openvibe/shared'
+import {
+  DUAL_PLAN,
+  DUAL_PLAN_HEADINGS,
+  DUAL_PLAN_NOTES,
+  type DualPlanSegment,
+} from '@openvibe/shared'
 
 /**
  * M9 v1.6 **P3.4 · 双修规划时间线**（`m9-dev-language-roadmap.md` §3.22.1 · dev-plan §6.9 P3.4）。
@@ -55,9 +60,7 @@ export function DualPlanTimeline({ profiles = ['master', 'familiar'] }: DualPlan
                   className="rounded-md border border-line bg-panel px-3 py-2"
                 >
                   <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="text-[11.5px] tabular-nums text-ink-faint">
-                      {L.no(s.no)}
-                    </span>
+                    <span className="text-[11.5px] tabular-nums text-ink-faint">{L.no(s.no)}</span>
                     <span className="text-[11.5px] text-ink-faint">{s.period}</span>
                     <span className="text-sm text-ink">{s.title}</span>
                   </div>

@@ -14,7 +14,13 @@ import {
   setExtractConsent,
   type ExtractRunner,
 } from '@openvibe/core'
-import { AppError, DiscussRequestInput, ExtractRequestInput, type ExtractConsentOut, type ExtractOut } from '@openvibe/shared'
+import {
+  AppError,
+  DiscussRequestInput,
+  ExtractRequestInput,
+  type ExtractConsentOut,
+  type ExtractOut,
+} from '@openvibe/shared'
 import { parseOrThrow } from '../lib/validate'
 import type { SqliteDatabase } from '@openvibe/core'
 

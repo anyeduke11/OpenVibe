@@ -4,7 +4,12 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
 import { PacksRepo, buildPackLock, planInjection, runSeed } from '@openvibe/core'
-import { PACK_FILE_PLAYBOOKS, type PackOut, type PlaybookOut, type PreviewOut } from '@openvibe/shared'
+import {
+  PACK_FILE_PLAYBOOKS,
+  type PackOut,
+  type PlaybookOut,
+  type PreviewOut,
+} from '@openvibe/shared'
 import { buildApp } from '../src/app'
 
 /** m4 §7.3：六端点 / STALE_SELECTION 的 playbookIds 腿 / CONTEXT_AUX 计入 / EMPTY_SELECTION 归因 / 变异反证 */
@@ -35,7 +40,12 @@ afterEach(() => {
   }
 })
 
-function api(h: Harness, method: 'GET' | 'POST' | 'PATCH' | 'DELETE', url: string, payload?: object) {
+function api(
+  h: Harness,
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  url: string,
+  payload?: object,
+) {
   return h.app.inject({ method, url, payload, headers: { authorization: `Bearer ${TOKEN}` } })
 }
 
@@ -58,7 +68,11 @@ async function mkBasePack(h: Harness, name: string, playbookIds: string[]): Prom
     useAs: 'rule',
     status: 'active',
   })
-  const term = await api(h, 'POST', '/api/terms', { zh: '规则漂移', en: 'rule drift', definition: '定义文本' })
+  const term = await api(h, 'POST', '/api/terms', {
+    zh: '规则漂移',
+    en: 'rule drift',
+    definition: '定义文本',
+  })
   const res = await api(h, 'POST', '/api/packs', {
     name,
     selection: {
@@ -170,7 +184,13 @@ describe('IT-PB-02 · 组包接入（FR-7 / §6.4）', () => {
     const pb = await mkPlaybook(h)
     const only = await api(h, 'POST', '/api/packs', {
       name: 'pb-only',
-      selection: { promptIds: [], termIds: [], skillIds: [], playbookIds: [pb.id], flowTemplateId: null },
+      selection: {
+        promptIds: [],
+        termIds: [],
+        skillIds: [],
+        playbookIds: [pb.id],
+        flowTemplateId: null,
+      },
       targets: ['claude-code'],
     })
     expect(only.statusCode).toBe(201)
@@ -182,7 +202,13 @@ describe('IT-PB-02 · 组包接入（FR-7 / §6.4）', () => {
     // 未选技巧时文案仍是 m6a 那句，不得被 M4 的归因文案替换掉
     const none = await api(h, 'POST', '/api/packs', {
       name: 'pb-none',
-      selection: { promptIds: [], termIds: [], skillIds: [], playbookIds: [], flowTemplateId: null },
+      selection: {
+        promptIds: [],
+        termIds: [],
+        skillIds: [],
+        playbookIds: [],
+        flowTemplateId: null,
+      },
       targets: ['claude-code'],
     })
     const res2 = await api(h, 'POST', `/api/packs/${(none.json() as PackOut).id}/preview`, {})
@@ -222,7 +248,10 @@ describe('IT-PB-02 · 组包接入（FR-7 / §6.4）', () => {
     expect(patched.statusCode, patched.body).toBe(200)
     const p2 = await preview(h, pack.id)
     const patchedDraft = await api(h, 'PATCH', `/api/packs/${pack.id}`, {
-      selection: { ...(pack.selection as Record<string, unknown>), playbookIds: [one.id, two.id, draft.id] },
+      selection: {
+        ...(pack.selection as Record<string, unknown>),
+        playbookIds: [one.id, two.id, draft.id],
+      },
     })
     expect(patchedDraft.statusCode, patchedDraft.body).toBe(200)
     const p3 = await preview(h, pack.id)
@@ -259,7 +288,8 @@ describe('IT-PB-02 · 组包接入（FR-7 / §6.4）', () => {
     const pathsOf = (out: PreviewOut): string[] => out.files.map((f) => f.path)
     expect(pathsOf(withPb)).toEqual([...pathsOf(without), PACK_FILE_PLAYBOOKS].sort())
     // 正文交叉引用行也必须出现（FR-7.6），且未选技巧的包字节逐字节不变
-    const main = (out: PreviewOut): string => out.files.find((f) => f.path === 'CLAUDE.md')?.content ?? ''
+    const main = (out: PreviewOut): string =>
+      out.files.find((f) => f.path === 'CLAUDE.md')?.content ?? ''
     expect(main(withPb)).toContain(`见 ${PACK_FILE_PLAYBOOKS}（1 条）`)
     expect(main(without)).not.toContain(PACK_FILE_PLAYBOOKS)
 
@@ -294,7 +324,9 @@ describe('IT-PB-SEED · 预置技巧装载（FR-9）', () => {
 
     const published = (
       db
-        .prepare("SELECT COUNT(*) AS n FROM playbooks WHERE status='published' AND source='openvibe-seed'")
+        .prepare(
+          "SELECT COUNT(*) AS n FROM playbooks WHERE status='published' AND source='openvibe-seed'",
+        )
         .get() as { n: number }
     ).n
     expect(published).toBe(bundle?.created)

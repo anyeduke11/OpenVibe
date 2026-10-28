@@ -254,14 +254,17 @@ export function seedTopicProfiles(db: SqliteDatabase): M9ProfileSeedResult[] {
         if (r === 'user-modified') result.userModified = (result.userModified ?? 0) + 1
       }
     } catch (err) {
-      result.warnings.push(`单条 INSERT 失败: ${String(row.topic_id)}/${row.profile} — ${String(err)}`)
+      result.warnings.push(
+        `单条 INSERT 失败: ${String(row.topic_id)}/${row.profile} — ${String(err)}`,
+      )
     }
   }
 
   // 清陈旧行：表里存在、但现算结果里没有的组合
-  const stale = db
-    .prepare(`SELECT topic_id, profile FROM lang_topic_profiles`)
-    .all() as { topic_id: number; profile: string }[]
+  const stale = db.prepare(`SELECT topic_id, profile FROM lang_topic_profiles`).all() as {
+    topic_id: number
+    profile: string
+  }[]
   for (const row of stale) {
     if (!keep.has(`${String(row.topic_id)}/${row.profile}`)) {
       del.run(row.topic_id, row.profile)

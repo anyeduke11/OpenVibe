@@ -127,11 +127,9 @@ export function seedTopicEdges(db: SqliteDatabase, seedDir: string): M9EdgeSeedR
 
   for (const it of parsed.items) {
     const topic = findTopic.get(it.topic_slug) as
-      | { id: number; lang: string; kind: string }
-      | undefined
+      { id: number; lang: string; kind: string } | undefined
     const prereq = findTopic.get(it.prereq_slug) as
-      | { id: number; lang: string; kind: string }
-      | undefined
+      { id: number; lang: string; kind: string } | undefined
     if (!topic) {
       result.warnings.push(`边的 topic 不存在: ${it.topic_slug}`)
       continue

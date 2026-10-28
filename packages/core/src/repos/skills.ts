@@ -78,9 +78,11 @@ export function computeDirHash(dir: string): { dirHash: string; fileCount: numbe
 /** SKILL.md YAML frontmatter 单行 name/description 容错解析（m2 FR-1.2）；
  *  DEV-0067 起 name/description 剥掉包裹引号——YAML 里 `name: "foo"` 的引号是语法不是值，
  *  旧实现把 `"PRD to Prototype"` 整串存成了台账名 */
-export function parseSkillFrontmatter(
-  content: string,
-): { name?: string; description?: string; ok: boolean } {
+export function parseSkillFrontmatter(content: string): {
+  name?: string
+  description?: string
+  ok: boolean
+} {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
   if (!match || !match[1]) return { ok: false }
   const yaml = match[1] ?? ''
@@ -298,7 +300,17 @@ export class SkillsRepo {
         const name = fm.name ?? dirName
         if (!fm.ok) report.warnings.push(`SKILL.md frontmatter 缺失/非法，name 回退目录名: ${name}`)
         const { dirHash, fileCount } = computeDirHash(skillDir)
-        report[this.recordVersion({ name, description: fm.description ?? '', source: 'local', dir: skillDir, versionLabel: dirName, dirHash, fileCount })] += 1
+        report[
+          this.recordVersion({
+            name,
+            description: fm.description ?? '',
+            source: 'local',
+            dir: skillDir,
+            versionLabel: dirName,
+            dirHash,
+            fileCount,
+          })
+        ] += 1
       }
     }
     return report
@@ -317,8 +329,7 @@ export class SkillsRepo {
     remoteTreeHash?: string | null
   }): 'created' | 'updated' | 'skipped' {
     const existing = this.db.prepare('SELECT * FROM skills WHERE name = ?').get(input.name) as
-      | SkillRow
-      | undefined
+      SkillRow | undefined
 
     if (!existing) {
       const id = newId('skill')
@@ -348,9 +359,7 @@ export class SkillsRepo {
              VALUES (?, ?, ?, ?, ?, ?)`,
           )
           .run(versionId, id, input.versionLabel, input.dirHash, input.fileCount, ts)
-        this.db
-          .prepare('UPDATE skills SET latest_version_id = ? WHERE id = ?')
-          .run(versionId, id)
+        this.db.prepare('UPDATE skills SET latest_version_id = ? WHERE id = ?').run(versionId, id)
       })()
       return 'created'
     }
@@ -366,7 +375,14 @@ export class SkillsRepo {
              remote_ref = COALESCE(?, remote_ref), remote_tree_hash = COALESCE(?, remote_tree_hash),
              updated_at = ? WHERE id = ?`,
         )
-        .run(input.description, input.dir, input.remoteRef ?? null, input.remoteTreeHash ?? null, nowIso(), existing.id)
+        .run(
+          input.description,
+          input.dir,
+          input.remoteRef ?? null,
+          input.remoteTreeHash ?? null,
+          nowIso(),
+          existing.id,
+        )
       return 'skipped'
     }
     const versionId = newId('skillVersion')
@@ -384,7 +400,15 @@ export class SkillsRepo {
              remote_ref = COALESCE(?, remote_ref), remote_tree_hash = COALESCE(?, remote_tree_hash),
              updated_at = ? WHERE id = ?`,
         )
-        .run(versionId, input.description, input.dir, input.remoteRef ?? null, input.remoteTreeHash ?? null, ts, existing.id)
+        .run(
+          versionId,
+          input.description,
+          input.dir,
+          input.remoteRef ?? null,
+          input.remoteTreeHash ?? null,
+          ts,
+          existing.id,
+        )
     })()
     return 'updated'
   }
@@ -410,8 +434,7 @@ export class SkillsRepo {
 
   create(input: SkillCreateInput): SkillOut {
     const existing = this.db.prepare('SELECT id FROM skills WHERE name = ?').get(input.name) as
-      | { id: string }
-      | undefined
+      { id: string } | undefined
     if (existing) throw new AppError('NAME_CONFLICT', `同名 skill 已存在: ${input.name}`)
     if (input.source === 'local' && !input.skillDir) {
       throw new AppError('VALIDATION_ERROR', 'local 源必须提供 skillDir（m2 §3）')
@@ -444,9 +467,7 @@ export class SkillsRepo {
            VALUES (?, ?, 'v1', '', 0, ?)`,
         )
         .run(versionId, id, ts)
-      this.db
-        .prepare('UPDATE skills SET latest_version_id = ? WHERE id = ?')
-        .run(versionId, id)
+      this.db.prepare('UPDATE skills SET latest_version_id = ? WHERE id = ?').run(versionId, id)
     })()
     const skill = this.get(id)
     if (!skill) throw new AppError('INTERNAL', '创建后读取失败')
@@ -475,14 +496,14 @@ export class SkillsRepo {
   }
 
   get(id: string): SkillOut | null {
-    const row = this.db.prepare('SELECT * FROM skills WHERE id = ?').get(id) as
-      | SkillRow
-      | undefined
+    const row = this.db.prepare('SELECT * FROM skills WHERE id = ?').get(id) as SkillRow | undefined
     return row ? rowToSkill(row) : null
   }
 
   list(): SkillOut[] {
-    const rows = this.db.prepare('SELECT * FROM skills ORDER BY name ASC, id ASC').all() as SkillRow[]
+    const rows = this.db
+      .prepare('SELECT * FROM skills ORDER BY name ASC, id ASC')
+      .all() as SkillRow[]
     return rows.map(rowToSkill)
   }
 
@@ -572,8 +593,7 @@ export class SkillsRepo {
   /** 审查单条（DEV-0067）：有本地目录读 SKILL.md 全文，无目录（远程/手动）仅元数据审查 */
   review(ids?: string[]): SkillReviewReport {
     const all = this.list()
-    const wanted =
-      ids === undefined ? all : all.filter((s) => ids.includes(s.id))
+    const wanted = ids === undefined ? all : all.filter((s) => ids.includes(s.id))
     const items: SkillReviewReport['items'] = []
     const summary = { ok: 0, info: 0, warn: 0, fail: 0 }
     for (const skill of wanted) {
@@ -586,14 +606,13 @@ export class SkillsRepo {
         }
       }
       const issues = reviewSkill({ name: skill.name, description: skill.description, content })
-      const level =
-        issues.some((i) => i.severity === 'fail')
-          ? 'fail'
-          : issues.some((i) => i.severity === 'warn')
-            ? 'warn'
-            : issues.length > 0
-              ? 'info'
-              : 'ok'
+      const level = issues.some((i) => i.severity === 'fail')
+        ? 'fail'
+        : issues.some((i) => i.severity === 'warn')
+          ? 'warn'
+          : issues.length > 0
+            ? 'info'
+            : 'ok'
       items.push({ skillId: skill.id, name: skill.name, level, issues })
       summary[level] += 1
     }
@@ -610,18 +629,23 @@ export class SkillsRepo {
   mergeSkills(
     keepId: string,
     absorbIds: readonly string[],
-  ): { keptName: string; absorbed: number; versionsMoved: number; versionsDropped: number; warnings: string[] } {
+  ): {
+    keptName: string
+    absorbed: number
+    versionsMoved: number
+    versionsDropped: number
+    warnings: string[]
+  } {
     const keep = this.get(keepId)
     if (keep === null) throw new AppError('NOT_FOUND', `保留项 skill 不存在: ${keepId}`)
     const unique = [...new Set(absorbIds.filter((x) => typeof x === 'string' && x !== ''))].filter(
       (id) => id !== keepId,
     )
-    const absorbs = unique
-      .map((id) => {
-        const s = this.get(id)
-        if (s === null) throw new AppError('NOT_FOUND', `被合并 skill 不存在: ${id}`)
-        return s
-      })
+    const absorbs = unique.map((id) => {
+      const s = this.get(id)
+      if (s === null) throw new AppError('NOT_FOUND', `被合并 skill 不存在: ${id}`)
+      return s
+    })
     if (absorbs.length === 0) {
       throw new AppError('VALIDATION_ERROR', 'absorbIds 去重后为空（不能只吸收自己）')
     }
@@ -664,7 +688,14 @@ export class SkillsRepo {
               `INSERT INTO skill_versions (id, skill_id, version_label, dir_hash, file_count, scanned_at)
                VALUES (?, ?, ?, ?, ?, ?)`,
             )
-            .run(newId('skillVersion'), keepId, v.version_label, v.dir_hash, v.file_count, v.scanned_at)
+            .run(
+              newId('skillVersion'),
+              keepId,
+              v.version_label,
+              v.dir_hash,
+              v.file_count,
+              v.scanned_at,
+            )
           moved += 1
         }
         this.db.prepare('DELETE FROM skills WHERE id = ?').run(absorb.id)
@@ -676,7 +707,9 @@ export class SkillsRepo {
         .run(JSON.stringify([...targets]), inheritedDir, nowIso(), keepId)
     })()
     if (dropped > 0) {
-      warnings.push(`丢弃 ${String(dropped)} 个版本（同指纹已存在于保留项，或手动登记的空指纹首版本）`)
+      warnings.push(
+        `丢弃 ${String(dropped)} 个版本（同指纹已存在于保留项，或手动登记的空指纹首版本）`,
+      )
     }
     return {
       keptName: keep.name,
@@ -738,7 +771,10 @@ export class SkillsRepo {
         }
       }
     } else if (issue === 'convention') {
-      fileNote = skill.source === 'local' ? '无本地目录，仅改台账' : '远程条目仅改台账（重导会按远端 frontmatter 再判）'
+      fileNote =
+        skill.source === 'local'
+          ? '无本地目录，仅改台账'
+          : '远程条目仅改台账（重导会按远端 frontmatter 再判）'
     }
 
     this.db
@@ -782,7 +818,8 @@ export function skillNameIssue(name: string): 'quoted' | 'convention' | null {
 export function suggestSkillName(name: string, issue: 'quoted' | 'convention'): string | null {
   const t = name.trim()
   const inner =
-    t.length >= 2 && ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'")))
+    t.length >= 2 &&
+    ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'")))
       ? t.slice(1, -1)
       : t
   if (issue === 'quoted') return inner === name ? null : inner
@@ -876,7 +913,11 @@ export function reviewSkill(input: {
   }
   const body = content.replace(/^---\r?\n[\s\S]*?\r?\n---/, '').trim()
   if (body.length < 30) {
-    issues.push({ severity: 'warn', code: 'body-empty', message: '正文过短（<30 字符），skill 缺少可执行指引' })
+    issues.push({
+      severity: 'warn',
+      code: 'body-empty',
+      message: '正文过短（<30 字符），skill 缺少可执行指引',
+    })
   } else if (body.length > 65536) {
     issues.push({
       severity: 'warn',

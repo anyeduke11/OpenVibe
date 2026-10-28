@@ -39,7 +39,14 @@ export type ExtractRequestInput = z.infer<typeof ExtractRequestInput>
 
 /** 提取结果（web/CLI 消费）。status 非 ok 时 ingested 为空、原因在 warnings */
 export const ExtractOut = z.object({
-  status: z.enum(['ok', 'error', 'unavailable', 'consent-required', 'gate-closed', 'budget-exhausted']),
+  status: z.enum([
+    'ok',
+    'error',
+    'unavailable',
+    'consent-required',
+    'gate-closed',
+    'budget-exhausted',
+  ]),
   provider: z.string().nullable(),
   candidateCount: z.number().int(),
   passedCount: z.number().int(),
@@ -108,7 +115,14 @@ export interface DiscussSegment {
  * answer 为空、原因在 warnings。
  */
 export const DiscussOut = z.object({
-  status: z.enum(['ok', 'error', 'unavailable', 'consent-required', 'gate-closed', 'budget-exhausted']),
+  status: z.enum([
+    'ok',
+    'error',
+    'unavailable',
+    'consent-required',
+    'gate-closed',
+    'budget-exhausted',
+  ]),
   provider: z.string().nullable(),
   answer: z.string(),
   segments: z.array(z.object({ text: z.string(), source_ref: z.number().nullable() })),

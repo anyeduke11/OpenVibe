@@ -58,11 +58,23 @@ const uid = (prefix: string): string => {
 }
 
 function toDraft(stage: Stage): StageDraft {
-  return { uid: uid('st'), name: stage.name, checklist: stage.checklist, artifacts: stage.artifacts, prompt: stage.prompt ?? '' }
+  return {
+    uid: uid('st'),
+    name: stage.name,
+    checklist: stage.checklist,
+    artifacts: stage.artifacts,
+    prompt: stage.prompt ?? '',
+  }
 }
 
 function blankStage(count: number): StageDraft {
-  return { uid: uid('st'), name: `阶段 ${String(count + 1)}`, checklist: [], artifacts: [], prompt: '' }
+  return {
+    uid: uid('st'),
+    name: `阶段 ${String(count + 1)}`,
+    checklist: [],
+    artifacts: [],
+    prompt: '',
+  }
 }
 
 /** 检查项 id 决定项目侧勾选记录的归属，必须稳定且唯一（m5 FR-3.2） */
@@ -391,9 +403,7 @@ export function FlowTemplateEditor(props: {
                       onChange={(next) =>
                         setStages((prev) => prev.map((s) => (s.uid === stage.uid ? next : s)))
                       }
-                      onRemove={() =>
-                        setStages((prev) => prev.filter((s) => s.uid !== stage.uid))
-                      }
+                      onRemove={() => setStages((prev) => prev.filter((s) => s.uid !== stage.uid))}
                     />
                   ))}
                 </div>

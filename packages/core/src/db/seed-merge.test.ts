@@ -17,10 +17,21 @@ import { seedLangTopics } from './m9-p1-seed-lang-topics'
 const SPEC: SeedMergeSpec = {
   table: 'lang_topics',
   keyColumns: ['lang', 'slug'],
-  contentColumns: ['title', 'summary', 'stage_id', 'ref_url', 'ref_title', 'source_kind', 'kind', 'content_level'],
+  contentColumns: [
+    'title',
+    'summary',
+    'stage_id',
+    'ref_url',
+    'ref_title',
+    'source_kind',
+    'kind',
+    'content_level',
+  ],
 }
 
-const baseRecord = (over: Record<string, string | number | null> = {}): Record<string, string | number | null> => ({
+const baseRecord = (
+  over: Record<string, string | number | null> = {},
+): Record<string, string | number | null> => ({
   lang: 'python',
   slug: 'cs2-fixture',
   title: '原标题',
@@ -53,7 +64,9 @@ describe('mergeSeedRow 五动作矩阵', () => {
       mergeSeedRow(h.db, SPEC, baseRecord())
       const action = mergeSeedRow(h.db, SPEC, baseRecord({ title: '新标题' }))
       expect(action).toBe('updated')
-      const row = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='cs2-fixture'`).get() as { title: string }
+      const row = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='cs2-fixture'`).get() as {
+        title: string
+      }
       expect(row.title).toBe('新标题')
     } finally {
       h.close()
@@ -67,7 +80,9 @@ describe('mergeSeedRow 五动作矩阵', () => {
       h.db.prepare(`UPDATE lang_topics SET title='用户的手改' WHERE slug='cs2-fixture'`).run()
       const action = mergeSeedRow(h.db, SPEC, baseRecord({ title: '种子想覆盖的新标题' }))
       expect(action).toBe('user-modified')
-      const row = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='cs2-fixture'`).get() as { title: string }
+      const row = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='cs2-fixture'`).get() as {
+        title: string
+      }
       expect(row.title).toBe('用户的手改')
     } finally {
       h.close()
@@ -101,15 +116,36 @@ describe('mergeSeedRow 五动作矩阵', () => {
         )
         .run()
       // 与老行逐字相同的新种子 ⇒ legacy-adopted（补登哈希，不改内容）
-      const rec = baseRecord({ slug: 'legacy-a', title: '老标题', ref_url: 'https://example.com/l', ref_title: 'L', source_checked_at: '2026-10-01' })
+      const rec = baseRecord({
+        slug: 'legacy-a',
+        title: '老标题',
+        ref_url: 'https://example.com/l',
+        ref_title: 'L',
+        source_checked_at: '2026-10-01',
+      })
       expect(mergeSeedRow(h.db, SPEC, rec)).toBe('legacy-adopted')
-      const stored = h.db.prepare(`SELECT seed_hash FROM lang_topics WHERE slug='legacy-a'`).get() as { seed_hash: string | null }
-      expect(stored.seed_hash).toBe(seedRowHash(SPEC.contentColumns.reduce<Record<string, unknown>>((acc, c) => ((acc[c] = (rec as Record<string, unknown>)[c] ?? null), acc), {})))
+      const stored = h.db
+        .prepare(`SELECT seed_hash FROM lang_topics WHERE slug='legacy-a'`)
+        .get() as { seed_hash: string | null }
+      expect(stored.seed_hash).toBe(
+        seedRowHash(
+          SPEC.contentColumns.reduce<Record<string, unknown>>(
+            (acc, c) => ((acc[c] = (rec as Record<string, unknown>)[c] ?? null), acc),
+            {},
+          ),
+        ),
+      )
 
       // 收编后的行已被跟踪：种子再修订 ⇒ 正常 updated（与播种器种下的行同权）
-      const revised = mergeSeedRow(h.db, SPEC, baseRecord({ slug: 'legacy-a', title: '种子想改的标题' }))
+      const revised = mergeSeedRow(
+        h.db,
+        SPEC,
+        baseRecord({ slug: 'legacy-a', title: '种子想改的标题' }),
+      )
       expect(revised).toBe('updated')
-      const row = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='legacy-a'`).get() as { title: string }
+      const row = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='legacy-a'`).get() as {
+        title: string
+      }
       expect(row.title).toBe('种子想改的标题')
 
       // 另一条从未匹配过种子的老行 ⇒ user-modified，老内容原样保留
@@ -119,9 +155,15 @@ describe('mergeSeedRow 五动作矩阵', () => {
            VALUES ('python','legacy-b','用户的手笔','','3','https://example.com/b','B','owner_guide','2026-10-01','language','point')`,
         )
         .run()
-      const conflict = mergeSeedRow(h.db, SPEC, baseRecord({ slug: 'legacy-b', title: '种子想改的标题' }))
+      const conflict = mergeSeedRow(
+        h.db,
+        SPEC,
+        baseRecord({ slug: 'legacy-b', title: '种子想改的标题' }),
+      )
       expect(conflict).toBe('user-modified')
-      const kept = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='legacy-b'`).get() as { title: string }
+      const kept = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='legacy-b'`).get() as {
+        title: string
+      }
       expect(kept.title).toBe('用户的手笔')
     } finally {
       h.close()
@@ -140,7 +182,18 @@ describe('CS2 验收：lang_topics 播种器端到端（真种子文件 + reseed
         schemaVersion: 1,
         collected_at: '2026-10-24',
         items: [
-          { lang: 'python', slug: 'cs2-e2e', title: '原题', summary: '', stage_id: 2, ref_url: 'https://e.com/1', ref_title: '1', source_kind: 'owner_guide', source_checked_at: '2026-10-24', kind: 'language' },
+          {
+            lang: 'python',
+            slug: 'cs2-e2e',
+            title: '原题',
+            summary: '',
+            stage_id: 2,
+            ref_url: 'https://e.com/1',
+            ref_title: '1',
+            source_kind: 'owner_guide',
+            source_checked_at: '2026-10-24',
+            kind: 'language',
+          },
         ],
       })
       writeFileSync(join(dir, SEED_FILE), raw, 'utf8')
@@ -152,14 +205,27 @@ describe('CS2 验收：lang_topics 播种器端到端（真种子文件 + reseed
         schemaVersion: 1,
         collected_at: '2026-10-24',
         items: [
-          { lang: 'python', slug: 'cs2-e2e', title: '修订后的题', summary: '', stage_id: 2, ref_url: 'https://e.com/1', ref_title: '1', source_kind: 'owner_guide', source_checked_at: '2026-10-24', kind: 'language' },
+          {
+            lang: 'python',
+            slug: 'cs2-e2e',
+            title: '修订后的题',
+            summary: '',
+            stage_id: 2,
+            ref_url: 'https://e.com/1',
+            ref_title: '1',
+            source_kind: 'owner_guide',
+            source_checked_at: '2026-10-24',
+            kind: 'language',
+          },
         ],
       })
       writeFileSync(join(dir, SEED_FILE), modified, 'utf8')
       const second = seedLangTopics(h.db, dir)
       expect(second[0]?.updated).toBe(1)
       expect(second[0]?.status).toBe('imported')
-      const row = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='cs2-e2e'`).get() as { title: string }
+      const row = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='cs2-e2e'`).get() as {
+        title: string
+      }
       expect(row.title).toBe('修订后的题')
     } finally {
       h.close()
@@ -170,9 +236,24 @@ describe('CS2 验收：lang_topics 播种器端到端（真种子文件 + reseed
     const dir = mkdtempSync(join(tmpdir(), 'ov-cs2-'))
     const h = newDb()
     try {
-      const items = { schemaVersion: 1, collected_at: '2026-10-24', items: [
-        { lang: 'python', slug: 'cs2-e2e', title: '原题', summary: '', stage_id: 2, ref_url: 'https://e.com/1', ref_title: '1', source_kind: 'owner_guide', source_checked_at: '2026-10-24', kind: 'language' },
-      ] }
+      const items = {
+        schemaVersion: 1,
+        collected_at: '2026-10-24',
+        items: [
+          {
+            lang: 'python',
+            slug: 'cs2-e2e',
+            title: '原题',
+            summary: '',
+            stage_id: 2,
+            ref_url: 'https://e.com/1',
+            ref_title: '1',
+            source_kind: 'owner_guide',
+            source_checked_at: '2026-10-24',
+            kind: 'language',
+          },
+        ],
+      }
       writeFileSync(join(dir, SEED_FILE), JSON.stringify(items), 'utf8')
       seedLangTopics(h.db, dir)
       h.db.prepare(`UPDATE lang_topics SET title='我的手改' WHERE slug='cs2-e2e'`).run()
@@ -180,7 +261,9 @@ describe('CS2 验收：lang_topics 播种器端到端（真种子文件 + reseed
       // 种子同内容再 reseed：用户态行不被覆盖
       const again = seedLangTopics(h.db, dir)
       expect(again[0]?.userModified).toBe(1)
-      const row = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='cs2-e2e'`).get() as { title: string }
+      const row = h.db.prepare(`SELECT title FROM lang_topics WHERE slug='cs2-e2e'`).get() as {
+        title: string
+      }
       expect(row.title).toBe('我的手改')
     } finally {
       h.close()

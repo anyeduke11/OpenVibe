@@ -105,9 +105,7 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
       />
       <span className="min-w-0">
         <span className="font-medium">{t.name}</span>
-        <span className={`${tagCls} ml-2`}>
-          {t.builtin ? zh.flows.builtin : zh.flows.custom}
-        </span>
+        <span className={`${tagCls} ml-2`}>{t.builtin ? zh.flows.builtin : zh.flows.custom}</span>
         <span className="block truncate text-[11px] text-ink-muted">
           {t.stages.map((s) => s.name).join(' → ')}
         </span>
@@ -190,7 +188,9 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
               />
               <span>{zh.projects.wizard.packNone}</span>
             </label>
-            {packItems.length === 0 && <p className="text-ink-muted">{zh.projects.wizard.packEmpty}</p>}
+            {packItems.length === 0 && (
+              <p className="text-ink-muted">{zh.projects.wizard.packEmpty}</p>
+            )}
             {packItems.map((p) => (
               <label
                 key={p.id}

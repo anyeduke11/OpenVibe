@@ -154,7 +154,9 @@ function parseArgs(argv: string[]): ExportOptions {
   const check = raw.has('check')
   const verify = raw.has('verify')
   if (!from) {
-    throw new Error('用法：npx tsx scripts/export-agent-memory.ts --from <记忆目录> [--to <导出目录>] [--profile <名>] [--date YYYY-MM-DD] [--check] [--verify]')
+    throw new Error(
+      '用法：npx tsx scripts/export-agent-memory.ts --from <记忆目录> [--to <导出目录>] [--profile <名>] [--date YYYY-MM-DD] [--check] [--verify]',
+    )
   }
   from = resolve(from)
   if (!profile) profile = basename(dirname(from))
@@ -200,7 +202,8 @@ export function exportAgentMemory(opts: ExportOptions): ExportResult {
   const targetTopics = join(opts.to, 'topics')
   if (existsSync(opts.to)) {
     const markerPath = join(opts.to, 'README.md')
-    const hasMarker = existsSync(markerPath) && readFileSync(markerPath, 'utf8').includes(EXPORT_MARKER)
+    const hasMarker =
+      existsSync(markerPath) && readFileSync(markerPath, 'utf8').includes(EXPORT_MARKER)
     if (!hasMarker && !isPartialExport(opts.to)) {
       throw new Error(`目标目录没有导出标记，拒绝清理：${opts.to}（先手动确认或换个 --to）`)
     }
@@ -311,7 +314,12 @@ export function verifyManifest(dir: string): ManifestCheck {
     if (rel === MANIFEST_NAME) continue
     if (!(rel in manifest.files)) unregistered.push(rel)
   }
-  return { missing, changed, unregistered, ok: missing.length === 0 && changed.length === 0 && unregistered.length === 0 }
+  return {
+    missing,
+    changed,
+    unregistered,
+    ok: missing.length === 0 && changed.length === 0 && unregistered.length === 0,
+  }
 }
 
 /* ════════════════════════════════════════════════════════ 核对（只读） */
@@ -338,7 +346,9 @@ export function listExportFiles(dir: string): string[] {
   if (existsSync(join(dir, 'MEMORY.md'))) out.push('MEMORY.md')
   const topicsDir = join(dir, 'topics')
   if (existsSync(topicsDir)) {
-    for (const f of readdirSync(topicsDir).filter((f) => f.endsWith('.md')).sort()) {
+    for (const f of readdirSync(topicsDir)
+      .filter((f) => f.endsWith('.md'))
+      .sort()) {
       out.push(`topics/${f}`)
     }
   }
@@ -368,7 +378,9 @@ export function checkAgentMemory(opts: ExportOptions): CheckResult {
   const indexMd = readFileSync(indexPath, 'utf8')
   const topicDir = join(opts.from, 'topics')
   if (!existsSync(topicDir)) throw new Error(`源目录没有 topics/：${opts.from}`)
-  const onDisk = readdirSync(topicDir).filter((f) => f.endsWith('.md')).sort()
+  const onDisk = readdirSync(topicDir)
+    .filter((f) => f.endsWith('.md'))
+    .sort()
 
   const sourceMap = new Map<string, string>()
   sourceMap.set('MEMORY.md', indexMd)
@@ -493,18 +505,24 @@ npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/${opts.profile}/
 `
 }
 
-const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
+const isMain =
+  process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
 if (isMain) {
   try {
     const opts = parseArgs(process.argv.slice(2))
     if (opts.verify) {
       // **只需要仓内的文件** ⇒ 这一半可进 CI（不需要本机的源目录）
       const res = verifyManifest(opts.to)
-      for (const f of res.missing) process.stdout.write(`[export-agent-memory] ✗ 清单登记了但文件不存在：${f}\n`)
-      for (const f of res.changed) process.stdout.write(`[export-agent-memory] ✗ 内容与清单不符：${f}\n`)
-      for (const f of res.unregistered) process.stdout.write(`[export-agent-memory] ✗ 目录里有、清单未登记的文件：${f}\n`)
+      for (const f of res.missing)
+        process.stdout.write(`[export-agent-memory] ✗ 清单登记了但文件不存在：${f}\n`)
+      for (const f of res.changed)
+        process.stdout.write(`[export-agent-memory] ✗ 内容与清单不符：${f}\n`)
+      for (const f of res.unregistered)
+        process.stdout.write(`[export-agent-memory] ✗ 目录里有、清单未登记的文件：${f}\n`)
       if (!res.ok) {
-        process.stderr.write('[export-agent-memory] 导出件与清单**不一致** —— 导出件被手改，或清单没同步。\n')
+        process.stderr.write(
+          '[export-agent-memory] 导出件与清单**不一致** —— 导出件被手改，或清单没同步。\n',
+        )
         process.exitCode = 1
       } else {
         process.stdout.write('[export-agent-memory] ✓ 导出件与清单一致（sha256 逐件核对）\n')
@@ -535,7 +553,9 @@ if (isMain) {
       )
     }
   } catch (e) {
-    process.stderr.write(`[export-agent-memory] 失败：${e instanceof Error ? e.message : String(e)}\n`)
+    process.stderr.write(
+      `[export-agent-memory] 失败：${e instanceof Error ? e.message : String(e)}\n`,
+    )
     process.exitCode = 1
   }
 }

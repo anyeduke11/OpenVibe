@@ -122,13 +122,19 @@ export function PackDetailPane(props: { pack: PackOut; onOpenHistory: () => void
               {`${String(exports.data?.total ?? 0)}`}
             </span>
             {/* 全量导出历史是台账（可回放下载），放抽屉；同屏只留最近一次，省一屏高度 */}
-            <button type="button" className="text-[11px] text-accent hover:underline" onClick={props.onOpenHistory}>
+            <button
+              type="button"
+              className="text-[11px] text-accent hover:underline"
+              onClick={props.onOpenHistory}
+            >
               {laneEngineering.packs.allExports}
             </button>
           </span>
         }
       >
-        {exports.isLoading && <p className="text-xs text-ink-faint">{laneEngineering.state.loading}</p>}
+        {exports.isLoading && (
+          <p className="text-xs text-ink-faint">{laneEngineering.state.loading}</p>
+        )}
         {exports.isError && (
           <div className={noteCls('danger')}>
             <span className={`${noteTitleCls} text-danger`}>

@@ -37,7 +37,10 @@ reader.stdout.on('data', (c) => {
 
 const fd = openSync(lock, 'wx')
 await new Promise((r) => setTimeout(r, 250))
-writeSync(fd, `${JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString(), command: 'probe' })}\n`)
+writeSync(
+  fd,
+  `${JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString(), command: 'probe' })}\n`,
+)
 closeSync(fd)
 await new Promise((r) => reader.once('close', r))
 console.log(`读者 600ms 轮询结果：${out}`)

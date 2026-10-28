@@ -135,11 +135,13 @@ function selfCheck(tracks: RawTrack[]): string[] {
   const problems: string[] = []
   const stages = [...new Set(tracks.map((t) => t.stage_id))].sort((a, b) => a - b)
   if (stages.length !== 4) problems.push(`阶段数 ${stages.length} ≠ 4`)
-  if (tracks.length !== 6) problems.push(`轨道行数 ${tracks.length} ≠ 6（八格对照面，阶段 0/1 无 Go 轨道）`)
+  if (tracks.length !== 6)
+    problems.push(`轨道行数 ${tracks.length} ≠ 6（八格对照面，阶段 0/1 无 Go 轨道）`)
 
   for (const stageId of [0, 1]) {
     const go = tracks.filter((t) => t.stage_id === stageId && t.lang === 'go')
-    if (go.length !== 0) problems.push(`阶段 ${stageId} 有 ${go.length} 条 Go 轨道（源文档没有该轨道）`)
+    if (go.length !== 0)
+      problems.push(`阶段 ${stageId} 有 ${go.length} 条 Go 轨道（源文档没有该轨道）`)
   }
   for (const stageId of [2, 3]) {
     for (const lang of ['python', 'go'] as const) {
@@ -148,13 +150,16 @@ function selfCheck(tracks: RawTrack[]): string[] {
     }
   }
   for (const t of tracks) {
-    if (t.goals.length < 2) problems.push(`阶段 ${t.stage_id}/${t.lang} 的 goals 只有 ${t.goals.length} 条`)
+    if (t.goals.length < 2)
+      problems.push(`阶段 ${t.stage_id}/${t.lang} 的 goals 只有 ${t.goals.length} 条`)
   }
   // ⚠️ 阶段 2 的 Python 那个矛盾**必须还在**（若源文档改了，这里会红 ⇒ 要重新裁定）
   const s2 = tracks.find((t) => t.stage_id === 2 && t.lang === 'python')
   if (s2 === undefined) problems.push('阶段 2 的 Python 轨道没抽到')
   else if (s2.source_mode !== 'mas' || !s2.mode_name.includes('熟悉 → 精通')) {
-    problems.push('阶段 2 的 Python 不再是「mode:mas + modeName:熟悉 → 精通」⇒ §6.3 第 8 条的前提变了')
+    problems.push(
+      '阶段 2 的 Python 不再是「mode:mas + modeName:熟悉 → 精通」⇒ §6.3 第 8 条的前提变了',
+    )
   }
   return problems
 }
@@ -206,8 +211,7 @@ function diffAgainstSpec(tracks: RawTrack[], cells: SpecTrackCell[]): string[] {
 function buildSeed(tracks: RawTrack[]): string {
   const payload = {
     _notes: {
-      source:
-        '配套方案《Agent 评测专家成才方案》的 §4「成长路线：四阶段可打卡训练」的 tracks 数组',
+      source: '配套方案《Agent 评测专家成才方案》的 §4「成长路线：四阶段可打卡训练」的 tracks 数组',
       collect_method:
         '按阶段对象读 name/period，按 tracks 数组读 lang/mode/modeName/goals；八个字段逐字入库。',
       eight_cells_six_rows:

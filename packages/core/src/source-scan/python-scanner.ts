@@ -32,10 +32,7 @@ import { runWithStdin } from './run-with-stdin'
 
 /** 扫描失败的原因（**显式告知**，不静默）。 */
 export type SourceScanErrorReason =
-  | 'python-not-found'
-  | 'python-failed'
-  | 'python-timeout'
-  | 'bad-python-output'
+  'python-not-found' | 'python-failed' | 'python-timeout' | 'bad-python-output'
 
 export class SourceScanError extends Error {
   constructor(
@@ -221,7 +218,11 @@ export async function scanPython(
   }
   const out = parsed as Partial<PythonScanOutput>
   if (!Array.isArray(out.hits)) {
-    throw new SourceScanError('bad-python-output', 'python3 输出缺少 hits 字段', stdout.slice(0, 400))
+    throw new SourceScanError(
+      'bad-python-output',
+      'python3 输出缺少 hits 字段',
+      stdout.slice(0, 400),
+    )
   }
   return {
     hits: out.hits,

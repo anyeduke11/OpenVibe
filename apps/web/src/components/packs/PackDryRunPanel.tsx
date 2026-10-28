@@ -1,11 +1,7 @@
 import { useState } from 'react'
 import type { PackOut } from '@openvibe/shared'
 import { useProjectList } from '../../hooks/useProjects'
-import {
-  decisionLabels,
-  injectStatusRows,
-  laneEngineering,
-} from '../../i18n/lane-engineering'
+import { decisionLabels, injectStatusRows, laneEngineering } from '../../i18n/lane-engineering'
 import { zh } from '../../i18n/zh'
 import { toast } from '../ui/Toaster'
 import { Icon, type IconName } from '../ui/icons'
@@ -145,9 +141,7 @@ export function PackDryRunPanel(props: { pack: PackOut }) {
         {/* 唯一出口：路径单引号包住的一条命令。Web 到此为止，写盘交给 CLI。 */}
         {command !== null && (
           <div className="rounded-md border border-line bg-panel-2 px-3 py-2">
-            <p className={`${noteTitleCls} text-ink-body`}>
-              {laneEngineering.dryRun.exitTitle}
-            </p>
+            <p className={`${noteTitleCls} text-ink-body`}>{laneEngineering.dryRun.exitTitle}</p>
             <p className="mb-1.5 text-[11px] text-ink-muted">{laneEngineering.dryRun.exitHint}</p>
             <code className="mono block overflow-x-auto break-all text-[12px] text-ink">
               {command}
@@ -156,9 +150,7 @@ export function PackDryRunPanel(props: { pack: PackOut }) {
         )}
 
         <div>
-          <p className="text-xs font-semibold text-ink">
-            {laneEngineering.dryRun.tableTitle}
-          </p>
+          <p className="text-xs font-semibold text-ink">{laneEngineering.dryRun.tableTitle}</p>
           <p className="text-[11px] text-ink-muted">{laneEngineering.dryRun.tableHint}</p>
           <p className="mt-1 text-[11px] text-ink-faint">{laneEngineering.dryRun.tableScope}</p>
 
@@ -181,8 +173,13 @@ export function PackDryRunPanel(props: { pack: PackOut }) {
                 {injectStatusRows.map((row) => (
                   <tr key={row.status} className="border-b border-line-hair align-top">
                     <td className="whitespace-nowrap px-2 py-1.5">
-                      <span className={chipTone(STATUS_TONE[row.status as keyof typeof STATUS_TONE])}>
-                        <Icon name={STATUS_ICON[row.status as keyof typeof STATUS_ICON]} size={11} />
+                      <span
+                        className={chipTone(STATUS_TONE[row.status as keyof typeof STATUS_TONE])}
+                      >
+                        <Icon
+                          name={STATUS_ICON[row.status as keyof typeof STATUS_ICON]}
+                          size={11}
+                        />
                         {row.label}
                       </span>
                     </td>
@@ -215,9 +212,7 @@ export function PackDryRunPanel(props: { pack: PackOut }) {
           <span className={`${noteTitleCls} text-warn`}>
             {laneEngineering.dryRun.undecided.title}
           </span>
-          <p className={`${noteTitleCls} text-ink-body`}>
-            {laneEngineering.dryRun.undecided.body}
-          </p>
+          <p className={`${noteTitleCls} text-ink-body`}>{laneEngineering.dryRun.undecided.body}</p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <span className={segCls}>
               {(['ui', 'cli'] as const).map((k) => (

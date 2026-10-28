@@ -104,10 +104,7 @@ export interface VibeEntry {
  *   不含练习与做项目 —— 合计约 130 分钟，而速成档是 3–7 天，
  *   那几天里练手与做项目占大头（附件自己的「Day 4–7 · 交付」段也是这么写的）。
  */
-export const VIBE_ABILITY_MAP: Record<
-  'python' | 'go',
-  Record<string, readonly VibeEntry[]>
-> = {
+export const VIBE_ABILITY_MAP: Record<'python' | 'go', Record<string, readonly VibeEntry[]>> = {
   python: {
     看得懂: [
       { slug: 'python3-basic-syntax', minutes: 8 },
@@ -187,9 +184,7 @@ export function assignTopicProfiles(topics: readonly ModeTopic[]): TopicProfileR
   for (const lang of ['python', 'go'] as const) {
     const langTopics = route.filter((t) => t.lang === lang)
     // 精通 / 熟悉：按「站序 → 入库序」排
-    const byStage = [...langTopics].sort(
-      (a, b) => a.stage_id - b.stage_id || a.id - b.id,
-    )
+    const byStage = [...langTopics].sort((a, b) => a.stage_id - b.stage_id || a.id - b.id)
     byStage.forEach((topic, index) => {
       const rank = index + 1
       rows.push({

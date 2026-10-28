@@ -37,7 +37,13 @@ async function makeHarness(stageName = '复盘', checklist = '任务拆分有依
     now: () => new Date(FIXED_NOW),
   })
   const terms = new TermsRepo(handle.db)
-  terms.create({ zh: '复盘', definition: '定义', status: 'active', domain: '产品' as never, starter: false })
+  terms.create({
+    zh: '复盘',
+    definition: '定义',
+    status: 'active',
+    domain: '产品' as never,
+    starter: false,
+  })
   terms.create({
     zh: '分而治之',
     aliases: ['任务拆分'],
@@ -57,7 +63,9 @@ async function makeHarness(stageName = '复盘', checklist = '任务拆分有依
     )
     .run(
       projectId,
-      JSON.stringify([{ name: stageName, checklist: [{ id: 'it_0', text: checklist }], artifacts: [] }]),
+      JSON.stringify([
+        { name: stageName, checklist: [{ id: 'it_0', text: checklist }], artifacts: [] },
+      ]),
       ts,
       ts,
     )

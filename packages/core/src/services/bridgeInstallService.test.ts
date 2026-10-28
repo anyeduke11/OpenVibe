@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { newDb } from '../test-support/new-db'
-import { createBridgeInstallService, BRIDGE_INSTALL_PAYLOAD_KEYS, type BridgeInstallInput } from './bridgeInstallService'
+import {
+  createBridgeInstallService,
+  BRIDGE_INSTALL_PAYLOAD_KEYS,
+  type BridgeInstallInput,
+} from './bridgeInstallService'
 
 /**
  * M8 · `agent_bridge_installed` 写入点（PRD §6.3 触发点 ／ §6.4 去重键 ／ FR-5.1.1 键闭集）。

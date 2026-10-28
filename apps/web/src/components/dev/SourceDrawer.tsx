@@ -125,10 +125,7 @@ export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProp
     return map
   }, [snippets.data])
 
-  const confirmed = useMemo(
-    () => rows.filter((r) => r.confidence === 'confirmed'),
-    [rows],
-  )
+  const confirmed = useMemo(() => rows.filter((r) => r.confidence === 'confirmed'), [rows])
   const possible = useMemo(() => rows.filter((r) => r.confidence === 'possible'), [rows])
 
   const toggle = (key: string): void => {
@@ -142,7 +139,8 @@ export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProp
   }
 
   const rememberAll = consent.data?.remember_all ?? false
-  const remembered = consent.data?.remembered_at !== null && consent.data?.remembered_at !== undefined
+  const remembered =
+    consent.data?.remembered_at !== null && consent.data?.remembered_at !== undefined
 
   // ⚠️ §3.9：「记住全发」要**真的**预勾选（否则记忆只是台账里的一行字，没有行为）
   //   ⇒ 「记住全不发」＝ 保持全不勾（默认就是）⇒ 两者都在这一处落地。
@@ -165,179 +163,183 @@ export function SourceDrawer({ open, onOpenChange, projectId }: SourceDrawerProp
         title={L.title}
         variant="sheet"
         footer={
-        <div className="flex w-full items-center justify-between gap-2">
-          <span className="text-[11.5px] text-ink-faint">{L.ticked(ticked.size, rows.length)}</span>
-          <div className="flex items-center gap-2">
-            {projectId !== null ? (
-              <a
-                className={btnGhost}
-                href={`/api/lang/source/export?project=${encodeURIComponent(projectId)}`}
-                download
-              >
-                <Icon name="dl" size={13} />
-                {L.export}
-              </a>
-            ) : null}
-            <button className={btnPrimary} type="button" onClick={() => onOpenChange(false)}>
-              关闭
-            </button>
-          </div>
-        </div>
-      }
-    >
-      <div className="flex flex-col gap-3">
-        {projectId === null ? (
-          <p className="text-sm text-ink-muted">{L.noProject}</p>
-        ) : (
-          <>
+          <div className="flex w-full items-center justify-between gap-2">
+            <span className="text-[11.5px] text-ink-faint">
+              {L.ticked(ticked.size, rows.length)}
+            </span>
             <div className="flex items-center gap-2">
-              <button
-                className={btnPrimary}
-                type="button"
-                disabled={scan.isPending}
-                onClick={() => {
-                  scan.mutate(projectId)
-                }}
-              >
-                <Icon name="refresh" size={13} />
-                {scan.isPending ? L.scanning : L.scan}
-              </button>
-              <span className="text-[11.5px] text-ink-faint">{L.exportHint}</span>
-            </div>
-
-            {/* ⚠️ DL-20：扫描模式必须显式可见 */}
-            {summary !== undefined ? (
-              <ul className="flex flex-col gap-1" aria-label="扫描模式">
-                {summary.languages.map((info) => (
-                  <li key={info.lang} className="flex flex-wrap items-baseline gap-2">
-                    <span className="text-sm text-ink">{info.lang}</span>
-                    <span className={tagCls}>{describeScannerMode(info)}</span>
-                    <span className="text-[11.5px] text-ink-faint">
-                      {`文件 ${String(info.file_count)} 个 · 命中 ${String(info.hit_count)} 条`}
-                    </span>
-                    {info.notice !== null ? (
-                      <span className="text-[11.5px] text-warn">{info.notice}</span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-
-            {summary !== undefined && summary.warnings.length > 0 ? (
-              <div className={noteCls('warn')}>
-                <strong className={noteTitleCls}>扫描提示</strong>
-                <ul className="flex flex-col gap-0.5">
-                  {summary.warnings.map((w) => (
-                    <li key={w}>{w}</li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-
-            {/* 授权：默认全不勾 */}
-            <div className="flex flex-col gap-1.5">
-              <h3 className="text-xs font-medium text-ink-muted">{L.consent}</h3>
-              <p className="text-[11.5px] text-ink-faint">{L.consentHint}</p>
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="flex items-center gap-1.5 text-[13.5px] text-ink-body">
-                  <input
-                    type="radio"
-                    name="m9-consent"
-                    checked={!remembered}
-                    onChange={() => {
-                      consentMutations.clear.mutate()
-                    }}
-                  />
-                  {L.rememberNone}
-                </label>
-                <label className="flex items-center gap-1.5 text-[13.5px] text-ink-body">
-                  <input
-                    type="radio"
-                    name="m9-consent"
-                    checked={remembered && rememberAll}
-                    onChange={() => {
-                      consentMutations.set.mutate(true)
-                    }}
-                  />
-                  {L.rememberAll}
-                </label>
-                <label className="flex items-center gap-1.5 text-[13.5px] text-ink-body">
-                  <input
-                    type="radio"
-                    name="m9-consent"
-                    checked={remembered && !rememberAll}
-                    onChange={() => {
-                      consentMutations.set.mutate(false)
-                    }}
-                  />
-                  {L.rememberNoneAll}
-                </label>
-                <button
+              {projectId !== null ? (
+                <a
                   className={btnGhost}
+                  href={`/api/lang/source/export?project=${encodeURIComponent(projectId)}`}
+                  download
+                >
+                  <Icon name="dl" size={13} />
+                  {L.export}
+                </a>
+              ) : null}
+              <button className={btnPrimary} type="button" onClick={() => onOpenChange(false)}>
+                关闭
+              </button>
+            </div>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-3">
+          {projectId === null ? (
+            <p className="text-sm text-ink-muted">{L.noProject}</p>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <button
+                  className={btnPrimary}
                   type="button"
+                  disabled={scan.isPending}
                   onClick={() => {
-                    consentMutations.clear.mutate()
+                    scan.mutate(projectId)
                   }}
                 >
-                  {L.clear}
+                  <Icon name="refresh" size={13} />
+                  {scan.isPending ? L.scanning : L.scan}
                 </button>
+                <span className="text-[11.5px] text-ink-faint">{L.exportHint}</span>
               </div>
-            </div>
 
-            {/* 两档不混 */}
-            {rows.length === 0 ? (
-              <p className="text-sm text-ink-muted">{summary === undefined ? L.noScan : L.noHit}</p>
-            ) : (
-              <>
-                <FindingGroup
-                  title={L.confirmed}
-                  rows={confirmed}
-                  ticked={ticked}
-                  onToggle={toggle}
-                  snippets={snippetById}
-                />
-                {possible.length > 0 ? (
+              {/* ⚠️ DL-20：扫描模式必须显式可见 */}
+              {summary !== undefined ? (
+                <ul className="flex flex-col gap-1" aria-label="扫描模式">
+                  {summary.languages.map((info) => (
+                    <li key={info.lang} className="flex flex-wrap items-baseline gap-2">
+                      <span className="text-sm text-ink">{info.lang}</span>
+                      <span className={tagCls}>{describeScannerMode(info)}</span>
+                      <span className="text-[11.5px] text-ink-faint">
+                        {`文件 ${String(info.file_count)} 个 · 命中 ${String(info.hit_count)} 条`}
+                      </span>
+                      {info.notice !== null ? (
+                        <span className="text-[11.5px] text-warn">{info.notice}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {summary !== undefined && summary.warnings.length > 0 ? (
+                <div className={noteCls('warn')}>
+                  <strong className={noteTitleCls}>扫描提示</strong>
+                  <ul className="flex flex-col gap-0.5">
+                    {summary.warnings.map((w) => (
+                      <li key={w}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {/* 授权：默认全不勾 */}
+              <div className="flex flex-col gap-1.5">
+                <h3 className="text-xs font-medium text-ink-muted">{L.consent}</h3>
+                <p className="text-[11.5px] text-ink-faint">{L.consentHint}</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-[13.5px] text-ink-body">
+                    <input
+                      type="radio"
+                      name="m9-consent"
+                      checked={!remembered}
+                      onChange={() => {
+                        consentMutations.clear.mutate()
+                      }}
+                    />
+                    {L.rememberNone}
+                  </label>
+                  <label className="flex items-center gap-1.5 text-[13.5px] text-ink-body">
+                    <input
+                      type="radio"
+                      name="m9-consent"
+                      checked={remembered && rememberAll}
+                      onChange={() => {
+                        consentMutations.set.mutate(true)
+                      }}
+                    />
+                    {L.rememberAll}
+                  </label>
+                  <label className="flex items-center gap-1.5 text-[13.5px] text-ink-body">
+                    <input
+                      type="radio"
+                      name="m9-consent"
+                      checked={remembered && !rememberAll}
+                      onChange={() => {
+                        consentMutations.set.mutate(false)
+                      }}
+                    />
+                    {L.rememberNoneAll}
+                  </label>
+                  <button
+                    className={btnGhost}
+                    type="button"
+                    onClick={() => {
+                      consentMutations.clear.mutate()
+                    }}
+                  >
+                    {L.clear}
+                  </button>
+                </div>
+              </div>
+
+              {/* 两档不混 */}
+              {rows.length === 0 ? (
+                <p className="text-sm text-ink-muted">
+                  {summary === undefined ? L.noScan : L.noHit}
+                </p>
+              ) : (
+                <>
                   <FindingGroup
-                    title={L.possible}
-                    rows={possible}
+                    title={L.confirmed}
+                    rows={confirmed}
                     ticked={ticked}
                     onToggle={toggle}
                     snippets={snippetById}
                   />
-                ) : null}
-              </>
-            )}
+                  {possible.length > 0 ? (
+                    <FindingGroup
+                      title={L.possible}
+                      rows={possible}
+                      ticked={ticked}
+                      onToggle={toggle}
+                      snippets={snippetById}
+                    />
+                  ) : null}
+                </>
+              )}
 
-            {/* ⚠️ T2（AI 解读）—— **不可用就不渲染**（DL-08） */}
-            {capability.data?.available === true ? (
-              <InterpretPanel
-                tickedCount={ticked.size}
-                pending={interpret.isPending}
-                onRun={() => {
-                  interpret.mutate({
-                    findingIds: [...ticked].map((k) => Number(k)),
-                    // ⚠️ 用户**动过**勾选没有（owner 2026-10-22：只影响台账的分类）
-                    userTouched: touched,
-                  })
-                }}
-                result={interpret.data}
-                exporting={exportInterpret.isPending}
-                onExport={() => {
-                  const result = interpret.data
-                  if (result === undefined) return
-                  exportInterpret.mutate(result, {
-                    onSuccess: () => {
-                      toast(L.exportDone)
-                    },
-                    onError: () => {
-                      toast(L.exportFailed)
-                    },
-                  })
-                }}
-              />
-            ) : null}
-          </>
-        )}
+              {/* ⚠️ T2（AI 解读）—— **不可用就不渲染**（DL-08） */}
+              {capability.data?.available === true ? (
+                <InterpretPanel
+                  tickedCount={ticked.size}
+                  pending={interpret.isPending}
+                  onRun={() => {
+                    interpret.mutate({
+                      findingIds: [...ticked].map((k) => Number(k)),
+                      // ⚠️ 用户**动过**勾选没有（owner 2026-10-22：只影响台账的分类）
+                      userTouched: touched,
+                    })
+                  }}
+                  result={interpret.data}
+                  exporting={exportInterpret.isPending}
+                  onExport={() => {
+                    const result = interpret.data
+                    if (result === undefined) return
+                    exportInterpret.mutate(result, {
+                      onSuccess: () => {
+                        toast(L.exportDone)
+                      },
+                      onError: () => {
+                        toast(L.exportFailed)
+                      },
+                    })
+                  }}
+                />
+              ) : null}
+            </>
+          )}
         </div>
       </DialogPanel>
     </Dialog>
@@ -356,9 +358,7 @@ function FindingGroup(props: {
   if (rows.length === 0) return null
   return (
     <section className="flex flex-col gap-1.5" aria-label={title}>
-      <h3 className="text-xs font-medium text-ink-muted">
-        {`${title}（${String(rows.length)}）`}
-      </h3>
+      <h3 className="text-xs font-medium text-ink-muted">{`${title}（${String(rows.length)}）`}</h3>
       <ul className="flex flex-col gap-1">
         {rows.map((r) => {
           const key = `${r.id}`
@@ -395,7 +395,9 @@ function FindingGroup(props: {
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[11px] text-ink-faint">{L.sending}</span>
                   <pre className="mono overflow-x-auto rounded bg-panel-sunk px-2 py-1 text-[11.5px] text-ink-body">
-                    {(snippet.lines ?? []).map((line, i) => `${String((snippet.start_line ?? 1) + i)}: ${line}`).join('\n')}
+                    {(snippet.lines ?? [])
+                      .map((line, i) => `${String((snippet.start_line ?? 1) + i)}: ${line}`)
+                      .join('\n')}
                   </pre>
                 </div>
               ) : (
@@ -461,9 +463,7 @@ function InterpretPanel(props: {
               用量只落**计数**（不是内容）⇒ 界面显示它是安全的。 */}
           <p className="text-[11.5px] text-ink-muted">
             <span className="font-medium text-ink-body">{L.interpretBy}</span>
-            {`：${
-              result.provider.trim() === '' ? L.interpretByUnknown : result.provider
-            }`}
+            {`：${result.provider.trim() === '' ? L.interpretByUnknown : result.provider}`}
           </p>
           <p className="text-[11.5px] text-ink-muted">
             <span className="font-medium text-ink-body">{L.interpretUsage}</span>
@@ -489,9 +489,7 @@ function InterpretPanel(props: {
                   className="flex flex-col gap-0.5 rounded-md border border-line bg-panel px-2.5 py-2"
                 >
                   <span className="text-sm text-ink">{item.summary}</span>
-                  <span className="text-[11.5px] text-ink-muted">
-                    {`${item.topic_slug}`}
-                  </span>
+                  <span className="text-[11.5px] text-ink-muted">{`${item.topic_slug}`}</span>
                   <span className="text-[11.5px] text-ink-muted">
                     {`${L.riskTitle}：${
                       item.risks.length > 0 ? item.risks.join('；') : L.risksNone
@@ -522,12 +520,7 @@ function InterpretPanel(props: {
 
           {/* ⚠️ 增强 4：**保存这次解读**（用户主动动作；结果不写库） */}
           <div className="flex items-center gap-2">
-            <button
-              className={btnGhost}
-              type="button"
-              disabled={exporting}
-              onClick={onExport}
-            >
+            <button className={btnGhost} type="button" disabled={exporting} onClick={onExport}>
               <Icon name="dl" size={13} />
               {exporting ? L.exporting : L.exportInterpret}
             </button>

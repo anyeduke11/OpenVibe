@@ -1,4 +1,9 @@
-import { DEVLOG_TYPES, type DevLogCreateInput, type DevLogOut, type DevLogType } from '@openvibe/shared'
+import {
+  DEVLOG_TYPES,
+  type DevLogCreateInput,
+  type DevLogOut,
+  type DevLogType,
+} from '@openvibe/shared'
 import { ServerUnreachable, type ApiClient } from '../client'
 
 /**
@@ -54,11 +59,10 @@ export function parseLogType(raw: string): DevLogType {
   const t = raw.trim().toUpperCase()
   const hit = DEVLOG_TYPES.find((x) => x === t)
   if (!hit)
-    throw new SessionLogError(
-      'BAD_TYPE',
-      `日志类型只能是 ${DEVLOG_TYPES.join(' | ')}：${raw}`,
-      { types: [...DEVLOG_TYPES], received: raw },
-    )
+    throw new SessionLogError('BAD_TYPE', `日志类型只能是 ${DEVLOG_TYPES.join(' | ')}：${raw}`, {
+      types: [...DEVLOG_TYPES],
+      received: raw,
+    })
   return hit
 }
 
@@ -95,7 +99,10 @@ export async function sessionLogAction(
 ): Promise<SessionLogOutcome> {
   const project = options.project.trim()
   if (project === '')
-    throw new SessionLogError('USAGE', 'openvibe session log 需要 --project <id>（项目 id，不是目录）')
+    throw new SessionLogError(
+      'USAGE',
+      'openvibe session log 需要 --project <id>（项目 id，不是目录）',
+    )
   const type = parseLogType(options.type)
   const client = deps.client
   if (!client) {
@@ -111,7 +118,9 @@ export async function sessionLogAction(
     title: options.title ?? '',
     body: options.body ?? '',
     relatedFiles: normalizeRelated(options.related),
-    ...(evidence ? { evidence: { command: SESSION_LOG_EVIDENCE_COMMAND, resultSummary: evidence } } : {}),
+    ...(evidence
+      ? { evidence: { command: SESSION_LOG_EVIDENCE_COMMAND, resultSummary: evidence } }
+      : {}),
   }
   const warnings: string[] = []
   try {

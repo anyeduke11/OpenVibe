@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { existsSync, globSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  globSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 
 /**
  * 验收表凭据可定位性守卫（2026-10-15 · owner「以后要保持上下文一致」）。
@@ -65,7 +73,16 @@ const FILENAME_LIKE = /`([A-Za-z0-9_.-]+\.(?:ts|tsx|sql|md))`/g
 const SHELL_PREFIX = /^(grep|find|git|pnpm|npx|npm)\b/
 
 /** 仓库顶层目录锚点：只有以它们开头的片段才按「相对 ROOT 的路径」判定 */
-const TOP_DIRS = ['apps', 'packages', 'tests', 'scripts', 'content', 'docs', 'demo', 'redesign'] as const
+const TOP_DIRS = [
+  'apps',
+  'packages',
+  'tests',
+  'scripts',
+  'content',
+  'docs',
+  'demo',
+  'redesign',
+] as const
 const TOP_DIR_RE = new RegExp(`^(${TOP_DIRS.join('|')})/`)
 
 interface Claim {
@@ -297,17 +314,11 @@ describe('变异腿 · 这道闸抓得住「虚构 ID / 虚构路径 / 坏掉的
         file: 'x.md',
         row: '',
         ids: [],
-        paths: [
-          'packages/core/src/repos/doesNotExist.ts',
-          'repos/localEvents.ts',
-        ],
+        paths: ['packages/core/src/repos/doesNotExist.ts', 'repos/localEvents.ts'],
         names: ['ghost-ledger.test.ts'],
       },
     ])
-    expect(caught).toEqual([
-      'packages/core/src/repos/doesNotExist.ts',
-      'ghost-ledger.test.ts',
-    ])
+    expect(caught).toEqual(['packages/core/src/repos/doesNotExist.ts', 'ghost-ledger.test.ts'])
   })
 
   it('shell 命令片段不被当成路径判（否则 grep 判据会被误报成「文件不存在」）', () => {

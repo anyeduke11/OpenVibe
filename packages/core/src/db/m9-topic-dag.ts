@@ -257,10 +257,7 @@ export function stageHoles(groups: Map<number, DagNode[]>): number[] {
  *   但它是「路线能自上而下走」的必要条件 —— 前置在更晚的站，
  *   用户按站序走就会遇到「要学后面的才能学前面的」的矛盾。
  */
-export function edgesViolatingStageOrder(
-  nodes: DagNode[],
-  edges: DagEdge[],
-): DagEdge[] {
+export function edgesViolatingStageOrder(nodes: DagNode[], edges: DagEdge[]): DagEdge[] {
   const byId = new Map(nodes.map((n) => [n.id, n]))
   return edges.filter((e) => {
     const topic = byId.get(e.topic_id)

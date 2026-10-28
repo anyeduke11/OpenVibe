@@ -154,9 +154,7 @@ export function PlaybookEditorDrawer(props: {
   const { playbook, open, onClose, onSaved, prefillSource = 'manual' } = props
   const isNew = playbook === null
 
-  const [scenario, setScenario] = useState(
-    playbook?.scenario ?? props.prefill?.scenario ?? '',
-  )
+  const [scenario, setScenario] = useState(playbook?.scenario ?? props.prefill?.scenario ?? '')
   const [problem, setProblem] = useState(playbook?.problem ?? props.prefill?.problem ?? '')
   const [practice, setPractice] = useState(playbook?.practice ?? props.prefill?.practice ?? '')
   const [antiPractice, setAntiPractice] = useState(
@@ -164,7 +162,9 @@ export function PlaybookEditorDrawer(props: {
   )
   const [verified, setVerified] = useState(playbook?.verified ?? false)
   const [evidence, setEvidence] = useState<DevLogEvidence[]>(playbook?.evidence ?? [])
-  const [relatedPromptIds, setRelatedPromptIds] = useState<string[]>(playbook?.relatedPromptIds ?? [])
+  const [relatedPromptIds, setRelatedPromptIds] = useState<string[]>(
+    playbook?.relatedPromptIds ?? [],
+  )
   const [relatedTermIds, setRelatedTermIds] = useState<string[]>(playbook?.relatedTermIds ?? [])
   const [relatedSkillIds, setRelatedSkillIds] = useState<string[]>(playbook?.relatedSkillIds ?? [])
   const [tags, setTags] = useState((playbook?.tags ?? []).join('、'))
@@ -255,139 +255,139 @@ export function PlaybookEditorDrawer(props: {
           </>
         }
       >
-      <div className="space-y-4">
-        <Field
-          label={zh.playbooks.editor.scenario}
-          max={LIMITS.playbookScenarioMaxBytes}
-          value={scenario}
-          onChange={setScenario}
-        />
-        <Field
-          label={zh.playbooks.editor.problem}
-          max={LIMITS.playbookProblemMaxBytes}
-          textarea
-          value={problem}
-          onChange={setProblem}
-        />
-        <Field
-          label={zh.playbooks.editor.practice}
-          max={LIMITS.playbookPracticeMaxBytes}
-          textarea
-          rows={6}
-          value={practice}
-          onChange={setPractice}
-        />
-        <Field
-          label={zh.playbooks.editor.antiPractice}
-          hint={zh.playbooks.editor.antiPracticeHint}
-          max={LIMITS.playbookAntiPracticeMaxBytes}
-          textarea
-          rows={3}
-          value={antiPractice}
-          onChange={setAntiPractice}
-        />
+        <div className="space-y-4">
+          <Field
+            label={zh.playbooks.editor.scenario}
+            max={LIMITS.playbookScenarioMaxBytes}
+            value={scenario}
+            onChange={setScenario}
+          />
+          <Field
+            label={zh.playbooks.editor.problem}
+            max={LIMITS.playbookProblemMaxBytes}
+            textarea
+            value={problem}
+            onChange={setProblem}
+          />
+          <Field
+            label={zh.playbooks.editor.practice}
+            max={LIMITS.playbookPracticeMaxBytes}
+            textarea
+            rows={6}
+            value={practice}
+            onChange={setPractice}
+          />
+          <Field
+            label={zh.playbooks.editor.antiPractice}
+            hint={zh.playbooks.editor.antiPracticeHint}
+            max={LIMITS.playbookAntiPracticeMaxBytes}
+            textarea
+            rows={3}
+            value={antiPractice}
+            onChange={setAntiPractice}
+          />
 
-        {/* 实战标记与使用证据（m4 FR-4）：置真是显式动作，且必须随带证据 */}
-        <div className="rounded-md border border-line-hair p-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={verified}
-              onChange={(e) => setVerified(e.target.checked)}
+          {/* 实战标记与使用证据（m4 FR-4）：置真是显式动作，且必须随带证据 */}
+          <div className="rounded-md border border-line-hair p-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={verified}
+                onChange={(e) => setVerified(e.target.checked)}
+              />
+              {zh.playbooks.editor.verified}
+            </label>
+            <p className="mt-1 text-[11px] text-ink-faint">{zh.playbooks.editor.verifiedHint}</p>
+
+            {verified && (
+              <div className="mt-2 space-y-2">
+                {evidence.map((e, i) => (
+                  <div key={i} className="space-y-1 rounded border border-line-hair p-2">
+                    <input
+                      className={inputCls}
+                      placeholder={zh.playbooks.editor.evidenceCommand}
+                      value={e.command}
+                      onChange={(ev) => setEvidenceAt(i, { command: ev.target.value })}
+                    />
+                    <input
+                      className={inputCls}
+                      placeholder={zh.playbooks.editor.evidenceSummary}
+                      value={e.resultSummary}
+                      onChange={(ev) => setEvidenceAt(i, { resultSummary: ev.target.value })}
+                    />
+                    <button
+                      className="text-[11px] text-ink-faint underline hover:text-ink-body"
+                      onClick={() => setEvidence((prev) => prev.filter((_, idx) => idx !== i))}
+                    >
+                      {zh.playbooks.editor.evidenceRemove}
+                    </button>
+                  </div>
+                ))}
+                <button
+                  className={btnGhost}
+                  onClick={() =>
+                    setEvidence((prev) => [...prev, { command: '', resultSummary: '' }])
+                  }
+                >
+                  {zh.playbooks.editor.evidenceAdd}
+                </button>
+                {verifiedWithoutEvidence && (
+                  <p className="text-[11px] text-danger">
+                    {zh.playbooks.editor.verifiedNeedsEvidence}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <span className={labelCls}>{zh.playbooks.editor.relatedLabel}</span>
+            <RelatedPicker
+              kind="relatedPromptIds"
+              picked={relatedPromptIds}
+              onChange={setRelatedPromptIds}
+              excludeIds={new Set([selfId])}
             />
-            {zh.playbooks.editor.verified}
-          </label>
-          <p className="mt-1 text-[11px] text-ink-faint">{zh.playbooks.editor.verifiedHint}</p>
+            <RelatedPicker
+              kind="relatedTermIds"
+              picked={relatedTermIds}
+              onChange={setRelatedTermIds}
+              excludeIds={new Set([selfId])}
+            />
+            <RelatedPicker
+              kind="relatedSkillIds"
+              picked={relatedSkillIds}
+              onChange={setRelatedSkillIds}
+              excludeIds={new Set([selfId])}
+            />
+          </div>
 
-          {verified && (
-            <div className="mt-2 space-y-2">
-              {evidence.map((e, i) => (
-                <div key={i} className="space-y-1 rounded border border-line-hair p-2">
-                  <input
-                    className={inputCls}
-                    placeholder={zh.playbooks.editor.evidenceCommand}
-                    value={e.command}
-                    onChange={(ev) => setEvidenceAt(i, { command: ev.target.value })}
-                  />
-                  <input
-                    className={inputCls}
-                    placeholder={zh.playbooks.editor.evidenceSummary}
-                    value={e.resultSummary}
-                    onChange={(ev) => setEvidenceAt(i, { resultSummary: ev.target.value })}
-                  />
-                  <button
-                    className="text-[11px] text-ink-faint underline hover:text-ink-body"
-                    onClick={() => setEvidence((prev) => prev.filter((_, idx) => idx !== i))}
-                  >
-                    {zh.playbooks.editor.evidenceRemove}
-                  </button>
-                </div>
-              ))}
-              <button
-                className={btnGhost}
-                onClick={() => setEvidence((prev) => [...prev, { command: '', resultSummary: '' }])}
-              >
-                {zh.playbooks.editor.evidenceAdd}
-              </button>
-              {verifiedWithoutEvidence && (
-                <p className="text-[11px] text-danger">{zh.playbooks.editor.verifiedNeedsEvidence}</p>
-              )}
-            </div>
-          )}
-        </div>
+          <Field label={zh.editor.tags} value={tags} onChange={setTags} />
 
-        <div className="space-y-2">
-          <span className={labelCls}>{zh.playbooks.editor.relatedLabel}</span>
-          <RelatedPicker
-            kind="relatedPromptIds"
-            picked={relatedPromptIds}
-            onChange={setRelatedPromptIds}
-            excludeIds={new Set([selfId])}
-          />
-          <RelatedPicker
-            kind="relatedTermIds"
-            picked={relatedTermIds}
-            onChange={setRelatedTermIds}
-            excludeIds={new Set([selfId])}
-          />
-          <RelatedPicker
-            kind="relatedSkillIds"
-            picked={relatedSkillIds}
-            onChange={setRelatedSkillIds}
-            excludeIds={new Set([selfId])}
-          />
-        </div>
-
-        <Field
-          label={zh.editor.tags}
-          value={tags}
-          onChange={setTags}
-        />
-
-        <div>
-          <label className={labelCls}>{zh.editor.status}</label>
-          {/* `w-auto!` 不是笔误，是必须的：inputCls 自带 `w-full`，而 Tailwind v4 生成的 CSS 里
+          <div>
+            <label className={labelCls}>{zh.editor.status}</label>
+            {/* `w-auto!` 不是笔误，是必须的：inputCls 自带 `w-full`，而 Tailwind v4 生成的 CSS 里
           `.w-full` 排在 `.w-auto` **之后**，两者同权重 ⇒ `w-full` 恒胜，
           下拉框会撑满整条轨道、把后面的筛选项全推出可视区。`!` 提升权重，
           **不改共享 inputCls**（另有多个调用点依赖它的 `w-full`）。
 全仓同形态已清零：核法是搜 `inputCls` 同一串里不带 `!` 的 `w-auto`，命中 0。 */}
-          <select
-            className={`${inputCls} w-auto! appearance-none`}
-            value={status}
-            onChange={(e) => setStatus(e.target.value as PlaybookOut['status'])}
-          >
-            {PLAYBOOK_STATUS.map((s) => (
-              <option key={s} value={s}>
-                {zh.playbooks.status[s]}
-              </option>
-            ))}
-          </select>
-        </div>
+            <select
+              className={`${inputCls} w-auto! appearance-none`}
+              value={status}
+              onChange={(e) => setStatus(e.target.value as PlaybookOut['status'])}
+            >
+              {PLAYBOOK_STATUS.map((s) => (
+                <option key={s} value={s}>
+                  {zh.playbooks.status[s]}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {!isNew && playbook?.source === 'openvibe-seed' && (
-          <p className="text-xs text-ink-muted">{zh.playbooks.editor.seedEdited}</p>
-        )}
-      </div>
+          {!isNew && playbook?.source === 'openvibe-seed' && (
+            <p className="text-xs text-ink-muted">{zh.playbooks.editor.seedEdited}</p>
+          )}
+        </div>
       </DialogPanel>
     </Dialog>
   )

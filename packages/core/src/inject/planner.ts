@@ -262,7 +262,8 @@ export function diffPackLock(
   // 正确口径（与旧实现等价）：**既不缺、也没有一处哈希对不上**。
   // 未受管且内容一致 ⇒ 仍然算干净；未受管且内容不一致 ⇒ 不是干净，且落 `foreign` 列。
   const clean = files.every(
-    (row) => row.state === 'IN_SYNC' || (row.state === 'FOREIGN' && row.diskSha256 === row.declaredSha256),
+    (row) =>
+      row.state === 'IN_SYNC' || (row.state === 'FOREIGN' && row.diskSha256 === row.declaredSha256),
   )
   return { clean, files }
 }

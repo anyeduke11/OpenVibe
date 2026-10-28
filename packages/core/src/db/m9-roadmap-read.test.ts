@@ -105,7 +105,7 @@ function addContent(
 }
 
 describe('M9 P3.2 · 路线读端（§3.5 / §3.6 · DL-12）', () => {
-  it('站列只收 kind=\'language\'（库级条目不进路线）', () => {
+  it("站列只收 kind='language'（库级条目不进路线）", () => {
     const db = makeDb()
     addTopic(db, { slug: 'py-syntax', title: '基本语法', stageId: 0 })
     addTopic(db, { slug: 'py-os', title: 'os 模块', stageId: 0, kind: 'library' })

@@ -45,7 +45,11 @@ export function VariableFillModal(props: {
             <button className={btnGhost} onClick={props.onClose}>
               {zh.editor.cancel}
             </button>
-            <button className={btnPrimary} disabled={!filled} onClick={() => void copy(preview, zh.copyModal.copied)}>
+            <button
+              className={btnPrimary}
+              disabled={!filled}
+              onClick={() => void copy(preview, zh.copyModal.copied)}
+            >
               {zh.copyModal.copyBtn}
             </button>
           </>

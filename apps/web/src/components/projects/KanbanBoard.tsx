@@ -42,7 +42,12 @@ interface CardProps {
   onDelete: (id: string) => void
 }
 
-function ArrowButton(props: { glyph: string; label: string; disabled: boolean; onClick: () => void }) {
+function ArrowButton(props: {
+  glyph: string
+  label: string
+  disabled: boolean
+  onClick: () => void
+}) {
   return (
     <button
       type="button"
@@ -76,7 +81,8 @@ function TaskCard(props: CardProps) {
   }
 
   const columnIndex = TASK_STATUS.indexOf(column)
-  const neighbourColumn = (delta: number): TaskStatus | undefined => TASK_STATUS[columnIndex + delta]
+  const neighbourColumn = (delta: number): TaskStatus | undefined =>
+    TASK_STATUS[columnIndex + delta]
 
   return (
     <li
@@ -152,7 +158,9 @@ function TaskCard(props: CardProps) {
         >
           <option value="">{zh.projects.kanban.noStage}</option>
           {task.stageName !== null && !props.stages.includes(task.stageName) && (
-            <option value={task.stageName}>{`${task.stageName} ${zh.projects.checklist.removedStage}`}</option>
+            <option
+              value={task.stageName}
+            >{`${task.stageName} ${zh.projects.checklist.removedStage}`}</option>
           )}
           {props.stages.map((s) => (
             <option key={s} value={s}>
@@ -212,7 +220,9 @@ function Column(props: { status: TaskStatus; count: number; children: ReactNode 
       }`}
     >
       <header className="mb-1.5 flex items-center gap-2 px-1">
-        <h3 className="text-xs font-medium text-ink-muted">{zh.projects.kanban.columns[props.status]}</h3>
+        <h3 className="text-xs font-medium text-ink-muted">
+          {zh.projects.kanban.columns[props.status]}
+        </h3>
         <span className="text-[11px] tabular-nums text-ink-faint">{String(props.count)}</span>
       </header>
       {props.children}
@@ -328,41 +338,41 @@ export function KanbanBoard(props: {
           onDragCancel={() => setActiveId(null)}
         >
           <div className="grid gap-2 md:grid-cols-3">
-          {TASK_STATUS.map((status) => {
-            const list = byColumn(status)
-            return (
-              <Column key={status} status={status} count={list.length}>
-                <SortableContext
-                  items={list.map((t) => t.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <ul className="flex-1 space-y-1">
-                    {list.map((task, i) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        index={i}
-                        columnLength={list.length}
-                        column={status}
-                        stages={props.stages}
-                        onMove={props.onMove}
-                        onRename={props.onRename}
-                        onSetStage={props.onSetStage}
-                        onDelete={props.onDelete}
-                      />
-                    ))}
-                    {list.length === 0 && (
-                      <li className="px-1 py-2 text-center text-[11px] text-ink-faint">
-                        {zh.projects.kanban.emptyColumn}
-                      </li>
-                    )}
-                  </ul>
-                </SortableContext>
-              </Column>
-            )
-          })}
-        </div>
-      </DndContext>
+            {TASK_STATUS.map((status) => {
+              const list = byColumn(status)
+              return (
+                <Column key={status} status={status} count={list.length}>
+                  <SortableContext
+                    items={list.map((t) => t.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <ul className="flex-1 space-y-1">
+                      {list.map((task, i) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          index={i}
+                          columnLength={list.length}
+                          column={status}
+                          stages={props.stages}
+                          onMove={props.onMove}
+                          onRename={props.onRename}
+                          onSetStage={props.onSetStage}
+                          onDelete={props.onDelete}
+                        />
+                      ))}
+                      {list.length === 0 && (
+                        <li className="px-1 py-2 text-center text-[11px] text-ink-faint">
+                          {zh.projects.kanban.emptyColumn}
+                        </li>
+                      )}
+                    </ul>
+                  </SortableContext>
+                </Column>
+              )
+            })}
+          </div>
+        </DndContext>
       </div>
     </section>
   )

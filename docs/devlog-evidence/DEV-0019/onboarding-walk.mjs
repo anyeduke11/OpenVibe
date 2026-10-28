@@ -65,7 +65,11 @@ const buildLine =
   buildOut
     .split('\n')
     .find((l) => entryChunk !== undefined && l.includes(entryChunk) && l.includes('kB')) ??
-  (buildOut.split('\n').filter((l) => l.includes('kB') && l.includes('gzip')).pop() ?? '')
+  buildOut
+    .split('\n')
+    .filter((l) => l.includes('kB') && l.includes('gzip'))
+    .pop() ??
+  ''
 say(`  构建完成 ${buildLine.trim()}`)
 
 // ---------- serve ----------
@@ -265,7 +269,12 @@ await go('/library')
 check('顶栏出现向导条', await waitForText('开箱三步'))
 check('飞轮 0 值显示占位而非 0（§4.3）', await hasText('待产生'))
 const step1 = await text()
-say(`  步①文案：${step1.split('\n').filter((l) => l.includes('提示词') || l.includes('术语') || l.includes('模板')).join(' / ')}`)
+say(
+  `  步①文案：${step1
+    .split('\n')
+    .filter((l) => l.includes('提示词') || l.includes('术语') || l.includes('模板'))
+    .join(' / ')}`,
+)
 // 三个数字写死会把「向导显示的是真实库存」退化成「种子改版没有」，故从 content/seed 现算
 const seedCount = (file) =>
   String(JSON.parse(readFileSync(join(REPO, 'content/seed', file), 'utf8')).items.length)
@@ -323,7 +332,9 @@ await clickText('我已注入')
 await waitIdle()
 check('未注入时「注入完成」不点亮', !(await hasText('已注入 default@')))
 await waitForText('尚未注入', 8_000)
-const hintLine = ((await text()).split('\n').find((l) => l.includes('尚未注入')) ?? '（无提示）').trim()
+const hintLine = (
+  (await text()).split('\n').find((l) => l.includes('尚未注入')) ?? '（无提示）'
+).trim()
 say(`  未注入提示：${hintLine}`)
 check(
   '未注入给出诚实提示且点明缺哪个文件',
@@ -334,7 +345,17 @@ await shot('step3-waiting')
 const t0 = Date.now()
 const sync = spawn(
   process.execPath,
-  ['--import', 'tsx', join(REPO, 'apps/cli/src/index.ts'), '--json', 'sync', demoDir, '--pack', 'default', '--yes'],
+  [
+    '--import',
+    'tsx',
+    join(REPO, 'apps/cli/src/index.ts'),
+    '--json',
+    'sync',
+    demoDir,
+    '--pack',
+    'default',
+    '--yes',
+  ],
   { cwd: REPO, env: { ...process.env, OPENVIBE_HOME: HOME }, stdio: ['ignore', 'pipe', 'pipe'] },
 )
 let syncOut = ''
@@ -391,7 +412,9 @@ let diffSummary = null
 try {
   diffSummary = JSON.parse(diffRun.stdout).summary
 } catch {
-  say(`  diff 输出不可解析：${String(diffRun.stdout).slice(0, 200)}${String(diffRun.stderr).slice(0, 200)}`)
+  say(
+    `  diff 输出不可解析：${String(diffRun.stdout).slice(0, 200)}${String(diffRun.stderr).slice(0, 200)}`,
+  )
 }
 check(
   '第 3 条命令 diff 判 clean（exit 0）',
@@ -401,7 +424,7 @@ check(
 const loopMs = Date.now() - WALK_START
 say(
   `  命令数 3：openvibe-cli serve --open → sync <dir> --pack default → diff <dir>；` +
-    `用户侧耗时 ${((loopMs - BUILD_MS) / 1000).toFixed(1)}s（构建 ${((BUILD_MS / 1000).toFixed(1))}s 另计，对应干净环境首次 npx 下载）`,
+    `用户侧耗时 ${((loopMs - BUILD_MS) / 1000).toFixed(1)}s（构建 ${(BUILD_MS / 1000).toFixed(1)}s 另计，对应干净环境首次 npx 下载）`,
 )
 check('serve→diff ≤5 分钟', loopMs <= 5 * 60_000, `${(loopMs / 1000).toFixed(1)}s 含构建`)
 
@@ -467,12 +490,15 @@ try {
   await shot('flywheel-loop')
 
   const del = await api(`/api/projects/${proj.id}`, { method: 'DELETE' })
-  if (del.code >= 400) throw new Error(`DELETE 项目 → ${String(del.code)} ${del.body.slice(0, 160)}`)
+  if (del.code >= 400)
+    throw new Error(`DELETE 项目 → ${String(del.code)} ${del.body.slice(0, 160)}`)
   const dropped = JSON.parse((await api('/api/stats')).body)
   say(`  删掉夹具项目后：${JSON.stringify(dropped)}`)
   check('回流链断则圈数与回流回落为 0', dropped.loops === 0 && dropped.reflows === 0)
   await go('/library')
-  const bandAfter = String(await evalJs(`document.querySelector('[aria-label="飞轮面板"]').innerText`))
+  const bandAfter = String(
+    await evalJs(`document.querySelector('[aria-label="飞轮面板"]').innerText`),
+  )
   check('顶栏回落到占位（§4.3 双向）', /飞轮圈数\s*待产生/.test(bandAfter))
   await shot('flywheel-dropped')
 } catch (e) {

@@ -75,13 +75,11 @@ export interface VibePitfall {
 export const VIBE_ABILITIES: readonly VibeAbility[] = [
   {
     name: '看得懂',
-    detail:
-      '能看懂 AI 生成的代码大概在做什么：变量、条件、循环、函数分别在干什么、调用了哪些库。',
+    detail: '能看懂 AI 生成的代码大概在做什么：变量、条件、循环、函数分别在干什么、调用了哪些库。',
   },
   {
     name: '会运行',
-    detail:
-      '能在本地或 AI 工具里运行项目，认识目录结构，会安装依赖、执行启动命令、打开运行结果。',
+    detail: '能在本地或 AI 工具里运行项目，认识目录结构，会安装依赖、执行启动命令、打开运行结果。',
   },
   {
     name: '读报错',
@@ -90,13 +88,11 @@ export const VIBE_ABILITIES: readonly VibeAbility[] = [
   },
   {
     name: '会反馈',
-    detail:
-      '能向 AI 描述「我要什么、现在怎样、期望什么」，并附上报错、相关文件和复现步骤。',
+    detail: '能向 AI 描述「我要什么、现在怎样、期望什么」，并附上报错、相关文件和复现步骤。',
   },
   {
     name: '小步迭代',
-    detail:
-      '让 AI 一次只改一个功能，每步立刻运行验证，而不是一次生成整个项目然后无从下手。',
+    detail: '让 AI 一次只改一个功能，每步立刻运行验证，而不是一次生成整个项目然后无从下手。',
   },
   {
     name: '会兜底',
@@ -181,13 +177,11 @@ export const VIBE_WORKFLOW: readonly VibeWorkflowStep[] = [
 export const VIBE_PITFALLS: readonly VibePitfall[] = [
   {
     name: '幻觉 API',
-    detail:
-      'AI 编造不存在的库、函数或参数——让它给出官方文档链接，或坚持用最主流的包。',
+    detail: 'AI 编造不存在的库、函数或参数——让它给出官方文档链接，或坚持用最主流的包。',
   },
   {
     name: '依赖装不上',
-    detail:
-      '先让 AI 解释 requirements.txt / go.mod 是什么；安装失败时把完整终端报错贴回去。',
+    detail: '先让 AI 解释 requirements.txt / go.mod 是什么；安装失败时把完整终端报错贴回去。',
   },
   {
     name: '一次生成太多',
@@ -195,8 +189,7 @@ export const VIBE_PITFALLS: readonly VibePitfall[] = [
   },
   {
     name: '环境问题',
-    detail:
-      '把你的操作系统、Python / Go 版本、项目目录结构告诉 AI，一半「玄学问题」因此消失。',
+    detail: '把你的操作系统、Python / Go 版本、项目目录结构告诉 AI，一半「玄学问题」因此消失。',
   },
   {
     name: '悄悄改坏',

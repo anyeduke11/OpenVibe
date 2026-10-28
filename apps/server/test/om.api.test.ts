@@ -64,7 +64,11 @@ describe('GET /api/om（OM1 密度 + OM2 首次见效）', () => {
     const res = await api<OmOut>(h, 'GET', '/api/om')
     expect(res.statusCode).toBe(200)
     expect(res.json.density).toBeNull()
-    expect(res.json.timeToValue).toEqual({ firstEventAt: null, firstInjectionAt: null, seconds: null })
+    expect(res.json.timeToValue).toEqual({
+      firstEventAt: null,
+      firstInjectionAt: null,
+      seconds: null,
+    })
   })
 
   it('OM-02: 建包后 → 密度可复算且确定；无事件时 timeToValue 仍 null', async () => {

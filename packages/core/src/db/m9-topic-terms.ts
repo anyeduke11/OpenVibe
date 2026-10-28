@@ -53,8 +53,7 @@ export function attachTopicTerms(
   }
 
   const topic = db.prepare(`SELECT id FROM lang_topics WHERE id = ?`).get(topicId) as
-    | { id: number }
-    | undefined
+    { id: number } | undefined
   if (!topic) {
     result.rejected.push(`topic 不存在: ${topicId}`)
     return result

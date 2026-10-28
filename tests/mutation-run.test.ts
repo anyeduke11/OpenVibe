@@ -69,10 +69,16 @@ describe('mutation-run · parseVitestSummary：把 vitest 汇总行读成数字'
     expect(parseVitestSummary(' Tests  8 passed (8)\n')).toEqual({ failed: 0, passed: 8 })
   })
   it('有红形态 `Tests  1 failed | 10 passed (11)`', () => {
-    expect(parseVitestSummary(' Tests  1 failed | 10 passed (11)\n')).toEqual({ failed: 1, passed: 10 })
+    expect(parseVitestSummary(' Tests  1 failed | 10 passed (11)\n')).toEqual({
+      failed: 1,
+      passed: 10,
+    })
   })
   it('多条红 `Tests  3 failed | 5 passed (8)`', () => {
-    expect(parseVitestSummary(' Tests  3 failed | 5 passed (8)\n')).toEqual({ failed: 3, passed: 5 })
+    expect(parseVitestSummary(' Tests  3 failed | 5 passed (8)\n')).toEqual({
+      failed: 3,
+      passed: 5,
+    })
   })
   it('⚠️ 上色输出（带 ANSI 转义码）也必须能解析 —— 真跑 vitest 在 CI=1 下就是这种', () => {
     // 这条钉的是实测踩到的真缺陷：`defaultRunner` 设了 CI=1 ⇒ 子进程强制上色 ⇒
@@ -82,7 +88,8 @@ describe('mutation-run · parseVitestSummary：把 vitest 汇总行读成数字'
     // 只断言契约（转义码清干净、数字读对），**不断言剥除后的精确空格**：
     // 上色输出剥除后是「两个空格」，`--no-color` 输出是「一个空格」，那是 vitest 的排版差异，
     // 拿它当断言等于在测 vitest 而非测本脚本。
-    const colored = '\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m \u001b[22m (1)\u001b[22m\n'
+    const colored =
+      '\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m \u001b[22m (1)\u001b[22m\n'
     const stripped = stripAnsi(colored)
     expect(stripped, '转义码必须被清干净').not.toContain('\u001b')
     expect(stripped).toContain('Tests')
@@ -139,7 +146,11 @@ describe('mutation-run · 变异确实打上后才跑测试', () => {
 
   it('`expectMin` 是下限：红 3 支而 min=1 ⇒ 判 ok', () => {
     const f = fixture()
-    const r = runLeg(leg({ expect: undefined, expectMin: 1 }), f.root, runner('3 failed | 7 passed (10)'))
+    const r = runLeg(
+      leg({ expect: undefined, expectMin: 1 }),
+      f.root,
+      runner('3 failed | 7 passed (10)'),
+    )
     expect(r.status).toBe('ok')
     f.cleanup()
   })
@@ -233,7 +244,9 @@ describe('mutation-run · 三因诊断（本脚本的核心价值）', () => {
   it('⚠️ 变异腿自证：把「已排除变异没打上」这句删掉 ⇒ 上面那条断言必须红', () => {
     // 防止诊断文本退化成空壳而不被发现
     const crippled = (l: MutationLeg, f: number, p: number) =>
-      diagnosisFor(l, f, p).filter((d) => !d.includes('已排除')).join('\n')
+      diagnosisFor(l, f, p)
+        .filter((d) => !d.includes('已排除'))
+        .join('\n')
     expect(crippled(leg(), 0, 10)).not.toContain('已排除')
     expect(crippled(leg(), 0, 10)).toContain('待查 ①')
   })
@@ -321,7 +334,10 @@ describe('mutation-run · 逃逸口守卫：不注入 runner 时必须真跑 vit
 
   it('真实但不存在的测试文件 ⇒ status=vitest-crashed，且尾部留着真实报错', () => {
     const f = fixture()
-    const r = runLeg(leg({ file: f.abs, testCmd: ['tests/__no_such_file_here__.test.ts'] }), process.cwd())
+    const r = runLeg(
+      leg({ file: f.abs, testCmd: ['tests/__no_such_file_here__.test.ts'] }),
+      process.cwd(),
+    )
     expect(r.status, `默认路径没真跑 vitest：tail=${r.tail}`).toBe('vitest-crashed')
     expect(r.diagnosis.join()).toContain('不是')
     expect(r.tail, '崩溃时必须留下 vitest 的真实输出尾部').not.toBe('')

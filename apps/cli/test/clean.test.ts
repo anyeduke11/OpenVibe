@@ -536,7 +536,11 @@ describe('零副作用与前置（§7.10 d、e、f）', () => {
    */
   it('CLI-CLEAN-13: 换包后 clean 一并退场「只有旧包注入过」的文件（§6.10 合并留档 ⇒ 登记项即删除凭据）', async () => {
     const packA = demoPack({ name: 'pack-a', targets: ['claude-code', 'cursor'], withSkills: true })
-    const packB = demoPack({ name: 'pack-b', targets: ['claude-code', 'cursor'], withSkills: false })
+    const packB = demoPack({
+      name: 'pack-b',
+      targets: ['claude-code', 'cursor'],
+      withSkills: false,
+    })
     const pathSetB = new Set(packB.files.map((f) => f.path))
     // 夹具的可用性由这一条守住：两个包必须真的渲染出不同的路径集，否则下面的断言全在空集上恒真
     const aOnly = packA.files.map((f) => f.path).filter((p) => !pathSetB.has(p))

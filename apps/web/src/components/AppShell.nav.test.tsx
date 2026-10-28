@@ -34,11 +34,12 @@ const COUNTS = {
 beforeEach(() => {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () =>
-      new Response(JSON.stringify(COUNTS), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      }),
+    vi.fn(
+      async () =>
+        new Response(JSON.stringify(COUNTS), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
     ),
   )
 })
@@ -72,16 +73,16 @@ describe('M9 P3.1 · 侧栏「开发能力」', () => {
 
   it('链接指向 /dev', () => {
     const { container } = renderShell()
-    const link = [...container.querySelectorAll('nav a')].find(
-      (a) => a.textContent?.includes('开发能力'),
+    const link = [...container.querySelectorAll('nav a')].find((a) =>
+      a.textContent?.includes('开发能力'),
     )
     expect(link?.getAttribute('href')).toBe('/dev')
   })
 
   it('与「术语库」同属「资产」组（不是工程/系统组）', () => {
     const { container } = renderShell()
-    const link = [...container.querySelectorAll('nav a')].find(
-      (a) => a.textContent?.includes('开发能力'),
+    const link = [...container.querySelectorAll('nav a')].find((a) =>
+      a.textContent?.includes('开发能力'),
     )
     // 结构：<div 组><div 组名/><div 条目容器><a/>…</div></div>
     const groupBox = link?.parentElement?.parentElement

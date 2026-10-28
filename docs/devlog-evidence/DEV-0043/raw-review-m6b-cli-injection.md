@@ -1,24 +1,25 @@
 # 独立复核 · docs/specs/m6-cli-injection.md（m6b）版本链自报判级
+
 复核基线：`6499139`（分支 `feat/p1.1-t10-clean-size`，工作树只读，未做任何写操作/门禁）。
 取数：`git log --date=short 211a345..HEAD -- docs/specs/m6-cli-injection.md` = **8 笔**（与自报一致）；
 `git diff --numstat 211a345..HEAD` = **44 / 3**（与自报一致）；逐笔 `git diff -U15 <sha>^ <sha>` 全读（字符级对齐）。
 
 ## 逐次判定表
 
-| 版本 | commit（可多个）| 自报判级 | 独立判定 | 同意? | 证据 |
-|---|---|---|---|---|---|
-| v1.1 | `eef8925` | 链上无判级，只声明「本行为 2026-09-23 补记，当时未按 §0.3 B 级流程登记」 | **B**（新增退出码 1 + `SYNC_BUSY` 让路档）| 级别同意、日期不同意 | 该笔只加 §6.9 与 §7.9（diff 现测）；`版本` 行本身 **`eef8925` 里不存在**，是 `99690bc`（09-24）新插入的 |
-| v1.2 | `99690bc` | **链上完全没有 §0.3 判级** | **B**（本文件史上最大一次：新增会删盘的命令）| 不同意（漏报） | DEV_LOG.md:501 确实记了「B 级 · m6b v1.2」，但 dev-plan.md:1372 声明「spec 版本以该文件头部 `\| 版本 \|` 行为单源」——单源格里没写级别 |
-| v1.3 | `99690bc` | C（实现细节/验收构造，无新增行为）| ①C / **②③属 B** | 不同意 | ②改 FR-6.3 `FOREIGN` 行（spec:95）⇒ 换包后旧包独有文件从「不删」变成「`clean` 一并退场」＝删除面；③新增 `LOCK_INVALID` + 零删除档与验收 f2（spec:88 / spec:148）＝错误码 + 验收条目 |
-| v1.4 ① | `a9da1db` | **B**（新增退出码口径）| **B** | 同意 | spec:102；实装见 apps/cli/src/commands/clean.ts:319（取消 ⇒ `tally(...,2)`）|
-| v1.4 ② | `a9da1db` | C（实现顺序）| 边界：净化与 schema 的先后决定用户看到 `PATH_ESCAPE` 还是 `LOCK_INVALID`，至少该按「拿不准往高」记 B | 半同意 | spec:99 正文自述「两道闸互吃」，同一格却记 C |
-| v1.4 ③ | `a9da1db` | C | C 级别可同意，**事实不同意** | 不同意（事实面）| 点名的 `sanitizeLockEntries` 在 `a9da1db` 的代码里**已不存在**（`git grep a9da1db -- apps packages` 空），只在计划文档 `docs/superpowers/plans/2026-09-24-...:633` 里作为已删除的旧名；现存的是 clean.ts:126-143 `rejectEscapingLockEntries` |
-| v1.4 ④ | `a9da1db` | C（判据口径，不改既有正常路径）| **B** | **不同意** | spec:98 新写「`driftKept === 0` 即删 `pack.lock.json`、`cleaned = true`、退出码 `0`，包括一个盘上文件都没动的情形」+ 新验收 e3（spec:147）＝§0.3 B 定义里的「会不会删盘」 |
-| v1.5 | `94b2bd3` | C（形状口径澄清 **+ 一个附加键**）| **B** | **不同意** | spec:103 把 `hints` 定为**必带**＝`--json` 键集合/形状变化，正是 B 的判据；括号里自述已承认「一个附加键」 |
-| v1.5 一次自纠 | `7ce3d83` | 「不另计次」 | 内容只是把理由从「两条腿都要散文」收窄为「取消那一腿」，级别随 v1.5 一起应升 B | 计次同意、级别不同意 | diff 现测：仅改链 v1.5 段 + FR-6.10 正文两段论证 |
-| v1.5 二次自纠 | `5a22800` | 「不另计次」 | **应另计一次并按 B 裁定** | **不同意** | 该笔把「必带」的范围从 1 条腿**扩成 3 条**（spec:103 现文「真正承重的是另外三条…**交互取消、`--dry-run`（『以上为计划，零写入零删除』）、陈旧锁接管（『接管了残留写盘锁 pid …』）**」）——新增了两条 `--json` 必带解释，且把提示文案原文钉进契约 |
-| v1.6 | `bb7d671` | **B**（读侧新增一条输入拒绝）| **B** | 同意 | spec:11 段 + spec:148；实装见 packages/shared/src/schemas/pack.ts:170/266 区、测试腿见 lock.test.ts:198 与 :217 |
-| v1.7 | `a188ad3` | C（并发时序实现细节）| C（同意），一处措辞夸大 | 同意（带一条修正）| §7.9 c 的「5 个让路且报出赢家 pid」确由 `eef8925` 最早写入 ⇒ 「实现对齐既有验收」成立；但「实测 **100 波 × 6 = 600 条首行里 7 条**」在库里是 **40 波 + 60 波两次跑的合并**，且 40 波那份自注为「按原样逐字**复录**」（DEV-0035/probe-before-fix-40waves.txt 末段），不是一次 100 波实测 |
+| 版本          | commit（可多个） | 自报判级                                                                 | 独立判定                                                                                             | 同意?                | 证据                                                                                                                                                                                                                                                                                    |
+| ------------- | ---------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v1.1          | `eef8925`        | 链上无判级，只声明「本行为 2026-09-23 补记，当时未按 §0.3 B 级流程登记」 | **B**（新增退出码 1 + `SYNC_BUSY` 让路档）                                                           | 级别同意、日期不同意 | 该笔只加 §6.9 与 §7.9（diff 现测）；`版本` 行本身 **`eef8925` 里不存在**，是 `99690bc`（09-24）新插入的                                                                                                                                                                                 |
+| v1.2          | `99690bc`        | **链上完全没有 §0.3 判级**                                               | **B**（本文件史上最大一次：新增会删盘的命令）                                                        | 不同意（漏报）       | DEV_LOG.md:501 确实记了「B 级 · m6b v1.2」，但 dev-plan.md:1372 声明「spec 版本以该文件头部 `\| 版本 \|` 行为单源」——单源格里没写级别                                                                                                                                                   |
+| v1.3          | `99690bc`        | C（实现细节/验收构造，无新增行为）                                       | ①C / **②③属 B**                                                                                      | 不同意               | ②改 FR-6.3 `FOREIGN` 行（spec:95）⇒ 换包后旧包独有文件从「不删」变成「`clean` 一并退场」＝删除面；③新增 `LOCK_INVALID` + 零删除档与验收 f2（spec:88 / spec:148）＝错误码 + 验收条目                                                                                                     |
+| v1.4 ①        | `a9da1db`        | **B**（新增退出码口径）                                                  | **B**                                                                                                | 同意                 | spec:102；实装见 apps/cli/src/commands/clean.ts:319（取消 ⇒ `tally(...,2)`）                                                                                                                                                                                                            |
+| v1.4 ②        | `a9da1db`        | C（实现顺序）                                                            | 边界：净化与 schema 的先后决定用户看到 `PATH_ESCAPE` 还是 `LOCK_INVALID`，至少该按「拿不准往高」记 B | 半同意               | spec:99 正文自述「两道闸互吃」，同一格却记 C                                                                                                                                                                                                                                            |
+| v1.4 ③        | `a9da1db`        | C                                                                        | C 级别可同意，**事实不同意**                                                                         | 不同意（事实面）     | 点名的 `sanitizeLockEntries` 在 `a9da1db` 的代码里**已不存在**（`git grep a9da1db -- apps packages` 空），只在计划文档 `docs/superpowers/plans/2026-09-24-...:633` 里作为已删除的旧名；现存的是 clean.ts:126-143 `rejectEscapingLockEntries`                                            |
+| v1.4 ④        | `a9da1db`        | C（判据口径，不改既有正常路径）                                          | **B**                                                                                                | **不同意**           | spec:98 新写「`driftKept === 0` 即删 `pack.lock.json`、`cleaned = true`、退出码 `0`，包括一个盘上文件都没动的情形」+ 新验收 e3（spec:147）＝§0.3 B 定义里的「会不会删盘」                                                                                                               |
+| v1.5          | `94b2bd3`        | C（形状口径澄清 **+ 一个附加键**）                                       | **B**                                                                                                | **不同意**           | spec:103 把 `hints` 定为**必带**＝`--json` 键集合/形状变化，正是 B 的判据；括号里自述已承认「一个附加键」                                                                                                                                                                               |
+| v1.5 一次自纠 | `7ce3d83`        | 「不另计次」                                                             | 内容只是把理由从「两条腿都要散文」收窄为「取消那一腿」，级别随 v1.5 一起应升 B                       | 计次同意、级别不同意 | diff 现测：仅改链 v1.5 段 + FR-6.10 正文两段论证                                                                                                                                                                                                                                        |
+| v1.5 二次自纠 | `5a22800`        | 「不另计次」                                                             | **应另计一次并按 B 裁定**                                                                            | **不同意**           | 该笔把「必带」的范围从 1 条腿**扩成 3 条**（spec:103 现文「真正承重的是另外三条…**交互取消、`--dry-run`（『以上为计划，零写入零删除』）、陈旧锁接管（『接管了残留写盘锁 pid …』）**」）——新增了两条 `--json` 必带解释，且把提示文案原文钉进契约                                         |
+| v1.6          | `bb7d671`        | **B**（读侧新增一条输入拒绝）                                            | **B**                                                                                                | 同意                 | spec:11 段 + spec:148；实装见 packages/shared/src/schemas/pack.ts:170/266 区、测试腿见 lock.test.ts:198 与 :217                                                                                                                                                                         |
+| v1.7          | `a188ad3`        | C（并发时序实现细节）                                                    | C（同意），一处措辞夸大                                                                              | 同意（带一条修正）   | §7.9 c 的「5 个让路且报出赢家 pid」确由 `eef8925` 最早写入 ⇒ 「实现对齐既有验收」成立；但「实测 **100 波 × 6 = 600 条首行里 7 条**」在库里是 **40 波 + 60 波两次跑的合并**，且 40 波那份自注为「按原样逐字**复录**」（DEV-0035/probe-before-fix-40waves.txt 末段），不是一次 100 波实测 |
 
 ## findings（只列我判错/漏报的，按严重度排序）
 
@@ -41,30 +42,30 @@
 
 ## 测试 id 点名核查（问题 3，9/9 全部存在，无幽灵 id）
 
-| id | file:line |
-|---|---|
-| `CLI-CLEAN-01` | apps/cli/test/clean.test.ts:135 |
-| `CLI-CLEAN-05b` | apps/cli/test/clean.test.ts:260 |
-| `CLI-CLEAN-05c` | apps/cli/test/clean.test.ts:277 |
-| `CLI-CLEAN-06b` | apps/cli/test/clean.test.ts:451 |
-| `CLI-CLEAN-06c` | apps/cli/test/clean.test.ts:407 |
-| `CLI-CLEAN-06f` | apps/cli/test/clean.test.ts:561 |
-| `SL-13` | packages/core/src/inject/sync-lock.test.ts:262 |
-| `SL-14` | packages/core/src/inject/sync-lock.test.ts:306 |
-| `UT-INJECT-LOCK-04` | packages/core/src/inject/lock.test.ts:175（describe）；v1.6 点名的两条腿逐条对上：冲突腿 :198（含 `toContain('AGENTS.md')` :211）、同名腿 :217（断言 3 条不被去重）|
+| id                  | file:line                                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CLI-CLEAN-01`      | apps/cli/test/clean.test.ts:135                                                                                                                                     |
+| `CLI-CLEAN-05b`     | apps/cli/test/clean.test.ts:260                                                                                                                                     |
+| `CLI-CLEAN-05c`     | apps/cli/test/clean.test.ts:277                                                                                                                                     |
+| `CLI-CLEAN-06b`     | apps/cli/test/clean.test.ts:451                                                                                                                                     |
+| `CLI-CLEAN-06c`     | apps/cli/test/clean.test.ts:407                                                                                                                                     |
+| `CLI-CLEAN-06f`     | apps/cli/test/clean.test.ts:561                                                                                                                                     |
+| `SL-13`             | packages/core/src/inject/sync-lock.test.ts:262                                                                                                                      |
+| `SL-14`             | packages/core/src/inject/sync-lock.test.ts:306                                                                                                                      |
+| `UT-INJECT-LOCK-04` | packages/core/src/inject/lock.test.ts:175（describe）；v1.6 点名的两条腿逐条对上：冲突腿 :198（含 `toContain('AGENTS.md')` :211）、同名腿 :217（断言 3 条不被去重） |
 
 `grep -oE` 复算本文件具名 id 去重后 = **9 个**，与委托给的清单逐字相同 ✓。名字与断言语义也对上（`06b` 现标题「全部 ABSENT ⇒ 照样删 lock」正是 FR-6.5 引用的口径；全 FOREIGN 那支是 `06d`，规格没点它、也没说反）。唯一不成立的是**区间**：`CLI-CLEAN-01..10`（finding 9）。
 
 ## 代码实况抽查（问题 4，抽 6 处，行号引用按规矩不计缺陷）
 
-| 规格句 | 实况 | 结论 |
-|---|---|---|
-| 「`managed` = 本次实写 ∪ 上次已受管，只升不降」（spec:96/152） | packages/core/src/inject/lock.ts:36 `written.has(p) \|\| (oldByPath.get(p)?.managed ?? false)`，理由注释在 :19-25 | **一致** |
-| 「换包 ⇒ 旧条目留档并仍由 `clean` 退场」（spec:122） | lock.ts:39-41 确为 `for (entry of oldLock.files) if (!planPaths.has) files.push({...entry})` | **一致** |
-| 「取消 ⇒ 退出码 2、`cleaned=false`、lock 原样」（spec:102） | clean.ts:314-319（含 hints 那句「已取消」）| **一致** |
-| 「`driftKept === 0` 即删 lock、全 ABSENT/全 FOREIGN 也真删盘」（spec:98） | clean.ts:323-327 注释与抢锁条件正是该判据 | **一致** |
-| 「有界重读，上限 `SYNC_LOCK_REREAD_LIMIT`；文件中途消失 ⇒ 判无锁」（spec:121，v1.7） | packages/core/src/inject/sync-lock.ts:60（=200）、:126 循环 | **一致** |
-| 「`packPathSchema`（`pack.ts:130`，即 `isValidPackRelativePath`）」（spec:99 与链 v1.4 段） | pack.ts:130 实为 `SizeEstimateFile.path`；`packPathSchema` 在 :170 且 `refine(isValidPackRelativePath)`（utils.ts:43） | **符号语义对、位置错，且 v1.6 声明的修复未发生**（finding 6）|
+| 规格句                                                                                      | 实况                                                                                                                   | 结论                                                          |
+| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| 「`managed` = 本次实写 ∪ 上次已受管，只升不降」（spec:96/152）                              | packages/core/src/inject/lock.ts:36 `written.has(p) \|\| (oldByPath.get(p)?.managed ?? false)`，理由注释在 :19-25      | **一致**                                                      |
+| 「换包 ⇒ 旧条目留档并仍由 `clean` 退场」（spec:122）                                        | lock.ts:39-41 确为 `for (entry of oldLock.files) if (!planPaths.has) files.push({...entry})`                           | **一致**                                                      |
+| 「取消 ⇒ 退出码 2、`cleaned=false`、lock 原样」（spec:102）                                 | clean.ts:314-319（含 hints 那句「已取消」）                                                                            | **一致**                                                      |
+| 「`driftKept === 0` 即删 lock、全 ABSENT/全 FOREIGN 也真删盘」（spec:98）                   | clean.ts:323-327 注释与抢锁条件正是该判据                                                                              | **一致**                                                      |
+| 「有界重读，上限 `SYNC_LOCK_REREAD_LIMIT`；文件中途消失 ⇒ 判无锁」（spec:121，v1.7）        | packages/core/src/inject/sync-lock.ts:60（=200）、:126 循环                                                            | **一致**                                                      |
+| 「`packPathSchema`（`pack.ts:130`，即 `isValidPackRelativePath`）」（spec:99 与链 v1.4 段） | pack.ts:130 实为 `SizeEstimateFile.path`；`packPathSchema` 在 :170 且 `refine(isValidPackRelativePath)`（utils.ts:43） | **符号语义对、位置错，且 v1.6 声明的修复未发生**（finding 6） |
 
 ## 没查完的面（如实写）
 

@@ -2,13 +2,7 @@ import { useEffect } from 'react'
 import type { SkillReviewItem } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { Icon, type IconName } from '../ui/icons'
-import {
-  btnGhost,
-  btnPrimary,
-  chipTone,
-  emptyHintCls,
-  noteCls,
-} from '../ui/styles'
+import { btnGhost, btnPrimary, chipTone, emptyHintCls, noteCls } from '../ui/styles'
 import { useSkillReview } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
 
@@ -60,7 +54,9 @@ export function SkillReviewDialog(props: { open: boolean; onClose: () => void })
         }
       >
         <div className="space-y-3 text-sm">
-          {review.isPending && <p className="text-xs text-ink-muted">{zh.skills.reviewDialog.running}</p>}
+          {review.isPending && (
+            <p className="text-xs text-ink-muted">{zh.skills.reviewDialog.running}</p>
+          )}
           {review.isError && <p className="text-xs text-warn">{(review.error as Error).message}</p>}
           {report !== undefined && (
             <>
@@ -100,7 +96,9 @@ export function SkillReviewDialog(props: { open: boolean; onClose: () => void })
                       <ul className="mt-1 list-disc space-y-0.5 pl-5 text-[11px] text-ink-muted">
                         {item.issues.map((issue) => (
                           <li key={issue.code}>
-                            <span className="mono text-ink-faint">[{issue.severity}] {issue.code}</span>{' '}
+                            <span className="mono text-ink-faint">
+                              [{issue.severity}] {issue.code}
+                            </span>{' '}
                             {issue.message}
                           </li>
                         ))}

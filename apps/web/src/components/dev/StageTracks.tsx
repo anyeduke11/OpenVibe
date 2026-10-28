@@ -65,7 +65,10 @@ export function StageTracks(props: StageTracksProps) {
   return (
     <section aria-label="阶段轨道">
       <div className="flex flex-col gap-2">
-        <article aria-label="Python 轨道" className="rounded-md border border-line bg-panel px-3 py-2">
+        <article
+          aria-label="Python 轨道"
+          className="rounded-md border border-line bg-panel px-3 py-2"
+        >
           <header className="flex items-center gap-2">
             <strong className="text-sm">Python</strong>
             <span className={chipTone('accent')}>
@@ -88,7 +91,10 @@ export function StageTracks(props: StageTracksProps) {
         </article>
 
         {go !== undefined && (
-          <article aria-label="Go 轨道" className="rounded-md border border-line bg-panel px-3 py-2">
+          <article
+            aria-label="Go 轨道"
+            className="rounded-md border border-line bg-panel px-3 py-2"
+          >
             <header className="flex items-center gap-2">
               <strong className="text-sm">Go</strong>
               <span className={chipTone('default')}>

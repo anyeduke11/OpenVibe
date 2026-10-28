@@ -63,9 +63,7 @@ export interface AssembleInterpretOptions {
  *   反过来做的话，脱敏会把「未勾选的片段」也算一遍（白做功），更糟的是
  *   相对化会先把未勾选片段的路径算进结果里（虽然最终也会被滤掉，但一旦顺序写错就会漏）。
  */
-export function assembleInterpretRequest(
-  opts: AssembleInterpretOptions,
-): SourceInterpretRequest {
+export function assembleInterpretRequest(opts: AssembleInterpretOptions): SourceInterpretRequest {
   const picked = opts.candidates.filter((c) => opts.tickedIds.has(c.id))
   const fragments = picked.map((c) => ({
     // ⚠️ 片段 id 跟着走（**勾选与计数的单位是片段** ⇒ 台账要能对回是哪一条）
@@ -80,9 +78,7 @@ export function assembleInterpretRequest(
   // ⚠️ **排序在 JS 里做**（本仓纪律：排序不放 SQL/不稳定处）；键 = (path, line, topic)
   fragments.sort(
     (a, b) =>
-      a.path.localeCompare(b.path) ||
-      a.line - b.line ||
-      a.topic_slug.localeCompare(b.topic_slug),
+      a.path.localeCompare(b.path) || a.line - b.line || a.topic_slug.localeCompare(b.topic_slug),
   )
   const topics = [...new Map(fragments.map((f) => [f.topic_slug, f.topic_title])).entries()]
     .map(([slug, title]) => ({ slug, title }))

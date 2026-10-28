@@ -36,7 +36,11 @@ export interface StubServer {
   close(): Promise<void>
 }
 
-const send = (res: { statusCode: number; setHeader(k: string, v: string): void; end(b: string): void }, status: number, body: unknown): void => {
+const send = (
+  res: { statusCode: number; setHeader(k: string, v: string): void; end(b: string): void },
+  status: number,
+  body: unknown,
+): void => {
   res.statusCode = status
   res.setHeader('content-type', 'application/json; charset=utf-8')
   res.end(JSON.stringify(body))
@@ -61,7 +65,8 @@ export async function startStubServer(routes: StubRoutes): Promise<StubServer> {
       const path = (req.url ?? '/').split('?')[0] ?? '/'
       const isPost = req.method === 'POST'
       if (path === '/api/agent/command-run') {
-        if (!isPost || routes.commandRun === undefined) send(res, 404, { code: 'NOT_FOUND', message: 'no such endpoint' })
+        if (!isPost || routes.commandRun === undefined)
+          send(res, 404, { code: 'NOT_FOUND', message: 'no such endpoint' })
         else send(res, 200, routes.commandRun)
         return
       }

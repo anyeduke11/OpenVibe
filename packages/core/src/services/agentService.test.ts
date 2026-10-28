@@ -5,7 +5,12 @@ import { ProjectsRepo } from '../repos/projects'
 import { TasksRepo } from '../repos/tasks'
 import { createAgentService, AGENT_BATCH_LIMITS } from './agentService'
 import { APP_META_KEYS, AppMetaRepo } from '../repos/appMeta'
-import { AGENT_PAYLOAD_KEYS, TASK_STATUS, type AgentIngestKind, type AgentIngestOne } from '@openvibe/shared'
+import {
+  AGENT_PAYLOAD_KEYS,
+  TASK_STATUS,
+  type AgentIngestKind,
+  type AgentIngestOne,
+} from '@openvibe/shared'
 
 /**
  * M8 回流写入面 · **服务层直测**（不经 HTTP）。
@@ -30,13 +35,19 @@ function fixture() {
     kind: 'light',
     stages: [{ name: '启动', checklist: [{ id: 'c1', text: '需求一句话' }], artifacts: [] }],
   })
-  const projectId = new ProjectsRepo(h.db).create({ name: '服务层演示', flowTemplateId: template.id }).id
+  const projectId = new ProjectsRepo(h.db).create({
+    name: '服务层演示',
+    flowTemplateId: template.id,
+  }).id
   let tick = 0
   // M8-E 写侧总闸（FR-5.5.2.1）**默认关**，故本 fixture 必须显式打开，
   // 否则下面每支 ingest 用例都会先撞 422 —— 测的就不是它们要测的东西了。
   // ⚠️ 这条总闸本身的判据在 `agentWriteGate.test.ts`，不在这里。
   new AppMetaRepo(h.db).write(APP_META_KEYS.agentWriteEnabled, true)
-  const svc = createAgentService({ db: h.db, now: () => new Date(Date.UTC(2026, 9, 14, 0, 0, tick++)) })
+  const svc = createAgentService({
+    db: h.db,
+    now: () => new Date(Date.UTC(2026, 9, 14, 0, 0, tick++)),
+  })
   return { h, svc, projectId }
 }
 
@@ -177,7 +188,12 @@ describe('逐条成败互不影响（FR-2.7）', () => {
  * 否则「读了读侧恰好没看见」和「真的没写」分不开。
  * ==========================================================================*/
 
-const BUSINESS_TABLES = ['dev_log_entries', 'project_check_states', 'tasks', 'requirements'] as const
+const BUSINESS_TABLES = [
+  'dev_log_entries',
+  'project_check_states',
+  'tasks',
+  'requirements',
+] as const
 
 function countRows(h: ReturnType<typeof newDb>, table: string): number {
   return (h.db.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get() as { c: number }).c
@@ -217,7 +233,12 @@ describe('发布分发 · 人工确认门（FR-2.5）', () => {
     ]
     // **这一条是 FR-2.5 的全部**：agent 的判断不可作为事实源
     expectBusinessTablesEmpty(h)
-    expect(svc.listPending(projectId).map((i) => i.status)).toEqual(['pending', 'pending', 'pending', 'pending'])
+    expect(svc.listPending(projectId).map((i) => i.status)).toEqual([
+      'pending',
+      'pending',
+      'pending',
+      'pending',
+    ])
     for (const id of ids) expect(svc.getIngest(id)!.reviewedAt).toBeNull()
     h.close()
   })
@@ -226,7 +247,11 @@ describe('发布分发 · 人工确认门（FR-2.5）', () => {
 describe('发布分发 · dev_log → dev_log_entries（FR-2.8）', () => {
   it('确认后落一行：type 取载荷值、title/body 照落、entry_no 由既有递增逻辑分配', () => {
     const { svc, projectId, h } = fixture()
-    const id = push(svc, projectId, 'dev_log', 'dl1', { type: 'DEV', title: '接入层落地', body: '补了发布分发' })
+    const id = push(svc, projectId, 'dev_log', 'dl1', {
+      type: 'DEV',
+      title: '接入层落地',
+      body: '补了发布分发',
+    })
     svc.reviewIngest(id, 'published', null)
 
     const row = h.db.prepare('SELECT type, entry_no, title, body FROM dev_log_entries').get() as {
@@ -241,8 +266,16 @@ describe('发布分发 · dev_log → dev_log_entries（FR-2.8）', () => {
 
   it('type 取既有闭集的另一支 CHECK：两条日志 entry_no 递增且**互不冲突**', () => {
     const { svc, projectId, h } = fixture()
-    svc.reviewIngest(push(svc, projectId, 'dev_log', 'd1', { type: 'CHECK', title: '验收', body: '过' }), 'published', null)
-    svc.reviewIngest(push(svc, projectId, 'dev_log', 'd2', { type: 'DEV', title: '开发', body: '写' }), 'published', null)
+    svc.reviewIngest(
+      push(svc, projectId, 'dev_log', 'd1', { type: 'CHECK', title: '验收', body: '过' }),
+      'published',
+      null,
+    )
+    svc.reviewIngest(
+      push(svc, projectId, 'dev_log', 'd2', { type: 'DEV', title: '开发', body: '写' }),
+      'published',
+      null,
+    )
 
     const rows = h.db
       .prepare('SELECT type, entry_no FROM dev_log_entries ORDER BY rowid ASC')
@@ -260,8 +293,14 @@ describe('发布分发 · dev_log → dev_log_entries（FR-2.8）', () => {
   it('type 缺省补 DEV（上报方漏一个可选字段不该把日志卡在队列里）', () => {
     const { svc, projectId, h } = fixture()
     // 载荷里只有 body，连 type 都没有 —— 既有 API 用例也是这个形状
-    svc.reviewIngest(push(svc, projectId, 'dev_log', 'dl-def', { body: '只有正文' }), 'published', null)
-    expect((h.db.prepare('SELECT type FROM dev_log_entries').get() as { type: string }).type).toBe('DEV')
+    svc.reviewIngest(
+      push(svc, projectId, 'dev_log', 'dl-def', { body: '只有正文' }),
+      'published',
+      null,
+    )
+    expect((h.db.prepare('SELECT type FROM dev_log_entries').get() as { type: string }).type).toBe(
+      'DEV',
+    )
     h.close()
   })
 
@@ -279,7 +318,11 @@ describe('发布分发 · dev_log → dev_log_entries（FR-2.8）', () => {
 describe('发布分发 · check_state → project_check_states（FR-2.9）', () => {
   it('确认后落一行勾选态，stageName/itemId 照载荷落', () => {
     const { svc, projectId, h } = fixture()
-    svc.reviewIngest(push(svc, projectId, 'check_state', 'cs1', { stageName: '启动', itemId: 'c1' }), 'published', null)
+    svc.reviewIngest(
+      push(svc, projectId, 'check_state', 'cs1', { stageName: '启动', itemId: 'c1' }),
+      'published',
+      null,
+    )
     expect(new ProjectsRepo(h.db).listCheckStates(projectId)).toEqual([
       { stageName: '启动', itemId: 'c1', checkedAt: expect.any(String) },
     ])
@@ -288,15 +331,27 @@ describe('发布分发 · check_state → project_check_states（FR-2.9）', () 
 
   it('重复推同一格勾选 ⇒ 既有 ON CONFLICT 收敛成一行，不叠行', () => {
     const { svc, projectId, h } = fixture()
-    svc.reviewIngest(push(svc, projectId, 'check_state', 'cs-a', { stageName: '启动', itemId: 'c1' }), 'published', null)
-    svc.reviewIngest(push(svc, projectId, 'check_state', 'cs-b', { stageName: '启动', itemId: 'c1' }), 'published', null)
+    svc.reviewIngest(
+      push(svc, projectId, 'check_state', 'cs-a', { stageName: '启动', itemId: 'c1' }),
+      'published',
+      null,
+    )
+    svc.reviewIngest(
+      push(svc, projectId, 'check_state', 'cs-b', { stageName: '启动', itemId: 'c1' }),
+      'published',
+      null,
+    )
     expect(countRows(h, 'project_check_states')).toBe(1)
     h.close()
   })
 
   it('缺 itemId ⇒ rejected 且零写入（**猜一个 itemId 落库比不落更坏**）', () => {
     const { svc, projectId, h } = fixture()
-    const out = svc.reviewIngest(push(svc, projectId, 'check_state', 'cs-bad', { stageName: '启动' }), 'published', null)
+    const out = svc.reviewIngest(
+      push(svc, projectId, 'check_state', 'cs-bad', { stageName: '启动' }),
+      'published',
+      null,
+    )
     expect(out.status).toBe('rejected')
     expect(out.rejectReason).toContain('itemId')
     expectBusinessTablesEmpty(h)
@@ -310,32 +365,43 @@ describe('发布分发 · task_status → tasks.status（FR-2.9）', () => {
     const taskId = new TasksRepo(h.db).create(projectId, { title: '写发布分发' }).id
     expect(new TasksRepo(h.db).get(taskId)!.status).toBe('todo')
 
-    svc.reviewIngest(push(svc, projectId, 'task_status', 'ts1', { taskId, status: 'done' }), 'published', null)
+    svc.reviewIngest(
+      push(svc, projectId, 'task_status', 'ts1', { taskId, status: 'done' }),
+      'published',
+      null,
+    )
     expect(new TasksRepo(h.db).get(taskId)!.status).toBe('done')
     // 任务**总数**不变：这是更新既有行，不是新建
     expect(countRows(h, 'tasks')).toBe(1)
     h.close()
   })
 
-  it.each(['blocked', 'review', 'DONE', ''])('上报闭集外的值 %j ⇒ 整条 rejected 且 tasks 零写入', (bad) => {
-    const { svc, projectId, h } = fixture()
-    const repo = new TasksRepo(h.db)
-    const taskId = repo.create(projectId, { title: '不该被动' }).id
+  it.each(['blocked', 'review', 'DONE', ''])(
+    '上报闭集外的值 %j ⇒ 整条 rejected 且 tasks 零写入',
+    (bad) => {
+      const { svc, projectId, h } = fixture()
+      const repo = new TasksRepo(h.db)
+      const taskId = repo.create(projectId, { title: '不该被动' }).id
 
-    const out = svc.reviewIngest(push(svc, projectId, 'task_status', `ts-${bad || '空'}`, { taskId, status: bad }), 'published', null)
-    expect(out.status).toBe('rejected')
-    expect(out.rejectReason).toContain('不扩列')
-    // 零写入：任务状态**一个字节都没动**，且没有新建出第二条任务
-    expect(repo.get(taskId)!.status).toBe('todo')
-    expect(countRows(h, 'tasks')).toBe(1)
-    // 闭集本身仍是三项（FR-2.9：不得扩列，扩列属 A/B 级）
-    expect(TASK_STATUS).toEqual(['todo', 'doing', 'done'])
-    // 其余三张表连 fixture 的底子都没有，全空
-    for (const t of ['dev_log_entries', 'project_check_states', 'requirements'] as const) {
-      expect(countRows(h, t), `${t} 不该有任何行`).toBe(0)
-    }
-    h.close()
-  })
+      const out = svc.reviewIngest(
+        push(svc, projectId, 'task_status', `ts-${bad || '空'}`, { taskId, status: bad }),
+        'published',
+        null,
+      )
+      expect(out.status).toBe('rejected')
+      expect(out.rejectReason).toContain('不扩列')
+      // 零写入：任务状态**一个字节都没动**，且没有新建出第二条任务
+      expect(repo.get(taskId)!.status).toBe('todo')
+      expect(countRows(h, 'tasks')).toBe(1)
+      // 闭集本身仍是三项（FR-2.9：不得扩列，扩列属 A/B 级）
+      expect(TASK_STATUS).toEqual(['todo', 'doing', 'done'])
+      // 其余三张表连 fixture 的底子都没有，全空
+      for (const t of ['dev_log_entries', 'project_check_states', 'requirements'] as const) {
+        expect(countRows(h, t), `${t} 不该有任何行`).toBe(0)
+      }
+      h.close()
+    },
+  )
 
   it('指向别的项目的任务 ⇒ rejected 且零写入（跨项目写 refused）', () => {
     const { svc, projectId, h } = fixture()
@@ -344,10 +410,17 @@ describe('发布分发 · task_status → tasks.status（FR-2.9）', () => {
       kind: 'light',
       stages: [{ name: '启动', checklist: [{ id: 'c1', text: '需求一句话' }], artifacts: [] }],
     })
-    const otherProject = new ProjectsRepo(h.db).create({ name: '别人的项目', flowTemplateId: tpl.id }).id
+    const otherProject = new ProjectsRepo(h.db).create({
+      name: '别人的项目',
+      flowTemplateId: tpl.id,
+    }).id
     const foreignTask = new TasksRepo(h.db).create(otherProject, { title: '别家的任务' }).id
 
-    const out = svc.reviewIngest(push(svc, projectId, 'task_status', 'ts-x', { taskId: foreignTask, status: 'done' }), 'published', null)
+    const out = svc.reviewIngest(
+      push(svc, projectId, 'task_status', 'ts-x', { taskId: foreignTask, status: 'done' }),
+      'published',
+      null,
+    )
     expect(out.status).toBe('rejected')
     expect(out.rejectReason).toContain('跨项目')
     expect(new TasksRepo(h.db).get(foreignTask)!.status).toBe('todo')
@@ -356,7 +429,11 @@ describe('发布分发 · task_status → tasks.status（FR-2.9）', () => {
 
   it('任务不存在 ⇒ rejected 且零写入（不留悬空引用）', () => {
     const { svc, projectId, h } = fixture()
-    const out = svc.reviewIngest(push(svc, projectId, 'task_status', 'ts-gone', { taskId: 'tsk_不存在', status: 'done' }), 'published', null)
+    const out = svc.reviewIngest(
+      push(svc, projectId, 'task_status', 'ts-gone', { taskId: 'tsk_不存在', status: 'done' }),
+      'published',
+      null,
+    )
     expect(out.status).toBe('rejected')
     expect(out.rejectReason).toContain('不存在')
     expectBusinessTablesEmpty(h)
@@ -368,11 +445,17 @@ describe('发布分发 · requirement → requirements 草稿（FR-2.1.1）', ()
   it('确认后落一行，status 为 draft，priority/detail 照载荷落', () => {
     const { svc, projectId, h } = fixture()
     svc.reviewIngest(
-      push(svc, projectId, 'requirement', 'rq1', { title: '导出支持 PDF', detail: '销售要发标书', priority: 'P1' }),
+      push(svc, projectId, 'requirement', 'rq1', {
+        title: '导出支持 PDF',
+        detail: '销售要发标书',
+        priority: 'P1',
+      }),
       'published',
       null,
     )
-    const row = h.db.prepare('SELECT project_id, title, detail, priority, status FROM requirements').get() as {
+    const row = h.db
+      .prepare('SELECT project_id, title, detail, priority, status FROM requirements')
+      .get() as {
       project_id: string
       title: string
       detail: string
@@ -391,15 +474,25 @@ describe('发布分发 · requirement → requirements 草稿（FR-2.1.1）', ()
 
   it('⚠️ 载荷里带 status:"confirmed" 也**一律落 draft** —— agent 的判断不可作为事实源（FR-2.5）', () => {
     const { svc, projectId, h } = fixture()
-    svc.reviewIngest(push(svc, projectId, 'requirement', 'rq-hack', { title: '想直接确认', status: 'confirmed' }), 'published', null)
+    svc.reviewIngest(
+      push(svc, projectId, 'requirement', 'rq-hack', { title: '想直接确认', status: 'confirmed' }),
+      'published',
+      null,
+    )
     // 这条若实现改成「照搬 payload.status」，就会变成 confirmed —— 人工确认门就漏了
-    expect((h.db.prepare('SELECT status FROM requirements').get() as { status: string }).status).toBe('draft')
+    expect(
+      (h.db.prepare('SELECT status FROM requirements').get() as { status: string }).status,
+    ).toBe('draft')
     h.close()
   })
 
   it('priority 报闭集外的值 ⇒ rejected 且零写入', () => {
     const { svc, projectId, h } = fixture()
-    const out = svc.reviewIngest(push(svc, projectId, 'requirement', 'rq-bad', { title: '优先级非法', priority: 'P9' }), 'published', null)
+    const out = svc.reviewIngest(
+      push(svc, projectId, 'requirement', 'rq-bad', { title: '优先级非法', priority: 'P9' }),
+      'published',
+      null,
+    )
     expect(out.status).toBe('rejected')
     expect(out.rejectReason).toContain('priority 非法')
     expectBusinessTablesEmpty(h)
@@ -410,8 +503,18 @@ describe('发布分发 · requirement → requirements 草稿（FR-2.1.1）', ()
     const { svc, projectId, h } = fixture()
     // agent_sessions 全仓无写入路径（实测 INSERT 命中 0），所以这个 id 必然不存在；
     // 硬塞会撞 `source_session_id REFERENCES agent_sessions(id)` 的 FK 约束
-    svc.reviewIngest(push(svc, projectId, 'requirement', 'rq-session', { title: '带会话号' }, 'asn_不存在的会话'), 'published', null)
-    expect((h.db.prepare('SELECT source_session_id FROM requirements').get() as { source_session_id: string | null }).source_session_id).toBeNull()
+    svc.reviewIngest(
+      push(svc, projectId, 'requirement', 'rq-session', { title: '带会话号' }, 'asn_不存在的会话'),
+      'published',
+      null,
+    )
+    expect(
+      (
+        h.db.prepare('SELECT source_session_id FROM requirements').get() as {
+          source_session_id: string | null
+        }
+      ).source_session_id,
+    ).toBeNull()
     h.close()
   })
 })
@@ -419,7 +522,11 @@ describe('发布分发 · requirement → requirements 草稿（FR-2.1.1）', ()
 describe('发布分发 · 幂等（同一个 id 重复 review 不产生第二条业务行）', () => {
   it('dev_log 重复 review 三次 ⇒ dev_log_entries 仍只有一行', () => {
     const { svc, projectId, h } = fixture()
-    const id = push(svc, projectId, 'dev_log', 'idem-dl', { type: 'DEV', title: '只应有一行', body: 'x' })
+    const id = push(svc, projectId, 'dev_log', 'idem-dl', {
+      type: 'DEV',
+      title: '只应有一行',
+      body: 'x',
+    })
     svc.reviewIngest(id, 'published', null)
     svc.reviewIngest(id, 'published', null)
     svc.reviewIngest(id, 'published', null)
@@ -439,7 +546,11 @@ describe('发布分发 · 幂等（同一个 id 重复 review 不产生第二条
 
   it('已发布的记录被改判 rejected ⇒ 业务行**不被撤销**（记录状态变，行留下）', () => {
     const { svc, projectId, h } = fixture()
-    const id = push(svc, projectId, 'dev_log', 'flip', { type: 'DEV', title: '先发后撤', body: 'x' })
+    const id = push(svc, projectId, 'dev_log', 'flip', {
+      type: 'DEV',
+      title: '先发后撤',
+      body: 'x',
+    })
     svc.reviewIngest(id, 'published', null)
     const out = svc.reviewIngest(id, 'rejected', '看错了')
     expect(out.status).toBe('rejected')
@@ -450,8 +561,16 @@ describe('发布分发 · 幂等（同一个 id 重复 review 不产生第二条
 
   it('重复 review 不会二次分发：幂等键不同的第二条同内容记录照常各落一行', () => {
     const { svc, projectId, h } = fixture()
-    svc.reviewIngest(push(svc, projectId, 'dev_log', 'a', { type: 'DEV', body: '甲' }), 'published', null)
-    svc.reviewIngest(push(svc, projectId, 'dev_log', 'b', { type: 'DEV', body: '甲' }), 'published', null)
+    svc.reviewIngest(
+      push(svc, projectId, 'dev_log', 'a', { type: 'DEV', body: '甲' }),
+      'published',
+      null,
+    )
+    svc.reviewIngest(
+      push(svc, projectId, 'dev_log', 'b', { type: 'DEV', body: '甲' }),
+      'published',
+      null,
+    )
     // 幂等是「同一条记录不重复分发」，不是「同内容去重」—— 后者会把 agent 的两次真实上报吞掉
     expect(countRows(h, 'dev_log_entries')).toBe(2)
     h.close()
@@ -461,7 +580,11 @@ describe('发布分发 · 幂等（同一个 id 重复 review 不产生第二条
 describe('发布分发 · 未定义的落点（登记在案的缺口）', () => {
   it('session 这一类只转状态、不落任何业务表（FR-2.8/2.9/2.1.1 三个落点都没有它）', () => {
     const { svc, projectId, h } = fixture()
-    const out = svc.reviewIngest(push(svc, projectId, 'session', 'se1', { title: '一次会话' }), 'published', null)
+    const out = svc.reviewIngest(
+      push(svc, projectId, 'session', 'se1', { title: '一次会话' }),
+      'published',
+      null,
+    )
     expect(out.status).toBe('published')
     // 这是**如实登记的缺口**不是漏写：agent_sessions 表在 0007 建了但全仓无写入路径，
     // spec 的 FR-2 也没给 session 任何落点。若日后补上落点，这条断言就是它的红线

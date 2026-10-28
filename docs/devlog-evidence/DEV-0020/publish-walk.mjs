@@ -11,7 +11,16 @@
 // 带 install 脚本那次证的才是普通用户「取预编译包」那一跳——取不到时如实打 SKIP 与原因，不伪装成 PASS。
 import { spawn, spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, cpSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+  cpSync,
+} from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -105,8 +114,15 @@ const stagedManifest = JSON.parse(readFileSync(join(STAGE, 'package.json'), 'utf
 const srcVersion = /export const CLI_VERSION = '([^']+)'/.exec(
   readFileSync(join(REPO, 'apps', 'cli', 'src', 'version.ts'), 'utf8'),
 )?.[1]
-check('发布名与 bin 按 D17', stagedManifest.name === 'openvibe-cli' && stagedManifest.bin.openvibe === 'dist/cli.js')
-check('版本号三处同源', stagedManifest.version === srcVersion, `pkg=${String(stagedManifest.version)} src=${String(srcVersion)}`)
+check(
+  '发布名与 bin 按 D17',
+  stagedManifest.name === 'openvibe-cli' && stagedManifest.bin.openvibe === 'dist/cli.js',
+)
+check(
+  '版本号三处同源',
+  stagedManifest.version === srcVersion,
+  `pkg=${String(stagedManifest.version)} src=${String(srcVersion)}`,
+)
 check(
   '清单无 workspace 残留依赖',
   Object.keys(stagedManifest.dependencies).join(',') === 'better-sqlite3',
@@ -131,7 +147,11 @@ const BIN = join(CONSUMER, 'node_modules/.bin/openvibe')
 // pnpm 10+ 默认拒跑依赖的 install 脚本，并以退出码 1 结束（npm/npx 会跑 prebuild-install，不受影响）。
 // 这不是打包缺陷，是安装器口径——写进日志当发布说明素材，而不是让驱动器被状态码误杀。
 const ignoredBuilds = addOut.includes('ERR_PNPM_IGNORED_BUILDS')
-check('tarball 装进空目录', add.status === 0 || (ignoredBuilds && existsSync(BIN)), `exit=${String(add.status)}`)
+check(
+  'tarball 装进空目录',
+  add.status === 0 || (ignoredBuilds && existsSync(BIN)),
+  `exit=${String(add.status)}`,
+)
 check('bin 已生成且可执行', existsSync(BIN))
 if (ignoredBuilds) {
   say(
@@ -145,7 +165,9 @@ const findBindingRoot = (base) => {
   const store = join(base, 'node_modules/.pnpm')
   if (!existsSync(store)) return null
   const dir = readdirSync(store).find((d) => d.startsWith('better-sqlite3@'))
-  return dir === undefined ? null : { version: dir.split('@')[1], path: join(store, dir, 'node_modules/better-sqlite3') }
+  return dir === undefined
+    ? null
+    : { version: dir.split('@')[1], path: join(store, dir, 'node_modules/better-sqlite3') }
 }
 const installed = findBindingRoot(CONSUMER)
 const local = findBindingRoot(REPO)
@@ -174,7 +196,15 @@ say(`§2 安装耗时 ${INSTALL_MS} ms（tarball → node_modules/.bin/openvibe�
 // npm 自己 normalize 清单、并让 better-sqlite3 跑 prebuild-install。两条路都得试。
 const NPM_DIR = join(ROOT, 'consumer-npm')
 mkdirSync(NPM_DIR, { recursive: true })
-const npmNoScript = run(NPM_DIR, 'npm', ['i', '--prefix', NPM_DIR, '--ignore-scripts', '--no-audit', '--no-fund', tarball])
+const npmNoScript = run(NPM_DIR, 'npm', [
+  'i',
+  '--prefix',
+  NPM_DIR,
+  '--ignore-scripts',
+  '--no-audit',
+  '--no-fund',
+  tarball,
+])
 const npmBin = join(NPM_DIR, 'node_modules/.bin/openvibe')
 check(
   'npm 装包认这份清单并生成 bin 软链',
@@ -207,7 +237,9 @@ if (npmFullOk) {
       : /file not found|node-gyp|gyp ERR/.test(npmFullOut)
         ? '预编译包没取到、回退本地编译又失败：本机 clang 连 <climits> 都找不到（CLT C++ 头不全）'
         : '未知原因'
-  say(`SKIP npm 真取预编译包那一跳 —— ${cause}；本机未证过 ≠ 已验证，发布说明与 DEV_LOG 须按未验证处理`)
+  say(
+    `SKIP npm 真取预编译包那一跳 —— ${cause}；本机未证过 ≠ 已验证，发布说明与 DEV_LOG 须按未验证处理`,
+  )
 }
 
 // ---------- 2c. 真跑一次 npm 装出来的 bin（§3 跑的是 pnpm 那份，binding 是 store 里拷来的） ----------
@@ -255,7 +287,9 @@ if (npmFullOk) {
     const hj = /** @type {{version?: string, db?: {status?: string}} } */ (await h.json())
     check(
       'npm 那侧的 /api/health 也是 ready',
-      h.status === 200 && hj.db?.status === 'ready' && hj.version === String(stagedManifest.version),
+      h.status === 200 &&
+        hj.db?.status === 'ready' &&
+        hj.version === String(stagedManifest.version),
       JSON.stringify(hj),
     )
   }
@@ -266,13 +300,21 @@ if (npmFullOk) {
 }
 
 const ver = run(CONSUMER, BIN, ['--version'])
-check('--version 报当前版本', (ver.stdout ?? '').trim() === String(stagedManifest.version), (ver.stdout ?? '').trim())
+check(
+  '--version 报当前版本',
+  (ver.stdout ?? '').trim() === String(stagedManifest.version),
+  (ver.stdout ?? '').trim(),
+)
 const help = run(CONSUMER, BIN, ['--help'])
 check(
   '五命令齐（serve/sync/scan/diff/clean）',
   ['serve', 'sync', 'scan', 'diff', 'clean'].every((c) => (help.stdout ?? '').includes(c)),
 )
-check('--open 旗标在发布包里可见', (help.stdout ?? '').includes('--open') || (run(CONSUMER, BIN, ['serve', '--help']).stdout ?? '').includes('--open'))
+check(
+  '--open 旗标在发布包里可见',
+  (help.stdout ?? '').includes('--open') ||
+    (run(CONSUMER, BIN, ['serve', '--help']).stdout ?? '').includes('--open'),
+)
 
 // ---------- 3. 起装出来的 serve（干净 HOME） ----------
 const WALK_START = Date.now()
@@ -327,12 +369,23 @@ check(
 const index = await fetch(`${BASE}/`)
 const indexHtml = await index.text()
 const entryChunk = /src="\/?(assets\/[^"]+\.js)"/.exec(indexHtml)?.[1]
-check('GET / 回 index.html 200', index.status === 200 && indexHtml.includes('id="root"'), `HTTP ${String(index.status)}`)
+check(
+  'GET / 回 index.html 200',
+  index.status === 200 && indexHtml.includes('id="root"'),
+  `HTTP ${String(index.status)}`,
+)
 const asset = await fetch(`${BASE}/${String(entryChunk)}`)
 const assetBytes = Number((await asset.arrayBuffer()).byteLength)
-check('入口 chunk 可下载且非空', asset.status === 200 && assetBytes > 100_000, `${entryChunk} ${assetBytes} B`)
+check(
+  '入口 chunk 可下载且非空',
+  asset.status === 200 && assetBytes > 100_000,
+  `${entryChunk} ${assetBytes} B`,
+)
 const spa = await fetch(`${BASE}/settings`)
-check('SPA 深链路回 index.html（serve 的 fallback）', spa.status === 200 && (await spa.text()).includes('id="root"'))
+check(
+  'SPA 深链路回 index.html（serve 的 fallback）',
+  spa.status === 200 && (await spa.text()).includes('id="root"'),
+)
 
 const health = await (await fetch(`${BASE}/api/health`)).json()
 check('/api/health ok', health.status === 'ok', JSON.stringify(health))
@@ -373,7 +426,9 @@ const sizes = products.map((p) => {
   return { p, bytes: existsSync(abs) ? statSync(abs).size : -1 }
 })
 for (const s of sizes) check(`产物在位 ${s.p}`, s.bytes > 0, `${String(s.bytes)} B`)
-say(`  sync 摘要 written=${String(syncSummary?.written)} lock=${String(syncSummary?.lockPath ?? '').replace(ROOT, '沙箱')}`)
+say(
+  `  sync 摘要 written=${String(syncSummary?.written)} lock=${String(syncSummary?.lockPath ?? '').replace(ROOT, '沙箱')}`,
+)
 
 const diff = run(CONSUMER, BIN, ['--json', 'diff', DEMO], { OPENVIBE_HOME: HOME })
 let diffClean = false
@@ -382,9 +437,15 @@ try {
 } catch {
   /* 摘要解析失败即不 clean */
 }
-check('diff 判 clean（注入产物与包一致）', diffClean && diff.status === 0, `exit=${String(diff.status)}`)
+check(
+  'diff 判 clean（注入产物与包一致）',
+  diffClean && diff.status === 0,
+  `exit=${String(diff.status)}`,
+)
 const WALK_MS = Date.now() - WALK_START
-say(`§4 用户侧耗时 ${(WALK_MS / 1000).toFixed(1)} s（serve 起表 → diff 收表），命令数 3：serve --open / sync / diff`)
+say(
+  `§4 用户侧耗时 ${(WALK_MS / 1000).toFixed(1)} s（serve 起表 → diff 收表），命令数 3：serve --open / sync / diff`,
+)
 check('onb-1 计时 ≤5 分钟', WALK_MS <= 300_000, `${(WALK_MS / 1000).toFixed(1)} s`)
 check(
   '构建+pack+装包段另计（对应 npx 首次下载）',
@@ -486,8 +547,8 @@ say(`\n合计 ${String(checks)} 项断言，FAIL ${String(failures)} 项`)
 // HEAD 单独一行不够用：脏树时代码测的是未提交内容，日志却说「HEAD fcf04e1 全绿」——
 // 把工作树状态一起写下，读证据的人才知道这句话锚在哪。
 const head = run(REPO, 'git', ['rev-parse', '--short', 'HEAD']).stdout.trim()
-const dirty = run(REPO, 'git', ['status', '--porcelain']).stdout
-  .split('\n')
+const dirty = run(REPO, 'git', ['status', '--porcelain'])
+  .stdout.split('\n')
   .filter((l) => l !== '').length
 writeFileSync(
   logPath,

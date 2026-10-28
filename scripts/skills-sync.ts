@@ -25,7 +25,8 @@ for (const name of skills) {
   const srcFile = join(SRC, name, 'SKILL.md')
   const dstFile = join(DST, name, 'SKILL.md')
   if (!existsSync(srcFile)) continue
-  const same = existsSync(dstFile) && readFileSync(srcFile, 'utf8') === readFileSync(dstFile, 'utf8')
+  const same =
+    existsSync(dstFile) && readFileSync(srcFile, 'utf8') === readFileSync(dstFile, 'utf8')
   if (same) {
     inSync += 1
     continue
@@ -39,7 +40,9 @@ for (const name of skills) {
   updated.push(name)
 }
 
-console.log(`技能真源 ${String(skills.length)} 个：一致 ${String(inSync)}，${checkOnly ? '漂移' : '已同步'} ${String(updated.length)}${updated.length > 0 ? `（${updated.join('、')}）` : ''}`)
+console.log(
+  `技能真源 ${String(skills.length)} 个：一致 ${String(inSync)}，${checkOnly ? '漂移' : '已同步'} ${String(updated.length)}${updated.length > 0 ? `（${updated.join('、')}）` : ''}`,
+)
 if (updated.length > 0 && !checkOnly) {
   console.log('刷新台账登记：openvibe scan --skills（serve 运行中时）')
 }

@@ -92,7 +92,13 @@ function okBody(over: Record<string, unknown> = {}): Record<string, unknown> {
 }
 
 function runnerFor(url: string, apiKey = ''): HttpInterpretRunner {
-  return new HttpInterpretRunner({ endpoint: url, model: 'm-test', provider: 'p-test', apiKey, timeoutMs: 3_000 })
+  return new HttpInterpretRunner({
+    endpoint: url,
+    model: 'm-test',
+    provider: 'p-test',
+    apiKey,
+    timeoutMs: 3_000,
+  })
 }
 
 describe('M9 · HTTP runner · 正常路径', () => {
@@ -115,7 +121,9 @@ describe('M9 · HTTP runner · 正常路径', () => {
         provider: 'p-test',
         items: [{ topic_slug: 'py-logging', summary: 'ok', risks: [], claim_state: null }],
       })
-      res.end(JSON.stringify({ choices: [{ message: { content: '```json\n' + inner + '\n```' } }] }))
+      res.end(
+        JSON.stringify({ choices: [{ message: { content: '```json\n' + inner + '\n```' } }] }),
+      )
     })
     const result = await runnerFor(s.url).interpret(REQUEST)
     expect(result.items).toHaveLength(1)
@@ -189,7 +197,12 @@ describe('M9 · HTTP runner · 失败一律归一（不许把异常冒到界面�
           choices: [
             {
               message: {
-                content: JSON.stringify({ schema_version: 99, model: 'm', provider: 'p', items: [] }),
+                content: JSON.stringify({
+                  schema_version: 99,
+                  model: 'm',
+                  provider: 'p',
+                  items: [],
+                }),
               },
             },
           ],

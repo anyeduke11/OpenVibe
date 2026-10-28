@@ -5,11 +5,7 @@
 // ⚠️ 比对规则本体已按 service-layer.md FR-2 搬到 `./consistency`（三处合一）。
 // 本文件保留的是**退场自己的形态**：四态原样、action 映射原样、counts 键序原样。
 import type { PackLock } from '@openvibe/shared'
-import {
-  CONSISTENCY_STATES,
-  verifyAgainstLock,
-  type ConsistencyState,
-} from './consistency'
+import { CONSISTENCY_STATES, verifyAgainstLock, type ConsistencyState } from './consistency'
 
 /**
  * 状态词表随合一的那一处走（FR-2.3 → §8.2 待裁②(a)），但**导出名一字不改**：
@@ -57,7 +53,13 @@ export function planRetirement(input: RetirementInput): RetirementPlan {
     input.readDisk,
   ).map((row) => {
     const action: RetirementAction =
-      row.state === 'IN_SYNC' ? 'delete' : row.state === 'DRIFT' ? (force ? 'delete' : 'keep') : 'none'
+      row.state === 'IN_SYNC'
+        ? 'delete'
+        : row.state === 'DRIFT'
+          ? force
+            ? 'delete'
+            : 'keep'
+          : 'none'
     return {
       path: row.path,
       state: row.state,

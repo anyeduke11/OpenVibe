@@ -63,7 +63,10 @@ function makeProject(): string {
 }
 
 /** 建库：一个项目 ＋ 一个知识点。 */
-function seed(db: ReturnType<typeof newDb>['db'], localPath: string): { projectId: string; topicId: number } {
+function seed(
+  db: ReturnType<typeof newDb>['db'],
+  localPath: string,
+): { projectId: string; topicId: number } {
   db.prepare(
     `INSERT INTO projects (id, name, stages_snapshot, status, local_path, created_at, updated_at)
      VALUES ('p1', '测试项目', '[]', 'active', ?, '2026-10-21T00:00:00.000Z', '2026-10-21T00:00:00.000Z')`,
@@ -100,7 +103,9 @@ function seedFindings(db: ReturnType<typeof newDb>['db']): number[] {
       scanner_mode: 'parser',
     },
   ])
-  const rows = db.prepare('SELECT id FROM lang_topic_findings ORDER BY id').all() as { id: number }[]
+  const rows = db.prepare('SELECT id FROM lang_topic_findings ORDER BY id').all() as {
+    id: number
+  }[]
   return rows.map((r) => r.id)
 }
 
@@ -352,9 +357,7 @@ describe('M9 P5.3 / P5.4 · DL-08 AI 不可用时确定性层照常工作', () =
 
     expect(result.status).toBe('unavailable')
     expect(result.fragment_count).toBe(0)
-    const rows = h.db
-      .prepare("SELECT id FROM local_events WHERE kind = 'ai_recommend_call'")
-      .all()
+    const rows = h.db.prepare("SELECT id FROM local_events WHERE kind = 'ai_recommend_call'").all()
     // ⚠️ **没出网 ⇒ 没有调用 ⇒ 不写台账**（「不可用」与「失败」是两件事）
     expect(rows).toHaveLength(0)
     h.close()
@@ -461,9 +464,7 @@ describe('M9 P5.3 · DL-09 AI 结果不得绕过判定层', () => {
   })
 
   it('② AI **没声称**掌握度 ⇒ 不算分歧（不是分歧，是没说话）', () => {
-    const items = [
-      { topic_slug: 'python-logging', summary: 'x', risks: [], claim_state: null },
-    ]
+    const items = [{ topic_slug: 'python-logging', summary: 'x', risks: [], claim_state: null }]
     expect(findDivergences(items, new Map([['python-logging', 'unused']]))).toEqual([])
   })
 

@@ -2,7 +2,15 @@ import { useState } from 'react'
 import type { SkillRemoteImportReport, SkillRemoteSearchItem } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
-import { CHIP_TONES, btnGhost, btnPrimary, chipCls, chipPressed, inputCls, labelCls } from '../ui/styles'
+import {
+  CHIP_TONES,
+  btnGhost,
+  btnPrimary,
+  chipCls,
+  chipPressed,
+  inputCls,
+  labelCls,
+} from '../ui/styles'
 import { useSkillRemote } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
 
@@ -24,8 +32,7 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
   const [report, setReport] = useState<SkillRemoteImportReport | null>(null)
   const { search, importSkill } = useSkillRemote()
 
-  const canImport =
-    source === 'github' ? repo.trim() !== '' : picked !== null
+  const canImport = source === 'github' ? repo.trim() !== '' : picked !== null
 
   const runImport = () => {
     const body =
@@ -113,7 +120,9 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
                   onChange={(e) => setQ(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && q.trim() !== '')
-                      search.mutate(q.trim(), { onError: (e2: Error) => toast(e2.message, 'error') })
+                      search.mutate(q.trim(), {
+                        onError: (e2: Error) => toast(e2.message, 'error'),
+                      })
                   }}
                 />
                 <button
@@ -150,9 +159,12 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
                         onChange={() => setPicked(item)}
                       />
                       <span className="min-w-0">
-                        <span className="block truncate text-xs font-medium text-ink-body">{item.name}</span>
+                        <span className="block truncate text-xs font-medium text-ink-body">
+                          {item.name}
+                        </span>
                         <span className="block truncate text-[11px] text-ink-faint">
-                          {item.slug} · {zh.skills.remote.downloads(item.downloads)} · {item.description}
+                          {item.slug} · {zh.skills.remote.downloads(item.downloads)} ·{' '}
+                          {item.description}
                         </span>
                       </span>
                     </label>

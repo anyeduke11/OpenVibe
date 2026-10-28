@@ -38,7 +38,9 @@ const target =
 const useBin = binFlagIdx >= 0
 
 if (mode === null) {
-  console.error('用法：tsx scripts/verify-matrix.ts --emit | --run [--entry <cli.ts> | --bin <cli.js>]')
+  console.error(
+    '用法：tsx scripts/verify-matrix.ts --emit | --run [--entry <cli.ts> | --bin <cli.js>]',
+  )
   process.exit(1)
 }
 
@@ -97,7 +99,11 @@ if (target === null) {
 const cliArgs = (cmdArgs: string[]): string[] =>
   useBin ? [target as string, ...cmdArgs] : ['--import', 'tsx', target as string, ...cmdArgs]
 
-function runCli(cmdArgs: string[], home: string, timeoutMs = 30_000): { status: number; out: string } {
+function runCli(
+  cmdArgs: string[],
+  home: string,
+  timeoutMs = 30_000,
+): { status: number; out: string } {
   const res = spawnSync(process.execPath, cliArgs(cmdArgs), {
     encoding: 'utf8',
     timeout: timeoutMs,
@@ -133,7 +139,9 @@ async function waitForServe(child: ChildProcess, home: string): Promise<string |
       clearTimeout(timer)
       // 兜底：--json 没拿到就试 config.json（serve 首启会写 serverUrl）
       try {
-        const cfg = JSON.parse(readFileSync(join(home, 'config.json'), 'utf8')) as { serverUrl?: string }
+        const cfg = JSON.parse(readFileSync(join(home, 'config.json'), 'utf8')) as {
+          serverUrl?: string
+        }
         resolveWait(cfg.serverUrl ?? null)
       } catch {
         resolveWait(null)
@@ -150,7 +158,9 @@ async function run(): Promise<number> {
   const rows = baseRows()
   const byName = (name: string): MatrixRow | undefined => rows.find((r) => r.command === name)
 
-  console.log(`# 复验矩阵实跑（${MANIFEST_DATE}，入口：${useBin ? 'bin' : 'tsx 源码'} ${target}）\n`)
+  console.log(
+    `# 复验矩阵实跑（${MANIFEST_DATE}，入口：${useBin ? 'bin' : 'tsx 源码'} ${target}）\n`,
+  )
 
   // serve：起临时服务
   const serveChild = spawn(process.execPath, cliArgs(['serve', '--port', '0', '--json']), {

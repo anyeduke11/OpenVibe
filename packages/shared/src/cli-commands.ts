@@ -111,7 +111,11 @@ export const CLI_COMMANDS: readonly CliCommandMeta[] = [
       flag('--dir', '<packDir>', '离线注入：目录导出（openvibe.pack.json + files/）'),
       flag('--dry-run', CLI_FLAG_NO_VALUE, '只打印计划表，零写入零备份'),
       flag('--yes', CLI_FLAG_NO_VALUE, '跳过交互确认（配合 --strategy 批量处置冲突）'),
-      flag('--strategy', '<strategy>', 'CONFLICT/DRIFT 批量处置（取值见 core 的 INJECT_DECISIONS）'),
+      flag(
+        '--strategy',
+        '<strategy>',
+        'CONFLICT/DRIFT 批量处置（取值见 core 的 INJECT_DECISIONS）',
+      ),
       flag('--target', '<adapter>', `只写入指定平台产物（可重复）：${ADAPTER_IDS.join(' / ')}`),
     ],
     risk: 'decision',
@@ -167,7 +171,8 @@ export const CLI_COMMANDS: readonly CliCommandMeta[] = [
   {
     name: 'mcp',
     usage: 'openvibe mcp [flags]',
-    summary: '以 stdio 形态运行 MCP 服务（AI IDE 的只读上下文工具面：project_context / search_assets / pack_diff）',
+    summary:
+      '以 stdio 形态运行 MCP 服务（AI IDE 的只读上下文工具面：project_context / search_assets / pack_diff）',
     flags: [],
     risk: 'readonly',
     writesDisk: false,
@@ -178,8 +183,16 @@ export const CLI_COMMANDS: readonly CliCommandMeta[] = [
     summary: '退场：删除当前 lock 登记且未被改动的受管文件（删除前一律备份）',
     flags: [
       flag('--dry-run', CLI_FLAG_NO_VALUE, '只打印三态计划表，零写入零删除'),
-      flag('--yes', CLI_FLAG_NO_VALUE, '确认默认动作（不升级为全删：要连改过的文件一起删得给 --force）'),
-      flag('--force', CLI_FLAG_NO_VALUE, '连 DRIFT（用户注入后改过）的文件一并删除，改后内容先进备份目录'),
+      flag(
+        '--yes',
+        CLI_FLAG_NO_VALUE,
+        '确认默认动作（不升级为全删：要连改过的文件一起删得给 --force）',
+      ),
+      flag(
+        '--force',
+        CLI_FLAG_NO_VALUE,
+        '连 DRIFT（用户注入后改过）的文件一并删除，改后内容先进备份目录',
+      ),
     ],
     risk: 'destructive',
     writesDisk: true,

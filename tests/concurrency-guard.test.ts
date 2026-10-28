@@ -137,14 +137,30 @@ describe('concurrency-guard · 规则 B：回退特征', () => {
   })
 
   it('既有词汇豁免：同一标志在该文件上一版已存在 ⇒ 不算这一笔引入的回退', () => {
-    const hit: MarkerHit = { path: 'DEV_LOG.md', line: 10, marker: SOME_MARKER, excerpt: SOME_MARKER }
-    const kept = dropPreexistingMarkers([hit], [{ path: 'DEV_LOG.md', content: `历史正文里也有 ${SOME_MARKER}\n` }])
+    const hit: MarkerHit = {
+      path: 'DEV_LOG.md',
+      line: 10,
+      marker: SOME_MARKER,
+      excerpt: SOME_MARKER,
+    }
+    const kept = dropPreexistingMarkers(
+      [hit],
+      [{ path: 'DEV_LOG.md', content: `历史正文里也有 ${SOME_MARKER}\n` }],
+    )
     expect(kept).toEqual([])
   })
 
   it('既有词汇豁免只认同一文件：别的文件出现过不算', () => {
-    const hit: MarkerHit = { path: 'docs/specs/x.md', line: 10, marker: SOME_MARKER, excerpt: SOME_MARKER }
-    const kept = dropPreexistingMarkers([hit], [{ path: 'DEV_LOG.md', content: `别的文件里有 ${SOME_MARKER}\n` }])
+    const hit: MarkerHit = {
+      path: 'docs/specs/x.md',
+      line: 10,
+      marker: SOME_MARKER,
+      excerpt: SOME_MARKER,
+    }
+    const kept = dropPreexistingMarkers(
+      [hit],
+      [{ path: 'DEV_LOG.md', content: `别的文件里有 ${SOME_MARKER}\n` }],
+    )
     expect(kept).toHaveLength(1)
   })
 

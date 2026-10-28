@@ -757,9 +757,13 @@ function main(): number {
 
   console.log('')
   console.log('── §-指针体检 · 恢复后节内（不含标题行）──')
-  console.log(`统计：共 ${rows.length} 条 · ok ${okCount} · dangling ${danglingCount} · undecidable ${undecidableCount}`)
+  console.log(
+    `统计：共 ${rows.length} 条 · ok ${okCount} · dangling ${danglingCount} · undecidable ${undecidableCount}`,
+  )
   for (const row of rows) {
-    console.log(`  [${row.status.padEnd(11)}] 第 ${String(row.line).padStart(4)} 行  ${row.raw} —— ${row.reason}`)
+    console.log(
+      `  [${row.status.padEnd(11)}] 第 ${String(row.line).padStart(4)} 行  ${row.raw} —— ${row.reason}`,
+    )
   }
 
   console.log('')

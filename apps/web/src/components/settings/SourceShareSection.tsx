@@ -64,7 +64,8 @@ const L = {
   providerModel: (m: string) => m,
   providerUsage: (n: number) => `用量 ${String(n)} token`,
   providerUsageUnknown: '用量未知',
-  providerUsagePartial: (known: number, total: number) => `（已知 ${String(known)}/${String(total)} 次）`,
+  providerUsagePartial: (known: number, total: number) =>
+    `（已知 ${String(known)}/${String(total)} 次）`,
 } as const
 
 interface ShareSummaryItem {
@@ -119,9 +120,7 @@ function ShareDailyTable() {
   const daily = useQuery({
     queryKey: ['lang-share-daily', from, to],
     queryFn: () =>
-      apiJson<{ daily: ShareDailyItem[] }>(
-        `/api/lang/source/share-daily?from=${from}&to=${to}`,
-      ),
+      apiJson<{ daily: ShareDailyItem[] }>(`/api/lang/source/share-daily?from=${from}&to=${to}`),
     staleTime: 30_000,
   })
   const rows = daily.data?.daily ?? []
@@ -206,8 +205,7 @@ export function SourceShareSection() {
   const [providerOpen, setProviderOpen] = useState(false)
   const list = useQuery({
     queryKey: ['lang-share-summary'],
-    queryFn: () =>
-      apiJson<{ summaries: ShareSummaryItem[] }>('/api/lang/source/share-summary'),
+    queryFn: () => apiJson<{ summaries: ShareSummaryItem[] }>('/api/lang/source/share-summary'),
   })
 
   const items = list.data?.summaries ?? []
@@ -217,9 +215,7 @@ export function SourceShareSection() {
       title={L.title}
       icon="dl"
       hint={L.hint}
-      aside={
-        <span className={tagCls}>{`${String(items.length)} 个项目`}</span>
-      }
+      aside={<span className={tagCls}>{`${String(items.length)} 个项目`}</span>}
       foot={
         <div className="flex flex-wrap items-center gap-2">
           <button

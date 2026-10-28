@@ -1,6 +1,12 @@
 import { describe, expect, it, afterEach } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { APP_META_KEYS, AppMetaRepo, FlowTemplatesRepo, ProjectsRepo, TasksRepo } from '@openvibe/core'
+import {
+  APP_META_KEYS,
+  AppMetaRepo,
+  FlowTemplatesRepo,
+  ProjectsRepo,
+  TasksRepo,
+} from '@openvibe/core'
 import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
 import { AGENT_INGEST_LIMITS, AGENT_PAYLOAD_KEYS, TASK_STATUS } from '@openvibe/shared'
 import { buildApp } from '../src/app'
@@ -16,7 +22,11 @@ import { AGENT_INGEST_BODY_LIMIT } from '../src/routes/agent'
 const TOKEN = 'test-token'
 const openHandles: { app: FastifyInstance; handle: TestDbHandle }[] = []
 
-async function harness(): Promise<{ app: FastifyInstance; projectId: string; handle: TestDbHandle }> {
+async function harness(): Promise<{
+  app: FastifyInstance
+  projectId: string
+  handle: TestDbHandle
+}> {
   const handle = newDb()
   const { app } = await buildApp({ db: handle.db, token: TOKEN })
   const template = new FlowTemplatesRepo(handle.db).create({
@@ -24,7 +34,10 @@ async function harness(): Promise<{ app: FastifyInstance; projectId: string; han
     kind: 'light',
     stages: [{ name: '启动', checklist: [{ id: 'c1', text: '需求一句话' }], artifacts: [] }],
   })
-  const projectId = new ProjectsRepo(handle.db).create({ name: '接入演示', flowTemplateId: template.id }).id
+  const projectId = new ProjectsRepo(handle.db).create({
+    name: '接入演示',
+    flowTemplateId: template.id,
+  }).id
   // M8-E 写侧总闸默认关（FR-5.5.2.1）⇒ 本 harness 显式打开，否则全部 ingest 用例先撞 422
   new AppMetaRepo(handle.db).write(APP_META_KEYS.agentWriteEnabled, true)
   openHandles.push({ app, handle })
@@ -40,11 +53,19 @@ afterEach(() => {
 })
 
 function post(h: FastifyInstance, url: string, payload: unknown) {
-  return h.inject({ method: 'POST', url, payload: payload as object, headers: { authorization: `Bearer ${TOKEN}` } })
+  return h.inject({
+    method: 'POST',
+    url,
+    payload: payload as object,
+    headers: { authorization: `Bearer ${TOKEN}` },
+  })
 }
 
 function one(projectId: string, idempotencyKey: string, payload: unknown = { body: 'x' }) {
-  return { projectId, items: [{ kind: 'dev_log', idempotencyKey, payload, sourcePlatform: 'trae' }] }
+  return {
+    projectId,
+    items: [{ kind: 'dev_log', idempotencyKey, payload, sourcePlatform: 'trae' }],
+  }
 }
 
 describe('IT-M8 · POST /api/agent/ingest', () => {
@@ -65,10 +86,18 @@ describe('IT-M8 · POST /api/agent/ingest', () => {
 
   it('h · 一律 pending：任何 kind 落库都是 pending，reviewed_at 为 null', async () => {
     const { app, projectId } = await harness()
-    for (const kind of ['dev_log', 'session', 'requirement', 'task_status', 'check_state'] as const) {
+    for (const kind of [
+      'dev_log',
+      'session',
+      'requirement',
+      'task_status',
+      'check_state',
+    ] as const) {
       await post(app, '/api/agent/ingest', {
         projectId,
-        items: [{ kind, idempotencyKey: `k-${kind}`, payload: { body: 'x' }, sourcePlatform: 'trae' }],
+        items: [
+          { kind, idempotencyKey: `k-${kind}`, payload: { body: 'x' }, sourcePlatform: 'trae' },
+        ],
       })
     }
     const list = await app.inject({
@@ -133,11 +162,19 @@ describe('IT-M8 · POST /api/agent/ingest', () => {
     // 拒绝理由来自**域内**规则（服务层），不再是传输层
     expect(body.items[5].reason).toContain('超总量上限')
     // 落库的是前 5 条，被拒的那条一个字节都没进去
-    const rows = handle.db.prepare('SELECT idempotency_key FROM agent_ingests ORDER BY rowid ASC').all() as {
+    const rows = handle.db
+      .prepare('SELECT idempotency_key FROM agent_ingests ORDER BY rowid ASC')
+      .all() as {
       idempotency_key: string
     }[]
     expect(rows).toHaveLength(5)
-    expect(rows.map((r) => r.idempotency_key)).toEqual(['bulk-0', 'bulk-1', 'bulk-2', 'bulk-3', 'bulk-4'])
+    expect(rows.map((r) => r.idempotency_key)).toEqual([
+      'bulk-0',
+      'bulk-1',
+      'bulk-2',
+      'bulk-3',
+      'bulk-4',
+    ])
     closeAll(app)
   })
 
@@ -146,10 +183,20 @@ describe('IT-M8 · POST /api/agent/ingest', () => {
     // 上一条若写成「不再有 413」就是永真。这里补上反面：**仍然存在一个更大的上限在挡**。
     // 用 `AGENT_INGEST_BODY_LIMIT + 1 MiB` 而不是写死 9 MiB：
     // 上限值日后若被重定，这条判据自动跟着走，不会悄悄变成另一个口径。
-    const over = Buffer.byteLength(JSON.stringify({ projectId, items: [] })) + AGENT_INGEST_BODY_LIMIT + 1024 * 1024
+    const over =
+      Buffer.byteLength(JSON.stringify({ projectId, items: [] })) +
+      AGENT_INGEST_BODY_LIMIT +
+      1024 * 1024
     const res = await post(app, '/api/agent/ingest', {
       projectId,
-      items: [{ kind: 'dev_log', idempotencyKey: 'over', payload: { body: 'x'.repeat(over) }, sourcePlatform: 'trae' }],
+      items: [
+        {
+          kind: 'dev_log',
+          idempotencyKey: 'over',
+          payload: { body: 'x'.repeat(over) },
+          sourcePlatform: 'trae',
+        },
+      ],
     })
     expect(res.statusCode).toBe(413)
     // ⚠️ 断言 `message` 而不是 `FST_ERR_CTP_BODY_TOO_LARGE`：`plugins/errors.ts:33-39` 把
@@ -202,7 +249,11 @@ describe('IT-M8 · POST /api/agent/ingest', () => {
   it('e · 冲突响应只给 sha 前 8 位，**不含完整载荷**', async () => {
     const { app, projectId } = await harness()
     await post(app, '/api/agent/ingest', one(projectId, 'k2', { body: '机密内容甲' }))
-    const conflict = await post(app, '/api/agent/ingest', one(projectId, 'k2', { body: '机密内容乙' }))
+    const conflict = await post(
+      app,
+      '/api/agent/ingest',
+      one(projectId, 'k2', { body: '机密内容乙' }),
+    )
     expect(conflict.json().items[0]).toMatchObject({
       status: 'conflict',
       existingKeySha: expect.stringMatching(/^[0-9a-f]{8}$/),
@@ -217,7 +268,12 @@ describe('IT-M8 · POST /api/agent/ingest', () => {
     const res = await post(app, '/api/agent/ingest', {
       projectId,
       items: [
-        { kind: 'dev_log', idempotencyKey: 'k3', payload: { body: '正文', cwd: '/Users/me/proj' }, sourcePlatform: 'trae' },
+        {
+          kind: 'dev_log',
+          idempotencyKey: 'k3',
+          payload: { body: '正文', cwd: '/Users/me/proj' },
+          sourcePlatform: 'trae',
+        },
       ],
     })
     expect(res.json()).toMatchObject({ accepted: 1 })
@@ -229,7 +285,12 @@ describe('IT-M8 · POST /api/agent/ingest', () => {
     await post(app, '/api/agent/ingest', {
       projectId,
       items: [
-        { kind: 'dev_log', idempotencyKey: 'k3b', payload: { body: '机密正文', cwd: '/Users/me/secret' }, sourcePlatform: 'trae' },
+        {
+          kind: 'dev_log',
+          idempotencyKey: 'k3b',
+          payload: { body: '机密正文', cwd: '/Users/me/secret' },
+          sourcePlatform: 'trae',
+        },
       ],
     })
     const row = handle.db
@@ -244,7 +305,11 @@ describe('IT-M8 · POST /api/agent/ingest', () => {
 
   it('鉴权：无 token ⇒ 既有 401 形制', async () => {
     const { app, projectId } = await harness()
-    const res = await app.inject({ method: 'POST', url: '/api/agent/ingest', payload: one(projectId, 'k4') })
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/agent/ingest',
+      payload: one(projectId, 'k4'),
+    })
     expect(res.statusCode).toBe(401)
     closeAll(app)
   })
@@ -264,7 +329,9 @@ describe('IT-M8 · POST /api/agent/ingest', () => {
       url: `/api/projects/${projectId}/agent-ingests`,
       headers: { authorization: `Bearer ${TOKEN}` },
     })
-    const conflicted = (list.json().items as { id: string; status: string }[]).find((i) => i.status === 'conflict')
+    const conflicted = (list.json().items as { id: string; status: string }[]).find(
+      (i) => i.status === 'conflict',
+    )
     const res = await post(app, `/api/agent/ingests/${conflicted!.id}/review`, { to: 'published' })
     expect(res.statusCode).toBe(422)
     expect(res.json().code).toBe('IDEMPOTENCY_CONFLICT')
@@ -274,10 +341,14 @@ describe('IT-M8 · POST /api/agent/ingest', () => {
   it('台账：M8 事件真的写进去了，且不在遥测白名单里', async () => {
     const { app, projectId, handle } = await harness()
     await post(app, '/api/agent/ingest', one(projectId, 'k7'))
-    const big = await post(app, '/api/agent/ingest', one(projectId, 'k8', { body: 'y'.repeat(600 * 1024) }))
+    const big = await post(
+      app,
+      '/api/agent/ingest',
+      one(projectId, 'k8', { body: 'y'.repeat(600 * 1024) }),
+    )
     expect(big.json()).toMatchObject({ rejected: 1 })
     const rows = handle.db
-      .prepare('SELECT kind FROM local_events WHERE kind LIKE \'agent_%\' ORDER BY id ASC')
+      .prepare("SELECT kind FROM local_events WHERE kind LIKE 'agent_%' ORDER BY id ASC")
       .all() as { kind: string }[]
     expect(rows.map((r) => r.kind)).toEqual(['agent_ingest_accepted', 'agent_ingest_rejected'])
     closeAll(app)
@@ -342,7 +413,12 @@ describe('IT-M8 · 人工确认后的发布分发', () => {
     const created = await post(app, '/api/agent/ingest', {
       projectId,
       items: [
-        { kind: 'task_status', idempotencyKey: 'pub-j', payload: { taskId, status: 'blocked' }, sourcePlatform: 'trae' },
+        {
+          kind: 'task_status',
+          idempotencyKey: 'pub-j',
+          payload: { taskId, status: 'blocked' },
+          sourcePlatform: 'trae',
+        },
       ],
     })
     const id = created.json().items[0].id as string

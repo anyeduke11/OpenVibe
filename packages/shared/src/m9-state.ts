@@ -396,11 +396,7 @@ export function assertMasteryInput(input: MasteryInput): void {
  * @param allowed 允许的键
  * @param where 出错时的定位描述
  */
-function assertClosedKeys(
-  obj: object,
-  allowed: readonly string[],
-  where: string,
-): void {
+function assertClosedKeys(obj: object, allowed: readonly string[], where: string): void {
   for (const key of Object.keys(obj)) {
     if (!allowed.includes(key)) {
       throw new MasteryInputError(`${where}出现了不允许的键：${key}`)

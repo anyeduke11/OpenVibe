@@ -57,7 +57,11 @@ export interface FileListing {
  * @param ext 扩展名（含点，例 `.py`）
  * @param maxFiles 上限
  */
-export function listSourceFiles(root: string, ext: string, maxFiles = DEFAULT_MAX_FILES): FileListing {
+export function listSourceFiles(
+  root: string,
+  ext: string,
+  maxFiles = DEFAULT_MAX_FILES,
+): FileListing {
   const out: string[] = []
   let truncated = false
   const walk = (dir: string): void => {

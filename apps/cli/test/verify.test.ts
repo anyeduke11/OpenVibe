@@ -1,6 +1,14 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -99,7 +107,11 @@ describe('verifyAction 的状态判定（FR-4，进程内）', () => {
 
   it('VERIFY-03: 手改受管文件 → DISK_DRIFT（指向 diff）', async () => {
     const { project } = await injectedProject()
-    writeFileSync(join(project, 'TERMS.md'), `${readFileSync(join(project, 'TERMS.md'), 'utf8')}\n手改\n`, 'utf8')
+    writeFileSync(
+      join(project, 'TERMS.md'),
+      `${readFileSync(join(project, 'TERMS.md'), 'utf8')}\n手改\n`,
+      'utf8',
+    )
     const outcome = await verifyAction({ projectPath: project }, {})
     expect(outcome.state).toBe('DISK_DRIFT')
     expect(outcome.drifted.map((d) => d.path)).toEqual(['TERMS.md'])
@@ -190,7 +202,11 @@ describe('FR-4.4 · sync 前置中断提示（复盘补背书）', () => {
     rmSync(join(project, 'CHECKLIST.md'))
 
     const warnings: string[] = []
-    const outcome = await syncAction({ projectPath: project, file: bundlePath, yes: true }, {}, warnings)
+    const outcome = await syncAction(
+      { projectPath: project, file: bundlePath, yes: true },
+      {},
+      warnings,
+    )
 
     // 提示在（含缺失文件名），且 sync 照常完成（不阻断——重建缺失文件）
     expect(warnings.join('\n')).toContain('上次注入可能中断')

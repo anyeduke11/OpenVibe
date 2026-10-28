@@ -147,7 +147,9 @@ export function ProjectList(props: {
                     {zh.projects.status[p.status]}
                   </span>
                 </td>
-                <td className="truncate px-2 py-2 text-ink-body">{p.health.stage ?? zh.common.none}</td>
+                <td className="truncate px-2 py-2 text-ink-body">
+                  {p.health.stage ?? zh.common.none}
+                </td>
                 <td className={`px-2 py-2 text-xs text-ink-muted ${ledgerNumCls}`}>
                   {p.health.total === 0
                     ? zh.common.none
@@ -170,10 +172,7 @@ export function ProjectList(props: {
                   {p.updatedAt}
                 </td>
                 <td className="whitespace-nowrap px-2 py-2 text-right">
-                  <Link
-                    className={`${btnGhost} px-2 py-0.5 text-xs`}
-                    to={`/projects/${p.id}`}
-                  >
+                  <Link className={`${btnGhost} px-2 py-0.5 text-xs`} to={`/projects/${p.id}`}>
                     {laneEngineering.projects.openDetail}
                   </Link>
                   {armed === p.id ? (

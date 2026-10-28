@@ -228,7 +228,9 @@ export class PromptsRepo {
       }
     ).c
     const rows = this.db
-      .prepare(`SELECT * FROM prompts ${whereSql} ORDER BY updated_at DESC, id ASC LIMIT ? OFFSET ?`)
+      .prepare(
+        `SELECT * FROM prompts ${whereSql} ORDER BY updated_at DESC, id ASC LIMIT ? OFFSET ?`,
+      )
       .all(...params, query.size, (query.page - 1) * query.size) as PromptRow[]
     return { items: rows.map(rowToPrompt), total, page: query.page }
   }

@@ -58,10 +58,16 @@ const EXIT_BY_STATUS: Record<DiscussOut['status'], 0 | 1 | 2> = {
   'budget-exhausted': 2,
 }
 
-export async function discussAction(options: DiscussOptions, deps: DiscussDeps = {}): Promise<DiscussOutcome> {
+export async function discussAction(
+  options: DiscussOptions,
+  deps: DiscussDeps = {},
+): Promise<DiscussOutcome> {
   const question = options.question.trim()
   if (question === '') {
-    throw new DiscussError('EMPTY_QUESTION', '问题不能为空：openvibe discuss "<问题>" --project <id|目录>')
+    throw new DiscussError(
+      'EMPTY_QUESTION',
+      '问题不能为空：openvibe discuss "<问题>" --project <id|目录>',
+    )
   }
   const client = deps.client
   if (!client) {
@@ -85,15 +91,21 @@ export async function discussAction(options: DiscussOptions, deps: DiscussDeps =
     })
   } catch (e) {
     if (e instanceof ServerUnreachable) {
-      throw new DiscussError('SERVER_UNREACHABLE', `服务端不可达（${e.detail}）：先运行 openvibe serve`)
+      throw new DiscussError(
+        'SERVER_UNREACHABLE',
+        `服务端不可达（${e.detail}）：先运行 openvibe serve`,
+      )
     }
     throw e
   }
 
   const hints: string[] = []
-  if (out.status === 'gate-closed') hints.push('AI 出网总闸未开：设置页「AI 提取（M10）」区打开总闸')
-  if (out.status === 'consent-required') hints.push('本项目尚未同意上下文出网：加 --confirm 显式确认（--remember 记住本项目）')
-  if (out.status === 'unavailable') hints.push('推理服务未配置：设置页「解读服务」区配置端点（与提取共用同一份）')
+  if (out.status === 'gate-closed')
+    hints.push('AI 出网总闸未开：设置页「AI 提取（M10）」区打开总闸')
+  if (out.status === 'consent-required')
+    hints.push('本项目尚未同意上下文出网：加 --confirm 显式确认（--remember 记住本项目）')
+  if (out.status === 'unavailable')
+    hints.push('推理服务未配置：设置页「解读服务」区配置端点（与提取共用同一份）')
   if (out.status === 'budget-exhausted') hints.push('今日问答配额用完，明天再来')
   if (out.status === 'ok' && out.truncated) hints.push('上下文超预算已裁剪（见 truncated 段）')
 
@@ -120,7 +132,10 @@ export function discussLines(out: DiscussOutcome): string[] {
     return [...lines, ...out.hints.map((h) => `提示 ${h}`)]
   }
   for (const seg of out.segments) {
-    const ref = seg.source_ref === null ? '（无来源标注）' : `<来源:${seg.source_ref} ${out.sources[seg.source_ref] ?? '?'}>`
+    const ref =
+      seg.source_ref === null
+        ? '（无来源标注）'
+        : `<来源:${seg.source_ref} ${out.sources[seg.source_ref] ?? '?'}>`
     lines.push(`${seg.text} ${ref}`)
   }
   for (const w of out.warnings) lines.push(`警告 ${w}`)
@@ -130,7 +145,11 @@ export function discussLines(out: DiscussOutcome): string[] {
 
 export type { ContextField, ProjectContextOut, TruncationNote }
 
-async function resolveProjectId(arg: string | undefined, client: ApiClient, cwd: string): Promise<string> {
+async function resolveProjectId(
+  arg: string | undefined,
+  client: ApiClient,
+  cwd: string,
+): Promise<string> {
   if (arg !== undefined && /^prj_/.test(arg)) return arg
   const { project } = await resolveProjectByPath(client, arg ?? '.', cwd)
   return project.id

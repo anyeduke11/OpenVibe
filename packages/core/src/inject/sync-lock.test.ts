@@ -45,7 +45,9 @@ afterAll(() => {
 
 const T0 = new Date()
 const IS_WINDOWS = process.platform === 'win32'
-const at = (offsetMs: number): { now: () => Date } => ({ now: () => new Date(T0.getTime() + offsetMs) })
+const at = (offsetMs: number): { now: () => Date } => ({
+  now: () => new Date(T0.getTime() + offsetMs),
+})
 const pid = (p: number) => ({ pid: () => p })
 const alive = (predicate: (p: number) => boolean) => ({ isAlive: predicate })
 const ALWAYS_ALIVE = alive(() => true)

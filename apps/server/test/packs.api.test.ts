@@ -61,14 +61,23 @@ function api(
   return h.app.inject({ method, url, payload, headers: { authorization: `Bearer ${TOKEN}` } })
 }
 
-async function mkPrompt(h: Harness, title: string, content: string, useAs = 'rule'): Promise<string> {
+async function mkPrompt(
+  h: Harness,
+  title: string,
+  content: string,
+  useAs = 'rule',
+): Promise<string> {
   const res = await api(h, 'POST', '/api/prompts', { title, content, useAs, status: 'active' })
   expect(res.statusCode).toBe(201)
   return (res.json() as { id: string }).id
 }
 
 async function mkTerm(h: Harness, en: string, zh: string): Promise<string> {
-  const res = await api(h, 'POST', '/api/terms', { en, zh, definition: `${zh}的集成测试定义文本。` })
+  const res = await api(h, 'POST', '/api/terms', {
+    en,
+    zh,
+    definition: `${zh}的集成测试定义文本。`,
+  })
   expect(res.statusCode).toBe(201)
   return (res.json() as { id: string }).id
 }
@@ -132,7 +141,9 @@ describe('T6d · m6a 标准包 API（dev-plan §3.8 + bundle 通道）', () => {
         // 指纹与全部正文字节不受影响（正文零时间戳），故除该字段外 manifest 亦须逐字节一致。
         const strip = (text: string): string =>
           text.replace(/"exportedAt": "[^"]*"/, '"exportedAt": "-"')
-        expect(strip(onDisk), '磁盘 manifest 除 exportedAt 外与 preview 不一致').toBe(strip(file.content))
+        expect(strip(onDisk), '磁盘 manifest 除 exportedAt 外与 preview 不一致').toBe(
+          strip(file.content),
+        )
         expect(onDisk).not.toBe(file.content)
       } else {
         expect(onDisk, `磁盘 ${file.path} 与 preview 不一致`).toBe(file.content)
@@ -217,7 +228,9 @@ describe('T6d · m6a 标准包 API（dev-plan §3.8 + bundle 通道）', () => {
     const emptyTargets = await api(h, 'PATCH', `/api/packs/${pack.id}`, { targets: [] })
     expect(emptyTargets.statusCode).toBe(422)
     expect(emptyTargets.json().code).toBe('VALIDATION_ERROR')
-    expect((emptyTargets.json().details as { fieldErrors: { targets?: string[] } }).fieldErrors.targets).toBeDefined()
+    expect(
+      (emptyTargets.json().details as { fieldErrors: { targets?: string[] } }).fieldErrors.targets,
+    ).toBeDefined()
 
     const unknownTarget = await api(h, 'PATCH', `/api/packs/${pack.id}`, {
       targets: ['not-a-platform' as never],
@@ -236,11 +249,22 @@ describe('T6d · m6a 标准包 API（dev-plan §3.8 + bundle 通道）', () => {
     // VERSION_IMMUTABLE 在 IT-PACK-02 覆盖；此处校验空选集与不存在包
     const emptied = await api(h, 'POST', '/api/packs', {
       name: 'empty-one',
-      selection: { promptIds: [], termIds: [], skillIds: [], playbookIds: [], flowTemplateId: null },
+      selection: {
+        promptIds: [],
+        termIds: [],
+        skillIds: [],
+        playbookIds: [],
+        flowTemplateId: null,
+      },
       targets: ['claude-code'],
     })
     expect(emptied.statusCode).toBe(201)
-    const emptyPreview = await api(h, 'POST', `/api/packs/${(emptied.json() as PackOut).id}/preview`, {})
+    const emptyPreview = await api(
+      h,
+      'POST',
+      `/api/packs/${(emptied.json() as PackOut).id}/preview`,
+      {},
+    )
     expect(emptyPreview.statusCode).toBe(422)
     expect(emptyPreview.json().code).toBe('EMPTY_SELECTION')
 
@@ -292,7 +316,9 @@ describe('T6d · m6a 标准包 API（dev-plan §3.8 + bundle 通道）', () => {
       selection: { ...pack.selection, playbookIds: [] },
     })
     expect(emptied.statusCode).toBe(200)
-    expect((await preview(h, pack.id, '1.0.0')).files.map((f) => f.path)).not.toContain('PLAYBOOKS.md')
+    expect((await preview(h, pack.id, '1.0.0')).files.map((f) => f.path)).not.toContain(
+      'PLAYBOOKS.md',
+    )
     const omitted = await api(h, 'POST', '/api/packs', {
       name: 'pb-omitted',
       selection: {
@@ -332,9 +358,9 @@ describe('T6d · m6a 标准包 API（dev-plan §3.8 + bundle 通道）', () => {
     })
     expect(lower.statusCode).toBe(422)
     expect(lower.json().code).toBe('VALIDATION_ERROR')
-    expect((lower.json().details as { fieldErrors: { version: string[] } }).fieldErrors.version[0]).toContain(
-      '1.2.0',
-    )
+    expect(
+      (lower.json().details as { fieldErrors: { version: string[] } }).fieldErrors.version[0],
+    ).toContain('1.2.0')
   })
 
   it('IT-PACK-05（§7.4）: claude-code + generic-agents + 术语 → 恰 4 文件，coveredPlatforms 来自兼容矩阵', async () => {
@@ -408,9 +434,11 @@ describe('T6d · m6a 标准包 API（dev-plan §3.8 + bundle 通道）', () => {
     // 导出实例随包级联删除（ON DELETE CASCADE），注入行无外键故留痕
     const db = h.handle.db
     const exports = (db.prepare('SELECT COUNT(*) AS c FROM pack_exports').get() as { c: number }).c
-    const injections = (db.prepare('SELECT COUNT(*) AS c FROM injections').get() as {
-      c: number
-    }).c
+    const injections = (
+      db.prepare('SELECT COUNT(*) AS c FROM injections').get() as {
+        c: number
+      }
+    ).c
     expect(exports).toBe(0)
     expect(injections).toBe(2)
   })
@@ -442,9 +470,9 @@ describe('T6d · m6a 标准包 API（dev-plan §3.8 + bundle 通道）', () => {
     ])
     const trae = out.files.find((f) => f.path === '.trae/rules/openvibe.md')?.content ?? ''
     const bare = out.files.find((f) => f.path === 'CODEBUDDY.md')?.content ?? ''
-    expect(trae.startsWith('---\ndescription: OpenVibe 标准包 default@1.0.0\nalwaysApply: true\n---\n')).toBe(
-      true,
-    )
+    expect(
+      trae.startsWith('---\ndescription: OpenVibe 标准包 default@1.0.0\nalwaysApply: true\n---\n'),
+    ).toBe(true)
     expect(trae.split('---\n', 3)[2]).toBe(bare)
     expect(out.coveredPlatforms).toEqual([])
   })

@@ -18,10 +18,15 @@ const ref = refFlag >= 0 ? (args[refFlag + 1] ?? 'main') : 'main'
 
 function gh<T>(...cli: string[]): T {
   try {
-    return JSON.parse(execFileSync('gh', cli, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })) as T
+    return JSON.parse(
+      execFileSync('gh', cli, { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 }),
+    ) as T
   } catch (e) {
     const err = e as { stderr?: Buffer | string; message?: string }
-    const detail = typeof err.stderr === 'string' ? err.stderr : (err.stderr?.toString('utf8') ?? err.message ?? '')
+    const detail =
+      typeof err.stderr === 'string'
+        ? err.stderr
+        : (err.stderr?.toString('utf8') ?? err.message ?? '')
     throw new Error(`gh ${cli.join(' ')} 失败：${detail.slice(0, 300)}`)
   }
 }
@@ -31,7 +36,9 @@ try {
   execFileSync('gh', ['workflow', 'run', 'CI', '--ref', ref])
 } catch (e) {
   const err = e as { stderr?: Buffer }
-  console.error(`⛔ 触发失败（ref 须是远端已有的分支名/完整 SHA）：${(typeof err.stderr === 'string' ? err.stderr : err.stderr?.toString('utf8') ?? '').slice(0, 200)}`)
+  console.error(
+    `⛔ 触发失败（ref 须是远端已有的分支名/完整 SHA）：${(typeof err.stderr === 'string' ? err.stderr : (err.stderr?.toString('utf8') ?? '')).slice(0, 200)}`,
+  )
   process.exit(1)
 }
 // workflow run 异步建 run——按 event=workflow_dispatch 拿最新一条（本脚本即唯一 dispatch 源）
@@ -39,7 +46,12 @@ let runId: number | null = null
 for (let i = 0; i < 30 && runId === null; i++) {
   await new Promise((r) => setTimeout(r, 4000))
   const list = gh<{ databaseId: number; status: string }[]>(
-    'run', 'list', '--workflow=CI', '--event=workflow_dispatch', '--limit=1', '--json=databaseId,status',
+    'run',
+    'list',
+    '--workflow=CI',
+    '--event=workflow_dispatch',
+    '--limit=1',
+    '--json=databaseId,status',
   )
   const hit = list[0]
   if (hit !== undefined && hit.status !== 'completed') runId = hit.databaseId
@@ -52,17 +64,28 @@ console.log(`run ${String(runId)} 已启动，轮询（上限 20 分钟）…`)
 const deadline = Date.now() + 20 * 60_000
 while (Date.now() < deadline) {
   await new Promise((r) => setTimeout(r, 20_000))
-  const run = gh<{ status: string; conclusion: string | null }>('run', 'view', String(runId), '--json=status,conclusion')
+  const run = gh<{ status: string; conclusion: string | null }>(
+    'run',
+    'view',
+    String(runId),
+    '--json=status,conclusion',
+  )
   if (run.status === 'completed') {
     const view = gh<{ jobs: { name: string; conclusion: string | null }[] }>(
-      'run', 'view', String(runId), '--json=jobs',
+      'run',
+      'view',
+      String(runId),
+      '--json=jobs',
     )
-    for (const j of view.jobs) console.log(`${j.conclusion === 'success' ? '✓' : '✗'} ${j.name}: ${j.conclusion ?? '?'}`)
+    for (const j of view.jobs)
+      console.log(`${j.conclusion === 'success' ? '✓' : '✗'} ${j.name}: ${j.conclusion ?? '?'}`)
     if (run.conclusion === 'success') {
       console.log('✓ CI 预演全绿')
       process.exit(0)
     }
-    console.error(`⛔ CI 预演失败（run ${String(runId)}）——详情：gh run view ${String(runId)} --log-failed`)
+    console.error(
+      `⛔ CI 预演失败（run ${String(runId)}）——详情：gh run view ${String(runId)} --log-failed`,
+    )
     process.exit(1)
   }
 }

@@ -112,7 +112,9 @@ function isAssertion(line: string, matchIndex: number, middle: string): boolean 
  * @param text 待扫文本
  * @returns 命中清单（空数组 = 通过）
  */
-export function findGradeAssertionsInText(text: string): { pattern: string; line: number; text: string }[] {
+export function findGradeAssertionsInText(
+  text: string,
+): { pattern: string; line: number; text: string }[] {
   const out: { pattern: string; line: number; text: string }[] = []
   const lines = text.split('\n')
   for (let i = 0; i < lines.length; i += 1) {

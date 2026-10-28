@@ -87,10 +87,10 @@ export function ProjectDashboard(props: {
       <div className="grid gap-3 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-xs font-semibold text-ink-muted">
-              {zh.projects.injection.title}
-            </h3>
-            <span className="truncate text-[11px] text-ink-faint">{zh.projects.injection.hint}</span>
+            <h3 className="text-xs font-semibold text-ink-muted">{zh.projects.injection.title}</h3>
+            <span className="truncate text-[11px] text-ink-faint">
+              {zh.projects.injection.hint}
+            </span>
             <label className="sr-only" htmlFor="project-status">
               {zh.projects.filterStatus}
             </label>
@@ -128,10 +128,7 @@ export function ProjectDashboard(props: {
                         : chipTone('default')
                   }
                 >
-                  <Icon
-                    name={injection.upToDate === true ? 'check' : 'warn'}
-                    size={11}
-                  />
+                  <Icon name={injection.upToDate === true ? 'check' : 'warn'} size={11} />
                   {injection.upToDate === true
                     ? zh.projects.injection.consistent
                     : injection.upToDate === false
@@ -178,15 +175,15 @@ export function ProjectDashboard(props: {
         <div className="md:border-l md:border-line-hair md:pl-3">
           <h3 className="text-xs font-semibold text-ink-muted">{zh.projects.labels.flow}</h3>
           <Row label={zh.projects.labels.stage}>{health.stage ?? zh.common.none}</Row>
-          <Row label={zh.projects.injection.injectedAt}>{injection?.injectedAt ?? zh.common.none}</Row>
+          <Row label={zh.projects.injection.injectedAt}>
+            {injection?.injectedAt ?? zh.common.none}
+          </Row>
           <Row label={zh.projects.injection.registered}>
             {injection?.registered?.version ??
               project.standardPackVersion ??
               zh.projects.injection.notRegistered}
           </Row>
-          <p className="mt-1 text-[11px] text-ink-faint">
-            {zh.projects.wizard.packWriteNote}
-          </p>
+          <p className="mt-1 text-[11px] text-ink-faint">{zh.projects.wizard.packWriteNote}</p>
         </div>
       </div>
 

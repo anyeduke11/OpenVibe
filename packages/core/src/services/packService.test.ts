@@ -13,7 +13,13 @@ import type { RenderedPack } from '../pack'
  * 若日后有人「顺手」把 `renderPack` 改成 core 内直接 import，本文件会因解析失败而红。
  */
 
-const EMPTY_SELECTION = { promptIds: [], termIds: [], skillIds: [], playbookIds: [], flowTemplateId: null }
+const EMPTY_SELECTION = {
+  promptIds: [],
+  termIds: [],
+  skillIds: [],
+  playbookIds: [],
+  flowTemplateId: null,
+}
 
 /** 造一个最小可用的渲染结果；本服务只透传它的 fingerprint/manifestJson/files/warnings */
 function rendered(): RenderedPack {
@@ -69,7 +75,11 @@ describe('UT-SVC-01 · packService 导出编排（从 routes/packs.ts 迁入，�
 
   it('directory 通道 ⇒ 目录路径由注入能力算出，产物是**目录布局**而非渲染原样', () => {
     const { h, pack, svc, written } = fixture()
-    const out = svc.exportPackWithRecord({ packId: pack.id, version: '1.0.0', channel: 'directory' })
+    const out = svc.exportPackWithRecord({
+      packId: pack.id,
+      version: '1.0.0',
+      channel: 'directory',
+    })
     expect(out.directoryPath).toBe('/tmp/ov-export/finance-core@1.0.0')
     expect(written).toHaveLength(1)
     expect(written[0]!.root).toBe(out.directoryPath)
@@ -109,8 +119,16 @@ describe('UT-SVC-01 · packService 导出编排（从 routes/packs.ts 迁入，�
 
   it('幂等重导：同 pack 同版本 ⇒ status=idempotent 且导出记录仍只有一行', () => {
     const { h, pack, svc } = fixture()
-    const first = svc.exportPackWithRecord({ packId: pack.id, version: '1.0.0', channel: 'download' })
-    const again = svc.exportPackWithRecord({ packId: pack.id, version: '1.0.0', channel: 'download' })
+    const first = svc.exportPackWithRecord({
+      packId: pack.id,
+      version: '1.0.0',
+      channel: 'download',
+    })
+    const again = svc.exportPackWithRecord({
+      packId: pack.id,
+      version: '1.0.0',
+      channel: 'download',
+    })
     expect(first.status).toBe('created')
     expect(again.status).toBe('idempotent')
     expect(again.export.id).toBe(first.export.id)

@@ -1,125 +1,45 @@
 {
   "note": "§-引用别名表 —— 裸引用 `§N` 的来源文件登记。判定口径见 scripts/section-ref-audit.ts 文件头「别名表」节：候选 = 别名表登记的目标（收窄），任一命中即绿；登记写错只造成漏判或指错，永不造成假红。登记只收「指向集中」到单一文件的节号 —— 同一节号在不同上下文指不同文件的（如 §7、§11）一律不登记，单一登记会给错建议。",
   "aliases": {
-    "0.3": [
-      "docs/dev-plan.md"
-    ],
-    "10.2": [
-      "docs/PRD.md"
-    ],
-    "0.4": [
-      "docs/dev-plan.md"
-    ],
-    "10.4": [
-      "docs/PRD.md"
-    ],
-    "9": [
-      "docs/PRD.md"
-    ],
-    "10.5": [
-      "docs/PRD.md"
-    ],
-    "8": [
-      "docs/design.md"
-    ],
-    "8.2": [
-      "docs/dev-plan.md"
-    ],
-    "15": [
-      "docs/dev-plan.md"
-    ],
-    "7.3": [
-      "docs/design.md"
-    ],
-    "10.3": [
-      "docs/PRD.md"
-    ],
-    "11.5": [
-      "docs/design.md"
-    ],
-    "1.1": [
-      "docs/dev-plan.md"
-    ],
-    "3.9": [
-      "docs/specs/m9-dev-language-roadmap.md"
-    ],
-    "6.10": [
-      "docs/specs/m6-cli-injection.md"
-    ],
-    "3.10": [
-      "docs/specs/m9-dev-language-roadmap.md"
-    ],
-    "3.19": [
-      "docs/specs/m9-dev-language-roadmap.md"
-    ],
-    "3.3": [
-      "docs/specs/m9-dev-language-roadmap.md"
-    ],
-    "4.10": [
-      "docs/analysis-2026-10-02-first-principles.md"
-    ],
-    "7.4": [
-      "docs/design.md"
-    ],
-    "13": [
-      "docs/dev-plan.md"
-    ],
-    "2b": [
-      "docs/tasks.md"
-    ],
-    "3.8": [
-      "docs/specs/m9-dev-language-roadmap.md"
-    ],
-    "7.6": [
-      "docs/design.md"
-    ],
-    "9.2": [
-      "docs/analysis-2026-10-02-first-principles.md"
-    ],
-    "0": [
-      "docs/PRD.md"
-    ],
-    "4.7": [
-      "docs/analysis-2026-10-02-first-principles.md"
-    ],
-    "5.2": [
-      "docs/specs/m6-cli-injection.md"
-    ],
-    "8.1": [
-      "docs/analysis-2026-10-02-first-principles.md"
-    ],
-    "8.3": [
-      "docs/analysis-2026-10-02-first-principles.md"
-    ],
-    "3.5": [
-      "docs/PRD-M8-agent-bridge-v1.0-20261013.md"
-    ],
-    "4.3": [
-      "docs/analysis-2026-10-02-first-principles.md"
-    ],
-    "4.6": [
-      "docs/analysis-2026-10-02-first-principles.md"
-    ],
-    "7.7": [
-      "docs/design.md"
-    ],
-    "1.4": [
-      "docs/specs/m9-dev-language-roadmap.md"
-    ],
-    "4.8": [
-      "docs/analysis-2026-10-02-first-principles.md"
-    ],
-    "6": [
-      "docs/dev-plan.md"
-    ],
-    "7.2": [
-      "docs/analysis-2026-10-02-first-principles.md"
-    ],
-    "0.2": [
-      "docs/PRD.md"
-    ],
-    "2": [
-      "docs/analysis-2026-10-02-first-principles.md"
-    ]
+    "0.3": ["docs/dev-plan.md"],
+    "10.2": ["docs/PRD.md"],
+    "0.4": ["docs/dev-plan.md"],
+    "10.4": ["docs/PRD.md"],
+    "9": ["docs/PRD.md"],
+    "10.5": ["docs/PRD.md"],
+    "8": ["docs/design.md"],
+    "8.2": ["docs/dev-plan.md"],
+    "15": ["docs/dev-plan.md"],
+    "7.3": ["docs/design.md"],
+    "10.3": ["docs/PRD.md"],
+    "11.5": ["docs/design.md"],
+    "1.1": ["docs/dev-plan.md"],
+    "3.9": ["docs/specs/m9-dev-language-roadmap.md"],
+    "6.10": ["docs/specs/m6-cli-injection.md"],
+    "3.10": ["docs/specs/m9-dev-language-roadmap.md"],
+    "3.19": ["docs/specs/m9-dev-language-roadmap.md"],
+    "3.3": ["docs/specs/m9-dev-language-roadmap.md"],
+    "4.10": ["docs/analysis-2026-10-02-first-principles.md"],
+    "7.4": ["docs/design.md"],
+    "13": ["docs/dev-plan.md"],
+    "2b": ["docs/tasks.md"],
+    "3.8": ["docs/specs/m9-dev-language-roadmap.md"],
+    "7.6": ["docs/design.md"],
+    "9.2": ["docs/analysis-2026-10-02-first-principles.md"],
+    "0": ["docs/PRD.md"],
+    "4.7": ["docs/analysis-2026-10-02-first-principles.md"],
+    "5.2": ["docs/specs/m6-cli-injection.md"],
+    "8.1": ["docs/analysis-2026-10-02-first-principles.md"],
+    "8.3": ["docs/analysis-2026-10-02-first-principles.md"],
+    "3.5": ["docs/PRD-M8-agent-bridge-v1.0-20261013.md"],
+    "4.3": ["docs/analysis-2026-10-02-first-principles.md"],
+    "4.6": ["docs/analysis-2026-10-02-first-principles.md"],
+    "7.7": ["docs/design.md"],
+    "1.4": ["docs/specs/m9-dev-language-roadmap.md"],
+    "4.8": ["docs/analysis-2026-10-02-first-principles.md"],
+    "6": ["docs/dev-plan.md"],
+    "7.2": ["docs/analysis-2026-10-02-first-principles.md"],
+    "0.2": ["docs/PRD.md"],
+    "2": ["docs/analysis-2026-10-02-first-principles.md"]
   }
 }

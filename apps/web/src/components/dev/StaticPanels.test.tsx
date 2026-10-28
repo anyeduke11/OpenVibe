@@ -161,7 +161,11 @@ describe('M9 P3.6 · 练习原则常驻提示条（§3.22.4）', () => {
   })
 
   it('⚠️ 源码层同样没有 checkbox（防止后来在别的分支里加）', () => {
-    for (const file of ['./PracticePrinciples.tsx', './DualPlanTimeline.tsx', './LanguageCompare.tsx']) {
+    for (const file of [
+      './PracticePrinciples.tsx',
+      './DualPlanTimeline.tsx',
+      './LanguageCompare.tsx',
+    ]) {
       const src = stripComments(sourceOf(file))
       expect(src).not.toContain('checkbox')
       expect(src).not.toContain('type="checkbox"')

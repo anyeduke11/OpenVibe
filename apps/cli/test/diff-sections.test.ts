@@ -51,7 +51,10 @@ describe('diff 的段级明细（RQ4，包侧可达时）', () => {
     const claude = join(project, 'CLAUDE.md')
     const text = readFileSync(claude, 'utf8')
     // 在受管块内追加一行（END 标记之前）
-    const edited = text.replace('<!-- openvibe:end -->', '用户在受管块里加的一行\n<!-- openvibe:end -->')
+    const edited = text.replace(
+      '<!-- openvibe:end -->',
+      '用户在受管块里加的一行\n<!-- openvibe:end -->',
+    )
     writeFileSync(claude, edited, 'utf8')
 
     const outcome = await diffAction({ projectPath: project }, fakeClient(pack))

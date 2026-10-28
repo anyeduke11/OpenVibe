@@ -57,11 +57,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function mockSummary(
-  items: unknown[],
-  daily: unknown[] = [],
-  byProvider: unknown[] = [],
-): void {
+function mockSummary(items: unknown[], daily: unknown[] = [], byProvider: unknown[] = []): void {
   fetchMock.mockImplementation(async (url: string) => {
     requestedUrls.push(String(url))
     if (String(url).includes('/api/lang/source/share-daily')) {
@@ -200,16 +196,20 @@ describe('M9 增强 1 · 设置页「源码出网记录」区', () => {
   })
 
   it('⑥ ⚠️ **分组表显示「哪一家 ＋ 哪个模型 ＋ 几次 ＋ 多少 token」**', async () => {
-    mockSummary(SUMMARIES, [], [
-      {
-        provider: 'sensenova',
-        model: 'deepseek-v4-flash',
-        share_count: 2,
-        snippet_total: 5,
-        usage_total_tokens: 200,
-        usage_known_count: 2,
-      },
-    ])
+    mockSummary(
+      SUMMARIES,
+      [],
+      [
+        {
+          provider: 'sensenova',
+          model: 'deepseek-v4-flash',
+          share_count: 2,
+          snippet_total: 5,
+          usage_total_tokens: 200,
+          usage_known_count: 2,
+        },
+      ],
+    )
     renderSection()
 
     fireEvent.click(screen.getByRole('button', { name: '展开按 provider 分组' }))
@@ -220,16 +220,20 @@ describe('M9 增强 1 · 设置页「源码出网记录」区', () => {
   })
 
   it('⑦ ⚠️ **「未知」那一组必须显示出来**（provider 改过 ⇒ 改之前出的网没有标识）', async () => {
-    mockSummary(SUMMARIES, [], [
-      {
-        provider: '',
-        model: '',
-        share_count: 1,
-        snippet_total: 1,
-        usage_total_tokens: null,
-        usage_known_count: 0,
-      },
-    ])
+    mockSummary(
+      SUMMARIES,
+      [],
+      [
+        {
+          provider: '',
+          model: '',
+          share_count: 1,
+          snippet_total: 1,
+          usage_total_tokens: null,
+          usage_known_count: 0,
+        },
+      ],
+    )
     renderSection()
 
     fireEvent.click(screen.getByRole('button', { name: '展开按 provider 分组' }))
@@ -240,16 +244,20 @@ describe('M9 增强 1 · 设置页「源码出网记录」区', () => {
   })
 
   it('⑧ ⚠️ **部分已知 ⇒ 说清「已知 N/M 次」**（不许把不知道的当 0）', async () => {
-    mockSummary(SUMMARIES, [], [
-      {
-        provider: 'agnes',
-        model: 'agnes-3.0-flash',
-        share_count: 3,
-        snippet_total: 4,
-        usage_total_tokens: 100,
-        usage_known_count: 1,
-      },
-    ])
+    mockSummary(
+      SUMMARIES,
+      [],
+      [
+        {
+          provider: 'agnes',
+          model: 'agnes-3.0-flash',
+          share_count: 3,
+          snippet_total: 4,
+          usage_total_tokens: 100,
+          usage_known_count: 1,
+        },
+      ],
+    )
     renderSection()
 
     fireEvent.click(screen.getByRole('button', { name: '展开按 provider 分组' }))

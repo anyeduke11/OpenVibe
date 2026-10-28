@@ -25,7 +25,14 @@ const STATIONS: RoadmapStation[] = [
     stage_no: 1,
     name: '语法基础',
     topics: [
-      { id: 1, slug: 'py-syntax', title: '基本语法', summary: '变量与表达式', stage_id: 0, state: 'active' },
+      {
+        id: 1,
+        slug: 'py-syntax',
+        title: '基本语法',
+        summary: '变量与表达式',
+        stage_id: 0,
+        state: 'active',
+      },
       { id: 2, slug: 'py-string', title: '字符串', summary: '', stage_id: 0, state: 'unused' },
     ],
   },
@@ -50,7 +57,14 @@ const DETAIL: TopicDetailOut = {
   stage_no: 2,
   state: 'mastered',
   content: { steps: '先建空列表，再逐个 append', example: 'xs = [1, 2]', principle: null },
-  deltas: [{ aspect: '并发模型', summary: '列表是线程安全的引用', since_version: '3.0', until_version: null }],
+  deltas: [
+    {
+      aspect: '并发模型',
+      summary: '列表是线程安全的引用',
+      since_version: '3.0',
+      until_version: null,
+    },
+  ],
   resources: [{ name: '官方教程', url: 'https://docs.python.org/3/', role: 'primary', tier: 'a' }],
   terms: [{ term_id: 't1', zh: '列表', en: 'list' }],
 }
@@ -92,12 +106,7 @@ describe('M9 P3.2 · 完整度标记', () => {
 describe('M9 P3.2 · 站列', () => {
   it('站号从 1 起（库里是 0 起），当前站有标记', () => {
     render(
-      <StageColumn
-        stations={STATIONS}
-        currentStage={2}
-        selectedStage={1}
-        onSelect={() => {}}
-      />,
+      <StageColumn stations={STATIONS} currentStage={2} selectedStage={1} onSelect={() => {}} />,
     )
     expect(screen.getByText('第 1 站')).toBeTruthy()
     expect(screen.getByText('第 2 站')).toBeTruthy()
@@ -116,9 +125,7 @@ describe('M9 P3.2 · 站列', () => {
 
 describe('M9 P3.2 · 当前层', () => {
   it('每条知识点带三态 chip', () => {
-    render(
-      <TopicLayer station={STATIONS[1]!} selectedTopicId={null} onSelectTopic={() => {}} />,
-    )
+    render(<TopicLayer station={STATIONS[1]!} selectedTopicId={null} onSelectTopic={() => {}} />)
     expect(screen.getByText('列表')).toBeTruthy()
     expect(screen.getByText('掌握')).toBeTruthy()
     expect(screen.getByText('本项目用到过')).toBeTruthy()

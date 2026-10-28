@@ -182,7 +182,8 @@ export function seedConceptContent(db: SqliteDatabase, seedDir: string): M9Conce
     if (action === 'created') conceptResult.created += 1
     else if (action === 'updated') conceptResult.updated += 1
     else conceptResult.ignored = (conceptResult.ignored ?? 0) + 1
-    if (action === 'user-modified') conceptResult.userModified = (conceptResult.userModified ?? 0) + 1
+    if (action === 'user-modified')
+      conceptResult.userModified = (conceptResult.userModified ?? 0) + 1
 
     const after = db.prepare(`SELECT id FROM lang_concepts WHERE slug = ?`).get(it.slug) as {
       id: number
@@ -193,9 +194,11 @@ export function seedConceptContent(db: SqliteDatabase, seedDir: string): M9Conce
     // ⚠️ 这里写的是**挂接信息**（一句话摘要 ＋ 指向概念的线索），**不是**三段内容 ——
     //    三段内容一旦复制到 topic 侧，DL-15 就红了。summary 允许重复。
     for (const [lang, slug] of mounts) {
-      db.prepare(
-        `UPDATE lang_topics SET summary = ? WHERE slug = ? AND lang = ?`,
-      ).run(`【概念层】${it.title}：${it.summary ?? ''}`.trim(), slug, lang)
+      db.prepare(`UPDATE lang_topics SET summary = ? WHERE slug = ? AND lang = ?`).run(
+        `【概念层】${it.title}：${it.summary ?? ''}`.trim(),
+        slug,
+        lang,
+      )
     }
   }
   conceptResult.status = conceptResult.created + conceptResult.updated > 0 ? 'imported' : 'skipped'

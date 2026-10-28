@@ -60,9 +60,10 @@ const GO = SOURCES.find((s) => s.key === 'go')!
  */
 function fakeSidebar(opts: { withAdvanced?: boolean; absoluteNav?: boolean } = {}): string {
   const advanced = opts.withAdvanced === true
-  const nav = opts.absoluteNav === true
-    ? '<a target="_top" title="首页" href="https://www.runoob.com/">首页</a>'
-    : ''
+  const nav =
+    opts.absoluteNav === true
+      ? '<a target="_top" title="首页" href="https://www.runoob.com/">首页</a>'
+      : ''
   return [
     '<html><body>',
     '<div class="design" id="leftcolumn">',
@@ -129,7 +130,12 @@ describe('M9 P1.9 · 采集脚本的解析面（合成夹具）', () => {
 
   it('⑥ 段名：剥 HTML 标签 ＋ 去语言前缀；无 h2 时用默认段名', () => {
     const withAdvanced = parseSidebar(fakeSidebar({ withAdvanced: true }), PY)
-    expect(withAdvanced.map((it) => it.section)).toEqual(['基础教程', '基础教程', '基础教程', '高级教程'])
+    expect(withAdvanced.map((it) => it.section)).toEqual([
+      '基础教程',
+      '基础教程',
+      '基础教程',
+      '高级教程',
+    ])
     expect(normalizeSection('<span class="left_h2">Python3</span> 高级教程', PY)).toBe('高级教程')
     // Go 侧只有一个分段 ⇒ 解析器不得假定分段结构存在
     const goOnly = parseSidebar(fakeSidebar(), GO)
@@ -144,7 +150,10 @@ describe('M9 P1.9 · 对账面（差异必须被报出且不误报）', () => {
   ]
 
   it('① 同一批数据 ⇒ 差异为空', () => {
-    const diff = diffInventory(base, base.map((it) => ({ ...it })))
+    const diff = diffInventory(
+      base,
+      base.map((it) => ({ ...it })),
+    )
     expect(diffIsEmpty(diff)).toBe(true)
     expect(diff.countChanged).toBe(0)
   })
@@ -180,7 +189,12 @@ describe('M9 P1.9 · 对账面（差异必须被报出且不误报）', () => {
   it('⑤ 变异：加一条 / 删一条 ⇒ added / removed 各自被报出', () => {
     const added = diffInventory(base, [
       ...base,
-      { ordinal: 3, section: '基础教程', title: '丙', url: 'https://www.runoob.com/python3/c.html' },
+      {
+        ordinal: 3,
+        section: '基础教程',
+        title: '丙',
+        url: 'https://www.runoob.com/python3/c.html',
+      },
     ])
     expect(added.added.length).toBe(1)
     expect(added.countChanged).toBe(1)
@@ -198,16 +212,31 @@ describe('M9 P1.9 · 对账面（差异必须被报出且不误报）', () => {
   it('⑦ 同 URL 不同标题的两条（Go 侧的真碰撞）不误报成「标题变了」', () => {
     // 已入库的 Go 清单里第 4 与第 34 条同 URL 不同标题 ⇒ 按 URL 单键配对会错配
     const committed: CollectedItem[] = [
-      { ordinal: 1, section: '基础教程', title: '工具', url: 'https://www.runoob.com/go/vscode.html' },
-      { ordinal: 2, section: '基础教程', title: '用 VSCode 开发', url: 'https://www.runoob.com/go/vscode.html' },
+      {
+        ordinal: 1,
+        section: '基础教程',
+        title: '工具',
+        url: 'https://www.runoob.com/go/vscode.html',
+      },
+      {
+        ordinal: 2,
+        section: '基础教程',
+        title: '用 VSCode 开发',
+        url: 'https://www.runoob.com/go/vscode.html',
+      },
     ]
-    const diff = diffInventory(committed, committed.map((it) => ({ ...it })))
+    const diff = diffInventory(
+      committed,
+      committed.map((it) => ({ ...it })),
+    )
     expect(diff.titleChanged.length).toBe(0)
     expect(diffIsEmpty(diff)).toBe(true)
   })
 
   it('⑧ 身份与形态归一是纯函数', () => {
-    expect(itemIdentity({ ordinal: 1, section: '基础', title: '甲', url: 'https://x/a' })).toBe('基础 甲')
+    expect(itemIdentity({ ordinal: 1, section: '基础', title: '甲', url: 'https://x/a' })).toBe(
+      '基础 甲',
+    )
     expect(urlFormKey('https://www.runoob.com//go/a.html')).toBe('https://www.runoob.com/go/a.html')
   })
 })

@@ -82,10 +82,7 @@ export function formatNativeStorageDiagnosis(
 }
 
 export class NativeStorageUnavailableError extends Error {
-  constructor(
-    message: string,
-    options: { cause: unknown },
-  ) {
+  constructor(message: string, options: { cause: unknown }) {
     super(message, { cause: options.cause })
     this.name = 'NativeStorageUnavailableError'
   }

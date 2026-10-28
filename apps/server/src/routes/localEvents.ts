@@ -31,10 +31,7 @@ export interface LocalEventsRouteDeps {
   now?: () => Date
 }
 
-export function registerLocalEventsRoutes(
-  app: FastifyInstance,
-  deps: LocalEventsRouteDeps,
-): void {
+export function registerLocalEventsRoutes(app: FastifyInstance, deps: LocalEventsRouteDeps): void {
   const repo = new LocalEventsRepo(deps.db)
 
   /**

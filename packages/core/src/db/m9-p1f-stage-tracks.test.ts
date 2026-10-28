@@ -37,7 +37,8 @@ const SPEC_FILE = join(REPO_ROOT, 'docs/specs/m9-dev-language-roadmap.md')
 const SEED_FILE = join(SEEDS_DIR, 'lang_stage_tracks.json')
 
 const SPEC_CELLS = parseSpecTrackCells(readFileSync(SPEC_FILE, 'utf8'))
-const SEED_ITEMS = (JSON.parse(readFileSync(SEED_FILE, 'utf8')) as { items: StageTrackSeed[] }).items
+const SEED_ITEMS = (JSON.parse(readFileSync(SEED_FILE, 'utf8')) as { items: StageTrackSeed[] })
+  .items
 
 function seedAll(h: { db: Parameters<typeof seedStageTracks>[0] }): void {
   seedStageTracks(h.db, SEEDS_DIR)
@@ -178,9 +179,9 @@ describe('M9 P1f · DL-41 速成专区那 11 条在库且纳入巡检', () => {
     const h = newDb()
     try {
       seedAll(h)
-      const vibe = h.db
-        .prepare(`SELECT COUNT(*) AS n FROM lang_vibe_resources`)
-        .get() as { n: number }
+      const vibe = h.db.prepare(`SELECT COUNT(*) AS n FROM lang_vibe_resources`).get() as {
+        n: number
+      }
       expect(vibe.n).toBe(11)
       const groups = h.db
         .prepare(`SELECT "group" AS g, COUNT(*) AS n FROM lang_vibe_resources GROUP BY "group"`)
@@ -224,7 +225,10 @@ describe('M9 P1f · DL-41 速成专区那 11 条在库且纳入巡检', () => {
 describe('M9 P1f · DL-42 职业等级断言守卫', () => {
   it('① 全仓 0 命中（界面不得出现越过编程证据的职业等级断言）', () => {
     const hits = findGradeAssertions(REPO_ROOT)
-    expect(hits, hits.map((h) => `${h.file}:${h.line} ${h.pattern} — ${h.text}`).join('\n')).toEqual([])
+    expect(
+      hits,
+      hits.map((h) => `${h.file}:${h.line} ${h.pattern} — ${h.text}`).join('\n'),
+    ).toEqual([])
   })
 
   it('② 守卫自证：注入一条必被报出（DL-42 的反证腿）', () => {

@@ -11,14 +11,7 @@ import { z } from 'zod'
  * 且**禁止静默截断**。
  */
 
-export const CONTEXT_FIELDS = [
-  'stage',
-  'checklist',
-  'tasks',
-  'logs',
-  'pack',
-  'assets',
-] as const
+export const CONTEXT_FIELDS = ['stage', 'checklist', 'tasks', 'logs', 'pack', 'assets'] as const
 export type ContextField = (typeof CONTEXT_FIELDS)[number]
 
 /** FR-3.4 的裁剪顺序写死在规格里，因为**它决定 agent 看到什么** */

@@ -35,7 +35,11 @@ import {
   setConsent,
   clearConsent,
 } from '../db/m9-source-scan'
-import { deriveConsentDetail, consentSourceFromDetail, interpretSourceFindings } from './interpret-service'
+import {
+  deriveConsentDetail,
+  consentSourceFromDetail,
+  interpretSourceFindings,
+} from './interpret-service'
 import { readSnippet, readSnippets, SNIPPET_MAX_FILES } from './snippet'
 import { formatInterpretMarkdown } from './export'
 import { CommandInterpretRunner, InterpretRunnerError, type SourceInterpretRunner } from './runner'
@@ -66,10 +70,12 @@ describe('M9 增强 1 · 出网汇总可读（`lang_source_shares` 的聚合）'
     const h = newDb()
     // ⚠️ `lang_source_shares.project_id` 有外键 ⇒ 得先有项目行
     for (const id of ['p1', 'p2']) {
-      h.db.prepare(
-        `INSERT INTO projects (id, name, stages_snapshot, status, local_path, created_at, updated_at)
+      h.db
+        .prepare(
+          `INSERT INTO projects (id, name, stages_snapshot, status, local_path, created_at, updated_at)
          VALUES (?, '测试项目', '[]', 'active', '/tmp/x', '2026-10-21T00:00:00.000Z', '2026-10-21T00:00:00.000Z')`,
-      ).run(id)
+        )
+        .run(id)
     }
     recordShare(h.db, {
       project_id: 'p1',
@@ -115,10 +121,12 @@ describe('M9 增强 1 · 出网汇总可读（`lang_source_shares` 的聚合）'
 
   it('③ **清除记忆不改变**出网计数（两者语义不同：记忆管「下次」，这里记「已发生」）', () => {
     const h = newDb()
-    h.db.prepare(
-      `INSERT INTO projects (id, name, stages_snapshot, status, local_path, created_at, updated_at)
+    h.db
+      .prepare(
+        `INSERT INTO projects (id, name, stages_snapshot, status, local_path, created_at, updated_at)
        VALUES ('p1', '测试项目', '[]', 'active', '/tmp/p1', '2026-10-21T00:00:00.000Z', '2026-10-21T00:00:00.000Z')`,
-    ).run()
+      )
+      .run()
     setConsent(h.db, 'p1', true, '2026-10-21T00:30:00.000Z')
     recordShare(h.db, {
       project_id: 'p1',
@@ -461,7 +469,9 @@ describe('M9 增强 1/4 · 摘要带 provider 与用量，台账落三列', () =
       now: () => new Date('2026-10-21T00:00:00.000Z'),
     })
     const row = h.db
-      .prepare('SELECT provider, model, usage_total_tokens FROM lang_source_shares WHERE project_id = ?')
+      .prepare(
+        'SELECT provider, model, usage_total_tokens FROM lang_source_shares WHERE project_id = ?',
+      )
       .get('p1') as { provider: string; model: string; usage_total_tokens: number | null }
     expect(row.provider).toBe('sensenova')
     expect(row.model).toBe('deepseek-v4-flash')

@@ -57,7 +57,11 @@ function mkSource(): { from: string } {
     'utf8',
   )
   writeFileSync(join(from, 'topics', 'topic-a.md'), '# 甲\n\nType: pattern\n\n甲的内容\n', 'utf8')
-  writeFileSync(join(from, 'topics', 'topic-b.md'), '# 乙\n\nType: incident-lesson\n\n乙的内容\n', 'utf8')
+  writeFileSync(
+    join(from, 'topics', 'topic-b.md'),
+    '# 乙\n\nType: incident-lesson\n\n乙的内容\n',
+    'utf8',
+  )
   return { from }
 }
 
@@ -175,7 +179,9 @@ describe('导出', () => {
     writeFileSync(join(from, 'topics', 'topic-b.md'), '', 'utf8')
     const to = mkdtempSync(join(tmpdir(), 'ov-mem-out-'))
     tmpDirs.push(to)
-    expect(() => exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })).toThrow(/空文件/)
+    expect(() => exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })).toThrow(
+      /空文件/,
+    )
   })
 
   it('重跑幂等：第二次导出与第一次逐字节相同', () => {
@@ -285,7 +291,11 @@ describe('核对模式（只读）：导出件与源是否分叉', () => {
 
   it('⭐ 变异腿：改源一个字 ⇒ 核对当场报 diff（证明这条闸能红）', () => {
     const { from, to } = mkExported()
-    writeFileSync(join(from, 'topics', 'topic-a.md'), '# 甲\n\nType: pattern\n\n甲的内容改了\n', 'utf8')
+    writeFileSync(
+      join(from, 'topics', 'topic-a.md'),
+      '# 甲\n\nType: pattern\n\n甲的内容改了\n',
+      'utf8',
+    )
     const res = checkAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })
     expect(res.inSync).toBe(false)
     const hit = res.entries.find((e) => e.path === 'topics/topic-a.md')

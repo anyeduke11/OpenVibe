@@ -78,7 +78,9 @@ function normalizeKeys(clause: string): string[] {
  *   变异腿 `tests/order-determinism` 的两条反向用例就钉这一条。
  */
 function groupCoversOrder(sql: string, orderClause: string): boolean {
-  const groups = [...sql.matchAll(/\bGROUP\s+BY\s+([\s\S]+?)(?:\bHAVING\b|\bORDER\b|\bLIMIT\b|$)/gi)]
+  const groups = [
+    ...sql.matchAll(/\bGROUP\s+BY\s+([\s\S]+?)(?:\bHAVING\b|\bORDER\b|\bLIMIT\b|$)/gi),
+  ]
   if (groups.length === 0) return false
   const wanted = new Set(normalizeKeys(orderClause))
   return groups.some((g) => {
@@ -97,7 +99,9 @@ function clausesMissingTailKey(): string[] {
         if (!clause) continue
         if (DETERMINISTIC_TAIL.has(lastSortKey(clause))) continue
         if (groupCoversOrder(sql, clause)) continue
-        offenders.push(`${file.replace(`${SRC_ROOT}/`, '')} — ORDER BY ${clause.replace(/\s+/g, ' ')}`)
+        offenders.push(
+          `${file.replace(`${SRC_ROOT}/`, '')} — ORDER BY ${clause.replace(/\s+/g, ' ')}`,
+        )
       }
     }
   }
@@ -105,14 +109,19 @@ function clausesMissingTailKey(): string[] {
 }
 
 /** 把 from 库的整表内容按指定物理序灌进 to 库（保持 id 与时间戳逐字一致） */
-function cloneTable(from: SqliteDatabase, to: SqliteDatabase, table: string, reverse: boolean): void {
+function cloneTable(
+  from: SqliteDatabase,
+  to: SqliteDatabase,
+  table: string,
+  reverse: boolean,
+): void {
   const rows = from.prepare(`SELECT * FROM ${table}`).all() as Record<string, unknown>[]
   to.exec(`DELETE FROM ${table}`)
   for (const row of reverse ? [...rows].reverse() : rows) {
     const cols = Object.keys(row)
-    to
-      .prepare(`INSERT INTO ${table} (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`)
-      .run(...cols.map((c) => row[c]))
+    to.prepare(
+      `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`,
+    ).run(...cols.map((c) => row[c]))
   }
 }
 
@@ -138,22 +147,46 @@ describe('UT-ORDER-01a · 聚合豁免：只在排序键被分组键覆盖时成
     `SELECT kind, day, COUNT(*) AS count FROM local_events ${group} ${order}`
 
   it('正例：排序键 ⊆ 分组键 ⇒ 放行（本轮 local_events 聚合的真实形态）', () => {
-    expect(groupCoversOrder(sql('GROUP BY kind, day', 'ORDER BY day DESC, kind ASC'), 'day DESC, kind ASC')).toBe(true)
+    expect(
+      groupCoversOrder(
+        sql('GROUP BY kind, day', 'ORDER BY day DESC, kind ASC'),
+        'day DESC, kind ASC',
+      ),
+    ).toBe(true)
     expect(groupCoversOrder(sql('GROUP BY kind', 'ORDER BY kind ASC'), 'kind ASC')).toBe(true)
   })
 
   it('反例：排序键含分组键之外的列 ⇒ 仍红（原判据要拦的就是这种平局）', () => {
-    expect(groupCoversOrder(sql('GROUP BY kind, day', 'ORDER BY updated_at DESC'), 'updated_at DESC')).toBe(false)
-    expect(groupCoversOrder(sql('GROUP BY kind, day', 'ORDER BY kind ASC, updated_at DESC'), 'kind ASC, updated_at DESC')).toBe(false)
+    expect(
+      groupCoversOrder(sql('GROUP BY kind, day', 'ORDER BY updated_at DESC'), 'updated_at DESC'),
+    ).toBe(false)
+    expect(
+      groupCoversOrder(
+        sql('GROUP BY kind, day', 'ORDER BY kind ASC, updated_at DESC'),
+        'kind ASC, updated_at DESC',
+      ),
+    ).toBe(false)
   })
 
   it('反例：无 GROUP BY 一律不放行（纯列表路径不能借聚合豁免脱身）', () => {
-    expect(groupCoversOrder('SELECT * FROM t WHERE a=1 ORDER BY updated_at DESC', 'updated_at DESC')).toBe(false)
+    expect(
+      groupCoversOrder('SELECT * FROM t WHERE a=1 ORDER BY updated_at DESC', 'updated_at DESC'),
+    ).toBe(false)
   })
 
   it('反例：别名不同不算覆盖（`day` 与 `d` 不等价）', () => {
-    expect(groupCoversOrder('SELECT kind AS k, day AS d, COUNT(*) FROM t GROUP BY k, d ORDER BY k ASC, d ASC', 'k ASC, d ASC')).toBe(true)
-    expect(groupCoversOrder('SELECT kind, day, COUNT(*) FROM t GROUP BY kind ORDER BY day ASC', 'day ASC')).toBe(false)
+    expect(
+      groupCoversOrder(
+        'SELECT kind AS k, day AS d, COUNT(*) FROM t GROUP BY k, d ORDER BY k ASC, d ASC',
+        'k ASC, d ASC',
+      ),
+    ).toBe(true)
+    expect(
+      groupCoversOrder(
+        'SELECT kind, day, COUNT(*) FROM t GROUP BY kind ORDER BY day ASC',
+        'day ASC',
+      ),
+    ).toBe(false)
   })
 
   it('整守卫行为：把 real repo 的 SQL 换成「排序键未覆盖分组键」形态 ⇒ 整仓扫描必须报错', () => {
@@ -184,15 +217,45 @@ describe('UT-ORDER-02 · 行为：同内容不同物理插入序，列表结果�
       ['幂等', 'idempotency'],
       ['术语表', 'glossary'],
     ] as [string, string][]) {
-      terms.create({ zh, en, aliases: [zh], definition: `${zh}的定义，用于排序确定性用例校验`, example: '', tags: ['基础概念'], source: 'manual', status: 'active' })
+      terms.create({
+        zh,
+        en,
+        aliases: [zh],
+        definition: `${zh}的定义，用于排序确定性用例校验`,
+        example: '',
+        tags: ['基础概念'],
+        source: 'manual',
+        status: 'active',
+      })
     }
     const prompts = new PromptsRepo(ha.db)
-    for (const title of ['同题提示词 A', '同题提示词 A', '另一条提示词', '再一条提示词', '第五条提示词']) {
-      prompts.create({ title, description: '', content: `内容 ${title} {{var}}`, tags: ['精选'], folderPath: '/精选', platformMarks: ['generic'], useAs: 'reference', status: 'active' })
+    for (const title of [
+      '同题提示词 A',
+      '同题提示词 A',
+      '另一条提示词',
+      '再一条提示词',
+      '第五条提示词',
+    ]) {
+      prompts.create({
+        title,
+        description: '',
+        content: `内容 ${title} {{var}}`,
+        tags: ['精选'],
+        folderPath: '/精选',
+        platformMarks: ['generic'],
+        useAs: 'reference',
+        status: 'active',
+      })
     }
     const flows = new FlowTemplatesRepo(ha.db)
     for (const name of ['流一', '流二', '流三']) {
-      flows.create({ name, kind: 'light', stages: [{ name: '启动', checklist: [{ id: 'c1', text: '需求一句话写清' }], artifacts: [] }] })
+      flows.create({
+        name,
+        kind: 'light',
+        stages: [
+          { name: '启动', checklist: [{ id: 'c1', text: '需求一句话写清' }], artifacts: [] },
+        ],
+      })
     }
     const projects = new ProjectsRepo(ha.db)
     for (const name of ['项目甲', '项目乙', '项目丙']) {
@@ -200,7 +263,12 @@ describe('UT-ORDER-02 · 行为：同内容不同物理插入序，列表结果�
     }
     const packs = new PacksRepo(ha.db)
     for (const name of ['pack-a', 'pack-b', 'pack-c']) {
-      packs.create({ name, description: '', selection: { termIds: terms.list().map((t) => t.id), promptIds: [], flowTemplateId: null }, targets: ['claude-code'] })
+      packs.create({
+        name,
+        description: '',
+        selection: { termIds: terms.list().map((t) => t.id), promptIds: [], flowTemplateId: null },
+        targets: ['claude-code'],
+      })
     }
     // 时间戳全部钉死成同一毫秒：这正是批量播种的真实形态
     for (const table of ['terms', 'prompts', 'flow_templates', 'projects', 'standard_packs']) {
@@ -227,10 +295,16 @@ describe('UT-ORDER-02 · 行为：同内容不同物理插入序，列表结果�
     const pairs: [string, (db: SqliteDatabase) => string[]][] = [
       ['terms.list', (db) => new TermsRepo(db).list().map((t) => t.id)],
       ['terms.list zh', (db) => new TermsRepo(db).list().map((t) => t.zh ?? '')],
-      ['prompts.list', (db) => new PromptsRepo(db).list({ page: 1, size: 50 }).items.map((p) => p.id)],
+      [
+        'prompts.list',
+        (db) => new PromptsRepo(db).list({ page: 1, size: 50 }).items.map((p) => p.id),
+      ],
       ['prompts.export', (db) => new PromptsRepo(db).exportAll().map((p) => p.title)],
       ['flows.list', (db) => new FlowTemplatesRepo(db).list().map((f) => f.id)],
-      ['projects.list', (db) => new ProjectsRepo(db).list({ includeArchived: true }).map((p) => p.id)],
+      [
+        'projects.list',
+        (db) => new ProjectsRepo(db).list({ includeArchived: true }).map((p) => p.id),
+      ],
       ['packs.list', (db) => new PacksRepo(db).list().map((p) => p.id)],
     ]
     for (const [label, read] of pairs) {
@@ -255,7 +329,8 @@ describe('UT-ORDER-02 · 行为：同内容不同物理插入序，列表结果�
 
     const idOf = (db: SqliteDatabase, rowids: number[]) =>
       rowids.map(
-        (rowid) => (db.prepare('SELECT id FROM prompts WHERE rowid = ?').get(rowid) as { id: string }).id,
+        (rowid) =>
+          (db.prepare('SELECT id FROM prompts WHERE rowid = ?').get(rowid) as { id: string }).id,
       )
     const promptsA = idOf(h.a, searchPromptRowids(h.a, '提示'))
     const promptsB = idOf(h.b, searchPromptRowids(h.b, '提示'))

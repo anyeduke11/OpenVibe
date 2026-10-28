@@ -353,7 +353,9 @@ export function parseSectionRefs(
       const before = line.slice(0, at).replace(/[`'"]+\s*$/, '')
       // ⚠️ 中文前缀要能连续（`分析文 §4.7` ⇒ `分析文`，不是 `文`）
       const prefix =
-        /([A-Za-z][A-Za-z0-9_.-]*|[\u4e00-\u9fff][\u4e00-\u9fffA-Za-z0-9_.-]*)\s*$/.exec(before)?.[1] ?? ''
+        /([A-Za-z][A-Za-z0-9_.-]*|[\u4e00-\u9fff][\u4e00-\u9fffA-Za-z0-9_.-]*)\s*$/.exec(
+          before,
+        )?.[1] ?? ''
       bare.push({
         from,
         line: i + 1,
@@ -530,9 +532,15 @@ export function buildReport(
   lines.push('# §-引用对账表')
   lines.push('')
   lines.push('> 生成方式：`npx tsx scripts/section-ref-audit.ts --write <本文件>`。')
-  lines.push('> 判定口径与边界见 `scripts/section-ref-audit.ts` 文件头（**只判限定型引用；红只出在「目标文件连顶层节都没有」**）。')
-  lines.push('> 本表是**点时快照**：文档改了要重跑重写；它不替代闸，`scripts/section-ref-audit.ts` 才是闸。')
-  lines.push('> ⚠️ 判定基于**当前工作树**（不是 HEAD）—— 未提交的改动会改变本表（某节尚未入库、或已从工作树移除）。')
+  lines.push(
+    '> 判定口径与边界见 `scripts/section-ref-audit.ts` 文件头（**只判限定型引用；红只出在「目标文件连顶层节都没有」**）。',
+  )
+  lines.push(
+    '> 本表是**点时快照**：文档改了要重跑重写；它不替代闸，`scripts/section-ref-audit.ts` 才是闸。',
+  )
+  lines.push(
+    '> ⚠️ 判定基于**当前工作树**（不是 HEAD）—— 未提交的改动会改变本表（某节尚未入库、或已从工作树移除）。',
+  )
   lines.push('')
 
   lines.push('## 1. 判定摘要')
@@ -698,7 +706,14 @@ export function buildRewritePlan(
     if (own && (classifyRef(ref.id, own) === 'heading' || classifyRef(ref.id, own) === 'item')) {
       continue
     }
-    const resolution = resolveBareRef(ref.id, ref.from, targets, aliases, docAliases, ref.prefix ?? '')
+    const resolution = resolveBareRef(
+      ref.id,
+      ref.from,
+      targets,
+      aliases,
+      docAliases,
+      ref.prefix ?? '',
+    )
     const resolvers = resolution.resolvers
     const where = `${ref.from}:${ref.line}`
     if (resolvers.length === 0) {
@@ -737,7 +752,10 @@ export function buildRewritePlan(
 export function buildSplitRewriteRows(
   findings: AuditFinding[],
   map: Record<string, Record<string, string>>,
-): { mapped: { from: string; ref: string; target: string; newTarget: string; places: string[] }[]; unmapped: { from: string; ref: string; places: string[] }[] } {
+): {
+  mapped: { from: string; ref: string; target: string; newTarget: string; places: string[] }[]
+  unmapped: { from: string; ref: string; places: string[] }[]
+} {
   const byKey = new Map<string, { from: string; ref: string; target: string; places: string[] }>()
   for (const f of findings) {
     const key = `${f.ref.target}|${f.ref.ref}`
@@ -750,7 +768,13 @@ export function buildSplitRewriteRows(
     entry.places.push(`${f.ref.from}:${f.ref.line}`)
     byKey.set(key, entry)
   }
-  const mapped: { from: string; ref: string; target: string; newTarget: string; places: string[] }[] = []
+  const mapped: {
+    from: string
+    ref: string
+    target: string
+    newTarget: string
+    places: string[]
+  }[] = []
   const unmapped: { from: string; ref: string; places: string[] }[] = []
   for (const entry of byKey.values()) {
     const sectionMap = map[entry.target]
@@ -771,13 +795,18 @@ export function buildSplitRewriteRows(
  */
 export function buildRewriteReport(
   plan: RewritePlan,
-  split: { mapped: { from: string; ref: string; target: string; newTarget: string; places: string[] }[]; unmapped: { from: string; ref: string; places: string[] }[] },
+  split: {
+    mapped: { from: string; ref: string; target: string; newTarget: string; places: string[] }[]
+    unmapped: { from: string; ref: string; places: string[] }[]
+  },
 ): string {
   const lines: string[] = []
   lines.push('# §-引用改写清单')
   lines.push('')
   lines.push('> 生成方式：`npx tsx scripts/section-ref-audit.ts --emit-rewrite-plan`。')
-  lines.push('> **这是给人落笔的清单，不是判据** —— 判据是 `scripts/section-ref-audit.ts`（退出码才有红绿）。')
+  lines.push(
+    '> **这是给人落笔的清单，不是判据** —— 判据是 `scripts/section-ref-audit.ts`（退出码才有红绿）。',
+  )
   lines.push('> 建议**只对「全仓唯一可解」的节号给**；目标不唯一的列入第 2 节，**机器不猜**。')
   lines.push('')
 
@@ -803,7 +832,9 @@ export function buildRewriteReport(
   if (plan.ambiguities.length === 0) {
     lines.push('（无）')
   } else {
-    lines.push('| 节号 | 出现处数 | 能解它的文件数 | 候选（节号在多个文件里都存在 ⇒ 需看上下文） | 出现位置（抽样） |')
+    lines.push(
+      '| 节号 | 出现处数 | 能解它的文件数 | 候选（节号在多个文件里都存在 ⇒ 需看上下文） | 出现位置（抽样） |',
+    )
     lines.push('|---|---|---|---|---|')
     for (const a of plan.ambiguities) {
       lines.push(
@@ -1087,12 +1118,20 @@ export function buildAliasCandidates(
   const seen = new Set<string>()
   for (const ref of bareRefs) {
     const own = targets.get(ref.from)
-    if (own && (classifyRef(ref.id, own) === 'heading' || classifyRef(ref.id, own) === 'item')) continue
+    if (own && (classifyRef(ref.id, own) === 'heading' || classifyRef(ref.id, own) === 'item'))
+      continue
     const key = `${ref.id}|${ref.from}|${ref.line}`
     if (seen.has(key)) continue
     seen.add(key)
     // 候选集合：**已被别名表解决的**（resolvers 收窄到 1）⇒ 不再需要人工登记
-    const resolution = resolveBareRef(ref.id, ref.from, targets, aliases, docAliases, ref.prefix ?? '')
+    const resolution = resolveBareRef(
+      ref.id,
+      ref.from,
+      targets,
+      aliases,
+      docAliases,
+      ref.prefix ?? '',
+    )
     const resolvers = resolution.resolvers
     const entry = acc.get(ref.id) ?? { id: ref.id, count: 0, resolvers, samples: [] }
     entry.count++
@@ -1138,7 +1177,9 @@ export function buildAliasCandidateReport(candidates: AliasCandidate[]): string 
   lines.push('# §-引用别名表 · 候选登记表')
   lines.push('')
   lines.push('> 生成方式：`npx tsx scripts/section-ref-audit.ts --emit-alias-candidates`。')
-  lines.push('> **这是给人落笔的登记表** —— 判定口径见 `scripts/section-ref-audit.ts` 文件头「别名表」节。')
+  lines.push(
+    '> **这是给人落笔的登记表** —— 判定口径见 `scripts/section-ref-audit.ts` 文件头「别名表」节。',
+  )
   lines.push('> 登记形狀：`{ "<节号>": ["<来源档案>", ...] }`（档案路径用仓內相对路径）。')
   lines.push('')
 
@@ -1164,9 +1205,15 @@ export function buildAliasCandidateReport(candidates: AliasCandidate[]): string 
   lines.push('')
   lines.push('| 分档 | 节号数 | 说明 |')
   lines.push('|---|---|---|')
-  lines.push(`| 唯一可解（全自动覆盖） | ${buckets.auto.length} | 只有一份档案能解 ⇒ 机器直接出建议，**不需人工登记** |`)
-  lines.push(`| 多目标（需人工裁定） | ${buckets.needHuman.length} | 多份档案都能解 ⇒ 只有看上下文能定 |`)
-  lines.push(`| 全仓无可解 | ${buckets.hopeless.length} | 没有任何档案有这个节号 ⇒ 别名表也救不了 |`)
+  lines.push(
+    `| 唯一可解（全自动覆盖） | ${buckets.auto.length} | 只有一份档案能解 ⇒ 机器直接出建议，**不需人工登记** |`,
+  )
+  lines.push(
+    `| 多目标（需人工裁定） | ${buckets.needHuman.length} | 多份档案都能解 ⇒ 只有看上下文能定 |`,
+  )
+  lines.push(
+    `| 全仓无可解 | ${buckets.hopeless.length} | 没有任何档案有这个节号 ⇒ 别名表也救不了 |`,
+  )
   lines.push('')
   return lines.join('\n')
 }
@@ -1233,9 +1280,7 @@ export function auditAliasEntries(
       active++
     }
     // 该节号是否还在裸引用里、且已经自家可解（⇒ 登记多余）
-    const stillBare = bareRefs.some(
-      (r) => r.id === id && !selfResolvable.has(`${r.from}|${r.id}`),
-    )
+    const stillBare = bareRefs.some((r) => r.id === id && !selfResolvable.has(`${r.from}|${r.id}`))
     if (!stillBare) redundant.push(id)
   }
   return { active, redundant, missingTarget }
@@ -1413,7 +1458,9 @@ function main(): number {
   const aliasPath = aliasIdx >= 0 ? (args[aliasIdx + 1] ?? ALIAS_FILE) : ALIAS_FILE
   const aliasAbs = resolve(root, aliasPath)
   const aliases = existsSync(aliasAbs)
-    ? parseAliases(JSON.parse(readFileSync(aliasAbs, 'utf8')) as { aliases?: Record<string, string[]> })
+    ? parseAliases(
+        JSON.parse(readFileSync(aliasAbs, 'utf8')) as { aliases?: Record<string, string[]> },
+      )
     : { aliases: new Map<string, string[]>() }
 
   // 文档别名表：行内前缀 → 来源文件（收窄前先验证目标含该节号）
@@ -1569,7 +1616,9 @@ function main(): number {
   }
 
   for (const f of result.knownDangling) {
-    console.log(`  · 已知存量：${f.ref.from}:${f.ref.line} → ${f.ref.target} §${f.ref.ref}（只报不改）`)
+    console.log(
+      `  · 已知存量：${f.ref.from}:${f.ref.line} → ${f.ref.target} §${f.ref.ref}（只报不改）`,
+    )
   }
   for (const f of result.dangling) {
     console.log(`  · 未登记断链：${f.ref.from}:${f.ref.line} → ${f.ref.target} §${f.ref.ref}`)

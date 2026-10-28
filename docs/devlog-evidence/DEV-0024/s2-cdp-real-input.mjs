@@ -249,7 +249,10 @@ try {
     origin: ORIGIN,
     permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'],
   })
-  info('clipboard 权限授予', 'clipboardReadWrite + clipboardSanitizedWrite（Browser.grantPermissions）')
+  info(
+    'clipboard 权限授予',
+    'clipboardReadWrite + clipboardSanitizedWrite（Browser.grantPermissions）',
+  )
 } catch (e) {
   info('clipboard 权限授予失败', String(e).slice(0, 200))
 }
@@ -258,7 +261,9 @@ try {
 async function realClick(expr) {
   // ① 滚进视口 ② 命中点校验（elementFromPoint 必须是目标本身或其子孙）③ 再发真事件。
   // 不做②就会把「点到别的元素」记成产品缺陷——第一次跑撞的就是这个。
-  await evalJs(`(() => {const el=${expr}; if(el) el.scrollIntoView({block:'center', behavior:'instant'}); return 1})()`)
+  await evalJs(
+    `(() => {const el=${expr}; if(el) el.scrollIntoView({block:'center', behavior:'instant'}); return 1})()`,
+  )
   await sleep(120)
   const hit = await evalJs(
     `(() => {const el=${expr}; if(!el) return {err:'NO_EL'};` +
@@ -356,7 +361,8 @@ function flushEvidence() {
       encoding: 'utf8',
     }).stdout.trim()
     const dirty = spawnSync('git', ['status', '--porcelain'], { cwd: REPO, encoding: 'utf8' })
-      .stdout.split('\n').filter(Boolean).length
+      .stdout.split('\n')
+      .filter(Boolean).length
     // 有头/无头两份日志分开存：判据①的结论按浏览器形态分叉，覆盖写会把对照证据吃掉
     const tag = HEADLESS ? '' : '-headed'
     writeFileSync(
@@ -392,7 +398,10 @@ if (!HAS_PASTEBOARD) {
   skip('判据①', '本平台无 pbpaste/pbcopy 反查通道 ⇒ 不可判，不得当作通过')
 } else {
   await go('/library')
-  check('提示词库渲染且带变量条目挂出 {{var}}', (await hasText('提示词库')) && (await hasText('{{')))
+  check(
+    '提示词库渲染且带变量条目挂出 {{var}}',
+    (await hasText('提示词库')) && (await hasText('{{')),
+  )
   info(
     'clipboard API 前置',
     `isSecureContext=${String(await evalJs('window.isSecureContext'))} origin=${ORIGIN} 形态=${HEADLESS ? 'headless' : 'headed'}`,
@@ -494,16 +503,23 @@ if (!HAS_PASTEBOARD) {
         `.some((b) => b.textContent.trim() === '复制')).length`,
     )
     totalLine =
-      (await evalJs('document.body.innerText')).split('\n').find((l) => /^共 \d+ 条$/.test(l.trim())) ??
-      ''
+      (await evalJs('document.body.innerText'))
+        .split('\n')
+        .find((l) => /^共 \d+ 条$/.test(l.trim())) ?? ''
     if (rows < totalBefore) break
     await sleep(150)
   }
   const hit = await hasText(withVars.title)
   info(
     '检索窗口内捕到的 /api/prompts 请求',
-    String(requests.slice(reqMark).filter((u) => u.includes('/api/prompts')).length) + ' 条，样例：' +
-      String(requests.slice(reqMark).filter((u) => u.includes('/api/prompts')).pop() ?? '（无）'),
+    String(requests.slice(reqMark).filter((u) => u.includes('/api/prompts')).length) +
+      ' 条，样例：' +
+      String(
+        requests
+          .slice(reqMark)
+          .filter((u) => u.includes('/api/prompts'))
+          .pop() ?? '（无）',
+      ),
   )
   check(
     '判据②b：debounce 后真的发出了带该中文 q 的检索请求',
@@ -529,7 +545,12 @@ if (!HAS_PASTEBOARD) {
       text: ch,
       windowsVirtualKeyCode: 0,
     })
-    await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: ch, code: 'Key', windowsVirtualKeyCode: 0 })
+    await cdp('Input.dispatchKeyEvent', {
+      type: 'keyUp',
+      key: ch,
+      code: 'Key',
+      windowsVirtualKeyCode: 0,
+    })
   }
   await sleep(900)
   const charValue = await evalJs(`(${SEARCH_EXPR})?.value ?? null`)
@@ -538,7 +559,9 @@ if (!HAS_PASTEBOARD) {
       `.some((b) => b.textContent.trim() === '复制')).length`,
   )
   const charTotal =
-    (await evalJs('document.body.innerText')).split('\n').find((l) => /^共 \d+ 条$/.test(l.trim())) ?? ''
+    (await evalJs('document.body.innerText'))
+      .split('\n')
+      .find((l) => /^共 \d+ 条$/.test(l.trim())) ?? ''
   const charReq = requests
     .slice(reqMark2)
     .find((u) => u.includes('/api/prompts') && u.includes(encodeURIComponent('重构')))
@@ -567,7 +590,11 @@ if (!HAS_PASTEBOARD) {
   const inside = await evalJs(
     `(() => {const a=document.activeElement; return {inDialog: Boolean(a?.closest('[role="dialog"]')), tag:a?.tagName.toLowerCase()}})()`,
   )
-  check('判据③b：打开后初始焦点在 [role=dialog] 内（FocusScope 生效）', inside.inDialog === true, JSON.stringify(inside))
+  check(
+    '判据③b：打开后初始焦点在 [role=dialog] 内（FocusScope 生效）',
+    inside.inDialog === true,
+    JSON.stringify(inside),
+  )
 
   const inputExpr = `[...document.querySelectorAll('[role="dialog"] input')]`
   const inputCount = await evalJs(`${inputExpr}.length`)
@@ -645,9 +672,13 @@ if (!HAS_PASTEBOARD) {
 
 // ================= 汇总 =================
 say('\n== 判据归属（各条独立，任一不过即整体不过）')
-say('  ① 剪贴板：以进程外 pbpaste（显式 UTF-8 locale）逐字节比对为准；promise / 页内 readText / toast 只作辅助信号')
+say(
+  '  ① 剪贴板：以进程外 pbpaste（显式 UTF-8 locale）逐字节比对为准；promise / 页内 readText / toast 只作辅助信号',
+)
 say('  ② 中文输入：以「受控 value 回写 + 真发出带中文 q 的请求 + 列表收窄」三件齐为过')
-say('  ③ 键盘流：以「Tab 改变焦点落点 + Enter 完成一次提交（Dialog 关闭）」为过；其剪贴板落点单列为 ③h')
+say(
+  '  ③ 键盘流：以「Tab 改变焦点落点 + Enter 完成一次提交（Dialog 关闭）」为过；其剪贴板落点单列为 ③h',
+)
 const VERDICT = (b) => (b ? '过' : '不过')
 say(`  浏览器形态 = ${HEADLESS ? 'headless=new' : 'headed'}`)
 say(`  ① 真点击 → 系统剪贴板：${VERDICT(V.c1)}`)

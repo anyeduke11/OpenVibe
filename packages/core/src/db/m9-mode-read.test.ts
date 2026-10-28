@@ -20,33 +20,43 @@ import {
  * - 「已点亮」= **不是 `unused`**（`active` 与 `mastered` 都算）。
  */
 function seed(h: TestDbHandle): void {
-  h.db.prepare(
-    `INSERT INTO projects (id, name, stages_snapshot, status, local_path, created_at, updated_at)
+  h.db
+    .prepare(
+      `INSERT INTO projects (id, name, stages_snapshot, status, local_path, created_at, updated_at)
      VALUES ('p1', '测试项目', '[]', 'active', '/tmp/p1', '2026-10-21T00:00:00.000Z', '2026-10-21T00:00:00.000Z')`,
-  ).run()
-  h.db.prepare(
-    `INSERT INTO lang_topics (id, lang, slug, title, summary, stage_id, kind)
+    )
+    .run()
+  h.db
+    .prepare(
+      `INSERT INTO lang_topics (id, lang, slug, title, summary, stage_id, kind)
      VALUES (1, 'python', 'py-a', 'A', '', 0, 'language'),
             (2, 'python', 'py-b', 'B', '', 1, 'language'),
             (3, 'go', 'go-a', 'G', '', 0, 'library')`,
-  ).run()
-  h.db.prepare(
-    `INSERT INTO lang_topic_profiles (topic_id, profile, depth, required, rank, est_minutes)
+    )
+    .run()
+  h.db
+    .prepare(
+      `INSERT INTO lang_topic_profiles (topic_id, profile, depth, required, rank, est_minutes)
      VALUES (1, 'master', 'full', 1, 1, 60),
             (1, 'vibe', 'headline', 1, 1, 10),
             (2, 'master', 'concept', 0, 2, NULL),
             (2, 'vibe', 'headline', 0, 2, NULL)`,
-  ).run()
-  h.db.prepare(
-    `INSERT INTO lang_resources (id, lang, name, url, category, tier, level_label, price, lang_label)
+    )
+    .run()
+  h.db
+    .prepare(
+      `INSERT INTO lang_resources (id, lang, name, url, category, tier, level_label, price, lang_label)
      VALUES (1, 'python', '资源一', 'https://example.com/1', 'official', 'a', '0', 'free', 'zh'),
             (2, 'go', '资源二', 'https://example.com/2', 'official', 'b', '1', 'free', 'zh')`,
-  ).run()
-  h.db.prepare(
-    `INSERT INTO lang_topic_resources (topic_id, resource_id, role)
+    )
+    .run()
+  h.db
+    .prepare(
+      `INSERT INTO lang_topic_resources (topic_id, resource_id, role)
      VALUES (1, 1, 'primary'),
             (2, 1, 'backup')`,
-  ).run()
+    )
+    .run()
 }
 
 describe('M9 增强 6 · 模式层读端', () => {
@@ -87,12 +97,14 @@ describe('M9 增强 6 · 模式层读端', () => {
   it('④ 「已点亮」= **不是 `unused`**（`active` 与 `mastered` 都算）', () => {
     const h = newDb()
     seed(h)
-    h.db.prepare(
-      `INSERT INTO lang_topic_state
+    h.db
+      .prepare(
+        `INSERT INTO lang_topic_state
          (topic_id, project_id, state, evidence_kind, evidence_ref, computed_at)
        VALUES (1, 'p1', 'active', 'checklist', 'c1', '2026-10-21T00:00:00.000Z'),
               (2, 'p1', 'mastered', 'skill', 's1', '2026-10-21T00:00:00.000Z')`,
-    ).run()
+      )
+      .run()
     const lit = readLitTopicIds(h.db, 'p1')
     expect(lit).toEqual([1, 2])
   })
@@ -127,7 +139,15 @@ describe('M9 · 速成专区资源的读端（§3.21 另附 11 条）', () => {
     const cols = (
       h.db.prepare('PRAGMA table_info(lang_vibe_resources)').all() as { name: string }[]
     ).map((c) => c.name)
-    for (const banned of ['category', 'price', 'tier', 'level_label', 'is_fav', 'star', 'phase_id']) {
+    for (const banned of [
+      'category',
+      'price',
+      'tier',
+      'level_label',
+      'is_fav',
+      'star',
+      'phase_id',
+    ]) {
       expect(cols).not.toContain(banned)
     }
     h.db.close()

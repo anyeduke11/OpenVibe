@@ -95,7 +95,9 @@ export function seedStageTracks(db: SqliteDatabase, seedDir: string): M9StageTra
   }
 
   const upsert = db.prepare(UPSERT_SQL)
-  const exists = db.prepare(`SELECT stage_id FROM lang_stage_tracks WHERE stage_id = ? AND lang = ?`)
+  const exists = db.prepare(
+    `SELECT stage_id FROM lang_stage_tracks WHERE stage_id = ? AND lang = ?`,
+  )
 
   const runOne = db.transaction((it: StageTrackSeed): 'created' | 'updated' => {
     const before = exists.get(it.stage_id, it.lang)
@@ -119,19 +121,28 @@ export function seedStageTracks(db: SqliteDatabase, seedDir: string): M9StageTra
 
   for (const it of parsed.items) {
     if (!SOURCE_MODES.has(it.source_mode)) {
-      result.warnings.push(`source_mode 越界: ${String(it.source_mode)} (阶段 ${it.stage_id}/${it.lang})`)
+      result.warnings.push(
+        `source_mode 越界: ${String(it.source_mode)} (阶段 ${it.stage_id}/${it.lang})`,
+      )
       continue
     }
     if (!LANGS.has(it.lang)) {
       result.warnings.push(`lang 越界: ${String(it.lang)} (阶段 ${it.stage_id})`)
       continue
     }
-    if (typeof it.stage_id !== 'number' || !Number.isInteger(it.stage_id) || it.stage_id < 0 || it.stage_id > 3) {
+    if (
+      typeof it.stage_id !== 'number' ||
+      !Number.isInteger(it.stage_id) ||
+      it.stage_id < 0 ||
+      it.stage_id > 3
+    ) {
       result.warnings.push(`stage_id 越界（须为 0–3 的整数）: ${String(it.stage_id)}`)
       continue
     }
     if (!PROFILES.has(deriveStageTrack(it).profile)) {
-      result.warnings.push(`profile 越界: ${deriveStageTrack(it).profile} (阶段 ${it.stage_id}/${it.lang})`)
+      result.warnings.push(
+        `profile 越界: ${deriveStageTrack(it).profile} (阶段 ${it.stage_id}/${it.lang})`,
+      )
       continue
     }
     result[runOne(it)] += 1

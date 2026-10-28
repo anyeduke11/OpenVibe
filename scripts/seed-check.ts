@@ -100,7 +100,8 @@ const EXPECTED_STAGE_COUNTS: Record<string, number> = {
  * 不能改仓库里的真种子。此处只读取，脚本全程不写 SEED_DIR。
  */
 const SEED_DIR =
-  process.env['OPENVIBE_SEED_DIR'] ?? join(dirname(fileURLToPath(import.meta.url)), '..', 'content', 'seed')
+  process.env['OPENVIBE_SEED_DIR'] ??
+  join(dirname(fileURLToPath(import.meta.url)), '..', 'content', 'seed')
 
 const errors: string[] = []
 const notes: string[] = []
@@ -196,9 +197,14 @@ function checkTerms(): void {
     }
     if (!zh && !en) fail(file, where, 'zh 与 en 全空')
     if (noSpace(definition).length < 20) {
-      fail(file, `${where} ${zh || en}`, `definition 去空白仅 ${String(noSpace(definition).length)} 字，门槛 20`)
+      fail(
+        file,
+        `${where} ${zh || en}`,
+        `definition 去空白仅 ${String(noSpace(definition).length)} 字，门槛 20`,
+      )
     }
-    if (aliases.length === 0) fail(file, `${where} ${zh || en}`, 'aliases 为空（缩写/误写覆盖门槛）')
+    if (aliases.length === 0)
+      fail(file, `${where} ${zh || en}`, 'aliases 为空（缩写/误写覆盖门槛）')
     if (tags.length === 0 || tags.length > 2) {
       fail(file, `${where} ${zh || en}`, `tags 需 1-2 个，收到 ${tags.length}`)
     }
@@ -206,7 +212,11 @@ function checkTerms(): void {
       if (!tagsVocab.has(tag)) fail(file, `${where} ${zh || en}`, `标签不在受控词表: ${tag}`)
     }
     if (definition.includes('\\|')) {
-      fail(file, `${where} ${zh || en}`, 'definition 预转义了 \\|，渲染会二次转义（应存裸 |，由渲染处转义）')
+      fail(
+        file,
+        `${where} ${zh || en}`,
+        'definition 预转义了 \\|，渲染会二次转义（应存裸 |，由渲染处转义）',
+      )
     }
     if (example !== '') withExample += 1
 
@@ -377,7 +387,7 @@ function checkTemplates(): void {
   if (items.length !== THRESHOLDS.templatesExact) {
     fail(file, '数量', `${items.length} 套 ≠ ${THRESHOLDS.templatesExact} 套`)
   }
-  const names = items.map((raw) => (asRecord(raw)?.['name'] ?? '')) as string[]
+  const names = items.map((raw) => asRecord(raw)?.['name'] ?? '') as string[]
   for (const expected of Object.keys(FLOW_TEMPLATE_STAGES)) {
     if (!names.includes(expected)) fail(file, '基线', `缺模板「${expected}」`)
   }
@@ -445,7 +455,11 @@ function checkPrompts(): void {
 
     const bytes = utf8ByteLength(p.content)
     if (bytes > THRESHOLDS.promptContentMaxBytes) {
-      fail(file, `${where} ${label}`, `content ${bytes}B > §3.4 单条 ${THRESHOLDS.promptContentMaxBytes}B`)
+      fail(
+        file,
+        `${where} ${label}`,
+        `content ${bytes}B > §3.4 单条 ${THRESHOLDS.promptContentMaxBytes}B`,
+      )
     }
 
     const vars = new Set<string>()
@@ -456,12 +470,20 @@ function checkPrompts(): void {
     if (p.useAs === 'rule') {
       ruleCount += 1
       if (vars.size > 0) {
-        fail(file, `${where} ${label}`, `rule 类含未填充变量 {{${[...vars][0]}}}（m1 FR-2.4 注入后不会填充）`)
+        fail(
+          file,
+          `${where} ${label}`,
+          `rule 类含未填充变量 {{${[...vars][0]}}}（m1 FR-2.4 注入后不会填充）`,
+        )
       }
     }
 
     if (p.folderPath !== SEED_PROMPT_FOLDER) {
-      fail(file, `${where} ${label}`, `folderPath 需为 ${SEED_PROMPT_FOLDER}（§6.3），收到 ${p.folderPath}`)
+      fail(
+        file,
+        `${where} ${label}`,
+        `folderPath 需为 ${SEED_PROMPT_FOLDER}（§6.3），收到 ${p.folderPath}`,
+      )
     }
     if (!p.tags.includes(SEED_PROMPT_TAG)) {
       fail(file, `${where} ${label}`, `tags 需含「${SEED_PROMPT_TAG}」（§6.3）`)
@@ -482,7 +504,11 @@ function checkPrompts(): void {
     }
   }
   if (withVariables < THRESHOLDS.withVariablesMin) {
-    fail(file, '构成', `含 {{变量}} 的条目 ${withVariables} 条 < §3.4 门槛 ${THRESHOLDS.withVariablesMin} 条`)
+    fail(
+      file,
+      '构成',
+      `含 {{变量}} 的条目 ${withVariables} 条 < §3.4 门槛 ${THRESHOLDS.withVariablesMin} 条`,
+    )
   }
   notes.push(
     `prompts ${titles.size} 条唯一 title / rule=${ruleCount} / 含变量=${withVariables} / ` +

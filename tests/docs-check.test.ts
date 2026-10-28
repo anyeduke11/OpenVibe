@@ -18,6 +18,7 @@ import {
   checkSectionRefs,
   classifyNegativeClaim,
   checkRuleBudget,
+  checkScriptsRegistry,
   checkSpecVersions,
   extractGrepClaims,
   JUDGMENT_RULES,
@@ -157,7 +158,14 @@ describe('docs-check · FR-2 变异样本', () => {
   })
 
   it('⚠️ 表头没有「状态」列时只报 warning，不刷一屏假红', () => {
-    const noHeader = ['| # | 事项 |', '|---|---|', '| ① | 甲 |', '', '## 净状态', '- **待裁 1**：①'].join('\n')
+    const noHeader = [
+      '| # | 事项 |',
+      '|---|---|',
+      '| ① | 甲 |',
+      '',
+      '## 净状态',
+      '- **待裁 1**：①',
+    ].join('\n')
     const fs = checkQueue(noHeader)
     expect(errorsOf(fs)).toEqual([])
     expect(fs.some((f) => f.level === 'warning' && /找不到「状态」列/.test(f.message))).toBe(true)
@@ -247,7 +255,9 @@ describe('docs-check · FR-4 变异样本（版本行）', () => {
   })
 
   it('⚠️ 缺版本行 ⇒ FR-4.1 用**分式**报，不写死份数', () => {
-    const noVersion = ['# SPEC', '', '| 项 | 值 |', '|------|------|', '| 模块 | 甲 |', ''].join('\n')
+    const noVersion = ['# SPEC', '', '| 项 | 值 |', '|------|------|', '| 模块 | 甲 |', ''].join(
+      '\n',
+    )
     const fs = errorsOf(checkSpecVersions([...asSpec(CLEAN_SPEC), ...asSpec(noVersion)]))
     expect(fs.some((f) => f.rule === 'FR-4.1' && /1\/2/.test(f.message))).toBe(true)
   })
@@ -266,7 +276,10 @@ describe('docs-check · FR-5 变异样本（登记结构）', () => {
   })
 
   it('⚠️ 变异样本 i：验证段换成散文（无可复算命令）⇒ 必须报出', () => {
-    const broken = logWith().replace('- **测试验证**: `grep -c foo apps` → 1', '- **测试验证**: 手工点了几下，看着对。')
+    const broken = logWith().replace(
+      '- **测试验证**: `grep -c foo apps` → 1',
+      '- **测试验证**: 手工点了几下，看着对。',
+    )
     expect(checkEntrySections(broken).some((f) => /没有可复算命令/.test(f.message))).toBe(true)
   })
 })
@@ -288,7 +301,11 @@ describe('docs-check · FR-9 变异样本（冻结面两面）', () => {
   })
 
   it('⚠️ golden 面脏也要报（两面是复数）', () => {
-    const fs = errorsOf(checkFrozenSurface('/x', (face) => (face === 'tests/golden/' ? '?? tests/golden/b.json' : '')))
+    const fs = errorsOf(
+      checkFrozenSurface('/x', (face) =>
+        face === 'tests/golden/' ? '?? tests/golden/b.json' : '',
+      ),
+    )
     expect(fs).toHaveLength(1)
     expect(fs[0]!.message).toContain('tests/golden/')
   })
@@ -298,8 +315,18 @@ describe('docs-check · FR-9 变异样本（冻结面两面）', () => {
 
 describe('docs-check · 基线机制', () => {
   const fs = [
-    { rule: 'FR-5.1', level: 'error' as const, message: '登记缺「潜在风险」段', evidence: 'DEV_LOG.md · 甲' },
-    { rule: 'FR-9.1', level: 'error' as const, message: '冻结面 content/seed/ 有改动', evidence: 'git status' },
+    {
+      rule: 'FR-5.1',
+      level: 'error' as const,
+      message: '登记缺「潜在风险」段',
+      evidence: 'DEV_LOG.md · 甲',
+    },
+    {
+      rule: 'FR-9.1',
+      level: 'error' as const,
+      message: '冻结面 content/seed/ 有改动',
+      evidence: 'git status',
+    },
   ]
 
   it('登记内的 ⇒ 降为 warning 并附登记理由', () => {
@@ -315,10 +342,16 @@ describe('docs-check · 基线机制', () => {
   })
 
   it('⚠️ 规则级通配：FR-5.2 能压住全部同类命中', () => {
-    const r = applyBaseline([{ ...fs[0]!, rule: 'FR-5.2' }, { ...fs[0]!, rule: 'FR-5.2' }], {
-      note: '',
-      known: { 'FR-5.2|*': '待裁③ 未闭合，只报不判' },
-    })
+    const r = applyBaseline(
+      [
+        { ...fs[0]!, rule: 'FR-5.2' },
+        { ...fs[0]!, rule: 'FR-5.2' },
+      ],
+      {
+        note: '',
+        known: { 'FR-5.2|*': '待裁③ 未闭合，只报不判' },
+      },
+    )
     expect(r.findings.every((f) => f.level === 'warning')).toBe(true)
     expect(r.staleBaselineKeys).toEqual([])
   })
@@ -345,7 +378,12 @@ describe('docs-check · FR-11 变异样本（否定式全局断言须附凭据�
   const asFiles = (content: string) => [{ path: 'docs/specs/x.md', lines: content.split('\n') }]
 
   it('带凭据的命令 ⇒ 不报', () => {
-    const ok = ['# SPEC', '', '- 全仓没有 X。复算：`grep -rn X apps packages | wc -l` → 0', ''].join('\n')
+    const ok = [
+      '# SPEC',
+      '',
+      '- 全仓没有 X。复算：`grep -rn X apps packages | wc -l` → 0',
+      '',
+    ].join('\n')
     expect(checkNegativeClaims(asFiles(ok))).toEqual([])
   })
 
@@ -385,10 +423,16 @@ describe('docs-check · FR-11 变异样本（否定式全局断言须附凭据�
   it('⚠️ 措辞表本身要窄：泛指的「不存在」不在表内', () => {
     // 收窄是刻意的：泛指形态实测 135 处，全收就刷屏，而刷屏的闸会被当噪音忽略。
     for (const phrase of ['全仓没有', '全仓零命中', '在仓内查无', '整个仓库无']) {
-      expect(NEGATIVE_CLAIM_PATTERNS.some((p) => p.re.test(phrase)), phrase).toBe(true)
+      expect(
+        NEGATIVE_CLAIM_PATTERNS.some((p) => p.re.test(phrase)),
+        phrase,
+      ).toBe(true)
     }
     for (const phrase of ['该组件不存在', '零命中', '没有任何一列的损坏率数据', '全仓搜索过一次']) {
-      expect(NEGATIVE_CLAIM_PATTERNS.some((p) => p.re.test(phrase)), phrase).toBe(false)
+      expect(
+        NEGATIVE_CLAIM_PATTERNS.some((p) => p.re.test(phrase)),
+        phrase,
+      ).toBe(false)
     }
   })
 })
@@ -633,7 +677,9 @@ describe('docs-check · 判据预算变异样本（2026-10-17 owner 指令）', 
   })
 
   it('真实基线文件里的候补撤回清单必须非空且逐项带理由（不得是空壳）', () => {
-    const b = JSON.parse(readFileSync(join(REPO_ROOT, 'docs', 'docs-check-baseline.json'), 'utf8')) as Baseline
+    const b = JSON.parse(
+      readFileSync(join(REPO_ROOT, 'docs', 'docs-check-baseline.json'), 'utf8'),
+    ) as Baseline
     expect(Array.isArray(b.withdrawalCandidates)).toBe(true)
     expect(b.withdrawalCandidates?.length ?? 0).toBeGreaterThanOrEqual(2)
     for (const c of b.withdrawalCandidates ?? []) {
@@ -641,6 +687,74 @@ describe('docs-check · 判据预算变异样本（2026-10-17 owner 指令）', 
       expect(c.what.length, c.id).toBeGreaterThan(0)
       expect(c.why.length, c.id).toBeGreaterThan(10)
     }
+  })
+})
+
+/* ════════════════════════════════════════════════════════ FR-13 变异样本 */
+
+/**
+ * FR-13 · §1.5 脚本登记闸。
+ *
+ * **为什么要有这道闸**：§1.5 目录树是 `scripts/` 入口的登记处，但 `package.json`
+ * 会新增/改名 scripts 而不改目录树 —— 本仓已实测两次（`m9:grade-guard` 与
+ * `barrel-audit` 漏登记，`barrel-snapshot` 更是被这道闸当场抓到）。
+ *
+ * 变异腿：给 package.json 加一个 scripts 条目 → §1.5 不登记 ⇒ 必须报红。
+ */
+describe('docs-check · FR-13 变异样本（§1.5 脚本登记）', () => {
+  /** 造一份 dev-plan：§1.5 目录树里登记了 given 这几个文件 */
+  const planWith = (registered: string[]): string =>
+    [
+      '# 计划',
+      '',
+      '### 1.5 Monorepo 目录树（三级）',
+      '',
+      '```',
+      'openvibe/',
+      ...registered.map((f) => `├── scripts/${f}`),
+      '└── .github/workflows/ci.yml',
+      '```',
+      '',
+      '### 1.6 别的节',
+      '',
+    ].join('\n')
+
+  const pkgWith = (files: string[]): string =>
+    JSON.stringify(
+      { scripts: Object.fromEntries(files.map((f, i) => [`s${i}`, `tsx scripts/${f}`])) },
+      null,
+      2,
+    )
+
+  it('干净样本：package.json 引用的文件都已登记 ⇒ 无 error', () => {
+    const fs = checkScriptsRegistry(pkgWith(['a.ts', 'b.ts']), planWith(['a.ts', 'b.ts']))
+    expect(errorsOf(fs)).toEqual([])
+  })
+
+  it('⚠️ 变异样本：package.json 新增一个未登记的 scripts ⇒ 必须报红', () => {
+    const fs = checkScriptsRegistry(pkgWith(['a.ts', 'b.ts']), planWith(['a.ts']))
+    expect(errorsOf(fs)).toHaveLength(1)
+    expect(errorsOf(fs)[0]!.rule).toBe('FR-13.1')
+    expect(errorsOf(fs)[0]!.message).toContain('b.ts')
+  })
+
+  it('⚠️ §1.5 里登记了但 package.json 没引用 ⇒ **不**报（只防「代码先走、文档没跟上」）', () => {
+    // 反向收紧会把「计划中的入口」误判成违规，故判据只单向。
+    const fs = checkScriptsRegistry(pkgWith(['a.ts']), planWith(['a.ts', 'planned-but-absent.ts']))
+    expect(errorsOf(fs)).toEqual([])
+  })
+
+  it('⚠️ dev-plan 里没有 §1.5 目录树代码块 ⇒ 必须报「找不到代码块」，不得静默放行', () => {
+    const fs = checkScriptsRegistry(pkgWith(['a.ts']), '# 计划\n\n没有目录树。\n')
+    expect(errorsOf(fs)).toHaveLength(1)
+    expect(errorsOf(fs)[0]!.message).toContain('§1.5')
+  })
+
+  it('⚠️ 真实仓库：package.json 引用的每个 scripts/* 都必须已在 §1.5 登记（0 违规）', () => {
+    // 本仓腿：证明这条闸对**真实**文件也成立，而不只是合成样本。
+    const pkg = readFileSync(join(REPO_ROOT, 'package.json'), 'utf8')
+    const plan = readFileSync(join(REPO_ROOT, 'docs', 'dev-plan.md'), 'utf8')
+    expect(errorsOf(checkScriptsRegistry(pkg, plan))).toEqual([])
   })
 })
 
@@ -653,10 +767,15 @@ describe('docs-check · 否定断言凭据抽样实跑（2026-10-17 owner 指令
 
   it('⚠️ 变异样本：凭据实跑返回非 0 ⇒ 必须被抓出（文档称 0，实跑 1）', () => {
     // 这正是 owner 验收标准那句「凭据存在 ≠ 凭据为真」：闸放得过审，但没人真跑过它。
-    const r = sampleClaimCredentials('/nonexistent', claimDoc('grep -rn GhostSym apps packages', 0), 6, () => ({
-      rc: 0,
-      stdout: 'apps/web/src/x.ts:12: const GhostSym = 1\n',
-    }))
+    const r = sampleClaimCredentials(
+      '/nonexistent',
+      claimDoc('grep -rn GhostSym apps packages', 0),
+      6,
+      () => ({
+        rc: 0,
+        stdout: 'apps/web/src/x.ts:12: const GhostSym = 1\n',
+      }),
+    )
     expect(r.mismatches).toHaveLength(1)
     expect(r.mismatches[0]?.claim.claimed).toBe(0)
     expect(r.mismatches[0]?.actual).toBe(1)
@@ -664,20 +783,30 @@ describe('docs-check · 否定断言凭据抽样实跑（2026-10-17 owner 指令
   })
 
   it('⚠️ 变异样本：命令跑不通（退出码非 0）⇒ 必须报「凭据可能已失效」，不得静默跳过', () => {
-    const r = sampleClaimCredentials('/nonexistent', claimDoc('grep -rn Gone apps packages', 0), 6, () => ({
-      rc: 2,
-      stdout: '',
-    }))
+    const r = sampleClaimCredentials(
+      '/nonexistent',
+      claimDoc('grep -rn Gone apps packages', 0),
+      6,
+      () => ({
+        rc: 2,
+        stdout: '',
+      }),
+    )
     expect(r.mismatches).toHaveLength(1)
     expect(r.mismatches[0]?.actual).toBeNull()
     expect(r.mismatches[0]?.note).toContain('跑不通')
   })
 
   it('文档说的数与实跑一致 ⇒ 不得误报（否则这条面会被当噪音忽略）', () => {
-    const r = sampleClaimCredentials('/nonexistent', claimDoc('grep -rn GhostSym apps packages', 0), 6, () => ({
-      rc: 0,
-      stdout: '',
-    }))
+    const r = sampleClaimCredentials(
+      '/nonexistent',
+      claimDoc('grep -rn GhostSym apps packages', 0),
+      6,
+      () => ({
+        rc: 0,
+        stdout: '',
+      }),
+    )
     expect(r.mismatches).toEqual([])
     expect(r.sampled).toBe(1)
     expect(r.total).toBe(1)
@@ -730,7 +859,9 @@ describe('docs-check · 否定断言凭据抽样实跑（2026-10-17 owner 指令
   })
 
   it('抽取必须以「有声称值」为前提 —— 没有可比对的值就不该进抽样清单', () => {
-    const noNumber = asDocFiles(['实测「全仓没有那个符号」。', '`grep -rn GhostSym apps` 是复算入口。', ''].join('\n'))
+    const noNumber = asDocFiles(
+      ['实测「全仓没有那个符号」。', '`grep -rn GhostSym apps` 是复算入口。', ''].join('\n'),
+    )
     expect(extractGrepClaims(noNumber)).toEqual([])
     expect(extractGrepClaims(claimDoc('grep -rn GhostSym apps', 0))).toHaveLength(1)
   })
@@ -739,7 +870,9 @@ describe('docs-check · 否定断言凭据抽样实跑（2026-10-17 owner 指令
     // 本轮实测踩到：凭据写成 `→ **3**`（数字加粗），`→ N` 的正则匹配不上，
     // 刚抓过一条真错事实的面瞬间变成「0/0 条已跑｜不符 0 条」—— 看着全绿，实则一条没验。
     const bolded = asDocFiles(
-      ['实测「全仓没有那个符号」。', '`grep -rn GhostSym apps` → **0**（数字被加粗了）。', ''].join('\n'),
+      ['实测「全仓没有那个符号」。', '`grep -rn GhostSym apps` → **0**（数字被加粗了）。', ''].join(
+        '\n',
+      ),
     )
     expect(extractGrepClaims(bolded)).toEqual([])
     const r = sampleClaimCredentials('/nonexistent', bolded, 6, () => ({ rc: 0, stdout: '' }))
@@ -765,7 +898,8 @@ describe('docs-check · 探针五问结果文件（2026-10-17 owner 指令）', 
     return root
   }
 
-  const row = (q: string, conclusion: string) => `| **${q}** 题目文字 | ${conclusion} | 跑的人 | 时间 | 依据 |`
+  const row = (q: string, conclusion: string) =>
+    `| **${q}** 题目文字 | ${conclusion} | 跑的人 | 时间 | 依据 |`
 
   afterEach(() => {
     for (const d of tmpRoots.splice(0)) rmSync(d, { recursive: true, force: true })
@@ -792,7 +926,12 @@ describe('docs-check · 探针五问结果文件（2026-10-17 owner 指令）', 
   })
 
   it('⚠️ 缺题与留空是两件事：整行缺失记 missing，有行但答「—」记 unfilled', () => {
-    const text = [row('Q1', '实测结论'), row('Q2', '本轮作废'), row('Q4', '实测结论'), row('Q5', '—')].join('\n')
+    const text = [
+      row('Q1', '实测结论'),
+      row('Q2', '本轮作废'),
+      row('Q4', '实测结论'),
+      row('Q5', '—'),
+    ].join('\n')
     const r = checkProbeResults(fakeRepo(`# 探针五问\n\n${text}\n`))
     expect(r.missing).toEqual(['Q3'])
     expect(r.unfilled).toEqual(['Q5'])
@@ -886,7 +1025,9 @@ describe('docs-check · FR-11.2 变异样本（否定断言的凭据指向空处
   const doc = (content: string) => [{ path: 'docs/specs/x.md', lines: content.split('\n') }]
 
   it('干净样本：凭据是可复算命令 ⇒ 不报', () => {
-    const files = doc('# SPEC\n\n## 3. 目标\n\n> 全仓零实现（`grep -rni foo packages | wc -l` → 0）')
+    const files = doc(
+      '# SPEC\n\n## 3. 目标\n\n> 全仓零实现（`grep -rni foo packages | wc -l` → 0）',
+    )
     expect(checkCredentialTargets(files)).toHaveLength(0)
   })
 
@@ -946,7 +1087,9 @@ describe('docs-check · FR-11.2 变异样本（否定断言的凭据指向空处
 describe('docs-check · FR-1.5 覆盖漏洞腿', () => {
   it('⚠️ 同一行里同一个号被指认两个不同日期 ⇒ 必须报出（单值日期会静默丢掉前一个）', () => {
     const log = ['# DEV_LOG', '## [DEV-0001] 2026-10-24 · 一件事'].join('\n')
-    const files = [{ path: 'docs/specs/x.md', lines: ['> DEV-0001（2026-10-17）与 DEV-0001（2026-10-24）并存'] }]
+    const files = [
+      { path: 'docs/specs/x.md', lines: ['> DEV-0001（2026-10-17）与 DEV-0001（2026-10-24）并存'] },
+    ]
     expect(checkDevCrossFileUniqueness(log, files)).toHaveLength(1)
   })
 })

@@ -31,10 +31,7 @@ const SPEC_TEXT = readFileSync(SPEC_PATH, 'utf8')
 describe('M9 §11 · DL-44 / DL-45 / DL-46 ＋ DL-26 的一致性闸', () => {
   it('① 真 spec **零违规**（§0 ↔ 正文 · §10.2 登记 · §6.3 ⛔ ↔ §9 依赖 · 表数）', () => {
     const v = checkSpecConsistency(SPEC_TEXT)
-    expect(
-      v,
-      v.map((x) => `[${x.rule}] ${x.where} — ${x.detail}`).join('\n'),
-    ).toEqual([])
+    expect(v, v.map((x) => `[${x.rule}] ${x.where} — ${x.detail}`).join('\n')).toEqual([])
   })
 
   it('② 检查器**不是空壳**：它确实读到了规格里的全部关键事实', () => {

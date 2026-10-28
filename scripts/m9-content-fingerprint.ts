@@ -372,7 +372,9 @@ async function main(argv: string[]): Promise<number> {
         )
       }
     }
-    process.stdout.write(`\n判定：${verdict.label} —— ${verdict.detail}（退出码 ${String(verdict.code)}）\n`)
+    process.stdout.write(
+      `\n判定：${verdict.label} —— ${verdict.detail}（退出码 ${String(verdict.code)}）\n`,
+    )
   }
   return opts.check ? verdict.code : 0
 }

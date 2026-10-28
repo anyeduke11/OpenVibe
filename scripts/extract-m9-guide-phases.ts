@@ -25,7 +25,11 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { parseSpecPhaseRows, tallyOutcomePrefixes, type SpecPhaseRow } from '../packages/core/src/tooling/m9-p1d-spec'
+import {
+  parseSpecPhaseRows,
+  tallyOutcomePrefixes,
+  type SpecPhaseRow,
+} from '../packages/core/src/tooling/m9-p1d-spec'
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SEED_PATH = join(REPO_ROOT, 'packages/core/src/db/seeds/lang_profile_phases.json')
@@ -44,7 +48,9 @@ function decodeEntities(text: string): string {
 
 /** 去掉标签，保留文字（`<b>产出：</b>` ⇒ `产出：`）。 */
 function stripTags(html: string): string {
-  return decodeEntities(html.replace(/<[^>]*>/g, '')).replace(/\s+/g, ' ').trim()
+  return decodeEntities(html.replace(/<[^>]*>/g, ''))
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 interface RawPhase {
@@ -153,17 +159,25 @@ function compareWithSpec(phases: readonly RawPhase[], specRows: readonly SpecPha
   for (const row of specRows) {
     const got = byKey.get(key(row.lang, row.profile, row.ord))
     if (got === undefined) {
-      problems.push(`spec 第 ${String(row.index)} 行（${row.lang}/${row.profile}/${String(row.ord)}）在附件里找不到`)
+      problems.push(
+        `spec 第 ${String(row.index)} 行（${row.lang}/${row.profile}/${String(row.ord)}）在附件里找不到`,
+      )
       continue
     }
     if (got.label !== row.label) {
-      problems.push(`第 ${String(row.index)} 行标签不同：附件「${got.label}」 vs spec「${row.label}」`)
+      problems.push(
+        `第 ${String(row.index)} 行标签不同：附件「${got.label}」 vs spec「${row.label}」`,
+      )
     }
     if (got.title !== row.title) {
-      problems.push(`第 ${String(row.index)} 行阶段名不同：附件「${got.title}」 vs spec「${row.title}」`)
+      problems.push(
+        `第 ${String(row.index)} 行阶段名不同：附件「${got.title}」 vs spec「${row.title}」`,
+      )
     }
     if (got.duration !== row.duration) {
-      problems.push(`第 ${String(row.index)} 行耗时不同：附件「${got.duration}」 vs spec「${row.duration}」`)
+      problems.push(
+        `第 ${String(row.index)} 行耗时不同：附件「${got.duration}」 vs spec「${row.duration}」`,
+      )
     }
     if (got.outcome !== row.outcome) {
       problems.push(
@@ -233,7 +247,9 @@ function main(): void {
   // ── 自检 ⑤：每段至少两条要点 ──
   for (const p of phases) {
     if (p.points.length < 2) {
-      problems.push(`${p.lang}/${p.profile}/${String(p.ord)} 只有 ${String(p.points.length)} 条要点`)
+      problems.push(
+        `${p.lang}/${p.profile}/${String(p.ord)} 只有 ${String(p.points.length)} 条要点`,
+      )
     }
   }
 
@@ -263,7 +279,8 @@ function main(): void {
         '产出 10 · 练习 2 · 跳过 2 · 空 7 —— **前缀逐字保留，一个都不许剥**（DL-49）。',
       empty_outcome:
         '7 段在附件里就没有产出栏（Python 精通第 5 段 ＋ 两门各 3 段速成）⇒ `outcome` 显式写 null，界面整行不渲染。',
-      points_note: '每段 2–3 条要点，是附件 `ul li` 的逐字内容（§3.2：要点可入库，长文正文不入库）。',
+      points_note:
+        '每段 2–3 条要点，是附件 `ul li` 的逐字内容（§3.2：要点可入库，长文正文不入库）。',
     },
     collected_at: '2026-10-20',
     schemaVersion: 1,

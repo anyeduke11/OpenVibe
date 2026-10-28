@@ -94,7 +94,12 @@ export function createContextService(deps: ContextServiceDeps) {
         todo: all.filter((t) => t.status === 'todo').length,
         doing: all.filter((t) => t.status === 'doing').length,
         done: all.filter((t) => t.status === 'done').length,
-        items: all.map((t) => ({ id: t.id, title: t.title, status: t.status, stageName: t.stageName })),
+        items: all.map((t) => ({
+          id: t.id,
+          title: t.title,
+          status: t.status,
+          stageName: t.stageName,
+        })),
       }
     }
 
@@ -155,7 +160,8 @@ export function createContextService(deps: ContextServiceDeps) {
         section: 'checklist',
         dropped: checklistItems.length,
         reason: 'budget',
-        detail: '预算不足，检查项整段未返回。**这不是「没有未完成检查项」** —— 重新取更大预算再判断',
+        detail:
+          '预算不足，检查项整段未返回。**这不是「没有未完成检查项」** —— 重新取更大预算再判断',
       })
       checklistItems = []
     }
@@ -223,7 +229,10 @@ function buildChecklist(
   const stage = stages.find((s) => s.name === stageName)
   if (!stage) return []
   const checkedIds = new Set(
-    projects.listCheckStates(projectId).filter((c) => c.stageName === stageName).map((c) => c.itemId),
+    projects
+      .listCheckStates(projectId)
+      .filter((c) => c.stageName === stageName)
+      .map((c) => c.itemId),
   )
   return stage.checklist.map((c) => ({ id: c.id, label: c.text, checked: checkedIds.has(c.id) }))
 }
@@ -274,7 +283,13 @@ function readPack(
     })
     return empty
   }
-  const l = lock as { packId?: string; name?: string; version?: string; drifted?: boolean; outdated?: boolean }
+  const l = lock as {
+    packId?: string
+    name?: string
+    version?: string
+    drifted?: boolean
+    outdated?: boolean
+  }
   return {
     id: l.packId ?? null,
     name: l.name ?? null,

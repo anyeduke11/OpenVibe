@@ -138,13 +138,23 @@ export function createAgentService(deps: AgentServiceDeps) {
     }
 
     if (input.items.length > BATCH_LIMIT) {
-      throw new AppError('VALIDATION_ERROR', `单次最多 ${BATCH_LIMIT} 条，本次 ${input.items.length} 条`, {
-        field: 'items',
-        limit: BATCH_LIMIT,
-      })
+      throw new AppError(
+        'VALIDATION_ERROR',
+        `单次最多 ${BATCH_LIMIT} 条，本次 ${input.items.length} 条`,
+        {
+          field: 'items',
+          limit: BATCH_LIMIT,
+        },
+      )
     }
 
-    const result: IngestBatchResult = { accepted: 0, duplicate: 0, conflict: 0, rejected: 0, items: [] }
+    const result: IngestBatchResult = {
+      accepted: 0,
+      duplicate: 0,
+      conflict: 0,
+      rejected: 0,
+      items: [],
+    }
     let runningTotal = 0
 
     input.items.forEach((item, index) => {
@@ -153,7 +163,11 @@ export function createAgentService(deps: AgentServiceDeps) {
         result.rejected += 1
         result.items.push({ index, status: 'rejected', reason, id: undefined })
         ledger.record(
-          { kind: 'agent_ingest_rejected', projectId: input.projectId, payload: { kind: item.kind, reasonCode: reasonCodeOf(reason) } },
+          {
+            kind: 'agent_ingest_rejected',
+            projectId: input.projectId,
+            payload: { kind: item.kind, reasonCode: reasonCodeOf(reason) },
+          },
           now,
         )
         return
@@ -180,7 +194,14 @@ export function createAgentService(deps: AgentServiceDeps) {
       if (outcome.status === 'accepted') {
         result.accepted += 1
         result.items.push({ index, status: 'accepted', id: outcome.id })
-        ledger.record({ kind: 'agent_ingest_accepted', projectId: input.projectId, payload: { kind: item.kind, sourcePlatform: item.sourcePlatform } }, now)
+        ledger.record(
+          {
+            kind: 'agent_ingest_accepted',
+            projectId: input.projectId,
+            payload: { kind: item.kind, sourcePlatform: item.sourcePlatform },
+          },
+          now,
+        )
       } else if (outcome.status === 'duplicate') {
         result.duplicate += 1
         result.items.push({ index, status: 'duplicate', id: outcome.id })
@@ -302,7 +323,9 @@ export function createAgentService(deps: AgentServiceDeps) {
     if (!isTaskStatus(status)) {
       // FR-2.9 明写：agent 上报 blocked / review 之类值一律 rejected，**不得扩列**。
       // 扩列要改既有迁移的 CHECK，属 A/B 级 —— 本层无权做，也不该偷偷做。
-      return reject(`task_status 上报非法状态「${status}」：tasks.status 闭集 todo|doing|done 不扩列`)
+      return reject(
+        `task_status 上报非法状态「${status}」：tasks.status 闭集 todo|doing|done 不扩列`,
+      )
     }
     const task = tasks.get(taskId)
     if (!task) return reject(`task_status 指向的任务不存在：${taskId}`)
@@ -410,7 +433,11 @@ export function createAgentService(deps: AgentServiceDeps) {
    * **分发失败 ⇒ 整条 rejected 且业务表零写入**：不是抛错给前端，
    * 而是让这条回到队列里带一句 reject_reason，人能看见「为什么这条没落库」。
    */
-  function reviewIngest(id: string, to: Extract<AgentIngestStatus, 'published' | 'rejected'>, reason: string | null): AgentIngest {
+  function reviewIngest(
+    id: string,
+    to: Extract<AgentIngestStatus, 'published' | 'rejected'>,
+    reason: string | null,
+  ): AgentIngest {
     const before = ingests.get(id)
     if (!before) throw new AppError('NOT_FOUND', `回流记录不存在：${id}`)
 

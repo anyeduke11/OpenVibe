@@ -112,7 +112,10 @@ const ABSOLUTE_PATH_PATTERNS: readonly { label: string; re: RegExp }[] = [
   { label: 'macOS/Linux 家目录', re: /\/Users\/[^\s|)】"'，,；;]+/ },
   { label: 'Linux 家目录', re: /\/home\/[^\s|)】"'，,；;]+/ },
   { label: 'Windows 家目录', re: /[A-Za-z]:\\Users\\[^\s|)】"'，,；;]+/ },
-  { label: 'OpenVibe 数据目录', re: /\/[^\s|)】"'，,；;]*\.(?:openvibe|minimax)\/[^\s|)】"'，,；;]+/ },
+  {
+    label: 'OpenVibe 数据目录',
+    re: /\/[^\s|)】"'，,；;]*\.(?:openvibe|minimax)\/[^\s|)】"'，,；;]+/,
+  },
 ]
 
 /** 导出的数据行 —— 首格是数字编号（`lang_resources.id`）。 */

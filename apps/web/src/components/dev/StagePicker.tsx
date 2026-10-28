@@ -40,7 +40,8 @@ const L = {
   fromStage: (label: string): string => `当前生效：${label}（来自阶段推荐）`,
   fromUser: (label: string): string => `当前生效：${label}（你自己选的）`,
   unset: '当前生效：还没定档位。',
-  overridden: (label: string): string => `你自选的是「${label}」，与这一阶段的推荐不同 —— 推荐不会自动改掉你的选择。`,
+  overridden: (label: string): string =>
+    `你自选的是「${label}」，与这一阶段的推荐不同 —— 推荐不会自动改掉你的选择。`,
   sameAsRecommend: '当前用的就是这一阶段的推荐档。',
   useRecommended: '改用推荐档',
   recommendNoteTitle: '这一阶段的推荐口径',
