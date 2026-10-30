@@ -1,5 +1,6 @@
 #!/bin/sh
-# pre-commit —— 提交前的两道机械闸：① agent 记忆导出件与源分叉；② 并行写同一工作树的并发护栏。
+# pre-commit —— 提交前的三道机械闸：① agent 记忆导出件与源分叉；② 并行写同一工作树的并发护栏；
+# ③ 本次暂存文件的排版（prettier）。
 #
 # ## 为什么需要它
 #
@@ -9,6 +10,10 @@
 # 第二道闸（concurrency-guard）针对的是另一次真事故：并行会话共用同一工作树时，
 # 「整文件改写 + 暂存」会把别人尚未提交的正文覆盖掉，且**全程没有任何信号** ⇒
 # 护栏让「这次提交的内容比磁盘上最新内容旧」这件事在提交前显形。
+#
+# 第三道闸（排版）针对的是本仓已发生过的一次噪声：一次全仓 `prettier --write` 的重排
+# 被混进语义提交，diff 里大量表格对齐改动淹没了真正的语义行。⇒ 排版差异在**提交前**消化，
+# 不等到事后全仓重排、也不让它和语义改动共用同一个 diff。
 #
 # ## 安装（一次性；`.git/hooks/` 不进版本库，所以模板在仓里、钩子装到本机）
 #
@@ -20,6 +25,7 @@
 # - `npx` 不可用 ⇒ 整体放行（钩子不该在别的机器上制造麻烦）。
 # - 源与导出件不一致 ⇒ **拒绝提交**，并打印同步命令。
 # - 并发护栏命中 ⇒ **拒绝提交**，并打印规则、文件、原因与处置方式。
+# - 暂存文件排版不合 prettier ⇒ **拒绝提交**，并打印文件与修复命令。
 #
 # 覆盖：可用 `AGENT_MEMORY_DIR` 环境变量指定别的 profile 的记忆目录；
 # 并发护栏的规则 A 可用 `OPENVIBE_ALLOW_PARTIAL_STAGE=1` 显式放行（规则 B 不放行）。
@@ -53,5 +59,23 @@ GUARD_OUT="$(npx tsx scripts/concurrency-guard.ts 2>&1)" || {
   echo "  （并发护栏以非零码退出；若因 npx/tsx 不可用导致，先修环境，或用 git commit --no-verify）"
   exit 1
 }
+
+# ── 闸三：排版（本次暂存文件是否符合 prettier）──
+# 只查本次改动的文件：全仓 `prettier --check .` 实测约 8.5 s，每次提交都付这个代价不划算。
+# 两个实测口径决定了下面的写法：
+#   · `--ignore-unknown`：显式传路径时 prettier 对未知扩展名（如 .png）会报
+#     "No parser could be inferred" 并退出非零 ⇒ 必须加它，否则截图/字体提交会被误拦。
+#   · 空清单：prettier 无文件参数时会读 stdin 并挂住 ⇒ 先判暂存文件数再调用。
+STAGED_COUNT="$(git diff --cached --name-only --diff-filter=ACMR | wc -l | tr -d ' ')"
+if [ "$STAGED_COUNT" -gt 0 ]; then
+  if ! FMT_OUT="$(git diff --cached --name-only -z --diff-filter=ACMR \
+    | xargs -0 npx prettier --check --ignore-unknown 2>&1)"; then
+    printf '%s\n' "$FMT_OUT"
+    echo "✗ 提交被拦：以上暂存文件不符合 prettier 排版。"
+    echo "  修复：npx prettier --write <上面列出的文件>  然后重新 git add"
+    echo "  （只想跳过这一次：用 git commit --no-verify）"
+    exit 1
+  fi
+fi
 
 exit 0

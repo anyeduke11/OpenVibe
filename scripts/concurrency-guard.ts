@@ -14,12 +14,17 @@
  *
  * ⇒ 本脚本只做一件事：**把「这次提交的内容比磁盘上最新内容旧」这件事，在提交前显形。**
  *
- * ## 两条规则
+ * ## 四条规则  
  *
  * - **规则 A · 暂存与工作树分歧**：已暂存文件的 index 内容与工作树内容不一致。
  *   提交提交的是 index，所以工作树上更新的内容不会进这次提交 —— 它必须被人看见、被人确认。
  * - **规则 B · 回退特征**：已暂存内容里出现本仓登记过的回退字样。
  *   这一条把「已修内容被以旧措辞提交」从人工印象变成机器可判的事实。
+ * - **规则 C · 回退态（新增行口径）**：新增行里出现回退字样，且该行在 HEAD 里不存在。
+ *   比规则 B 精确（B 是文件级豁免），代价是只看新增行。
+ * - **规则 D · 整文件回退（时间倒流）**：已暂存文本的**最新日期**早于 HEAD 版的最新日期。
+ *   本仓 docs 的日期只增不减 ⇒ 最新日期倒退说明整份文档被换成了旧版（真事故：`docs/tasks.md`
+ *   的 T12 段落被整段退回，日期从 2026-10-03 退回 2026-10-01）。纯排版重排不影响日期，不误报。
  *
  * ## 标志清单口径单处（不另立一份）
  *
@@ -382,6 +387,15 @@ export interface AddedLine {
   text: string
 }
 
+/** 一处「整文件回退（时间倒流）」命中 */
+export interface TimeTravelHit {
+  path: string
+  /** HEAD 版里出现的最新日期（YYYY-MM-DD） */
+  headDate: string
+  /** 暂存版里出现的最新日期；null = 暂存版里一个日期都没有 */
+  stagedDate: string | null
+}
+
 /**
  * 去空白后比较用：prettier 对 Markdown 的重排**只改空白**（表格列对齐是加空格）⇒
  * 排版重排产生的行，去掉空白后与 HEAD 的某行逐字相同。
@@ -450,6 +464,59 @@ export function detectRollbackInAddedLines(
   return out
 }
 
+/* ════════════════════════════════════════════════════════ 规则 D · 整文件回退（时间倒流） */
+
+/**
+ * 文本里出现的最新日期（YYYY-MM-DD）。
+ *
+ * ISO 日期的字典序与时间序一致 ⇒ 直接取字符串最大值即可，不需要 Date 解析
+ * （也就不会有「时区把 10-03 变成 10-02」这类解析副作用）。
+ */
+export function latestDate(text: string): string | null {
+  let max: string | null = null
+  for (const m of text.matchAll(/(\d{4})-(\d{2})-(\d{2})/g)) {
+    const d = `${m[1]}-${m[2]}-${m[3]}`
+    if (max === null || d > max) max = d
+  }
+  return max
+}
+
+/**
+ * 规则 D 的判定核心（纯函数）：已暂存文本的最新日期 **早于** HEAD 版最新日期 ⇒ 疑似整文件回退。
+ *
+ * ## 判据为什么成立
+ *
+ * 本仓 docs 的日期只增不减（追记只往后写）。若一次提交让某文件的「最新日期」倒退，
+ * 说明提交进去的是**旧版整份文档** —— 真事故样本：`docs/tasks.md` 的 T12 段落被整段退回，
+ * 最新日期从 2026-10-03 退回 2026-10-01；`docs/specs/m6-standard-pack.md` 同理。
+ *
+ * ## 不误报的边界
+ *
+ * - 纯 prettier 重排：日期字面量不变 ⇒ 最新日期不变 ⇒ 不命中。
+ * - 正常增补：新增的行带更新的日期 ⇒ 最新日期前进 ⇒ 不命中。
+ * - 删除旧条目但保留最新日期 ⇒ 不命中（只删旧内容不算「整文件换回旧版」）。
+ * - 新增文件（HEAD 无此文件）/ HEAD 里没有日期的文件 ⇒ 判据不适用，跳过。
+ *
+ * ⚠️ 已知漏报（登记在交付报告里）：若旧版与新版的最新日期同一天，本规则看不出来。
+ * 那属于「同日内的部分回退」，仍由规则 B / C 的标志字面量兜底。
+ */
+export function detectTimeTravel(
+  stagedBlobs: StagedBlob[],
+  headByPath: Map<string, string>,
+): TimeTravelHit[] {
+  const out: TimeTravelHit[] = []
+  for (const blob of stagedBlobs) {
+    const head = headByPath.get(blob.path)
+    if (head === undefined) continue
+    const headDate = latestDate(head)
+    if (headDate === null) continue
+    const stagedDate = latestDate(blob.content)
+    if (stagedDate !== null && stagedDate >= headDate) continue
+    out.push({ path: blob.path, headDate, stagedDate })
+  }
+  return out
+}
+
 /**
  * 采集已暂存内容相对 HEAD 的**新增行**（规则 C 的输入）。
  *
@@ -499,6 +566,8 @@ export interface GuardOutcome {
   markers: MarkerHit[]
   /** 规则 C 的回退态命中（新增行口径） */
   rollbacks: RollbackHit[]
+  /** 规则 D 的整文件回退命中（日期倒流口径） */
+  timeTravels: TimeTravelHit[]
   /** 规则 A 是否被环境变量显式放行（放行了也照样记录） */
   driftAllowed: boolean
   lines: string[]
@@ -526,9 +595,10 @@ export function runGuard(opts: GuardOptions): GuardOutcome {
   // 后者更精确（见 detectRollbackInAddedLines 的注释）。
   const stagedPathList = stagedPaths(opts.repoRoot)
   const addedLines = collectAddedLines(opts.repoRoot, stagedPathList)
-  const markerPaths = [...new Set(addedLines.map((a) => a.path))]
+  // HEAD 上一版内容：规则 C 只对「有新增行」的文件用得上，规则 D 需要**每个**已暂存文本文件
+  // ⇒ 统一按 stagedPathList 取，一份 map 供两条规则共用（不重复调 git）。
   const headByPath = new Map<string, string>()
-  for (const path of markerPaths) {
+  for (const path of stagedPathList) {
     const content = git(opts.repoRoot, ['show', `HEAD:${path}`])
     if (content !== null) headByPath.set(path, content)
   }
@@ -539,16 +609,22 @@ export function runGuard(opts: GuardOptions): GuardOutcome {
     SELF_QUOTING,
   )
 
+  // 规则 D：整文件回退（时间倒流）。与 B/C 互补 —— B/C 看**字样**，D 看**日期**，
+  // 所以「整份文档换成旧版但旧措辞里没有登记的标志」这种情况只有 D 能抓到。
+  const timeTravels = detectTimeTravel(stagedBlobs, headByPath)
+
   const driftBlocking = drift.length > 0 && !driftAllowed
   const markerBlocking = markers.length > 0
   const rollbackBlocking = rollbacks.length > 0
-  const exitCode = driftBlocking || markerBlocking || rollbackBlocking ? 1 : 0
+  const timeTravelBlocking = timeTravels.length > 0
+  const exitCode = driftBlocking || markerBlocking || rollbackBlocking || timeTravelBlocking ? 1 : 0
 
   return {
     exitCode,
     drift,
     markers,
     rollbacks,
+    timeTravels,
     driftAllowed,
     lines: renderGuard({
       repoRoot: opts.repoRoot,
@@ -556,6 +632,7 @@ export function runGuard(opts: GuardOptions): GuardOutcome {
       drift,
       markers,
       rollbacks,
+      timeTravels,
       driftAllowed,
       blocked: exitCode === 1,
     }),
@@ -569,6 +646,7 @@ export function renderGuard(input: {
   drift: DriftReport[]
   markers: MarkerHit[]
   rollbacks: RollbackHit[]
+  timeTravels: TimeTravelHit[]
   driftAllowed: boolean
   blocked: boolean
 }): string[] {
@@ -578,8 +656,13 @@ export function renderGuard(input: {
   out.push(`已暂存文件：${input.stagedCount} 个`)
   out.push('')
 
-  if (input.drift.length === 0 && input.markers.length === 0 && input.rollbacks.length === 0) {
-    out.push('✅ 通过：暂存区与工作树一致，已暂存内容里没有回退特征。')
+  if (
+    input.drift.length === 0 &&
+    input.markers.length === 0 &&
+    input.rollbacks.length === 0 &&
+    input.timeTravels.length === 0
+  ) {
+    out.push('✅ 通过：暂存区与工作树一致，已暂存内容里没有回退特征，也没有日期倒流。')
     return out
   }
 
@@ -665,8 +748,32 @@ export function renderGuard(input: {
     out.push('')
   }
 
+  if (input.timeTravels.length > 0) {
+    out.push(`── 规则 D · 整文件回退（时间倒流，命中 ${input.timeTravels.length} 个文件）`)
+    out.push(
+      '  为什么危险：这个文件在 HEAD 里的**最新日期**比这次要提交的版本更新 ⇒ 提交进去的是旧版整份文档。',
+    )
+    out.push(
+      '    本仓 docs 的日期只增不减；最新日期倒退通常意味着「整文件改写后暂存」，别人的追记被一起丢掉了。',
+    )
+    out.push('  怎么处置：')
+    out.push(
+      '    ① 先看清差异：git diff --cached -- <文件>，确认被删掉的段落是不是别人会话的在编内容。',
+    )
+    out.push('    ② 若确实丢了内容 ⇒ 以 HEAD 为底恢复再重排：git show HEAD:<文件> > <文件>')
+    out.push('       然后 npx prettier --write <文件>、重新 git add。')
+    out.push('    ③ 若「删掉最新日期的条目」是本意（例如归档旧记录）⇒ 请 owner 确认后')
+    out.push('       用 git commit --no-verify —— 规则 D 不提供放行开关。')
+    for (const t of input.timeTravels) {
+      out.push(`  ✗ ${t.path}`)
+      out.push(`      HEAD 最新日期：${t.headDate}`)
+      out.push(`      本次提交最新日期：${t.stagedDate ?? '（一个日期都没有）'}`)
+    }
+    out.push('')
+  }
+
   if (input.blocked) {
-    out.push('结论：本次提交被拦下（规则 A / B / C 命中）。')
+    out.push('结论：本次提交被拦下（规则 A / B / C / D 命中）。')
   } else {
     out.push('结论：规则 A 已按显式放行处理，本次提交放行。')
   }
@@ -692,6 +799,7 @@ function main(argv: string[]): number {
         `    放行：${ALLOW_PARTIAL_STAGE_ENV}=1（只在确认这次就该提交暂存区那一版时用）。`,
         '  规则 B · 回退特征：已暂存内容命中回退字样 ⇒ 拦下（不放行）。',
         '  规则 C · 回退态：新增行命中回退字样且该行在 HEAD 里是新的 ⇒ 拦下（不放行）。',
+        '  规则 D · 整文件回退：已暂存文本的最新日期早于 HEAD 版最新日期 ⇒ 拦下（不放行）。',
         '',
         '退出码：0 = 放行；1 = 拦下。',
       ].join('\n') + '\n',

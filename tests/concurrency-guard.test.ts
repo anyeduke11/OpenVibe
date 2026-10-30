@@ -11,6 +11,7 @@ import {
   dropPreexistingMarkers,
   firstDifferenceLine,
   judgeDrift,
+  latestDate,
   runGuard,
   squashWhitespace,
   type DriftFacts,
@@ -432,6 +433,75 @@ describe('concurrency-guard · 集成：真仓库里的回退态（规则 C）',
     expect(added).toHaveLength(1)
     expect(added[0]!.text).toBe('第三行')
     expect(added[0]!.line).toBe(3)
+  })
+})
+
+describe('concurrency-guard · 规则 D：整文件回退（时间倒流）', () => {
+  it('latestDate 取文本里的最大日期；无日期 ⇒ null', () => {
+    expect(latestDate('2026-10-01 追记\n2026-10-03 落地')).toBe('2026-10-03')
+    expect(latestDate('没有任何日期')).toBeNull()
+  })
+
+  it('⚠️ 暂存版最新日期倒退 ⇒ 判为整文件回退（真事故：T12 段落被整段退回）', () => {
+    const dir = makeRepo()
+    writeFileSync(join(dir, 'tasks.md'), '# 台账\n### T12 · 2026-10-03 追记\n- 已完成\n')
+    execFileSync('git', ['add', 'tasks.md'], { cwd: dir })
+    commitAll(dir, 'init')
+
+    writeFileSync(join(dir, 'tasks.md'), '# 台账\n### T12 · 2026-10-01\n- 待办\n')
+    execFileSync('git', ['add', 'tasks.md'], { cwd: dir })
+
+    const outcome = runGuard({ repoRoot: dir, env: {} })
+    expect(outcome.timeTravels).toHaveLength(1)
+    expect(outcome.timeTravels[0]).toEqual({
+      path: 'tasks.md',
+      headDate: '2026-10-03',
+      stagedDate: '2026-10-01',
+    })
+    expect(outcome.exitCode).toBe(1)
+    const text = outcome.lines.join('\n')
+    expect(text).toContain('规则 D')
+    expect(text).toContain('tasks.md')
+    expect(text).toContain('2026-10-03')
+  })
+
+  it('纯排版重排（日期字面量不变）⇒ 不报（否则每次 prettier --write 都会红）', () => {
+    const dir = makeRepo()
+    writeFileSync(join(dir, 'tasks.md'), '| 2026-10-03 | 内容 |\n')
+    execFileSync('git', ['add', 'tasks.md'], { cwd: dir })
+    commitAll(dir, 'init')
+
+    // prettier 风格的列对齐：只多空格，日期不动
+    writeFileSync(join(dir, 'tasks.md'), '| 2026-10-03  |   内容   |\n')
+    execFileSync('git', ['add', 'tasks.md'], { cwd: dir })
+
+    const outcome = runGuard({ repoRoot: dir, env: {} })
+    expect(outcome.timeTravels).toEqual([])
+    expect(outcome.exitCode).toBe(0)
+  })
+
+  it('删掉旧条目但保留最新日期 ⇒ 不报（只删旧内容不等于整文件换回旧版）', () => {
+    const dir = makeRepo()
+    writeFileSync(join(dir, 'tasks.md'), '2026-09-01 旧条目\n2026-10-03 最新\n')
+    execFileSync('git', ['add', 'tasks.md'], { cwd: dir })
+    commitAll(dir, 'init')
+
+    writeFileSync(join(dir, 'tasks.md'), '2026-10-03 最新\n')
+    execFileSync('git', ['add', 'tasks.md'], { cwd: dir })
+
+    const outcome = runGuard({ repoRoot: dir, env: {} })
+    expect(outcome.timeTravels).toEqual([])
+    expect(outcome.exitCode).toBe(0)
+  })
+
+  it('新增文件（HEAD 无此文件）⇒ 判据不适用', () => {
+    const dir = makeRepo()
+    writeFileSync(join(dir, 'ledger.md'), '2026-09-01 起\n')
+    execFileSync('git', ['add', 'ledger.md'], { cwd: dir })
+
+    const outcome = runGuard({ repoRoot: dir, env: {} })
+    expect(outcome.timeTravels).toEqual([])
+    expect(outcome.exitCode).toBe(0)
   })
 })
 
