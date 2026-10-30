@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { SkillCleanupPreview } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast, toastError } from '../ui/Toaster'
 import { btnGhost, btnPrimary, emptyHintCls } from '../ui/styles'
@@ -18,15 +19,31 @@ import { zh } from '../../i18n/zh'
  * 删除不可逆。预检把「会删哪些」摆出来，用户看到数量与名单再决定。
  * ⚠️ 可恢复的条目（有远程溯源或有库内副本）**不删** —— 它们只是目录没了，
  *   内容还在，重新下载或从库恢复即可。
+ *
+ * ## 预检必须「打开时现算」
+ *
+ * 预检结论的有效期由磁盘决定，不由时间决定 ⇒ 每次打开对话框都重新算一遍，
+ * 不吃任何缓存（见 `useSkillCleanupPreview` 的注释）。清理完再算一遍，
+ * 让对话框里的名单与磁盘保持同一时刻的真相。
  */
 export function SkillCleanupBrokenDialog(props: { open: boolean; onClose: () => void }) {
   const preview = useSkillCleanupPreview()
   const run = useSkillCleanup()
   const [confirmed, setConfirmed] = useState(false)
 
-  const report = preview.data
+  const report: SkillCleanupPreview | undefined = preview.data
   const doomed = report?.items.filter((i) => i.unrecoverable) ?? []
   const recoverable = report?.items.filter((i) => !i.unrecoverable) ?? []
+
+  useEffect(() => {
+    if (props.open) {
+      setConfirmed(false)
+      // 先 reset 再算：上一次的名单必须立刻下台，不能在重算期间继续挂在界面上
+      preview.reset()
+      preview.mutate()
+    }
+    // 仅在打开时算一次（依赖刻意的窄化）
+  }, [props.open])
 
   const close = () => {
     setConfirmed(false)
@@ -52,7 +69,8 @@ export function SkillCleanupBrokenDialog(props: { open: boolean; onClose: () => 
                     onSuccess: (r) => {
                       toast(zh.skills.cleanupBroken.done(r.removed))
                       setConfirmed(false)
-                      void preview.refetch()
+                      // 清完再算一遍：对话框里的名单必须与此刻的磁盘一致
+                      preview.mutate()
                     },
                     onError: (e) => toastError(e),
                   },

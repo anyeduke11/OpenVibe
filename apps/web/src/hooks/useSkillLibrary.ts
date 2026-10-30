@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import type {
   SkillCleanupPreview,
   SkillCleanupReport,
@@ -80,12 +80,21 @@ export function useSkillDownload() {
   })
 }
 
-/** 失效条目清理预检（只报告） */
+/**
+ * 失效条目清理预检（只报告）—— **按打开对话框那一刻现算**，不走 query 缓存。
+ *
+ * ## 为什么不能放进缓存
+ *
+ * 这份预检的结论是「此刻磁盘上哪些 skill 目录已经没了」，它的有效期由**磁盘**决定，
+ * 不由时间决定。放进 15s 缓存 ⇒ 用户在别处删掉目录后再打开这个对话框，看到的仍是
+ * 删除之前的快照 ⇒ 报「没有失效条目」，而服务端此刻已经能报出失效条目。
+ * （真机实测 2026-10-30 踩到：服务端已返回 2 条，对话框显示 0 条，刷新页面才对。）
+ *
+ * 同仓的「整理重复」报告是同一个形状（GET 语义、按需跑），已用 mutation 处理 ⇒ 照此办理。
+ */
 export function useSkillCleanupPreview() {
-  return useQuery({
-    queryKey: ['skill-cleanup-preview'],
-    queryFn: () => apiJson<SkillCleanupPreview>('/api/skills/cleanup'),
-    staleTime: 15_000,
+  return useApiMutation({
+    mutationFn: () => apiJson<SkillCleanupPreview>('/api/skills/cleanup'),
   })
 }
 
@@ -100,7 +109,6 @@ export function useSkillCleanup() {
       }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['skills'] })
-      void qc.invalidateQueries({ queryKey: ['skill-cleanup-preview'] })
     },
   })
 }
