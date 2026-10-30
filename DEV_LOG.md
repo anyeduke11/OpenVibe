@@ -5,6 +5,7 @@
 ---
 
 ## [DEV-0001] 项目立项：命名、竞品调研与 PRD v0.1.1
+
 - **时间**: 2026-09-20 10:09
 - **类型**: 功能开发（项目启动文档产出）
 - **关联文件**: `docs/PRD.md`, `docs/competitive-research.md`, `README.md`
@@ -22,6 +23,7 @@
 ---
 
 ## [DEV-0002] P0 设计文档集：proposal / specs×7 / design / tasks
+
 - **时间**: 2026-09-20 14:58
 - **类型**: 功能开发（设计文档产出）
 - **关联文件**: `docs/proposal.md`, `docs/design.md`, `docs/tasks.md`, `docs/specs/{m1-prompt-library,m2-skill-registry,m3-glossary,m5-project-flow,m6-standard-pack,m6-cli-injection,seed-content}.md`, `README.md`
@@ -41,6 +43,7 @@
 ---
 
 ## [DEV-0003] PRD v0.2.0：owner 澄清对话定稿 + 文档集联动更新
+
 - **时间**: 2026-09-20 15:48
 - **类型**: 功能开发（需求澄清与文档修订）
 - **关联文件**: `docs/PRD.md`, `docs/proposal.md`, `docs/design.md`, `docs/tasks.md`, `docs/specs/onboarding.md`(新), `README.md`
@@ -62,6 +65,7 @@
 ---
 
 ## [DEV-0004] owner 裁定收口：P0 门禁全关 + adapter 扩充国内平台（D7）
+
 - **时间**: 2026-09-20 16:06
 - **类型**: 配置变更（决策定案与文档修订）
 - **关联文件**: `docs/PRD.md`, `docs/design.md`, `docs/tasks.md`, `docs/proposal.md`, `docs/specs/m6-standard-pack.md`, `docs/specs/m1-prompt-library.md`, `README.md`
@@ -84,6 +88,7 @@
 ---
 
 ## [DEV-0005] P0 收尾：四项 spike 核验就地完成 + 四项裁定（D8–D12）落档
+
 - **时间**: 2026-09-20 16:22
 - **类型**: 功能开发（核验与决策落档）
 - **关联文件**: `docs/PRD.md`, `docs/design.md`, `docs/tasks.md`, `docs/proposal.md`, `docs/specs/{m6-standard-pack,m1-prompt-library,onboarding}.md`, `README.md`
@@ -105,6 +110,7 @@
 ---
 
 ## [DEV-0006] 全文档一致性检修：D7–D12 涟漪全面同步（含 specs）
+
 - **时间**: 2026-09-20 16:26
 - **类型**: 重构（文档一致性）
 - **关联文件**: `docs/specs/{onboarding,seed-content}.md`, `docs/{PRD,design,tasks,proposal}.md`, `README.md`
@@ -126,6 +132,7 @@
 ---
 
 ## [DEV-0007] 深度竞品对比分析报告（14 项目，含规则同步新品类发现）
+
 - **时间**: 2026-09-20 16:42
 - **类型**: 功能开发（竞品分析与文档产出）
 - **关联文件**: `docs/competitive-analysis.md`(新), `docs/PRD.md`, `docs/design.md`, `docs/competitive-research.md`, `README.md`
@@ -145,6 +152,7 @@
 ---
 
 ## [DEV-0008] 评审对话落档：D13–D16 四项裁定 + 文档一致性修复
+
 - **时间**: 2026-09-20 17:20
 - **类型**: 配置变更（决策定案与文档修订）
 - **关联文件**: `docs/{PRD,design,tasks,proposal}.md`, `docs/specs/{onboarding,seed-content,m5-project-flow}.md`, `docs/competitive-analysis.md`, `README.md`
@@ -165,6 +173,7 @@
 ---
 
 ## [DEV-0009] PRD 版本重编号 v0.1.3 + P1 详细开发实施方案落档（dev-plan.md）
+
 - **时间**: 2026-09-20 18:05
 - **类型**: 配置变更（版本重编号与 P1 执行计划产出）
 - **关联文件**: `docs/PRD.md`, `docs/dev-plan.md`(新), `docs/{design,tasks,proposal,competitive-analysis}.md`, `docs/specs/onboarding.md`, `README.md`
@@ -183,6 +192,7 @@
 ---
 
 ## [DEV-0010] D17 项目更名 VibeCanon → OpenVibe：npm 主名被占，包名/冷启动命令定为 openvibe-cli
+
 - **时间**: 2026-09-21 10:55
 - **类型**: 配置变更（全局更名与契约字符串更新）
 - **关联文件**: 全部 17 份 .md + 仓库目录改名（Documents/openvibe → Documents/OpenVibe）
@@ -203,6 +213,7 @@
 ---
 
 ## [DEV-0011] P1/T1 工程脚手架：新仓库落地 + monorepo + shared 全量 + CI 三平台首跑全绿
+
 - **时间**: 2026-09-21 11:38
 - **类型**: 功能开发（P1 首个任务组，dev-plan §9-T1）
 - **关联文件**: `pnpm-workspace.yaml`, `tsconfig.base.json`, `eslint.config.js`, `vitest.config.ts`, `packages/shared/**`, `apps/{server,cli,web}/**`, `.github/workflows/ci.yml`, `CONTRIBUTING.md`, `LICENSE`, `docs/tasks.md`, `README.md`
@@ -219,9 +230,11 @@
   - 测试命令: `pnpm i && pnpm lint && pnpm typecheck && pnpm test && pnpm seed:check`
   - 验证结果: lint 0 错误；tsc noEmit 通过；测试 4 文件 10 用例全过（UT-EXAMPLE-01 shared×6 / UT-LINT-01+01b 边界×2 / IT-EXAMPLE-01 health / CLI-EXAMPLE-01 夹具）；CI 首跑 run 35558098022 三平台全 success（2026-09-21 11:37 实测）；R3 生效性以 UT-LINT-01 背书——core 虚拟文件 import `../../../apps/server/src/app` 被 import-x/no-restricted-paths 拒绝，对照组 core→shared 合法
   - 坑位记录: ① pnpm 11 构建脚本审批需 `pnpm-workspace.yaml` 的 `onlyBuiltDependencies` + `pnpm approve-builds <pkg>` 双动作，仅前者不消除 ERR_PNPM_IGNORED_BUILDS 退出码 1；② UT-LINT-01 夹具相对路径必须真实可解析（no-restricted-paths 按解析后路径匹配 zone），首版少一层 `../` 未触发
+
 ---
 
 ## [DEV-0012] P1/T2 存储核心：SQLite 封装 + migrations + FTS5 + 七 repos + seed 骨架
+
 - **时间**: 2026-09-21 11:55
 - **类型**: 功能开发（P1 第二个任务组，dev-plan §9-T2）
 - **关联文件**: `packages/core/src/db/{index,runner,seed}.ts`, `packages/core/src/db/migrations/000{1,2}_*.sql`, `packages/core/src/search/fts.ts`, `packages/core/src/repos/{prompts,terms,skills,flows,projects,devlog,packs,util}.ts`, `packages/core/src/test-support/new-db.ts`, `packages/shared/src/schemas/*`（Input 类型口径修订）, `pnpm-workspace.yaml`
@@ -242,6 +255,7 @@
 ---
 
 ## [DEV-0013] P1/T3 M1 提示词库垂直切片：九端点 API + 四解析器 + Web /library + 浏览器实测
+
 - **时间**: 2026-09-21 15:07
 - **类型**: 功能开发（P1 第三个任务组，dev-plan §9-T3）
 - **关联文件**: `apps/server/src/{app,index}.ts`、`apps/server/src/plugins/{auth,errors}.ts`、`apps/server/src/routes/prompts.ts`、`apps/server/test/prompts.api.test.ts`、`packages/core/src/importers/{index,rule-files,markdown,json-import}.ts` + `importers.test.ts`、`packages/core/src/db/index.ts`、`apps/web/**`（23 源文件 + vite/tsconfig/index.html）、`pnpm-workspace.yaml`、`docs/devlog-evidence/DEV-0013/**`、`docs/tasks.md`、`README.md`
@@ -266,6 +280,7 @@
 ---
 
 ## [DEV-0014] P1/T4 M3 术语库垂直切片：63 条种子 + seed:check 硬门槛 + 五端点 + Web /terms + 浏览器实测
+
 - **时间**: 2026-09-21 16:54
 - **类型**: 功能开发 + 内容生产（P1 第四个任务组，dev-plan §9-T4；门槛按 §11.4）
 - **关联文件**: `content/seed/{terms.json,flow-templates.json}`、`scripts/seed-check.ts`（删 `seed-check.mjs` 占位）、`package.json`、`pnpm-lock.yaml`、`.prettierignore`、`eslint.config.js`、`.github/workflows/ci.yml`、`packages/shared/src/{terms-md.ts,schemas/term.ts,constants.ts,index.ts}` + `shared.test.ts`、`packages/core/src/repos/{terms,util}.ts` + `terms.test.ts`、`apps/server/src/{index.ts,app.ts,lib/refs.ts,routes/terms.ts,routes/prompts.ts}`、`apps/server/test/terms.api.test.ts`、`apps/web/src/{pages/TermsPage.tsx,components/terms/{TermsTable,TermEditorDrawer,TermsMdPreview}.tsx,hooks/useTerms.ts,i18n/zh.ts,App.tsx,components/AppShell.tsx}`、`docs/devlog-evidence/DEV-0014/**`、`docs/tasks.md`、`README.md`
@@ -295,6 +310,7 @@
 ---
 
 ## [DEV-0015] P1/T5 M5 项目流程 + M2 Skill 台账垂直切片：29 端点 + Web 四页 + 拖拽「键盘可访问 + 按钮兜底」+ 浏览器实测
+
 - **时间**: 2026-09-21 22:04
 - **类型**: 功能开发（P1 第五个任务组，dev-plan §9-T5；含 T5 拖拽裁定与 design D10 的落点）
 - **关联文件**: `packages/core/src/repos/{tasks,projects,skills,devlog,flows}.ts` + `{tasks,projects,skills}.test.ts`、`packages/core/src/local/{lock.ts,lock.test.ts}`（新目录）、`packages/core/src/index.ts`、`packages/shared/src/{constants.ts,schemas/{project,task,flow,skill}.ts}`、`apps/server/src/{app.ts,routes/{projects,tasks,devlog,flowTemplates,skills}.ts}`、`apps/server/test/{flow,skills}.api.test.ts`、`apps/web/src/{App.tsx,i18n/zh.ts,api/client.ts,package.json}`、`apps/web/src/pages/{ProjectsPage,ProjectDetailPage,FlowsPage,SkillsPage}.tsx`、`apps/web/src/components/projects/{ProjectList,ProjectWizard,ProjectDashboard,StageBar,ChecklistPanel,KanbanBoard,DevLogList,DevLogEditor,ReflowActions}.tsx`、`apps/web/src/components/flows/{FlowTemplateCard,FlowTemplateEditor}.tsx`、`apps/web/src/components/skills/{SkillList,SkillEditorDrawer,SkillScanReportView}.tsx`、`apps/web/src/hooks/use{Projects,Tasks,DevLog,Flows,Skills}.ts`、`apps/web/src/components/{library/PromptEditorDrawer,terms/TermEditorDrawer}.tsx`（回流反链展示）、`pnpm-lock.yaml`、`docs/devlog-evidence/DEV-0015/**`、`docs/tasks.md`、`README.md`
@@ -319,6 +335,7 @@
 ---
 
 ## [DEV-0016] P1/T6 M6a 组包导出 + 契约快照垂直切片：六 adapter + core/pack 五模块 + 11 端点 + Web 五步向导 + 双通道导出 + 真机复核修正 Trae 壳 + 浏览器实测
+
 - **时间**: 2026-09-22 00:52
 - **类型**: 功能开发（P1 第六个任务组，dev-plan §9-T6，★ 关键路径；design §7/§8 A 级冻结契约首次落地，并据二进制一手证据完成一次真机复核修正）
 - **关联文件**: `packages/shared/src/pack-contract.ts`、`packages/adapters/src/{registry,compat,claude-code,cursor,generic-agents,codebuddy,trae,minicode}.ts` + `adapters.test.ts`、`packages/core/src/pack/{composer,fingerprint,validate,bundle,resolve,index}.ts` + `pack.test.ts`、`packages/core/src/db/migrations/0003_pack_exports_bundle_json.sql`、`packages/core/src/repos/packs.ts`、`apps/server/src/{routes/packs.ts,lib/pack-assemble.ts}`、`apps/server/test/packs.api.test.ts`、`apps/web/src/{pages/{PacksPage,PackNewPage}.tsx,components/packs/{PackWizard,AssetPicker,PackPreviewPane,PackDetailSheet,ExportHistoryPanel}.tsx,hooks/usePacks.ts,i18n/zh.ts,App.tsx,components/projects/ProjectWizard.tsx}`、`tests/golden.test.ts` + `tests/golden/{fixtures.ts,G1/**,G2/**,G3/**}` + `scripts/golden-update.ts`、`.gitignore`、`docs/{design.md,dev-plan.md,tasks.md}`、`docs/devlog-evidence/DEV-0016/**`、`README.md`
@@ -345,6 +362,7 @@
 ---
 
 ## [DEV-0017] 缺陷修复：skill 版本时间序被随机 id 兜底翻转（CI macOS 首曝，本地 11/25 复现）
+
 - **时间**: 2026-09-22 11:02
 - **类型**: 缺陷修复（CI 三平台不对称暴露；T5 遗留，无契约变更、无 migration）
 - **关联文件**: `packages/core/src/repos/skills.ts`、`packages/core/src/repos/skills.test.ts`
@@ -361,6 +379,7 @@
 ---
 
 ## [DEV-0018] P1/T7 M6b CLI 垂直切片：config 发现链 + serve 八步 + 五状态注入内核 + sync/scan/diff + `--json` 单出口 + 安全用例集 + 真机走查（含一处符号链接写穿项目外的漏洞修复）
+
 - **时间**: 2026-09-22 21:38
 - **类型**: 功能开发（P1 第七个任务组，dev-plan §9-T7，★ 关键路径收尾；m6b FR-1–FR-5 + design §7.5/§7.6/§7.7/§9/§11 首次全量落地；六个切片 T7a–T7f + 一次三平台 CI 补平 + 一次安全缺陷修复）
 - **关联文件**: 本轮 8 个 commit（1ea22aa T7a / a0ff0aa T7b / d3e4353 T7c / 1a8df39 T7d / c0cd681 路径先归一项目根 / 82489cc T7e / 9c0a9f6 win32 断言补平 / 9664241 悬空链接修复）实际改动——`apps/cli/{package.json,src/{client,config,index,output,pack-source,telemetry}.ts,src/commands/{serve,scan,sync,diff}.ts}`、`apps/cli/test/{config,diff,output,pack-source,scan,security,serve,sync,telemetry}.test.ts` + `test/helpers/{fake-client,pack-fixture,tree}.ts`（另复用 T1 的 `test/helpers/tmp-project.ts` 与 `tmp-project.test.ts` 示例 1 例）、`apps/server/{package.json,src/{app,bootstrap,index}.ts,src/plugins/{errors,static}.ts,src/routes/settings.ts}`、`apps/server/test/{bootstrap,settings.api}.test.ts`、`packages/core/src/index.ts`、`packages/core/src/inject/{index,lock,planner,security}.ts` + 同名 `.test.ts`、`packages/core/src/repos/{appMeta,telemetry}.ts`、`packages/shared/src/{schemas/settings.ts,utils.ts}`（`OpenvibeConfigSchema` 落在 `schemas/settings.ts` 而非新建 `schemas/config.ts`）、`eslint.config.js`、`vitest.config.ts`、`pnpm-lock.yaml`、`docs/devlog-evidence/DEV-0018/**`、`docs/{tasks.md,dev-plan.md}`、`README.md`
@@ -390,6 +409,7 @@
 ---
 
 ## [DEV-0019] P1/T8 种子全量 + 开箱体验垂直切片：104 词条 / 20 精选 + seed:check 切正式阈值与构成配额 + 排序确定性收口 + 开箱四端点与 default 预置包 + 三步向导/飞轮卡/询问卡/设置页六区 + 遥测外发闭环（含接收端 Worker）+ 并发 sync 文件锁 + Web 拆包与体积门禁 + 三段真机走查（含一处「已发布版本再导出必然指纹漂移」的契约级缺陷修复）
+
 - **时间**: 2026-09-23 13:11
 - **类型**: 功能开发（P1 第八个任务组，dev-plan §9-T8 / tasks.md T8 八项；seed-content §7 ×4 + onboarding §5 ×7 首次全量落地；七个切片 T8a-1…T8f + 本轮 T8g 收口；含 owner 批准的两项范围追加（D-6 遥测外发连接收端一起做、D-7 拆包与并发锁两项都收）与一项裁定 D-3；C-50/C-56 两笔挂账本轮结清）
 - **关联文件**: 8 个 commit（a6f5cb1 T8a-1 / 4d77968 T8a-2 / de58966 T8b / b43c55c T8c / 53abb10 T8d / eef8925 T8e / 88f64e8 T8f / 本轮 T8g），`a6f5cb1~1..88f64e8` 实测 **84 文件 +6371/−234**——`content/seed/{terms,prompts}.json`（63→104 条、0→20 条）、`scripts/{seed-check,seed-review,bundle-check}.ts`、`packages/core/src/{index.ts,db/seed.test.ts,repos/{flows,packs,projects,prompts,skills,telemetry,terms}.ts,search/fts.ts,inject/{index.ts,sync-lock.ts,sync-lock.test.ts}}`、`packages/shared/{package.json,src/{constants.ts,schemas/settings.ts}}`、`apps/server/src/{app.ts,bootstrap.ts,lib/{default-pack,pack-export,seed-dir,telemetry-flush}.ts,routes/{packs,projects,settings}.ts}` + `test/{bootstrap,onboarding.api,telemetry-flush}.test.ts`、`apps/cli/src/index.ts` + `src/commands/{serve,sync}.ts` + `test/{serve,sync-lock}.test.ts` + `test/helpers/sync-lock-holder.ts`、`apps/web/{vite.config.ts,src/App.tsx,src/components/AppShell.tsx,src/components/library/CodeEditor.tsx,src/components/onboarding/{OnboardingBar,FlywheelCard,TelemetryAskCard}.tsx,src/components/settings/SettingsSections.tsx,src/hooks/useSettings.ts,src/i18n/zh.ts,src/pages/SettingsPage.tsx}`（`src/pages/PlaceholderPage.tsx` 删除）、`deploy/telemetry/{worker.js,adapter-node.mjs,README.md}`、`tests/{order-determinism,seed-check}.test.ts`、`eslint.config.js`、`package.json`、`.github/workflows/ci.yml`、`docs/{design,dev-plan,tasks}.md`、`docs/specs/m6-cli-injection.md`、`docs/devlog-evidence/DEV-0019/**`、`README.md`
@@ -420,6 +440,7 @@
 ---
 
 ## [DEV-0020] P1/T9a+T9b 发布形态打通 + 飞轮主链 E2E：资源根三档解析 + esbuild 单文件产物与暂存发布包 + 版本三处同源门禁 + tarball 清单守卫 + 干净环境演练 41 断言 + config.json 逐字段降级 + E2E-FLOW-01 八腿主链（含 Playwright 的 owner 裁定与「一条 npx 命令今天根本起不来」的实测）
+
 - **时间**: 2026-09-23 16:17
 - **类型**: 功能开发（dev-plan §9-T9 的 T9a 发布物链 + T9b 主链用例；owner 指令「Playwright 记为待办，先不引入，开始开工」→ 裁定登记为 §14-6；DEV-0019 风险④「手填非法遥测端点会连带丢令牌」本轮结清）
 - **关联文件**: 本轮单 commit（基线 `bbf5fc2`），**19 文件 = 12 改 + 7 新**，实测 **+620/−20**——新增 `apps/server/src/lib/asset-roots.ts`、`apps/server/test/asset-roots.test.ts`、`apps/cli/src/version.ts`、`apps/cli/test/e2e-flow.test.ts`、`scripts/build-cli.ts`、`tests/publish-manifest.test.ts`、`docs/devlog-evidence/DEV-0020/{publish-walk.mjs,publish-walk.txt}`；修改 `apps/server/src/bootstrap.ts`（`defaultWebRoot` 转调解析器，并清掉随之失效的 `join` import）、`apps/server/src/lib/seed-dir.ts`、`apps/cli/src/{index.ts,config.ts}`、`apps/cli/src/commands/serve.ts`、`apps/cli/{package.json,test/{config,serve}.test.ts}`、`package.json`（`pkg:cli` 脚本 + esbuild devDep）、`pnpm-lock.yaml`、`.gitignore`（`/apps/cli/pkg/`）、`docs/dev-plan.md`（§14-6）
@@ -438,6 +459,7 @@
 ---
 
 ## [DEV-0021] 证据级进展审计（独立复核 DEV-0020）+ 审计流程固化为可复用 Skill：`fcf04e1` 无三平台 CI 证据、五闸独立复跑复现 381/44、孤儿 serve 归零无回归、**源码特征串对发布形态 serve 静默假阴**（本轮方法级缺陷，含一次公开改口）
+
 - **时间**: 2026-09-23 16:26–16:35 (+0800)
 - **类型**: 质量审计（零代码变更；产出为一份用户级可复用 Skill + 本条登记）
 - **关联文件**: 仓库内仅 `DEV_LOG.md`（本条）。审计工具产物在仓库外：`/Users/duke/.qoder/skills/openvibe-progress-audit/SKILL.md`（171 行 / 11,865 B，用户级，**不入库**）。被引用而未改动的：`docs/devlog-evidence/DEV-0020/publish-walk.mjs`、`docs/devlog-evidence/DEV-0019/seed-review.md`、`docs/tasks.md`、`.github/workflows/ci.yml`、`package.json`
@@ -458,6 +480,7 @@
 - **潜在风险**: ① **`fcf04e1` 至今无 CI 证据**，且它改的是「用户拿到的形态」——本机 node 26 上绿的 E2E 与 tarball 安装，在 node 22 + win32 上仍是未验证面，推送与盯 CI 的优先级高于继续写 T9c；② 审计工具的进程特征串需要跟产物形态一起演进（⑤(a)），否则「孤儿 = 0」会变成一句假阴的安慰话，**这条已确证需回补进 Skill 步 5**；③ `/tmp` 里 36 MB 的手工验证沙箱无人认领——**未入库的验证脚本会留下无人清理的产物**（承 DEV-0018/0020「驱动器必须入库」的同一条教训：入库的不该只有结果，还要有能自清的可复跑脚本）；④ 并行会话使任何 HEAD 级数字半衰期极短（本轮实测 5 分钟内 HEAD 变了），故引用旧结论前须重跑，本条所有数字仅在 `fcf04e1` 上成立
 
 ## [DEV-0022] P1/T9c 发布收口：README 换成装包者视角 + v0.1.0 发布说明（带「本版未验证」段）+ 用自家复盘流回看 T1–T9 并回流 5 条词条 + 三路 publish dry-run（含「默认注册表是镜像却照样全绿」）+ 三处字面量与一处假文案修复（C-84..C-88）
+
 - **时间**: 2026-09-23 16:52–17:40 (+0800)，HEAD 采样 `fcf04e1`（工作树脏 11 文件；本轮所有数字在此树成立）
 - **类型**: 功能开发 + 文档 + 质量复盘（dev-plan §9-T9 最后三条：README 重写 / publish dry-run + tag + 发布说明 / retro 回流 ≥3 条）
 - **关联文件**: `README.md`（整篇重写）、`docs/release-notes/v0.1.0.md`（新）、`docs/devlog-evidence/DEV-0022/retro.md`（新）、`content/seed/terms.json`（**104 → 109**）、`scripts/build-cli.ts`（`PUBLISH_BIN_PATH`）、`tests/publish-manifest.test.ts`（SCRIPT-PKG-01 同源）、`tests/seed-check.test.ts`（SCRIPT-SEED-01 改按绝对量截）、`docs/devlog-evidence/DEV-0020/publish-walk.{mjs,txt}`（+§2b/§2c 装包探针、HEAD 行带脏数）、`docs/devlog-evidence/DEV-0019/onboarding-walk.{mjs,log.txt,network.txt}` + 9 张 PNG（计数现算后重跑）、`apps/web/src/i18n/zh.ts:644`、`docs/{dev-plan,tasks}.md`、`DEV_LOG.md`
@@ -813,11 +836,11 @@
 - **类型**: §0.3 **C 级**——本条**只登记凭据，零文件改动**（除本条自身）。它是 `[DEV-0029]`（待决策项 ③）与 `[DEV-0031]`（队列 ⑭）两笔的**证据尾**。
 - **推送那半件**: owner 裁「推 main 触发 CI」。执行链：`git fetch . refs/heads/feat/p1.1-t10-clean-size:refs/heads/main`（**不动工作树**，非快进会被 fetch 自己拒；本轮 `main` 是 HEAD 的祖先，ahead 5 / behind 0）→ `nc -z github.com 443` **本轮 rc=0**（上一轮推 `787eb4c` 时该路 rc=1、只能走 `ssh.github.com:443`，**传输可用性会变，每次推前重探**）→ `GIT_TERMINAL_PROMPT=0 git ls-remote https://…` rc=0 先验鉴权 → `git push https://github.com/anyeduke11/OpenVibe.git main:main` rc=0（`787eb4c..5a963ff`，非 force、未改 git config）。一次 push 带 6 笔 ⇒ **只有 tip sha 有 run**，其余 5 笔是**随 tip 一起**被验。
 - **三平台实测（分写，skip 不并入「全绿」）**:
-  | job | 结论 | Test Files | Tests |
-  |---|---|---|---|
-  | `verify (ubuntu-latest)` | success | 47 passed | **438 passed / 0 skipped** |
-  | `verify (macos-latest)` | success | 47 passed | **438 passed / 0 skipped** |
-  | `verify (windows-latest)` | success | 47 passed | **430 passed / 8 skipped** |
+  | job                       | 结论    | Test Files | Tests                      |
+  | ------------------------- | ------- | ---------- | -------------------------- |
+  | `verify (ubuntu-latest)`  | success | 47 passed  | **438 passed / 0 skipped** |
+  | `verify (macos-latest)`   | success | 47 passed  | **438 passed / 0 skipped** |
+  | `verify (windows-latest)` | success | 47 passed  | **430 passed / 8 skipped** |
 - **8 skip 的逐文件归属（这一列才是 ③ 的证）**: `apps/cli/test/clean.test.ts` 1、`apps/cli/test/config.test.ts` 1（`itPosix`）、`apps/cli/test/security.test.ts` 1、`apps/cli/test/serve.test.ts` 1（**③ 新拆的 `CLI-SERVE-01b`**）、`apps/cli/test/sync.test.ts` **2**（含 **③ 新拆的 `CLI-SYNC-03d`**）、`packages/core/src/inject/security.test.ts` 1、`packages/core/src/inject/sync-lock.test.ts` 1 = **7 个文件 / 8 支**。与推前的本地预测（`grep` 现测 **7 处 `it.skipIf(IS_WINDOWS)` + 1 处 `itPosix(`**，且行内 `platform !== 'win32'` 残留 **0**）**两侧闭合**。
 - **方法：预测立在拿数之前**。本轮没有「CI 出数后再解释」——先在 `de5dd6e`/`5a963ff` 工作树上 `grep` 出「哪些形态会被 win32 门控、共几支」，写成 `8 skipped / 430 passed` 的**可否证**断言（连同「若报 4 skip ⇒ ③ 没生效，必须查」的否证条件），再推、再取数。**命中**才算 ③ 落地；这一条形状以后按 §13-8 与痕迹闸同族读：**预测与观测异源，才叫证据**。
 - **被推翻**: 无（本轮三条预测全部命中：`Test Files 47` 三侧不变、`8 skipped`、`430 passed`）。登记**一条测量陷阱**：`gh run view --job … --log` 给的彩色码是**字面 `^[[32m` 文本，不是 ESC 字节**，`perl -pe 's/\e\[…//g'` 一个字符都剥不掉——我按 ESC 式子连试三版（`grep '↓'`、`\(\d+ tests…\)`、perl 双管线）全部空输出，差点把「skip 归属取不到」当成结论登记。正确式子 `perl -pe 's/\^\[\[[0-9;?]*[a-zA-Z]//g'`。⇒ 与 `[DEV-0031]` 的 `prettier --check` 行数比法同族：**工具输出的转义形态没验过，就不能拿它的「空结果」当证据**（空输出有两种成因：真没有 / 我的式子不对）。
@@ -1121,7 +1144,6 @@
 - **潜在风险**: ① **数字入正文的复发动用**：本轮三处腐烂全部由「其后又加了一支测试」触发，而本仓两天内加过 `CLI-CLEAN-13`、`CORE-SIZE-06`、`packs.api` 第 18 支——**只要支数抄进正文，每加一支就欠一轮文档修订**。§13-8 已有规矩，缺的是「新抄一次就当场拒绝」的执行点；若 owner 认可，最小动作是把「测试支数与具名上界只允许以取数命令入正文」写成 `dev-plan` §13 的一条硬纪律，而不是继续靠每轮回扫。② 并行会话使 HEAD 级数字半衰期极短，`596b51f` 之后一律以复跑为准。③ 第三层复核面**只覆盖了 ⑥ 面内那几笔与四份文档的交集**；`99690bc` 一笔就往 `dev-plan` 写了 134 行，那 134 行里的**语义类**（非数字）断言本轮未逐句复核，留给下次有人读 §15 时按同一纪律做。
 - **owner 手上未收的**: 队列见 `docs/decisions.md`（**本笔未动任何行**——它关的是 `[DEV-0044]` 的挂账③，不是队列项状态，故不改单源表）。仍是那几件：**待裁 ④ ⑤ ⑧ ⑨**；**待签 ①（19 行结论列 0 已签，是 ② 的最后一个前置）**；**② 真 `npm publish`**；**m6b v1.4 的② 由我自行上调为 B，需你确认或否决**。另需你放行**第 6 次推送**。**并发提示**：`README.md` 与 `docs/release-notes/v0.1.0.md` 在另一会话手上未提交，本笔刻意未碰——那份 449→450 归它，别重复改。
 
-
 ## [DEV-0046] 队列 ⑥ 第三层复核面的**语义半**收口（承 `[DEV-0045]` 风险③）· 本轮最重的不是 finding，是「同一断言的落点集合」我第一遍没扫
 
 - **时间**: 2026-09-26 23:34–23:59 +0800。采样起点 HEAD `a9691ca`（本会话开场），落改时 HEAD `5fe191d`。**本轮全程有并行会话在同一工作树写**：其间依次见 `9651801`（DEV-0044）/ `6e1aa90` / `596b51f` / `7590af2`（**DEV-0045，把我原本要开的第三层关掉了数字半**）/ `5fe191d`（owner 追认 m6b v1.4 的② 为 B 级）⇒ 本笔一切「工作树数字」都是并发快照，不是终态。`README.md` 与 `docs/release-notes/v0.1.0.md` 自始至终在另一会话手上未提交，**本笔刻意未碰**。五闸由我自己重砸于**改后的树**上（23:53–23:56），不是继承值。
@@ -1371,12 +1393,12 @@
 - **关联文件**: `docs/decisions.md`（⑦ 行末记第 8 次授权全貌、⑧ 行状态与行末补三平台实测、⑳ 行末由「凭据要第 8 次推送才有」翻成「已到账」、净状态标题时间戳与四类计数复算）、`docs/dev-plan.md`（onb-5b 行补凭据）、`docs/devlog-evidence/DEV-0037/seed-prescreen.md`（小节标题计数纠错）。
 - **推送实况**: `git ls-remote` 直测远端仍 `9281558`、`git rev-list --count main..origin/main` = 0 ⇒ 纯快进；`git push origin main:main`（非 force、未改 git config）实推 `9281558..f328b2d` 共 **4 笔**，推后远端 `main` = `f328b2d`。**报 4 笔、推 4 笔，本次无边界外扩**。
 - **CI 凭据（run `36309712878` @ `f328b2d`，三 job `success`、零失败 step，17:4x 逐 job 现测）**:
-  | 平台 | Test Files | Tests | three-smokes | SM-3h/3i 读到的后端 |
-  | --- | --- | --- | --- | --- |
-  | ubuntu | 51 | **460 passed / 0 skip** | `FAIL=0 SKIP=2` platform=linux | `askState=declined, enabled=false` |
-  | macOS | 51 | **460 passed / 0 skip** | `FAIL=0 SKIP=2` platform=darwin | 同上（**上轮这里是 FAIL=2**） |
-  | win32 | 51 | **452 passed + 8 skipped**（总 460） | `FAIL=0 SKIP=2` platform=win32 | 同上 |
-  `seed:check`（terms ≥100 / templates=3 / prompts=20）与 `bundle:check`（入口 293.16 kB ≤ 300、23 chunk 最大 347.45 kB ≤ 500）三侧同值。**「keepalive 到底救没救回 macos 那两腿」这条 `[DEV-0057]` 挂着的未验证面就此闭合**——本机绿证明不了它，是 runner 证明的。
+  | 平台                                                                                                                                                                                                                                                             | Test Files | Tests                                | three-smokes                    | SM-3h/3i 读到的后端                |
+  | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | ------------------------------------ | ------------------------------- | ---------------------------------- |
+  | ubuntu                                                                                                                                                                                                                                                           | 51         | **460 passed / 0 skip**              | `FAIL=0 SKIP=2` platform=linux  | `askState=declined, enabled=false` |
+  | macOS                                                                                                                                                                                                                                                            | 51         | **460 passed / 0 skip**              | `FAIL=0 SKIP=2` platform=darwin | 同上（**上轮这里是 FAIL=2**）      |
+  | win32                                                                                                                                                                                                                                                            | 51         | **452 passed + 8 skipped**（总 460） | `FAIL=0 SKIP=2` platform=win32  | 同上                               |
+  | `seed:check`（terms ≥100 / templates=3 / prompts=20）与 `bundle:check`（入口 293.16 kB ≤ 300、23 chunk 最大 347.45 kB ≤ 500）三侧同值。**「keepalive 到底救没救回 macos 那两腿」这条 `[DEV-0057]` 挂着的未验证面就此闭合**——本机绿证明不了它，是 runner 证明的。 |
 - **被推翻（本轮三条，全是自己的）**:
   ① **我把「后台任务 completed, exit code 0」读成了「CI 跑完」**：我给 `gh run watch` 传了 `--exit-code`，**这个 flag 不存在**（正名 `--exit-status`），它当场打 usage 帮助并以 rc=0 退出（我那个 `echo "watch-rc=$?"` 拿的是后一条命令的 rc）。于是通知说「完成」而 run 其实还在跑，我差点据此下绿灯结论。这是判读速查表里「`gh run watch` 报 0 ⇒ 退出码被管道吞」的**新形态**：不是被吞，是**根本没跑起来**。固化做法：结论只从 `gh run view <id> --json conclusion,jobs` 读，watcher 的 rc 一律不作证据。
   ② **我登记号抢早了，三处交叉引用全指错**：`docs/decisions.md` ⑧ 行末、⑳ 立项那行的 `[DEV-0056]`、`docs/dev-plan.md` onb-5b 的 `[DEV-0056]` 都指向我**以为**会是自己那笔的序号，实际并行会话已先落 `[DEV-0056]`（token 层）。本轮全部改为 `[DEV-0057]`。教训形状：**登记号要在动笔那一刻现取**（`grep '^## \[DEV-' DEV_LOG.md | tail -1`），不能在上一步心里预占。
@@ -1385,7 +1407,6 @@
 - **未验证面净变化**: `[DEV-0057]` 挂的「修好的形态三平台一条凭据都没有」**清空**；**新挂一格**：win32 `rmSync` 重试分支（本轮未触发）。待裁 **0 → 0**、待签 **1**（①，19 行结论列本轮再测仍全空）、可做待排 **1**（②）、已裁已落 **17**（⑳ 已在册，本轮只补凭据不升计数）。
 - **潜在风险**: ① 远端绿是当前 tip 的绿，`a45eeaa` 的**视觉**正确性（625 处色阶收单层）机读门禁里没有一条能判——它靠的是那笔作者自己的像素比对，我没有复算。② 每轮登记之后本地又会领先若干笔，⑦ 行「逐次放行」的成本是**结构性的**，不是本轮侥幸。
 - **owner 手上未收的**: **①** 19 行种子逐条签（`docs/devlog-evidence/DEV-0037/seed-prescreen.md` 第 4 节，机器代不了）→ **②** 真 `npm publish`（D15 起点＝publish 成功当日）→ **第 9 次推送**（`f328b2d..本笔`，本轮登记笔；不推也不阻塞，只是让远端少一笔「本地绿、CI 未验」的差额）。
-
 
 ## [DEV-0059] 内置第 21 条精选提示词「开源发布：README、脱敏闸、推送与独立复核」· **一次「把口述流程提炼成通用提示词」的需求，代价是六处数量闸要一起抬**
 
@@ -1400,7 +1421,6 @@
 - **潜在风险**: ① 本笔与 ① 行「签字回来之前不动一个种子字节」是**擦边**关系：我按「该裁定管的是 19 行改法的落地」解释，因此只做纯新增、未改任何现有种子字节。owner 若认定「① 关闭前 `content/seed/` 一律冻结」，回退代价已知——删 `prompts.json` 末行 + 把 6 处 21 改回 20。② 新条 tags 用了 `发布脱敏`：`CONTROLLED_TAG_VOCAB` 只强制术语词条（§5），提示词标签不受控 ⇒ 不违规，但它给标签过滤栏加了一个新 chip；若 owner 要求提示词也走受控词表，这条要改标签。③ `apps/cli/pkg/` 下的 `README.md` 与 `dist/seed/prompts.json` 是构建产物副本，仍写着 20，要下次 `pnpm pkg:cli` 才刷新——它们不入库（`git ls-files apps/cli/pkg` 现测 **0** 条），但别拿它们当现状。④ 提示词里那句 `git ls-files -i -c --exclude-standard` 和「全历史关键字匹配」是**写给执行方的要求**，本仓库没为它建任何自动化验收；这条提示词好不好用，只有 owner 拿去跑一次真实上传才知道。
 - **owner 手上未收的**: **①** 19 行短名单 + 本笔新增的第 21 条逐条签 → **②** 真 `npm publish` → **⑦** 第 9 次推送放行（本笔含两份 spec 升版，按逐次放行规矩等裁）。查看页已就位：`http://localhost:5173/library`（后端 `127.0.0.1:8787`，预览库 `/tmp/ov-preview-home`）。
 
-
 ## [DEV-0060] 第 9 次推送：README 全套重做（纯 SVG hero + 飞轮图）· 原型入库 · tag 移到新 HEAD · **「上传前清理干净」在一个已公开仓库里其实是历史问题——本次全历史实测干净，但脏的那类东西早就在远端散文里了**
 
 - **时间**: 2026-09-29 10:3x–12:0x +0800。起点：owner 一条五段指令——用 `beautify-github-readme` 更新 README → 推 `github.com/anyeduke11/OpenVibe` → 更新「关于」与 release 压缩包 → **上传前清理所有 LLM 配置密钥与其他敏感信息** → **上传完毕派独立 agent 二次检查上传文件、压缩包、env、备份文件**。四项选择 owner 逐轮裁：release 资产 = **装包产物 `.tgz`**；tag = **移到新 HEAD**（选项内已明示这需要对公开 tag 做 `git push --force refs/tags/v0.1.0`）；README = **全套重做**（hero + SVG + 全文案层级，纯 SVG 实现已选定，不再问）；仓库外的 `原型/` = **提交进 `docs/prototypes/`**。第二问裁「并行会话未提交的 `[DEV-0059]` 组**一并入库，分两个 commit**」⇒ commit 1 `c17e3fd` 是他们的 8 个文件（**我未做代码审**）、commit 2 是我的，本条与 ⑦ 行都写明这件事。
@@ -1410,31 +1430,32 @@
 - **对外断言逐条核证（owner 硬约束「不得暗示 npm 已发布」）**: ① `openvibe-cli` registry 实测 **404** ⇒ 首屏「30 秒上手」明写**尚未在 npm 上线**并给源码构建替代路径（`pnpm install && pnpm pkg:cli` → `cd apps/cli/pkg && npm pack` → `npm i -g apps/cli/pkg/openvibe-cli-0.1.0.tgz`）；② 命令面写全 **5 个**（`serve`/`sync`/`scan`/`diff`/`clean`，退出码与旗标按 `docs/specs/m6-cli-injection.md` 现文抄）；③ 数字用本轮实测：种子 **109 术语 / 21 提示词 / 3 模板**、门禁 **476 用例 / 55 文件**、入口 **293.16 kB ≤ 300 kB**、**6 adapter**；④ win32 那 **8 支门控 skip 写成未验证面**，并明写「**CI 的 win32 腿不构成它们的证据**」，不算进绿；⑤ skill 第 8 步的 `scripts/audit_readme.py README.md` 实跑通过（`Local images checked: 2` / `OK: image references and SVG basics passed`）；⑥ 两张 SVG 另在 900 CSS-px（GitHub 正文宽）渲成 PNG 目视走查，字号守到 essential ≥20 / supporting ≥18 单位。
 - **脱敏闸（owner 硬约束，按三层扫，不是只扫当前树）**:
 
-  | 层 | 扫法 | 实测 |
-  | --- | --- | --- |
-  | 待入库的新文件 | 6 份原型 + 2 份 SVG 扫本机路径（`/Users/*`、`/home/*`、`C:\Users`）、`duke`/`anyeduke`、邮箱正则；再扫严格密钥前缀（`sk-`、`sk-ant-`、`AKIA`、`ghp_`、`github_pat_`、`xox[baprs]-`、`BEGIN … PRIVATE KEY`、`Bearer …`）；再扫 ≥500 字符的 base64 型长块 | **全部 0 命中**。外链只三类：Google Fonts（2 份原型引 `fonts.googleapis.com`）、`http://127.0.0.1:8787`（产品文案，5 处）、`w3.org/2000/svg`（命名空间） |
-  | 全历史 | `git log --all -S<pattern>` 五个密钥模式各一遍；`git log --all --diff-filter=A --name-only` 取全历史新增文件名再筛凭据类词 | 五个模式 **各 0 commits**（137 笔全扫）；历史上唯一带 `token` 字样的新增文件是 `tests/design-tokens.test.ts`（设计 token，非凭据） |
-  | 忽略却在库 / 装包产物 | `git ls-files -i -c --exclude-standard`；`.tgz` 解包后按同一组模式复扫 | **0 条**被忽略文件在库；包内只有 UI 占位串 `/Users/you/work/my-project`（示例文案，非本机身份） |
+  | 层                    | 扫法                                                                                                                                                                                                                                                    | 实测                                                                                                                                                     |
+  | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | 待入库的新文件        | 6 份原型 + 2 份 SVG 扫本机路径（`/Users/*`、`/home/*`、`C:\Users`）、`duke`/`anyeduke`、邮箱正则；再扫严格密钥前缀（`sk-`、`sk-ant-`、`AKIA`、`ghp_`、`github_pat_`、`xox[baprs]-`、`BEGIN … PRIVATE KEY`、`Bearer …`）；再扫 ≥500 字符的 base64 型长块 | **全部 0 命中**。外链只三类：Google Fonts（2 份原型引 `fonts.googleapis.com`）、`http://127.0.0.1:8787`（产品文案，5 处）、`w3.org/2000/svg`（命名空间） |
+  | 全历史                | `git log --all -S<pattern>` 五个密钥模式各一遍；`git log --all --diff-filter=A --name-only` 取全历史新增文件名再筛凭据类词                                                                                                                              | 五个模式 **各 0 commits**（137 笔全扫）；历史上唯一带 `token` 字样的新增文件是 `tests/design-tokens.test.ts`（设计 token，非凭据）                       |
+  | 忽略却在库 / 装包产物 | `git ls-files -i -c --exclude-standard`；`.tgz` 解包后按同一组模式复扫                                                                                                                                                                                  | **0 条**被忽略文件在库；包内只有 UI 占位串 `/Users/you/work/my-project`（示例文案，非本机身份）                                                          |
 
   **但真发现是反向的**：远端 `main` 上**早就公开**的散文里含本机用户名路径 —— `DEV_LOG.md`（6 处）、`apps/server/test/telemetry-flush.test.ts:445`（字符串 `/Users/duke/.ssh/id_ed25519`，它是「上报体不含本机路径」那条断言的**反例样本**、不是真私钥）、`docs/devlog-evidence/DEV-0018/accept-walk.sh:5`、`DEV-0043` 交付包、若干走查日志与 2 张像素渲染 PNG。**不含任何密钥**，属「用户名 + 目录结构」级信息，且**不是本次上传引入的**。清理它 = 改写已公开历史 ⇒ 须 owner 另行授权，本轮只登记（→ 新立 ㉑(b)）。
+
 - **装包产物（release 资产）**: `pnpm pkg:cli` 回显 `cli.js 3589.61 kB，566 个模块内联，0 条 esbuild 警告`；`npm pack` 出 `apps/cli/pkg/openvibe-cli-0.1.0.tgz` = **1,153,767 B**、sha256 `03b0ca5b37339a4212e277988151d7ffd62e1d85a674ab13f47de0fb5c726291`、**36 个条目**（`LICENSE` / `README.md` / `package.json` / `dist/**`）。两处新鲜度实核：包内 `dist/seed/prompts.json` = **21 条**（`[DEV-0059]` 风险③ 那份「构建产物副本仍写 20」就此刷新）、包内 `README.md` 含 hero 引用 ⇒ 是新稿不是旧副本。**一处已知缺陷**：包内 README 引用的 `assets/readme/hero.svg` **不在包里**（`apps/cli/package.json` 无 `files` 字段，`scripts/build-cli.ts` 的拷贝清单也不含 `assets/`）⇒ npm 页面会是一张裂图、GitHub 页面正常；修法要动发布口径 ⇒ 交 ㉑(a) 裁，本轮不改。
 - **门禁（同一棵树四次采样、两种结论，差别全在并发负载）**:
 
-  | 采样 | 树 | 结果 |
-  | --- | --- | --- |
+  | 采样                | 树                                           | 结果                                                                                                                                                            |
+  | ------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
   | A 10:49:04–10:49:37 | `2b61939` + 并行会话未提交的 `[DEV-0059]` 组 | 五闸 **rc=0**：55 文件 / 476 条全绿；`seed:check` terms ≥100 / templates=3 / **prompts=21**；`bundle:check` 入口 **293.16 kB** ≤ 300（23 chunk 最大 347.45 kB） |
-  | B 11:55:36–11:56:54 | `c17e3fd` | `eslint .` 与两份 `tsc --noEmit` **零输出通过**；`pnpm test` **8 failed / 468 passed**，8 条错误**全是** `Test timed out`、**零 AssertionError** |
-  | C 11:57:14–11:58:29 | `c17e3fd` | **1 failed / 475 passed**（`SCRIPT-SEED-02` 撞 5 s 预算）；同一遍里 `seed:check` rc=0、`bundle:check` rc=0 |
-  | D 11:58:57–11:59:04 | 同树，单文件 | `npx vitest run --project unit tests/seed-check.test.ts` **5/5 绿**，那支实测 **940 ms**（预算 5000 ms） |
+  | B 11:55:36–11:56:54 | `c17e3fd`                                    | `eslint .` 与两份 `tsc --noEmit` **零输出通过**；`pnpm test` **8 failed / 468 passed**，8 条错误**全是** `Test timed out`、**零 AssertionError**                |
+  | C 11:57:14–11:58:29 | `c17e3fd`                                    | **1 failed / 475 passed**（`SCRIPT-SEED-02` 撞 5 s 预算）；同一遍里 `seed:check` rc=0、`bundle:check` rc=0                                                      |
+  | D 11:58:57–11:59:04 | 同树，单文件                                 | `npx vitest run --project unit tests/seed-check.test.ts` **5/5 绿**，那支实测 **940 ms**（预算 5000 ms）                                                        |
 
   判读按 `[DEV-0059]` 留下的教训走：**判红之前先看错误类型是不是 timeout**。B→C→D 三遍没有任何一条断言失败，红的是「同机有并行会话在跑 dev server / Chrome / 它自己的测试」时的 5 s 预算。**教训形状**：「本机全绿」必须带**哪棵树、几点、当时机器上还有谁**，否则只是不可复现的安慰；README 的采样行因此写成 C+D 两笔，而不是一句 `rc=0`。
+
 - **本轮的执行顺序（把不可逆动作排在凭据之后）**: commit 2 → 探网络 → `git push origin main:main`（非 force、纯快进）→ 用 `gh run view --json conclusion,jobs` 读 CI（**不用 watcher 的退出码**，`[DEV-0058]` 那条）→ **绿了才**移 tag、改 About、建 release；**红则 tag 不动**，旧值 `cd8102af` → `5f7fd3c` 保持在位。这样 ③ 那条「tag 重打在有 CI 凭据的那笔」的原则不会被本次的「移到新 HEAD」裁定打破。
 - **被推翻（本轮两条，都是我自己的）**: ① 本条初稿把 README 写成「237 行全稿重写」，`git diff --numstat` 现测只有 **+33 −25**——大部分原有散文是**刻意保留**的（它本来就对），把「重排层级 + 换证据」说成「全稿重写」是给自己贴金，已就地改口径。② 重排那张 ASCII 图时我把右侧三行包注释整体上移了一行，箭头那行因此只剩一个**悬空的 `───`**（指向空气），是我改坏了原有对齐；已按原位复原（保留的只有标题改名「架构一图 → 进程与数据边界」与 `~/.openvibe/` 三行的空格复原）。**教训形状**：ASCII 图这类**视觉断言**在本仓没有任何自动化闸——它不像代码会被测试抓到，也不像数字会被 `grep` 抓到，改完只能自己再看一眼；而 `audit_readme.py` 检查的是图片引用与 SVG 基础项，**不看代码块里的图**。
 - **净发现**: ① **脱敏闸只有第三层能给结论**——前两层扫出来的是「现在没有」，而 owner 要的「上传前清理干净」在已公开仓库里本质是**历史**问题；本仓这次全历史干净属**运气而不是闸有效**，所以第 21 条提示词里那句「改写历史与轮换密钥须另行授权」不是客套，它是这道闸唯一的诚实出口。② **并行会话会在我新建的目录里落文件**：`docs/prototypes/暖系-暖纸V2-可读性交互Demo-20260929.html`（11:22，96,308 B）不是我移进来的；我按**显式路径**只 stage 自己那 6 份，那份此刻仍未入库——「目录级 add」在共享工作树里等于吞别人的活。③ **README 重做的成本不在文案在核证**：237 行里每个数字都要有一条现测来源，而最省事的写法（抄上一版）恰好最容易留腐烂断言——上一版的 `prompts=20`、`450 用例 / 48 文件 @ 63bd17e` 两处本轮都已过时，第三处（win32 8 支 skip 混在测试行的括号里、读起来像「已覆盖」）被挪进「已知局限」并写明**CI 的 win32 腿不构成它们的证据**。
 - **未验证面净变化**: 清空 **0** 格；**新挂 3 格** —— ① 本次推送的三平台 CI 未跑（登记此刻无 run 号，凭据另笔补）；② release 资产 `.tgz` 的**可安装性**只有 macOS 本机凭据，且「`npm i -g` 装出来起得到 serve」那条实测属 ⑰/`[DEV-0044]` 那轮的**另一个包**，不是本次这个 sha256；③ tgz 内 README 裂图（→ ㉑(a)）。队列计数：待裁 **1**（㉑ 新立）/ 待签 **1**（①）/ 可做待排 **1**（②）/ 部分授权 **1**（⑦，本笔为第 9 次）/ 已裁已落 **17**。
 - **潜在风险**: ① **tag force-move 是本轮唯一不可逆的对外动作**，回退命令写死在此：`git tag -f -a v0.1.0 5f7fd3c && git push --force origin refs/tags/v0.1.0`（旧对象 `cd8102af`，`5f7fd3c` 有独立三平台 `success`）。② About / topics 是远端元数据、**git 里没有记录可回滚**，所以改前把旧值抄进本条：`description = 从0到1的Vibe助手`、`repositoryTopics = null`、`homepageUrl = ""`（2026-09-29 11:5x `gh repo view --json` 现测）。③ commit 1 是并行会话的产物、**我未做代码审**，只按 owner 裁定让它单独成一笔并披露；CI 绿只证明它没打破门禁与用例，**不证明有人读过它**（`[DEV-0058]` 同一形状，这次连「作者自己的像素比对」都没有）。④ 6 份原型是**设计探索稿**，UI 与产品现状不同源（V1 与「暖系」三方案的画布），入库后可能被误读成「产品长这样」⇒ 防误读装置只有目录名 `docs/prototypes/` 与 README 文档地图里那一行，没有更强的。
 - **owner 手上未收的**: **①** 19 行短名单 + 第 21 条提示词逐条签 → **②** 真 `npm publish` → **㉑** 两条新裁（(a) tgz 内 README 裂图修不修、怎么修；(b) 已公开历史里的本机用户名路径要不要改写历史清理）→ **⑦ 第 10 次推送**（本轮登记笔之后的差额；不推不阻塞）。第 9 次推送的**推后实况与 CI run 号**按 `[DEV-0058]` 的做法另笔补，本行不预写 sha。
-
 
 ## [DEV-0061] v0.1.0 对外落地：tag force-move + About + release 挂 `.tgz` + 独立 agent 二次复查 · **两份「都是 36 条」的 tgz 内容不同——工作树那份带着我三小时前刚判定为回归的旧 README**
 
@@ -1443,21 +1464,21 @@
 - **关联文件**: `README.md`（**两行**：一行是「被推翻②」那条 cwd 纠错，一行是把 `:205` 的采样标签由 `475 passed + 1 支超时` 换成本笔现测的 `476 passed / 0 skipped`）、`DEV_LOG.md` 本条、`docs/decisions.md`（② ③ ⑦ ㉑ 行 + 净状态时间戳与 ② 那条 bullet）。**`docs/release-notes/v0.1.0.md` 一字未动**，理由见「一个刻意的不做」。
 - **门禁现测（2026-09-29 17:4x 本机，工作树含本笔全部改动）**: `lint` rc=0（`eslint .` 零输出）/ `typecheck` rc=0（双 tsconfig 各一遍）/ `test` **55 文件 · 476 用例 · 0 skipped · 7.90 s** / `seed:check` terms 109 · templates 3·7·4 · **prompts 21** / `bundle:check` 入口 **293.16 kB ≤ 300** · 23 chunk 最大 **347.45 kB ≤ 500**。**本轮无超时假红**——与 `[DEV-0059]` 那次「同机并发 ⇒ 8 支 `Test timed out`」正好形成对照（这次并行会话没在跑服务），也就顺手把 README `:205` 的采样标签从 `475 passed + 1 支超时` 换成了这条干净值。**.md 改动为什么还跑全套**：`grep` 现测**没有任何测试读仓库根 `README.md`**（命中的 5 个文件全是各自夹具里的同名文件；唯一真读它的是 `scripts/build-cli.ts:148` 的打包拷贝）⇒ 「闸与本轮 diff 无耦合」这句话是实测出来的，不是推断出来的。
 - **三个对外动作（全部落在 owner 已授权面内，逐项复核）**:
-  | 动作 | 前（现测） | 后（现测） | 复核方式 |
-  | --- | --- | --- | --- |
-  | tag `v0.1.0` | 对象 `cd8102af` → commit `5f7fd3c` | 对象 **`8cfa5c1`** → commit **`cbdee74`** | `git push --force origin refs/tags/v0.1.0` 回显 `+ cd8102a...8cfa5c1 (forced update)`；`git ls-remote --tags` 的 `^{}` 行 = `cbdee74`；`gh api …/git/ref/tags/v0.1.0` → `type=tag, sha=8cfa5c1`（三方同值） |
-  | About | `description = 从0到1的Vibe助手`、`repositoryTopics = null`、`homepageUrl = ""` | 与 README 同口径的一段中文描述（**末句明写「npm 包 openvibe-cli 尚未发布」**）+ **12 个 topics**；`homepageUrl` **刻意留空**（没有站点，填仓库自身 URL 是噪声） | `gh repo view --json description,repositoryTopics,homepageUrl` 改后回读 |
-  | release `v0.1.0` | `gh release list` → **空**（此前从未建过） | id `398989823`、非 draft 非 prerelease、body **6,968 字符**、唯一资产 `openvibe-cli-0.1.0.tgz` | `gh api …/releases/tags/v0.1.0`；body 来自 `--notes-file docs/release-notes/v0.1.0.md`，该文件在 `cbdee74` 与工作树同字节 ⇒ **release body == tag 树里的那份文件，零漂移** |
+  | 动作             | 前（现测）                                                                      | 后（现测）                                                                                                                                                      | 复核方式                                                                                                                                                                                                    |
+  | ---------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | tag `v0.1.0`     | 对象 `cd8102af` → commit `5f7fd3c`                                              | 对象 **`8cfa5c1`** → commit **`cbdee74`**                                                                                                                       | `git push --force origin refs/tags/v0.1.0` 回显 `+ cd8102a...8cfa5c1 (forced update)`；`git ls-remote --tags` 的 `^{}` 行 = `cbdee74`；`gh api …/git/ref/tags/v0.1.0` → `type=tag, sha=8cfa5c1`（三方同值） |
+  | About            | `description = 从0到1的Vibe助手`、`repositoryTopics = null`、`homepageUrl = ""` | 与 README 同口径的一段中文描述（**末句明写「npm 包 openvibe-cli 尚未发布」**）+ **12 个 topics**；`homepageUrl` **刻意留空**（没有站点，填仓库自身 URL 是噪声） | `gh repo view --json description,repositoryTopics,homepageUrl` 改后回读                                                                                                                                     |
+  | release `v0.1.0` | `gh release list` → **空**（此前从未建过）                                      | id `398989823`、非 draft 非 prerelease、body **6,968 字符**、唯一资产 `openvibe-cli-0.1.0.tgz`                                                                  | `gh api …/releases/tags/v0.1.0`；body 来自 `--notes-file docs/release-notes/v0.1.0.md`，该文件在 `cbdee74` 与工作树同字节 ⇒ **release body == tag 树里的那份文件，零漂移**                                  |
 - **资产来源与回环校验（本轮唯一的硬证据链）**: 采用**干净 checkout 重建**那份（clone 到 `/tmp/ov-clean-checkout`、HEAD `cbdee74`、`git status` **0 脏项**）：`cli.js 3,589.61 kB / 566 模块 / 0 警告`（与工作树构建同值），tar **36 条** = `LICENSE` + `README.md` + `package.json` + `dist/**`，**无** `docs/ src/ node_modules/ .openvibe/`。**三方同值**：本地 `shasum -a 256` = GitHub 记的 `asset.digest` = 回环 `curl` 下载后再算，均 **`dcf6b6843854ac1b9394f13b6a9473a333448c110ca0eb813bd82a6110291c9a`**，`cmp` 判 **BYTE-IDENTICAL**，体积 **1,154,710 B**。
 - **独立 agent 二次复查（owner 指令第五段；只读、无本次上下文、30 次调用预算、实到 19 次）**:
-  | 问 | 判定 | 它自己量的东西（不是复述我的话） |
-  | --- | --- | --- |
-  | Q1 凭据 | **PASS 0 命中** | 24 条正则跑遍 `cbdee74` **463 个文件** + tar 内 **36 条**：`sk-ant-`/`sk-`/`AKIA`/`ghp_`/`xox[baprs]-`/`AIza`/`BEGIN … PRIVATE KEY`/Slack·Discord webhook/`://user:pass@`/≥300 字符 base64 块/硬编码 `TOKEN\|SECRET\|KEY=` 赋值——**全 0**；关键词命中逐条判为良性并给了 `path:line`（如 `apps/cli/src/config.ts:62` 是**拒绝**带凭据 URL 的逻辑） |
-  | Q2 env 与备份残留 | **PASS** | 树与 tar 双侧 `find`/正则 0 命中；`git ls-files -i -c --exclude-standard` **输出为空**（无「被忽略却在库」）；并正确区分「运行时**写**备份是代码行为」（`packages/core/src/inject/lock.ts:8`）与「备份产物被提交」 |
-  | Q3 个人路径 | **FAIL（暴露，无机密附着）** | 见下「潜在风险④」，与 `㉑(b)` 同物 |
-  | Q4 资产完整性 | **PASS（一处外观缺陷）** | 独立复核 36 条与 sha256；判 `README.md`/`LICENSE` 与 `git show cbdee74:` **逐字节相同**；判 `package.json` **不同且是刻意的发布态改写**（`@openvibe/cli`→`openvibe-cli`、去 `private`、bin→`dist/cli.js`、去 4 个 `workspace:*` 与 4 个 devDeps、加 `files:["dist"]`）；并从 **tar 内部**实测入口 `293.16 kB`、最大 chunk `347.44 kB`、`dist/cli.js 3.42 MiB`、种子 `109/21/3` |
-  | Q5 README 与 About 夸大 | **PASS，(a)–(e) 全 SUPPORTED** | 自己跑 `npm view openvibe-cli version` → **E404** 且 `registry.npmjs.org` HTTP **404**（不由我供数）；用 `git ls-tree -r cbdee74 \| grep -cE '\.(test\|spec)\.(ts\|tsx\|js\|mjs)$'` 独立数出 **55** 对上 README；把 8 支 win32 门控**逐点数到源码行**（7 处 `it.skipIf(IS_WINDOWS)` + 1 处 `itPosix`，跨 6 文件）并判 README 把它写成未验证面而非通过；对 `scripts/bundle-check.ts:14`、`scripts/seed-check.ts:25-26` 核门禁常量；抽查 3 个 topic 与「六个助手 / 只听 127.0.0.1」（`apps/server/src/bootstrap.ts:62,95,150`） |
-  | Q6 历史（有界） | **PASS（文件名维度）/ 内容维度 UNVERIFIED** | 3 条命令扫 **138 个提交**的全部新增路径与 `git rev-list --all --objects` 全部对象路径 → 残留形态名 **0 命中**（唯一命中 `tests/design-tokens.test.ts` 是 "design-**token**s" 子串误配）；并**主动写明**这只查文件名、查不出粘进正常文件里的密钥 |
+  | 问                      | 判定                                        | 它自己量的东西（不是复述我的话）                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+  | ----------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Q1 凭据                 | **PASS 0 命中**                             | 24 条正则跑遍 `cbdee74` **463 个文件** + tar 内 **36 条**：`sk-ant-`/`sk-`/`AKIA`/`ghp_`/`xox[baprs]-`/`AIza`/`BEGIN … PRIVATE KEY`/Slack·Discord webhook/`://user:pass@`/≥300 字符 base64 块/硬编码 `TOKEN\|SECRET\|KEY=` 赋值——**全 0**；关键词命中逐条判为良性并给了 `path:line`（如 `apps/cli/src/config.ts:62` 是**拒绝**带凭据 URL 的逻辑）                                                                                                                                                                             |
+  | Q2 env 与备份残留       | **PASS**                                    | 树与 tar 双侧 `find`/正则 0 命中；`git ls-files -i -c --exclude-standard` **输出为空**（无「被忽略却在库」）；并正确区分「运行时**写**备份是代码行为」（`packages/core/src/inject/lock.ts:8`）与「备份产物被提交」                                                                                                                                                                                                                                                                                                            |
+  | Q3 个人路径             | **FAIL（暴露，无机密附着）**                | 见下「潜在风险④」，与 `㉑(b)` 同物                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+  | Q4 资产完整性           | **PASS（一处外观缺陷）**                    | 独立复核 36 条与 sha256；判 `README.md`/`LICENSE` 与 `git show cbdee74:` **逐字节相同**；判 `package.json` **不同且是刻意的发布态改写**（`@openvibe/cli`→`openvibe-cli`、去 `private`、bin→`dist/cli.js`、去 4 个 `workspace:*` 与 4 个 devDeps、加 `files:["dist"]`）；并从 **tar 内部**实测入口 `293.16 kB`、最大 chunk `347.44 kB`、`dist/cli.js 3.42 MiB`、种子 `109/21/3`                                                                                                                                                |
+  | Q5 README 与 About 夸大 | **PASS，(a)–(e) 全 SUPPORTED**              | 自己跑 `npm view openvibe-cli version` → **E404** 且 `registry.npmjs.org` HTTP **404**（不由我供数）；用 `git ls-tree -r cbdee74 \| grep -cE '\.(test\|spec)\.(ts\|tsx\|js\|mjs)$'` 独立数出 **55** 对上 README；把 8 支 win32 门控**逐点数到源码行**（7 处 `it.skipIf(IS_WINDOWS)` + 1 处 `itPosix`，跨 6 文件）并判 README 把它写成未验证面而非通过；对 `scripts/bundle-check.ts:14`、`scripts/seed-check.ts:25-26` 核门禁常量；抽查 3 个 topic 与「六个助手 / 只听 127.0.0.1」（`apps/server/src/bootstrap.ts:62,95,150`） |
+  | Q6 历史（有界）         | **PASS（文件名维度）/ 内容维度 UNVERIFIED** | 3 条命令扫 **138 个提交**的全部新增路径与 `git rev-list --all --objects` 全部对象路径 → 残留形态名 **0 命中**（唯一命中 `tests/design-tokens.test.ts` 是 "design-**token**s" 子串误配）；并**主动写明**这只查文件名、查不出粘进正常文件里的密钥                                                                                                                                                                                                                                                                               |
 - **一个刻意的不做（为什么不把 sha256 / 36 条写进 release notes）**: 若加，仓库文件就与**已发布的 release body** 分家，要一致就得再 `gh release edit --notes-file`——一次额外的对外改动，且仓库侧还需第 10 次推送授权。而 **GitHub 已在 release 页机读地显示 asset digest**（我从 API 读到 `sha256:dcf6b684…`），比我手抄一遍更强。⇒ 三个事实（sha256 / 36 条 / 干净 checkout）只登记在本条与 `docs/decisions.md` ③ 行，**release notes 保持与 release body 同字节**。
 - **被推翻（本轮 3 条，全是我自己的）**:
   ① **`[DEV-0060]` 风险① 那条回退命令是错的**：`git tag -f -a v0.1.0 5f7fd3c` **不能复原旧 tag 对象**——annotated tag 的对象哈希含 message 与 taggerdate，重建必得新对象（本轮正向证明：同样指向 `cbdee74` 的新对象是 `8cfa5c1`，不是任何旧值）。回退能复原的是**tag 指向哪个 commit**，不是 `cd8102af` 这个对象本身。
@@ -1483,23 +1504,25 @@
   4. 闸：`SCRIPT-PKG-05` 逐条解析 README 的 `](./…)` 与 `src="./…"`（两种写法都要抓——**当初就是走 `src=` 才漏掉的**），未解析集合非空即红；并钉 `refs.length > 0` 防「正则零命中 ⇒ 恒真通过」。
 - **门禁现测（2026-09-30 00:4x 本机，工作树 = 本笔 + 两个并行会话的在途改动 ⇒ 分栏记账）**:
 
-  | 闸 | 工作树现测 | 归因与口径 |
-  |---|---|---|
-  | `pnpm lint` | rc=0，零输出 | 全树 |
-  | `pnpm typecheck` | rc=0，零输出 | 首跑 **rc=2**，唯一一条是**本笔自己的** `tests/publish-manifest.test.ts` 里 `m[1]` 的 `possibly undefined`；加 `filter((r): r is string …)` 后转绿——不是并行噪声 |
-  | `pnpm test` | rc=0，**56 文件 / 489 支 / 0 skipped**，6.96 s，零 `Test timed out` | 本笔只贡献 `SCRIPT-PKG-05` 一支；**提交树的权威数是 55 文件 / 477 支**（`93bb697` 的 476 + 本笔 1），多出的 1 文件 / 12 支来自并行会话未提交的 `apps/server/test/ports.api.test.ts` 等 ⇒ 本笔不替那些路径记数，提交树以 CI 为准 |
-  | `pnpm seed:check` | rc=0（109 术语 / 3 模板 / 21 提示词） | 与 `[DEV-0059]` 后同值 |
-  | `pnpm bundle:check` | rc=0，入口 **296.38 kB ≤ 300 kB** | **这不是提交树的数**：提交树应仍 ~293 kB。并行会话的设计系统那笔（四支 `.woff2` + `index.css`）把预算余量从 6.84 kB 吃到 **3.62 kB** ⇒ 见「潜在风险①」 |
+  | 闸                  | 工作树现测                                                          | 归因与口径                                                                                                                                                                                                                      |
+  | ------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `pnpm lint`         | rc=0，零输出                                                        | 全树                                                                                                                                                                                                                            |
+  | `pnpm typecheck`    | rc=0，零输出                                                        | 首跑 **rc=2**，唯一一条是**本笔自己的** `tests/publish-manifest.test.ts` 里 `m[1]` 的 `possibly undefined`；加 `filter((r): r is string …)` 后转绿——不是并行噪声                                                                |
+  | `pnpm test`         | rc=0，**56 文件 / 489 支 / 0 skipped**，6.96 s，零 `Test timed out` | 本笔只贡献 `SCRIPT-PKG-05` 一支；**提交树的权威数是 55 文件 / 477 支**（`93bb697` 的 476 + 本笔 1），多出的 1 文件 / 12 支来自并行会话未提交的 `apps/server/test/ports.api.test.ts` 等 ⇒ 本笔不替那些路径记数，提交树以 CI 为准 |
+  | `pnpm seed:check`   | rc=0（109 术语 / 3 模板 / 21 提示词）                               | 与 `[DEV-0059]` 后同值                                                                                                                                                                                                          |
+  | `pnpm bundle:check` | rc=0，入口 **296.38 kB ≤ 300 kB**                                   | **这不是提交树的数**：提交树应仍 ~293 kB。并行会话的设计系统那笔（四支 `.woff2` + `index.css`）把预算余量从 6.84 kB 吃到 **3.62 kB** ⇒ 见「潜在风险①」                                                                          |
+
 - **变异反证（`SCRIPT-PKG-05` 有牙）**: 往 README 追加一行 `[design.md](./docs/design.md)` ⇒ 该支变红（`1 failed / 4 passed`）；撤回后 `cmp` 与备份**逐字节相同**。
 - **装包回环实测（本笔的交付凭据，工作树那份，非发布资产）**: `pnpm pkg:cli` → `cd apps/cli/pkg && npm pack` → **42 条 / 1,304,019 B**，`tar tzf` 命中 `package/assets/readme/{hero,flywheel}.svg`；解包后对包内 README 逐个 `[ -e ]`：`LICENSE` / `package.json` / `assets/readme/hero.svg` / `assets/readme/flywheel.svg` = **4/4 IN_TARBALL，0 死链**（`[DEV-0062]` 量的是 4/4 MISSING）。42 = 36 + 本笔 2 支图 + 并行会话 4 支字体，**提交树重建应是 38 条**——这条算术在资产重建后核对。
 - **三个对外动作（按「不可逆排在内容冻结之后」排序，逐个复核授权面）**:
 
-  | # | 动作 | 授权来源与边界披露 |
-  |---|---|---|
-  | 1 | `git push`（`origin/main` 快进，非 force） | 队列 ⑦ **第 10 次推送**——⑦ 行的既有授权各覆盖当次，本笔是**新一次放行请求**，此处即为披露 |
-  | 2 | `git push --force origin refs/tags/v0.1.0`（**第三次**移动公开 tag） | owner 本轮裁「tag 跟过去」直接覆盖；代价沿用 `[DEV-0061]` 风险①：已 clone 者 `git fetch --tags` **不会**自动更新本地 tag |
-  | 3 | `gh release upload v0.1.0 --clobber` 换掉资产 +（若做）`gh release edit --notes-file` | owner 令「更新 release」覆盖附件替换；**正文同步是边界扩大**，做与不做都在本条记明 |
-  | — | 仓库 About | **不动**：`[DEV-0062]` 00:4x 已实测 `description` 末句与 topics 12 条即目标态，本笔无新增对外断言 ⇒ 避掉一次对外写 |
+  | #   | 动作                                                                                  | 授权来源与边界披露                                                                                                       |
+  | --- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+  | 1   | `git push`（`origin/main` 快进，非 force）                                            | 队列 ⑦ **第 10 次推送**——⑦ 行的既有授权各覆盖当次，本笔是**新一次放行请求**，此处即为披露                                |
+  | 2   | `git push --force origin refs/tags/v0.1.0`（**第三次**移动公开 tag）                  | owner 本轮裁「tag 跟过去」直接覆盖；代价沿用 `[DEV-0061]` 风险①：已 clone 者 `git fetch --tags` **不会**自动更新本地 tag |
+  | 3   | `gh release upload v0.1.0 --clobber` 换掉资产 +（若做）`gh release edit --notes-file` | owner 令「更新 release」覆盖附件替换；**正文同步是边界扩大**，做与不做都在本条记明                                       |
+  | —   | 仓库 About                                                                            | **不动**：`[DEV-0062]` 00:4x 已实测 `description` 末句与 topics 12 条即目标态，本笔无新增对外断言 ⇒ 避掉一次对外写       |
+
 - **共享工作树的携带账（本笔最容易做错的地方）**: 本笔开工时索引里已有并行会话**暂存**的设计系统变更集（`CLAUDE.md`/`DESIGN.md`/四支字体/`useTheme.ts`/`index.css` …），`docs/decisions.md`、`docs/release-notes/v0.1.0.md`、`DEV_LOG.md`、`README.md` 四处另有 `[DEV-0062]` 那轮**未提交**的改写。所以本笔**不用** `git commit`（那会把别人暂存的东西一起发出去），也不用路径限定 `git add`（`[DEV-0061]` 净发现⑥ 已证它会吞掉同文件他人的未提交行）：
   - 提交树 = `git read-tree HEAD` 到**私有 index**（`GIT_INDEX_FILE`）→ 六个路径逐条 `git hash-object -w` + `update-index --cacheinfo` → `git write-tree` → `git commit-tree -p 93bb697` → `git update-ref`。
   - 四个共享文件的本笔改动都**同时**写进工作树，且用的锚串在 HEAD 版与工作树版里逐字节相同（`本机用户名路径 \| \*\*待裁\*\* \|`、`## 本版本\*\*未\*\*验证的事` 两处已核）⇒ 并行会话随后提交它们的工作树时，本笔的文字**作为它们文件内容的一部分一起落地**，谁也不覆盖谁。
@@ -1523,13 +1546,13 @@
 
 - **动作 3 资产从干净 checkout 重建 + 三方同值**：provenance = `/tmp/ov-clean-065` @ `f7df600`，`git status --porcelain` 现测 **0 行**（本笔的构建产物不落仓库工作树，避掉「工作树那份 ≠ 发布那份」这个 `[DEV-0062]` 已抓过的坑）。**本笔真正交付的那条不变式，在从 release 页下载回来的那份上逐条复验**：`perl -ne '…/(?:\]\(|src=")(\.\/[^)"\s#]+)/g…'` 抓到 4 条相对引用，逐个 `[ -e ]` = **4/4 IN_TARBALL**（`./LICENSE`、`./package.json`、`./assets/readme/hero.svg`、`./assets/readme/flywheel.svg`）——`[DEV-0062]` 量的旧资产是 **4/4 MISSING**，这就是队列 ㉑(a) 从「裂首屏」翻到「不裂」的那格实测。
 
-  | 量 | 值 | 取数命令 |
-  |---|---|---|
-  | 体积 | **1,156,881 B**（旧资产 1,154,710 B ⇒ +2,171 B） | `ls -l` / `gh api …releases/tags/v0.1.0` `assets[].size` 两侧同值 |
-  | sha256 | **`f7730943a8f3786f3139f77f76b6a347b61550f8a7caf9c4fb2cba065534ee5c`** | 本机 `shasum -a 256` == GitHub 记 `asset.digest`（`sha256:` 前缀后同串）== 回环下载件 `shasum` |
-  | 条目数 | **38**（旧 36 ⇒ 恰为本笔那两张 SVG） | `tar tzf … \| wc -l` |
-  | 解包 | **38 文件 / 4.8 MB** | `tar xzf` + `find -type f \| wc -l` + `du -sh` |
-  | 字节回环 | `cmp` 下载件 vs 本机构件 **rc=0，一字不差** | `cmp /tmp/ov-roundtrip/… /tmp/ov-clean-065/apps/cli/pkg/…` |
+  | 量       | 值                                                                     | 取数命令                                                                                       |
+  | -------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+  | 体积     | **1,156,881 B**（旧资产 1,154,710 B ⇒ +2,171 B）                       | `ls -l` / `gh api …releases/tags/v0.1.0` `assets[].size` 两侧同值                              |
+  | sha256   | **`f7730943a8f3786f3139f77f76b6a347b61550f8a7caf9c4fb2cba065534ee5c`** | 本机 `shasum -a 256` == GitHub 记 `asset.digest`（`sha256:` 前缀后同串）== 回环下载件 `shasum` |
+  | 条目数   | **38**（旧 36 ⇒ 恰为本笔那两张 SVG）                                   | `tar tzf … \| wc -l`                                                                           |
+  | 解包     | **38 文件 / 4.8 MB**                                                   | `tar xzf` + `find -type f \| wc -l` + `du -sh`                                                 |
+  | 字节回环 | `cmp` 下载件 vs 本机构件 **rc=0，一字不差**                            | `cmp /tmp/ov-roundtrip/… /tmp/ov-clean-065/apps/cli/pkg/…`                                     |
 
   上一条「装包回环实测」的算术（42 = 36 + 图 2 + 并行字体 4）**在提交树上落成 38** 已核对：并行会话那四支 `.woff2` 不在 `f7df600`，故发布资产里没有它们。
 
@@ -1538,16 +1561,16 @@
 
 - **敏感信息复扫（owner 令的最后一步；扫的是从 release 页 `gh release download` 回来的那份，不是本机手里那份文件）**：脚本 `/tmp/ov-secret-scan.py` = **17 条内容模式 + 6 条结构闸**，每条模式配一份合成夹具样本，先跑控制组证明规则**能**命中再跑真件。
 
-  | 检查 | 结果 | 判读 |
-  |---|---|---|
-  | 控制组（夹具 17 条） | **17/17 命中** | 每条规则都有牙。修之前是 **13/15**：`Bearer 硬编码` 那条把引号写成必需（真样本 `Authorization: Bearer <jwt>` 不命中）、`SSH 私钥头` 那条在 `-----` 前放 `\b`（`-` 非 word char，位置 0 永不成立）⇒ **两条恒 0 的死闸**，没有夹具我就把「0 命中」当结论报出去了 |
-  | 负对照（专用空文件） | 误报 **0** | 不是「模式太宽见啥咬啥」 |
-  | 私钥块 / `ghp_`·`github_pat_` / `sk-…` / `AIza` / `AKIA` / `xox*` / `_authToken` / `x-api-key` / Bearer 硬编码 / `key=value` 凭据赋值 / **LLM 凭据赋值**（OPENAI\|ANTHROPIC\|DASHSCOPE\|DEEPSEEK\|MOONSHOT\|ZHIPU\|GEMINI… 十六家前缀 × `API_KEY`）/ SSH 私钥头 / 云凭据文件形态 / URL 内嵌凭据 | 各 **0** | 发布件内无任何凭据 |
-  | 结构闸：`.env*` / `.bak`·`.orig`·`.swp`·`~`·`.DS_Store`·`.pem`·`.key`·`.kdbx` / `node_modules` / `*.js.map`·`*.css.map` / 测试与开发残留目录 / `.sqlite`·`.db` | 各 **0**（38 条目全列过） | 无备份、无 sourcemap、无数据文件、无开发残留随包走 |
-  | 私有 IP / 内网段 | **1** 命中 → `package/dist/cli.js:16478` | **BENIGN**：`uniquelocal: ["10.0.0.0/8","172.16.0.0/12","192.168.0.0/16","fc00::/7"]` 是 esbuild 内联进来的 Express `trust proxy` 常量表（`IP_RANGES`），RFC1918 文档段，不是任何真实内网地址 |
-  | 本机绝对路径 | **1** 命中 → `package/dist/web/assets/ProjectsPage-f8Al2NBJ.js:1` | **BENIGN**：命中体是 `/Users/you`，来自向导输入框的 `placeholder:"/Users/you/work/my-project"`（示例文案）。全件 **0** 处 `/Users/duke` |
-  | 邮箱 | **1** 命中 → `package/dist/cli.js:11339` | **BENIGN**：`author: "Matteo Collina <hello@matteocollina.com>"` 是 `thread-stream` 的公开 npm 元数据被 bundle 带进来的第三方署名。维护者邮箱在全件 **0** 处 |
-  | 定向复核（`sk-` / `Bearer` / 手机号 / 18 位数） | 全为假阳 | `sk-` 只命中 markdown 类名 `task-list-item`；`Bearer` 真件里只有模板插值 `Bearer ${options.token}` 与 `--token <token>` 的选项说明，**无字面量 token**；18 位数字来自 `dist/web/assets/index-BWidlRir.js` 里一条 `Ol("888888…")` 的位压缩常量表 |
+  | 检查                                                                                                                                                                                                                                                                                            | 结果                                                              | 判读                                                                                                                                                                                                                                                           |
+  | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | 控制组（夹具 17 条）                                                                                                                                                                                                                                                                            | **17/17 命中**                                                    | 每条规则都有牙。修之前是 **13/15**：`Bearer 硬编码` 那条把引号写成必需（真样本 `Authorization: Bearer <jwt>` 不命中）、`SSH 私钥头` 那条在 `-----` 前放 `\b`（`-` 非 word char，位置 0 永不成立）⇒ **两条恒 0 的死闸**，没有夹具我就把「0 命中」当结论报出去了 |
+  | 负对照（专用空文件）                                                                                                                                                                                                                                                                            | 误报 **0**                                                        | 不是「模式太宽见啥咬啥」                                                                                                                                                                                                                                       |
+  | 私钥块 / `ghp_`·`github_pat_` / `sk-…` / `AIza` / `AKIA` / `xox*` / `_authToken` / `x-api-key` / Bearer 硬编码 / `key=value` 凭据赋值 / **LLM 凭据赋值**（OPENAI\|ANTHROPIC\|DASHSCOPE\|DEEPSEEK\|MOONSHOT\|ZHIPU\|GEMINI… 十六家前缀 × `API_KEY`）/ SSH 私钥头 / 云凭据文件形态 / URL 内嵌凭据 | 各 **0**                                                          | 发布件内无任何凭据                                                                                                                                                                                                                                             |
+  | 结构闸：`.env*` / `.bak`·`.orig`·`.swp`·`~`·`.DS_Store`·`.pem`·`.key`·`.kdbx` / `node_modules` / `*.js.map`·`*.css.map` / 测试与开发残留目录 / `.sqlite`·`.db`                                                                                                                                  | 各 **0**（38 条目全列过）                                         | 无备份、无 sourcemap、无数据文件、无开发残留随包走                                                                                                                                                                                                             |
+  | 私有 IP / 内网段                                                                                                                                                                                                                                                                                | **1** 命中 → `package/dist/cli.js:16478`                          | **BENIGN**：`uniquelocal: ["10.0.0.0/8","172.16.0.0/12","192.168.0.0/16","fc00::/7"]` 是 esbuild 内联进来的 Express `trust proxy` 常量表（`IP_RANGES`），RFC1918 文档段，不是任何真实内网地址                                                                  |
+  | 本机绝对路径                                                                                                                                                                                                                                                                                    | **1** 命中 → `package/dist/web/assets/ProjectsPage-f8Al2NBJ.js:1` | **BENIGN**：命中体是 `/Users/you`，来自向导输入框的 `placeholder:"/Users/you/work/my-project"`（示例文案）。全件 **0** 处 `/Users/duke`                                                                                                                        |
+  | 邮箱                                                                                                                                                                                                                                                                                            | **1** 命中 → `package/dist/cli.js:11339`                          | **BENIGN**：`author: "Matteo Collina <hello@matteocollina.com>"` 是 `thread-stream` 的公开 npm 元数据被 bundle 带进来的第三方署名。维护者邮箱在全件 **0** 处                                                                                                   |
+  | 定向复核（`sk-` / `Bearer` / 手机号 / 18 位数）                                                                                                                                                                                                                                                 | 全为假阳                                                          | `sk-` 只命中 markdown 类名 `task-list-item`；`Bearer` 真件里只有模板插值 `Bearer ${options.token}` 与 `--token <token>` 的选项说明，**无字面量 token**；18 位数字来自 `dist/web/assets/index-BWidlRir.js` 里一条 `Ol("888888…")` 的位压缩常量表                |
 
 - **同一条命令顺手扫了提交树（`f7df600`，528 个非 `node_modules`/`.git` 文件）**：17 条内容模式 **0** 命中；`/Users/duke` 在**受版本控制**的文件里 **32 处 / 28 行 / 10 个文件**（`DEV_LOG.md` 8、`docs/decisions.md` 1、`apps/server/test/telemetry-flush.test.ts` 1、`docs/devlog-evidence/**` 22——取数 `git grep -oI "/Users/duke" f7df600 | wc -l` = 32（occurrences）、`-nI | wc -l` = 28（lines）、`-lI | wc -l` = 10（files），报数必须带单位，否则两条都对的数会看着互相否证）；维护者邮箱在受控文件里 **0** 处，但在 **141 笔提交中的 140 笔** 的 author/committer 元数据里（`git log --format='%ae\|%ce' | sort -u` 现测两个唯一值，另一笔 committer 是 GitHub 的 `noreply@github.com`），**外加本轮重建的那枚 tag 的 tagger 字段**。这三件都属队列 **㉑(b)**，本轮**一字未动历史、也未改 tagger 身份**——清它只有 `filter-repo` 级改写，须 owner 另行授权。`DEV_LOG.md:681` 被邮箱模式命中是假阳（`git@ssh.github.com` 是传输写法，不是地址）。
 
@@ -1617,7 +1640,7 @@
   - **实测（四条命令均可复跑，取样 sha `fcefe00`）**：
     1. `git show HEAD:DEV_LOG.md | grep -cE '^## \[DEV-00(62|63|66|67|68|69|70)\]'` → **0**；同一正则跑工作树 → **7**；`git diff --numstat -- DEV_LOG.md` → **250 增 / 0 删**。即这七条登记（`DEV-0062`、`0063`、`0066`、`0067`、`0068`、`0069`、`0070`）此刻整体只存在于未提交侧。
     2. 本笔新引入的悬空引用：`docs/specs/m2-skill-registry.md` **17** 处（0063/0066/0067/0068/0069）、`docs/dev-plan.md` **8** 处、`docs/specs/m5-project-flow.md` **2** 处（0070）；三份在 `453a535` 侧命中均为 **0**。**正/负对照**（排掉「正则失配型假 0」）：同一命令对 `git show 453a535:docs/specs/m5-project-flow.md` 跑 `DEV-0007` → **1**，对 `DEV-0047` → **0**，而 `[DEV-0047]` 的标题在 HEAD 是有的——说明 0 只表示「本笔新加」，不表示「指向空」。
-    2b. **本笔也新加了非悬空引用**：`m5` 版本行的 `DEV-0047`（09-27 队列④收口笔，标题在库）同属本笔引入，与本条的债无关，列在此处是为了别把 m5 的 +2 读成 m5 的全部新增。
+       2b. **本笔也新加了非悬空引用**：`m5` 版本行的 `DEV-0047`（09-27 队列④收口笔，标题在库）同属本笔引入，与本条的债无关，列在此处是为了别把 m5 的 +2 读成 m5 的全部新增。
     3. **不是本笔一个人带出来的**：`git show 453a535:DEV_LOG.md | grep -oE 'DEV-00(62|63|66|67|68|69|70)' | wc -l` → **23**（`DEV-0061` / `DEV-0065` 记录里对 `[DEV-0062]` 的交叉引用占了大头），而 `[DEV-0062]` 的标题从未入库；`060690a` 的提交信息写着 `DEV-0067~0069`，库里同样没有那三条标题。HEAD 侧总数 **23 → 53**（本笔净新增 **30** = DEV_LOG +3 / dev-plan +8 / m2 +17 / m5 +2）。
     4. **`DEV-0064` 与那七条不同类，别并成一条读**：`git grep -nE '^## \[DEV-0064\]'` 在 HEAD 与工作树**双 0 命中**——它是彻底不存在的编号（本笔上一轮已把 `packages/core` 两处注释改成 `DEV-0066`，`skills.test.ts` 的 `describe` 标题同源），现只剩散文与版本行引用它；而 0062/0063/0066~0070 是「标题存在、尚未入库」。上面「潜在风险」③ 单写了 0064，读数须按这条拆开理解，不要推成「全库只此一处悬空」。
   - **为什么引用先行**：B 级三步流程的第① 步（DEV_LOG 登记）正握在并行会话手里，按共享工作树归属纪律本笔**不代提**别人未完成的登记行（`git status` 现测：8 个已改文件 + 1 个未跟踪原型仍在工作树，其中 `DEV_LOG.md` 与 `docs/dev-plan.md` 是本笔与那会话共写的两份）。代价是「指向空」的中间态被我留在了提交树里，而不是留在自己看得见的工作树里——这比编号撞车（`潜在风险` ④）更难被发现。
@@ -1646,7 +1669,7 @@
   2. 「`m6-standard-pack.md` §8 Out 写『多用户协作 → 未实现（M7）』」→ **假**：`grep -n '多用户协作' docs/specs/m6-standard-pack.md` → **0**。真身是 `:24` 的「团队包共享与评审（P2/M7）」。
   3. 「`m5-project-flow.md:26` 已把 `assignee` 字段写进预留，是字段先于制度的债」→ **读法错**：`grep -rn 'assignee' packages apps | wc -l` → **0**，代码从无此字段，那是命名占位而非 schema 事实。已在 m7 §1 写成防误读条款。
   4. 「未签收 tombstone 在 `DEV-0012`」→ **错号**：实为 `docs/devlog-evidence/DEV-0019/seed-review.md:84`；另一处 `DEV-0037/seed-review.md:87` 编号无误。
-  另有一条初稿错判：M7 曾写「全库零提及」，`grep -rn 'M7' docs/specs/*.md` 命中六处即否证——**M7 不是空白，是被稀释成四条不同能力**。
+     另有一条初稿错判：M7 曾写「全库零提及」，`grep -rn 'M7' docs/specs/*.md` 命中六处即否证——**M7 不是空白，是被稀释成四条不同能力**。
 - **探针闭合（M4 §7.5 三条全过）**: ①terms 关联口径=拒（`terms.test.ts:85`）；②脏数据 `standard_packs` 总行 **1** / 含 `playbookIds` 键 **1** / 非空数组 **0**，正对照同形状查 `termIds` → **1**（排掉失配型假 0），采样于本机实例库的只读副本（`cp` 三份文件后 `sqlite3 -readonly`，避免对活库加锁）；③书脊已用「库词技流项包设」七字（`AppShell.tsx:22-28`），「技」在 `:24` 归 `/skills`，候选「巧/训/例/坑」四字均未占用。
 - **本笔附带查出的、影响收口的三件事（不在原计划内）**:
   1. **并行负载下全量 `pnpm test` 不可信**：21:47 前后那轮全量跑 rc=1，12 文件 / 15 支失败，但**失败时长全在 45,645–989,588ms 区间（即超时），无一条断言失败**，collect 阶段 1,058s（正常 ~12s），当时 load avg **43.47**（10 核 16GB）。串行复跑（`--no-file-parallelism`，逐文件）12 文件 **141 支全绿、rc 全 0**。⇒ 收口期凡见「测试红」必须先辨时长形状；候选纪律：本机共存时门禁以串行复跑取证。
@@ -1676,7 +1699,7 @@
   - `docs/PRD.md` §3.2-M2 功能表「多平台分发 | 一键分发到 Claude Code / Cursor / Windsurf / Codex / CodeBuddy / Trae / MiniCode 等，symlink / copy 双模式 | P1」
   - `docs/PRD.md` §3.2-M5 功能表「会话记录挂接 | 手动粘贴 AI 会话摘录作为日志附件 | P1」
   - `docs/PRD.md` §3.2-M6 功能表「双向同步 | 项目内改动回读比对（以本地为准/以标准包为准可选） | P1」
-  按 `openvibe-doc-governance-self-audit` 检查 6（判缺口前先 grep 代码，§15.5-6 的「飞轮面板」就是栽在这条上的先例）逐条核，结论是**三条里只有一条真是缺口，另两条是把已交付能力与未裁语义混在一个名字里**——若照字面「开始做」，就会重复排工（做已经有的）或把 A 级数据流向变更当成一个下午的小功能。
+    按 `openvibe-doc-governance-self-audit` 检查 6（判缺口前先 grep 代码，§15.5-6 的「飞轮面板」就是栽在这条上的先例）逐条核，结论是**三条里只有一条真是缺口，另两条是把已交付能力与未裁语义混在一个名字里**——若照字面「开始做」，就会重复排工（做已经有的）或把 A 级数据流向变更当成一个下午的小功能。
 - **实现思路**: 真缺口新建八段式规格并把不能定的全推进待裁表；两条名不符实的**只登记判据与改判建议**，等 owner 一句话，不替它选边、不为其编 FR。
 - **核心变更**:
   - **`m2-skill-distribution.md` v0.9（真缺口，全仓零实现）**：凭据 = `packages/adapters/src/` 七个 adapter 的 `plan()` 只产**项目根规则文件**（`claude-code.ts` 全文 11 行，返回 `[{path:'CLAUDE.md'}]`）、`COMPAT_MATRIX` 只有 `reads` 一列（`compat.ts:5-13`，且注释自限「仅展示用，不产生代码分支」）、`grep -rn "分发" 全仓 *.ts` 只有 2 处无关命中（字体表随包、解析器分发）、`installedTargets` 是自由文本且 `SkillsRepo.update` 仅开放 `description`/`installedTargets` 两字段（`repos/skills.ts:456`）。规格的两条骨架：① **读写同根**——落点白名单直接复用扫描 FR-1.1 的自动发现集，于是「新工具零代码覆盖」与「分发后重扫必走 skipped」同时成立，后者被写成 FR-8 幂等红线；② **撤销三闸**（台账登记 ∧ targetDir 在 root 内 ∧ 磁盘实算 `dirHash` 相等），显式引 DEV-0059 的「少一条就会删掉用户自己的目录」教训。§8.2 六处待裁（平台路径证据 / symlink 是否进首轮 / 与 `installedTargets` 的关系 / 远程条目能否分发 / 改动提示 / 撤销归本模块还是 `clean`）。§8 自判 **B 级**，并写明「若 owner 选合并两字段 ⇒ 即 A 级，须 `schemaVersion +1`」。
@@ -1748,17 +1771,17 @@
   - `vitest.config.ts` integration project 加 `testTimeout: 20_000`（对实测最慢仍留 2.5x 余量），注释带 CI run 号与四个实测耗时，让后来者知道闸口为什么不是 5s。
 - **测试验证**（RED→GREEN 全部本机取到，win32 用**仿真**）:
 
-  | 探针 | 命令 | 实测 |
-  |---|---|---|
-  | 改前 darwin 基线 | `npx vitest run --project integration apps/server/test/ports.api.test.ts` | **8 passed**，110ms |
-  | 改前 win32 仿真 **RED** | `npx vitest run --config /tmp/ov-win/win32.config.ts`（`setupFiles` 一行把 `process.platform` 改成 `win32`） | **2 failed / 6 passed**：`expected 'netstat 查询失败：command not found' to contain 'lsof 查询失败'`；`{port: 4321, state: 'idle'}` vs 期望 `listening / pid 111 / process node` ⇒ 与 CI 三条失败里的两条**逐字相同** |
-  | 改后 win32 仿真 | 同上 | **8 passed**（57ms） |
-  | 改后 darwin | 同基线命令 | **8 passed**（107ms） |
-  | 变异反证（夹具不可互换） | `npx tsx /tmp/ov-win/cross.mts` | lsof 表进 netstat 解析器 **[]**、netstat 表进 lsof 解析器 **[]**、各自对口解析 **2 / 2** 条 ⇒ 「按平台换夹具」是承重不是装饰；实调命令 `win32 → ["netstat",["-ano","-p","tcp"]]`、`darwin / linux → ["lsof",["-nP","-iTCP","-sTCP:LISTEN"]]` |
-  | 全量串行（工作树） | `npx vitest run --no-file-parallelism` | **57 文件 / 533 支全绿**，21.69s |
-  | eslint | `npx eslint apps/server/test/ports.api.test.ts` | rc=0 |
-  | typecheck 分账 | `npx tsc --noEmit -p tsconfig.json` | 全仓 **6 条** error 全在 `packages/core/src/repos/skills.test.ts`（并行会话未提交文件，本笔未触碰）；本笔两文件 **0 条** |
-  | golden | `git diff --name-only tests/golden \| grep -c .` | **0** ⇒ 非 A 级 |
+  | 探针                     | 命令                                                                                                         | 实测                                                                                                                                                                                                                                         |
+  | ------------------------ | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | 改前 darwin 基线         | `npx vitest run --project integration apps/server/test/ports.api.test.ts`                                    | **8 passed**，110ms                                                                                                                                                                                                                          |
+  | 改前 win32 仿真 **RED**  | `npx vitest run --config /tmp/ov-win/win32.config.ts`（`setupFiles` 一行把 `process.platform` 改成 `win32`） | **2 failed / 6 passed**：`expected 'netstat 查询失败：command not found' to contain 'lsof 查询失败'`；`{port: 4321, state: 'idle'}` vs 期望 `listening / pid 111 / process node` ⇒ 与 CI 三条失败里的两条**逐字相同**                        |
+  | 改后 win32 仿真          | 同上                                                                                                         | **8 passed**（57ms）                                                                                                                                                                                                                         |
+  | 改后 darwin              | 同基线命令                                                                                                   | **8 passed**（107ms）                                                                                                                                                                                                                        |
+  | 变异反证（夹具不可互换） | `npx tsx /tmp/ov-win/cross.mts`                                                                              | lsof 表进 netstat 解析器 **[]**、netstat 表进 lsof 解析器 **[]**、各自对口解析 **2 / 2** 条 ⇒ 「按平台换夹具」是承重不是装饰；实调命令 `win32 → ["netstat",["-ano","-p","tcp"]]`、`darwin / linux → ["lsof",["-nP","-iTCP","-sTCP:LISTEN"]]` |
+  | 全量串行（工作树）       | `npx vitest run --no-file-parallelism`                                                                       | **57 文件 / 533 支全绿**，21.69s                                                                                                                                                                                                             |
+  | eslint                   | `npx eslint apps/server/test/ports.api.test.ts`                                                              | rc=0                                                                                                                                                                                                                                         |
+  | typecheck 分账           | `npx tsc --noEmit -p tsconfig.json`                                                                          | 全仓 **6 条** error 全在 `packages/core/src/repos/skills.test.ts`（并行会话未提交文件，本笔未触碰）；本笔两文件 **0 条**                                                                                                                     |
+  | golden                   | `git diff --name-only tests/golden \| grep -c .`                                                             | **0** ⇒ 非 A 级                                                                                                                                                                                                                              |
 
 - **失败支数的两本账**: CI 现测提交树 **527**（516 passed + 8 skipped + 3 failed，Test Files 2 failed / 55 passed）；本笔工作树 **533**——差 6 支在并行会话未提交的用例里。本笔不替那些路径记数，提交树权威数仍以推上去后 CI 复跑为准。
 - **被本笔推翻的一条（自己上一轮的数）**: `[DEV-0074]`「失败面全部落在端口面板一套（`db6bb8d` 引入）的 2 条断言」→ 同一 run 实为 **3 条失败 / 2 个文件**，第三条属超时类、与端口面板无关。**错因**：从「平台耦合」这个假设出发挑了两条就没读完 `Failed Tests 3` 那行——**数失败面要读汇总行，不能从自己的假设反推清单**。原叙述按写作时点保留，不回改。
@@ -1811,13 +1834,13 @@
 - **实现思路**: 根因在腿自身的形状。`SM-2b` 钉的是「检索请求**已发出**」（轮询 `requests` 到 4 s），`SM-2c` 却用**一次** `evalJs` 问 DOM 拿 0/1、**零等待**——请求发出与响应渲染之间没有 happens-before。同文件 SM-2f 上方那段注释（改前 602–603 / 改后 609–610）早已把这条纪律写成注释（「『复制全文』按钮从首帧就在（只是 disabled）——所以 SM-2e 过了不等于预览已就绪，必须轮询」），`SM-2c` 是**已知纪律的漏网点**，不是新发现。修法取既有 `waitForProbe`（`:288`，到点返回 `null` 而**不抛**），**不用** `waitForNode`（`:377`，到点抛错会把「渲染慢」升级成整段 SM-2 中止、改变失败形状）。上界 6 s 与同段 `SM-2d` 的 `waitForText(…, 6_000)` 取同值——同一处 DOM 的两条腿共用一个预算，比各自拍数好。
 - **核心变更**: `three-smokes.mjs` 里 `SM-2c` 的判定由「单发 `evalJs` 取 0/1」改为「`waitForProbe` 轮询探针（`el ? 1 : null`，6 s）」，判定式相应改为对返回值 `=== 1`。**断言严格度未降**：到点仍无即 FAIL，失败打印形状与修前一致。
 - **测试验证**（本机 darwin 现测；本笔**未跑五闸全量**，凭据只到「该驱动器 + 该文件 lint + golden 零 diff」，**不得**由上轮 `57/533` 推及本笔）:
-  | 判据 | 命令 | 实测 |
-  |---|---|---|
-  | 修后 GREEN | `HEADLESS=1 SHOTS=0 EXPECT_SKIP=2 node docs/devlog-evidence/DEV-0025/three-smokes.mjs` | **rc=0**、`结果：FAIL=0 SKIP=2`、`PASS SM-2c … 术语「瞬时用户激活」`、`PASS SKIP 条数等于预期 2 — 实得 SKIP=2 FAIL=0 platform=darwin`、`PASS 驱动器结束时无残留本进程子进程` |
-  | 变异反证（本腿仍会判红，不是橡皮章） | 只把**探针**选择器换成不存在的 aria-label（`realClick(aria)` 保持真选择器）后同法跑，`EXPECT_SKIP=3` | **rc=1**、`FAIL SM-2c` 而 `SM-2d` 仍 `PASS` ⇒ **与 CI 那条红同形状**；同跑另有 `FAIL SKIP 条数等于预期 3 — 实得 SKIP=2 FAIL=1` ⇒ 两条判据各自独立生效 |
-  | 同族扫描（这条缺陷在本文件还有几处） | python 解析全部 `check(` 调用体（按括号配平跨行取值），筛「含 `evalJs` 且不含 `waitFor|hasText|waitGone`」 | 命中 **1 处 = 本腿自身**（改前）⇒ 全文件其余腿早已是轮询形态，**无第二个落点** |
-  | lint | `npx eslint docs/devlog-evidence/DEV-0025/three-smokes.mjs` | **rc=0**（`docs/devlog-evidence/**.mjs` 确在 eslint 覆盖面内，口径见队列 ⑲ 的覆盖对账） |
-  | golden | `git diff --name-only tests/golden/ \| grep -c .` | **0** ⇒ 非 A 级 |
+  | 判据                                 | 命令                                                                                                 | 实测                                                                                                                                                                         |
+  | ------------------------------------ | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | 修后 GREEN                           | `HEADLESS=1 SHOTS=0 EXPECT_SKIP=2 node docs/devlog-evidence/DEV-0025/three-smokes.mjs`               | **rc=0**、`结果：FAIL=0 SKIP=2`、`PASS SM-2c … 术语「瞬时用户激活」`、`PASS SKIP 条数等于预期 2 — 实得 SKIP=2 FAIL=0 platform=darwin`、`PASS 驱动器结束时无残留本进程子进程` |
+  | 变异反证（本腿仍会判红，不是橡皮章） | 只把**探针**选择器换成不存在的 aria-label（`realClick(aria)` 保持真选择器）后同法跑，`EXPECT_SKIP=3` | **rc=1**、`FAIL SM-2c` 而 `SM-2d` 仍 `PASS` ⇒ **与 CI 那条红同形状**；同跑另有 `FAIL SKIP 条数等于预期 3 — 实得 SKIP=2 FAIL=1` ⇒ 两条判据各自独立生效                        |
+  | 同族扫描（这条缺陷在本文件还有几处） | python 解析全部 `check(` 调用体（按括号配平跨行取值），筛「含 `evalJs` 且不含 `waitFor               | hasText                                                                                                                                                                      | waitGone`」 | 命中 **1 处 = 本腿自身**（改前）⇒ 全文件其余腿早已是轮询形态，**无第二个落点** |
+  | lint                                 | `npx eslint docs/devlog-evidence/DEV-0025/three-smokes.mjs`                                          | **rc=0**（`docs/devlog-evidence/**.mjs` 确在 eslint 覆盖面内，口径见队列 ⑲ 的覆盖对账）                                                                                      |
+  | golden                               | `git diff --name-only tests/golden/ \| grep -c .`                                                    | **0** ⇒ 非 A 级                                                                                                                                                              |
 - **顺带收的两笔账（不是本笔引入，本笔只登记实况）**:
   1. **`[DEV-0077]` 段末补记**：真机 win32 凭据到账（run `36805454503` 三 job `success`，win32 `57 files` / `519 passed | 8 skipped (527)`，对照上轮 516 + 3 failed）。**变形不清**的两格也写在那段里：真 `netstat` 只被「不炸」这一断言覆盖（不断「解得对」），8 支 win32 skip 仍是**未验证面**。
   2. **`docs/decisions.md` 行 ②**（真 `npm publish`）补「本机不可发」的**穷举凭据**：注册表 `curl` **404**、`npm view` **E404**、`npm whoami` **rc=1**、`NPM_TOKEN` **unset**、`~/.npmrc` 只有 `registry=https://registry.npmmirror.com` 一行且 `_authToken` 类命中 **0** ⇒ 发布**必须**显式 `--registry=https://registry.npmjs.org`（否则会把包发到镜像站，同 `C-88`）、`.github/workflows` 只有 `ci.yml`（无 publish 工作流）、`gh secret list` **空** ⇒ **不存在机器可代的路径**。产物已在手并与 release 资产同值（`1,156,881 B` / sha256 前缀 `f7730943a8f3786f` / 38 条目）。本笔同时登记一条**待 owner 裁的新取舍**：`v0.1.0` 的 tag 现落后 `main` **14 笔**（取数 `git rev-list --count v0.1.0..main`，采样 `e61a33d`），照原裁「从 tag `f7df600` 重建包」发出去的 `0.1.0` 会缺这 14 笔内容；三案（照原案发→随后 `0.1.1`／先第三次 force-move tag 再重建再发／改发 `0.1.1`）都在 owner 手上。
@@ -1844,7 +1867,6 @@
   3. **本笔预支了时钟**：三处时间戳写在它们所指窗口之前——`[DEV-0077]` 段末补记的标题「10:5x–11:1x」、本笔「时间」行的「10:4x–11:1x」、`docs/decisions.md` 行 ② 的补记戳「11:1x」。凭据：`git show -s --format=%ci` 现测 `e61a33d` = 10:26:20、`b8c1b80` = 10:45:45；CI 日志时间戳 02:48:54Z–02:51:11Z ⇒ 本地 10:48–10:51；本补记落笔时 `date` 现测 10:56。三处按实测窗口改为 **10:3x–10:4x** ／ **10:3x–10:5x** ／ **10:4x**。
 - **错因一句话**：前两处是**抄来的引用没有当场反查**——㉔ 的路径承自 `[DEV-0077]` 净发现③，那里只写裸文件名 `PortsPanel.tsx:70`（不含目录、本来不算错），我誊抄时「顺手补全路径」补成了假的；行号按改前读数写、改后未复量。第三处是**把还没走到的时间写成已完成窗口**，与 `[DEV-0041]`「引用要现查，不从上一轮的文字推」同一条纪律，只是维度从空间换成了时间。
 
-
 ---
 
 ## [DEV-0081] P2 三条缺口的最后一条「端口面板 CI 零覆盖」：一条**假标题腿**底下没跑过路由 · 一根**声明了没接线**的 DI 缝 · 外加计划外抓到的一笔夹具空窗红
@@ -1866,17 +1888,17 @@
   - `docs/specs/m5-project-flow.md` §7-11/§7-12：现状陈述改窄——§7-12 那句「该截图是唯一凭据：`PortsPanel` 无自动化 DOM 断言」换成 DOM 断言落点 + 逐条形状 + **仍存在的未验证面**（15 s 轮询、`data.listeners` 无 UI 落点）；两条都按 `dev-plan §13-9` 用**取数命令**替代支数（复算 `grep -cE '^[[:space:]]*it[\.(]' <测试文件>`，实测 11 与 7，采样 11:2x）。§7-9/§7-10 里既存的「段三支」写法本轮**未动**，记在「待增强」。
   - **判级末注**：`m5` 版本行不 bump——本笔没改 §4 FR / §5 输入输出 / §6 边界的任何语义，只改了 §7 的「谁验过」指针；若 owner 认为验收条的凭据变更应进版本链，追加 `→ v1.x` 是 B 级动作，代价一行字。
 - **测试验证**:
-  | 命令 | 实测（采样 2026-10-01 11:2x–11:3x，工作树含并行会话未提交改动） |
-  |---|---|
-  | `npx vitest run` | **58 files / 543 tests 全绿**（rc=0）。本笔净增 = +1 测试文件（`WEB-PORTS` 段 7 支）+ 端点段 +3 支；`grep -cE '^[[:space:]]*it[\.(]' apps/server/test/ports.api.test.ts` = 11 |
-  | 夹具修复前的一次全量 | `1 failed \| 542 passed (543)`，红的是 `CLI-CLEAN-08`（与本笔无因果：改的是 web/server 三文件）。修复后连续两跑全绿 + `npx vitest --project cli --run apps/cli/test/clean.test.ts` **单跑 25/25 绿**（`[DEV-0027]` 那条「此类 flake 以 25 次循环为诊断动作」的成规） |
-  | `node docs/devlog-evidence/DEV-0081/empty-window-wait.mjs` | 窗口撑到 250 ms，旧策略（轮询存在）run1–3 **全红** `SyntaxError: Unexpected end of JSON input`，新策略（轮询非空）**全绿** 拿到 `pid=4242 command=sync-holder`——红的那条错误串与 11:2x 实测到的**逐字相同** |
-  | `python3 docs/devlog-evidence/DEV-0081/mutation-check.py` | 11 条变异各杀其腿（只有 M7 一条杀两支，因它同时动了空卡判据）：M1→腿 02、M2→腿 04、M3→腿 06、M4→腿 01、M5→腿 05、M6→腿 03、M7→腿 06+07；MA1→「未登记 localPath」、MA2→「已消失的目录」、MA3/MA4→「路由级合并」。三条承重结论：**M7** 证明「本机监听不进台账」是可证伪断言（把空卡判据换成 `listeners` 立刻红两支）；**MA3** 证明 idle 行的「三者缺席」不是空话（显示层补一个 `pid:0` 即被杀）；**MA4** 证明新接的 DI 缝**承重**（不转发 `listListenersImpl` 时新腿立刻红），即它不是为测试而生的装饰 |
-  | `npx eslint`（四个改动文件 + 新探针） | rc=0，零告警 |
-  | `npx tsc -p apps/web/tsconfig.json --noEmit` | 0 错 |
-  | `npx tsc -p tsconfig.json --noEmit` | **6 错，全在并行会话未提交的 `packages/core/src/repos/skills.test.ts:534–565`**（TS18048 `'keep' is possibly 'undefined'`）。归因凭据：`git show HEAD:` 那份只有 **490 行**，报错行号 534+ 在提交树里不存在 ⇒ CI 按提交树跑不会见到，但**他们下一笔提交会把 `typecheck` 闸带红**（vitest 不做类型检查，运行时套件照样绿，正是这条最容易漏的形态） |
-  | `pnpm seed:check` | 通过：术语 109 行 / example 覆盖 100% / 模板 3 套（3-7-4）/ prompts 21 条 |
-  | `pnpm bundle:check` | 通过，入口 **299.92 kB ≤ 300 kB ⇒ 余量 0.08 kB**。口径分清：提交树（CI，`30e7fee`/`b8c1b80`）实测 **299.03 kB**（凭据在 `[DEV-0079]` 补记，三侧逐字同值），本工作树多出的 **0.89 kB** 属并行会话未提交的 Skill 整理 UI（`SkillCleanupDialog.tsx` +183 行等）。本笔自身**不进 bundle**（两份测试文件不参与打包、`app.ts` 与 `clean.test.ts` 在 server/cli 侧）。抬 300 kB 阈值属削弱门禁，须 owner 裁 |
+  | 命令                                                       | 实测（采样 2026-10-01 11:2x–11:3x，工作树含并行会话未提交改动）                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+  | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `npx vitest run`                                           | **58 files / 543 tests 全绿**（rc=0）。本笔净增 = +1 测试文件（`WEB-PORTS` 段 7 支）+ 端点段 +3 支；`grep -cE '^[[:space:]]*it[\.(]' apps/server/test/ports.api.test.ts` = 11                                                                                                                                                                                                                                                                                                                        |
+  | 夹具修复前的一次全量                                       | `1 failed \| 542 passed (543)`，红的是 `CLI-CLEAN-08`（与本笔无因果：改的是 web/server 三文件）。修复后连续两跑全绿 + `npx vitest --project cli --run apps/cli/test/clean.test.ts` **单跑 25/25 绿**（`[DEV-0027]` 那条「此类 flake 以 25 次循环为诊断动作」的成规）                                                                                                                                                                                                                                 |
+  | `node docs/devlog-evidence/DEV-0081/empty-window-wait.mjs` | 窗口撑到 250 ms，旧策略（轮询存在）run1–3 **全红** `SyntaxError: Unexpected end of JSON input`，新策略（轮询非空）**全绿** 拿到 `pid=4242 command=sync-holder`——红的那条错误串与 11:2x 实测到的**逐字相同**                                                                                                                                                                                                                                                                                          |
+  | `python3 docs/devlog-evidence/DEV-0081/mutation-check.py`  | 11 条变异各杀其腿（只有 M7 一条杀两支，因它同时动了空卡判据）：M1→腿 02、M2→腿 04、M3→腿 06、M4→腿 01、M5→腿 05、M6→腿 03、M7→腿 06+07；MA1→「未登记 localPath」、MA2→「已消失的目录」、MA3/MA4→「路由级合并」。三条承重结论：**M7** 证明「本机监听不进台账」是可证伪断言（把空卡判据换成 `listeners` 立刻红两支）；**MA3** 证明 idle 行的「三者缺席」不是空话（显示层补一个 `pid:0` 即被杀）；**MA4** 证明新接的 DI 缝**承重**（不转发 `listListenersImpl` 时新腿立刻红），即它不是为测试而生的装饰 |
+  | `npx eslint`（四个改动文件 + 新探针）                      | rc=0，零告警                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+  | `npx tsc -p apps/web/tsconfig.json --noEmit`               | 0 错                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+  | `npx tsc -p tsconfig.json --noEmit`                        | **6 错，全在并行会话未提交的 `packages/core/src/repos/skills.test.ts:534–565`**（TS18048 `'keep' is possibly 'undefined'`）。归因凭据：`git show HEAD:` 那份只有 **490 行**，报错行号 534+ 在提交树里不存在 ⇒ CI 按提交树跑不会见到，但**他们下一笔提交会把 `typecheck` 闸带红**（vitest 不做类型检查，运行时套件照样绿，正是这条最容易漏的形态）                                                                                                                                                    |
+  | `pnpm seed:check`                                          | 通过：术语 109 行 / example 覆盖 100% / 模板 3 套（3-7-4）/ prompts 21 条                                                                                                                                                                                                                                                                                                                                                                                                                            |
+  | `pnpm bundle:check`                                        | 通过，入口 **299.92 kB ≤ 300 kB ⇒ 余量 0.08 kB**。口径分清：提交树（CI，`30e7fee`/`b8c1b80`）实测 **299.03 kB**（凭据在 `[DEV-0079]` 补记，三侧逐字同值），本工作树多出的 **0.89 kB** 属并行会话未提交的 Skill 整理 UI（`SkillCleanupDialog.tsx` +183 行等）。本笔自身**不进 bundle**（两份测试文件不参与打包、`app.ts` 与 `clean.test.ts` 在 server/cli 侧）。抬 300 kB 阈值属削弱门禁，须 owner 裁                                                                                                 |
 - **归属（共享工作树逐行核账）**: `git status --porcelain` 现测 **31 项**（采样 11:3x，并行会话仍在写），其中 **7 项属本笔**（新件三份合占一项 `?? docs/devlog-evidence/DEV-0081/`），其余 24 项归并行会话。本笔写的 **9 个路径**：`apps/web/src/components/projects/PortsPanel.test.tsx`（新）、`docs/devlog-evidence/DEV-0081/{mutation-check.py,empty-window-wait.mjs,mutations.txt}`（新）、`apps/server/test/ports.api.test.ts`、`apps/server/src/app.ts`、`apps/cli/test/clean.test.ts`、`docs/specs/m5-project-flow.md`、`DEV_LOG.md` 本条。对其余 20 项（`README.md`、`CLAUDE.md`、`DESIGN.md`、`docs/{PRD,proposal,tasks,dev-plan,decisions}.md`、`docs/specs/{theme,m4-playbook,m6-standard-pack}.md`、`apps/server/src/routes/skills.ts`、`apps/web/src/components/skills/*`、`apps/web/src/hooks/useSkills.ts`、`apps/web/src/i18n/zh.ts`、`apps/web/vite.config.ts`、`packages/core/src/{index.ts,repos/skills*}`、`packages/shared/src/schemas/skill.ts`）**一个字符未写**。`DEV_LOG.md` 在**本笔追加之前**测得 `git diff --numstat HEAD -- DEV_LOG.md` = **343 / 0**，四个 hunk（1470 / 1576 / 1624 三处中插 + 1843 起的尾段）全部是并行会话 `[DEV-0080]` 那笔及更早的未入库登记，**一行不属本笔**；本笔的提交 blob 由 `git show HEAD:DEV_LOG.md` + 本段拼成，那 343 行**继续留在工作树**、不进这笔（追加后工作树数=343+本段行数，提交树数=本段行数，两树各命中本段锚串 1 次）。
 - **四条 finding（本笔未改，逐条给落点）**:
   1. **`ProjectPortsOut.projectPath` 的 zod 写 `min(1)`，而路由对未登记路径返回空串**（`packages/shared/src/schemas/ports.ts` vs `apps/server/src/routes/ports.ts:32`）。当前**两侧都不做运行时校验**所以不炸：server 只把 `ProjectPortsOut` 当类型用（`routes/ports.ts:31` 的 `const out: ProjectPortsOut`，全仓 `.parse` 复算 `grep -rn 'ProjectPortsOut' apps packages --include='*.ts' | grep -v '\.test\.'` 命中四处、无一处 parse），web 侧 `apiJson<T>` 是裸 `as T`（`apps/web/src/api/client.ts:50`）。与 `m6 v1.4` 记过的 `PackOut` 同形，但它是一条**声明与实现互相矛盾**的契约：若哪天给端点加 `PackOut` 式出参校验，未登记路径的项目会当场 500。**判 B 级候选**（改 `min(1)` 还是改路由返回缺键，两个方向都动契约措辞），本笔只把行为钉成断言（§7-11 那条「空串，不是缺键也不是 4xx」），**不动任一侧**。
@@ -1890,14 +1912,12 @@
   4. **间歇红不要归给机器负载**：本笔的做法是把窗口撑到 250 ms 让新旧策略各跑三次全红/全绿，比「重跑 25 次」更像证明——25 次只证明**修后不红**，撑窗口同时证明了**修前必红**，两条合起来才排除了「它本来就不会常红」。
 - **潜在风险**: ① 本笔把 `web` project 的第一支「表格类」组件测试立起来了，`PortsPanel` 后续改形（比如真建 `listeners` 参考区、或队列 ㉔ 裁下来改进程列文案）会红 7 支中的 1–2 支，属预期红，处置是**显式升版**不是删腿；② `clean.test.ts` 的等待改成读内容，理论上把「锁内容始终为空」的病态情形留给 5 s 兜底后报「夹具未在 5s 内写出锁内容」——文案改了，旧文案「夹具未在 5s 内抢到锁」在别处若有匹配断言会失配（复算：`grep -rn '未在 5s 内' apps packages` 只命中被改的这一处）；③ `bundle:check` 余量已到 **0.08 kB**（本树口径），任何前端增量都会顶破，而**抬阈值须 owner 裁**——本笔自身不进 bundle，所以这笔能过，下一笔未必；④ 上述 finding ① 若被 owner 判成 A 级（认为 `projectPath` 属 `design §7` 冻结契约的一部分），本笔「只钉行为不动两侧」就得重开，届时按 A 级流程走 `schemaVersion +1` + 新 D 编号。
 
-
 #### 11:3x–11:5x 补记（推后回读 CI 三侧到账 · 把两条**要裁**的 finding 立进队列 ㉖ · 自纠两处 ⑯ 的时态）
 
 - **CI 凭据（run `36811062971` @ `eb1eaae4`：`conclusion=success`、三 job 全 `success`、剥 ANSI 后 `Error:` 与 `FAIL ` 各命中 0）**：`Test Files 58 passed (58)` 三侧同值，`Tests 537 passed` 于 ubuntu/macos，win32 `529 passed | 8 skipped (537)`。**这笔账要看的是差值**：`b8c1b80` 那轮 CI 是 527，本笔净增 10 支（web 7 + 端点 3）⇒ 537 **逐字对上**，于是「端口面板 CI 零覆盖」这条缺口自此由 CI 闭、不再靠本机跑。win32 的 8 skip 与既有登记同数 ⇒ 未新增未验证面。`bundle:check` 三侧同值 **入口 299.03 kB**（与 `[DEV-0079]` 补记同数）⇒ 本笔确实一段 JS 都没进 bundle；本工作树量到的 299.92 kB 里那 0.89 kB 全属并行会话未提交的 Skill 整理 UI——**两个口径分别写，不许拿工作树数当 CI 数**。
 - **队列 ㉖ 新立**：上面「四条 finding」里的 ①② 是**要 owner 裁**的（不是就地能改的措辞），初稿只把它们写在 `DEV_LOG.md` 的散文里。按 `docs/decisions.md` 文件头的单源规则（状态变化先改本文件对应行、`DEV_LOG` 只写「队列见 `docs/decisions.md`」）与库里已有的两条成规——`[DEV-0071]` 补记立的「闭合条件（谁做 / 做什么 / 怎么验）」、`[DEV-0074]` 明写的「本条自带一处新悬空」——**写在散文里的待裁项就是悬空债**，`[DEV-0079]` 立 ㉔ 走的是同一条路。本补记把 ①② 合成 ㉖ 的两问：**(a)** `projectPath` 的 zod `min(1)` vs 路由对未登记路径返回空串（三案：放宽 schema／改缺键／只记矛盾，判级 B/B/C）；**(b)** `listeners` 字段注释 promise 的「未声明的本机监听」参考区无 UI 落点（两案：建参考区／删注释）。计数与上界行按两个树分别同步，写法见该行末段与 `docs/decisions.md` 的 `[DEV-0081]` 段。
 - **两处自纠（本笔自己的话，不留划史）**：① finding ④ 原写「那是 owner 待裁项」并挂在「`[DEV-0034]` 的 ⑯ 三选项」上——现测 ⑯ 行状态为 **已裁已落**（`[DEV-0035]` 裁的是「修读者不修写者」）。准确说法：产品侧的写者原子化（tmp+`linkSync`）**不在 ⑯ 已裁的范围里**，本笔未为其立行，只在「工作目录接入网络盘」时才需重看（`[DEV-0034]` 风险①记过同一条件）。② 原写「同一窗口产品侧在 `[DEV-0034]` 已量过并给了有界重读」把两笔并成了一笔：**量窗口**是 `[DEV-0034]`，**落 `SYNC_LOCK_REREAD_LIMIT` 的读者重读**是 `[DEV-0035]`。两处均已按两笔分开。
 - 本补记零产品代码（动 `docs/decisions.md` 的队列与本文件的两处自纠），凭据即上面那条 run；取数纪律同 `[DEV-0079]` 补记：`gh run view --log` 先剥 ANSI 再找 `Test Files`/`Tests`，`watch` 的退出码只当完成信号。
-
 
 #### 11:4x–11:5x 补记二（复跑治理电池第 4、5 道：㉖ 行四处事实订正 + 一次**险些把真话改错**的过修）
 
@@ -1910,7 +1930,6 @@
 - **第 5 处：一次没有成立的「订正」，记下来防它下次真的发生**。复算时我判初稿那句「`m6 v1.4` 已记过同形的一件事（`PackOut` 复用 `PackSelection`）」是**编造出处**，理由是我另起的一条 `grep` 只在 spec 里找到 1 处 `PackOut`、且它落在**版本行**而不是我以为的「正文条目」——于是我准备把它「订正」成纯代码引证。回读原文才否证掉自己：`docs/specs/m6-standard-pack.md` 版本行的 **v1.4 段**（2026-09-26，owner 裁定 ⑫）明写「`PackOut` 虽复用 `PackSelection`，但服务端对库中取出的行不做 `PackOut.parse`」，同段还带着一笔旧账——那里原写「现测：全仓 `.parse`/`.safeParse` 命中只在新写的单测里」，2026-09-26 队列 ⑥ 复核时被否证。**初稿那句是真的**。最终动作：出处保留并**补上可点开的坐标**（v1.4 段 + `packages/shared/src/schemas/pack.ts:48-52`，`PackSelection` 的 refine 在 `:21-23`），不做删改。**净发现**：「查不到」有两种——不存在，和没找对载体；`grep -c` 给 1 却和被引的句子长得不一样时，必须回读那 1 处的全文再判，否则**订正本身会成为新的事实错报**，而且是把真话改成假话这种最坏的形态。本笔第 1–4 处正是靠这条回读才和它区分开。
 - **对 owner 的净影响**：㉖ (a) 的论据比初稿更硬——同形面在 m6 侧**有 spec 明文**（出参不 parse）而端口侧**只有一句 `ProjectPortsOut` 的类型标注**，两边都没写进规格；(b) 的两案与判级不变。
 
-
 #### 11:5x–12:0x 补记三（覆盖图的第二真源跟着过期：`docs/dev-plan.md` §T5 的 P2 端口映射四行就地更新）
 
 - **触发**：`[DEV-0081]` 与补记二落库、CI 在 `18fe31e` 拿到三平台 `success`（run `36812554448`）之后，回读 `docs/dev-plan.md` §T5 的「P2 波次追加映射」表（m5-9…m5-12 四行，2026-09-30 补 spec 时写的），它仍写着 describe「GET /api/projects/:id/ports」**两支**，并把 `listenersWarning` 的前端渲染与端口卡本体列进**未验证面**——本笔恰好把这两条做掉了。覆盖图不跟着改就是**反向名不符实**（把已验的写成未验），而这张表正是「按哪份规格验收」的第二真源。判 **C 级**（现状陈述），按队列 ⑥ Q3「纯事实错报可就地修」处置。
@@ -1920,6 +1939,7 @@
   - **m5-12**：未验证面重写为**此刻的真未验面**，三条：15 s 轻轮询（`apps/web/src/hooks/useProjectPorts.ts:12` 的 `refetchInterval: 15_000`，它验的是 react-query 的行为而非本仓代码，要钉需 fake timers）、`data.listeners` 在前端无落点（归队列 ㉖ (b) 待裁）、三平台真机命令的**输出差异**本身无凭据（断言只钉「按平台分派了哪条 argv」）。同时**写明移出项与移出理由**，不静默删字。
 - **复算口径**（采样 11:5x，树 `18fe31e`）：四行在提交树与工作树各命中 1（`grep -c '^| m5-9 |'` 等）；`grep -n 'refetchInterval' apps/web/src/hooks/useProjectPorts.ts` → 12:15_000；`grep -n 'listeners' apps/web/src/components/projects/PortsPanel.tsx` → 仅 94/95 两处且都是 `listenersWarning` ⇒ 「`PortsPanel` 从不读 `data.listeners`」成立；`ls docs/devlog-evidence/DEV-0081/` → `mutations.txt` / `mutation-check.py` / `empty-window-wait.mjs` 三件，端口卡**截图**仍只有 `docs/devlog-evidence/DEV-0047/01-ports-panel.png`；实现波 `db6bb8d` 至今无独立 DEV_LOG 条目（本行原写「端口波次无 DEV_LOG 记录」，此刻只对实现波成立，故改写而不是删除）。
 - **本笔没碰的相邻行（两笔都记下来，别让它读起来像整表已收口）**：① `m2-15`（四个远程对话框无 DOM 断言、无截图凭据）归并行会话的 Skill UI 面，改前先按治理电池第 6 道 grep 代码确认它是否也过期——本笔未复核，故原样留着，不顺手改。② 本表另有三行把支数抄进了正文（`m2-8`「两支」、`m2-13`「三支」、`m2-14`「两支 + 三支」），与本笔刚摘掉的 `m5-9`/`m5-10`/`m5-11` 同一种违例（违的是表注自己那条 §13-9），复算口径 = 对本表逐行跑 `re.findall(r"[一两三四五六七八九十0-9]+支", 行)`，本笔前命中 **6 行**（`m2-8`/`m2-13`/`m2-14`/`m5-9`/`m5-10`/`m5-11`，采样 11:5x 现测）、本笔后只剩 **3 行**。这三行属并行会话正在改的 m2 波次，本笔不替它改，也**不预判那三个数字是否已经腐烂**——它们此刻既没被复算也没被证伪，只是登记在此。（构造脚本第一次 dry-run 时被这条闸挡住过一回：整表级 `grep 三支` 会撞上尚未复核的 `m2-14`，故把闸改成**行级作用域**——只要求 m5-9…m5-12 四行内无支数，别整表一刀切。）
+
 ## [DEV-0082] 交付后自查的第二轮：`§T5` 覆盖图仍有三行把支数抄进正文（本表自己的表注就禁止抄）· 一处「超时腿有实现、零用例」的负向新登记 · 入口余量实测到只剩 0.97 kB 且「拆包案」被门禁自己的单 `<script>` 断言判死，立队列 ㉗
 
 - **时间**: 2026-10-01 14:1x–14:5x +0800。开工钉 sha `19c582a`（`[DEV-0081]` 补记三那笔，CI run 见该段）。**取号**：落笔前 `grep -rohE 'DEV-0082' --include='*.md' --include='*.ts' --include='*.tsx' .` = 0 命中；队列号 `㉗` 在提交树与工作树各 0 命中（复算 `grep -c '㉗' docs/decisions.md DEV_LOG.md`）⇒ 两枚号均为空号。
@@ -1941,6 +1961,7 @@
 - ③ **本机发不了的三条穷举**（`_authToken`／npmmirror 两条队列行 ② 早已登记，此处只补当时没测的 `npm whoami` 输出，**不重复入行**）：`npm whoami --registry https://registry.npmjs.org` → `npm error need auth`；`grep -c '_authToken' ~/.npmrc` → `0`；`npm config get registry` → `https://registry.npmmirror.com`。凭据不由本会话代持，也不让 owner 贴进对话。
 - ④ **不能 `npm publish apps/cli`**（行 ② 此前未记 `private` 一格，本笔补进现状列）：`apps/cli/package.json` 现测 `private: true` 且 `bin → ./src/index.ts`（TS 源、无 build 脚本），与 `build-cli.ts:5` 的头注一致 ⇒ 可发布物只能是 `scripts/build-cli.ts` 生成的清单与 bundle（release `v0.1.0` 挂的 `openvibe-cli-0.1.0.tgz`，1,156,881 B，`gh release view v0.1.0 --json assets` 现测）。
 - 队列见 `docs/decisions.md`：本笔动 **㉗ 新立**（笔二 `6aa73ef`，CI run `36826281943` 三平台 `success`）与 **② 的现状列补记**（笔三）。本补记零产品代码，凭据只有上面四条命令的输出与一次 `gh release view`。
+
 ## [DEV-0084] owner 四条裁定一次性落地：㉖ 两半件进代码、㉗ 采拆 chunk 但**明写未落地**、D24 改名停在 A 级闸前 · 附**一处别人未提交的前提被我现测否证**与**一次取号撞车**
 
 - **时间**: 2026-10-01 16:0x–16:5x（起点 = 上一笔 `b5c0325` 的 CI 回读到账）
@@ -1989,6 +2010,7 @@
   1. **② 与并行会话的更正行现在同时存在于工作树**（我的裁定回填在提交树与工作树都落，他们的「② 作废」只在工作树）⇒ 谁先提交谁暂时占读感。缓解：裁定段里逐条给了双树复算命令，冲突可当场判真假；他们的 `theme.md` 一旦入库且真撤了书脊，本裁定按写明的退场条件改判，三处同批。
   2. ③ 的两处未覆盖若被实现那笔「顺手补全」，等于 agent 替 owner 定了一个字节上限与一个单位。缓解：缺口写进版本行、裁定回填、FR-2 内联三处，不只在 DEV_LOG 里。
   3. v1.0 之后 M4 的**开工闸从「等裁」变成「等登记」**（§15.1-9 ＋ T12）。这一格差如果长期不做，本模块就会变成「规格已定稿但计划里没有」的新同名异物，正是 §15.5 那张缺陷表里第 6 行的形态。
+
 ## [DEV-0085] 补记——本笔登记面上两个不能复算的数：20 实为 19 · 「十余处」实为 9 文件／42 行；外加一次「DRY 闸全过」被我读成「提交已落地」
 
 - **时间**: 2026-10-01 17:0x–17:1x（接 `55513f9` 之后；起点树 `55513f9`）
@@ -2013,6 +2035,7 @@
   1. 19 这个数还会漂。缓解：m4 段里已把承重挪到 HEAD 侧的 0，并显式写了「随并行会话浮动」——漂了也只影响旁证，不影响 ② 不作废的裁定。
   2. 「十余处」→「9 文件／42 行」让 ㉘ 的改名工作量看上去比原句大得多，可能诱导下笔的人**只改文档不改代码生成点**（那三处 `lock.ts:67`／`OnboardingBar.tsx:57-58`／`pack-source.ts:121` 才是直接显示给用户的一层）。缓解：行内顺序本就是「代码生成点 → 测试 → 注释 → 文档」，且 (1) 的 A 级闸仍在最前面。
   3. 本笔再次落在「登记面的精度」上（第三次同类：CI 数字凭记忆、describe 名当缺失、现在是复算不出的 20 与约数「十余」）。根因一致：**写完没按自己登记的命令回跑一遍就宣称落库**。缓解已机械化——笔四脚本把现测做成中止闸，不再靠自觉。
+
 ## [DEV-0085] 补记二——推送与 CI 凭据进 ⑦ 行，但那条「第 N 次」连号一查就断了：12 次 push 只在 DEV_LOG 有账（新立 ㉙）· 净状态另有两处计数错报就地修
 
 - **时间**: 2026-10-01 18:2x–18:4x（起点树 `4041890`；推送时刻由 `git reflog show origin/main` 钉为 18:21:32 +0800，CI log 时间戳为 UTC 10:21–10:24）
@@ -2034,6 +2057,7 @@
   2. 「不再续号」是我单方面起的手，owner 若选 (a) 回填，本笔那段还得重写。缓解：㉙ 明写这只治本笔之后，三案与推荐都在行内，不隐藏代价。
   3. 「已裁已落 17→18」会让 owner 的待办看上去**多了一格**（其实只是把已关的那行补进清单）。缓解：立项理由段与本段都写明这是清单与表格的对账，不是新增工作。
   4. 共享工作树：落库后 `docs/decisions.md` 的「待裁」整行是**我把他们的行合过来**的版本（两树字面不同，各用一套锚点，落盘前后各做一次 sha256 CAS）。残余风险是下一轮有人整行重写该 bullet 时又把我的 ㉙ 半句吞掉——形态与 `[DEV-0079]` 那轮记的去重问题同类。
+
 ## [DEV-0087] M4 的 §0.4 两步落地：T12 正式申请 · dev-plan §15.1-9 改判 ✅ 已写规格 · spec「关联任务」格跟着走
 
 - **时间**: 2026-10-01 19:0x–19:1x（起点树 `9c66464`）
@@ -2052,6 +2076,7 @@
   2. T12 的「实现工作面」是一长串文件名，代码真落地时必然局部偏离。缓解：本节写的是**依赖序**不是工期，偏离按「按任务实现 + 偏差写回计划」回写本节，而不是只改码不改计划（本仓「计划即第二真源」那条）。
   3. FR-8 的 A 级凭据形态依赖「拆闸前 sha」，而该 sha 要到拆闸那笔才存在。缓解：T12 与 §7.4 都把口径写成带 `<拆闸前 sha>` 占位的形态，要求下笔时把实际 sha 填进去并同批登记，不留「凭据以后再补」。
   4. 本笔动了 spec 文件却不 bump 版本行，读「A/B 级变更均有 spec 版本行」这条 DoD 的人会以为漏登。缓解：判级理由写在类型行与本段，且改动只在头部元数据格——复算 `git diff --name-only 9c66464 HEAD -- docs/specs/` 只有一格动过。
+
 ## [DEV-0088] 2026-10-01 四裁登记：㉘「三处同批全改」（D25·A 级授权）· 发布树从 HEAD 切 v0.1.1（D26）· M4 §8.2 ③ 两处数值闭合（spec v1.0→v1.1）
 
 - **时间**: 2026-10-01 19:5x–20:2x（起点树 `551ac26`）
@@ -2091,7 +2116,7 @@
   - **色名全迁**：V1 机械族零残留（三重 grep 复算为空，命令见「测试验证」）；
   - **七支新 token 全部接线**：`on-accent` 来自 btnPrimary 实心三件套，`ok`/`ok-soft`/`ok-line` 来自 PortsPanel 监听态、ProjectDashboard「一致」与既有的状态 chip，`accent-deep` 来自 btnPrimary hover 与激活态，`accent-soft`/`accent-line` 来自激活/选中/chip 三件套；
   - `btnPrimary`/`btnDanger`/`inputCls`/`labelCls` 落 V2 颜色形制（未落项见「潜在风险」①）；
-  - PackPreviewPane  warn 断言 1→2 并强化（见「潜在风险」②）；
+  - PackPreviewPane warn 断言 1→2 并强化（见「潜在风险」②）；
   - `census.mjs` 删未用导入（挡 lint 闸的那一个）。
 - **测试验证**: 全部 2026-10-03 本机复跑，支数随提交变动、以汇总行为准：
   - `pnpm vitest run --project unit tests/design-tokens.test.ts` → **4 passed (4)**（`WEB-TOKENS · 颜色单一出处` 四道闸）；
@@ -2147,15 +2172,15 @@
 - **关联文件**: 新建 `packages/core/src/db/migrations/0007_local_events_and_agent_bridge.sql`、`packages/core/src/db/m8-ledger-schema.test.ts`；改 `packages/shared/src/constants.ts`（新增 `LEDGER_EVENT_KINDS` / `AGENT_EVENT_KINDS` / `LOCAL_EVENT_KINDS` / `AGENT_INGEST_KINDS` / `AGENT_INGEST_STATUSES` / `REQUIREMENT_STATUSES` / `REQUIREMENT_PRIORITIES` / `AGENT_INGEST_LIMITS`）、`packages/core/src/db/core-db.test.ts`（迁移列表 6→7）、`docs/specs/service-layer.md`（v0.9→**v1.0**，§8.2 三项闭合 ＋ 判级 C→B ＋ 四服务改五服务）、`docs/specs/local-event-ledger.md`（v0.9→**v1.0**，§8.2 四项闭合）
 - **七项裁定逐条**（如实记录 owner 原建议与我的取舍；**全部采 spec 自带推荐，理由逐条写在 spec 内**）：
 
-  | spec | # | 裁定 | 依据 |
-  |---|---|---|---|
-  | service-layer | ① | 本轮落**三**服务（`pack`/`inject`/`agent`），`growth`/`stats` 不建 | (b)(c) 被否（假象 / 绕开 J7）。**修正了选项措辞**：选项写「只落两服务」是 2026-10-03 的三服务设想，owner 已另裁加 `agentService` 作第五个 |
-  | service-layer | ② | 沿用 `retirement.ts` 四态 | 实测 `retirement.ts:7` = `['IN_SYNC','DRIFT','ABSENT','FOREIGN']`；`FOREIGN`（`:53` 的 `!managed` 判定）表达 planner 侧没有的那一类。**判级由此从 C 升 B** |
-  | service-layer | ③ | **B** | 动的是 `dev-plan §1.1` 分层规则表本身 |
-  | ledger | ① | **(b) 十三项** —— **非新裁，是溯源** | owner 裁① 要求 `kind` 13→18，已把本项带出结论；spec 却仍列作待裁。**这类「被另一笔裁事实上闭合却没销账」的待裁最容易造成重复裁决，本笔一并销掉** |
-  | ledger | ② | **UTC 日** | 实测 `packages/shared/src/utils.ts:36` 的日戳单源 = `at.toISOString().slice(0,10)`；选本机日会在同仓造出第二种 day 语义 |
-  | ledger | ③ | **(d) 只收 web/server 侧** | 实测 `grep -rln 'openDb\|better-sqlite3' apps/cli/src` → 空，CLI 从不开 DB；(a)(b)(c) 要么破 §1.2 不变式、要么新开写盘路径 |
-  | ledger | ④ | **不做「是否记录」开关** | 做成开关会让 §7 的 e 条拆成两分支，D29「永不出网」多一个可被误读的状态 |
+  | spec          | #   | 裁定                                                               | 依据                                                                                                                                                       |
+  | ------------- | --- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | service-layer | ①   | 本轮落**三**服务（`pack`/`inject`/`agent`），`growth`/`stats` 不建 | (b)(c) 被否（假象 / 绕开 J7）。**修正了选项措辞**：选项写「只落两服务」是 2026-10-03 的三服务设想，owner 已另裁加 `agentService` 作第五个                  |
+  | service-layer | ②   | 沿用 `retirement.ts` 四态                                          | 实测 `retirement.ts:7` = `['IN_SYNC','DRIFT','ABSENT','FOREIGN']`；`FOREIGN`（`:53` 的 `!managed` 判定）表达 planner 侧没有的那一类。**判级由此从 C 升 B** |
+  | service-layer | ③   | **B**                                                              | 动的是 `dev-plan §1.1` 分层规则表本身                                                                                                                      |
+  | ledger        | ①   | **(b) 十三项** —— **非新裁，是溯源**                               | owner 裁① 要求 `kind` 13→18，已把本项带出结论；spec 却仍列作待裁。**这类「被另一笔裁事实上闭合却没销账」的待裁最容易造成重复裁决，本笔一并销掉**           |
+  | ledger        | ②   | **UTC 日**                                                         | 实测 `packages/shared/src/utils.ts:36` 的日戳单源 = `at.toISOString().slice(0,10)`；选本机日会在同仓造出第二种 day 语义                                    |
+  | ledger        | ③   | **(d) 只收 web/server 侧**                                         | 实测 `grep -rln 'openDb\|better-sqlite3' apps/cli/src` → 空，CLI 从不开 DB；(a)(b)(c) 要么破 §1.2 不变式、要么新开写盘路径                                 |
+  | ledger        | ④   | **不做「是否记录」开关**                                           | 做成开关会让 §7 的 e 条拆成两分支，D29「永不出网」多一个可被误读的状态                                                                                     |
 
 - **本笔落地的实现面**:
   - `0007_local_events_and_agent_bridge.sql` —— 裁决① 要求的「**一次建四表**」：`local_events`（`kind` **18** 项＝台账 13 ＋ M8 5，索引 `(kind,day)` 与 `(created_at)`，**不建 FTS**）、`agent_sessions`、`agent_ingests`（`status` **四态**闭集，`UNIQUE(idempotency_key)` 自带索引故不重复建）、`requirements`（与 `tasks` **无外键**，`source_session_id` 用 `ON DELETE SET NULL`）。**只 CREATE、不 ALTER、不 DROP**——老库升级即新增空表，历史无记录属预期，**不得回填**。
@@ -2350,12 +2375,12 @@
 - **类型**: **B 级**（可观察的 CLI 输出面变化 ＋ 新增测试 ＋ 规格判据面改写）。四项裁定由 owner 于本轮逐项拍定，非自裁。
 - **四项裁定与落点**
 
-| 裁定 | 落点 |
-|---|---|
-| ① **FR-2.3 授权 planner 直接输出四态**（改断言与消费方） | `DiffResult` 由 `{clean, drifted[], missing[]}` 改为 `{clean, files: ConsistencyFile[]}`；新增 `summarizeDiff()` 派生分桶；`diff.ts` 消费方改接；`planner.test.ts` / `consistency.test.ts` 随之改判 |
-| ② **补 `verifyPack` 的 `.openvibe/` FOREIGN 入库测试**（开 `apps/cli/test/` 写权） | `pack-source.test.ts` 新增 `SOURCE-15`（对照腿／机制腿／篡改腿三条） |
-| ③ **0-f 的 ①②④ 全做，① 改成真实可定位的指向** | §7 验收表整体改写；FR-1 迁移文件名四处改真名；§7-a 判据器具由 `PRAGMA user_version` 改为 `schema_migrations`；§7-e / §7-k 凭据补测 |
-| ④ **0-f 的 a 条「既有库两径」两条都补** | `core-db.test.ts` 新增 `CORE-EVT-01a`（账上停在 0006）与 `CORE-EVT-01b`（**账上根本没有 0006**，即 DEV-0091 之前安装的真实用户）；另补 `CORE-EVT-05`（无回填时间断言） |
+| 裁定                                                                               | 落点                                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ① **FR-2.3 授权 planner 直接输出四态**（改断言与消费方）                           | `DiffResult` 由 `{clean, drifted[], missing[]}` 改为 `{clean, files: ConsistencyFile[]}`；新增 `summarizeDiff()` 派生分桶；`diff.ts` 消费方改接；`planner.test.ts` / `consistency.test.ts` 随之改判 |
+| ② **补 `verifyPack` 的 `.openvibe/` FOREIGN 入库测试**（开 `apps/cli/test/` 写权） | `pack-source.test.ts` 新增 `SOURCE-15`（对照腿／机制腿／篡改腿三条）                                                                                                                                |
+| ③ **0-f 的 ①②④ 全做，① 改成真实可定位的指向**                                      | §7 验收表整体改写；FR-1 迁移文件名四处改真名；§7-a 判据器具由 `PRAGMA user_version` 改为 `schema_migrations`；§7-e / §7-k 凭据补测                                                                  |
+| ④ **0-f 的 a 条「既有库两径」两条都补**                                            | `core-db.test.ts` 新增 `CORE-EVT-01a`（账上停在 0006）与 `CORE-EVT-01b`（**账上根本没有 0006**，即 DEV-0091 之前安装的真实用户）；另补 `CORE-EVT-05`（无回填时间断言）                              |
 
 - **FR-2.3 改判的净效果**
   - 未受管条目（`managed=false` 或落在 `.openvibe/` 下）被改时，此前落进 `drifted`、与「受管产物漂移」**长得一样**；现在单列 `foreign`。
@@ -2469,11 +2494,11 @@
   - 扫所有 spec 的验收表，**只断状态为 ✅ 的行**：其引用的路径/文件名必须在磁盘存在，其引用的测试 ID 必须在代码树被真实引用。
   - **刻意不断什么**：不扫 spec 正文（欠账行本来就该缺凭据，断它等于逼人编凭据）；不维护「哪些 ID 是假的」清单（**那份清单本身会腐烂**——见下）。
   - **四道变异腿**，其中三道在开发过程中**真的红过**：
-    | 红过的缺陷 | 怎么发现的 |
-    |---|---|
-    | **自指**：13 个假 ID 逐字写在闸自己的源码里，于是 `codeText.includes` 全部为真 | 变异腿要求 13 个全被抓出，实际抓到 0 个 |
-    | **路径正则把纯文件名当路径** | 落盘即 1 支红（`m8-ledger-schema.test.ts` 之类被判「不存在」） |
-    | **`fs.globSync` 的选项名是 `exclude` 不是 `ignore`** | **worker B 跑 typecheck 时替我发现的**：它报的 rc=2 里有两条在**我的**文件上。`ignore` 会被**静默忽略**——测试照跑、类型却红，`node_modules` 里 3 个副本混进 `codeText`（实测 344 vs 341） |
+    | 红过的缺陷                                                                     | 怎么发现的                                                                                                                                                                                |
+    | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | **自指**：13 个假 ID 逐字写在闸自己的源码里，于是 `codeText.includes` 全部为真 | 变异腿要求 13 个全被抓出，实际抓到 0 个                                                                                                                                                   |
+    | **路径正则把纯文件名当路径**                                                   | 落盘即 1 支红（`m8-ledger-schema.test.ts` 之类被判「不存在」）                                                                                                                            |
+    | **`fs.globSync` 的选项名是 `exclude` 不是 `ignore`**                           | **worker B 跑 typecheck 时替我发现的**：它报的 rc=2 里有两条在**我的**文件上。`ignore` 会被**静默忽略**——测试照跑、类型却红，`node_modules` 里 3 个副本混进 `codeText`（实测 344 vs 341） |
   - **一处我自己的误判，已留痕**：曾把「3 个 ID 漏网」诊断成「子串匹配假阳性（`CORE-EVT-01a` 含 `CORE-EVT-01`）」，随后 `grep -w` 逐个复查发现那 3 个**是真的存在**（DEV-0100 补测时 worker 真的复用了这些 ID）。诊断是错的，词边界写法保留仅因它不更差。
 
 - **一条值得单独记的观察：「那 13 个 ID 全部虚构」这个断言本身也会腐烂**
@@ -2489,13 +2514,14 @@
   - README 补「让 agent 接进来（M8）」一节（**x 条的判定物，此前完全不存在**）：分「能读 / 能写 / **不能做**」三段，后者含「不能删 / 不能自己裁决幂等冲突 / 不能扩充既有闭集」。
 
 - **变异腿汇总（parent 独立复核，非转述）**
-  | 面 | 变异 | 精准红 |
-  |---|---|---|
-  | `cli_agent_command_run`（6 条，worker B） | command 枚举守卫失效 / agent 路径守卫删 / payload 多 `cwd` 键 / 写入点空转 / **扫描器去掉递归（复刻本仓踩过的坑）** / 时钟不注入 | 2 / 1 / 4 / 10 / **3** / 1 |
-  | 发布分发（6 条，worker C） | 分发函数直接 return / 失败分支翻成 published / 去掉 `pending` 守卫 / `requirements` 照搬载荷 status / 忽略 `payload.type` / 去掉 itemId 校验 | **22** / 10 / 2 / 4 / 2 / 1 |
-  | `n 条` 无 lock（parent） | 把无 lock 分支的 `drifted` 写成 `false` | **1**（`expected false to be null`） |
-  | `o 条` 漂移闸（parent 亲自验） | 把 `CLI_COMMANDS` 里的 `ask` 改名 | **3 处同时报警**（未注册 / 集合不等 / summary 逐字检查） |
-  | `spec-claims` 守卫（4 条，parent） | 13 个假 ID 喂进去 / 虚构路径文件名 / shell 片段 / 真实凭据放行 | 逐条按预期红 / 红 / 放行 / 放行 |
+
+  | 面                                        | 变异                                                                                                                                         | 精准红                                                   |
+  | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+  | `cli_agent_command_run`（6 条，worker B） | command 枚举守卫失效 / agent 路径守卫删 / payload 多 `cwd` 键 / 写入点空转 / **扫描器去掉递归（复刻本仓踩过的坑）** / 时钟不注入             | 2 / 1 / 4 / 10 / **3** / 1                               |
+  | 发布分发（6 条，worker C）                | 分发函数直接 return / 失败分支翻成 published / 去掉 `pending` 守卫 / `requirements` 照搬载荷 status / 忽略 `payload.type` / 去掉 itemId 校验 | **22** / 10 / 2 / 4 / 2 / 1                              |
+  | `n 条` 无 lock（parent）                  | 把无 lock 分支的 `drifted` 写成 `false`                                                                                                      | **1**（`expected false to be null`）                     |
+  | `o 条` 漂移闸（parent 亲自验）            | 把 `CLI_COMMANDS` 里的 `ask` 改名                                                                                                            | **3 处同时报警**（未注册 / 集合不等 / summary 逐字检查） |
+  | `spec-claims` 守卫（4 条，parent）        | 13 个假 ID 喂进去 / 虚构路径文件名 / shell 片段 / 真实凭据放行                                                                               | 逐条按预期红 / 红 / 放行 / 放行                          |
 
   ⚠️ **`n 条` 那条变异我打偏了两次**：先改了 `l.drifted ?? null`（锁存在但字段缺失那条路径，**我的测试根本不走**），再改了 78 行的 `pack` 初值（**无 lock 时不走那儿**）。第三次才打在 252 行的 `empty` 上。**「变异没红」的头两个猜测都是错的答案**，正确答案是「我的测试走的是第三条路径」。
 
@@ -2519,22 +2545,23 @@
   8. **本笔未 commit、未 push、无对外动作**。
 
 - **worker A 收尾（CLI 三命令）· 14 条变异腿，还原后 `shasum` 与变异前逐字节一致**
-  | # | 变异 | 精准红 |
-  |---|---|---|
-  | M1 | ask 非法词只报收到的词、不列七词 | 2 |
-  | M2 | `ASK_FIELDS.next` 改成只取 `stage` | 2 |
-  | M3 | `next` 答案不过滤（返全部检查项/任务） | 1 |
-  | M4 | 目录解析改先到先得（去掉最长前缀） | 4 |
-  | M5 | 候选项目名不封顶 | 1 |
-  | M6 | CLI 日志裁剪不留痕（note 恒 null） | 1 |
-  | M7 | 漂移恒退 0 | 3 |
-  | M8 | **反向错**：把 `drifted === null`（读不到 lock）当漂移 | 2 |
-  | M9 | `status` 的 `summary.ok` 写死 true | 2 |
-  | M10 | `evidence.command` 填空串 | 1 |
-  | M11 | 埋点失败改为上抛（非阻断失效） | 2 |
-  | M12 | **从 `cli-commands.ts` 删掉 `ask` 登记** | 3（parent 另独立复验同一条，红 3 处报警） |
-  | M13 | `summary` 与 `.description()` 对不上 | 1（新闸 `IT-CLI-CMD-05`） |
-  | M14 | 给 `session.ts` 加一行写盘 import | 1（禁列扫描） |
+
+  | #   | 变异                                                   | 精准红                                    |
+  | --- | ------------------------------------------------------ | ----------------------------------------- |
+  | M1  | ask 非法词只报收到的词、不列七词                       | 2                                         |
+  | M2  | `ASK_FIELDS.next` 改成只取 `stage`                     | 2                                         |
+  | M3  | `next` 答案不过滤（返全部检查项/任务）                 | 1                                         |
+  | M4  | 目录解析改先到先得（去掉最长前缀）                     | 4                                         |
+  | M5  | 候选项目名不封顶                                       | 1                                         |
+  | M6  | CLI 日志裁剪不留痕（note 恒 null）                     | 1                                         |
+  | M7  | 漂移恒退 0                                             | 3                                         |
+  | M8  | **反向错**：把 `drifted === null`（读不到 lock）当漂移 | 2                                         |
+  | M9  | `status` 的 `summary.ok` 写死 true                     | 2                                         |
+  | M10 | `evidence.command` 填空串                              | 1                                         |
+  | M11 | 埋点失败改为上抛（非阻断失效）                         | 2                                         |
+  | M12 | **从 `cli-commands.ts` 删掉 `ask` 登记**               | 3（parent 另独立复验同一条，红 3 处报警） |
+  | M13 | `summary` 与 `.description()` 对不上                   | 1（新闸 `IT-CLI-CMD-05`）                 |
+  | M14 | 给 `session.ts` 加一行写盘 import                      | 1（禁列扫描）                             |
 
 - **`cliCommands.api.test.ts` 的三处改动逐条说明（有一处是**加强**，两处是必改）**
   1. `toHaveLength(5) → 8`：**必改**（原 5 ＋ 新 3），不是放宽。
@@ -2547,20 +2574,16 @@
 
 - **最终验证（parent 本机重跑）**：`pnpm typecheck` rc=0 · `pnpm lint` rc=0 · `pnpm test` **81 文件 / 814 支全过**（A 收尾后复跑同值）· `pnpm seed:check` rc=0 · `pnpm bundle:check` 入口 267.27 kB ≤ 300 kB · 冻结面两条皆空。
 
-- **owner 手上未收的（增补第 5 条）**
-  5. **`status` 的 `drift = 2` 是 worker 新增的行为**：spec 只说「沿用 `ExitCode` 三值退出码」，**没说哪条命令产 2**。它与既有 `diff`/`clean` 同口径，且「读不到 lock（`drifted === null`）不算漂移、退 0」有专门判据（M8 反向变异红 2 支）。**待 owner 确认这个归属**。
-  6. **`status` 走 `GET /api/projects/:id/context` 而非 `GET /api/projects/:id`**：后者只有 `project + health`，产不出 spec 要求的六项（完成度/未完检查项/任务分布/最近日志/包漂移）。仍是纯 GET、仍不碰 DB。
-  7. **`--related` 原样透传**，不转项目相对路径、不做逃逸校验（devlog 端点对 `relatedFiles` 无路径校验）。若 owner 要求 CLI 侧规范化，需新增行为与测试。
+- **owner 手上未收的（增补第 5 条）** 5. **`status` 的 `drift = 2` 是 worker 新增的行为**：spec 只说「沿用 `ExitCode` 三值退出码」，**没说哪条命令产 2**。它与既有 `diff`/`clean` 同口径，且「读不到 lock（`drifted === null`）不算漂移、退 0」有专门判据（M8 反向变异红 2 支）。**待 owner 确认这个归属**。6. **`status` 走 `GET /api/projects/:id/context` 而非 `GET /api/projects/:id`**：后者只有 `project + health`，产不出 spec 要求的六项（完成度/未完检查项/任务分布/最近日志/包漂移）。仍是纯 GET、仍不碰 DB。7. **`--related` 原样透传**，不转项目相对路径、不做逃逸校验（devlog 端点对 `relatedFiles` 无路径校验）。若 owner 要求 CLI 侧规范化，需新增行为与测试。
 
 - **📌 2026-10-16 owner 拍板四条（本笔的四项裁定与落笔）**
 
-  | # | 议题 | 裁定 | 落点 |
-  |---|---|---|---|
-  | ① | `status` 的 `drift = 2` 是 worker 新增行为（spec 只说「沿用三值」，没说哪条命令产 2） | **追认**，并把「哪些命令产 2」升为 spec 明文 | `m8-agent-bridge.md` FR-4.2 新增小节：三命令的 2 档对照表＋**明文规定 `ask`/`session log` 恒不可达 2** |
-  | ② | `agent` 字段只有键名没有语义 | **保留 env 方案**，补取值域与一条防误用声明 | FR-5.1.1：取值源 `OPENVIBE_AGENT`／缺省 `null`＝人跑的／上限 64／含 `/\~\` 拒（防路径随埋点落台账）／**⚠️ 它不是身份凭证，不得用于鉴权或授权判断** |
-  | ③ | `session` kind 无落点 | **维持现状**：不补落点、不改 `kind` 闭集，改为**登记在案** | 新增 **FR-2.9.1**：为什么不补（`external_session_id` 形态未核验 ⇒ UNIQUE 会把一次会话拆成多条，而 append-only 面拆错无法回滚清洗）／**连带代价**（`requirements.source_session_id` 恒 NULL，溯源链断在第一环）／解锁条件／「不要用顺手落空行消除缺口」 |
-  | ④ | `requirement add`（spec §2 写 In、FR-4.1 写延后，自相矛盾） | **补做** | 已派 worker；延后理由（「随 `requirements` 表由 Out 转 In」）**已失效**——表已建、发布分发已实现，缺的只是 CLI 包装 |
-
+  | #   | 议题                                                                                  | 裁定                                                       | 落点                                                                                                                                                                                                                                                   |
+  | --- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+  | ①   | `status` 的 `drift = 2` 是 worker 新增行为（spec 只说「沿用三值」，没说哪条命令产 2） | **追认**，并把「哪些命令产 2」升为 spec 明文               | `m8-agent-bridge.md` FR-4.2 新增小节：三命令的 2 档对照表＋**明文规定 `ask`/`session log` 恒不可达 2**                                                                                                                                                 |
+  | ②   | `agent` 字段只有键名没有语义                                                          | **保留 env 方案**，补取值域与一条防误用声明                | FR-5.1.1：取值源 `OPENVIBE_AGENT`／缺省 `null`＝人跑的／上限 64／含 `/\~\` 拒（防路径随埋点落台账）／**⚠️ 它不是身份凭证，不得用于鉴权或授权判断**                                                                                                     |
+  | ③   | `session` kind 无落点                                                                 | **维持现状**：不补落点、不改 `kind` 闭集，改为**登记在案** | 新增 **FR-2.9.1**：为什么不补（`external_session_id` 形态未核验 ⇒ UNIQUE 会把一次会话拆成多条，而 append-only 面拆错无法回滚清洗）／**连带代价**（`requirements.source_session_id` 恒 NULL，溯源链断在第一环）／解锁条件／「不要用顺手落空行消除缺口」 |
+  | ④   | `requirement add`（spec §2 写 In、FR-4.1 写延后，自相矛盾）                           | **补做**                                                   | 已派 worker；延后理由（「随 `requirements` 表由 Out 转 In」）**已失效**——表已建、发布分发已实现，缺的只是 CLI 包装                                                                                                                                     |
   - **①的判据是实测的**：三条命令的 `2` 产生条件逐条查过源码（`diff.ts:208` / `clean.ts:247` / `status.ts:288`），语义**完全一致**（都是「产物与 `pack.lock.json` 不一致」）。追认不是让步，是把既成事实写成条款。
   - **③的论证链（本轮最有价值的一条）**：`session` 不落表 ⇒ `agent_sessions` 恒空 ⇒ `requirements.source_session_id` 只能是 `NULL`。**这是同一条链上的两处**，而 spec 原文只登记了前者。
   - **④的关键设计判断已写进 worker brief**：必须走 `POST /api/agent/ingest`（`kind:'requirement'`）**走人工确认门**，**禁止**新建直接写 `requirements` 的端点 —— 那会绕过 FR-2.5「agent 的判断不可作为事实源」。服务端落表那一半已由 DEV-0102 的发布分发实现。
@@ -2600,7 +2623,7 @@
   3. `apps/cli/src/commands/requirement.ts` — **删除**专用形状 `RequirementCommandRunReport` 与
      `REQUIREMENT_COMMAND_RUN_UNREPORTED`，改用与其他三条命令同一个 `reportCommandRun` 出口；
   4. `apps/cli/src/index.ts` — 接线；失败腿也照报，且 `exitCode` 如实传 `outcome.exitCode`。
-  另同步 `packages/shared/src/cli-commands.ts` 的注释与 spec `m8-agent-bridge.md` FR-5.1.1 的枚举。
+     另同步 `packages/shared/src/cli-commands.ts` 的注释与 spec `m8-agent-bridge.md` FR-5.1.1 的枚举。
 - **关键判据不是「发了两次请求」，是第二次的内容**：断言逐字比对 `command === 'requirement'`。
   此前那批测试断的是「恰好 1 次、埋点不上报」，那是旧契约的形状；扩契约后桩服务里
   「埋点端点故意返 404」的守卫也已**翻面**为正常登记 —— 钉的是「该报的要报，不该报的一个都不许多」。
@@ -2617,16 +2640,17 @@
 而 DEV-0101/0102/0103 已于 `e70f350` 落库）。此处合并为一份，逐条写明**是什么 / 归谁 / 什么条件算闭合**，
 避免下次翻日志时把已清账的当未清账、或把仍在的当已清账。
 
-| # | 事项 | 归谁 | 闭合条件 |
-|---|---|---|---|
-| 1 | **j 条屏摄签收** —— 判定物（README 台账章节）已就位 | **owner** | owner 屏摄本人核对。**agent 不代判**：屏摄要人眼确认，不能由一个判据替代 |
-| 2 | **探针五问的运行时半边** —— harness 已装 | **owner** | 在图形界面实机跑完五问并回报结果。**agent 无法代跑**：这是真机观察，不是可自动化的断言 |
-| 3 | **`session` 类目的落点** | owner + agent | 依赖 `m8-agent-bridge.md §7.1 ①` 的运行半边五问闭合。**当前已裁「维持无落点」**：`agent_sessions.external_session_id` 形态未核验，而该表有 UNIQUE 约束，贸然落行会把正常记录误判成重复；连带 `requirements.source_session_id` 恒 NULL |
-| 4 | **`LedgerSection` 语义冲突** | owner | 该组件读 `/api/telemetry/events`（**遥测表**）却挂「不出网」标识。属并行会话的 795 行改动，**本会话未擅改** |
-| 5 | **并行会话的 M4 文档回退 5 件** | owner 与并行会话对齐 | `dev-plan` / `decisions` / `tasks` / `m4-playbook` / `m6-standard-pack` 五个文件被回退且未提交。**已由 `scripts/ownership-check.ts` 的标志字样自动指认**（命中 `人日未估` / `恒为 []` / `M4 未上` / `已裁已落` 四条），处置方式为局部暂存或整体留工作树，**不整文件 add** |
-| 6 | **d 条两个 kind 的取舍** | owner | `flow_template_run` 补动作还是删闭集；`stage_view_switched` 撞并行会话 |
+| #   | 事项                                                | 归谁                 | 闭合条件                                                                                                                                                                                                                                                                  |
+| --- | --------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **j 条屏摄签收** —— 判定物（README 台账章节）已就位 | **owner**            | owner 屏摄本人核对。**agent 不代判**：屏摄要人眼确认，不能由一个判据替代                                                                                                                                                                                                  |
+| 2   | **探针五问的运行时半边** —— harness 已装            | **owner**            | 在图形界面实机跑完五问并回报结果。**agent 无法代跑**：这是真机观察，不是可自动化的断言                                                                                                                                                                                    |
+| 3   | **`session` 类目的落点**                            | owner + agent        | 依赖 `m8-agent-bridge.md §7.1 ①` 的运行半边五问闭合。**当前已裁「维持无落点」**：`agent_sessions.external_session_id` 形态未核验，而该表有 UNIQUE 约束，贸然落行会把正常记录误判成重复；连带 `requirements.source_session_id` 恒 NULL                                     |
+| 4   | **`LedgerSection` 语义冲突**                        | owner                | 该组件读 `/api/telemetry/events`（**遥测表**）却挂「不出网」标识。属并行会话的 795 行改动，**本会话未擅改**                                                                                                                                                               |
+| 5   | **并行会话的 M4 文档回退 5 件**                     | owner 与并行会话对齐 | `dev-plan` / `decisions` / `tasks` / `m4-playbook` / `m6-standard-pack` 五个文件被回退且未提交。**已由 `scripts/ownership-check.ts` 的标志字样自动指认**（命中 `人日未估` / `恒为 []` / `M4 未上` / `已裁已落` 四条），处置方式为局部暂存或整体留工作树，**不整文件 add** |
+| 6   | **d 条两个 kind 的取舍**                            | owner                | `flow_template_run` 补动作还是删闭集；`stage_view_switched` 撞并行会话                                                                                                                                                                                                    |
 
 **本轮已清账**（原为欠账，现已闭合）：
+
 - `cli_agent_command_run` 的 `command` 枚举扩 `requirement` —— owner 于 2026-10-16 授权 B 级改契约，
   随 DEV-0103 闭合。原欠账条目按「日志不回改」保留原文，其上已追加订正。
 - 「本笔未 commit」多处旧述 —— 已由 `e70f350` 落库（64 个文件），**本轮未 push、无对外动作**。
@@ -3120,6 +3144,7 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   1. ⚠️ **本补记之后仍留着的一处不一致**：`DEV-0112`／`DEV-0113`／`DEV-0114` 三条正文里引用的旧号（「DEV-0112（2026-10-17）」等）**按「日志不回改」原样留着** ⇒ 读那三处会看到已不存在的号；读法以本补记的映射表为准。
   2. ⚠️ **那 16 条引文侧登记仍未进 DEV_LOG.md**（只报数面「登记散落」已列出）⇒ 读者拿 DEV-0119 / 0123–0126 等号去 DEV_LOG.md 仍查不到 ⇒ **回填与否是 owner 的动作**。
   3. ⚠️ **改号后 DEV_LOG 的号段出现空洞**（119–137）：FR-1.2 仍按 warning 计（通配基线）—— 空洞是「引文侧登记占号」的副作用，不是丢登记。
+
 ## [DEV-0117] 2026-10-24 · v0.2.3 六项收尾：发布说明草稿 / OM 选包参数 / 裁决同步面 / 队列留痕 ㊱ / 版本 bump 0.2.3 / 发布 runbook
 
 - **时间**: 2026-10-24

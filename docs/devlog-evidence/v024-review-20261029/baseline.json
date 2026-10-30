@@ -1,0 +1,57 @@
+{
+  "reviewDate": "2026-10-29",
+  "revision": "906472e + pre-existing dirty working tree",
+  "scope": "Local whole-repository review, not a release certification or real-user study",
+  "environment": {
+    "node": "v26.4.0",
+    "pnpm": "11.1.1",
+    "python": "3.15.0",
+    "goOnPath": false,
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "checks": [
+    {
+      "command": "pnpm test",
+      "status": "failed",
+      "testFiles": { "passed": 190, "failed": 1, "total": 191 },
+      "tests": { "reportedPassed": 2438, "failed": 1, "total": 2439 },
+      "durationSeconds": 46.63,
+      "failure": "packages/core/src/source-scan/m9-source-scan.test.ts:81 expects Go parser; actual mode is heuristic because Go is unavailable",
+      "caveat": "The real Go sample test returns early without reporting skip when Go is absent, so reportedPassed is not executed-path coverage"
+    },
+    {
+      "command": "pnpm exec vitest run packages/core/src/source-scan/m9-source-scan.test.ts",
+      "status": "failed",
+      "tests": { "reportedPassed": 11, "failed": 1, "total": 12 },
+      "failure": "Same parser/heuristic mismatch reproduced"
+    },
+    { "command": "pnpm typecheck", "status": "passed" },
+    { "command": "pnpm lint", "status": "passed" },
+    {
+      "command": "pnpm docs:check",
+      "status": "passed_with_baseline_warnings",
+      "errors": 0,
+      "warnings": 132,
+      "warningsWithinBaseline": 132
+    }
+  ],
+  "inventoryMethod": "Non-test .ts/.tsx files recursively under each src directory; core includes tooling. SQL migration count is separate. Excludes Go/Python/JSON and does not measure business complexity or coverage.",
+  "inventory": {
+    "apps/web/src": { "sourceFiles": 151, "sourceLines": 23311 },
+    "apps/server/src": { "sourceFiles": 38, "sourceLines": 5254 },
+    "apps/cli/src": { "sourceFiles": 19, "sourceLines": 5237 },
+    "packages/core/src": { "sourceFiles": 123, "sourceLines": 23850 },
+    "packages/shared/src": { "sourceFiles": 41, "sourceLines": 6501 },
+    "packages/adapters/src": { "sourceFiles": 9, "sourceLines": 233 },
+    "sqlMigrations": 23
+  },
+  "notPerformed": [
+    "Product-code refactoring or bug fixes",
+    "Browser interaction tests",
+    "Real provider calls or real-user experiments",
+    "Current npm registry publication verification",
+    "CLI tarball isolated installation",
+    "Git commit, push, or permission/CI changes"
+  ]
+}

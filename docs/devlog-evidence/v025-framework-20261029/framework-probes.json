@@ -1,0 +1,828 @@
+{
+  "generatedAtNote": "固定时钟 2026-10-29T00:00:00.000Z；本文件是现状刻画，不是安全结论",
+  "environment": {
+    "node": "v26.4.0",
+    "platform": "darwin/arm64",
+    "script_sha256": "5b8835e79fbfc485c584834722d306767b5edbf9d8f3825ab00d68f8e02d2c34"
+  },
+  "safety": {
+    "fetch_attempts": 0,
+    "fetch_restored": true,
+    "node_modules_imported": [
+      "node:assert/strict",
+      "node:crypto",
+      "node:fs",
+      "node:os",
+      "node:path",
+      "node:url"
+    ],
+    "scratch_dirs": 7,
+    "scratch_root_removed": true
+  },
+  "probes": [
+    {
+      "id": "A_context_inline_vs_index",
+      "question": "规则条数增长时，IDE 每次必读的主文件如何变化？把规则改成「主文档索引 + 引用层文件」能省下多少必读字节？",
+      "independent_variables": {
+        "ruleCounts": [
+          8,
+          32,
+          128
+        ],
+        "selfVariable": "主文档是否内联规则全文"
+      },
+      "inference_boundary": "对照臂（索引+引用）是**设计模拟**，由本脚本按 composer 的既有引用行样式渲染，不是产品已实现的产物形态；因此它证明的是「可省多少」，不证明「改了就没问题」。token 数为产品自带估算函数。",
+      "observations": {
+        "arms": [
+          {
+            "n": 8,
+            "inlineMain": 3534,
+            "inlineTotal": 21366,
+            "indexMain": 335
+          },
+          {
+            "n": 32,
+            "inlineMain": 13250,
+            "inlineTotal": 79662,
+            "indexMain": 336
+          },
+          {
+            "n": 128,
+            "inlineMain": 52186,
+            "inlineTotal": 313278,
+            "indexMain": 337
+          }
+        ],
+        "mainTokens_at128": 20498,
+        "bundleTokens_at128": 123029
+      },
+      "assertions": [
+        {
+          "name": "A8_模拟臂与产物字节同源（规则块可定位）",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "A8_主文档可被索引化改写",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "A32_模拟臂与产物字节同源（规则块可定位）",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "A32_主文档可被索引化改写",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "A128_模拟臂与产物字节同源（规则块可定位）",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "A128_主文档可被索引化改写",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "A_主文档字节随规则数单调增",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "A_索引臂主文档字节与规则数无关（近常数）",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "A_128 条时索引臂必读体积远小于内联臂",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "A_全量内联从 8 条到 128 条放大超过 10 倍",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    },
+    {
+      "id": "B_stage_gate",
+      "question": "用仓库自带的「Spec 驱动流」模板建项目，前置阶段清单零完成时能否直接推进到「实现」乃至「复盘」？",
+      "independent_variables": {
+        "template": "Spec 驱动流",
+        "selfVariable": "check_states 是否为空"
+      },
+      "inference_boundary": "测的是仓储层的阶段推进判定（路由只做参数校验后转调它）。不测前端是否另有遮挡，也不测团队实际流程习惯。",
+      "observations": {
+        "templateStages": [
+          "需求澄清",
+          "PRD",
+          "Spec 规格",
+          "计划",
+          "实现",
+          "审查",
+          "复盘"
+        ],
+        "checklistItemsTotal": 14,
+        "jumpToImpl": {
+          "ok": true,
+          "stage": "实现"
+        },
+        "jumpToLast": {
+          "ok": true,
+          "stage": "复盘"
+        },
+        "jumpBackward": {
+          "ok": true,
+          "stage": "需求澄清"
+        },
+        "checkStatesAfter": 0,
+        "health": {
+          "stage": "需求澄清",
+          "unchecked": 14,
+          "total": 14,
+          "lastLogAt": null,
+          "logCount": 0,
+          "taskCount": 0,
+          "injection": {
+            "packId": null,
+            "version": null
+          }
+        },
+        "onlyGate": {
+          "ok": false,
+          "error": "VALIDATION_ERROR"
+        }
+      },
+      "assertions": [
+        {
+          "name": "B_清单零完成可直跳实现",
+          "actual": {
+            "ok": true,
+            "stage": "实现"
+          },
+          "expected": {
+            "ok": true,
+            "stage": "实现"
+          },
+          "passed": true
+        },
+        {
+          "name": "B_可继续直跳末段复盘",
+          "actual": {
+            "ok": true,
+            "stage": "复盘"
+          },
+          "expected": {
+            "ok": true,
+            "stage": "复盘"
+          },
+          "passed": true
+        },
+        {
+          "name": "B_可任意回跳需求澄清",
+          "actual": {
+            "ok": true,
+            "stage": "需求澄清"
+          },
+          "expected": {
+            "ok": true,
+            "stage": "需求澄清"
+          },
+          "passed": true
+        },
+        {
+          "name": "B_推进过程不写任何勾选",
+          "actual": 0,
+          "expected": 0,
+          "passed": true
+        },
+        {
+          "name": "B_唯一存在的校验是阶段名在快照内",
+          "actual": {
+            "ok": false,
+            "error": "VALIDATION_ERROR"
+          },
+          "expected": {
+            "ok": false,
+            "error": "VALIDATION_ERROR"
+          },
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    },
+    {
+      "id": "C_spec_trace",
+      "question": "需求（requirements）与任务（tasks）之间能否建立追溯？禁区条款具体禁的是什么？新增关联表是否触碰它？",
+      "independent_variables": {
+        "selfVariable": "关联方式（同表外键列 vs 新增关联表）"
+      },
+      "inference_boundary": "证明的是 schema 层能力与既有 owner 裁定的边界，不证明加表后业务上一定会用；也不测历史数据回填。",
+      "observations": {
+        "tasksColumns": [
+          "id",
+          "project_id",
+          "title",
+          "stage_name",
+          "status",
+          "order_"
+        ],
+        "requirementsColumns": [
+          "id",
+          "project_id",
+          "title",
+          "detail",
+          "priority",
+          "status",
+          "source_session_id",
+          "created_at"
+        ],
+        "tablesMatchingRequirement": [
+          "requirements"
+        ],
+        "bannedLine": 77,
+        "bannedText": "-- ALTER 0001_init.sql 的既有表，既有 spec 明确禁止就地扩列，故 tasks.requirement_id 是禁区。",
+        "additiveLinkTable": {
+          "ok": true
+        }
+      },
+      "assertions": [
+        {
+          "name": "C_tasks 表没有 requirement 外键列",
+          "actual": false,
+          "expected": false,
+          "passed": true
+        },
+        {
+          "name": "C_除 requirements 外没有关联表",
+          "actual": [
+            "requirements"
+          ],
+          "expected": [
+            "requirements"
+          ],
+          "passed": true
+        },
+        {
+          "name": "C_requirements 无评审/验收结构字段",
+          "actual": [],
+          "expected": [],
+          "passed": true
+        },
+        {
+          "name": "C_禁区原文可定位",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "C_新增关联表可行（禁区只挡就地扩列）",
+          "actual": {
+            "ok": true
+          },
+          "expected": {
+            "ok": true
+          },
+          "passed": true
+        },
+        {
+          "name": "C_加表后 tasks 列未变",
+          "actual": [
+            "id",
+            "project_id",
+            "title",
+            "stage_name",
+            "status",
+            "order_"
+          ],
+          "expected": [
+            "id",
+            "project_id",
+            "title",
+            "stage_name",
+            "status",
+            "order_"
+          ],
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    },
+    {
+      "id": "D_requirements_wiring",
+      "question": "需求对象有哪些入口、缺哪些环节？（写入方 / HTTP 面 / UI 面 / 状态推进）",
+      "independent_variables": {
+        "selfVariable": "扫描目录（服务端路由层、Web、core 仓储层、CLI）"
+      },
+      "inference_boundary": "静态断言：命中数为「该目录下读过的文件里含该词的文件数」，为 0 即该层无引用。不证明运行时一定无需求（agent 通道可直接写库），也不证明加 UI 就够用。",
+      "observations": {
+        "scan": {
+          "server": {
+            "files": 38,
+            "hits": []
+          },
+          "web": {
+            "files": 152,
+            "hits": []
+          },
+          "coreRepos": {
+            "files": 14,
+            "hits": []
+          },
+          "coreServices": {
+            "files": 9,
+            "hits": [
+              "packages/core/src/services/agentService.ts",
+              "packages/core/src/services/commandRunService.ts"
+            ]
+          },
+          "cli": {
+            "files": 19,
+            "hits": [
+              "apps/cli/src/commands/requirement.ts",
+              "apps/cli/src/commands/status.ts",
+              "apps/cli/src/index.ts"
+            ]
+          },
+          "writes": {
+            "files": 123,
+            "hits": [
+              "packages/core/src/services/agentService.ts"
+            ]
+          }
+        }
+      },
+      "assertions": [
+        {
+          "name": "D_服务端路由层零引用（无 HTTP 面）",
+          "actual": 0,
+          "expected": 0,
+          "passed": true
+        },
+        {
+          "name": "D_Web 零引用（无 UI 面）",
+          "actual": 0,
+          "expected": 0,
+          "passed": true
+        },
+        {
+          "name": "D_core 仓储层零引用（无 RequirementsRepo）",
+          "actual": 0,
+          "expected": 0,
+          "passed": true
+        },
+        {
+          "name": "D_写入只发生在服务层的裸 SQL",
+          "actual": [
+            "packages/core/src/services/agentService.ts"
+          ],
+          "expected": [
+            "packages/core/src/services/agentService.ts"
+          ],
+          "passed": true
+        },
+        {
+          "name": "D_CLI 有入口",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    },
+    {
+      "id": "E_asset_code_freshness",
+      "question": "现有 schema 能否回答「这条资产描述的代码变了」？注入侧与库内侧分别能测到什么？",
+      "independent_variables": {
+        "selfVariable": "变更位置（注入文件 / 资产正文 / 项目源码）"
+      },
+      "inference_boundary": "测的是数据模型是否有锚点列，属结构性证据。不测「加锚点后新鲜度判断有多准」——那需要真实项目与真实改动样本。",
+      "observations": {
+        "assetAnchorColumns": [
+          {
+            "table": "prompts",
+            "columns": [
+              "id",
+              "title",
+              "description",
+              "content",
+              "content_hash",
+              "variables",
+              "tags",
+              "folder_path",
+              "platform_marks",
+              "use_as",
+              "status",
+              "seed_hash",
+              "created_at",
+              "updated_at"
+            ],
+            "anchored": []
+          },
+          {
+            "table": "terms",
+            "columns": [
+              "id",
+              "zh",
+              "en",
+              "aliases",
+              "definition",
+              "example",
+              "related_term_ids",
+              "source",
+              "tags",
+              "status",
+              "seed_hash",
+              "created_at",
+              "updated_at",
+              "level",
+              "starter",
+              "domain",
+              "scenario"
+            ],
+            "anchored": []
+          },
+          {
+            "table": "playbooks",
+            "columns": [
+              "id",
+              "scenario",
+              "problem",
+              "practice",
+              "anti_practice",
+              "related_prompt_ids",
+              "related_term_ids",
+              "related_skill_ids",
+              "verified",
+              "evidence",
+              "source",
+              "tags",
+              "status",
+              "seed_hash",
+              "created_at",
+              "updated_at"
+            ],
+            "anchored": []
+          },
+          {
+            "table": "skills",
+            "columns": [
+              "id",
+              "name",
+              "description",
+              "source",
+              "skill_dir",
+              "latest_version_id",
+              "installed_targets",
+              "created_at",
+              "updated_at",
+              "remote_ref",
+              "remote_tree_hash"
+            ],
+            "anchored": []
+          }
+        ],
+        "anchorTables": [
+          {
+            "table": "lang_topic_findings",
+            "pathCols": [
+              "file_rel_path"
+            ],
+            "assetFks": []
+          }
+        ],
+        "langFindingsColumns": [
+          "id",
+          "scan_id",
+          "topic_id",
+          "file_rel_path",
+          "line",
+          "col",
+          "matched_pattern",
+          "confidence",
+          "scanner_mode",
+          "project_id"
+        ],
+        "fingerprintBefore": "3ba649e6c1d9",
+        "fingerprintAfter": "0e25cb368255",
+        "sourceFileWritten": "src/entry.ts"
+      },
+      "assertions": [
+        {
+          "name": "E_资产表一律没有代码锚点列",
+          "actual": [
+            [],
+            [],
+            [],
+            []
+          ],
+          "expected": [
+            [],
+            [],
+            [],
+            []
+          ],
+          "passed": true
+        },
+        {
+          "name": "E_带「项目+路径」列的表没有一张同时挂资产外键",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "E_锚点数据形态在库内已有先例（lang_topic_findings 带 file_rel_path + line）",
+          "actual": [
+            true,
+            true
+          ],
+          "expected": [
+            true,
+            true
+          ],
+          "passed": true
+        },
+        {
+          "name": "E_资产正文变更会让包指纹变化",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    },
+    {
+      "id": "F_adapter_extension",
+      "question": "新增一个 IDE 适配时，既有六个平台的产物字节是否不变？唯一的收口点在哪？",
+      "independent_variables": {
+        "selfVariable": "AdapterBundle 是否多返回一个主文件"
+      },
+      "inference_boundary": "合成 adapter 只活在脚本内（不落 registry），证明的是渲染层的可加性与冻结枚举的挡位；不证明真实第 7 平台适配质量。",
+      "observations": {
+        "coreImportHits": [],
+        "adapterIds": [
+          "claude-code",
+          "cursor",
+          "generic-agents",
+          "codebuddy",
+          "trae",
+          "minicode"
+        ],
+        "reservedP1": [
+          "windsurf",
+          "gemini",
+          "copilot"
+        ],
+        "sixPathsBase": [
+          ".cursor/rules/openvibe.mdc",
+          ".trae/rules/openvibe.md",
+          "AGENTS.md",
+          "CLAUDE.md",
+          "CODEBUDDY.md",
+          "MINI.md"
+        ],
+        "sixPathsExtra": [
+          ".cursor/rules/openvibe.mdc",
+          ".trae/rules/openvibe.md",
+          "AGENTS.md",
+          "CLAUDE.md",
+          "CODEBUDDY.md",
+          "MINI.md"
+        ],
+        "extraPathAdded": true,
+        "fingerprintChanged": true,
+        "unknownAdapterRejected": true,
+        "unknownAdapterIssue": "invalid_value"
+      },
+      "assertions": [
+        {
+          "name": "F_core 不 import adapters（R2 成立）",
+          "actual": [],
+          "expected": [],
+          "passed": true
+        },
+        {
+          "name": "F_既有六平台产物字节完全不变",
+          "actual": {
+            ".cursor/rules/openvibe.mdc": "14c6ffe8a742148175b98166f376ddc41a6269470fa262b5e82980eff2f7cbc8",
+            ".trae/rules/openvibe.md": "3f366bdc3bc211b0d625dd92567c35f30b7dacb24baf3881ebbe63c61cbbc84f",
+            "AGENTS.md": "1ba932cd63399a95f8f27f3053669374b8712350685b7f912875aae8d25c0b70",
+            "CLAUDE.md": "1ba932cd63399a95f8f27f3053669374b8712350685b7f912875aae8d25c0b70",
+            "CODEBUDDY.md": "1ba932cd63399a95f8f27f3053669374b8712350685b7f912875aae8d25c0b70",
+            "MINI.md": "1ba932cd63399a95f8f27f3053669374b8712350685b7f912875aae8d25c0b70"
+          },
+          "expected": {
+            ".cursor/rules/openvibe.mdc": "14c6ffe8a742148175b98166f376ddc41a6269470fa262b5e82980eff2f7cbc8",
+            ".trae/rules/openvibe.md": "3f366bdc3bc211b0d625dd92567c35f30b7dacb24baf3881ebbe63c61cbbc84f",
+            "AGENTS.md": "1ba932cd63399a95f8f27f3053669374b8712350685b7f912875aae8d25c0b70",
+            "CLAUDE.md": "1ba932cd63399a95f8f27f3053669374b8712350685b7f912875aae8d25c0b70",
+            "CODEBUDDY.md": "1ba932cd63399a95f8f27f3053669374b8712350685b7f912875aae8d25c0b70",
+            "MINI.md": "1ba932cd63399a95f8f27f3053669374b8712350685b7f912875aae8d25c0b70"
+          },
+          "passed": true
+        },
+        {
+          "name": "F_新路径只是追加，不改六者清单",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "F_指纹因追加而变（可核验）",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "F_targets 闭集挡住未登记平台（扩展须显式改枚举）",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    },
+    {
+      "id": "G_negative_constraint",
+      "question": "反例（antiPractice）能否进包？它落在哪一层？AI 回写能不能产出它？",
+      "independent_variables": {
+        "selfVariable": "反例文本是否存在于技巧条目"
+      },
+      "inference_boundary": "测的是渲染落点与字段来源，不测「反例写进包后 AI 是否真的遵守」——那需要真实 IDE 会话样本。",
+      "observations": {
+        "mainHasPointer": true,
+        "mainCarriesBan": false,
+        "secondaryCarriesBan": true,
+        "secondaryHeader": "| 场景 | 问题 | 正确做法 | 反例 | 亲测有效 |",
+        "aiWritesAntiPractice": [],
+        "candidateKinds": "EXTRACT_CANDIDATE_KINDS = ['term', 'prompt', 'playbook']"
+      },
+      "assertions": [
+        {
+          "name": "G_主文档只带一行指针",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "G_主文档不携带禁止条目本身",
+          "actual": false,
+          "expected": false,
+          "passed": true
+        },
+        {
+          "name": "G_反例落在二级文件表格里",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "G_二级文件表头含反例列",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "G_AI 提取侧无 antiPractice 字段来源",
+          "actual": [],
+          "expected": [],
+          "passed": true
+        },
+        {
+          "name": "G_候选类型里有 playbook（字段需人工补）",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    },
+    {
+      "id": "H_metric_ceiling",
+      "question": "文章要的工时/缺陷率/返工率，现有数据面能算出什么、缺什么？",
+      "independent_variables": {
+        "selfVariable": "无（结构清点）"
+      },
+      "inference_boundary": "结构证据：列与 kind 闭集决定「可聚合的下界」。不计算任何真实指标值，也不证明加字段后指标一定可信。",
+      "observations": {
+        "localEventKinds": [
+          "asset_created",
+          "asset_updated",
+          "asset_deleted",
+          "asset_reflowed",
+          "checklist_item_checked",
+          "flow_template_run",
+          "injection_confirmed",
+          "injection_conflict_resolved",
+          "injection_failed",
+          "pack_composed",
+          "pack_exported",
+          "stage_advanced",
+          "stage_view_switched",
+          "agent_ingest_accepted",
+          "agent_ingest_rejected",
+          "agent_context_served",
+          "cli_agent_command_run",
+          "agent_bridge_installed",
+          "ai_recommend_call",
+          "ai_extract_call",
+          "ai_discuss_call",
+          "lang_topic_findings",
+          "lang_source_consent",
+          "lang_source_shares",
+          "lang_resource_probe"
+        ],
+        "localEventKindCount": 25,
+        "localEventColumns": [
+          "id",
+          "kind",
+          "subject_type",
+          "subject_id",
+          "project_id",
+          "payload_json",
+          "created_at",
+          "day"
+        ],
+        "telemetryColumns": [
+          "id",
+          "event",
+          "value",
+          "day",
+          "os",
+          "app_version",
+          "queued_at",
+          "sent_at"
+        ],
+        "adoptionColumns": [
+          "id",
+          "kind",
+          "round_no",
+          "published",
+          "rejected",
+          "rate",
+          "below",
+          "created_at"
+        ],
+        "estMinutesTables": [
+          "lang_topic_profiles"
+        ],
+        "numericMetricColumnsFound": []
+      },
+      "assertions": [
+        {
+          "name": "H_事件时间序列可聚合（有 created_at 与 project_id）",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "H_阶段与清单事件在 kind 闭集里",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "H_无工时/缺陷/返工数值列",
+          "actual": [],
+          "expected": [],
+          "passed": true
+        },
+        {
+          "name": "H_唯一时长字段只在 M9 画像表（est_minutes）",
+          "actual": [
+            "lang_topic_profiles"
+          ],
+          "expected": [
+            "lang_topic_profiles"
+          ],
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    }
+  ],
+  "not_run": [
+    "真实 IDE 会话内规则是否被读取（需人工/IDE 侧证据）",
+    "反例写进包后 AI 是否真的规避（需真实模型样本）",
+    "第 7 个真实平台适配的产物质量（脚本只验可加性与不变性）",
+    "阶段闸落地后的返工率变化（闸本身未实现）",
+    "真实项目的资产↔代码锚点命中率（需真实仓库样本）",
+    "工时/缺陷/返工指标的实际数值（本次只做结构清点）"
+  ]
+}

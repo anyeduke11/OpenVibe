@@ -1,0 +1,115 @@
+{
+  "environment": {
+    "node": "v26.4.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "scope": "Local synthetic ablations and characterization probes; no production changes or external requests",
+  "scanner": {
+    "sample": "Four repository synthetic fixtures, not real-project recall evidence",
+    "intervention": "Only pythonBin changes to a nonexistent executable",
+    "goToolchain": {
+      "available": false,
+      "version": null,
+      "bin": "go"
+    },
+    "baseline": {
+      "languages": [
+        {
+          "lang": "python",
+          "mode": "parser",
+          "toolchain": "Python 3.15.0",
+          "file_count": 2,
+          "hit_count": 43,
+          "notice": null
+        },
+        {
+          "lang": "go",
+          "mode": "heuristic",
+          "toolchain": null,
+          "file_count": 2,
+          "hit_count": 21,
+          "notice": "未检测到 Go 工具链 —— 已回退到启发式模式，识别可能不全。"
+        }
+      ],
+      "findings": 64,
+      "warnings": ["未检测到 Go 工具链 —— 已回退到启发式模式，识别可能不全。"]
+    },
+    "withoutPython": {
+      "languages": [
+        {
+          "lang": "python",
+          "mode": null,
+          "toolchain": null,
+          "file_count": 0,
+          "hit_count": 0,
+          "notice": "未找到 python3 —— Python 侧未扫描（识别可能不全）。"
+        },
+        {
+          "lang": "go",
+          "mode": "heuristic",
+          "toolchain": null,
+          "file_count": 2,
+          "hit_count": 21,
+          "notice": "未检测到 Go 工具链 —— 已回退到启发式模式，识别可能不全。"
+        }
+      ],
+      "findings": 21,
+      "warnings": [
+        "未找到 python3 —— Python 侧未扫描（识别可能不全）。",
+        "未检测到 Go 工具链 —— 已回退到启发式模式，识别可能不全。"
+      ]
+    },
+    "goFindingsUnchanged": true,
+    "missingPythonExplicit": true
+  },
+  "anchor": {
+    "sample": "Three handcrafted candidates, including one contradicted body and one absent quote",
+    "intervention": "Anchor filter enabled vs shadow pass-through on the same candidates",
+    "enabled": {
+      "passed": 2,
+      "dropped": 1
+    },
+    "shadowDisabled": {
+      "passed": 3,
+      "dropped": 0
+    },
+    "contradictedBodyWithLiteralQuotePassed": true,
+    "inferenceLimit": "Literal source membership, not entailment; not model hallucination-rate measurement"
+  },
+  "isolation": {
+    "m9Data": {
+      "intervention": "Same temporary migrated database and fixed pack before/after M9 seed content",
+      "topicsBefore": 0,
+      "topicsAfter": 124,
+      "seedBundles": 12,
+      "seedRowsCreated": 943,
+      "renderedFiles": 2,
+      "renderedBytesAndFingerprintUnchanged": true,
+      "inferenceLimit": "One synthetic pack; shared migrations/modules remain loaded; not removal or user-value evidence"
+    },
+    "aiGate": {
+      "intervention": "Only aiExtractEnabled changes; same explicit consent, log and synthetic runner",
+      "closed": {
+        "status": "gate-closed",
+        "runnerCalls": 0,
+        "pendingRows": 0
+      },
+      "open": {
+        "status": "ok",
+        "runnerCalls": 1,
+        "pendingRows": 1
+      },
+      "corePromptCountUnchanged": true,
+      "renderedBytesAndFingerprintUnchanged": true,
+      "inferenceLimit": "Runner is injected; does not test real provider selection, network, model quality or human review"
+    }
+  },
+  "importGuard": {
+    "intervention": "Equivalent illegal cross-app dependency, alias vs relative spelling; lintText only",
+    "aliasRules": ["no-restricted-imports"],
+    "relativeRules": [],
+    "observedDefect": "Relative spelling bypasses this R4 import guard",
+    "inferenceLimit": "One path-depth pair; not a complete dependency audit"
+  }
+}

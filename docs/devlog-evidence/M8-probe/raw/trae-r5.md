@@ -1,37 +1,49 @@
-# M8 探针取证 · 平台=trae · 轮次=5
+<!-- M8-PROBE platform=trae round=5 -->
 
-> 送达缺失声明（必须先读）：本轮指令中「文件**必须**以这一段开头（我会用它做机器索引，格式错了我会漏掉你这一轮）：」之后的**正文块未随消息送达**（消息在此处截断）。因此本文件无法按该索引头开头。此点仅在下方「第 3 步」如实登记，未做任何推断或补全。
+客户端：Trae（版本无法自证）
+
+> 索引头补发说明：机器索引头与客户端自证行于 2026-10-17 依据 `docs/devlog-evidence/M8-probe/prompt-run-once.md` §2 模板补写。原「送达缺失声明」因索引头已补写而移除。正文原始记录未改一字。
 
 ---
 
 ## 第 0 步 · 前置自检（只读）
 
 ### a) 命令
+
 ```
 ls -ld ~/.trae/skills/openvibe-probe ~/.codebuddy/skills/openvibe-probe ~/.agents/skills/openvibe-probe
 ```
+
 ### a) 输出原文
+
 ```
 drwxr-xr-x@ 5 duke  staff  160 10月 14 23:18 /Users/duke/.agents/skills/openvibe-probe
 lrwxr-xr-x@ 1 duke  staff   35 10月 14 23:18 /Users/duke/.codebuddy/skills/openvibe-probe -> ../../.agents/skills/openvibe-probe
 lrwxr-xr-x@ 1 duke  staff   35 10月 14 23:18 /Users/duke/.trae/skills/openvibe-probe -> ../../.agents/skills/openvibe-probe
 ```
+
 判读（仅陈述首字符事实，不推断）：`~/.agents/skills/openvibe-probe` 首字符为 `d`（目录）；`~/.codebuddy/skills/openvibe-probe` 与 `~/.trae/skills/openvibe-probe` 首字符均为 `l`（软链），二者都指向 `../../.agents/skills/openvibe-probe`。目标存在且为 symlink。
 
 ### b) 命令
+
 ```
 ls -l ~/.agents/skills/openvibe-probe/scripts/probe.sh
 ```
+
 ### b) 输出原文
+
 ```
 -rwxr-xr-x@ 1 duke  staff  156 10月 14 23:18 /Users/duke/.agents/skills/openvibe-probe/scripts/probe.sh
 ```
 
 ### c) 命令
+
 ```
 cat ~/.agents/skills/openvibe-probe/SKILL.md
 ```
+
 ### c) 输出原文
+
 ```
 ---
 name: openvibe-probe
@@ -59,10 +71,13 @@ description: M8 技能发现约定探针。当用户说出触发口令「灵典�
 ```
 
 ### d) 命令
+
 ```
 pwd
 ```
+
 ### d) 输出原文
+
 ```
 /Users/duke/Documents/OpenVibe
 ```
@@ -72,10 +87,13 @@ pwd
 ## 第 1 步 · 主测试
 
 ### 命令（先直接执行，未加 `bash` 前缀）
+
 ```
 ~/.agents/skills/openvibe-probe/scripts/probe.sh
 ```
+
 ### stdout 原文
+
 ```
 <<<M8-PROBE-SCRIPT-RAN|marker=V1-USER|pwd=/Users/duke/Documents/OpenVibe|path=/Users/duke/.agents/skills/openvibe-probe/scripts/probe.sh>>>
 ```
@@ -90,6 +108,7 @@ pwd
 **问二：脚本有没有跑出来？**
 脚本跑出来了——**直接执行成功**（未加 `bash`）。
 `<<<M8-PROBE-SCRIPT-RAN` 那一行的原文：
+
 ```
 <<<M8-PROBE-SCRIPT-RAN|marker=V1-USER|pwd=/Users/duke/Documents/OpenVibe|path=/Users/duke/.agents/skills/openvibe-probe/scripts/probe.sh>>>
 ```
@@ -100,11 +119,13 @@ pwd
 **问四：`references/answers.md` 里的层级标记是什么？**
 `V1-USER`
 （`cat ~/.agents/skills/openvibe-probe/references/answers.md` 原文：
+
 ```
 # 探针参考（子目录可读性测试）
 
 - 你读到的层级标记：**V1-USER**
 ```
+
 ）
 
 ---

@@ -1,0 +1,771 @@
+{
+  "schema_version": 1,
+  "purpose": "v0.2.4 controlled characterization; passing means defects reproduced, not safe",
+  "fixed_service_time": "2026-10-29T00:00:00.000Z",
+  "runtime": {
+    "node": "26.4.0",
+    "platform": "darwin"
+  },
+  "script_sha256": "0960b565fc715e57366c059b6688f058ed1a0a891457dfd8bef1774f46b75d7e",
+  "classification": "observed_defect",
+  "summary": {
+    "groups": 4,
+    "observed_defect_groups": 4,
+    "assertions": 56,
+    "failed_assertions": 0
+  },
+  "safety": {
+    "fetch_attempts": 0,
+    "keychain_attempts": 0,
+    "temp_removed": true
+  },
+  "fatal_errors": [],
+  "probes": [
+    {
+      "id": "A_export",
+      "independent_variables": {
+        "changed": ["rendered.fingerprint", "rendered.files[0].content"],
+        "arms": ["unchanged", "changed"],
+        "held_fixed": "Fresh identical DB fixtures; pack, version=1.0.0, download then directory, injected clock, manifest, file metadata and writer spy are identical. Only the second render differs between arms."
+      },
+      "inference_boundary": "Real service/repo with a synthetic renderer and memory-only writer spy. Proves writer invocation precedes VERSION_IMMUTABLE, not real filesystem overwrite or renderer/hash correctness. Repo-generated IDs/timestamps are excluded from output.",
+      "observations": {
+        "unchanged": {
+          "download_status": "created",
+          "writes_after_download": 0,
+          "directory_status": "idempotent",
+          "directory_error": null,
+          "writes_after_directory": 1,
+          "writer_received_current_content": true,
+          "writer_content_sha256": "c923045a95120a84565d06a15749e4fcb867c95938acf8cb6bf473c7cb093ccb",
+          "export_rows": 1,
+          "original_fingerprint_retained": true,
+          "reused_record": true,
+          "stored_bundle_unchanged": true,
+          "renderer_times": ["2026-10-29T00:00:00.000Z", "2026-10-29T00:00:00.000Z"]
+        },
+        "changed": {
+          "download_status": "created",
+          "writes_after_download": 0,
+          "directory_status": null,
+          "directory_error": {
+            "name": "AppError",
+            "code": "VERSION_IMMUTABLE",
+            "injected_status_failure": false
+          },
+          "writes_after_directory": 1,
+          "writer_received_current_content": true,
+          "writer_content_sha256": "815cef27a32563aa84075121a6deed50177cece986525a118db42dd263d86ded",
+          "export_rows": 1,
+          "original_fingerprint_retained": true,
+          "reused_record": null,
+          "stored_bundle_unchanged": true,
+          "renderer_times": ["2026-10-29T00:00:00.000Z", "2026-10-29T00:00:00.000Z"]
+        }
+      },
+      "assertions": [
+        {
+          "name": "unchanged: initial download",
+          "actual": ["created", 0],
+          "expected": ["created", 0],
+          "passed": true
+        },
+        {
+          "name": "unchanged: directory outcome",
+          "actual": ["idempotent", null],
+          "expected": ["idempotent", null],
+          "passed": true
+        },
+        {
+          "name": "unchanged: writer already invoked with current content",
+          "actual": [1, true],
+          "expected": [1, true],
+          "passed": true
+        },
+        {
+          "name": "unchanged: one immutable original record",
+          "actual": [1, true, true],
+          "expected": [1, true, true],
+          "passed": true
+        },
+        {
+          "name": "unchanged: fixed render clock",
+          "actual": ["2026-10-29T00:00:00.000Z", "2026-10-29T00:00:00.000Z"],
+          "expected": ["2026-10-29T00:00:00.000Z", "2026-10-29T00:00:00.000Z"],
+          "passed": true
+        },
+        {
+          "name": "unchanged: record reused",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "changed: initial download",
+          "actual": ["created", 0],
+          "expected": ["created", 0],
+          "passed": true
+        },
+        {
+          "name": "changed: directory outcome",
+          "actual": [null, "VERSION_IMMUTABLE"],
+          "expected": [null, "VERSION_IMMUTABLE"],
+          "passed": true
+        },
+        {
+          "name": "changed: writer already invoked with current content",
+          "actual": [1, true],
+          "expected": [1, true],
+          "passed": true
+        },
+        {
+          "name": "changed: one immutable original record",
+          "actual": [1, true, true],
+          "expected": [1, true, true],
+          "passed": true
+        },
+        {
+          "name": "changed: fixed render clock",
+          "actual": ["2026-10-29T00:00:00.000Z", "2026-10-29T00:00:00.000Z"],
+          "expected": ["2026-10-29T00:00:00.000Z", "2026-10-29T00:00:00.000Z"],
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    },
+    {
+      "id": "B_ingest",
+      "independent_variables": {
+        "arms": ["normal", "reject_first", "update_abort"],
+        "held_fixed": "Fresh identical DB fixtures; one accepted dev_log, same payload/key/project setup and injected clock. All arms call publish then repeat the identical publish.",
+        "changes": {
+          "reject_first": "Only add a successful rejected review before the first publish.",
+          "update_abort": "Only add a TEMP trigger aborting the pending->published status UPDATE. Before retry, only remove that trigger; preserve the failed-call state."
+        }
+      },
+      "inference_boundary": "Real createAgentService, ingest/review repos and dev_log_entries. Demonstrates terminal-state inconsistency and non-atomic residue/duplicate for dev_log only. No concurrency, crash, HTTP route, other ingest kinds or automatic retry exercised.",
+      "observations": {
+        "normal": {
+          "initial": {
+            "status": "pending",
+            "business_rows": 0,
+            "entry_numbers": [],
+            "all_rows_match_payload": true
+          },
+          "before_publish": {
+            "status": "pending",
+            "business_rows": 0,
+            "entry_numbers": [],
+            "all_rows_match_payload": true
+          },
+          "first_error": null,
+          "after_first": {
+            "status": "published",
+            "business_rows": 1,
+            "entry_numbers": [1],
+            "all_rows_match_payload": true
+          },
+          "after_retry": {
+            "status": "published",
+            "business_rows": 1,
+            "entry_numbers": [1],
+            "all_rows_match_payload": true
+          }
+        },
+        "reject_first": {
+          "initial": {
+            "status": "pending",
+            "business_rows": 0,
+            "entry_numbers": [],
+            "all_rows_match_payload": true
+          },
+          "before_publish": {
+            "status": "rejected",
+            "business_rows": 0,
+            "entry_numbers": [],
+            "all_rows_match_payload": true
+          },
+          "first_error": null,
+          "after_first": {
+            "status": "published",
+            "business_rows": 0,
+            "entry_numbers": [],
+            "all_rows_match_payload": true
+          },
+          "after_retry": {
+            "status": "published",
+            "business_rows": 0,
+            "entry_numbers": [],
+            "all_rows_match_payload": true
+          }
+        },
+        "update_abort": {
+          "initial": {
+            "status": "pending",
+            "business_rows": 0,
+            "entry_numbers": [],
+            "all_rows_match_payload": true
+          },
+          "before_publish": {
+            "status": "pending",
+            "business_rows": 0,
+            "entry_numbers": [],
+            "all_rows_match_payload": true
+          },
+          "first_error": {
+            "name": "SqliteError",
+            "code": "SQLITE_CONSTRAINT_TRIGGER",
+            "injected_status_failure": true
+          },
+          "after_first": {
+            "status": "pending",
+            "business_rows": 1,
+            "entry_numbers": [1],
+            "all_rows_match_payload": true
+          },
+          "after_retry": {
+            "status": "published",
+            "business_rows": 2,
+            "entry_numbers": [1, 2],
+            "all_rows_match_payload": true
+          }
+        }
+      },
+      "assertions": [
+        {
+          "name": "normal: fixture accepted",
+          "actual": 1,
+          "expected": 1,
+          "passed": true
+        },
+        {
+          "name": "normal: initial state",
+          "actual": ["pending", 0],
+          "expected": ["pending", 0],
+          "passed": true
+        },
+        {
+          "name": "normal: controlled precondition",
+          "actual": ["pending", 0],
+          "expected": ["pending", 0],
+          "passed": true
+        },
+        {
+          "name": "normal: first error identity",
+          "actual": [null, false],
+          "expected": [null, false],
+          "passed": true
+        },
+        {
+          "name": "normal: first state and business rows",
+          "actual": ["published", 1],
+          "expected": ["published", 1],
+          "passed": true
+        },
+        {
+          "name": "normal: retry state and row count",
+          "actual": ["published", 1, true],
+          "expected": ["published", 1, true],
+          "passed": true
+        },
+        {
+          "name": "normal: allocated entry numbers",
+          "actual": [1],
+          "expected": [1],
+          "passed": true
+        },
+        {
+          "name": "reject_first: fixture accepted",
+          "actual": 1,
+          "expected": 1,
+          "passed": true
+        },
+        {
+          "name": "reject_first: initial state",
+          "actual": ["pending", 0],
+          "expected": ["pending", 0],
+          "passed": true
+        },
+        {
+          "name": "reject_first: controlled precondition",
+          "actual": ["rejected", 0],
+          "expected": ["rejected", 0],
+          "passed": true
+        },
+        {
+          "name": "reject_first: first error identity",
+          "actual": [null, false],
+          "expected": [null, false],
+          "passed": true
+        },
+        {
+          "name": "reject_first: first state and business rows",
+          "actual": ["published", 0],
+          "expected": ["published", 0],
+          "passed": true
+        },
+        {
+          "name": "reject_first: retry state and row count",
+          "actual": ["published", 0, true],
+          "expected": ["published", 0, true],
+          "passed": true
+        },
+        {
+          "name": "reject_first: allocated entry numbers",
+          "actual": [],
+          "expected": [],
+          "passed": true
+        },
+        {
+          "name": "update_abort: fixture accepted",
+          "actual": 1,
+          "expected": 1,
+          "passed": true
+        },
+        {
+          "name": "update_abort: initial state",
+          "actual": ["pending", 0],
+          "expected": ["pending", 0],
+          "passed": true
+        },
+        {
+          "name": "update_abort: controlled precondition",
+          "actual": ["pending", 0],
+          "expected": ["pending", 0],
+          "passed": true
+        },
+        {
+          "name": "update_abort: first error identity",
+          "actual": ["SQLITE_CONSTRAINT_TRIGGER", true],
+          "expected": ["SQLITE_CONSTRAINT_TRIGGER", true],
+          "passed": true
+        },
+        {
+          "name": "update_abort: first state and business rows",
+          "actual": ["pending", 1],
+          "expected": ["pending", 1],
+          "passed": true
+        },
+        {
+          "name": "update_abort: retry state and row count",
+          "actual": ["published", 2, true],
+          "expected": ["published", 2, true],
+          "passed": true
+        },
+        {
+          "name": "update_abort: allocated entry numbers",
+          "actual": [1, 2],
+          "expected": [1, 2],
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    },
+    {
+      "id": "C_provider",
+      "independent_variables": {
+        "changed": "enabled=true -> enabled=false; no other stored configuration field changes",
+        "selection_strata": ["default", "explicit"],
+        "held_fixed": "Same DB, provider ID/name/model/endpoint/default binding, empty key, api_key_storage=none, kind=openai_http; never call runner.run."
+      },
+      "inference_boundary": "Only runner construction is observed, not endpoint availability or successful LLM execution. Both default/explicit extraction paths construct a disabled runner. Project-bound routing and other provider kinds are not characterized.",
+      "observations": {
+        "synthetic_config": {
+          "id": "synthetic-provider",
+          "name": "synthetic",
+          "projects": [],
+          "enabled": true,
+          "kind": "openai_http",
+          "cmd": "",
+          "args": [],
+          "endpoint": "http://127.0.0.1:9/v1/chat/completions",
+          "model": "synthetic-model",
+          "provider": "synthetic",
+          "api_key": "",
+          "api_key_storage": "none",
+          "timeout_ms": 30000
+        },
+        "default_enabled": {
+          "configured": true,
+          "stored_enabled": true,
+          "runner_present": true,
+          "runner_id": "synthetic-provider",
+          "model": "synthetic-model",
+          "local": true,
+          "has_run_function": true
+        },
+        "default_disabled": {
+          "configured": true,
+          "stored_enabled": false,
+          "runner_present": true,
+          "runner_id": "synthetic-provider",
+          "model": "synthetic-model",
+          "local": true,
+          "has_run_function": true
+        },
+        "explicit_enabled": {
+          "configured": true,
+          "stored_enabled": true,
+          "runner_present": true,
+          "runner_id": "synthetic-provider",
+          "model": "synthetic-model",
+          "local": true,
+          "has_run_function": true
+        },
+        "explicit_disabled": {
+          "configured": true,
+          "stored_enabled": false,
+          "runner_present": true,
+          "runner_id": "synthetic-provider",
+          "model": "synthetic-model",
+          "local": true,
+          "has_run_function": true
+        }
+      },
+      "assertions": [
+        {
+          "name": "default/true: only enabled differs",
+          "actual": {
+            "enabled": true,
+            "kind": "openai_http",
+            "cmd": "",
+            "args": [],
+            "endpoint": "http://127.0.0.1:9/v1/chat/completions",
+            "model": "synthetic-model",
+            "provider": "synthetic",
+            "api_key": "",
+            "api_key_storage": "none",
+            "timeout_ms": 30000,
+            "id": "synthetic-provider",
+            "name": "synthetic",
+            "projects": []
+          },
+          "expected": {
+            "id": "synthetic-provider",
+            "name": "synthetic",
+            "projects": [],
+            "enabled": true,
+            "kind": "openai_http",
+            "cmd": "",
+            "args": [],
+            "endpoint": "http://127.0.0.1:9/v1/chat/completions",
+            "model": "synthetic-model",
+            "provider": "synthetic",
+            "api_key": "",
+            "api_key_storage": "none",
+            "timeout_ms": 30000
+          },
+          "passed": true
+        },
+        {
+          "name": "default/true: stored flag",
+          "actual": [true, true, "none", 0],
+          "expected": [true, true, "none", 0],
+          "passed": true
+        },
+        {
+          "name": "default/true: usable runner shape (not invoked)",
+          "actual": [true, "synthetic-provider", "synthetic-model", true, true],
+          "expected": [true, "synthetic-provider", "synthetic-model", true, true],
+          "passed": true
+        },
+        {
+          "name": "default/false: only enabled differs",
+          "actual": {
+            "enabled": true,
+            "kind": "openai_http",
+            "cmd": "",
+            "args": [],
+            "endpoint": "http://127.0.0.1:9/v1/chat/completions",
+            "model": "synthetic-model",
+            "provider": "synthetic",
+            "api_key": "",
+            "api_key_storage": "none",
+            "timeout_ms": 30000,
+            "id": "synthetic-provider",
+            "name": "synthetic",
+            "projects": []
+          },
+          "expected": {
+            "id": "synthetic-provider",
+            "name": "synthetic",
+            "projects": [],
+            "enabled": true,
+            "kind": "openai_http",
+            "cmd": "",
+            "args": [],
+            "endpoint": "http://127.0.0.1:9/v1/chat/completions",
+            "model": "synthetic-model",
+            "provider": "synthetic",
+            "api_key": "",
+            "api_key_storage": "none",
+            "timeout_ms": 30000
+          },
+          "passed": true
+        },
+        {
+          "name": "default/false: stored flag",
+          "actual": [true, false, "none", 0],
+          "expected": [true, false, "none", 0],
+          "passed": true
+        },
+        {
+          "name": "default/false: usable runner shape (not invoked)",
+          "actual": [true, "synthetic-provider", "synthetic-model", true, true],
+          "expected": [true, "synthetic-provider", "synthetic-model", true, true],
+          "passed": true
+        },
+        {
+          "name": "explicit/true: only enabled differs",
+          "actual": {
+            "enabled": true,
+            "kind": "openai_http",
+            "cmd": "",
+            "args": [],
+            "endpoint": "http://127.0.0.1:9/v1/chat/completions",
+            "model": "synthetic-model",
+            "provider": "synthetic",
+            "api_key": "",
+            "api_key_storage": "none",
+            "timeout_ms": 30000,
+            "id": "synthetic-provider",
+            "name": "synthetic",
+            "projects": []
+          },
+          "expected": {
+            "id": "synthetic-provider",
+            "name": "synthetic",
+            "projects": [],
+            "enabled": true,
+            "kind": "openai_http",
+            "cmd": "",
+            "args": [],
+            "endpoint": "http://127.0.0.1:9/v1/chat/completions",
+            "model": "synthetic-model",
+            "provider": "synthetic",
+            "api_key": "",
+            "api_key_storage": "none",
+            "timeout_ms": 30000
+          },
+          "passed": true
+        },
+        {
+          "name": "explicit/true: stored flag",
+          "actual": [true, true, "none", 0],
+          "expected": [true, true, "none", 0],
+          "passed": true
+        },
+        {
+          "name": "explicit/true: usable runner shape (not invoked)",
+          "actual": [true, "synthetic-provider", "synthetic-model", true, true],
+          "expected": [true, "synthetic-provider", "synthetic-model", true, true],
+          "passed": true
+        },
+        {
+          "name": "explicit/false: only enabled differs",
+          "actual": {
+            "enabled": true,
+            "kind": "openai_http",
+            "cmd": "",
+            "args": [],
+            "endpoint": "http://127.0.0.1:9/v1/chat/completions",
+            "model": "synthetic-model",
+            "provider": "synthetic",
+            "api_key": "",
+            "api_key_storage": "none",
+            "timeout_ms": 30000,
+            "id": "synthetic-provider",
+            "name": "synthetic",
+            "projects": []
+          },
+          "expected": {
+            "id": "synthetic-provider",
+            "name": "synthetic",
+            "projects": [],
+            "enabled": true,
+            "kind": "openai_http",
+            "cmd": "",
+            "args": [],
+            "endpoint": "http://127.0.0.1:9/v1/chat/completions",
+            "model": "synthetic-model",
+            "provider": "synthetic",
+            "api_key": "",
+            "api_key_storage": "none",
+            "timeout_ms": 30000
+          },
+          "passed": true
+        },
+        {
+          "name": "explicit/false: stored flag",
+          "actual": [true, false, "none", 0],
+          "expected": [true, false, "none", 0],
+          "passed": true
+        },
+        {
+          "name": "explicit/false: usable runner shape (not invoked)",
+          "actual": [true, "synthetic-provider", "synthetic-model", true, true],
+          "expected": [true, "synthetic-provider", "synthetic-model", true, true],
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    },
+    {
+      "id": "D_path",
+      "independent_variables": {
+        "changed": "Filesystem representation only: regular file vs file symlink vs directory symlink.",
+        "held_fixed": "Separate identical project/sibling layouts, identical bytes, same relative path slot/sample.txt, hit line 2, before=after=0. All files created by this script."
+      },
+      "inference_boundary": "Proves readSnippet follows both symlink kinds outside the real project root while lexical ../ traversal is blocked. Only synthetic files read; no payload execution, exfiltration, TOCTOU, batch API or pre-existing machine file tested. Symlink creation failure is a failed characterization, not a skip/pass.",
+      "observations": {
+        "regular": {
+          "fixture_bytes": 38,
+          "same_file_bytes": true,
+          "lexical_inside": true,
+          "real_target_outside": false,
+          "failure": null,
+          "line_count": 1,
+          "returned_sha256": "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
+          "marker_matches": true,
+          "lexical_escape_failure": "out_of_project"
+        },
+        "file_symlink": {
+          "fixture_bytes": 38,
+          "same_file_bytes": true,
+          "lexical_inside": true,
+          "real_target_outside": true,
+          "failure": null,
+          "line_count": 1,
+          "returned_sha256": "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
+          "marker_matches": true,
+          "lexical_escape_failure": "out_of_project"
+        },
+        "directory_symlink": {
+          "fixture_bytes": 38,
+          "same_file_bytes": true,
+          "lexical_inside": true,
+          "real_target_outside": true,
+          "failure": null,
+          "line_count": 1,
+          "returned_sha256": "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
+          "marker_matches": true,
+          "lexical_escape_failure": "out_of_project"
+        }
+      },
+      "assertions": [
+        {
+          "name": "regular: same bytes and lexical boundary",
+          "actual": [true, true],
+          "expected": [true, true],
+          "passed": true
+        },
+        {
+          "name": "regular: realpath boundary",
+          "actual": false,
+          "expected": false,
+          "passed": true
+        },
+        {
+          "name": "regular: snippet returned exact synthetic line",
+          "actual": [
+            null,
+            1,
+            "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
+            true
+          ],
+          "expected": [
+            null,
+            1,
+            "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
+            true
+          ],
+          "passed": true
+        },
+        {
+          "name": "regular: literal traversal blocked",
+          "actual": [null, "out_of_project"],
+          "expected": [null, "out_of_project"],
+          "passed": true
+        },
+        {
+          "name": "file_symlink: same bytes and lexical boundary",
+          "actual": [true, true],
+          "expected": [true, true],
+          "passed": true
+        },
+        {
+          "name": "file_symlink: realpath boundary",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "file_symlink: snippet returned exact synthetic line",
+          "actual": [
+            null,
+            1,
+            "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
+            true
+          ],
+          "expected": [
+            null,
+            1,
+            "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
+            true
+          ],
+          "passed": true
+        },
+        {
+          "name": "file_symlink: literal traversal blocked",
+          "actual": [null, "out_of_project"],
+          "expected": [null, "out_of_project"],
+          "passed": true
+        },
+        {
+          "name": "directory_symlink: same bytes and lexical boundary",
+          "actual": [true, true],
+          "expected": [true, true],
+          "passed": true
+        },
+        {
+          "name": "directory_symlink: realpath boundary",
+          "actual": true,
+          "expected": true,
+          "passed": true
+        },
+        {
+          "name": "directory_symlink: snippet returned exact synthetic line",
+          "actual": [
+            null,
+            1,
+            "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
+            true
+          ],
+          "expected": [
+            null,
+            1,
+            "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
+            true
+          ],
+          "passed": true
+        },
+        {
+          "name": "directory_symlink: literal traversal blocked",
+          "actual": [null, "out_of_project"],
+          "expected": [null, "out_of_project"],
+          "passed": true
+        }
+      ],
+      "classification": "observed_defect"
+    }
+  ],
+  "not_run": [
+    "Full test suite / full typecheck",
+    "Real server / HTTP routes / UI",
+    "LLM or network requests / runner.run / real Keychain",
+    "User home or pre-existing project data",
+    "Real directory writer / renderer integrity",
+    "Provider projectId routing",
+    "Concurrency / crash / TOCTOU / other ingest kinds"
+  ]
+}
