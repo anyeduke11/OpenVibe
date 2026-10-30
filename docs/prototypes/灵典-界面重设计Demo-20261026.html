@@ -1,0 +1,4851 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenVibe 灵典 · 界面重设计 Demo</title>
+    <style>
+      /* ============================================================
+   OpenVibe 灵典 · 界面重设计 Demo
+   设计方向：工程仪表工作台（Instrument Workbench）
+   原则：① 状态先于装饰 ② 汉字即图标 ③ 命令优先（⌘K）④ 一屏一主任务
+   ============================================================ */
+      :root {
+        --font-ui:
+          -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+          'Segoe UI', sans-serif;
+        --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+        --rail-w: 66px;
+        --topbar-h: 54px;
+        --r: 10px;
+        --r-sm: 7px;
+      }
+      :root[data-theme='dark'] {
+        --bg: #0d1016;
+        --bg-soft: #12161e;
+        --panel: #161b24;
+        --panel-2: #1b222d;
+        --line: #232b37;
+        --line-strong: #2e3949;
+        --text: #e7edf4;
+        --dim: #93a1b2;
+        --faint: #5c6b7d;
+        --accent: #2fd3b3;
+        --accent-ink: #06251d;
+        --accent-soft: rgba(47, 211, 179, 0.12);
+        --amber: #f4b740;
+        --amber-soft: rgba(244, 183, 64, 0.13);
+        --red: #ff6f66;
+        --red-soft: rgba(255, 111, 102, 0.12);
+        --shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+        --input-bg: #10141b;
+      }
+      :root[data-theme='light'] {
+        --bg: #f5f6f8;
+        --bg-soft: #eef0f3;
+        --panel: #ffffff;
+        --panel-2: #f7f8fa;
+        --line: #e1e6ec;
+        --line-strong: #c9d1dc;
+        --text: #161c26;
+        --dim: #5c6a7c;
+        --faint: #98a4b3;
+        --accent: #0d9f82;
+        --accent-ink: #ffffff;
+        --accent-soft: rgba(13, 159, 130, 0.1);
+        --amber: #9a6a0a;
+        --amber-soft: rgba(154, 106, 10, 0.1);
+        --red: #d6453c;
+        --red-soft: rgba(214, 69, 60, 0.1);
+        --shadow: 0 14px 40px rgba(20, 30, 50, 0.12);
+        --input-bg: #ffffff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-ui);
+        font-size: 14px;
+        line-height: 1.55;
+        -webkit-font-smoothing: antialiased;
+      }
+      ::selection {
+        background: var(--accent);
+        color: var(--accent-ink);
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--line-strong);
+        border-radius: 6px;
+        border: 2px solid var(--bg);
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      /* ---------- 布局 ---------- */
+      #app {
+        display: grid;
+        grid-template-columns: var(--rail-w) 1fr;
+        height: 100vh;
+      }
+      #main {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      #view {
+        flex: 1;
+        overflow-y: auto;
+        padding: 22px 26px 60px;
+      }
+
+      /* ---------- 书脊导航（汉字即图标） ---------- */
+      .rail {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border-right: 1px solid var(--line);
+        background: var(--bg-soft);
+        padding: 14px 0 12px;
+        position: relative;
+        z-index: 20;
+      }
+      .wordmark {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(160deg, var(--accent), #1aa37f);
+        color: var(--accent-ink);
+        font-weight: 800;
+        font-size: 19px;
+        letter-spacing: 0.06em;
+        margin-bottom: 16px;
+        box-shadow: 0 6px 18px var(--accent-soft);
+        user-select: none;
+      }
+      .navitem {
+        position: relative;
+        width: 46px;
+        height: 46px;
+        border-radius: 11px;
+        margin: 2px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        color: var(--dim);
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        border: none;
+        background: transparent;
+        font-family: var(--font-ui);
+      }
+      .navitem:hover {
+        background: var(--panel);
+        color: var(--text);
+      }
+      .navitem.active {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .navitem.active::before {
+        content: '';
+        position: absolute;
+        left: -10px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 20px;
+        border-radius: 2px;
+        background: var(--accent);
+      }
+      .navitem .gz {
+        font-size: 19px;
+        font-weight: 700;
+        line-height: 1.05;
+      }
+      .navitem .nl {
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+      .navitem[data-tip]::after {
+        content: attr(data-tip);
+        position: absolute;
+        left: calc(100% + 10px);
+        top: 50%;
+        transform: translateY(-50%);
+        background: var(--panel-2);
+        border: 1px solid var(--line-strong);
+        color: var(--text);
+        padding: 4px 9px;
+        border-radius: 7px;
+        font-size: 12px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.12s;
+        z-index: 60;
+        box-shadow: var(--shadow);
+      }
+      .navitem[data-tip]:hover::after {
+        opacity: 1;
+      }
+      .rail-foot {
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+      }
+      .statusdot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      .statuslab {
+        font-size: 9px;
+        color: var(--faint);
+        letter-spacing: 0.08em;
+      }
+
+      /* ---------- 顶栏 ---------- */
+      .topbar {
+        height: var(--topbar-h);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 0 22px;
+        border-bottom: 1px solid var(--line);
+        background: var(--bg);
+        position: sticky;
+        top: 0;
+        z-index: 15;
+      }
+      .crumbs {
+        font-size: 12px;
+        color: var(--faint);
+      }
+      .crumbs b {
+        color: var(--text);
+        font-weight: 600;
+        font-size: 15px;
+        margin-right: 2px;
+      }
+      .crumbs .crumb-sep {
+        margin: 0 6px;
+        color: var(--line-strong);
+      }
+      .top-spacer {
+        flex: 1;
+      }
+      .top-actions {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+
+      /* ---------- 通用控件 ---------- */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 13px;
+        height: 32px;
+        border-radius: var(--r-sm);
+        font-size: 13px;
+        font-family: var(--font-ui);
+        border: 1px solid var(--line-strong);
+        background: var(--panel);
+        color: var(--text);
+        cursor: pointer;
+        transition:
+          border-color 0.12s,
+          background 0.12s,
+          transform 0.05s;
+        white-space: nowrap;
+      }
+      .btn:hover {
+        border-color: var(--accent);
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-ink);
+        font-weight: 600;
+      }
+      .btn.primary:hover {
+        filter: brightness(1.08);
+      }
+      .btn.danger {
+        background: transparent;
+        border-color: var(--line-strong);
+        color: var(--red);
+      }
+      .btn.danger:hover {
+        border-color: var(--red);
+      }
+      .btn.sm {
+        height: 26px;
+        padding: 0 9px;
+        font-size: 12px;
+        border-radius: 6px;
+      }
+      .btn.xs {
+        height: 22px;
+        padding: 0 7px;
+        font-size: 11px;
+        border-radius: 5px;
+      }
+      .btn.ghost {
+        background: transparent;
+        border-color: transparent;
+        color: var(--dim);
+      }
+      .btn.ghost:hover {
+        border-color: var(--line);
+        color: var(--text);
+        background: var(--panel);
+      }
+      .btn[disabled] {
+        opacity: 0.45;
+        pointer-events: none;
+      }
+      .kbd {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        border: 1px solid var(--line-strong);
+        border-bottom-width: 2px;
+        border-radius: 5px;
+        background: var(--panel);
+        color: var(--dim);
+        font-family: var(--font-mono);
+        font-size: 11px;
+      }
+      .input,
+      .select,
+      .textarea {
+        width: 100%;
+        background: var(--input-bg);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--r-sm);
+        color: var(--text);
+        padding: 7px 11px;
+        font-size: 13px;
+        font-family: var(--font-ui);
+        outline: none;
+        transition:
+          border-color 0.12s,
+          box-shadow 0.12s;
+      }
+      .input:focus,
+      .select:focus,
+      .textarea:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      .input.mono,
+      .textarea.mono {
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+      }
+      .textarea {
+        resize: vertical;
+        line-height: 1.7;
+      }
+      .select {
+        appearance: none;
+        background-image:
+          linear-gradient(45deg, transparent 50%, var(--dim) 50%),
+          linear-gradient(135deg, var(--dim) 50%, transparent 50%);
+        background-position:
+          calc(100% - 16px) 55%,
+          calc(100% - 11px) 55%;
+        background-size: 5px 5px;
+        background-repeat: no-repeat;
+        padding-right: 30px;
+      }
+      .label {
+        display: block;
+        font-size: 12px;
+        color: var(--dim);
+        margin: 0 0 5px;
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--faint);
+        line-height: 1.5;
+      }
+      .mono {
+        font-family: var(--font-mono);
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 22px;
+        padding: 0 9px;
+        border-radius: 99px;
+        border: 1px solid var(--line);
+        background: var(--panel);
+        color: var(--dim);
+        font-size: 11.5px;
+        cursor: pointer;
+        transition: all 0.12s;
+        white-space: nowrap;
+      }
+      .chip:hover {
+        border-color: var(--line-strong);
+        color: var(--text);
+      }
+      .chip.on {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .chip.amber.on {
+        border-color: var(--amber);
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+      .chip.red.on {
+        border-color: var(--red);
+        background: var(--red-soft);
+        color: var(--red);
+      }
+      .chip.solid {
+        border-color: transparent;
+        background: var(--panel-2);
+        color: var(--text);
+        cursor: default;
+      }
+      .chip .x {
+        cursor: pointer;
+        opacity: 0.6;
+      }
+      .chip .x:hover {
+        opacity: 1;
+      }
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        height: 20px;
+        padding: 0 8px;
+        border-radius: 5px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        color: var(--dim);
+        font-size: 11px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        height: 19px;
+        padding: 0 7px;
+        border-radius: 5px;
+        font-size: 11px;
+        font-weight: 600;
+        font-family: var(--font-mono);
+      }
+      .badge.accent {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .badge.amber {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+      .badge.red {
+        background: var(--red-soft);
+        color: var(--red);
+      }
+      .badge.plain {
+        background: var(--panel-2);
+        color: var(--dim);
+        border: 1px solid var(--line);
+      }
+      .dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        margin-right: 6px;
+      }
+      .dot.accent {
+        background: var(--accent);
+      }
+      .dot.amber {
+        background: var(--amber);
+      }
+      .dot.red {
+        background: var(--red);
+      }
+      .dot.faint {
+        background: var(--faint);
+      }
+
+      /* ---------- 卡片 ---------- */
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 16px 18px;
+      }
+      .card-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .card-title {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+      .card-title .sub {
+        display: block;
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--faint);
+        margin-top: 2px;
+      }
+      .card-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 14px;
+      }
+      .grid3 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 14px;
+      }
+      .muted {
+        color: var(--dim);
+      }
+      .faint {
+        color: var(--faint);
+      }
+
+      /* ---------- 列表行 ---------- */
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        background: var(--panel);
+        cursor: pointer;
+        transition:
+          border-color 0.12s,
+          background 0.12s;
+        margin-bottom: 8px;
+      }
+      .row:hover {
+        border-color: var(--line-strong);
+        background: var(--panel-2);
+      }
+      .row.selected {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .row-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .row-title {
+        font-weight: 600;
+        font-size: 13.5px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .row-desc {
+        font-size: 12px;
+        color: var(--dim);
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .row-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+
+      /* ---------- 分段控件 / 步骤条 ---------- */
+      .seg {
+        display: inline-flex;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        padding: 2px;
+        gap: 2px;
+      }
+      .seg button {
+        border: none;
+        background: transparent;
+        color: var(--dim);
+        font-size: 12.5px;
+        font-family: var(--font-ui);
+        padding: 4px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.12s;
+      }
+      .seg button.on {
+        background: var(--accent);
+        color: var(--accent-ink);
+        font-weight: 600;
+      }
+      .steps {
+        display: flex;
+        gap: 0;
+        align-items: center;
+        margin: 2px 0 18px;
+      }
+      .step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--faint);
+        font-size: 12.5px;
+      }
+      .step .n {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1px solid var(--line-strong);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 11px;
+        background: var(--panel);
+      }
+      .step.done .n {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .step.active {
+        color: var(--text);
+      }
+      .step.active .n {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-ink);
+        font-weight: 700;
+      }
+      .step-line {
+        width: 34px;
+        height: 1px;
+        background: var(--line-strong);
+        margin: 0 8px;
+      }
+
+      /* ---------- 抽屉 ---------- */
+      .drawer-mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 8, 12, 0.55);
+        backdrop-filter: blur(2px);
+        z-index: 70;
+        animation: fd 0.18s;
+      }
+      .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(720px, 94vw);
+        background: var(--panel);
+        border-left: 1px solid var(--line-strong);
+        z-index: 71;
+        display: flex;
+        flex-direction: column;
+        animation: fd2 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+        box-shadow: var(--shadow);
+      }
+      @keyframes fd {
+        from {
+          opacity: 0;
+        }
+      }
+      @keyframes fd2 {
+        from {
+          transform: translateX(26px);
+          opacity: 0.6;
+        }
+      }
+      .drawer-head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+      .drawer-title {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .drawer-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px;
+      }
+      .drawer-foot {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 18px;
+        border-top: 1px solid var(--line);
+      }
+
+      /* ---------- 模态 ---------- */
+      .modal-mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 8, 12, 0.55);
+        backdrop-filter: blur(2px);
+        z-index: 80;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fd 0.18s;
+      }
+      .modal {
+        width: min(560px, 92vw);
+        max-height: 86vh;
+        overflow-y: auto;
+        background: var(--panel);
+        border: 1px solid var(--line-strong);
+        border-radius: 14px;
+        box-shadow: var(--shadow);
+        animation: fd2 0.2s;
+      }
+      .modal-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 15px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+      .modal-title {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .modal-body {
+        padding: 18px;
+      }
+      .modal-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: 9px;
+        padding: 12px 18px;
+        border-top: 1px solid var(--line);
+      }
+
+      /* ---------- Toast ---------- */
+      .toast-wrap {
+        position: fixed;
+        bottom: 22px;
+        right: 22px;
+        z-index: 120;
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+      }
+      .toast {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 250px;
+        max-width: 420px;
+        padding: 11px 14px;
+        background: var(--panel-2);
+        border: 1px solid var(--line-strong);
+        border-radius: var(--r-sm);
+        box-shadow: var(--shadow);
+        font-size: 13px;
+        animation: fd2 0.2s;
+        cursor: pointer;
+      }
+      .toast .t-ic {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: var(--accent-ink);
+        background: var(--accent);
+      }
+      .toast.err .t-ic {
+        background: var(--red);
+      }
+      .toast.warn .t-ic {
+        background: var(--amber);
+      }
+
+      /* ---------- 命令面板 ---------- */
+      .palette-mask {
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 8, 12, 0.4);
+        z-index: 100;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding-top: 14vh;
+        animation: fd 0.14s;
+      }
+      .palette {
+        width: min(600px, 92vw);
+        background: var(--panel);
+        border: 1px solid var(--line-strong);
+        border-radius: 13px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      .palette-input {
+        width: 100%;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--text);
+        font-size: 14.5px;
+        font-family: var(--font-ui);
+        padding: 15px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+      .palette-list {
+        max-height: 300px;
+        overflow-y: auto;
+        padding: 6px;
+      }
+      .palette-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13.5px;
+      }
+      .palette-item .pi-ic {
+        width: 24px;
+        height: 24px;
+        border-radius: 7px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--dim);
+        font-size: 12px;
+        flex-shrink: 0;
+      }
+      .palette-item .pi-path {
+        margin-left: auto;
+        font-size: 11px;
+        color: var(--faint);
+        font-family: var(--font-mono);
+      }
+      .palette-item.sel {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .palette-foot {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 8px 16px;
+        border-top: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 11px;
+      }
+      .empty {
+        padding: 36px 10px;
+        text-align: center;
+        color: var(--faint);
+        font-size: 13px;
+      }
+      .empty .e-ic {
+        font-size: 26px;
+        margin-bottom: 8px;
+        opacity: 0.5;
+      }
+
+      /* ---------- 页面组件 ---------- */
+      .pagehead {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .pagehead h1 {
+        font-size: 20px;
+        margin: 0;
+        font-weight: 750;
+        letter-spacing: 0.01em;
+      }
+      .pagehead .sub {
+        margin-top: 4px;
+        font-size: 12.5px;
+        color: var(--faint);
+      }
+      .statgrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .stat {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 13px 15px;
+      }
+      .stat .v {
+        font-size: 24px;
+        font-weight: 750;
+        font-family: var(--font-mono);
+        letter-spacing: -0.02em;
+      }
+      .stat .l {
+        font-size: 11.5px;
+        color: var(--dim);
+        margin-top: 2px;
+      }
+      .stat .v.up {
+        color: var(--accent);
+      }
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      .table th {
+        text-align: left;
+        font-size: 11px;
+        color: var(--faint);
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        padding: 7px 10px;
+        border-bottom: 1px solid var(--line);
+        text-transform: uppercase;
+      }
+      .table td {
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: middle;
+      }
+      .table tr:last-child td {
+        border-bottom: none;
+      }
+      .table tr.row-ct {
+        cursor: pointer;
+      }
+      .table tr.row-ct:hover td {
+        background: var(--panel-2);
+      }
+      .checkbox {
+        width: 16px;
+        height: 16px;
+        border: 1.5px solid var(--line-strong);
+        border-radius: 4.5px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: all 0.12s;
+        background: var(--input-bg);
+      }
+      .checkbox.on {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .checkbox.on::after {
+        content: '✓';
+        font-size: 10px;
+        color: var(--accent-ink);
+        font-weight: 800;
+      }
+      .progress {
+        height: 5px;
+        background: var(--panel-2);
+        border-radius: 99px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+      .progress-bar {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 99px;
+        transition: width 0.25s;
+      }
+      .progress-bar.amber {
+        background: var(--amber);
+      }
+      /* ---------- 标记/列表/终端/看板/飞轮/时间线 ---------- */
+      .md-h1 {
+        font-size: 17px;
+        margin: 10px 0 6px;
+        font-weight: 750;
+      }
+      .md-h2 {
+        font-size: 15px;
+        margin: 9px 0 5px;
+        font-weight: 700;
+      }
+      .md-h3 {
+        font-size: 13.5px;
+        margin: 8px 0 4px;
+        font-weight: 700;
+      }
+      .md-code-inline {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 1px 5px;
+        color: var(--accent);
+      }
+      .md-code {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        background: var(--bg-soft);
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        padding: 10px 12px;
+        overflow-x: auto;
+        line-height: 1.6;
+      }
+      .md-quote {
+        border-left: 3px solid var(--accent);
+        background: var(--accent-soft);
+        border-radius: 0 var(--r-sm) var(--r-sm) 0;
+        padding: 6px 12px;
+        margin: 8px 0;
+        color: var(--dim);
+        font-size: 12.5px;
+      }
+      .md-preview p {
+        margin: 6px 0;
+      }
+      .md-preview ul {
+        margin: 6px 0;
+        padding-left: 20px;
+      }
+      .md-preview li {
+        margin: 3px 0;
+      }
+
+      .term {
+        background: #0a0d13;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--r-sm);
+        padding: 12px 14px;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        line-height: 1.75;
+        overflow-x: auto;
+        color: #c3cdd9;
+      }
+      .term .p1 {
+        color: var(--accent);
+      }
+      .term .p2 {
+        color: #93a1b2;
+      }
+      .term .p3 {
+        color: #f4b740;
+      }
+      .term .p4 {
+        color: #ff6f66;
+      }
+      .term .p5 {
+        color: #7fd1ff;
+      }
+      .term .t-caret {
+        display: inline-block;
+        width: 7px;
+        height: 13px;
+        background: var(--accent);
+        vertical-align: middle;
+        animation: blink 1s steps(1) infinite;
+      }
+      @keyframes blink {
+        50% {
+          opacity: 0;
+        }
+      }
+
+      .kanban {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      .kcol {
+        background: var(--bg-soft);
+        border: 1px solid var(--line);
+        border-radius: var(--r);
+        padding: 10px;
+        min-height: 220px;
+      }
+      .kcol-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--dim);
+        padding: 2px 4px 10px;
+      }
+      .kcol-head .cnt {
+        font-family: var(--font-mono);
+        font-size: 11px;
+        color: var(--faint);
+      }
+      .kcard {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        padding: 9px 11px;
+        margin-bottom: 8px;
+        font-size: 13px;
+        cursor: grab;
+        transition:
+          border-color 0.12s,
+          transform 0.1s;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+      }
+      .kcard:hover {
+        border-color: var(--line-strong);
+      }
+      .kcard.dragging {
+        opacity: 0.5;
+        transform: scale(0.98);
+      }
+      .kcard.drag-over {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--accent-soft);
+      }
+      .kcard-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+      }
+      .kcard .kt {
+        font-size: 11px;
+        color: var(--faint);
+      }
+
+      .tl {
+        position: relative;
+        padding-left: 18px;
+      }
+      .tl::before {
+        content: '';
+        position: absolute;
+        left: 4px;
+        top: 4px;
+        bottom: 4px;
+        width: 1px;
+        background: var(--line-strong);
+      }
+      .tl-item {
+        position: relative;
+        padding: 0 0 14px 8px;
+      }
+      .tl-item::before {
+        content: '';
+        position: absolute;
+        left: -18px;
+        top: 5px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--panel);
+        border: 2px solid var(--accent);
+      }
+      .tl-item.muted::before {
+        border-color: var(--faint);
+      }
+      .tl-title {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .tl-meta {
+        font-size: 11.5px;
+        color: var(--faint);
+        font-family: var(--font-mono);
+        margin-top: 1px;
+      }
+      .tl-note {
+        font-size: 12.5px;
+        color: var(--dim);
+        margin-top: 3px;
+      }
+
+      .chk {
+        display: flex;
+        align-items: flex-start;
+        gap: 9px;
+        padding: 7px 4px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .chk:hover {
+        background: var(--panel-2);
+      }
+      .chk .checkbox {
+        margin-top: 2px;
+      }
+      .chk .ck-t {
+        font-size: 13px;
+      }
+      .chk.done .ck-t {
+        color: var(--faint);
+        text-decoration: line-through;
+      }
+
+      .diff {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--r-sm);
+        overflow: hidden;
+      }
+      .diff-row {
+        display: flex;
+        gap: 0;
+        padding: 1px 0;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+      .diff-ln {
+        width: 34px;
+        flex-shrink: 0;
+        text-align: right;
+        padding-right: 8px;
+        color: var(--faint);
+        background: var(--bg-soft);
+        border-right: 1px solid var(--line);
+        user-select: none;
+        margin-right: 8px;
+      }
+      .diff-add {
+        background: var(--accent-soft);
+        color: var(--text);
+      }
+      .diff-del {
+        background: var(--red-soft);
+        color: var(--text);
+      }
+      .diff-ctx {
+        color: var(--dim);
+      }
+
+      .tree {
+        font-family: var(--font-mono);
+        font-size: 12.5px;
+        line-height: 1.9;
+      }
+      .tree-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 1px 6px;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      .tree-item:hover {
+        background: var(--panel-2);
+      }
+      .tree-item.sel {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .tree-item .ti-sz {
+        margin-left: auto;
+        color: var(--faint);
+        font-size: 11px;
+      }
+      .tree .br {
+        color: var(--faint);
+        width: 14px;
+        display: inline-block;
+      }
+
+      .set-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 13px 2px;
+        border-bottom: 1px solid var(--line);
+      }
+      .set-row:last-child {
+        border-bottom: none;
+      }
+      .set-row .set-main {
+        flex: 1;
+      }
+      .set-row .set-t {
+        font-size: 13.5px;
+        font-weight: 600;
+      }
+      .set-row .set-d {
+        font-size: 12px;
+        color: var(--dim);
+        margin-top: 2px;
+      }
+      .switch {
+        width: 38px;
+        height: 21px;
+        border-radius: 99px;
+        background: var(--line-strong);
+        position: relative;
+        cursor: pointer;
+        transition: background 0.15s;
+        flex-shrink: 0;
+        border: none;
+      }
+      .switch::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: #fff;
+        transition: transform 0.15s;
+      }
+      .switch.on {
+        background: var(--accent);
+      }
+      .switch.on::after {
+        transform: translateX(17px);
+      }
+
+      .feed-item {
+        display: flex;
+        gap: 11px;
+        padding: 9px 4px;
+        border-bottom: 1px solid var(--line);
+        font-size: 12.5px;
+      }
+      .feed-item:last-child {
+        border-bottom: none;
+      }
+      .feed-ic {
+        width: 22px;
+        height: 22px;
+        border-radius: 7px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        color: var(--dim);
+      }
+      .feed-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .feed-t {
+        color: var(--text);
+      }
+      .feed-m {
+        color: var(--faint);
+        font-size: 11px;
+        font-family: var(--font-mono);
+        margin-top: 1px;
+      }
+
+      .ring-wrap {
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        flex-wrap: wrap;
+      }
+      .ring-box {
+        position: relative;
+        width: 236px;
+        height: 236px;
+        flex-shrink: 0;
+      }
+      .ring-box svg {
+        width: 100%;
+        height: 100%;
+      }
+      .ring-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+      .ring-center .v {
+        font-size: 38px;
+        font-weight: 800;
+        font-family: var(--font-mono);
+        letter-spacing: -0.03em;
+      }
+      .ring-center .l {
+        font-size: 11px;
+        color: var(--faint);
+        letter-spacing: 0.12em;
+      }
+      .ring-seg {
+        cursor: pointer;
+        transition: opacity 0.15s;
+      }
+      .ring-seg:hover {
+        opacity: 0.82;
+      }
+      .ring-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        min-width: 230px;
+      }
+      .ring-legend .rl {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-size: 12.5px;
+      }
+      .ring-legend .rl .sw {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex-shrink: 0;
+      }
+      .ring-legend .rl .rv {
+        margin-left: auto;
+        font-family: var(--font-mono);
+        font-weight: 700;
+      }
+
+      .wz-card {
+        max-width: 780px;
+        margin: 0 auto;
+      }
+      .wz-body {
+        min-height: 240px;
+      }
+      .kv {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 12.5px;
+      }
+      .kv .k {
+        color: var(--faint);
+        flex-shrink: 0;
+        width: 88px;
+      }
+
+      @media (max-width: 860px) {
+        .kanban {
+          grid-template-columns: 1fr;
+        }
+        #view {
+          padding: 16px 14px 50px;
+        }
+        .topbar {
+          padding: 0 14px;
+        }
+        .pagehead {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- 书脊导航 -->
+      <aside class="rail" id="rail"></aside>
+      <!-- 主区 -->
+      <div id="main">
+        <header class="topbar" id="topbar"></header>
+        <main id="view"></main>
+      </div>
+    </div>
+    <div id="overlays"></div>
+    <script>
+      'use strict'
+      /* 错误陷阱：运行时异常写入 document.title，便于无控制台环境排查 */
+      window.addEventListener('error', (e) => {
+        try {
+          document.title = 'ERROR: ' + (e.message || e.error || e)
+        } catch (_) {}
+      })
+      window.addEventListener('unhandledrejection', (e) => {
+        try {
+          document.title = 'PROMISE ERROR: ' + String(e.reason)
+        } catch (_) {}
+      })
+      /* =====================================================================
+   数据层（模拟真实产品数据）
+   ===================================================================== */
+      const SEED_TERMS = [
+        [
+          '氛围编程',
+          'vibe coding',
+          ['氛围开发'],
+          '以自然语言意图驱动、AI 生成代码、人负责意图与验收的开发方式。核心是把「表达意图」做成一项可训练的工程能力。',
+          ['提示词', '规则文件'],
+          'seeded',
+        ],
+        [
+          '提示词',
+          'prompt',
+          [],
+          '喂给模型的任务指令文本，含上下文、约束与期望输出。同一意图，提示词不同，产出质量可差一个量级。',
+          ['氛围编程', '上下文窗口'],
+          'seeded',
+        ],
+        [
+          '技能',
+          'skill',
+          ['Skill'],
+          '打包为 SKILL.md 的可复用能力单元，供编码代理按需加载。技能是「提示词 + 行为约定 + 使用边界」的固化形态。',
+          ['提示词'],
+          'seeded',
+        ],
+        [
+          '规则文件',
+          'rules / CLAUDE.md / AGENTS.md',
+          [],
+          '注入项目的持久化行为约束，决定 AI 的默认工作方式。是 vibe coding 里最接近「配置文件」的资产。',
+          ['规则漂移', '注入'],
+          'seeded',
+        ],
+        [
+          '上下文窗口',
+          'context window',
+          [],
+          '模型单次可感知的输入长度上限，超出即截断或压缩。规则文件的体积直接占用窗口预算，术语表不是越长越好。',
+          ['提示词', '标准包'],
+          'seeded',
+        ],
+        [
+          '规则漂移',
+          'rule drift',
+          [],
+          '长会话中模型逐渐偏离规则文件约束的现象。漂移的克星是注入指纹 + diff：把「规则是否还在生效」变成可检测的状态。',
+          ['规则文件', '标准包'],
+          'seeded',
+        ],
+        [
+          '规格驱动开发',
+          'spec-driven development',
+          ['SDD'],
+          '先写规格（spec）再生成代码的开发范式。spec 是人与 AI 之间的合同：意图可评审、验收可执行。',
+          ['检查点'],
+          'seeded',
+        ],
+        [
+          '幻觉',
+          'hallucination',
+          [],
+          '模型生成看似合理实则错误的内容。工程化的缓解不是禁止幻觉，而是让模型「先查证据再说话」。',
+          ['检索增强生成'],
+          'seeded',
+        ],
+        [
+          '检查点',
+          'checkpoint / freeze',
+          [],
+          '冻结当前状态以便安全回退的机制。注入前备份、导出后指纹锁定，都是检查点的不同形态。',
+          ['规则漂移'],
+          'seeded',
+        ],
+        [
+          '检索增强生成',
+          'RAG',
+          [],
+          '检索外部知识再生成，缓解幻觉与知识过时。标准包的 TERMS.md 本质是一个极轻量的静态 RAG 语料。',
+          ['幻觉', '术语表'],
+          'seeded',
+        ],
+        [
+          '术语表',
+          'TERMS.md',
+          [],
+          '随标准包分发的词汇标准，人和 AI 对同一个词持有同一份口径。渲染确定性优先：同一选集必须产出字节一致的表格。',
+          ['规则文件', '标准包'],
+          'seeded',
+        ],
+        [
+          '标准包',
+          'StandardPack',
+          ['pack'],
+          '从资产库挑选提示词、术语、流程模板组装成带版本号的纯文件产物，是「标准化」的物理载体。指纹锁定、导出不可变。',
+          ['术语表', '注入'],
+          'seeded',
+        ],
+        [
+          '注入',
+          'injection',
+          ['sync'],
+          'CLI 把标准包写入目标项目的过程。唯一写通道，dry-run 默认、冲突备份、指纹校验三层保护。',
+          ['标准包', '规则文件'],
+          'seeded',
+        ],
+      ]
+      const SEED_PROMPTS = [
+        {
+          id: 'prm_01',
+          title: '代码审查请求',
+          useAs: 'rule',
+          content:
+            '你是一名资深代码审查者。审查以下变更时：\n1. 先读规则文件与项目约定，再读 diff；\n2. 按「正确性 → 一致性 → 可维护性」排序，逐条给证据；\n3. 发现违反项目约定的改动，用「约 X 条款」指出来源；\n4. 输出格式：严重问题 / 建议 / 认可，各节带文件行号。\n\n禁止泛泛而谈，每条意见必须能指向具体代码。',
+          vars: [],
+          tags: ['审查', '规范'],
+          platform: 'generic',
+          version: 3,
+        },
+        {
+          id: 'prm_02',
+          title: '需求澄清 Prompt',
+          useAs: 'reference',
+          content:
+            '在动手之前，请按以下顺序把需求问清楚：\n1. 一句话目标是什么？验收标准可测量吗？\n2. 边界：明确不做什么？\n3. 约束：技术栈、平台、性能、合规？\n4. 依赖与风险：什么会阻塞你？\n5. 最后把以上整理成一段 {{需求描述}} 交我确认。',
+          vars: ['需求描述'],
+          tags: ['需求', '流程'],
+          platform: 'generic',
+          version: 2,
+        },
+        {
+          id: 'prm_03',
+          title: '测试先行（TDD 起步）',
+          useAs: 'rule',
+          content:
+            '对任何功能改动，先写测试再写实现：\n1. 列出该功能的输入、输出、边界与不变式；\n2. 为每个边界写一个失败测试（红）；\n3. 用最小实现让测试通过（绿）；\n4. 重构并保持全绿。\n若项目已有测试框架，沿用其约定；若没有，先和 owner 确认是否引入。\n目标功能：{{功能描述}}',
+          vars: ['功能描述'],
+          tags: ['测试', '规范'],
+          platform: 'generic',
+          version: 5,
+        },
+        {
+          id: 'prm_04',
+          title: '复盘检查清单',
+          useAs: 'reference',
+          content:
+            '项目 {{项目名}} 的 {{周期}} 复盘：\n- 达成：本周完成了什么，有证据（测试/截图/日志）？\n- 偏差：计划与实际的差距在哪一步、为什么？\n- 沉淀：踩了哪些坑值得变成「技巧」？发明了哪些词值得入库？\n- 回流：本次复盘至少产出一条术语或提示词改进。',
+          vars: ['项目名', '周期'],
+          tags: ['复盘', '流程'],
+          platform: 'generic',
+          version: 2,
+        },
+        {
+          id: 'prm_05',
+          title: '提交信息规范',
+          useAs: 'rule',
+          content:
+            '提交信息遵循约定式提交：`<type>(<scope>): <subject>`。\ntype 取值：feat / fix / refactor / docs / test / chore。\nsubject 用祈使句、≤50 字符、中文。\n破坏性变更必须在正文注明 BREAKING CHANGE。',
+          vars: [],
+          tags: ['规范', 'git'],
+          platform: 'claude-code',
+          version: 1,
+        },
+        {
+          id: 'prm_06',
+          title: '终端命令解释',
+          useAs: 'reference',
+          content:
+            '解释下面的命令输出，说明：\n1. 每条命令/标志的作用；\n2. 输出中的关键状态（退出码、警告、漂移）意味着什么；\n3. 若命令失败，给出最可能的修复路径。\n\n{{命令输出}}',
+          vars: ['命令输出'],
+          tags: ['工具', '调试'],
+          platform: 'generic',
+          version: 1,
+        },
+        {
+          id: 'prm_07',
+          title: '规则文件注入确认',
+          useAs: 'reference',
+          content:
+            '在向项目注入标准包前，回答：\n1. 目标平台读哪个文件（CLAUDE.md / AGENTS.md / .cursor/rules 等）？\n2. 目标项目是否已有同名文件？若有，先 diff 再决定覆盖/合并/跳过；\n3. 注入产物是否为确定性输出（同一输入同一字节）？\n4. 备份路径与回滚方式是否明确？',
+          vars: [],
+          tags: ['注入', '标准包'],
+          platform: 'generic',
+          version: 1,
+        },
+        {
+          id: 'prm_08',
+          title: '变量抽取提示',
+          useAs: 'reference',
+          content:
+            '把以下对话改写为带变量的可复用提示词：\n1. 找出所有「因人而异」的片段，替换为 {{变量名}}；\n2. 固定部分写成规则语气；\n3. 变量表附在末尾：名称、示例值、约束。\n\n{{原始对话}}',
+          vars: ['原始对话'],
+          tags: ['提示词', '技巧'],
+          platform: 'generic',
+          version: 2,
+        },
+      ]
+      const SEED_SKILLS = [
+        {
+          id: 'sk_01',
+          name: 'pdf',
+          desc: '把 Markdown 转成出版级 PDF（gstack）',
+          source: 'local',
+          versions: [
+            { label: 'v4', note: '模板 + 封面样式重构' },
+            { label: 'v3', note: '支持封面变量注入' },
+            { label: 'v2', note: '多语言字体回退' },
+            { label: 'v1', note: '初始登记' },
+          ],
+          latest: 'v4',
+          scannedAt: '2026-09-21 09:41',
+        },
+        {
+          id: 'sk_02',
+          name: 'qa',
+          desc: '系统化 QA 测试 Web 应用并修复（gstack）',
+          source: 'local',
+          versions: [
+            { label: 'v3', note: '报告只读模式分离' },
+            { label: 'v2', note: '真机设备矩阵' },
+            { label: 'v1', note: '初始登记' },
+          ],
+          latest: 'v3',
+          scannedAt: '2026-09-22 11:02',
+        },
+        {
+          id: 'sk_03',
+          name: 'tdd',
+          desc: '测试驱动开发：红-绿-重构（gstack）',
+          source: 'local',
+          versions: [
+            { label: 'v2', note: '集成进主工作流' },
+            { label: 'v1', note: '初始登记' },
+          ],
+          latest: 'v2',
+          scannedAt: '2026-09-20 16:20',
+        },
+        {
+          id: 'sk_04',
+          name: 'slide-authoring',
+          desc: 'open-slide 页面编写技术参考',
+          source: 'local',
+          versions: [
+            { label: 'v5', note: '类型尺度更新' },
+            { label: 'v4', note: '画布 1920×1080 约定' },
+            { label: 'v3', note: '布局规范补充' },
+          ],
+          latest: 'v5',
+          scannedAt: '2026-09-22 19:03',
+        },
+        {
+          id: 'sk_05',
+          name: 'diagram',
+          desc: '描述转 SVG 图三元组（gstack）',
+          source: 'manual',
+          versions: [{ label: 'v1', note: '手动登记，无指纹' }],
+          latest: 'v1',
+          scannedAt: '2026-09-21 14:10',
+        },
+      ]
+      const SEED_FLOWS = [
+        {
+          id: 'fl_01',
+          name: '个人轻量流',
+          kind: 'light',
+          builtin: true,
+          stages: [
+            {
+              name: '启动',
+              checklist: ['需求一句话写清', '上下文文件已注入', '验收标准可测量'],
+              artifacts: ['需求便签'],
+            },
+            {
+              name: '开发',
+              checklist: ['测试先行', '每个切片先绿再进'],
+              artifacts: ['代码切片', 'DEV 日志'],
+            },
+            {
+              name: '复盘',
+              checklist: ['过检查清单', '产出一条回流资产'],
+              artifacts: ['CHECK 报告'],
+            },
+          ],
+        },
+        {
+          id: 'fl_02',
+          name: 'Spec 驱动流',
+          kind: 'spec_driven',
+          builtin: true,
+          stages: [
+            {
+              name: '需求',
+              checklist: ['用户故事明确', '边界与假设显式'],
+              artifacts: ['需求文档'],
+            },
+            { name: 'PRD', checklist: ['目标可测量', '优先级定案'], artifacts: ['PRD'] },
+            {
+              name: 'Spec',
+              checklist: ['验收标准 pass/fail', '契约冻结'],
+              artifacts: ['规格文档'],
+            },
+            {
+              name: '计划',
+              checklist: ['任务分解到可执行', '依赖图明确'],
+              artifacts: ['任务清单'],
+            },
+            { name: '实现', checklist: ['垂直切片', '测试先绿'], artifacts: ['代码', 'DEV 日志'] },
+            { name: '审查', checklist: ['逐条对照验收', '证据归档'], artifacts: ['审查记录'] },
+            { name: '复盘', checklist: ['三维审查', '回流资产入库'], artifacts: ['CHECK 报告'] },
+          ],
+        },
+        {
+          id: 'fl_03',
+          name: '复盘流',
+          kind: 'retro',
+          builtin: true,
+          stages: [
+            {
+              name: '数据收集',
+              checklist: ['导出日志与报告', '收集失败样本'],
+              artifacts: ['日志集'],
+            },
+            {
+              name: '分析',
+              checklist: ['根因到机制而非归因', '识别系统性缺陷'],
+              artifacts: ['分析笔记'],
+            },
+            {
+              name: '行动',
+              checklist: ['每项行动有 owner', '两周内可证伪'],
+              artifacts: ['行动清单'],
+            },
+            {
+              name: '回流',
+              checklist: ['技巧/术语/提示词草稿', '人工确认入库'],
+              artifacts: ['回流资产'],
+            },
+          ],
+        },
+        {
+          id: 'fl_04',
+          name: '服务端走查流',
+          kind: 'custom',
+          builtin: false,
+          stages: [
+            { name: '准备', checklist: ['夹具落持久沙箱', '基线哈希记录'], artifacts: ['夹具'] },
+            {
+              name: '走查',
+              checklist: ['真实事件驱动', '断言先判真假绿'],
+              artifacts: ['走查日志'],
+            },
+            { name: '收口', checklist: ['驱动器与日志入库', '风险登记'], artifacts: ['证据包'] },
+          ],
+        },
+      ]
+      const SEED_PROJECTS = [
+        {
+          id: 'pj_01',
+          name: '文档站重构',
+          path: '~/dev/docs-site',
+          flowId: 'fl_02',
+          stage: 4,
+          status: '开发中',
+          pack: 'default@1.0.0',
+          injected: true,
+          checks: { 启动: 3, PRD: 2, Spec: 3, 计划: 2, 实现: 1 },
+          tasks: [
+            { id: 't1', title: '迁移 Vitepress 配置', stage: '实现', status: 'done' },
+            { id: 't2', title: '重写导航结构', stage: '实现', status: 'doing' },
+            { id: 't3', title: '术语表接入 TERMS.md', stage: '实现', status: 'todo' },
+            { id: 't4', title: '旧版重定向表', stage: '实现', status: 'todo' },
+          ],
+          logs: [
+            {
+              no: 'DEV-0001',
+              type: 'DEV',
+              title: '接入标准包并验证注入',
+              body: 'npx openvibe-cli sync ./ --pack default@1.0.0\ndry-run 全绿，指纹 b611cec3… 注入成功。\n后续检查清单自动出现在仓库根。',
+              refs: ['prm_07', 'standard-pack'],
+            },
+            {
+              no: 'DEV-0002',
+              type: 'DEV',
+              title: '迁移 Vitepress 配置',
+              body: 'config 从 vuepress 迁移完成，构建 3 平台通过。\n坑：sidebar 组件的 glob 在 windows 上路径分隔符不一致，已用 posix 归一。',
+              refs: [],
+            },
+            {
+              no: 'CHECK-0001',
+              type: 'CHECK',
+              title: 'Spec 阶段验收',
+              body: 'PRD 三条目标逐条对照，验收 2 处偏差：导航权重与实际使用不符；术语表缺 3 条高频词。',
+              refs: ['term-drift', 'term-terms-md'],
+            },
+          ],
+        },
+        {
+          id: 'pj_02',
+          name: 'CLI 调研',
+          path: '~/dev/cli-spike',
+          flowId: 'fl_01',
+          stage: 1,
+          status: '启动',
+          pack: null,
+          injected: false,
+          checks: { 启动: 1 },
+          tasks: [
+            { id: 't1', title: '对比五款 CLI 框架', stage: '启动', status: 'done' },
+            { id: 't2', title: '确认 token 持久化方案', stage: '启动', status: 'doing' },
+            { id: 't3', title: '写调研笔记', stage: '启动', status: 'todo' },
+          ],
+          logs: [
+            {
+              no: 'DEV-0001',
+              type: 'DEV',
+              title: '调研起点',
+              body: '范围：commander / cac / yargs / citty / clipanion。\n判据：体积、类型支持、交互能力、维护活跃度。',
+              refs: [],
+            },
+          ],
+        },
+        {
+          id: 'pj_03',
+          name: '术语审校',
+          path: '~/dev/term-review',
+          flowId: 'fl_03',
+          stage: 3,
+          status: '复盘',
+          pack: 'default@1.0.0',
+          injected: true,
+          checks: { 数据收集: 2, 分析: 2, 行动: 1 },
+          tasks: [
+            { id: 't1', title: '逐条审校 63 条词条', stage: '数据收集', status: 'done' },
+            { id: 't2', title: '标注低质量词条', stage: '分析', status: 'done' },
+            { id: 't3', title: '提交修订建议', stage: '行动', status: 'doing' },
+          ],
+          logs: [
+            {
+              no: 'DEV-0001',
+              type: 'DEV',
+              title: '审校批次一',
+              body: 'definition ≥20 字门槛通过 61/63；2 条定义空泛（注入、标准包）待重写。\n拼音排序多音字抽查：长会话（cháng/zhǎng）取词典默认，需人工确认。',
+              refs: [],
+            },
+            {
+              no: 'CHECK-0001',
+              type: 'CHECK',
+              title: '批次一复盘',
+              body: '产出候选术语：规则漂移、注入指纹。\n提示词改进建议：审校类提示词应强制给出来源行号。',
+              refs: ['term-rule-drift', 'prm_01'],
+            },
+          ],
+        },
+      ]
+      const SEED_PACKS = [
+        {
+          id: 'pk_01',
+          name: 'default',
+          desc: '默认标准包：精选提示词 + 术语 + 轻量流',
+          version: '1.0.0',
+          targets: ['claude-code', 'cursor', 'generic-agents', 'codebuddy', 'trae', 'minicode'],
+          flowId: 'fl_01',
+          promptIds: ['prm_01', 'prm_03', 'prm_05', 'prm_07'],
+          termIds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+          exports: [
+            { v: '1.0.0', at: '2026-09-22 10:12', fingerprint: 'b611cec36934', files: 8 },
+            { v: '0.9.0', at: '2026-09-21 18:02', fingerprint: 'c589c05a6bea', files: 7 },
+          ],
+          injections: 3,
+        },
+        {
+          id: 'pk_02',
+          name: 'spec-driven',
+          desc: '规格驱动流标准包：SDD 工作流 + 审查提示词',
+          version: '1.0.0',
+          targets: ['generic-agents', 'codebuddy'],
+          flowId: 'fl_02',
+          promptIds: ['prm_02', 'prm_04'],
+          termIds: [4, 6, 8],
+          exports: [{ v: '1.0.0', at: '2026-09-23 09:31', fingerprint: '151bc9602509', files: 5 }],
+          injections: 2,
+        },
+      ]
+      const STATE = {
+        theme: 'dark',
+        terms: JSON.parse(
+          JSON.stringify(
+            SEED_TERMS.map((t) => ({
+              zh: t[0],
+              en: t[1],
+              ali: t[2],
+              def: t[3],
+              rel: t[4],
+              src: t[5],
+            })),
+          ),
+        ),
+        prompts: JSON.parse(JSON.stringify(SEED_PROMPTS)),
+        skills: JSON.parse(JSON.stringify(SEED_SKILLS)),
+        flows: JSON.parse(JSON.stringify(SEED_FLOWS)),
+        projects: JSON.parse(JSON.stringify(SEED_PROJECTS)),
+        packs: JSON.parse(JSON.stringify(SEED_PACKS)),
+        injections: 5,
+        reflows: 12,
+        loops: 3,
+        route: 'overview',
+        paletteOpen: false,
+        paletteQuery: '',
+        paletteSel: 0,
+        drawer: null,
+        modal: null,
+        toasts: [],
+        libSearch: '',
+        libTag: '',
+        libSel: null,
+        termSel: [],
+        termSearch: '',
+        termSelIds: [],
+        projDetail: null,
+        wizard: null,
+        packWizard: null,
+      }
+      /* =====================================================================
+   工具函数
+   ===================================================================== */
+      const $ = (sel, root = document) => root.querySelector(sel)
+      const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel))
+      const esc = (s) =>
+        String(s ?? '').replace(
+          /[&<>"']/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+        )
+      const uid = (p) => p + '_' + Math.random().toString(36).slice(2, 8)
+      const nowIso = () => new Date().toISOString().slice(0, 19).replace('T', ' ')
+      const relTime = (iso) => {
+        const d = new Date(iso)
+        const diff = Date.now() - d.getTime()
+        if (diff < 60e3) return '刚刚'
+        if (diff < 3600e3) return Math.floor(diff / 60e3) + ' 分钟前'
+        if (diff < 86400e3) return Math.floor(diff / 3600e3) + ' 小时前'
+        return Math.floor(diff / 86400e3) + ' 天前'
+      }
+      const sha = (s) => {
+        let h = 2166136261 >>> 0
+        for (let i = 0; i < s.length; i++) {
+          h ^= s.charCodeAt(i)
+          h = Math.imul(h, 16777619)
+        }
+        return (h >>> 0).toString(16).padStart(8, '0')
+      }
+      const fmtBytes = (n) =>
+        n > 1024 * 1024 ? (n / 1048576).toFixed(1) + ' MB' : (n / 1024).toFixed(1) + ' KB'
+      const copyText = async (t) => {
+        try {
+          await navigator.clipboard.writeText(t)
+          return true
+        } catch (e) {
+          const ta = document.createElement('textarea')
+          ta.value = t
+          ta.style.position = 'fixed'
+          ta.style.opacity = '0'
+          document.body.appendChild(ta)
+          ta.select()
+          let ok = false
+          try {
+            ok = document.execCommand('copy')
+          } catch (_) {}
+          ta.remove()
+          return ok
+        }
+      }
+      const toast = (msg, kind = 'ok') => {
+        const id = uid('toast')
+        STATE.toasts.push({ id, msg, kind })
+        renderToasts()
+        setTimeout(() => {
+          STATE.toasts = STATE.toasts.filter((t) => t.id !== id)
+          renderToasts()
+        }, 6500)
+      }
+      const PLAT_LABEL = {
+        'claude-code': 'Claude Code',
+        cursor: 'Cursor',
+        'generic-agents': 'AGENTS.md',
+        codebuddy: 'CodeBuddy',
+        trae: 'Trae',
+        minicode: 'MiniCode',
+      }
+      const platformFiles = (t) =>
+        ({
+          'claude-code': ['CLAUDE.md'],
+          'generic-agents': ['AGENTS.md'],
+          codebuddy: ['CODEBUDDY.md'],
+          minicode: ['MINI.md'],
+          cursor: ['.cursor/rules/openvibe.mdc'],
+          trae: ['.trae/rules/openvibe.md'],
+        })[t] || []
+      /* 简易行级 diff（LCS，≤400 行保护） */
+      function diffLines(a, b) {
+        const A = a.split('\n'),
+          B = b.split('\n')
+        const n = A.length,
+          m = B.length
+        const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0))
+        for (let i = n - 1; i >= 0; i--)
+          for (let j = m - 1; j >= 0; j--)
+            dp[i][j] = A[i] === B[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1])
+        const out = []
+        let i = 0,
+          j = 0
+        while (i < n && j < m) {
+          if (A[i] === B[j]) {
+            out.push({ t: 'ctx', s: A[i] })
+            i++
+            j++
+          } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+            out.push({ t: 'del', s: A[i] })
+            i++
+          } else {
+            out.push({ t: 'add', s: B[j] })
+            j++
+          }
+        }
+        while (i < n) {
+          out.push({ t: 'del', s: A[i] })
+          i++
+        }
+        while (j < m) {
+          out.push({ t: 'add', s: B[j] })
+          j++
+        }
+        return out
+      }
+      /* 极简 Markdown 渲染（标题/加粗/列表/代码/引用） */
+      function mdLite(src) {
+        if (!src) return '<span class="faint">（空）</span>'
+        const lines = String(src).split('\n')
+        let html = '',
+          inCode = false,
+          codeBuf = [],
+          inList = false
+        const closeList = () => {
+          if (inList) {
+            html += '</ul>'
+            inList = false
+          }
+        }
+        for (const raw of lines) {
+          if (raw.trim().startsWith('```')) {
+            if (inCode) {
+              html += '<pre class="md-code">' + esc(codeBuf.join('\n')) + '</pre>'
+              codeBuf = []
+              inCode = false
+            } else inCode = true
+            continue
+          }
+          if (inCode) {
+            codeBuf.push(raw)
+            continue
+          }
+          const m = raw.match(/^(#{1,3})\s+(.*)$/)
+          if (m) {
+            closeList()
+            html += `<h${m[1].length} class="md-h${m[1].length}">${esc(m[2])}</h${m[1].length}>`
+            continue
+          }
+          if (/^(\s*)[-*]\s+/.test(raw)) {
+            if (!inList) {
+              html += '<ul>'
+              inList = true
+            }
+            html += `<li>${esc(raw.replace(/^(\s*)[-*]\s+/, ''))}</li>`
+            continue
+          }
+          if (inList) {
+            closeList()
+          }
+          if (/^\s*>\s?/.test(raw)) {
+            html += `<blockquote class="md-quote">${esc(raw.replace(/^\s*>\s?/, ''))}</blockquote>`
+            continue
+          }
+          if (raw.trim() === '') {
+            closeList()
+            html += ''
+            continue
+          }
+          let t = esc(raw)
+          t = t
+            .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+            .replace(/`([^`]+)`/g, "<code class='md-code-inline'>$1</code>")
+          html += `<p>${t}</p>`
+        }
+        if (inCode) html += '<pre class="md-code">' + esc(codeBuf.join('\n')) + '</pre>'
+        closeList()
+        return html
+      }
+      /* 标准包正文组装（复刻 design §7.3 的确定性组合，极简版） */
+      function composeMain(pack) {
+        const st = STATE
+        const flow = st.flows.find((f) => f.id === pack.flowId) || st.flows[0]
+        const prompts = st.prompts.filter((p) => pack.promptIds.includes(p.id))
+        const rules = prompts
+          .filter((p) => p.useAs === 'rule')
+          .sort((a, b) => (a.title.toLowerCase() < b.title.toLowerCase() ? -1 : 1))
+        const refs = prompts
+          .filter((p) => p.useAs === 'reference')
+          .sort((a, b) => (a.title.toLowerCase() < b.title.toLowerCase() ? -1 : 1))
+        const terms = pack.termIds.map((i) => st.terms[i])
+        let md = `<!-- openvibe:pack=${pack.name}@${pack.version} begin (regenerate: npx openvibe-cli sync) -->\n`
+        md += `# OpenVibe 标准包：${pack.name}@${pack.version}\n\n`
+        md += '> 本文件由 OpenVibe 生成。要修改标准，请回资产库改后重新注入；\n'
+        md += '> 本地手改会被 `openvibe diff` 漂移检测发现。\n\n'
+        md += '## 工作流程\n'
+        flow.stages.forEach((s, i) => {
+          md += `### ${i + 1}. ${s.name}\n`
+          s.checklist.forEach((c) => (md += `- [ ] ${c}\n`))
+          if (s.artifacts.length) md += `**产物**：${s.artifacts.join('、')}\n`
+          md += '\n'
+        })
+        md += '## 行为规则\n'
+        rules.forEach((r) => {
+          md += `#### ${r.title}\n\n${r.content}\n\n`
+        })
+        md += '## 术语表\n'
+        md += terms.length ? `见 TERMS.md（${terms.length} 条）\n\n` : '（未选择术语）\n\n'
+        md += '## 任务提示词参考\n'
+        refs.forEach((r) => {
+          md += `#### ${r.title}\n\n${r.content}\n\n`
+        })
+        md += '<!-- openvibe:end -->\n'
+        return md
+      }
+      function composeTermsMd(ids) {
+        const rows = ids.map((i) => STATE.terms[i]).filter(Boolean)
+        const sorted = [...rows].sort((a, b) =>
+          (a.en || a.zh).toLowerCase() < (b.en || b.zh).toLowerCase() ? -1 : 1,
+        )
+        let md = `# 术语表 · 标准包\n\n> AI 与团队共用的词汇标准；新词请先入库再使用。\n\n`
+        md += `| 术语 | English | 别名 | 定义 |\n|------|---------|------|------|\n`
+        for (const t of sorted) {
+          const ali = t.ali && t.ali.length ? t.ali.join('、') : '—'
+          md += `| ${t.zh.replace(/\|/g, '\\|')} | ${escMd(t.en)} | ${escMd(ali)} | ${escMd(t.def)} |\n`
+        }
+        return md
+        function escMd(s) {
+          return String(s || '')
+            .replace(/\|/g, '\\|')
+            .replace(/\n/g, ' ')
+        }
+      }
+      function renderToasts() {
+        const w = $('#ov-toasts')
+        if (!w) return
+        w.innerHTML = STATE.toasts
+          .map(
+            (t) =>
+              `<div class="toast ${t.kind === 'err' ? 'err' : t.kind === 'warn' ? 'warn' : ''}" data-act="toast-close" data-id="${t.id}"><span class="t-ic">${t.kind === 'err' ? '✕' : t.kind === 'warn' ? '!' : '✓'}</span><span>${esc(t.msg)}</span></div>`,
+          )
+          .join('')
+      }
+
+      /* =====================================================================
+   覆盖层容器 + 骨架渲染（书脊 + 顶栏）+ 路由
+   ===================================================================== */
+      const NAV = [
+        { k: 'overview', gz: '览', nl: '总览', tip: '总览 · 飞轮驾驶舱' },
+        { k: 'library', gz: '库', nl: '提示词', tip: '提示词库' },
+        { k: 'terms', gz: '词', nl: '术语', tip: '术语库' },
+        { k: 'skills', gz: '技', nl: 'Skill', tip: 'Skill 台账' },
+        { k: 'flows', gz: '流', nl: '流程', tip: '流程模板' },
+        { k: 'projects', gz: '项', nl: '项目', tip: '项目工作台' },
+        { k: 'packs', gz: '包', nl: '标准包', tip: '标准包与注入' },
+        { k: 'settings', gz: '设', nl: '设置', tip: '设置' },
+      ]
+      const TITLES = {
+        overview: ['总览', '标准化飞轮驾驶舱 · 沉淀 → 组装 → 注入 → 使用 → 回流'],
+        library: ['提示词库', 'M1 · 可复用提示词与行为规则，版本快照自动留存'],
+        terms: ['术语库', 'M3 · 词汇标准，一键生成确定性 TERMS.md'],
+        skills: ['Skill 台账', 'M2 · 本地技能扫描、登记与版本时间线'],
+        flows: ['流程模板', 'M5 · 项目流程与阶段检查清单，可裁剪组合'],
+        projects: ['项目工作台', 'M5 · 阶段、清单、看板、日志与复盘回流'],
+        project: ['项目详情', '阶段条 · 检查清单 · 看板 · 开发日志'],
+        packs: ['标准包', 'M6 · 挑选资产 → 组装 → 确定性导出 → 注入'],
+        settings: ['设置', '服务状态 · 数据目录 · 遥测 · 种子内容'],
+      }
+      function initOverlays() {
+        const ov = $('#overlays')
+        ov.innerHTML =
+          '<div class="toast-wrap" id="ov-toasts"></div><div id="ov-drawer"></div><div id="ov-modal"></div><div id="ov-palette"></div>'
+      }
+      function renderRail() {
+        const cur = STATE.route === 'project' ? 'projects' : STATE.route
+        $('#rail').innerHTML = `
+    <div class="wordmark" title="OpenVibe 灵典">典</div>
+    ${NAV.map(
+      (n) => `
+      <button class="navitem ${cur === n.k ? 'active' : ''}" data-tip="${n.tip}" data-act="nav" data-nav="${n.k}">
+        <span class="gz">${n.gz}</span><span class="nl">${n.nl}</span>
+      </button>`,
+    ).join('')}
+    <div class="rail-foot">
+      <span class="statusdot" title="本地服务运行中"></span>
+      <span class="statuslab">127.0.0.1</span>
+    </div>`
+      }
+      function renderTopbar() {
+        const t = TITLES[STATE.route] || TITLES.overview
+        $('#topbar').innerHTML = `
+    <div class="crumbs"><b>${t[0]}</b><span class="crumb-sep">/</span><span>${t[1]}</span></div>
+    <div class="top-spacer"></div>
+    <div class="top-actions">
+      <button class="btn ghost" data-act="open-palette"><span style="font-size:12px">⌘</span><span class="kbd" style="margin-left:4px">K</span><span style="margin-left:2px" class="faint">命令</span></button>
+      <button class="btn ghost" data-act="design-notes" title="设计说明与令牌">设计</button>
+      <button class="btn ghost" data-act="theme-toggle" title="切换主题">${STATE.theme === 'dark' ? '昼' : '夜'}</button>
+    </div>`
+      }
+      function routeTo(key) {
+        STATE.route = key
+        STATE.drawer = null
+        STATE.modal = null
+        if (key === 'projects') STATE.projDetail = null
+        try {
+          if (location.hash.replace('#/', '').split('/')[0] !== key)
+            history.replaceState(null, '', '#/' + key)
+        } catch (e) {}
+        renderAll()
+        $('#view').scrollTop = 0
+      }
+      window.addEventListener('hashchange', () => {
+        const h = (location.hash || '').replace('#/', '').split('/')[0]
+        if (NAV.some((n) => n.k === h)) {
+          STATE.drawer = null
+          STATE.modal = null
+          STATE.route = h
+          renderAll()
+        }
+      })
+      function renderAll() {
+        renderRail()
+        renderTopbar()
+        const v = $('#view')
+        const R = {
+          overview: renderOverview,
+          library: renderLibrary,
+          terms: renderTerms,
+          skills: renderSkills,
+          flows: renderFlows,
+          projects: renderProjects,
+          project: renderProjectDetail,
+          packs: renderPacks,
+          settings: renderSettings,
+        }
+        v.innerHTML = (R[STATE.route] || renderOverview)()
+        renderDrawer()
+        renderModal()
+        renderPalette()
+      }
+
+      /* =====================================================================
+   总览（飞轮驾驶舱）
+   ===================================================================== */
+      function ringSegPath(cx, cy, r0, r1, a0, a1) {
+        const p = (a, r) => {
+          const x = cx + r * Math.cos((a * Math.PI) / 180),
+            y = cy + r * Math.sin((a * Math.PI) / 180)
+          return [x, y]
+        }
+        const [x0, y0] = p(a0, r1),
+          [x1, y1] = p(a1, r1),
+          [x2, y2] = p(a1, r0),
+          [x3, y3] = p(a0, r0)
+        const large = a1 - a0 > 180 ? 1 : 0
+        return `M${x0.toFixed(1)},${y0.toFixed(1)} A${r1},${r1} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)} L${x2.toFixed(1)},${y2.toFixed(1)} A${r0},${r0} 0 ${large} 0 ${x3.toFixed(1)},${y3.toFixed(1)} Z`
+      }
+      function ringLabels(seg, cx, cy, ang, rMid) {
+        const a = (ang * Math.PI) / 180
+        const x = cx + (rMid + 6) * Math.cos(a),
+          y = cy + (rMid + 6) * Math.sin(a)
+        const anch = Math.abs(Math.cos(a)) < 0.35 ? 'middle' : Math.cos(a) >= 0 ? 'start' : 'end'
+        return { x, y, anch }
+      }
+      function renderOverview() {
+        const assets = STATE.prompts.length + STATE.terms.length + STATE.skills.length
+        const active = STATE.projects.filter((p) => p.status !== '复盘').length
+        const segs = [
+          { name: '沉淀', key: 'assets', val: assets, color: '#2fd3b3' },
+          { name: '组装', key: 'packs', val: STATE.packs.length, color: '#7fd1ff' },
+          { name: '注入', key: 'inject', val: STATE.injections, color: '#f4b740' },
+          { name: '使用', key: 'active', val: active, color: '#c9b2ff' },
+          { name: '回流', key: 'reflow', val: STATE.reflows, color: '#ff8fa3' },
+        ]
+        const cx = 118,
+          cy = 118,
+          r0 = 56,
+          r1 = 104
+        const feed = []
+        STATE.projects
+          .flatMap((p) => p.logs || [])
+          .forEach((l) =>
+            feed.push({
+              ic: l.type === 'DEV' ? '✎' : '◉',
+              t: `${pNameOf(l)} · ${l.title}`,
+              m: `${l.no} · ${pNameOf(l)}`,
+            }),
+          )
+        STATE.packs.forEach((p) => {
+          ;(p.exports || []).forEach((x) =>
+            feed.push({
+              ic: '⇩',
+              t: `${p.name}@${x.v} 已导出`,
+              m: `指纹 ${x.fingerprint} · ${x.files} 个文件`,
+            }),
+          )
+        })
+        function pNameOf(l) {
+          const p = STATE.projects.find((pp) => (pp.logs || []).includes(l))
+          return p ? p.name : '—'
+        }
+        feed.sort(() => 0) // 顺序展示即可
+        return `
+  <div class="pagehead">
+    <div><h1>总览</h1><div class="sub">北极星 = 飞轮完整圈数。每个环节都有可检测的状态，而不是一句口号。</div></div>
+    <div class="top-actions">
+      <button class="btn" data-act="quick" data-q="sync">复制 sync 命令</button>
+      <button class="btn primary" data-act="quick" data-q="pack">组装标准包</button>
+    </div>
+  </div>
+  <div class="statgrid">
+    ${stat('assets', '资产数', assets, '提示词 + 术语 + Skill')}
+    ${stat('packs', '组包数', STATE.packs.length, '可注入标准包')}
+    ${stat('inject', '注入次数', STATE.injections, 'dry-run 保护')}
+    ${stat('reflow', '回流条数', STATE.reflows, '复盘 → 新资产')}
+    ${stat('loops', '完整圈数', STATE.loops, '北极星')}
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-head"><div class="card-title">标准化飞轮<span class="sub">点击环节查看构成；完整走完一圈 = 一次沉淀闭环</span></div></div>
+      <div class="ring-wrap">
+        <div class="ring-box">
+          <svg viewBox="0 0 236 236">
+            ${segs
+              .map((s, i) => {
+                const a0 = -90 + i * 72,
+                  a1 = a0 + 72
+                const lb = ringLabels(s, cx, cy, a0 + 36, r0 + (r1 - r0) / 2)
+                return `<path class="ring-seg" d="${ringSegPath(cx, cy, r0, r1, a0, a1)}" fill="${s.color}" stroke="${STATE.theme === 'dark' ? '#0d1016' : '#ffffff'}" stroke-width="2.5" data-act="ring-seg" data-k="${s.key}"></path>
+                <text x="${lb.x.toFixed(0)}" y="${lb.y.toFixed(0)}" text-anchor="${lb.anch}" font-size="11" fill="${STATE.theme === 'dark' ? '#0d1016' : '#ffffff'}" font-weight="700" font-family="ui-monospace,monospace" pointer-events="none">${s.name} ${s.val}</text>`
+              })
+              .join('')}
+          </svg>
+          <div class="ring-center"><div class="v">${STATE.loops}</div><div class="l">完整圈数</div></div>
+        </div>
+        <div class="ring-legend">
+          ${segs.map((s) => `<div class="rl"><span class="sw" style="background:${s.color}"></span><span>${s.name}</span><span class="rv">${s.val}</span></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">最近动态<span class="sub">导出、注入与日志回流</span></div></div>
+      <div style="max-height:280px;overflow-y:auto">
+        ${feed.map((f) => `<div class="feed-item"><span class="feed-ic">${f.ic}</span><div class="feed-main"><div class="feed-t">${esc(f.t)}</div><div class="feed-m">${esc(f.m)}</div></div></div>`).join('') || '<div class="empty"><div class="e-ic">◌</div>还没有动态</div>'}
+      </div>
+      <div class="card-head" style="margin-top:14px"><div class="card-title">快捷入口</div></div>
+      <div class="grid2" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+        ${quickTile('prm', '新建提示词', '库', '新资产入库')}
+        ${quickTile('proj', '新建项目', '项', '选模板 + 注入包')}
+        ${quickTile('terms', '生成 TERMS.md', '词', '选集 → 复制')}
+        ${quickTile('scan', '扫描 Skill', '技', '发现本地技能')}
+      </div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="card">
+      <div class="card-head"><div class="card-title">标准包</div><button class="btn sm ghost" data-act="nav" data-nav="packs">全部 →</button></div>
+      ${STATE.packs
+        .map(
+          (p) => `
+        <div class="row" data-act="pack-open" data-id="${p.id}">
+          <div class="row-main">
+            <div class="row-title">${esc(p.name)} <span class="badge accent">v${p.version}</span></div>
+            <div class="row-desc">${esc(p.desc)}</div>
+          </div>
+          <div class="row-meta">${p.targets.map((t) => `<span class="tag">${PLAT_LABEL[t] || t}</span>`).join('')}<span class="hint mono">${p.injections} 次注入</span></div>
+        </div>`,
+        )
+        .join('')}
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">活跃项目</div><button class="btn sm ghost" data-act="nav" data-nav="projects">全部 →</button></div>
+      ${STATE.projects
+        .filter((p) => p.status !== '复盘')
+        .map(
+          (p) => `
+        <div class="row" data-act="proj-open" data-id="${p.id}">
+          <div class="row-main">
+            <div class="row-title">${esc(p.name)} <span class="dot ${p.injected ? 'accent' : 'faint'}"></span>${p.injected ? '<span class="badge accent">已注入</span>' : ''}</div>
+            <div class="row-desc">${esc(flowName(p.flowId))} · 阶段：${esc(flowStageName(p.flowId, p.stage))}</div>
+          </div>
+          <div class="hint mono">${p.logs?.length || 0} 条日志</div>
+        </div>`,
+        )
+        .join('')}
+    </div>
+  </div>`
+        function stat(k, v, l, s) {
+          return `<div class="stat"><div class="v ${k === 'loops' || k === 'assets' ? 'up' : ''}">${v}</div><div class="l">${l} · ${s}</div></div>`
+        }
+        function quickTile(k, label, gz, sub) {
+          return `<button class="btn" style="height:auto;flex-direction:column;align-items:flex-start;padding:11px 13px" data-act="quick" data-q="${k}"><span style="font-size:17px;font-weight:700;color:var(--accent)">${gz}</span><span style="font-size:12.5px;font-weight:600">${label}</span><span class="hint">${sub}</span></button>`
+        }
+      }
+
+      /* =====================================================================
+   共享小工具 + 提示词库（library）
+   ===================================================================== */
+      function flowName(id) {
+        const f = STATE.flows.find((f) => f.id === id)
+        return f ? f.name : '—'
+      }
+      function flowStageName(id, idx) {
+        const f = STATE.flows.find((f) => f.id === id)
+        return f && f.stages[idx] ? f.stages[idx].name : '—'
+      }
+      function extractVars(s) {
+        const m = [...String(s ?? '').matchAll(/\{\{\s*([^{}]+?)\s*\}\}/g)]
+        return [...new Set(m.map((x) => x[1].trim()))]
+      }
+      function renderLibrary() {
+        const q = (STATE.libSearch || '').toLowerCase()
+        const tag = STATE.libTag || ''
+        const tags = [...new Set(STATE.prompts.flatMap((p) => p.tags))].sort()
+        const list = STATE.prompts.filter((p) => {
+          if (tag && !p.tags.includes(tag)) return false
+          if (q && !(p.title + ' ' + p.content + ' ' + p.tags.join(' ')).toLowerCase().includes(q))
+            return false
+          return true
+        })
+        return `
+  <div class="pagehead">
+    <div><h1>提示词库</h1><div class="sub">${STATE.prompts.length} 条 · 保存即自动快照 · 版本可对比可回滚</div></div>
+    <div class="top-actions">
+      <button class="btn" data-act="prompt-import">导入 .cursorrules / CLAUDE.md</button>
+      <button class="btn primary" data-act="prompt-new">新建提示词</button>
+    </div>
+  </div>
+  <div class="card" style="padding:12px 14px;margin-bottom:14px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input class="input" style="max-width:300px" placeholder="搜索标题 / 内容 / 标签…" data-act="pb-libsearch" value="${esc(STATE.libSearch || '')}">
+      <button class="chip ${!tag ? 'on' : ''}" data-act="lib-tag" data-tag="">全部</button>
+      ${tags.map((t) => `<button class="chip ${tag === t ? 'on' : ''}" data-act="lib-tag" data-tag="${t}">${t}</button>`).join('')}
+      <span class="hint mono" style="margin-left:auto">${list.length}/${STATE.prompts.length}</span>
+    </div>
+  </div>
+  ${
+    list.length
+      ? list
+          .map(
+            (p) => `
+    <div class="row" data-act="prompt-open" data-id="${p.id}">
+      <div class="row-main">
+        <div class="row-title">${esc(p.title)}
+          <span class="badge ${p.useAs === 'rule' ? 'accent' : 'plain'}">${p.useAs === 'rule' ? '行为规则' : '任务提示词'}</span>
+        </div>
+        <div class="row-desc">${esc(p.content.slice(0, 86))}${p.content.length > 86 ? '…' : ''}</div>
+      </div>
+      <div class="row-meta">
+        ${p.tags.map((t) => `<span class="tag">${t}</span>`).join('')}
+        <span class="tag">${PLAT_LABEL[p.platform] || p.platform}</span>
+        <span class="hint mono">v${p.version}</span>
+      </div>
+    </div>`,
+          )
+          .join('')
+      : `<div class="empty"><div class="e-ic">◌</div>没有匹配的提示词</div>`
+  }`
+      }
+      function openPrompt(id) {
+        const p = STATE.prompts.find((x) => x.id === id)
+        const vh = p ? p.vh : null
+        STATE.pb = {
+          id: p ? p.id : null,
+          isNew: !p,
+          title: p ? p.title : '',
+          content: p ? p.content : '',
+          useAs: p ? p.useAs : 'rule',
+          platform: p ? p.platform : 'generic',
+          tags: p ? [...p.tags] : [],
+          vh: vh ? [...vh] : [],
+          toRestore: null,
+          activeTab: 'edit',
+          vA: vh ? (vh.length >= 2 ? vh.length - 2 : 0) : null,
+          vB: vh ? vh.length - 1 : null,
+          varvals: {},
+        }
+        STATE.drawer = { kind: 'prompt' }
+        renderDrawer()
+      }
+      function renderDrawer() {
+        const m = $('#ov-drawer')
+        if (!m) return
+        const d = STATE.drawer
+        if (!d) {
+          m.innerHTML = ''
+          return
+        }
+        if (d.kind === 'prompt') m.innerHTML = promptDrawerHtml()
+        else if (d.kind === 'term') m.innerHTML = termDrawerHtml()
+        else if (d.kind === 'skill') m.innerHTML = skillDrawerHtml()
+        else if (d.kind === 'flow') m.innerHTML = flowDrawerHtml()
+        else m.innerHTML = ''
+      }
+      function promptDrawerHtml() {
+        const b = STATE.pb
+        if (!b) return ''
+        const vars = extractVars(b.content)
+        const tab = b.activeTab
+        return `
+  <div class="drawer-mask" data-act="drawer-close"></div>
+  <div class="drawer">
+    <div class="drawer-head">
+      <div class="drawer-title">${b.isNew ? '新建提示词' : '编辑提示词'}</div>
+      <span class="hint mono">${b.id || '未入库'}</span>
+      <button class="btn ghost" style="margin-left:auto" data-act="drawer-close">✕</button>
+    </div>
+    <div class="drawer-body">
+      <div style="margin-bottom:12px"><input class="input" placeholder="提示词标题" value="${esc(b.title)}" data-act="pb-field" data-f="title"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div><span class="label">用途</span>
+          <select class="select" data-act="pb-field" data-f="useAs">
+            <option value="rule" ${b.useAs === 'rule' ? 'selected' : ''}>行为规则（注入正文）</option>
+            <option value="reference" ${b.useAs === 'reference' ? 'selected' : ''}>任务提示词（按需复制）</option>
+          </select></div>
+        <div><span class="label">适用平台</span>
+          <select class="select" data-act="pb-field" data-f="platform">
+            ${Object.entries(PLAT_LABEL)
+              .map(
+                ([k, v]) =>
+                  `<option value="${k}" ${b.platform === k ? 'selected' : ''}>${v}</option>`,
+              )
+              .join('')}
+            <option value="generic" ${b.platform === 'generic' ? 'selected' : ''}>通用</option>
+          </select></div>
+      </div>
+      <div class="seg" style="margin-bottom:12px">
+        <button class="${tab === 'edit' ? 'on' : ''}" data-act="pb-tab" data-tab="edit">编辑</button>
+        <button class="${tab === 'prev' ? 'on' : ''}" data-act="pb-tab" data-tab="prev">预览</button>
+        <button class="${tab === 'vers' ? 'on' : ''}" data-act="pb-tab" data-tab="vers">版本（${b.vh.length}）</button>
+      </div>
+      <div id="pb-panel">
+        ${
+          tab === 'edit'
+            ? `
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+            ${b.tags.map((t, i) => `<span class="chip solid">${esc(t)}<span class="x" data-act="pb-tag-x" data-i="${i}">✕</span></span>`).join('')}
+            <input class="input" style="max-width:180px;height:26px;font-size:12px" placeholder="+ 添加标签，回车" data-act="pb-tag-add">
+          </div>
+          <textarea class="textarea mono" style="min-height:300px" placeholder="提示词正文，支持 {{变量}} 占位" data-act="pb-content">${esc(b.content)}</textarea>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+            <span class="hint mono" id="pb-count">${b.content.length} 字符</span>
+            <span class="hint" style="margin-left:auto">变量：</span>
+            ${vars.length ? vars.map((v) => `<span class="chip amber">\{\{${v}\}\}</span>`).join('') : '<span class="hint faint">无变量</span>'}
+          </div>`
+            : tab === 'prev'
+              ? `
+          <div class="md-preview" id="pb-pv" style="background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px 16px;min-height:220px">${mdLite(b.content)}</div>`
+              : `
+          <div style="margin-bottom:10px" class="hint">选择两个版本查看行级 diff；「恢复」会把该版本内容写回编辑器，保存时生成新版本。</div>
+          ${
+            b.vh.length
+              ? b.vh
+                  .map(
+                    (v, i) => `
+            <div class="row" style="padding:8px 10px" data-act="pb-vers" data-i="${i}">
+              <div class="row-main"><div class="row-title mono">v${v.no}<span class="badge plain" style="margin-left:8px">${v.no === b.vh.length ? '当前' : '历史'}</span></div>
+              <div class="row-desc">${esc(v.note)}</div></div>
+              <div class="hint mono">${esc(v.at)}</div>
+              <button class="btn xs" data-act="pb-restore" data-i="${i}" ${v.no === b.vh.length ? 'disabled' : ''}>恢复</button>
+            </div>`,
+                  )
+                  .join('') + diffPanel()
+              : `<div class="empty">暂无版本</div>`
+          }`
+        }
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn" data-act="pb-varfill" ${vars.length ? '' : 'disabled'}>变量填充</button>
+      <button class="btn danger" data-act="pb-del" ${b.isNew ? 'disabled' : ''}>删除</button>
+      <button class="btn primary" style="margin-left:auto" data-act="pb-save">${b.isNew ? '入库并建 v1' : '保存 · 生成 v' + (b.vh.length + 1)}</button>
+    </div>
+  </div>`
+      }
+      function diffPanel() {
+        const b = STATE.pb
+        const vh = b.vh
+        if (vh.length < 2) return ''
+        const ia = b.vA ?? vh.length - 2,
+          ib = b.vB ?? vh.length - 1
+        const A = vh[ia].content || '',
+          B = vh[ib].content || ''
+        const rows = diffLines(A, B).slice(0, 220)
+        const cn = { add: 0, del: 0 }
+        rows.forEach((r) => {
+          if (r.t === 'add') cn.add++
+          if (r.t === 'del') cn.del++
+        })
+        return `<div style="margin-top:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <span class="hint">对比</span>
+    <select class="select" style="width:150px" data-act="pb-diff-a">${vh.map((v, i) => `<option value="${i}" ${i === ia ? 'selected' : ''}>v${v.no} · ${esc(v.note.slice(0, 14))}</option>`).join('')}</select>
+    <span class="faint">→</span>
+    <select class="select" style="width:150px" data-act="pb-diff-b">${vh.map((v, i) => `<option value="${i}" ${i === ib ? 'selected' : ''}>v${v.no} · ${esc(v.note.slice(0, 14))}</option>`).join('')}</select>
+    <span class="badge accent">+${cn.add}</span><span class="badge red">−${cn.del}</span>
+  </div>
+  <div class="diff" style="margin-top:8px;max-height:300px;overflow-y:auto">
+    ${rows.map((r) => `<div class="diff-row ${r.t === 'add' ? 'diff-add' : r.t === 'del' ? 'diff-del' : 'diff-ctx'}"><span class="diff-ln"></span><span>${esc(r.s) || '&nbsp;'}</span></div>`).join('')}
+  </div>`
+      }
+
+      /* =====================================================================
+   术语库（terms）
+   ===================================================================== */
+      function renderTerms() {
+        const q = (STATE.termSearch || '').toLowerCase()
+        const sel = STATE.termSelIds || []
+        const list = STATE.terms.filter((t) => {
+          if (
+            q &&
+            !(t.zh + ' ' + t.en + ' ' + t.ali.join(' ') + ' ' + t.def).toLowerCase().includes(q)
+          )
+            return false
+          return true
+        })
+        return `
+  <div class="pagehead">
+    <div><h1>术语库</h1><div class="sub">${STATE.terms.length} 条 · 与 AI 共用同一份词汇口径 · TERMS.md 渲染字节确定</div></div>
+    <div class="top-actions">
+      <button class="btn" data-act="term-clear">清空选择</button>
+      <button class="btn primary" data-act="term-copy">复制 TERMS.md（${sel.length}）</button>
+      <button class="btn" data-act="term-download">下载</button>
+    </div>
+  </div>
+  <div class="card" style="padding:12px 14px;margin-bottom:14px">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input class="input" style="max-width:300px" placeholder="中 / 英 / 别名 / 定义…" value="${esc(STATE.termSearch || '')}" data-act="term-search">
+      <button class="chip ${sel.length ? 'amber on' : ''}" data-act="term-select-all">全选 ${list.length}</button>
+      <span class="hint mono" style="margin-left:auto">${list.length}/${STATE.terms.length}</span>
+    </div>
+  </div>
+  <div class="grid2" style="grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);align-items:start">
+    <div class="card" style="padding:6px 8px">
+      <table class="table">
+        <thead><tr><th style="width:34px"></th><th>术语</th><th>English</th><th>别名</th><th>来源</th></tr></thead>
+        <tbody>
+        ${
+          list
+            .map((t, i) => {
+              const tid = STATE.terms.indexOf(t)
+              const on = sel.includes(tid)
+              return `<tr class="row-ct" data-act="term-open" data-i="${tid}">
+            <td><span class="checkbox ${on ? 'on' : ''}" data-act="term-toggle" data-i="${tid}"></span></td>
+            <td style="font-weight:600">${esc(t.zh)}${t.src === 'user' ? '<span class="badge plain" style="margin-left:6px">自建</span>' : ''}</td>
+            <td class="mono" style="font-size:12px;color:var(--dim)">${esc(t.en)}</td>
+            <td style="font-size:12px;color:var(--faint)">${t.ali.length ? esc(t.ali.join('、')) : '—'}</td>
+            <td><span class="badge ${t.src === 'user' ? 'amber' : 'plain'}">${t.src === 'user' ? 'user' : 'seed'}</span></td>
+          </tr>`
+            })
+            .join('') || `<tr><td colspan="5"><div class="empty">没有匹配词条</div></td></tr>`
+        }
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title">TERMS.md 预览<span class="sub">确定性渲染：同一选集 → 同一字节（sha256 ${sha(composeTermsMd(sel))}）</span></div></div>
+      <div style="max-height:460px;overflow-y:auto;background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--r-sm);padding:14px">
+        ${sel.length ? `<pre class="mono" style="font-size:11.5px;line-height:1.75;white-space:pre-wrap;word-break:break-all;color:var(--dim)">${esc(composeTermsMd(sel))}</pre>` : '<div class="empty"><div class="e-ic">☰</div>勾选词条后在此生成 TERMS.md</div>'}
+      </div>
+    </div>
+  </div>`
+      }
+      function termDrawerHtml() {
+        const b = STATE.tb
+        if (!b) return ''
+        return `
+  <div class="drawer-mask" data-act="drawer-close"></div>
+  <div class="drawer">
+    <div class="drawer-head"><div class="drawer-title">${b.isNew ? '新建词条' : '编辑词条'}</div>
+      <button class="btn ghost" style="margin-left:auto" data-act="drawer-close">✕</button></div>
+    <div class="drawer-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div><span class="label">中文名</span><input class="input" value="${esc(b.zh)}" data-act="tb-field" data-f="zh"></div>
+        <div><span class="label">English</span><input class="input mono" value="${esc(b.en)}" data-act="tb-field" data-f="en"></div>
+      </div>
+      <div style="margin-bottom:12px"><span class="label">别名（逗号分隔）</span><input class="input" value="${esc((b.ali || []).join('，'))}" data-act="tb-field" data-f="ali"></div>
+      <div style="margin-bottom:12px"><span class="label">定义</span><textarea class="textarea" style="min-height:120px" data-act="tb-field" data-f="def">${esc(b.def)}</textarea></div>
+      <div style="margin-bottom:12px"><span class="label">相关术语（勾选双向关联）</span>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${STATE.terms
+            .map((t, i) => {
+              const on = (b.rel || []).includes(t.zh)
+              return `<button class="chip ${on ? 'on' : ''}" data-act="tb-rel" data-i="${i}">${esc(t.zh)}</button>`
+            })
+            .join('')}
+        </div></div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn danger" data-act="tb-del" ${b.isNew ? 'disabled' : ''}>删除</button>
+      <button class="btn primary" style="margin-left:auto" data-act="tb-save">保存词条</button>
+    </div>
+  </div>`
+      }
+      function openTerm(i) {
+        const t = STATE.terms[i]
+        STATE.tb = {
+          idx: i,
+          isNew: false,
+          zh: t.zh,
+          en: t.en,
+          ali: [...t.ali],
+          def: t.def,
+          rel: [...t.rel],
+          src: t.src,
+        }
+        STATE.drawer = { kind: 'term' }
+        renderDrawer()
+      }
+
+      /* =====================================================================
+   Skill 台账（skills）
+   ===================================================================== */
+      function renderSkills() {
+        const sc = STATE.scan
+        return `
+  <div class="pagehead">
+    <div><h1>Skill 台账</h1><div class="sub">${STATE.skills.length} 项 · 本地扫描发现 + 版本指纹登记</div></div>
+    <div class="top-actions">
+      <button class="btn primary" data-act="skill-scan" ${sc && sc.running ? 'disabled' : ''}>${sc && sc.running ? '扫描中…' : '扫描 ~/.claude/skills'}</button>
+    </div>
+  </div>
+  ${
+    sc && sc.running
+      ? `<div class="card" style="margin-bottom:14px"><div class="card-head"><div class="card-title">正在扫描本地技能目录…</div><span class="hint mono" style="margin-left:auto">${Math.round(sc.progress)}%</span></div>
+    <div class="progress"><div class="progress-bar" style="width:${sc.progress}%"></div></div></div>`
+      : ''
+  }
+  ${
+    sc && sc.report
+      ? `<div class="card" style="margin-bottom:14px;border-color:var(--accent)">
+    <div class="card-head"><div class="card-title">扫描报告</div><span class="badge accent">完成</span></div>
+    <div style="display:flex;gap:22px;flex-wrap:wrap">
+      ${[
+        ['发现', sc.report.discovered],
+        ['新建', sc.report.created],
+        ['更新', sc.report.updated],
+        ['跳过', sc.report.skipped],
+      ]
+        .map(
+          ([k, v]) =>
+            `<div><span class="v" style="font-size:22px;font-weight:750;font-family:var(--font-mono)">${v}</span><span class="hint" style="margin-left:6px">${k}</span></div>`,
+        )
+        .join('')}
+    </div>
+    ${sc.report.warnings.map((w) => `<div class="hint amber" style="margin-top:6px">⚠ ${esc(w)}</div>`).join('')}
+  </div>`
+      : ''
+  }
+  ${STATE.skills
+    .map(
+      (s) => `
+    <div class="row" data-act="skill-open" data-id="${s.id}">
+      <div class="row-main">
+        <div class="row-title"><span class="mono" style="color:var(--accent)">${esc(s.name)}</span>
+          <span class="badge ${s.source === 'manual' ? 'amber' : 'plain'}">${s.source === 'manual' ? '手动登记' : '本地'}</span></div>
+        <div class="row-desc">${esc(s.desc)}</div>
+      </div>
+      <div class="row-meta">
+        <span class="tag mono">${s.latest}</span>
+        <span class="hint mono">${s.versions.length} 个版本 · ${esc(s.scannedAt)}</span>
+      </div>
+    </div>`,
+    )
+    .join('')}
+  <div class="hint" style="margin-top:10px">分发与冲突检测（SHA-256 指纹比对）属 P1 能力，本 demo 仅展示台账。</div>`
+      }
+      function skillDrawerHtml() {
+        const s = STATE.skills.find((x) => x.id === STATE.drawer.id)
+        if (!s) return ''
+        return `
+  <div class="drawer-mask" data-act="drawer-close"></div>
+  <div class="drawer">
+    <div class="drawer-head"><div class="drawer-title mono">${esc(s.name)}</div>
+      <span class="badge ${s.source === 'manual' ? 'amber' : 'plain'}">${s.source === 'manual' ? '手动登记' : '本地'}</span>
+      <button class="btn ghost" style="margin-left:auto" data-act="drawer-close">✕</button></div>
+    <div class="drawer-body">
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-head"><div class="card-title">描述</div></div>
+        <div class="muted" style="font-size:13px">${esc(s.desc)}</div>
+        <div style="margin-top:10px;display:flex;gap:14px" class="hint">
+          <span>最新版本 <b class="mono" style="color:var(--accent)">${s.latest}</b></span>
+          <span>最近扫描 ${esc(s.scannedAt)}</span>
+        </div>
+      </div>
+      <div class="card-title" style="margin-bottom:10px">版本时间线</div>
+      <div class="tl">
+        ${s.versions
+          .map(
+            (v) => `
+          <div class="tl-item ${v.label === s.latest ? '' : 'muted'}">
+            <div class="tl-title"><span class="mono" style="color:${v.label === s.latest ? 'var(--accent)' : 'var(--dim)'}">${esc(v.label)}</span> ${v.label === s.latest ? '<span class="badge accent">当前</span>' : ''}</div>
+            <div class="tl-note">${esc(v.note)}</div>
+          </div>`,
+          )
+          .join('')}
+      </div>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn danger" data-act="skill-del" data-id="${s.id}">删除条目</button>
+      <button class="btn primary" style="margin-left:auto" data-act="drawer-close">关闭</button>
+    </div>
+  </div>`
+      }
+
+      /* =====================================================================
+   流程模板（flows）
+   ===================================================================== */
+      function renderFlows() {
+        return `
+  <div class="pagehead">
+    <div><h1>流程模板</h1><div class="sub">${STATE.flows.length} 套 · 建项目即物化快照，模板再改不回溯存量项目</div></div>
+    <div class="top-actions"><button class="btn primary" data-act="flow-new">新建自定义模板</button></div>
+  </div>
+  <div class="grid3">
+    ${STATE.flows
+      .map((f) => {
+        const items = f.stages.reduce((n, s) => n + s.checklist.length, 0)
+        return `<div class="card" style="display:flex;flex-direction:column">
+        <div class="card-head">
+          <div class="card-title">${esc(f.name)}
+            <span class="badge ${f.builtin ? 'plain' : 'amber'}" style="margin-left:6px">${f.builtin ? '内置' : '自定义'}</span></div>
+        </div>
+        <div class="hint" style="margin-bottom:12px">${f.stages.length} 个阶段 · ${items} 项检查清单</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+          ${f.stages.map((s) => `<span class="tag">${esc(s.name)}</span>`).join('')}
+        </div>
+        <div style="margin-top:auto;display:flex;gap:8px">
+          <button class="btn sm" data-act="flow-dup" data-id="${f.id}" ${f.builtin ? '' : 'disabled'}>复制为自定义</button>
+          <button class="btn sm" data-act="flow-edit" data-id="${f.id}" ${f.builtin ? 'disabled' : ''}>编辑阶段</button>
+        </div>
+      </div>`
+      })
+      .join('')}
+  </div>
+  <div class="hint" style="margin-top:14px">内置模板只读；「复制为自定义」后即可裁剪阶段与检查清单。个人轻量流 / Spec 驱动流 / 复盘流三套内置模板随种子内容入库。</div>`
+      }
+      function openFlowEditor(id) {
+        let f = STATE.flows.find((x) => x.id === id)
+        if (!f) return
+        STATE.fb = {
+          id: f.id,
+          isNew: false,
+          name: f.name,
+          stages: f.stages.map((s) => ({
+            name: s.name,
+            checklist: [...s.checklist],
+            artifacts: [...s.artifacts],
+          })),
+        }
+        STATE.drawer = { kind: 'flow' }
+        renderDrawer()
+      }
+      function flowDrawerHtml() {
+        const b = STATE.fb
+        if (!b) return ''
+        return `
+  <div class="drawer-mask" data-act="drawer-close"></div>
+  <div class="drawer">
+    <div class="drawer-head"><div class="drawer-title">编辑流程模板</div>
+      <span class="hint mono">${b.id}</span>
+      <button class="btn ghost" style="margin-left:auto" data-act="drawer-close">✕</button></div>
+    <div class="drawer-body">
+      <div style="margin-bottom:14px"><span class="label">模板名称</span><input class="input" value="${esc(b.name)}" data-act="fb-field" data-f="name"></div>
+      ${b.stages
+        .map(
+          (s, si) => `
+        <div class="card" style="margin-bottom:12px;padding:12px 14px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span class="badge plain mono">${si + 1}</span>
+            <input class="input mono" style="height:28px;flex:1" value="${esc(s.name)}" data-act="fb-stage" data-i="${si}">
+            <button class="btn xs danger" data-act="fb-del-stage" data-i="${si}">删阶段</button>
+          </div>
+          ${s.checklist
+            .map(
+              (c, ci) => `
+            <div style="display:flex;align-items:center;gap:7px;margin:5px 0">
+              <span class="checkbox on" style="opacity:.4"></span>
+              <input class="input" style="height:26px;font-size:12.5px;flex:1" value="${esc(c)}" data-act="fb-item" data-si="${si}" data-ci="${ci}">
+              <button class="btn xs ghost" data-act="fb-del-item" data-si="${si}" data-ci="${ci}">✕</button>
+            </div>`,
+            )
+            .join('')}
+          <button class="btn xs" style="margin-top:6px" data-act="fb-add-item" data-i="${si}">+ 检查清单项</button>
+          <div class="hint" style="margin-top:6px">产物：${s.artifacts.length ? esc(s.artifacts.join('、')) : '（无）'}</div>
+        </div>`,
+        )
+        .join('')}
+      <button class="btn" data-act="fb-add-stage">+ 添加阶段</button>
+    </div>
+    <div class="drawer-foot">
+      <button class="btn primary" style="margin-left:auto" data-act="fb-save">保存模板</button>
+    </div>
+  </div>`
+      }
+
+      /* =====================================================================
+   项目（projects）
+   ===================================================================== */
+      function renderProjects() {
+        return `
+  <div class="pagehead">
+    <div><h1>项目工作台</h1><div class="sub">${STATE.projects.length} 个项目 · 阶段物化快照 · 检查清单与日志回流</div></div>
+    <div class="top-actions"><button class="btn primary" data-act="proj-new">新建项目</button></div>
+  </div>
+  ${
+    STATE.projects
+      .map((p) => {
+        const fl = STATE.flows.find((f) => f.id === p.flowId)
+        const total = fl ? fl.stages.reduce((n, s) => n + s.checklist.length, 0) : 0
+        const done = p.checks ? Object.values(p.checks).reduce((n, c) => n + c, 0) : 0
+        const pct = total ? Math.round((done / total) * 100) : 0
+        return `<div class="row" data-act="proj-open" data-id="${p.id}">
+      <div class="row-main">
+        <div class="row-title">${esc(p.name)}
+          <span class="badge ${p.status === '开发中' ? 'accent' : p.status === '复盘' ? 'amber' : 'plain'}">${p.status}</span>
+          ${p.injected ? '<span class="badge accent">已注入</span>' : ''}
+        </div>
+        <div class="row-desc">${esc(fl ? fl.name : '—')} · 阶段：${esc(flowStageName(p.flowId, p.stage))} · ${esc(p.path)}</div>
+      </div>
+      <div style="width:130px">
+        <div class="progress"><div class="progress-bar" style="width:${pct}%"></div></div>
+        <div class="hint mono" style="text-align:right;margin-top:3px">${done}/${total}</div>
+      </div>
+      <div class="hint mono" style="width:110px;text-align:right">${p.logs.length} 条日志</div>
+    </div>`
+      })
+      .join('') || '<div class="empty">还没有项目</div>'
+  }
+  <div class="hint" style="margin-top:10px">注入状态由 CLI 写入的 pack.lock.json 只读解析（demo 模拟）；项目目录本身演示中不落盘。</div>`
+      }
+      function projectDetailHtml() {
+        const p = STATE.projects.find((x) => x.id === STATE.projDetail)
+        if (!p) return ''
+        const fl = STATE.flows.find((f) => f.id === p.flowId)
+        const stages = fl ? fl.stages : []
+        const cur = stages[p.stage] || { name: '—', checklist: [] }
+        const cs = p.checkState || (p.checkState = {})
+        const curDone = (cs[cur.name] || []).filter(Boolean).length
+        const curPct = cur.checklist.length ? Math.round((curDone / cur.checklist.length) * 100) : 0
+        const t = STATE.term && STATE.term.pj === p.id ? STATE.term : null
+        return `
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <button class="btn ghost sm" data-act="proj-back">← 项目列表</button>
+    <h1 style="font-size:19px;margin:0">${esc(p.name)}</h1>
+    <span class="badge ${p.status === '开发中' ? 'accent' : p.status === '复盘' ? 'amber' : 'plain'}">${p.status}</span>
+    <span class="hint mono">${esc(p.path)}</span>
+    <span style="margin-left:auto" class="hint">流程：${esc(fl ? fl.name : '—')} · 标准包：${p.pack ? esc(p.pack) : '未关联'}</span>
+  </div>
+  <div class="card" style="padding:12px 14px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      ${stages
+        .map(
+          (s, i) => `
+        <button class="chip ${i === p.stage ? 'on' : i < p.stage ? 'solid' : ''}" data-act="pj-stage" data-i="${i}">
+          ${i + 1}. ${esc(s.name)}${i < p.stage ? ' ✓' : ''}
+        </button>`,
+        )
+        .join('')}
+      <span class="hint mono" style="margin-left:auto">阶段 ${p.stage + 1}/${stages.length}</span>
+    </div>
+  </div>
+  <div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);align-items:start">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-head"><div class="card-title">阶段「${esc(cur.name)}」检查清单</div>
+          <div class="progress" style="width:120px"><div class="progress-bar ${curPct === 100 ? '' : 'amber'}" style="width:${curPct}%"></div></div>
+          <span class="hint mono">${curDone}/${cur.checklist.length}</span></div>
+        ${
+          cur.checklist
+            .map((c, i) => {
+              const arr = cs[cur.name] || (cs[cur.name] = [])
+              const on = arr[i]
+              return `<div class="chk ${on ? 'done' : ''}" data-act="chk-toggle" data-i="${i}">
+            <span class="checkbox ${on ? 'on' : ''}"></span><span class="ck-t">${esc(c)}</span></div>`
+            })
+            .join('') || '<div class="hint faint">本阶段无清单项</div>'
+        }
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">注入状态</div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:7px">
+            <span class="dot ${p.injected ? 'accent' : 'faint'}"></span>
+            <span class="hint" style="font-size:12px">${p.injected ? 'IN_SYNC · 指纹 b611cec36934' : '未注入'}</span>
+          </div>
+        </div>
+        ${
+          p.injected
+            ? `
+          <div class="kv" style="margin:5px 0"><span class="k">标准包</span><span class="mono">${esc(p.pack)}</span></div>
+          <div class="kv" style="margin:5px 0"><span class="k">锁定文件</span><span class="mono faint">.openvibe/pack.lock.json</span></div>
+          <div class="kv" style="margin:5px 0"><span class="k">产物</span><span class="mono">CLAUDE.md · AGENTS.md · TERMS.md · CHECKLIST.md …</span></div>
+          <div style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn sm" data-act="inj-diff">运行 openvibe diff</button>
+            <button class="btn sm ghost" data-act="inj-copy">复制 sync 命令</button>
+          </div>`
+            : `
+          <div class="hint" style="margin-bottom:10px">浏览器无法写本地文件——注入是 CLI 的唯一通道。这里模拟一次 openvibe sync 的 dry-run 与确认。</div>
+          ${t && t.done ? '' : `<button class="btn primary sm" data-act="inj-simulate">模拟 openvibe sync --dry-run</button>`}
+          ${
+            t
+              ? `<div class="term" style="margin-top:10px;max-height:260px;overflow-y:auto" id="term-box">${
+                  t.script
+                    .slice(0, t.i)
+                    .map((l) => `<div class="${l.cls}">${esc(l.txt)}</div>`)
+                    .join('') || '<span class="t-caret"></span>'
+                }${t.i === 0 ? '<span class="t-caret"></span>' : ''}</div>`
+              : ''
+          }
+          ${
+            t && t.done && !p.injected
+              ? `<div style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn sm danger" data-act="inj-cancel">取消</button>
+            <button class="btn sm primary" data-act="inj-confirm">确认注入（自动备份）</button></div>`
+              : ''
+          }`
+        }
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-head"><div class="card-title">任务看板</div><span class="hint faint">拖拽或 ← → 按钮跨列</span></div>
+        <div class="kanban">
+          ${[
+            ['todo', '待办'],
+            ['doing', '进行'],
+            ['done', '完成'],
+          ]
+            .map(([st, lbl]) => {
+              const items = p.tasks.filter((x) => x.status === st)
+              return `<div class="kcol" data-col="${st}">
+              <div class="kcol-head">${lbl}<span class="cnt">${items.length}</span></div>
+              ${
+                items
+                  .map(
+                    (x) => `
+                <div class="kcard" draggable="true" data-task="${x.id}">
+                  <div>${esc(x.title)}</div>
+                  <div class="kcard-foot">
+                    <span class="kt">${esc(x.stage || '—')}</span>
+                    <span style="display:flex;gap:4px">
+                      <button class="btn xs ghost" data-act="kbd-move" data-id="${x.id}" data-dir="-1" ${st === 'todo' ? 'disabled' : ''}>←</button>
+                      <button class="btn xs ghost" data-act="kbd-move" data-id="${x.id}" data-dir="1" ${st === 'done' ? 'disabled' : ''}>→</button>
+                    </span>
+                  </div>
+                </div>`,
+                  )
+                  .join('') || '<div class="hint faint" style="padding:8px 4px">空</div>'
+              }
+            </div>`
+            })
+            .join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">开发日志</div>
+          <button class="btn sm primary" data-act="dl-new">+ 记一条</button></div>
+        <div class="tl" style="max-height:300px;overflow-y:auto">
+          ${
+            [...p.logs]
+              .reverse()
+              .map(
+                (l) => `
+            <div class="tl-item">
+              <div class="tl-title"><span class="mono">${l.no}</span> ${esc(l.title)}</div>
+              <div class="tl-meta">${esc(l.type)} · ${esc(l.at || '')}</div>
+              <div class="tl-note">${esc(l.body.slice(0, 90))}${l.body.length > 90 ? '…' : ''}</div>
+              <div style="margin-top:5px;display:flex;gap:6px;align-items:center">
+                ${l.refs.map((r) => `<span class="tag">${esc(r)}</span>`).join('')}
+                <button class="btn xs ghost" data-act="dl-reflow" data-no="${l.no}" style="margin-left:auto">↩ 回流为术语草稿</button>
+              </div>
+            </div>`,
+              )
+              .join('') || '<div class="empty">还没有日志</div>'
+          }
+        </div>
+      </div>
+    </div>
+  </div>`
+      }
+      function renderProjectDetail() {
+        return projectDetailHtml() || renderProjects()
+      }
+      /* 注入模拟脚本 */
+      function injectionScript() {
+        return [
+          { cls: 'p1', txt: '$ npx openvibe-cli sync ./ --pack default@1.0.0 --dry-run' },
+          { cls: '', txt: '✔ 取包 default@1.0.0（在线通道） 契约 schemaVersion=1' },
+          { cls: '', txt: '✔ 指纹校验通过  b611cec36934…' },
+          { cls: 'p2', txt: '── 注入计划（8 个文件） ──' },
+          { cls: '', txt: '  CLAUDE.md                    NEW' },
+          { cls: '', txt: '  AGENTS.md                    NEW' },
+          { cls: '', txt: '  .cursor/rules/openvibe.mdc   NEW' },
+          { cls: '', txt: '  .trae/rules/openvibe.md      NEW' },
+          { cls: '', txt: '  CODEBUDDY.md                 NEW' },
+          { cls: '', txt: '  MINI.md                      NEW' },
+          { cls: '', txt: '  TERMS.md                     NEW' },
+          { cls: '', txt: '  CHECKLIST.md                 NEW' },
+          { cls: 'p5', txt: '✔ dry-run 完成：零写入，磁盘无任何改动' },
+          { cls: 'p3', txt: '提示：首次注入成功后会有一次可选遥测询问（默认关闭）。' },
+        ]
+      }
+      function startTerm(p) {
+        STATE.term = { pj: p.id, script: injectionScript(), i: 0, done: false }
+        if (STATE.termTimer) clearInterval(STATE.termTimer)
+        STATE.termTimer = setInterval(() => {
+          const t = STATE.term
+          if (!t || t.done) {
+            clearInterval(STATE.termTimer)
+            STATE.termTimer = null
+            return
+          }
+          if (t.i < t.script.length) {
+            t.i++
+          } else {
+            t.done = true
+            clearInterval(STATE.termTimer)
+            STATE.termTimer = null
+          }
+          $('#view').innerHTML = renderProjectDetail()
+        }, 95)
+      }
+
+      /* =====================================================================
+   标准包（packs）
+   ===================================================================== */
+      function renderPacks() {
+        return `
+  <div class="pagehead">
+    <div><h1>标准包</h1><div class="sub">${STATE.packs.length} 个 · 确定性导出 · 导出不可变 · 指纹锁定</div></div>
+    <div class="top-actions">
+      <button class="btn" data-act="pack-copy-sync">复制 sync 命令</button>
+      <button class="btn primary" data-act="pack-new">组装标准包</button>
+    </div>
+  </div>
+  ${
+    STATE.packs
+      .map(
+        (p) => `
+    <div class="row" data-act="pack-open" data-id="${p.id}">
+      <div class="row-main">
+        <div class="row-title">${esc(p.name)} <span class="badge accent">v${p.version}</span></div>
+        <div class="row-desc">${esc(p.desc)}</div>
+      </div>
+      <div class="row-meta">
+        ${p.targets.map((t) => `<span class="tag">${PLAT_LABEL[t] || t}</span>`).join('')}
+        <span class="tag mono">指纹 ${p.exports[0] ? p.exports[0].fingerprint : '—'}</span>
+        <span class="hint mono">${p.injections} 次注入 · ${p.exports.length} 次导出</span>
+      </div>
+    </div>`,
+      )
+      .join('') || '<div class="empty">还没有标准包</div>'
+  }
+  <div class="hint" style="margin-top:10px">标准包 = 纯 Markdown/JSON 文件契约（git 友好、工具无关）；Web 只做组装与导出，写入项目一律经 CLI。</div>`
+      }
+      function packDrawerHtml() {
+        const p = STATE.packs.find((x) => x.id === STATE.drawer.id)
+        if (!p) return ''
+        const flow = STATE.flows.find((f) => f.id === p.flowId)
+        const files = packFileTree(p)
+        return `
+  <div class="drawer-mask" data-act="drawer-close"></div>
+  <div class="drawer" style="width:min(760px,94vw)">
+    <div class="drawer-head"><div class="drawer-title">${esc(p.name)} <span class="badge accent">v${p.version}</span></div>
+      <button class="btn ghost" style="margin-left:auto" data-act="drawer-close">✕</button></div>
+    <div class="drawer-body">
+      <div class="hint" style="margin-bottom:12px">${esc(p.desc)}</div>
+      <div class="grid2" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div class="card" style="padding:11px 13px"><div class="card-title" style="font-size:12px">工作流程</div>
+          <div class="hint" style="margin-top:4px">${esc(flow ? flow.name : '—')} · ${flow ? flow.stages.length : 0} 阶段</div></div>
+        <div class="card" style="padding:11px 13px"><div class="card-title" style="font-size:12px">资产</div>
+          <div class="hint" style="margin-top:4px">提示词 ${p.promptIds.length} · 术语 ${p.termIds.length}</div></div>
+      </div>
+      <div class="card-title" style="margin-bottom:8px">产物文件（${files.length}）</div>
+      <div class="tree" style="background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px;margin-bottom:14px">
+        ${files.map((f) => `<div class="tree-item" data-act="pack-file" data-f="${f}"><span class="br">├</span><span>${esc(f)}</span><span class="ti-sz">${fmtBytes(f.length * 2 + 380)}</span></div>`).join('')}
+      </div>
+      <div class="card-title" style="margin-bottom:8px">导出历史</div>
+      ${
+        p.exports
+          .map(
+            (x) => `
+        <div class="row" style="padding:8px 10px">
+          <div class="row-main"><div class="row-title mono">v${x.v}</div>
+            <div class="row-desc mono">指纹 ${x.fingerprint} · ${x.files} 个文件 · ${esc(x.at)}</div></div>
+          <span class="badge accent">不可变</span>
+        </div>`,
+          )
+          .join('') || '<div class="empty">尚未导出</div>'
+      }
+    </div>
+    <div class="drawer-foot">
+      <button class="btn danger" data-act="pack-del" data-id="${p.id}">删除包</button>
+      <button class="btn" data-act="pack-re-export" data-id="${p.id}">重新导出（新版本）</button>
+      <button class="btn primary" style="margin-left:auto" data-act="pack-copy-sync" data-pack="${p.name}@${p.version}">复制 sync 命令</button>
+    </div>
+  </div>`
+      }
+      function packFileTree(p) {
+        const files = []
+        p.targets.forEach((t) => platformFiles(t).forEach((f) => files.push(f)))
+        if (p.termIds.length) files.push('TERMS.md')
+        if (p.flowId) files.push('CHECKLIST.md')
+        files.push('SKILLS.md', 'openvibe.pack.json')
+        return files
+      }
+      /* 标准包向导（5 步） */
+      function renderModal() {
+        const m = $('#ov-modal')
+        if (!m) return
+        const mod = STATE.modal
+        if (!mod) {
+          m.innerHTML = ''
+          return
+        }
+        if (mod.kind === 'confirm') m.innerHTML = confirmHtml(mod)
+        else if (mod.kind === 'varfill') m.innerHTML = varfillHtml()
+        else if (mod.kind === 'pj-wizard') m.innerHTML = pjWizardHtml()
+        else if (mod.kind === 'dl-new') m.innerHTML = dlNewHtml()
+        else if (mod.kind === 'reflow') m.innerHTML = reflowHtml()
+        else if (mod.kind === 'pack-wizard') m.innerHTML = packWizardHtml()
+        else if (mod.kind === 'design') m.innerHTML = designHtml()
+        else m.innerHTML = ''
+      }
+      function confirmHtml(mod) {
+        return `<div class="modal-mask" data-act="modal-mask"><div class="modal">
+    <div class="modal-head"><div class="modal-title">${esc(mod.title)}</div></div>
+    <div class="modal-body"><div class="muted" style="font-size:13.5px">${mod.body}</div></div>
+    <div class="modal-foot">
+      <button class="btn" data-act="modal-close">取消</button>
+      <button class="btn danger" data-act="modal-yes" data-arg="${esc(mod.arg || '')}">${esc(mod.yes || '确认')}</button>
+    </div></div></div>`
+      }
+      function varfillHtml() {
+        const b = STATE.pb
+        const vars = extractVars(b.content)
+        const vals = b.varvals || {}
+        const filled = b.content.replace(/\{\{\s*([^{}]+?)\s*\}\}/g, (_, v) =>
+          esc(vals[v.trim()] ?? `{{${v.trim()}}}`),
+        )
+        return `<div class="modal-mask" data-act="modal-mask"><div class="modal">
+    <div class="modal-head"><div class="modal-title">变量填充 · ${vars.length} 项</div>
+      <button class="btn ghost" style="margin-left:auto" data-act="modal-close">✕</button></div>
+    <div class="modal-body">
+      ${vars
+        .map(
+          (v) => `<div style="margin-bottom:10px"><span class="label mono">\{\{${esc(v)}\}\}</span>
+        <input class="input mono" placeholder="示例：${esc(v)}" value="${esc(vals[v] || '')}" data-act="vf-field" data-var="${esc(v)}"></div>`,
+        )
+        .join('')}
+      <div class="label">替换预览</div>
+      <div class="md-preview" id="vf-pv" style="background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--r-sm);padding:12px;min-height:90px;font-size:12.5px">${filled.replace(/\n/g, '<br>')}</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-act="vf-copy-raw">复制原文</button>
+      <button class="btn primary" data-act="vf-copy">复制替换结果</button>
+    </div></div></div>`
+      }
+      function pjWizardHtml() {
+        const w = STATE.pwj
+        const flows = STATE.flows
+        const packs = STATE.packs
+        const body = (st) => {
+          if (st === 1)
+            return `
+      <div style="max-width:420px"><span class="label">项目名称</span><input class="input" value="${esc(w.name)}" data-act="pwj-field" data-f="name" placeholder="例如：文档站重构"></div>
+      <div style="max-width:420px;margin-top:12px"><span class="label">本地目录（只校验，不落盘）</span><input class="input mono" value="${esc(w.path)}" data-act="pwj-field" data-f="path" placeholder="~/dev/my-project"></div>`
+          if (st === 2)
+            return `<div style="display:flex;flex-direction:column;gap:8px">${flows
+              .map(
+                (f) => `
+      <button class="row" style="margin:0" data-act="pwj-flow" data-id="${f.id}">
+        <div class="row-main"><div class="row-title">${esc(f.name)}<span class="badge ${f.builtin ? 'plain' : 'amber'}" style="margin-left:6px">${f.builtin ? '内置' : '自定义'}</span></div>
+        <div class="row-desc">${f.stages.length} 阶段 · ${f.stages.reduce((n, s) => n + s.checklist.length, 0)} 项清单</div></div>
+        <span class="checkbox ${w.flowId === f.id ? 'on' : ''}"></span></button>`,
+              )
+              .join('')}</div>`
+          if (st === 3)
+            return `<div style="display:flex;flex-direction:column;gap:8px">
+      <button class="row" style="margin:0" data-act="pwj-pack" data-id="">
+        <div class="row-main"><div class="row-title">暂不关联标准包</div><div class="row-desc">稍后通过 CLI 手动注入</div></div>
+        <span class="checkbox ${!w.packId ? 'on' : ''}"></span></button>
+      ${packs
+        .map(
+          (p) => `
+      <button class="row" style="margin:0" data-act="pwj-pack" data-id="${p.id}">
+        <div class="row-main"><div class="row-title">${esc(p.name)} <span class="badge accent">v${p.version}</span></div>
+        <div class="row-desc">${esc(p.desc)}</div></div>
+        <span class="checkbox ${w.packId === p.id ? 'on' : ''}"></span></button>`,
+        )
+        .join('')}</div>`
+          if (st === 4) {
+            const pack = w.packId ? STATE.packs.find((p) => p.id === w.packId) : null
+            return `<div class="hint" style="margin-bottom:12px">完成后即可注入。${pack ? `将关联标准包 <b>${esc(pack.name)}@${pack.version}</b>` : '项目将以空标准开始。'}</div>
+      <div class="card" style="background:var(--bg-soft)">
+        <div class="kv" style="margin:4px 0"><span class="k">流程</span><span>${esc(flowName(w.flowId))}</span></div>
+        <div class="kv" style="margin:4px 0"><span class="k">阶段快照</span><span>${STATE.flows.find((f) => f.id === w.flowId)?.stages.length || 0} 个阶段（物化，模板改动不回写）</span></div>
+        <div class="kv" style="margin:4px 0"><span class="k">注入通道</span><span class="mono">npx openvibe-cli sync &lt;path&gt;${pack ? ` --pack ${esc(pack.name)}@${pack.version}` : ''}</span></div>
+      </div>`
+          }
+        }
+        return `<div class="modal-mask" data-act="modal-mask"><div class="modal" style="width:min(640px,92vw)">
+    <div class="modal-head"><div class="modal-title">新建项目 · 三步向导</div>
+      <button class="btn ghost" style="margin-left:auto" data-act="modal-close">✕</button></div>
+    <div class="modal-body">
+      <div class="steps">
+        ${['名称与目录', '流程模板', '标准包', '完成']
+          .map(
+            (s, i) => `
+          <span class="step ${w.step > i + 1 ? 'done' : w.step === i + 1 ? 'active' : ''}"><span class="n">${w.step > i + 1 ? '✓' : i + 1}</span>${s}</span>
+          ${i < 3 ? '<span class="step-line"></span>' : ''}`,
+          )
+          .join('')}
+      </div>
+      ${body(w.step)}
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-act="pwj-back" ${w.step === 1 ? 'disabled' : ''}>上一步</button>
+      <button class="btn primary" style="margin-left:auto" data-act="pwj-next" ${w.step === 4 ? 'disabled' : ''}>${w.step === 3 ? '完成创建' : '下一步'}</button>
+    </div></div></div>`
+      }
+      function dlNewHtml() {
+        const d = STATE.dl
+        return `<div class="modal-mask" data-act="modal-mask"><div class="modal">
+    <div class="modal-head"><div class="modal-title">记一条开发日志</div>
+      <button class="btn ghost" style="margin-left:auto" data-act="modal-close">✕</button></div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-bottom:10px">
+        <div><span class="label">类型</span>
+          <select class="select" data-act="dl-field" data-f="type">
+            <option value="DEV" ${d.type === 'DEV' ? 'selected' : ''}>DEV</option>
+            <option value="CHECK" ${d.type === 'CHECK' ? 'selected' : ''}>CHECK</option></select></div>
+        <div><span class="label">标题</span><input class="input" value="${esc(d.title)}" data-act="dl-field" data-f="title"></div>
+      </div>
+      <span class="label">正文（含证据段：命令 / 结果 / 关联文件）</span>
+      <textarea class="textarea mono" style="min-height:140px" data-act="dl-field" data-f="body">${esc(d.body)}</textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn primary" data-act="dl-submit">写入日志（编号自动递增）</button>
+    </div></div></div>`
+      }
+      function reflowHtml() {
+        const r = STATE.rf
+        return `<div class="modal-mask" data-act="modal-mask"><div class="modal">
+    <div class="modal-head"><div class="modal-title">复盘回流 · 术语草稿</div>
+      <button class="btn ghost" style="margin-left:auto" data-act="modal-close">✕</button></div>
+    <div class="modal-body">
+      <div class="hint" style="margin-bottom:10px">来源：${esc(r.from)} · 人工确认后入术语库，纳入下一版标准包。</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div><span class="label">中文名</span><input class="input" value="${esc(r.zh)}" data-act="rf-field" data-f="zh"></div>
+        <div><span class="label">English</span><input class="input mono" value="${esc(r.en)}" data-act="rf-field" data-f="en"></div>
+      </div>
+      <span class="label">定义（≥20 字，seed:check 门槛）</span>
+      <textarea class="textarea" style="min-height:110px" data-act="rf-field" data-f="def">${esc(r.def)}</textarea>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-act="modal-close">放弃</button>
+      <button class="btn primary" data-act="rf-confirm">确认入库</button>
+    </div></div></div>`
+      }
+
+      /* 标准包向导 HTML */
+      function packWizardHtml() {
+        const w = STATE.pw
+        const termIds = () =>
+          w.termMode === 'all'
+            ? STATE.terms.map((_, i) => i)
+            : w.termMode === 'core'
+              ? STATE.terms.slice(0, 8).map((_, i) => i)
+              : []
+        const body = (st) => {
+          if (st === 1)
+            return `
+      <div><span class="label">标准包名称</span><input class="input" value="${esc(w.name)}" data-act="pw-field" data-f="name" placeholder="例如：team-web-standard"></div>
+      <div style="margin-top:12px"><span class="label">描述</span><input class="input" value="${esc(w.desc)}" data-act="pw-field" data-f="desc" placeholder="给团队的 Web 工程基线"></div>`
+          if (st === 2)
+            return `<div style="display:flex;flex-direction:column;gap:8px">${STATE.flows
+              .map(
+                (f) => `
+      <button class="row" style="margin:0" data-act="pw-flow" data-id="${f.id}">
+        <div class="row-main"><div class="row-title">${esc(f.name)}</div>
+        <div class="row-desc">${f.stages.length} 阶段 · ${f.stages.reduce((n, s) => n + s.checklist.length, 0)} 项清单</div></div>
+        <span class="checkbox ${w.flowId === f.id ? 'on' : ''}"></span></button>`,
+              )
+              .join('')}</div>`
+          if (st === 3)
+            return `
+      <div class="card-title" style="margin-bottom:8px">提示词（${w.promptIds.length}/${STATE.prompts.length}）</div>
+      <div style="max-height:200px;overflow-y:auto;margin-bottom:14px">
+        ${STATE.prompts
+          .map(
+            (p) => `
+          <div class="chk" data-act="pw-prompt" data-id="${p.id}">
+            <span class="checkbox ${w.promptIds.includes(p.id) ? 'on' : ''}"></span>
+            <span class="ck-t" style="flex:1">${esc(p.title)}</span>
+            <span class="tag">${p.useAs === 'rule' ? '行为规则' : '提示词'}</span></div>`,
+          )
+          .join('')}
+      </div>
+      <div class="card-title" style="margin-bottom:8px">术语（TERMS.md 随包分发）</div>
+      <div style="display:flex;gap:8px">
+        ${[
+          ['all', '全部 ' + STATE.terms.length],
+          ['core', '核心 8 条'],
+          ['none', '不选'],
+        ]
+          .map(
+            ([k, l]) => `
+          <button class="chip ${w.termMode === k ? 'on' : ''}" data-act="pw-term-mode" data-k="${k}">${l}</button>`,
+          )
+          .join('')}
+      </div>`
+          if (st === 4)
+            return `<div class="hint" style="margin-bottom:12px">选择注入目标平台；兼容平台（Codex / Cline / Kimi Code / zcode / Qwen Code / Trae CN 等）直接读 AGENTS.md，无需额外 adapter。</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${Object.entries(PLAT_LABEL)
+          .map(
+            ([k, l]) => `
+          <button class="chip ${w.targets.includes(k) ? 'on' : ''}" data-act="pw-platform" data-k="${k}">${l}</button>`,
+          )
+          .join('')}
+      </div>`
+          if (st === 5) {
+            const temp = {
+              name: w.name || 'untitled',
+              version: '1.0.0',
+              flowId: w.flowId,
+              promptIds: w.promptIds,
+              termIds: termIds(),
+              targets: w.targets,
+            }
+            const main = composeMain(temp)
+            const tmd = composeTermsMd(termIds())
+            const fp = sha(main + tmd)
+            const files = temp.targets.flatMap(platformFiles)
+            if (temp.termIds.length) files.push('TERMS.md')
+            if (temp.flowId) files.push('CHECKLIST.md')
+            files.push('SKILLS.md', 'openvibe.pack.json')
+            return `<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:12px;align-items:start">
+        <div><div class="card-title" style="margin-bottom:6px">产物文件（${files.length}）</div>
+          <div class="tree" style="background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px">
+            ${files.map((f) => `<div class="tree-item"><span class="br">├</span><span>${esc(f)}</span></div>`).join('')}
+          </div>
+          <div style="margin-top:10px" class="kv"><span class="k">指纹</span><span class="mono" style="color:var(--accent)">${fp}</span></div>
+          <div class="hint" style="margin-top:4px">确定性输出：同一选集导出，字节级一致。导出后版本不可变（同版本重导指纹不符 → 409）。</div>
+        </div>
+        <div><div class="card-title" style="margin-bottom:6px">主文件正文预览（CLAUDE.md / AGENTS.md 共用）</div>
+          <pre class="mono" style="font-size:11px;line-height:1.65;background:var(--bg-soft);border:1px solid var(--line);border-radius:var(--r-sm);padding:10px;max-height:300px;overflow-y:auto;white-space:pre-wrap;color:var(--dim)">${esc(main)}</pre>
+        </div></div>`
+          }
+        }
+        return `<div class="modal-mask" data-act="modal-mask"><div class="modal" style="width:min(820px,94vw)">
+    <div class="modal-head"><div class="modal-title">组装标准包 · 五步向导</div>
+      <button class="btn ghost" style="margin-left:auto" data-act="modal-close">✕</button></div>
+    <div class="modal-body">
+      <div class="steps">
+        ${['基本信息', '流程', '资产', '平台', '预览']
+          .map(
+            (s, i) => `
+          <span class="step ${w.step > i + 1 ? 'done' : w.step === i + 1 ? 'active' : ''}"><span class="n">${w.step > i + 1 ? '✓' : i + 1}</span>${s}</span>
+          ${i < 4 ? '<span class="step-line"></span>' : ''}`,
+          )
+          .join('')}
+      </div>
+      ${body(w.step)}
+    </div>
+    <div class="modal-foot">
+      <button class="btn" data-act="pw-back" ${w.step === 1 ? 'disabled' : ''}>上一步</button>
+      <span class="hint" style="margin-right:auto">${w.step < 5 ? '下一步会做实时预览' : '导出即生成不可变版本'}</span>
+      <button class="btn primary" data-act="pw-next" ${w.step === 5 ? 'disabled' : ''} style="${w.step === 5 ? 'display:none' : ''}">下一步</button>
+      ${w.step === 5 ? `<button class="btn primary" data-act="pw-export">导出 v1.0.0</button>` : ''}
+    </div></div></div>`
+      }
+
+      /* =====================================================================
+   设置（settings）+ 设计说明
+   ===================================================================== */
+      function renderSettings() {
+        return `
+  <div class="pagehead"><div><h1>设置</h1><div class="sub">服务状态 · 数据 · 遥测 · 种子内容</div></div></div>
+  <div class="grid2" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-head"><div class="card-title">本地服务</div><span class="dot accent"></span><span class="hint">运行中</span></div>
+        <div class="kv" style="margin:6px 0"><span class="k">版本</span><span class="mono">openvibe-cli 0.1.4 · 契约 schemaVersion 1</span></div>
+        <div class="kv" style="margin:6px 0"><span class="k">监听</span><span class="mono">127.0.0.1:8787（仅回环，防 DNS rebinding）</span></div>
+        <div class="kv" style="margin:6px 0"><span class="k">数据目录</span><span class="mono">~/.openvibe/（SQLite + packs + logs）</span></div>
+        <div class="kv" style="margin:6px 0"><span class="k">鉴权</span><span class="mono">Bearer token（0600）+ Origin 双通道</span></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">外观与数据</div></div>
+        <div class="set-row"><div class="set-main"><div class="set-t">主题</div><div class="set-d">仪表暗色 / 纸面亮色</div></div>
+          <button class="btn sm" data-act="theme-toggle">切换为 ${STATE.theme === 'dark' ? '亮色' : '暗色'}</button></div>
+        <div class="set-row"><div class="set-main"><div class="set-t">种子重播</div><div class="set-d">幂等重播 terms / templates / prompts，用户改过的条目自动跳过</div></div>
+          <button class="btn sm" data-act="set-reseed">重播种子</button></div>
+        <div class="set-row"><div class="set-main"><div class="set-t">重置演示</div><div class="set-d">恢复全部演示数据（刷新页面）</div></div>
+          <button class="btn sm" data-act="set-reset">重置</button></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">关于这次重设计</div></div>
+        <div class="hint">本 demo 展示「工程仪表工作台」方向：数据即界面、状态先于装饰、命令优先。点击「设计」查看设计原则与令牌。</div>
+        <div style="margin-top:10px;display:flex;gap:8px">
+          <button class="btn sm primary" data-act="design-notes">查看设计说明</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card">
+        <div class="card-head"><div class="card-title">遥测</div>
+          <button class="switch ${STATE.telemetry ? 'on' : ''}" data-act="set-telemetry" style="margin-left:auto"></button></div>
+        <div class="hint">默认关闭；关闭时零外联。事件白名单仅三类：pack_injected（包名@版本）、flow_template_used（模板 kind）、project_active（去标识日聚合）。不含路径、内容与机器标识。首次注入后有一次一次性询问，拒绝后永不再问。</div>
+        <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+          <span class="tag mono">pack_injected</span><span class="tag mono">flow_template_used</span><span class="tag mono">project_active</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">种子内容</div><span class="badge accent">${STATE.terms.length} 术语</span></div>
+        <div class="kv" style="margin:6px 0"><span class="k">阈值</span><span class="mono">seed:check — terms ≥100 / templates ≥3 / prompts ≥20（demo 模拟）</span></div>
+        <div class="kv" style="margin:6px 0"><span class="k">词条质量</span><span class="mono">definition ≥20 字 · 标签受控词表 · 例句覆盖率</span></div>
+        <div class="kv" style="margin:6px 0"><span class="k">热补机制</span><span class="mono">新种子并入 · 用户改过跳过 · 幂等可重跑</span></div>
+      </div>
+    </div>
+  </div>`
+      }
+      function designHtml() {
+        const sw = (c, l) =>
+          `<div style="display:flex;align-items:center;gap:8px"><span style="width:22px;height:22px;border-radius:6px;background:${c};border:1px solid var(--line-strong);flex-shrink:0"></span><span class="mono" style="font-size:12px">${l}</span></div>`
+        return `<div class="modal-mask" data-act="modal-mask"><div class="modal" style="width:min(680px,94vw)">
+    <div class="modal-head"><div class="modal-title">设计说明 · 工程仪表工作台</div>
+      <button class="btn ghost" style="margin-left:auto" data-act="modal-close">✕</button></div>
+    <div class="modal-body">
+      <div class="hint" style="margin-bottom:14px">方向：从「书斋」转向「仪表」——灵典把 vibe coding 变成工程标准，界面就该像一台标准仪器：状态可见、数据可读、动作明确。</div>
+      <div class="grid2" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        ${[
+          [
+            '① 状态先于装饰',
+            '漂移 / 注入 / 版本 / 指纹永远可见，绿 = 生效，琥珀 = 漂移，红 = 冲突。',
+          ],
+          [
+            '② 汉字即图标',
+            '保留单字导航签名（览库词技流项包设），收窄为书脊 + 徽记，识别度即品牌。',
+          ],
+          [
+            '③ 命令优先',
+            '⌘K 命令面板触达一切动作；向导收敛关键路径（组包 / 建项目）为一屏一主任务。',
+          ],
+          ['④ 确定性与可复现', '预览即产物字节；指纹与 golden 快照进 CI，任何契约漂移都会被抓住。'],
+        ]
+          .map(
+            ([t, d]) =>
+              `<div class="card" style="padding:12px 13px"><div style="font-size:13px;font-weight:700;margin-bottom:5px">${t}</div><div class="hint">${d}</div></div>`,
+          )
+          .join('')}
+      </div>
+      <div class="card-title" style="margin-bottom:8px">令牌</div>
+      <div class="grid2" style="grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+        ${sw('var(--accent)', '松翠 · 生效 / 注入 / 验证')}
+        ${sw('var(--amber)', '琥珀 · 漂移 / 待确认')}
+        ${sw('var(--red)', '朱红 · 破坏性动作（仅此一用）')}
+        ${sw('var(--bg)', '仪表底（暗）')}
+        ${sw('var(--panel)', '面板')}
+        ${sw('var(--line)', '发丝线')}
+      </div>
+      <div class="card-title" style="margin-bottom:8px">相较现行版的改动</div>
+      <ul style="padding-left:18px;font-size:13px;color:var(--dim);line-height:1.9;margin:0">
+        <li>新增总览驾驶舱：飞轮五环节可视化，北极星（完整圈数）成为首屏主体</li>
+        <li>新增 ⌘K 命令面板与全局搜索，高频动作不依赖鼠标导航</li>
+        <li>注入从「状态徽标」升级为「终端可视化」：dry-run 计划、指纹、确认路径完整可见</li>
+        <li>TERMS.md 预览侧栏实时生成，勾选即得确定性产物</li>
+        <li>导航密度降低：书脊单字 + 悬停标签，屏占比从 76px 收窄至 66px</li>
+      </ul>
+    </div>
+    <div class="modal-foot"><button class="btn primary" data-act="modal-close">知道了</button></div>
+  </div></div>`
+      }
+
+      /* =====================================================================
+   事件接线 + 命令面板 + 初始化
+   ===================================================================== */
+      const ACTS = {}
+      /* 导航与全局 */
+      ACTS['nav'] = (el) => routeTo(el.dataset.nav)
+      ACTS['theme-toggle'] = () => {
+        STATE.theme = STATE.theme === 'dark' ? 'light' : 'dark'
+        document.documentElement.dataset.theme = STATE.theme
+        try {
+          localStorage.setItem('openvibe.theme', STATE.theme)
+        } catch (e) {}
+        renderAll()
+      }
+      ACTS['open-palette'] = () => {
+        STATE.paletteOpen = true
+        STATE.paletteQuery = ''
+        STATE.paletteSel = 0
+        renderPalette()
+      }
+      ACTS['design-notes'] = () => {
+        STATE.modal = { kind: 'design' }
+        renderModal()
+      }
+      ACTS['ring-seg'] = (el) => {
+        const map = {
+          assets: 'library',
+          packs: 'packs',
+          inject: 'packs',
+          active: 'projects',
+          reflow: 'terms',
+        }
+        routeTo(map[el.dataset.k] || 'overview')
+      }
+      ACTS['quick'] = (el) => {
+        const q = el.dataset.q
+        if (q === 'sync') copySyncCmd()
+        else if (q === 'pack') openPackWizard()
+        else if (q === 'prm') openPrompt(null)
+        else if (q === 'proj') openPjWizard()
+        else if (q === 'terms') routeTo('terms')
+        else if (q === 'scan') startScan()
+      }
+      ACTS['toast-close'] = (el) => {
+        STATE.toasts = STATE.toasts.filter((t) => t.id !== el.dataset.id)
+        renderToasts()
+      }
+      /* 提示词库 */
+      ACTS['lib-tag'] = (el) => {
+        STATE.libTag = el.dataset.tag || ''
+        renderAll()
+      }
+      ACTS['prompt-import'] = () => {
+        STATE.modal = {
+          kind: 'confirm',
+          title: '导入规则文件',
+          body: '模拟从 ~/dev/docs-site 导入：检测到 .cursorrules 与 CLAUDE.md 两个规则文件，将解析为行为规则（useAs=rule）。',
+          yes: '导入',
+          arg: 'import',
+        }
+        renderModal()
+      }
+      ACTS['prompt-new'] = () => openPrompt(null)
+      ACTS['prompt-open'] = (el) => openPrompt(el.dataset.id)
+      ACTS['pb-tab'] = (el) => {
+        STATE.pb.activeTab = el.dataset.tab
+        renderDrawer()
+      }
+      ACTS['pb-tag-x'] = (el) => {
+        STATE.pb.tags.splice(+el.dataset.i, 1)
+        renderDrawer()
+      }
+      ACTS['pb-vers'] = (el) => {
+        const i = +el.dataset.i
+        STATE.pb.vB = i
+        STATE.pb.vA = Math.max(0, i - 1)
+        renderDrawer()
+      }
+      ACTS['pb-restore'] = (el) => {
+        const b = STATE.pb
+        const v = b.vh[+el.dataset.i]
+        if (!v) return
+        b.content = v.content
+        b.toRestore = v.no
+        b.activeTab = 'edit'
+        renderDrawer()
+        toast(`已载入 v${v.no}，保存时生成新版本`)
+      }
+      ACTS['pb-diff-a'] = (el) => {
+        STATE.pb.vA = +el.value
+        renderDrawer()
+      }
+      ACTS['pb-diff-b'] = (el) => {
+        STATE.pb.vB = +el.value
+        renderDrawer()
+      }
+      ACTS['pb-varfill'] = () => {
+        STATE.modal = { kind: 'varfill' }
+        renderModal()
+      }
+      ACTS['pb-save'] = savePrompt
+      ACTS['pb-del'] = () => {
+        STATE.modal = {
+          kind: 'confirm',
+          title: '删除提示词',
+          body: `「${STATE.pb.title || '未命名'}」将连同全部版本历史硬删，不可恢复。`,
+          yes: '硬删',
+          arg: 'del-prompt',
+        }
+        renderModal()
+      }
+      /* 变量填充 */
+      ACTS['vf-copy'] = () => {
+        const b = STATE.pb
+        const vals = b.varvals || {}
+        const filled = b.content.replace(
+          /\{\{\s*([^{}]+?)\s*\}\}/g,
+          (_, v) => vals[v.trim()] ?? `{{${v.trim()}}}`,
+        )
+        copyText(filled).then((ok) => {
+          toast(ok ? '已复制替换结果' : '复制失败', 'ok' === 0 ? 'warn' : 'ok')
+          STATE.modal = null
+          renderModal()
+        })
+      }
+      ACTS['vf-copy-raw'] = () => {
+        copyText(STATE.pb.content).then((ok) =>
+          toast(ok ? '已复制原文' : '复制失败', ok ? 'ok' : 'warn'),
+        )
+      }
+      /* 术语 */
+      ACTS['term-select-all'] = () => {
+        STATE.termSelIds = STATE.terms.map((_, i) => i)
+        renderAll()
+      }
+      ACTS['term-clear'] = () => {
+        STATE.termSelIds = []
+        renderAll()
+      }
+      ACTS['term-toggle'] = (el) => {
+        const i = +el.dataset.i
+        const s = STATE.termSelIds
+        STATE.termSelIds = s.includes(i) ? s.filter((x) => x !== i) : [...s, i]
+        renderAll()
+      }
+      ACTS['term-open'] = (el) => openTerm(+el.dataset.i)
+      ACTS['term-copy'] = () => {
+        const ids = STATE.termSelIds
+        if (!ids.length) {
+          toast('请先勾选词条', 'warn')
+          return
+        }
+        copyText(composeTermsMd(ids)).then((ok) =>
+          toast(ok ? `已复制 TERMS.md（${ids.length} 条）` : '复制失败', ok ? 'ok' : 'warn'),
+        )
+      }
+      ACTS['term-download'] = () => {
+        const ids = STATE.termSelIds
+        if (!ids.length) {
+          toast('请先勾选词条', 'warn')
+          return
+        }
+        download('TERMS.md', composeTermsMd(ids))
+        toast(`已下载 TERMS.md（${ids.length} 条）`)
+      }
+      ACTS['tb-rel'] = (el) => {
+        const b = STATE.tb
+        const zh = STATE.terms[+el.dataset.i].zh
+        b.rel = b.rel.includes(zh) ? b.rel.filter((r) => r !== zh) : [...b.rel, zh]
+        renderDrawer()
+      }
+      ACTS['tb-save'] = saveTerm
+      ACTS['tb-del'] = () => {
+        STATE.modal = {
+          kind: 'confirm',
+          title: '删除词条',
+          body: `「${STATE.tb.zh || '未命名'}」将连同反向引用清理后删除。`,
+          yes: '删除',
+          arg: `del-term:${STATE.tb.idx}`,
+        }
+        renderModal()
+      }
+      /* Skill */
+      ACTS['skill-scan'] = startScan
+      ACTS['skill-open'] = (el) => {
+        STATE.drawer = { kind: 'skill', id: el.dataset.id }
+        renderDrawer()
+      }
+      ACTS['skill-del'] = (el) => {
+        STATE.modal = {
+          kind: 'confirm',
+          title: '删除 Skill 条目',
+          body: `「${(STATE.skills.find((s) => s.id === el.dataset.id) || {}).name || ''}」将从台账移除（磁盘目录不受影响）。`,
+          yes: '移除',
+          arg: `del-skill:${el.dataset.id}`,
+        }
+        renderModal()
+      }
+      /* 流程 */
+      ACTS['flow-new'] = () => {
+        const id = uid('fl')
+        STATE.flows.push({
+          id,
+          name: '未命名模板',
+          kind: 'custom',
+          builtin: false,
+          stages: [{ name: '阶段 1', checklist: [], artifacts: [] }],
+        })
+        openFlowEditor(id)
+      }
+      ACTS['flow-dup'] = (el) => {
+        const f = STATE.flows.find((x) => x.id === el.dataset.id)
+        if (!f) return
+        const base = f.name.replace(/ 副本\d*$/, '')
+        let n = 1,
+          name = base + ' 副本'
+        while (STATE.flows.some((x) => x.name === name)) {
+          n++
+          name = base + ' 副本' + n
+        }
+        STATE.flows.push({
+          id: uid('fl'),
+          name,
+          kind: 'custom',
+          builtin: false,
+          stages: f.stages.map((s) => ({
+            name: s.name,
+            checklist: [...s.checklist],
+            artifacts: [...s.artifacts],
+          })),
+        })
+        toast(`已复制为「${name}」`)
+        renderAll()
+      }
+      ACTS['flow-edit'] = (el) => openFlowEditor(el.dataset.id)
+      ACTS['fb-add-stage'] = () => {
+        STATE.fb.stages.push({ name: '新阶段', checklist: [], artifacts: [] })
+        renderDrawer()
+      }
+      ACTS['fb-del-stage'] = (el) => {
+        STATE.fb.stages.splice(+el.dataset.i, 1)
+        renderDrawer()
+      }
+      ACTS['fb-add-item'] = (el) => {
+        STATE.fb.stages[+el.dataset.i].checklist.push('')
+        renderDrawer()
+      }
+      ACTS['fb-del-item'] = (el) => {
+        const s = STATE.fb.stages[+el.dataset.si]
+        s.checklist.splice(+el.dataset.ci, 1)
+        renderDrawer()
+      }
+      ACTS['fb-save'] = () => {
+        const b = STATE.fb
+        const idx = STATE.flows.findIndex((f) => f.id === b.id)
+        if (idx < 0) return
+        STATE.flows[idx] = {
+          ...STATE.flows[idx],
+          name: b.name.trim() || '未命名模板',
+          stages: b.stages.map((s) => ({
+            name: s.name.trim() || '阶段',
+            checklist: s.checklist.map((c) => c.trim()).filter(Boolean),
+            artifacts: s.artifacts,
+          })),
+        }
+        STATE.drawer = null
+        renderDrawer()
+        toast('流程模板已保存')
+        renderAll()
+      }
+      /* 项目 */
+      ACTS['proj-new'] = openPjWizard
+      ACTS['proj-open'] = (el) => {
+        STATE.projDetail = el.dataset.id
+        routeTo('project')
+      }
+      ACTS['proj-back'] = () => routeTo('projects')
+      ACTS['pj-stage'] = (el) => {
+        const p = curProject()
+        if (!p) return
+        p.stage = +el.dataset.i
+        $('#view').innerHTML = renderProjectDetail()
+      }
+      ACTS['chk-toggle'] = (el) => {
+        const p = curProject()
+        if (!p) return
+        const fl = STATE.flows.find((f) => f.id === p.flowId)
+        if (!fl) return
+        const cur = fl.stages[p.stage]
+        const arr = p.checkState[cur.name] || (p.checkState[cur.name] = [])
+        arr[+el.dataset.i] = !arr[+el.dataset.i]
+        $('#view').innerHTML = renderProjectDetail()
+      }
+      ACTS['inj-simulate'] = () => {
+        const p = curProject()
+        if (p) startTerm(p)
+      }
+      ACTS['inj-confirm'] = () => {
+        const p = curProject()
+        if (!p) return
+        p.injected = true
+        p.pack = p.pack || 'default@1.0.0'
+        STATE.injections++
+        STATE.loops = computeLoops()
+        STATE.term = null
+        toast(`注入完成 · 已写入 .openvibe/pack.lock.json（指纹 b611cec36934）`)
+        renderAll()
+      }
+      ACTS['inj-cancel'] = () => {
+        STATE.term = null
+        $('#view').innerHTML = renderProjectDetail()
+      }
+      ACTS['inj-diff'] = () =>
+        toast(
+          'diff 结果：1 个文件漂移（TERMS.md）· lock 96b67ae7 → 磁盘 78aa93ee · 退出码 2',
+          'warn',
+        )
+      ACTS['inj-copy'] = () => {
+        const p = curProject()
+        copySyncCmd(p && p.pack)
+      }
+      ACTS['dl-new'] = () => {
+        STATE.dl = { type: 'DEV', title: '', body: '' }
+        STATE.modal = { kind: 'dl-new' }
+        renderModal()
+      }
+      ACTS['dl-submit'] = () => {
+        const p = curProject()
+        const d = STATE.dl
+        if (!p || !d.title.trim()) {
+          toast('标题不能为空', 'warn')
+          return
+        }
+        const n = p.logs.filter((l) => l.type === d.type).length + 1
+        const no = `${d.type}-${String(n).padStart(4, '0')}`
+        p.logs.push({
+          no,
+          type: d.type,
+          title: d.title.trim(),
+          body: d.body || '（暂无正文）',
+          refs: [],
+          at: nowIso(),
+        })
+        STATE.modal = null
+        renderModal()
+        toast(`已写入 ${no} · ${p.name}`)
+        renderAll()
+      }
+      ACTS['dl-reflow'] = (el) => {
+        const p = curProject()
+        const l = p && p.logs.find((x) => x.no === el.dataset.no)
+        if (!l) return
+        STATE.rf = { from: `${p.name} · ${l.no}`, zh: '', en: '', def: l.body.slice(0, 90) }
+        STATE.modal = { kind: 'reflow' }
+        renderModal()
+      }
+      ACTS['rf-confirm'] = () => {
+        const r = STATE.rf
+        if (!r.zh.trim()) {
+          toast('中文名不能为空', 'warn')
+          return
+        }
+        STATE.terms.push({
+          zh: r.zh.trim(),
+          en: r.en.trim(),
+          ali: [],
+          def: r.def.trim() || '（待补全定义）',
+          rel: ['注入'],
+          src: 'user',
+        })
+        STATE.reflows++
+        STATE.modal = null
+        renderModal()
+        toast(`词条「${r.zh}」已入库 · 回流 +1`)
+        renderAll()
+      }
+      ACTS['kbd-move'] = (el) => {
+        const p = curProject()
+        if (!p) return
+        const order = ['todo', 'doing', 'done']
+        const t = p.tasks.find((x) => x.id === el.dataset.id)
+        if (!t) return
+        const i = order.indexOf(t.status) + +el.dataset.dir
+        if (i < 0 || i > 2) return
+        t.status = order[i]
+        $('#view').innerHTML = renderProjectDetail()
+      }
+      /* 项目向导 */
+      ACTS['pwj-flow'] = (el) => {
+        STATE.pwj.flowId = el.dataset.id
+        renderModal()
+      }
+      ACTS['pwj-pack'] = (el) => {
+        STATE.pwj.packId = el.dataset.id || null
+        renderModal()
+      }
+      ACTS['pwj-next'] = () => {
+        const w = STATE.pwj
+        if (w.step === 3) {
+          finishPjWizard()
+          return
+        }
+        w.step++
+        renderModal()
+      }
+      ACTS['pwj-back'] = () => {
+        STATE.pwj.step--
+        renderModal()
+      }
+      /* 标准包 */
+      ACTS['pack-new'] = openPackWizard
+      ACTS['pack-open'] = (el) => {
+        STATE.drawer = { kind: 'pack', id: el.dataset.id }
+        renderDrawer()
+      }
+      ACTS['pack-del'] = (el) => {
+        STATE.modal = {
+          kind: 'confirm',
+          title: '删除标准包',
+          body: `删除「${(STATE.packs.find((p) => p.id === el.dataset.id) || {}).name || ''}」？已导出 bundle 物化保留，不再可注入。`,
+          yes: '删除',
+          arg: `del-pack:${el.dataset.id}`,
+        }
+        renderModal()
+      }
+      ACTS['pack-re-export'] = (el) => {
+        const p = STATE.packs.find((x) => x.id === el.dataset.id)
+        if (!p) return
+        const cur = p.exports[0] || { v: '0.0.0' }
+        const nv = bumpVer(cur.v)
+        const fp = sha(composeMain(p) + composeTermsMd(p.termIds))
+        p.exports.unshift({ v: nv, at: nowIso(), fingerprint: fp, files: packFileTree(p).length })
+        toast(`已导出 v${nv} · 指纹 ${fp}`)
+        renderDrawer()
+      }
+      ACTS['pack-copy-sync'] = (el) => copySyncCmd(el.dataset.pack || 'default@1.0.0')
+      ACTS['pack-file'] = (el) => toast(`产物文件 ${el.dataset.f}（demo 展示）`)
+      ACTS['pw-flow'] = (el) => {
+        STATE.pw.flowId = el.dataset.id
+        renderModal()
+      }
+      ACTS['pw-prompt'] = (el) => {
+        const w = STATE.pw
+        const id = el.dataset.id
+        w.promptIds = w.promptIds.includes(id)
+          ? w.promptIds.filter((x) => x !== id)
+          : [...w.promptIds, id]
+        renderModal()
+      }
+      ACTS['pw-term-mode'] = (el) => {
+        STATE.pw.termMode = el.dataset.k
+        renderModal()
+      }
+      ACTS['pw-platform'] = (el) => {
+        const w = STATE.pw
+        const k = el.dataset.k
+        w.targets = w.targets.includes(k) ? w.targets.filter((x) => x !== k) : [...w.targets, k]
+        renderModal()
+      }
+      ACTS['pw-next'] = () => {
+        STATE.pw.step++
+        renderModal()
+      }
+      ACTS['pw-back'] = () => {
+        STATE.pw.step--
+        renderModal()
+      }
+      ACTS['pw-export'] = () => {
+        const w = STATE.pw
+        const termIds = () =>
+          w.termMode === 'all'
+            ? STATE.terms.map((_, i) => i)
+            : w.termMode === 'core'
+              ? STATE.terms.slice(0, 8).map((_, i) => i)
+              : []
+        const name = w.name.trim() || 'untitled'
+        const temp = {
+          name,
+          version: '1.0.0',
+          flowId: w.flowId,
+          promptIds: w.promptIds,
+          termIds: termIds(),
+          targets: w.targets,
+        }
+        const fp = sha(composeMain(temp) + composeTermsMd(termIds()))
+        const files = packFileTree(temp)
+        STATE.packs.push({
+          id: uid('pk'),
+          name,
+          desc: w.desc.trim() || '新组装标准包',
+          version: '1.0.0',
+          targets: w.targets,
+          flowId: w.flowId,
+          promptIds: w.promptIds,
+          termIds: termIds(),
+          exports: [{ v: '1.0.0', at: nowIso(), fingerprint: fp, files: files.length }],
+          injections: 0,
+        })
+        STATE.modal = null
+        STATE.pw = null
+        renderModal()
+        toast(`已导出 ${name}@1.0.0 · ${files.length} 个文件 · 指纹 ${fp}`)
+        renderAll()
+      }
+      /* 设置 */
+      ACTS['set-telemetry'] = () => {
+        STATE.telemetry = !STATE.telemetry
+        renderAll()
+        toast(STATE.telemetry ? '遥测已开启（白名单三类事件）' : '遥测已关闭 · 零外联')
+      }
+      ACTS['set-reseed'] = () => {
+        toast('种子重播完成：terms 幂等跳过 · templates 3 · 用户改过条目已跳过')
+      }
+      ACTS['set-reset'] = () => {
+        STATE = {}
+        location.reload()
+      }
+      /* 模态通用 */
+      ACTS['modal-close'] = () => {
+        STATE.modal = null
+        renderModal()
+      }
+      ACTS['modal-mask'] = (el, e) => {
+        if (e.target === el) {
+          STATE.modal = null
+          renderModal()
+        }
+      }
+      ACTS['modal-yes'] = (el) => {
+        const arg = el.dataset.arg || ''
+        STATE.modal = null
+        renderModal()
+        const i = arg.indexOf(':')
+        const kind = i >= 0 ? arg.slice(0, i) : arg,
+          payload = i >= 0 ? arg.slice(i + 1) : ''
+        if (kind === 'import') doImport()
+        else if (kind === 'del-prompt') delPrompt()
+        else if (kind === 'del-term') delTerm(+payload)
+        else if (kind === 'del-skill') delSkill(payload)
+        else if (kind === 'del-pack') {
+          const p = STATE.packs.find((x) => x.id === payload)
+          if (p) STATE.packs = STATE.packs.filter((x) => x.id !== p.id)
+          STATE.drawer = null
+          renderDrawer()
+          toast(`标准包「${p ? p.name : ''}」已删除`)
+          renderAll()
+        }
+      }
+      /* 命令面板 */
+      ACTS['palette-item'] = (el) => execPaletteItem(STATE.paletteItems[+el.dataset.i])
+      ACTS['palette-close-mask'] = (el, e) => {
+        if (e.target === el) {
+          STATE.paletteOpen = false
+          renderPalette()
+        }
+      }
+      ACTS['drawer-close'] = () => {
+        STATE.drawer = null
+        renderDrawer()
+      }
+
+      /* 输入事件 */
+      const INPUTS = {
+        'pb-libsearch': (el) => {
+          STATE.libSearch = el.value
+          renderAll()
+          refocus("[data-act='pb-libsearch']", el)
+        },
+        'pb-field': (el) => {
+          STATE.pb[el.dataset.f] = el.value
+        },
+        'pb-content': (el) => {
+          STATE.pb.content = el.value
+          const c = $('#pb-count')
+          if (c) c.textContent = el.value.length + ' 字符'
+          const pv = $('#pb-pv')
+          if (pv) pv.innerHTML = mdLite(el.value)
+        },
+        'term-search': (el) => {
+          STATE.termSearch = el.value
+          renderAll()
+          refocus("[data-act='term-search']", el)
+        },
+        'tb-field': (el) => {
+          STATE.tb[el.dataset.f] = el.value
+        },
+        'vf-field': (el) => {
+          const b = STATE.pb
+          b.varvals = b.varvals || {}
+          b.varvals[el.dataset.var] = el.value
+          const filled = b.content.replace(
+            /\{\{\s*([^{}]+?)\s*\}\}/g,
+            (_, v) => b.varvals[v.trim()] ?? `{{${v.trim()}}}`,
+          )
+          const pv = $('#vf-pv')
+          if (pv) pv.innerHTML = filled.replace(/\n/g, '<br>')
+        },
+        'fb-field': (el) => {
+          STATE.fb.name = el.value
+        },
+        'fb-stage': (el) => {
+          STATE.fb.stages[+el.dataset.i].name = el.value
+        },
+        'fb-item': (el) => {
+          STATE.fb.stages[+el.dataset.si].checklist[+el.dataset.ci] = el.value
+        },
+        'pwj-field': (el) => {
+          STATE.pwj[el.dataset.f] = el.value
+        },
+        'dl-field': (el) => {
+          STATE.dl[el.dataset.f] = el.value
+        },
+        'rf-field': (el) => {
+          STATE.rf[el.dataset.f] = el.value
+        },
+        'pw-field': (el) => {
+          STATE.pw[el.dataset.f] = el.value
+        },
+        'palette-input': (el) => {
+          STATE.paletteQuery = el.value
+          STATE.paletteSel = 0
+          renderPalette()
+        },
+      }
+      function refocus(sel, old) {
+        const n = $(sel)
+        if (n) {
+          n.focus()
+          n.setSelectionRange(n.value.length, n.value.length)
+        }
+      }
+
+      /* 动作实现 */
+      function curProject() {
+        return STATE.projects.find((p) => p.id === STATE.projDetail) || null
+      }
+      function computeLoops() {
+        return STATE.projects.filter(
+          (p) => p.injected && (p.logs || []).some((l) => l.refs && l.refs.length),
+        ).length
+      }
+      function bumpVer(v) {
+        const m = v.split('.')
+        m[2] = String(+m[2] + 1)
+        return m.join('.')
+      }
+      function copySyncCmd(pack) {
+        const cmd = `npx openvibe-cli sync . --pack ${pack || 'default@1.0.0'}`
+        copyText(cmd).then((ok) =>
+          toast(ok ? '已复制命令：' + cmd : '复制失败，请检查剪贴板权限', ok ? 'ok' : 'warn'),
+        )
+      }
+      function download(name, text) {
+        const blob = new Blob([text], { type: 'text/markdown' })
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = name
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        setTimeout(() => URL.revokeObjectURL(a.href), 3000)
+      }
+      function doImport() {
+        STATE.prompts.unshift({
+          id: uid('prm'),
+          title: 'CLAUDE.md（导入）',
+          useAs: 'rule',
+          content:
+            '## 项目约定\n1. 提交信息遵循约定式提交；\n2. 改动前先读规则文件与现有实现；\n3. 破坏性变更必须注明 BREAKING CHANGE。\n\n（由 .cursorrules + CLAUDE.md 合并解析，platform 推断 claude-code）',
+          vars: [],
+          tags: ['规范', '导入'],
+          platform: 'claude-code',
+          version: 1,
+          vh: [
+            {
+              no: 1,
+              at: nowIso(),
+              note: '导入 v1',
+              content:
+                '## 项目约定\n1. 提交信息遵循约定式提交；\n2. 改动前先读规则文件与现有实现；\n3. 破坏性变更必须注明 BREAKING CHANGE。\n\n（由 .cursorrules + CLAUDE.md 合并解析，platform 推断 claude-code）',
+            },
+          ],
+        })
+        toast('导入完成：新建 1 条 · 跳过 0 条（title+contentHash 去重）')
+        renderAll()
+      }
+      function delPrompt() {
+        const b = STATE.pb
+        if (!b || !b.id) return
+        STATE.prompts = STATE.prompts.filter((p) => p.id !== b.id)
+        STATE.drawer = null
+        renderDrawer()
+        toast(`已删除「${b.title}」（含全部版本历史）`, 'warn')
+        renderAll()
+      }
+      function savePrompt() {
+        const b = STATE.pb
+        if (!b) return
+        if (!b.title.trim()) {
+          toast('标题不能为空', 'warn')
+          return
+        }
+        if (!b.content.trim()) {
+          toast('正文不能为空', 'warn')
+          return
+        }
+        if (b.isNew) {
+          STATE.prompts.unshift({
+            id: uid('prm'),
+            title: b.title.trim(),
+            content: b.content,
+            useAs: b.useAs,
+            platform: b.platform,
+            tags: b.tags,
+            vars: extractVars(b.content),
+            version: 1,
+            vh: [{ no: 1, at: nowIso(), note: '初始版本', content: b.content }],
+          })
+          toast(`已入库「${b.title.trim()}」· v1`)
+        } else {
+          const p = STATE.prompts.find((x) => x.id === b.id)
+          if (!p) return
+          p.vh.push({
+            no: p.vh.length + 1,
+            at: nowIso(),
+            note: b.toRestore ? `回滚至 v${b.toRestore}` : '保存编辑',
+            content: b.content,
+          })
+          p.content = b.content
+          p.version = p.vh.length
+          p.tags = [...b.tags]
+          p.useAs = b.useAs
+          p.platform = b.platform
+          toast(`已保存 · 生成 v${p.vh.length}${b.toRestore ? `（自 v${b.toRestore} 恢复）` : ''}`)
+        }
+        STATE.drawer = null
+        renderDrawer()
+        renderAll()
+      }
+      function delTerm(i) {
+        if (i < 0 || i >= STATE.terms.length) return
+        const t = STATE.terms[i]
+        STATE.terms.splice(i, 1)
+        STATE.termSelIds = STATE.termSelIds
+          .map((x) => (x > i ? x - 1 : x))
+          .filter((x) => x >= 0 && x < STATE.terms.length)
+        STATE.drawer = null
+        renderDrawer()
+        toast(`词条「${t.zh}」已删除`, 'warn')
+        renderAll()
+      }
+      function saveTerm() {
+        const b = STATE.tb
+        if (!b) return
+        if (!b.zh.trim() && !b.en.trim()) {
+          toast('中文名与 English 至少填一项', 'warn')
+          return
+        }
+        const ali = (b.ali || '')
+          .split(/[，,、\s]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+        const t = {
+          zh: b.zh.trim(),
+          en: b.en.trim(),
+          ali,
+          def: b.def.trim(),
+          rel: b.rel || [],
+          src: b.src || 'user',
+        }
+        if (b.isNew) {
+          STATE.terms.push(t)
+        } else {
+          STATE.terms[b.idx] = t
+        }
+        STATE.drawer = null
+        renderDrawer()
+        toast(`词条「${t.zh || t.en}」已保存`)
+        renderAll()
+      }
+      function delSkill(id) {
+        const s = STATE.skills.find((x) => x.id === id)
+        STATE.skills = STATE.skills.filter((x) => x.id !== id)
+        STATE.drawer = null
+        renderDrawer()
+        toast(`已移除「${s ? s.name : ''}」（磁盘目录不受影响）`, 'warn')
+        renderAll()
+      }
+      function startScan() {
+        if (STATE.scan && STATE.scan.running) return
+        STATE.scan = { running: true, progress: 0, report: null }
+        renderAll()
+        if (STATE.scanTimer) clearInterval(STATE.scanTimer)
+        STATE.scanTimer = setInterval(() => {
+          const s = STATE.scan
+          if (!s || !s.running) {
+            clearInterval(STATE.scanTimer)
+            STATE.scanTimer = null
+            return
+          }
+          s.progress += 8
+          if (s.progress >= 100) {
+            s.progress = 100
+            s.running = false
+            s.report = {
+              discovered: 5,
+              created: 2,
+              updated: 1,
+              skipped: 2,
+              warnings: [
+                '一个目录无 frontmatter，已回退为目录名登记',
+                '扫描根 ~/dev/.claude/skills 不存在，已跳过',
+              ],
+            }
+            clearInterval(STATE.scanTimer)
+            STATE.scanTimer = null
+            toast('扫描完成：新建 2 · 更新 1 · 跳过 2')
+          }
+          renderAll()
+        }, 120)
+      }
+      function openPjWizard() {
+        STATE.pwj = { step: 1, name: '', path: '', flowId: null, packId: null }
+        STATE.modal = { kind: 'pj-wizard' }
+        renderModal()
+      }
+      function finishPjWizard() {
+        const w = STATE.pwj
+        if (!w.name.trim()) {
+          toast('项目名称不能为空', 'warn')
+          return
+        }
+        const pack = w.packId ? STATE.packs.find((p) => p.id === w.packId) : null
+        const id = uid('pj')
+        STATE.projects.unshift({
+          id,
+          name: w.name.trim(),
+          path: w.path.trim() || '~/dev/' + w.name.trim(),
+          flowId: w.flowId || 'fl_01',
+          stage: 0,
+          status: '启动',
+          pack: pack ? `${pack.name}@${pack.version}` : null,
+          injected: false,
+          checks: {},
+          tasks: [],
+          logs: [],
+          checkState: {},
+        })
+        STATE.modal = null
+        STATE.pwj = null
+        renderModal()
+        toast(`项目「${name}」已创建${pack ? `，关联 ${pack.name}@${pack.version}` : ''}`)
+        routeTo('projects')
+      }
+      function openPackWizard() {
+        STATE.pw = {
+          step: 1,
+          name: '',
+          desc: '',
+          flowId: 'fl_01',
+          promptIds: ['prm_01', 'prm_03'],
+          termMode: 'all',
+          targets: ['claude-code', 'generic-agents'],
+        }
+        STATE.modal = { kind: 'pack-wizard' }
+        renderModal()
+      }
+      function moveTask(id, status) {
+        const p = curProject()
+        if (!p) return
+        const t = p.tasks.find((x) => x.id === id)
+        if (t && t.status !== status) {
+          t.status = status
+          $('#view').innerHTML = renderProjectDetail()
+        }
+      }
+
+      /* 命令面板 */
+      function paletteItems() {
+        return [
+          ...NAV.map((n) => ({ ic: n.gz, label: TITLES[n.k][0], path: '/' + n.k, nav: n.k })),
+          { ic: '✎', label: '新建提示词', path: '提示词库', act: 'prompt-new' },
+          { ic: '▤', label: '组装标准包', path: '标准包', act: 'pack-new' },
+          { ic: '▣', label: '新建项目', path: '项目', act: 'proj-new' },
+          { ic: '⌗', label: '复制 sync 命令', path: '总览', act: 'sync-copy' },
+          { ic: '☀', label: '切换主题', path: '设置', act: 'theme-toggle' },
+          { ic: '◈', label: '设计说明', path: '设置', act: 'design-notes' },
+        ]
+      }
+      function renderPalette() {
+        const m = $('#ov-palette')
+        if (!m) return
+        if (!STATE.paletteOpen) {
+          m.innerHTML = ''
+          return
+        }
+        const q = (STATE.paletteQuery || '').toLowerCase()
+        const list = paletteItems().filter(
+          (it) => !q || (it.label + ' ' + it.path + ' ' + (it.nav || '')).toLowerCase().includes(q),
+        )
+        STATE.paletteItems = list
+        if (STATE.paletteSel >= list.length) STATE.paletteSel = 0
+        m.innerHTML = `<div class="palette-mask" data-act="palette-close-mask"><div class="palette">
+    <input class="palette-input" placeholder="搜索页面或动作…（新建 / 组包 / 注入 / 主题…）" value="${esc(STATE.paletteQuery)}" data-act="palette-input">
+    <div class="palette-list">${
+      list.length
+        ? list
+            .map(
+              (it, i) => `
+      <div class="palette-item ${i === STATE.paletteSel ? 'sel' : ''}" data-act="palette-item" data-i="${i}">
+        <span class="pi-ic">${it.ic}</span><span>${esc(it.label)}</span><span class="pi-path">${it.path}</span>
+      </div>`,
+            )
+            .join('')
+        : '<div class="empty"><div class="e-ic">⌕</div>没有匹配项</div>'
+    }</div>
+    <div class="palette-foot"><span>↑↓ 选择 · ↵ 执行</span><span>esc 关闭</span><span style="margin-left:auto">OpenVibe 命令面板</span></div>
+  </div></div>`
+        const inp = $('#ov-palette .palette-input')
+        if (inp) inp.focus()
+      }
+      function execPaletteItem(it) {
+        if (!it) return
+        STATE.paletteOpen = false
+        renderPalette()
+        if (it.nav) routeTo(it.nav)
+        else if (it.act === 'sync-copy') copySyncCmd()
+        else if (ACTS[it.act]) ACTS[it.act]({ dataset: {} })
+      }
+
+      /* 键盘 */
+      document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault()
+          STATE.paletteOpen = !STATE.paletteOpen
+          if (STATE.paletteOpen) {
+            STATE.paletteQuery = ''
+            STATE.paletteSel = 0
+          }
+          renderPalette()
+          return
+        }
+        if (STATE.paletteOpen) {
+          if (e.key === 'Escape') {
+            STATE.paletteOpen = false
+            renderPalette()
+            return
+          }
+          const list = STATE.paletteItems || []
+          if (e.key === 'ArrowDown') {
+            e.preventDefault()
+            STATE.paletteSel = (STATE.paletteSel + 1) % Math.max(1, list.length)
+            renderPalette()
+            return
+          }
+          if (e.key === 'ArrowUp') {
+            e.preventDefault()
+            STATE.paletteSel =
+              (STATE.paletteSel - 1 + Math.max(1, list.length)) % Math.max(1, list.length)
+            renderPalette()
+            return
+          }
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            execPaletteItem(list[STATE.paletteSel])
+            return
+          }
+          return
+        }
+        if (e.key === 'Escape') {
+          if (STATE.modal) {
+            STATE.modal = null
+            renderModal()
+            return
+          }
+          if (STATE.drawer) {
+            STATE.drawer = null
+            renderDrawer()
+            return
+          }
+        }
+        const t = e.target
+        if (t && t.dataset && t.dataset.act === 'pb-tag-add' && e.key === 'Enter') {
+          e.preventDefault()
+          const v = t.value.trim()
+          if (v && !STATE.pb.tags.includes(v)) {
+            STATE.pb.tags.push(v)
+          }
+          t.value = ''
+          renderDrawer()
+        }
+      })
+      document.addEventListener('click', (e) => {
+        const el = e.target.closest('[data-act]')
+        if (!el) return
+        const act = el.dataset.act
+        if (ACTS[act]) ACTS[act](el, e)
+      })
+      document.addEventListener('input', (e) => {
+        const el = e.target,
+          act = el.dataset && el.dataset.act
+        if (act && INPUTS[act]) INPUTS[act](el, e)
+      })
+      document.addEventListener('change', (e) => {
+        const el = e.target,
+          act = el.dataset && el.dataset.act
+        if (act && ACTS[act]) ACTS[act](el, e)
+      })
+      /* 看板 HTML5 拖拽 */
+      document.addEventListener('dragstart', (e) => {
+        const c = e.target.closest('[data-task]')
+        if (c) {
+          STATE.dragTask = c.dataset.task
+          c.classList.add('dragging')
+          e.dataTransfer.effectAllowed = 'move'
+        }
+      })
+      document.addEventListener('dragover', (e) => {
+        const col = e.target.closest('.kcol')
+        if (col) {
+          e.preventDefault()
+          col.classList.add('drag-over')
+        }
+      })
+      document.addEventListener('dragleave', (e) => {
+        const col = e.target.closest('.kcol')
+        if (col) col.classList.remove('drag-over')
+      })
+      document.addEventListener('drop', (e) => {
+        const col = e.target.closest('.kcol')
+        if (col && STATE.dragTask) {
+          e.preventDefault()
+          moveTask(STATE.dragTask, col.dataset.col)
+        }
+        if (col) col.classList.remove('drag-over')
+      })
+      document.addEventListener('dragend', () => {
+        $$('.kcard.dragging').forEach((c) => c.classList.remove('dragging'))
+        STATE.dragTask = null
+      })
+
+      /* =====================================================================
+   初始化
+   ===================================================================== */
+      function seedVh(p) {
+        const lines = p.content.split('\n')
+        const arr = []
+        for (let v = 1; v <= p.version; v++) {
+          const cut = p.version - v
+          const content =
+            cut > 0
+              ? lines.slice(0, Math.max(1, lines.length - cut)).join('\n') + '\n…（后文同当前版本）'
+              : p.content
+          arr.push({
+            no: v,
+            at: isoDaysAgo((p.version - v) * 1.3 + 2),
+            note: v === p.version ? '当前版本（最近一次保存）' : `修订 v${v}`,
+            content,
+          })
+        }
+        return arr
+      }
+      function isoDaysAgo(d) {
+        const t = new Date(Date.now() - d * 86400e3)
+        return t.toISOString().slice(0, 19).replace('T', ' ')
+      }
+      function init() {
+        initOverlays()
+        try {
+          const t = localStorage.getItem('openvibe.theme')
+          if (t === 'light' || t === 'dark') STATE.theme = t
+          document.documentElement.dataset.theme = STATE.theme
+        } catch (e) {}
+        const st = document.createElement('style')
+        st.textContent = '.amber{color:var(--amber)}'
+        document.head.appendChild(st)
+        STATE.prompts.forEach((p) => {
+          p.vh = seedVh(p)
+        })
+        STATE.terms.push({
+          zh: '注入指纹',
+          en: 'injection fingerprint',
+          ali: ['指纹'],
+          def: '标准包导出时对全部产物计算的内容摘要（sha256），写入 pack.lock.json 后用于漂移检测；指纹一致 = 标准仍在生效。',
+          rel: ['注入', '标准包'],
+          src: 'user',
+        })
+        STATE.projects.forEach((p, pi) => {
+          p.logs.forEach((l, li) => {
+            l.at = l.at || isoDaysAgo(pi * 2 + li + 1)
+          })
+        })
+        STATE.projects.forEach((p) => {
+          p.checkState = p.checkState || {}
+          const fl = STATE.flows.find((f) => f.id === p.flowId)
+          if (fl && p.checks) {
+            fl.stages.forEach((s) => {
+              const n = p.checks[s.name] || 0
+              const arr = (p.checkState[s.name] = [])
+              for (let i = 0; i < s.checklist.length; i++) arr[i] = i < n
+            })
+          }
+        })
+        STATE.termSelIds = STATE.terms.slice(0, 5).map((_, i) => i)
+        STATE.telemetry = false
+        STATE.loops = computeLoops()
+        const h = (location.hash || '').replace('#/', '').split('/')[0]
+        if (NAV.some((n) => n.k === h)) STATE.route = h
+        renderAll()
+      }
+      init()
+    </script>
+  </body>
+</html>

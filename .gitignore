@@ -33,6 +33,8 @@ Thumbs.db
 
 # Tool session state (D16)
 .mimosa/
+# Trae 会话工作目录（计划草案）：内容以 PRD/decisions/tasks 为单源，此处只留本地草稿
+.trae/
 
 # Env
 .env

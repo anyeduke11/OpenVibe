@@ -1,5 +1,7 @@
 # 种子词条一行一条：便于 owner 逐条审校与 diff，不接受 prettier 拆行
 content/seed/*.json
+# agent 会话工作目录（.gitignore 同规）：本地草稿，不进仓库契约，也不参与排版闸
+.trae/
 # golden 标准包快照：逐字节契约对象，任何格式化（含表格对齐）都会破坏 m6a §7.4 验收
 tests/golden/**/files/**
 tests/golden/**/openvibe.pack.json
@@ -14,3 +16,9 @@ docs/agent-memory/**
 # V1 原型归档快照：prettier 的 HTML 解析器无法解析（内嵌 script 契约 JSON 报
 # "Opening tag not terminated"），且归档件是历史存档，本就不应被重排
 docs/prototypes/archive/**
+# v025 框架探针结果件：**逐字节契约**（由 framework-probes.mts 自己 writeFileSync 写盘，
+# PRD v0.2.5 附录 A 登记其 sha256 并要求「两次运行之间必须相等」）。prettier 的 JSON
+# 排版偏好（短数组折成一行）会改字节 ⇒ 登记的哈希失效；且脚本每次重跑都把文件覆写回
+# 原样 ⇒ 排版成果必然被冲掉。与 docs/agent-memory/** 同理：契约件不排版。
+# （v024 的三个 JSON 不在此列：那些脚本只写 stdout、不写盘，排版不与重跑打架。）
+docs/devlog-evidence/v025-framework-20261029/framework-probes.json
