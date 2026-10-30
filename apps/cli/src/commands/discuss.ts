@@ -12,10 +12,17 @@ import { resolveProjectByPath } from './status'
 
 export class DiscussError extends Error {
   readonly code: string
-  constructor(code: string, message: string) {
+  /**
+   * 诊断原文（允许英文：Node 的 errno 消息等）。
+   *
+   * 与 `message` 分通道：`message` 只写中文一句话，`detail` 承接排障原文。
+   */
+  readonly detail?: string
+  constructor(code: string, message: string, detail?: string) {
     super(message)
     this.name = 'DiscussError'
     this.code = code
+    if (detail !== undefined) this.detail = detail
   }
 }
 
@@ -91,10 +98,7 @@ export async function discussAction(
     })
   } catch (e) {
     if (e instanceof ServerUnreachable) {
-      throw new DiscussError(
-        'SERVER_UNREACHABLE',
-        `服务端不可达（${e.detail}）：先运行 openvibe serve`,
-      )
+      throw new DiscussError('SERVER_UNREACHABLE', '服务端不可达，先运行 openvibe serve', e.detail)
     }
     throw e
   }

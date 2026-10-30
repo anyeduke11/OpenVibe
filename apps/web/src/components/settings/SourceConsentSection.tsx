@@ -1,9 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiJson } from '../../api/client'
 import { Section } from './SettingsSections'
 import { Icon } from '../ui/icons'
 import { btnGhost, tagCls } from '../ui/styles'
 import { toast } from '../ui/Toaster'
+import { useApiMutation } from '../../hooks/useApiMutation'
 
 /**
  * 设置页的**「源码授权记忆」**区（M9 v1.6 P4.5 · dev-plan §6.10 P4.5）。
@@ -46,7 +47,7 @@ export function SourceConsentSection() {
     queryKey: ['lang-consents'],
     queryFn: () => apiJson<{ consents: ConsentItem[] }>('/api/lang/source/consents'),
   })
-  const clear = useMutation({
+  const clear = useApiMutation({
     mutationFn: (projectId: string) =>
       apiJson<{ cleared: boolean }>(
         `/api/lang/source/consent?project=${encodeURIComponent(projectId)}`,

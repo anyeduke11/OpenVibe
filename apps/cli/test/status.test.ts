@@ -241,7 +241,8 @@ describe('status 的快照', () => {
     }
     const err = await statusAction({}, { client: down }).catch((e: unknown) => e)
     expect((err as StatusError).code).toBe('SERVER_UNREACHABLE')
-    expect((err as Error).message).toContain('ECONNREFUSED')
+    // 英文诊断原文在 detail 通道（与中文人话分通道）
+    expect((err as StatusError).detail).toContain('ECONNREFUSED')
 
     const missing = fakeClient({
       get: {

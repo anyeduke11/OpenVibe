@@ -34,14 +34,29 @@ export interface ResolvedConfig {
   configPath: string
   /** 配置文件的非致命问题（损坏/字段缺失），人读即时打印、--json 折叠进 summary.warnings */
   warnings: string[]
+  /**
+   * 与 `warnings` 同序等长的诊断原文（允许英文）。
+   *
+   * ⚠️ 为什么要多这一路：warn 是**提示**通道（不阻断命令），但它的失败原因
+   * 仍是排障依据（`Invalid URL` / `Unexpected token < in JSON`）。塞进中文句子
+   * 会让终端混进机器串，丢掉又让排障失据 ⇒ 单独一路。
+   */
+  warningDetails?: (string | undefined)[]
   hint?: string
 }
 
 /** 用户给的旗标不合法 → 早失败，不带着坏配置去发请求 */
 export class ConfigError extends Error {
-  constructor(message: string) {
+  /**
+   * 诊断原文（允许英文：Node 的 `Invalid URL` 等机器串）。
+   *
+   * 与 `message` 分通道：`message` 只写中文一句话，`detail` 承接排障原文。
+   */
+  readonly detail?: string
+  constructor(message: string, detail?: string) {
     super(message)
     this.name = 'ConfigError'
+    if (detail !== undefined) this.detail = detail
   }
 }
 
@@ -53,8 +68,9 @@ function normalizeServerUrl(raw: string, label: string): { serverUrl: string; po
   let url: URL
   try {
     url = new URL(raw)
-  } catch {
-    throw new ConfigError(`${label} 不是合法 URL：${raw}`)
+  } catch (e) {
+    // Node 的 `Invalid URL` 是英文机器串 ⇒ 走 detail 通道
+    throw new ConfigError(`${label} 不是合法 URL：${raw}`, (e as Error).message)
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
     throw new ConfigError(`${label} 只支持 http/https，收到 ${url.protocol}`)
@@ -80,17 +96,31 @@ const CoreKeys = CoreConfigSchema.keyof()
 function withNormalizedServerUrl(
   config: OpenvibeConfig,
   path: string,
-): { config: OpenvibeConfig | null; error?: string } {
+): { config: OpenvibeConfig | null; error?: string; errorDetail?: string } {
   try {
     const { serverUrl } = normalizeServerUrl(config.serverUrl, path)
     return { config: { ...config, serverUrl } }
   } catch (e) {
-    return { config: null, error: `serverUrl 不合法：${(e as Error).message}` }
+    // ConfigError 的 message 已是中文（含出错的原值）；英文诊断原文在 detail 位
+    return {
+      config: null,
+      error: (e as Error).message,
+      errorDetail: (e as { detail?: string }).detail,
+    }
   }
 }
 
-/** 读 config.json；不存在 → {config:null}；损坏或字段不合法 → 附 error 且永不抛（配置降级不阻断命令） */
-export function readConfigFile(home?: string): { config: OpenvibeConfig | null; error?: string } {
+/**
+ * 读 config.json；不存在 → {config:null}；损坏或字段不合法 → 附 error 且永不抛（配置降级不阻断命令）。
+ *
+ * `errorDetail` 是英文诊断原文（`Invalid URL` / `Unexpected token < in JSON`），
+ * 与中文 `error` 分通道 —— 这条走 warn 通道，混进中文句子会让终端出现机器串。
+ */
+export function readConfigFile(home?: string): {
+  config: OpenvibeConfig | null
+  error?: string
+  errorDetail?: string
+} {
   const path = configFilePath(home)
   let raw: string
   try {
@@ -102,7 +132,11 @@ export function readConfigFile(home?: string): { config: OpenvibeConfig | null; 
   try {
     parsed = JSON.parse(raw)
   } catch (e) {
-    return { config: null, error: `JSON 解析失败：${(e as Error).message}` }
+    return {
+      config: null,
+      error: 'JSON 解析失败，文件不是合法 JSON',
+      errorDetail: (e as Error).message,
+    }
   }
   const result = OpenvibeConfigSchema.safeParse(parsed)
   if (result.success) return withNormalizedServerUrl(result.data, path)
@@ -138,9 +172,12 @@ export function resolveConfig(
   const home = options.home
   const path = configFilePath(home)
   const warnings: string[] = []
-  const { config, error } = readConfigFile(home)
-  if (error)
+  const warningDetails: (string | undefined)[] = []
+  const { config, error, errorDetail } = readConfigFile(home)
+  if (error) {
     warnings.push(config ? `${path}：${error}` : `无法使用 ${path}：${error}，已回退默认配置`)
+    warningDetails.push(errorDetail)
+  }
 
   let serverUrl: string
   let port: number
@@ -180,6 +217,8 @@ export function resolveConfig(
     sources: { serverUrl: serverSource, token: tokenSource, port: serverSource },
     configPath: path,
     warnings,
+    // 活引用（不是快照）：警告在 resolveConfig 之后仍可能被追加
+    warningDetails,
     ...(token === null
       ? {
           hint: '未找到访问令牌，请先运行 `openvibe serve` 生成 config.json，或用 --token / OPENVIBE_TOKEN 指定',

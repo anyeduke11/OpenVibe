@@ -1,10 +1,11 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   FlowTemplateCreateInput,
   FlowTemplateOut,
   FlowTemplateUpdateInput,
 } from '@openvibe/shared'
 import { apiJson } from '../api/client'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 export const FLOW_STALE_TIME = 15_000
 
@@ -23,21 +24,21 @@ export function useFlowMutations() {
     void qc.invalidateQueries({ queryKey: ['flows'] })
   }
 
-  const create = useMutation({
+  const create = useApiMutation({
     mutationFn: (input: FlowTemplateCreateInput) =>
       apiJson<FlowTemplateOut>('/api/flow-templates', { method: 'POST', body: input }),
     onSuccess: invalidate,
   })
-  const update = useMutation({
+  const update = useApiMutation({
     mutationFn: ({ id, patch }: { id: string; patch: FlowTemplateUpdateInput }) =>
       apiJson<FlowTemplateOut>(`/api/flow-templates/${id}`, { method: 'PATCH', body: patch }),
     onSuccess: invalidate,
   })
-  const remove = useMutation({
+  const remove = useApiMutation({
     mutationFn: (id: string) => apiJson<void>(`/api/flow-templates/${id}`, { method: 'DELETE' }),
     onSuccess: invalidate,
   })
-  const duplicate = useMutation({
+  const duplicate = useApiMutation({
     mutationFn: (id: string) =>
       apiJson<FlowTemplateOut>(`/api/flow-templates/${id}/duplicate`, { method: 'POST' }),
     onSuccess: invalidate,

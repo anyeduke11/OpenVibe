@@ -93,6 +93,18 @@ function unreachableText(e: ServerUnreachable): string {
   return `OpenVibe serve 不可达（${e.detail}）。先在本机运行 openvibe serve 再调用本工具。`
 }
 
+/**
+ * 异常 → 可读说明（不给 Error 实例套 "Error: " 前缀）。
+ *
+ * 为什么不用 `String(e)`：Error 实例经 `String()` 会变成 `"Error: 原始信息"`——
+ * 那个英文前缀会跟着中文句子一起印给用户（实测形态：`读取项目上下文失败：Error: xxx`）。
+ * 这里取 `.message`；拿不到（抛的不是 Error）才退回 `String(e)`，
+ * 此时该值本就没有 `.message`，`String()` 给的是它的本来面目。
+ */
+function errorText(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
+}
+
 interface McpDeps {
   client?: () => ApiClient | undefined
   /** 注入 diff 实现（测试）；缺省用 diffAction */
@@ -134,7 +146,7 @@ export async function runMcpServer(deps: McpDeps = {}): Promise<void> {
         )
       } catch (e) {
         if (e instanceof ServerUnreachable) return toolResult(unreachableText(e), true)
-        return toolResult(`读取项目上下文失败：${String(e)}`, true)
+        return toolResult(`读取项目上下文失败：${errorText(e)}`, true)
       }
     }
 
@@ -176,7 +188,7 @@ export async function runMcpServer(deps: McpDeps = {}): Promise<void> {
         return toolResult(JSON.stringify(result, null, 1))
       } catch (e) {
         if (e instanceof ServerUnreachable) return toolResult(unreachableText(e), true)
-        return toolResult(`搜索失败：${String(e)}`, true)
+        return toolResult(`搜索失败：${errorText(e)}`, true)
       }
     }
 
@@ -203,7 +215,9 @@ export async function runMcpServer(deps: McpDeps = {}): Promise<void> {
         )
       } catch (e) {
         const err = e as { code?: string; message?: string }
-        return toolResult(`比对失败：${err.code ?? ''} ${err.message ?? String(e)}`, true)
+        // MCP 是**机器通道**（客户端是 AI，不是人）：诊断原文要保留，
+        // 但不能带 "Error: " 前缀——那会让 AI 拿到一句噪声。用 errorText 取无前缀的 message。
+        return toolResult(`比对失败：${err.code ?? ''} ${err.message ?? errorText(e)}`, true)
       }
     }
 
@@ -254,7 +268,7 @@ export async function runMcpServer(deps: McpDeps = {}): Promise<void> {
       void callTool(params.name, params.arguments ?? {})
         .then((result) => out({ jsonrpc: '2.0', id: req.id, result }))
         .catch((e) =>
-          out({ jsonrpc: '2.0', id: req.id, error: { code: -32603, message: String(e) } }),
+          out({ jsonrpc: '2.0', id: req.id, error: { code: -32603, message: errorText(e) } }),
         )
       return
     }

@@ -276,7 +276,8 @@ describe('在线新版本探测（FR-5.3）', () => {
 
     const unreachable = await diffAction({ projectPath: project }, { client: down })
     expect(unreachable.outdated).toBeNull()
-    expect(unreachable.warnings.join('\n')).toContain('ECONNREFUSED')
+    // warn 通道没有独立的 detail 位 ⇒ 英文诊断原文不进中文提示句
+    expect(unreachable.warnings.join('\n')).toContain('服务端不可达')
     expect(unreachable.clean).toBe(false)
     expect(unreachable.exitCode).toBe(2)
 

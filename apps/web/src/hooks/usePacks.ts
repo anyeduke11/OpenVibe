@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   ExportOut,
   InjectionOut,
@@ -9,6 +9,7 @@ import type {
   PreviewOut,
 } from '@openvibe/shared'
 import { apiJson } from '../api/client'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 /** dev-plan §5.3：标准包 key 目录 ['packs'] / ['pack',id] / ['pack-exports',id] / ['pack-preview',…] */
 export const PACK_STALE_TIME = 15_000
@@ -74,22 +75,22 @@ export function usePackMutations(id?: string | null) {
     void qc.invalidateQueries({ queryKey: ['pack-exports'] })
   }
 
-  const create = useMutation({
+  const create = useApiMutation({
     mutationFn: (input: PackCreateInput) =>
       apiJson<PackOut>('/api/packs', { method: 'POST', body: input }),
     onSuccess: invalidate,
   })
-  const update = useMutation({
+  const update = useApiMutation({
     mutationFn: ({ id: packId, patch }: { id: string; patch: PackUpdateInput }) =>
       apiJson<PackOut>(`/api/packs/${packId}`, { method: 'PATCH', body: patch }),
     onSuccess: invalidate,
   })
-  const remove = useMutation({
+  const remove = useApiMutation({
     mutationFn: (packId: string) => apiJson<void>(`/api/packs/${packId}`, { method: 'DELETE' }),
     onSuccess: invalidate,
   })
   /** 两条通道同一入口（m6a FR-3）：channel 决定目录是否落盘，bundle 恒可下载 */
-  const exportPack = useMutation({
+  const exportPack = useApiMutation({
     mutationFn: ({
       id: packId,
       body,

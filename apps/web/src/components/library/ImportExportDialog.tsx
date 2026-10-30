@@ -2,10 +2,10 @@ import { useRef, useState } from 'react'
 import { usePromptMutations } from '../../hooks/usePrompts'
 import type { ImportReport } from '../../hooks/usePrompts'
 import { zh } from '../../i18n/zh'
-import { ApiError } from '../../api/client'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
 import { btnGhost, btnPrimary } from '../ui/styles'
+import type { ApiError } from '../../api/client'
 
 /** 导入（JSON/md/规则文件，走文本通道，服务端解析）+ 导出（JSON/Markdown 附件下载）
  *  m1 FR-6/FR-7；规则文件解析在 packages/core/importers */
@@ -30,8 +30,12 @@ export function ImportExportDialog(props: { open: boolean; onClose: () => void }
           setReport(r)
           toast(zh.importDialog.report(r.created.length, r.skipped.length))
         },
-        onError: (e) =>
-          toast(zh.importDialog.failed(e instanceof ApiError ? e.message : String(e)), 'error'),
+        onError: (e: ApiError) =>
+          // `String(e)` 会给 Error 加上 "Error: " 前缀（英文机器串），中文界面上不该出现。
+          toast(
+            zh.importDialog.failed(e instanceof Error ? e.message : zh.common.unknownError),
+            'error',
+          ),
       },
     )
   }

@@ -76,6 +76,9 @@ const flag = (name: string, value: string, summary: string): CliCommandFlag => (
  * - status = readonly     ：同上，只 GET（status.ts:statusAction 只调 getJson）
  * - session= decision     ：POST /api/projects/:id/devlog 改服务端 DB 且无确认闸，与 scan 同档同因
  *                           （FR-4.3.2）。本机零写入：不 import node:fs、不建文件
+ * - skill  = decision     ：POST /api/skills/:id/download 让**服务端**把远程 skill 下载落盘到
+ *                           ~/.openvibe/skills/（改服务端本机状态、且出网）。CLI 侧自身零磁盘写：
+ *                           不 import node:fs、不建文件，落盘全在服务端进程内完成
  * - requirement=decision  ：POST /api/agent/ingest 改服务端 DB（agent_ingests 一条 pending 行）且 CLI 侧
  *                           无确认闸，与 session/scan 同档同因（FR-4.3.2）。本机零写入：不 import node:fs、
  *                           不建文件；只 import node:crypto 算幂等键（requirement.ts）
@@ -134,6 +137,14 @@ export const CLI_COMMANDS: readonly CliCommandMeta[] = [
         '探测并导入项目规则文件（.cursorrules / .cursor/rules/*.mdc / CLAUDE.md / AGENTS.md）',
       ),
     ],
+    risk: 'decision',
+    writesDisk: false,
+  },
+  {
+    name: 'skill',
+    usage: 'openvibe skill <name> [flags]',
+    summary: '从 OpenVibe 取回指定 skill（远程条目会下载落盘到 skill 库）',
+    flags: [],
     risk: 'decision',
     writesDisk: false,
   },

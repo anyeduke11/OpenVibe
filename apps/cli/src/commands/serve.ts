@@ -14,7 +14,7 @@ import { configFilePath, readConfigFile, writeConfigFile } from '../config'
  */
 
 /** design §4 的 ~/.openvibe 布局，首启一次性建齐 */
-const HOME_DIRS = ['data', 'packs', 'logs'] as const
+const HOME_DIRS = ['data', 'packs', 'logs', 'skills'] as const
 
 export interface ServeOptions {
   /** ~/.openvibe 根；缺省走 OPENVIBE_HOME / homedir（与 core 同源） */
@@ -54,8 +54,14 @@ function defaultOpener(url: string, warn: (message: string) => void): void {
   const { command, args } = openerArgs(process.platform, url)
   const child = spawn(command, args, { stdio: 'ignore', detached: true })
   // 无图形环境/命令缺失时 serve 不该跟着退出——只提示手工访问地址
+  //
+  // ⚠️ **不把 `e.message` 印进人话**：Node 的 spawn 错误消息是英文机器串
+  //（"spawn xdg-open ENOENT"），它跟着中文句子一起进终端。
+  // 诊断原文（errno 短码）放在句尾括号里——短码是标识符，不是英文句子。
   child.on('error', (e) =>
-    warn(`无法自动打开浏览器（${command}）：${e.message}，请手动访问 ${url}`),
+    warn(
+      `无法自动打开浏览器（${command}，${(e as NodeJS.ErrnoException).code ?? 'UNKNOWN'}）：请手动访问 ${url}`,
+    ),
   )
   child.unref()
 }

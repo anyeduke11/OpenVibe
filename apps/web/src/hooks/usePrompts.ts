@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   PromptCreateInput,
   PromptOut,
@@ -6,6 +6,7 @@ import type {
   PromptVersionOut,
 } from '@openvibe/shared'
 import { apiJson, apiRaw, qs } from '../api/client'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 export interface PromptFilters {
   page: number
@@ -78,12 +79,12 @@ export function usePromptMutations() {
     if (id !== undefined) void qc.invalidateQueries({ queryKey: ['prompt-versions', id] })
   }
 
-  const create = useMutation({
+  const create = useApiMutation({
     mutationFn: (input: PromptCreateInput) =>
       apiJson<PromptCreateResult>('/api/prompts', { method: 'POST', body: input }),
     onSuccess: () => invalidate(),
   })
-  const update = useMutation({
+  const update = useApiMutation({
     mutationFn: ({ id, patch }: { id: string; patch: PromptUpdateInput }) =>
       apiJson<PromptUpdateResult>(`/api/prompts/${id}`, { method: 'PATCH', body: patch }),
     onSuccess: (_r, vars) => {
@@ -91,7 +92,7 @@ export function usePromptMutations() {
       invalidateVersions(vars.id)
     },
   })
-  const restore = useMutation({
+  const restore = useApiMutation({
     mutationFn: ({ id, versionNo }: { id: string; versionNo: number }) =>
       apiJson<{ prompt: PromptOut; newVersionNo: number }>(
         `/api/prompts/${id}/versions/${String(versionNo)}/restore`,
@@ -102,13 +103,13 @@ export function usePromptMutations() {
       invalidateVersions(vars.id)
     },
   })
-  const importPrompts = useMutation({
+  const importPrompts = useApiMutation({
     mutationFn: (body: { files: { filename: string; content: string }[] }) =>
       apiJson<ImportReport>('/api/prompts/import', { method: 'POST', body }),
     onSuccess: () => invalidate(),
   })
   /** 删除走 apiRaw：X-Referenced-Packs 响应头携带引用包名（m1 §6.3 / DEV-0013 C-6） */
-  const remove = useMutation({
+  const remove = useApiMutation({
     mutationFn: async (id: string) => {
       const res = await apiRaw(`/api/prompts/${id}`, { method: 'DELETE' })
       return res.headers.get('x-referenced-packs')

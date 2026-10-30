@@ -12,11 +12,20 @@ import { ServerUnreachable, type ApiClient } from '../client'
 export class ScanError extends Error {
   readonly code: string
   readonly details?: unknown
-  constructor(code: string, message: string, details?: unknown) {
+  /**
+   * 诊断原文（允许英文：Node 的 errno 消息等）。
+   *
+   * 与 `message` 分通道：`message` 只写中文一句话，`detail` 承接排障原文。
+   * ⚠️ 与 `details` 是两件事：`details` 是**结构化**数据（供程序判断），
+   * `detail` 是**给人看的原文**（供排障）。
+   */
+  readonly detail?: string
+  constructor(code: string, message: string, details?: unknown, detail?: string) {
     super(message)
     this.name = 'ScanError'
     this.code = code
     if (details !== undefined) this.details = details
+    if (detail !== undefined) this.detail = detail
   }
 }
 
@@ -134,17 +143,21 @@ function readRuleContents(
     try {
       content = readFileSync(abs, 'utf8')
     } catch (e) {
-      throw new ScanError('READ_FAILED', `读取 ${abs} 失败：${(e as Error).message}`)
+      throw new ScanError('READ_FAILED', `读取 ${abs} 失败`, undefined, (e as Error).message)
     }
     return { filename: path, content }
   })
 }
 
 function unreachable(e: unknown): never {
-  const detail = e instanceof Error ? e.message : String(e)
+  // ServerUnreachable 的 message 是中文人话（连的是哪个地址），detail 是底层英文原文
+  const detail =
+    e instanceof ServerUnreachable ? e.detail : e instanceof Error ? e.message : String(e)
   throw new ScanError(
     'SERVER_UNREACHABLE',
-    `${detail}。扫描没有离线模式，先运行 \`openvibe serve\` 起本地服务（或用 --server 指定地址）`,
+    '扫描没有离线模式，先运行 `openvibe serve` 起本地服务（或用 --server 指定地址）',
+    undefined,
+    detail,
   )
 }
 

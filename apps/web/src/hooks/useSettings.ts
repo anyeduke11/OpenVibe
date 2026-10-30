@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import type {
   FlywheelStatsOut,
@@ -9,6 +9,7 @@ import type {
   TelemetrySettingsOut,
 } from '@openvibe/shared'
 import { ApiError, apiJson, qs } from '../api/client'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 /** dev-plan §5.3：服务端状态 staleTime 15s，写后按 key 目录精确失效 */
 export const SETTINGS_STALE_TIME = 15_000
@@ -53,7 +54,7 @@ export function useTelemetrySettings() {
 /** 向导完成标记（onboarding FR-2.3）：done=false 即设置页「重新显示向导」 */
 export function useOnboardingToggle() {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (done: boolean) =>
       apiJson<{ onboardingDone: boolean }>('/api/settings/onboarding', {
         method: 'POST',
@@ -66,7 +67,7 @@ export function useOnboardingToggle() {
 /** D13 一次性询问的落点：accepted/declined 由服务端从 enabled 反推，前端不再各自记标记 */
 export function useTelemetryToggle() {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (enabled: boolean) =>
       apiJson<TelemetrySettingsOut>('/api/settings/telemetry', {
         method: 'POST',
@@ -86,7 +87,7 @@ export function useTelemetryToggle() {
 /** 重播种子 + 重建预置包（FR-1.2 / dev-plan §607） */
 export function useReseed() {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: () => apiJson<ReseedOut>('/api/settings/reseed', { method: 'POST' }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['settings'] })

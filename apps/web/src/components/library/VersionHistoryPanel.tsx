@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { usePromptMutations, usePromptVersions } from '../../hooks/usePrompts'
 import { zh } from '../../i18n/zh'
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
 import { btnDanger, btnGhost } from '../ui/styles'
 import { DiffViewer } from './DiffViewer'
+import type { ApiError } from '../../api/client'
 
 type Pick = number | 'current'
 
@@ -93,7 +94,7 @@ export function VersionHistoryPanel(props: {
                             setPendingRollback(null)
                             setPicked([])
                           },
-                          onError: (e) => toast(e.message, 'error'),
+                          onError: (e: ApiError) => toastError(e),
                         },
                       )
                     }

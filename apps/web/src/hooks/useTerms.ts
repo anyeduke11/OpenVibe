@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   TermCreateInput,
   TermOut,
@@ -7,6 +7,7 @@ import type {
   TermsOrderBy,
 } from '@openvibe/shared'
 import { apiJson, apiRaw } from '../api/client'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 /** dev-plan §5.3：术语 key 目录 ['terms'] / ['term-search',q] / ['terms-render',ids,orderBy] */
 export const TERM_STALE_TIME = 15_000
@@ -63,18 +64,18 @@ export function useTermMutations() {
     void qc.invalidateQueries({ queryKey: ['terms-render'] })
   }
 
-  const create = useMutation({
+  const create = useApiMutation({
     mutationFn: (input: TermCreateInput) =>
       apiJson<TermOut>('/api/terms', { method: 'POST', body: input }),
     onSuccess: invalidate,
   })
-  const update = useMutation({
+  const update = useApiMutation({
     mutationFn: ({ id, patch }: { id: string; patch: TermUpdateInput }) =>
       apiJson<TermOut>(`/api/terms/${id}`, { method: 'PATCH', body: patch }),
     onSuccess: invalidate,
   })
   /** 删除走 apiRaw：X-Referenced-Packs 提示被哪些标准包选过（m6a §6.2 同源） */
-  const remove = useMutation({
+  const remove = useApiMutation({
     mutationFn: async (id: string) => {
       const res = await apiRaw(`/api/terms/${id}`, { method: 'DELETE' })
       return res.headers.get('x-referenced-packs')

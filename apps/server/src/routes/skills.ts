@@ -1,7 +1,11 @@
 import type { FastifyInstance } from 'fastify'
+import { homedir } from 'node:os'
 import {
   AppError,
+  SkillCleanupInput,
   SkillCreateInput,
+  SkillDownloadInput,
+  SkillLibraryInput,
   SkillMergeInput,
   SkillRemoteImportInput,
   SkillRemoteSearchInput,
@@ -9,13 +13,24 @@ import {
   SkillRepairInput,
   SkillReviewInput,
   SkillScanInput,
+  SkillScanRootsInput,
   SkillUpdateCheckInput,
   SkillUpdateInput,
   type SkillRemoteImportReport,
   type SkillRepairReport,
   type SkillRetrackReport,
+  type SkillScanRoot,
 } from '@openvibe/shared'
-import { SkillsRepo, type SqliteDatabase } from '@openvibe/core'
+import {
+  AppMetaRepo,
+  APP_META_KEYS,
+  SkillsRepo,
+  SqliteSkillLibrary,
+  defaultSkillRoots,
+  expandKnownRoots,
+  skillLibraryRoot,
+  type SqliteDatabase,
+} from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
 import {
   checkRemoteUpdates,
@@ -24,6 +39,7 @@ import {
   retrackRemoteSkills,
   searchSkillhub,
 } from '../lib/skill-remote'
+import { defaultLibraryTarget, downloadSkillToDisk } from '../lib/skill-download'
 import { assetEventInput, resolveLedger, type LedgerDeps } from '../lib/ledger'
 
 export interface SkillRouteDeps extends LedgerDeps {
@@ -40,6 +56,8 @@ function matchQuery(query: string, text: string): boolean {
 /** dev-plan §3.2 五端点 + 扫描（Web 按钮与 CLI `scan --skills` 打同一入口，m2 §5） */
 export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps): void {
   const skills = new SkillsRepo(deps.db)
+  const library = new SqliteSkillLibrary(deps.db)
+  const meta = new AppMetaRepo(deps.db)
   const ledger = resolveLedger(deps)
 
   app.get('/api/skills', async (req) => {
@@ -63,7 +81,13 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   // 静态段先于 :id 匹配（find-my-way 优先级）
   app.post('/api/skills/scan', async (req) => {
     const { roots } = parseOrThrow(SkillScanInput, req.body ?? {})
-    return skills.scan(roots)
+    // ⚠️ **roots 显式传入时不回落默认**（m2 FR-1.1：空数组即不扫）。
+    //   但「没传 roots」≠「不扫」——那是「按配置清单扫」：
+    //   用户在设置页配了清单，扫描就该按清单走，而不是每次都扫全盘约定根。
+    if (roots !== undefined) return skills.scan(roots)
+    const configured = meta.read<SkillScanRoot[] | null>(APP_META_KEYS.skillScanRoots, null)
+    if (configured === null) return skills.scan() // 未配置 ⇒ 出厂默认清单
+    return skills.scan(configured.filter((r) => r.enabled !== false).map((r) => r.path))
   })
 
   // 远程源（DEV-0067）：SkillHub 搜索 → 选 slug 导入；GitHub 整仓导入（ref 缺省=默认分支）
@@ -193,6 +217,163 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
     return skills.review(ids)
   })
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // 扫描根配置（2026-10-30：改成可配置清单，覆盖国内主流 agent）
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * 读扫描根清单。
+   *
+   * ⚠️ **键不存在 ≠ 空数组**：键不存在 ⇒ `configured=false` ⇒ 扫描走出厂默认清单
+   *   （约定式发现 ∪ 已知 agent 路径）；用户显式清空（值为 `[]`）才是「真的不扫」。
+   *   两者必须能区分，否则「清空清单」会被当成「没配置过」而回落默认。
+   */
+  app.get('/api/skills/scan-roots', async () => {
+    const raw = meta.read<SkillScanRoot[] | null>(APP_META_KEYS.skillScanRoots, null)
+    if (raw === null) {
+      // 未配置 ⇒ 出厂默认清单（只给存在的那些，避免清单里塞一堆死路径）
+      const items = defaultSkillRoots().map((path) => ({ path, enabled: true }))
+      return { roots: items.map((i) => i.path), items, configured: false }
+    }
+    const items = raw.map((r) => ({ path: r.path, enabled: r.enabled !== false }))
+    return {
+      roots: items.filter((i) => i.enabled).map((i) => i.path),
+      items,
+      configured: true,
+    }
+  })
+
+  /**
+   * 写扫描根清单（整份覆盖）。空数组 = 显式清空 = 之后扫描不扫任何根。
+   *
+   * ⚠️ **停用的根仍留在清单里**：用户「暂时不扫这个目录」不该把它从清单里抹掉
+   *   ——抹掉就再也找不回来了。停用只影响「这次扫不扫」。
+   */
+  app.post('/api/skills/scan-roots', async (req) => {
+    const { roots } = parseOrThrow(SkillScanRootsInput, req.body ?? {})
+    const seen = new Set<string>()
+    const items = roots
+      .filter((r) => {
+        if (seen.has(r.path)) return false
+        seen.add(r.path)
+        return true
+      })
+      .map((r) => ({ path: r.path, enabled: r.enabled !== false }))
+    meta.write(APP_META_KEYS.skillScanRoots, items)
+    return {
+      roots: items.filter((i) => i.enabled).map((i) => i.path),
+      items,
+      configured: true,
+    }
+  })
+
+  /** 出厂默认清单（相对 home 的已知 agent 路径，含「本机是否存在」标记） */
+  app.get('/api/skills/scan-roots/defaults', async () => ({
+    items: expandKnownRoots(homedir()),
+    /** 库根：OpenVibe 自己的 skill 存放处 */
+    libraryRoot: skillLibraryRoot(),
+  }))
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Skill 库（2026-10-30：独立于其他 agent 的备份与生命周期）
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /** 备份到库：把 skill 的文件复制一份到 ~/.openvibe/skills/<name>/ */
+  app.post('/api/skills/:id/library/backup', async (req) => {
+    const { id } = req.params as { id: string }
+    const skill = skills.get(id)
+    if (skill === null) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
+    const r = library.backup(id)
+    return { skillId: id, name: skill.name, ...r }
+  })
+
+  /** 从库恢复：把库内副本写回原 skill 目录（或指定目标目录） */
+  app.post('/api/skills/:id/library/restore', async (req) => {
+    const { id } = req.params as { id: string }
+    const skill = skills.get(id)
+    if (skill === null) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
+    const { targetDir } = parseOrThrow(SkillLibraryInput, req.body ?? {})
+    const r = library.restore(id, targetDir)
+    return { skillId: id, name: skill.name, targetDir: r.targetDir, fileCount: r.fileCount }
+  })
+
+  /** 移出库：删副本并清空台账列（原 skill 目录不动） */
+  app.post('/api/skills/:id/library/remove', async (req) => {
+    const { id } = req.params as { id: string }
+    const skill = skills.get(id)
+    if (skill === null) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
+    library.remove(id)
+    return { skillId: id, name: skill.name }
+  })
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 下载落盘（2026-10-30：远程 skill 真正下到本地）
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * 下载远程 skill 并落盘。
+   *
+   * ⚠️ 落点缺省 = OpenVibe 的 skill 库目录 —— 与任何 agent 的目录无关。
+   *   出站走 http-guard（https + 主机白名单 + DNS 公网校验），
+   *   代理由 server 启动时的全局 dispatcher 接管（代理与直连同一套代码）。
+   */
+  app.post('/api/skills/:id/download', async (req) => {
+    const { id } = req.params as { id: string }
+    const skill = skills.get(id)
+    if (skill === null) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
+    const input = parseOrThrow(SkillDownloadInput, req.body ?? {})
+    const remoteRef = input.remoteRef ?? skill.remoteRef
+    if (remoteRef === null || remoteRef === '') {
+      throw new AppError('VALIDATION_ERROR', `该 skill 没有远程溯源串，无法下载: ${skill.name}`)
+    }
+    const targetDir = input.targetDir ?? defaultLibraryTarget(skill.name)
+    const r = await downloadSkillToDisk({
+      remoteRef,
+      targetDir,
+      ...(deps.fetchImpl === undefined ? {} : { fetchImpl: deps.fetchImpl }),
+    })
+    // 落盘后把台账指到落点：skillDir 有了值，这条 skill 从「仅建档」变成「本机可用」
+    //
+    // ⚠️ **remote_ref 必须一并写回**：它是「检查更新」与「重新下载」的唯一依据。
+    //   不写回 ⇒ 台账里这条仍像本地条目 ⇒ 界面不给下载按钮、也查不了更新。
+    //   只在原来为空时写（已有溯源串的条目保留自己的，别被本次参数覆盖）。
+    deps.db
+      .prepare(
+        `UPDATE skills SET skill_dir = ?, library_dir = ?,
+           remote_ref = COALESCE(remote_ref, ?), updated_at = ? WHERE id = ?`,
+      )
+      .run(r.targetDir, r.targetDir, remoteRef, new Date().toISOString(), id)
+    return {
+      skillId: id,
+      name: skill.name,
+      targetDir: r.targetDir,
+      fileCount: r.fileCount,
+      dirHash: r.dirHash,
+      origin: r.origin,
+      warnings: r.warnings,
+    }
+  })
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 失效条目清理（2026-10-30：一键批量清理）
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /** 清理预检：只报告，不删 */
+  app.get('/api/skills/cleanup', async () => {
+    return skills.cleanupPreview()
+  })
+
+  /** 一键批量清理：删「路径已消失 ∧ 不可下载 ∧ 无副本」的台账条目 */
+  app.post('/api/skills/cleanup', async (req) => {
+    const input = parseOrThrow(SkillCleanupInput, req.body ?? {})
+    return skills.cleanup({
+      ...(input.ids === undefined ? {} : { ids: input.ids }),
+      includeBackedUp: input.includeBackedUp,
+      // 副本的文件由库自己清（它是唯一知道「库根怎么解析」的地方）
+      onRemove: (items) => library.removeCopies(items.map((i) => i.id)),
+    })
+  })
+
   app.get('/api/skills/:id/versions', async (req) => {
     const { id } = req.params as { id: string }
     if (!skills.get(id)) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
@@ -210,6 +391,9 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
 
   app.delete('/api/skills/:id', async (req, reply) => {
     const { id } = req.params as { id: string }
+    // ⚠️ **先移出库再删台账**：库内副本的文件由 library 独占管理（它是唯一知道
+    //   「库根怎么解析」的地方）。顺序反了 ⇒ 台账行没了就查不到副本路径 ⇒ 孤儿目录。
+    library.remove(id)
     skills.delete(id)
     return reply.code(204).send()
   })

@@ -22,11 +22,20 @@ import { pickExport } from '../pack-source'
 export class DiffError extends Error {
   readonly code: string
   readonly details?: unknown
-  constructor(code: string, message: string, details?: unknown) {
+  /**
+   * 诊断原文（允许英文：Node 的 errno 消息等）。
+   *
+   * 与 `message` 分通道：`message` 只写中文一句话，`detail` 承接排障原文。
+   * ⚠️ 与 `details` 是两件事：`details` 是**结构化**数据（供程序判断），
+   * `detail` 是**给人看的原文**（供排障）。混用会让「机器读」与「人读」互相污染。
+   */
+  readonly detail?: string
+  constructor(code: string, message: string, details?: unknown, detail?: string) {
     super(message)
     this.name = 'DiffError'
     this.code = code
     if (details !== undefined) this.details = details
+    if (detail !== undefined) this.detail = detail
   }
 }
 
@@ -72,6 +81,8 @@ export interface DiffOutcome {
   /** 是否真的调过服务端（离线/无令牌时 false） */
   probedOnline: boolean
   warnings: string[]
+  /** 与 warnings 同序等长的诊断原文（允许英文） */
+  warningDetails?: (string | undefined)[]
   hints: string[]
   exitCode: 0 | 2
 }
@@ -105,7 +116,7 @@ function diskReader(projectPath: string): (relPath: string) => string | null {
       const err = e as NodeJS.ErrnoException
       // ENOENT/ENOTDIR = 文件没了（missing），其余读错误（权限/IO）不能当成「内容不一致」
       if (err.code === 'ENOENT' || err.code === 'ENOTDIR') return null
-      throw new DiffError('READ_FAILED', `读取 ${abs} 失败：${err.message}`)
+      throw new DiffError('READ_FAILED', `读取 ${abs} 失败`, undefined, err.message)
     }
   }
 }
@@ -114,7 +125,12 @@ function diskReader(projectPath: string): (relPath: string) => string | null {
 async function probeOutdated(
   client: ApiClient,
   pack: PackLock['pack'],
-): Promise<{ outdated: PackOutdated | null; warnings: string[]; probedOnline: boolean }> {
+): Promise<{
+  outdated: PackOutdated | null
+  warnings: string[]
+  warningDetails?: (string | undefined)[]
+  probedOnline: boolean
+}> {
   try {
     const list = await client.getJson<{ items: PackExportOut[] }>(`/api/packs/${pack.id}/exports`)
     if (list.items.length === 0) {
@@ -136,13 +152,14 @@ async function probeOutdated(
       probedOnline: true,
     }
   } catch (e) {
-    const detail =
-      e instanceof ServerUnreachable
-        ? `服务端不可达（${e.detail}）`
-        : ((e as Error).message ?? String(e))
+    // 人话只说「探测失败」；英文诊断原文走 detail 位（warn 通道的双通道纪律）
+    const reason = e instanceof ServerUnreachable ? '服务端不可达' : '探测失败'
     return {
       outdated: null,
-      warnings: [`未探测更新版本（${detail}）；磁盘比对不受影响`],
+      warnings: [`未探测更新版本（${reason}）；磁盘比对不受影响`],
+      warningDetails: [
+        e instanceof ServerUnreachable ? e.detail : ((e as Error).message ?? String(e)),
+      ],
       probedOnline: false,
     }
   }
@@ -172,6 +189,8 @@ export async function diffAction(options: DiffOptions, deps: DiffDeps = {}): Pro
   const diff = diffPackLock(lock, diskReader(projectPath))
   const buckets = summarizeDiff(diff)
   const warnings: string[] = []
+  // 与 warnings 同序等长：每条提示的诊断原文（没有诊断的位置是 undefined）
+  const warningDetails: (string | undefined)[] = []
   const hints: string[] = []
   let outdated: PackOutdated | null = null
   let probedOnline = false
@@ -181,6 +200,8 @@ export async function diffAction(options: DiffOptions, deps: DiffDeps = {}): Pro
     outdated = probe.outdated
     probedOnline = probe.probedOnline
     warnings.push(...probe.warnings)
+    // probe 的 details 与它的 warnings 同序 ⇒ 整段追加即可保持对齐
+    warningDetails.push(...(probe.warningDetails ?? probe.warnings.map(() => undefined)))
 
     // 段级差异（RQ4，只读）：包渲染文本来自与 preview/export 同一 renderPack；
     // 任何失败只降级成提示，磁盘结论与退出码不受影响（与 probeOutdated 同款纪律）。
@@ -202,8 +223,11 @@ export async function diffAction(options: DiffOptions, deps: DiffDeps = {}): Pro
         if (sections.length > 0)
           hints.push('块外自由区的差异属于你，同步覆盖建议永远倒向保留本地（永不触碰）')
       } catch (e) {
-        warnings.push(
-          `段级差异不可用（${e instanceof ServerUnreachable ? `服务端不可达（${e.detail}）` : ((e as Error).message ?? String(e))}）；文件级报告不受影响`,
+        // 人话只说「读取失败」；英文诊断原文走 detail 位
+        const reason = e instanceof ServerUnreachable ? '服务端不可达' : '读取失败'
+        warnings.push(`段级差异不可用（${reason}）；文件级报告不受影响`)
+        warningDetails.push(
+          e instanceof ServerUnreachable ? e.detail : ((e as Error).message ?? String(e)),
         )
       }
     }
@@ -240,6 +264,9 @@ export async function diffAction(options: DiffOptions, deps: DiffDeps = {}): Pro
     sections,
     probedOnline,
     warnings,
+    // 活引用（不是快照）：probe 的 warnings 是整段汇入的，快照需与 push 逐次对齐，
+    // 漏一处就丢一条 detail ⇒ 引用同一数组。
+    warningDetails,
     hints,
     exitCode: diff.clean && !outdated ? 0 : 2,
   }

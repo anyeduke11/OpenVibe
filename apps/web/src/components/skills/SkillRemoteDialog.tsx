@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { SkillRemoteImportReport, SkillRemoteSearchItem } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
 import {
   CHIP_TONES,
   btnGhost,
@@ -13,6 +13,7 @@ import {
 } from '../ui/styles'
 import { useSkillRemote } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
+import type { ApiError } from '../../api/client'
 
 // 选中与未选中是「择一」不是「相加」：chipTone('default') 与 chipPressed 都自带
 // border/bg/text 三个色类，叠加后 Tailwind 只认其中一个（顺序不由源码决定），
@@ -49,7 +50,7 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
         setReport(r)
         toast(zh.skills.remote.done)
       },
-      onError: (e: Error) => toast(e.message, 'error'),
+      onError: (e: ApiError) => toastError(e),
     })
   }
 
@@ -121,7 +122,7 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && q.trim() !== '')
                       search.mutate(q.trim(), {
-                        onError: (e2: Error) => toast(e2.message, 'error'),
+                        onError: (e2: ApiError) => toast(e2.message, 'error'),
                       })
                   }}
                 />
@@ -129,7 +130,7 @@ export function SkillRemoteDialog(props: { open: boolean; onClose: () => void })
                   className={btnGhost}
                   disabled={q.trim() === '' || search.isPending}
                   onClick={() =>
-                    search.mutate(q.trim(), { onError: (e: Error) => toast(e.message, 'error') })
+                    search.mutate(q.trim(), { onError: (e: ApiError) => toastError(e) })
                   }
                 >
                   {search.isPending ? zh.skills.remote.searching : zh.skills.remote.search}

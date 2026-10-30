@@ -220,7 +220,8 @@ describe('scan 的前置条件（FR-3.2 / FR-4.3）', () => {
     const err = await scanAction({ skills: true }, { client: down }).catch((e: unknown) => e)
 
     expect((err as ScanError).code).toBe('SERVER_UNREACHABLE')
-    expect((err as Error).message).toContain('ECONNREFUSED')
+    // 英文诊断原文在 detail 通道（与中文人话分通道）
+    expect((err as ScanError).detail).toContain('ECONNREFUSED')
     expect((err as Error).message).toContain('openvibe serve')
   })
 

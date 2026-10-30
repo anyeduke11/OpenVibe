@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react'
 import { zh } from '../../i18n/zh'
 import { Dialog, DialogPanel } from './Dialog'
-import { toast } from './Toaster'
+import { toast, toastError } from './Toaster'
 import { btnDanger, btnGhost } from './styles'
+import type { ApiError } from '../../api/client'
 
 /**
  * 删除确认框的统一外壳：右侧「取消」+ 左侧危险色「确认删除」。
@@ -57,13 +58,13 @@ export function deleteReceipts(opts: {
   done: string
   referenced: (packs: string) => string
   close: () => void
-}): { onSuccess: (packs: string | null) => void; onError: (e: Error) => void } {
+}): { onSuccess: (packs: string | null) => void; onError: (e: ApiError) => void } {
   return {
     onSuccess: (packs) => {
       toast(opts.done)
       if (packs !== null && packs !== '') toast(opts.referenced(packs), 'error')
       opts.close()
     },
-    onError: (e) => toast(e.message, 'error'),
+    onError: (e: ApiError) => toastError(e),
   }
 }

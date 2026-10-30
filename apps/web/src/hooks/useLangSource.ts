@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiJson, apiRaw } from '../api/client'
 import type {
   InterpretCapability,
@@ -11,6 +11,7 @@ import type {
   SourceInterpretSummary,
 } from '@openvibe/shared'
 import { LANG_STALE_TIME } from './useLangRoadmap'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 /**
  * M9「源码识别」的 hook（`m9-dev-language-roadmap.md` §3.8 / §3.9 / §3.10 · dev-plan §6.10 P4）。
@@ -102,7 +103,7 @@ export function useLangInterpretCapability(providerId?: string | null) {
  */
 export function useLangInterpret(projectId: string | null) {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (input: { findingIds: readonly number[]; userTouched?: boolean }) =>
       apiJson<SourceInterpretSummary>('/api/lang/interpret', {
         method: 'POST',
@@ -133,7 +134,7 @@ export function useLangInterpret(projectId: string | null) {
  * 客户端不负责脱敏（客户端说「我已经脱敏了」不可信）⇒ 服务端导出前再过一遍。
  */
 export function useLangInterpretExport() {
-  return useMutation({
+  return useApiMutation({
     mutationFn: async (summary: SourceInterpretSummary) => {
       const res = await apiRaw('/api/lang/interpret/export', {
         method: 'POST',
@@ -159,7 +160,7 @@ export function useLangInterpretExport() {
 /** 扫一个项目（落库 + 重算掌握度）。 */
 export function useLangScan() {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (projectId: string) =>
       apiJson<LangScanSummary>('/api/lang/scan', {
         method: 'POST',
@@ -192,7 +193,7 @@ export function useLangConsentMutations(projectId: string) {
   const invalidate = (): void => {
     void qc.invalidateQueries({ queryKey: ['lang-consent'] })
   }
-  const set = useMutation({
+  const set = useApiMutation({
     mutationFn: (rememberAll: boolean) =>
       apiJson<LangConsentResponse>('/api/lang/source/consent', {
         method: 'POST',
@@ -200,7 +201,7 @@ export function useLangConsentMutations(projectId: string) {
       }),
     onSuccess: invalidate,
   })
-  const clear = useMutation({
+  const clear = useApiMutation({
     mutationFn: () =>
       apiJson<LangConsentResponse>(
         `/api/lang/source/consent?project=${encodeURIComponent(projectId)}`,
@@ -234,7 +235,7 @@ export function useLangProviderConfig() {
     queryFn: () => apiJson<InterpretProviderCollectionView>('/api/lang/interpret/providers'),
     staleTime: LANG_STALE_TIME,
   })
-  const save = useMutation({
+  const save = useApiMutation({
     mutationFn: (input: InterpretProviderCollectionSave) =>
       apiJson<InterpretProviderCollectionView>('/api/lang/interpret/providers', {
         method: 'PUT',

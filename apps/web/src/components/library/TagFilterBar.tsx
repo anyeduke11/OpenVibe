@@ -28,7 +28,13 @@ export function TagFilterBar(props: {
   const { shown, hidden, collapsible } = foldChips(props.tags, props.selected, limit, expanded)
 
   return (
-    <div className="flex min-w-0 items-center gap-1.5">
+    // ⚠️ 根元素用 `shrink-0` 而非 `min-w-0`：外层 `AssetFilterBar` 的轨道是**刻意**的
+    // `overflow-x-auto`（其文档写明「单行筛选条：横向滚动、永不换行」）。本组若可缩，
+    // 会被轨道挤成「盒子比内容窄」——而组内 chip 全是 `shrink-0`（内容不缩），
+    // 于是内容溢出盒子并**盖住右邻**（实测 `/terms`：「更多标签 +42」压住 L2/L3/只看完懂，
+    // 三者互相重叠不可点；`/library`：文件夹条溢出盖住标签条首个 chip）。
+    // 与 `TermFilterBar` 同款：宁可让轨道横向滚动，也不让内容互相压盖。
+    <div className="flex shrink-0 items-center gap-1.5">
       <span className="flex shrink-0 items-center gap-1 text-xs text-ink-muted">
         <Icon name="filter" size={11} />
         {lane.filter.tags}

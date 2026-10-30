@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+
 import type { DiscussOut } from '@openvibe/shared'
 import { apiJson } from '../../api/client'
 import { useExtractGate } from '../../hooks/useExtract'
 import { agentZh } from '../../i18n/lane-agent'
+import { useApiMutation } from '../../hooks/useApiMutation'
 
 /**
  * AN2 · 问块（v0.2.3 批次 E，spec `v023-e-ai-assistant.md` FR-3）：
@@ -18,7 +19,7 @@ export function DiscussBlock(props: { projectId: string }) {
   const [remember, setRemember] = useState(false)
   const [result, setResult] = useState<DiscussOut | null>(null)
 
-  const ask = useMutation({
+  const ask = useApiMutation({
     mutationFn: (input: { q: string; confirm: boolean }) =>
       apiJson<DiscussOut>(`/api/projects/${props.projectId}/discuss`, {
         method: 'POST',

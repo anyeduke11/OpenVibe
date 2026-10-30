@@ -100,7 +100,11 @@ export function FolderFilterBar(props: {
     <div
       role="group"
       aria-label={zh.folderTree.title}
-      className="flex min-w-0 items-center gap-1.5"
+      // ⚠️ `shrink-0` 而非 `min-w-0`：外层轨道是刻意的 `overflow-x-auto` 横向滚动容器。
+      // 本组若可缩，盒子会窄于内容（组内 chip 是 `shrink-0`，内容不缩），内容溢出后
+      // **盖住右邻的标签条**（实测 `/library`：文件夹条溢出 87px 压住标签条首个 chip）。
+      // 与 `TagFilterBar`／`TermFilterBar` 同口径：宁可滚动，不互相压盖。
+      className="flex shrink-0 items-center gap-1.5"
     >
       <span className="flex shrink-0 items-center gap-1 text-xs text-ink-muted">
         <Icon name="folder" size={11} />

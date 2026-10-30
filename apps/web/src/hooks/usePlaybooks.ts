@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   PlaybookCreateInput,
   PlaybookOut,
@@ -6,6 +6,7 @@ import type {
   PlaybookUpdateInput,
 } from '@openvibe/shared'
 import { apiJson, apiRaw } from '../api/client'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 /** 与 useTerms 同口径的缓存窗口；技巧库读多写少，且列表页不做实时协同 */
 export const PLAYBOOK_STALE_TIME = 15_000
@@ -63,18 +64,18 @@ export function usePlaybookMutations() {
     void qc.invalidateQueries({ queryKey: ['playbooks-render'] })
   }
 
-  const create = useMutation({
+  const create = useApiMutation({
     mutationFn: (input: PlaybookCreateInput) =>
       apiJson<PlaybookOut>('/api/playbooks', { method: 'POST', body: input }),
     onSuccess: invalidate,
   })
-  const update = useMutation({
+  const update = useApiMutation({
     mutationFn: ({ id, patch }: { id: string; patch: PlaybookUpdateInput }) =>
       apiJson<PlaybookOut>(`/api/playbooks/${id}`, { method: 'PATCH', body: patch }),
     onSuccess: invalidate,
   })
   /** 删除走 apiRaw：X-Referenced-Packs 提示被哪些标准包选过（m6a §6.2 同源） */
-  const remove = useMutation({
+  const remove = useApiMutation({
     mutationFn: async (id: string) => {
       const res = await apiRaw(`/api/playbooks/${id}`, { method: 'DELETE' })
       return res.headers.get('x-referenced-packs')

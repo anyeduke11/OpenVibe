@@ -130,7 +130,7 @@ export function TelemetrySection() {
   const flip = (next: boolean) =>
     toggle.mutate(next, {
       onSuccess: (res) => toast(res.enabled ? zh.settings.telemetry.on : zh.settings.telemetry.off),
-      onError: (e: Error) => toast(`${zh.settings.telemetry.failed}: ${e.message}`, 'error'),
+      onError: (e: ApiError) => toast(`${zh.settings.telemetry.failed}: ${e.message}`, 'error'),
     })
 
   return (
@@ -376,7 +376,7 @@ export function PathsSection(props: { settings: SettingsOut | undefined }) {
         after?.(data)
         toast(zh.settings.seed.reseeded)
       },
-      onError: (e) => toast(`${zh.settings.seed.failed}: ${e.message}`, 'error'),
+      onError: (e: ApiError) => toast(`${zh.settings.seed.failed}: ${e.message}`, 'error'),
     })
 
   const loading = s === undefined

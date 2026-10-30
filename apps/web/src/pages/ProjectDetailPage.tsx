@@ -15,7 +15,7 @@ import { ProjectDashboard } from '../components/projects/ProjectDashboard'
 import { StageBar } from '../components/projects/StageBar'
 import { AgentPanel } from '../components/agent/AgentPanel'
 import { TermRecommendationPanel } from '../components/terms/TermRecommendationPanel'
-import { toast } from '../components/ui/Toaster'
+import { toast, toastError } from '../components/ui/Toaster'
 import { Icon } from '../components/ui/icons'
 import {
   btnGhost,
@@ -42,6 +42,7 @@ import { PortsPanel } from '../components/projects/PortsPanel'
 import { useTasks, useTaskMutations } from '../hooks/useTasks'
 import { laneEngineering } from '../i18n/lane-engineering'
 import { zh } from '../i18n/zh'
+import type { ApiError } from '../api/client'
 
 /** 勾选记录按「阶段名 + 项 id」定位：清单 id 只在阶段内唯一，跨阶段会重名 */
 const stageNames = (stages: Stage[]): string[] => stages.map((s) => s.name)
@@ -122,7 +123,7 @@ export function ProjectDetailPage() {
           // m5 FR-3.3：未勾满也可切换，只给提示
           if (unchecked > 0) toast(zh.projects.detail.switchWithUnchecked(unchecked))
         },
-        onError: (e: Error) => toast(e.message, 'error'),
+        onError: (e: ApiError) => toastError(e),
       },
     )
   }
@@ -135,7 +136,7 @@ export function ProjectDetailPage() {
       { stageName: currentStage, itemId, checked },
       {
         onSuccess: done,
-        onError: (e: Error) => {
+        onError: (e: ApiError) => {
           done()
           toast(`${zh.projects.checklist.toggleFailed}：${e.message}`, 'error')
         },
@@ -150,7 +151,7 @@ export function ProjectDetailPage() {
       {
         onSuccess: () =>
           toast(status === 'archived' ? zh.projects.archiveDone : zh.projects.statusDone),
-        onError: (e: Error) => toast(e.message, 'error'),
+        onError: (e: ApiError) => toastError(e),
       },
     )
   }
@@ -164,7 +165,7 @@ export function ProjectDetailPage() {
       { title: title.trim(), stageName },
       {
         onSuccess: () => toast(zh.projects.kanban.added),
-        onError: (e: Error) => toast(e.message, 'error'),
+        onError: (e: ApiError) => toastError(e),
       },
     )
   }
@@ -183,21 +184,21 @@ export function ProjectDetailPage() {
     }
     tm.update.mutate(
       { id: taskId, patch: { title: title.trim() } },
-      { onError: (e: Error) => toast(e.message, 'error') },
+      { onError: (e: ApiError) => toastError(e) },
     )
   }
 
   const tagTask = (taskId: string, stageName: string | null): void => {
     tm.update.mutate(
       { id: taskId, patch: { stageName } },
-      { onError: (e: Error) => toast(e.message, 'error') },
+      { onError: (e: ApiError) => toastError(e) },
     )
   }
 
   const deleteTask = (taskId: string): void => {
     tm.remove.mutate(taskId, {
       onSuccess: () => toast(zh.projects.kanban.deleted),
-      onError: (e: Error) => toast(e.message, 'error'),
+      onError: (e: ApiError) => toastError(e),
     })
   }
 
@@ -215,7 +216,9 @@ export function ProjectDetailPage() {
       <div className="space-y-2 px-5 py-4">
         <div className={noteCls('danger')}>
           <span className={`${noteTitleCls} text-danger`}>
-            {zh.common.failed(project.error instanceof Error ? project.error.message : 'unknown')}
+            {zh.common.failed(
+              project.error instanceof Error ? project.error.message : zh.common.unknownError,
+            )}
           </span>
           <p className="text-ink-body">{laneEngineering.state.retryHint}</p>
           <div className="mt-2 flex items-center gap-2">

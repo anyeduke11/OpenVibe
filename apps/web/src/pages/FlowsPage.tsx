@@ -5,7 +5,7 @@ import { useProjectList } from '../hooks/useProjects'
 import { zh } from '../i18n/zh'
 import { FlowTemplateCard } from '../components/flows/FlowTemplateCard'
 import { ConfirmDeleteDialog } from '../components/ui/ConfirmDeleteDialog'
-import { toast } from '../components/ui/Toaster'
+import { toast, toastError } from '../components/ui/Toaster'
 import {
   btnGhost,
   btnPrimary,
@@ -17,6 +17,7 @@ import {
   skelCls,
 } from '../components/ui/styles'
 import { laneEngineering } from '../i18n/lane-engineering'
+import type { ApiError } from '../api/client'
 
 /** 两个重 UI 都懒加载（DEV-0074）：问答运行对话框 + 模板编辑器（含 dnd-kit）只在点开时
  *  加载，流程页的卡片列表保持入口纤瘦（bundle 门槛） */
@@ -53,7 +54,7 @@ export function FlowsPage() {
   const onDuplicate = (t: FlowTemplateOut) =>
     duplicate.mutate(t.id, {
       onSuccess: (copy) => toast(zh.flows.duplicated(copy.name)),
-      onError: (e: Error) => toast(e.message, 'error'),
+      onError: (e: ApiError) => toastError(e),
     })
 
   const section = (title: string, cards: FlowTemplateOut[]) => (
@@ -158,7 +159,7 @@ export function FlowsPage() {
               toast(zh.flows.deleteDialog.done)
               setDeleting(null)
             },
-            onError: (e: Error) => toast(e.message, 'error'),
+            onError: (e: ApiError) => toastError(e),
           })
         }}
       >

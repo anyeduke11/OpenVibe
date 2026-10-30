@@ -43,12 +43,22 @@ export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
 export class AppError extends Error {
   readonly code: ErrorCode
   readonly details?: unknown
+  /**
+   * 诊断原文（允许英文：Node 的 errno 消息、第三方库的英文原文）。
+   *
+   * 与 `message` 分通道：`message` 只写中文一句话（说清哪里坏了），
+   * `detail` 承接排障原文。⚠️ 与 `details` 是两件事：`details` 是**结构化**数据
+   * （供程序判断），`detail` 是**给人看的原文**（供排障）。混用会让「机器读」
+   * 与「人读」互相污染。
+   */
+  readonly detail?: string
 
-  constructor(code: ErrorCode, message: string, details?: unknown) {
+  constructor(code: ErrorCode, message: string, details?: unknown, detail?: string) {
     super(message)
     this.name = 'AppError'
     this.code = code
     this.details = details
+    if (detail !== undefined) this.detail = detail
   }
 
   get httpStatus(): number {
@@ -61,4 +71,11 @@ export interface ErrorBody {
   code: ErrorCode
   message: string
   details?: unknown
+  /**
+   * 诊断原文（允许英文：Node 的 errno 消息、第三方库的英文原文）。
+   *
+   * 与 `message` 分通道：`message` 是中文人话，`detail` 是排障原文。
+   * 缺省即不产生该字段——无诊断信息的错误不必多写一个字段。
+   */
+  detail?: string
 }

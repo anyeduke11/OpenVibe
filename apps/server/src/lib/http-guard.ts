@@ -67,8 +67,9 @@ export async function assertRemoteUrl(
   let url: URL
   try {
     url = new URL(raw)
-  } catch {
-    throw new AppError('VALIDATION_ERROR', `非法 URL: ${raw}`)
+  } catch (e) {
+    // Node 的 `Invalid URL` 是英文机器串 ⇒ 走 detail 位（message 只说清哪里坏了）
+    throw new AppError('VALIDATION_ERROR', `非法 URL: ${raw}`, undefined, (e as Error).message)
   }
   if (url.protocol !== 'https:') {
     throw new AppError('VALIDATION_ERROR', `远程源仅允许 https，拒绝: ${url.protocol}`)
@@ -79,8 +80,14 @@ export async function assertRemoteUrl(
   let addresses: { address: string }[]
   try {
     addresses = await lookupImpl(url.hostname, { all: true })
-  } catch {
-    throw new AppError('REMOTE_UNREACHABLE', `DNS 解析失败: ${url.hostname}`)
+  } catch (e) {
+    // DNS 失败的英文原文（`getaddrinfo ENOTFOUND api.github.com`）走 detail 位
+    throw new AppError(
+      'REMOTE_UNREACHABLE',
+      `DNS 解析失败: ${url.hostname}`,
+      undefined,
+      (e as Error).message,
+    )
   }
   for (const { address } of addresses) {
     if (!isPublicIp(address)) {
@@ -110,11 +117,22 @@ export async function guardedFetch(
   let current = rawUrl
   for (let hop = 0; hop <= 3; hop++) {
     const url = await assertRemoteUrl(current, init.extraSuffixes ?? [], init.lookupImpl)
-    const res = await fetchImpl(url, {
-      redirect: 'manual',
-      headers: { 'user-agent': USER_AGENT, ...init.headers },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    })
+    let res: Response
+    try {
+      res = await fetchImpl(url, {
+        redirect: 'manual',
+        headers: { 'user-agent': USER_AGENT, ...init.headers },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      })
+    } catch (e) {
+      // fetch 失败的英文原文（`fetch failed` / `The operation was aborted`）走 detail 位
+      throw new AppError(
+        'REMOTE_UNREACHABLE',
+        `请求远端失败: ${url.hostname}`,
+        undefined,
+        (e as Error).message,
+      )
+    }
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get('location')
       if (location === null) {
@@ -142,7 +160,13 @@ export async function guardedJson<T>(
     fetchImpl,
   )
   if (!res.ok) {
-    throw new AppError('REMOTE_UNREACHABLE', `远端 ${res.status}: ${rawUrl}`)
+    // 远端的错误正文（GitHub 的 JSON 错误体）走 detail 位 —— 它是排障依据
+    throw new AppError(
+      'REMOTE_UNREACHABLE',
+      `远端 ${res.status}: ${rawUrl}`,
+      undefined,
+      await remoteErrorBody(res),
+    )
   }
   return (await res.json()) as T
 }
@@ -154,7 +178,30 @@ export async function guardedText(
 ): Promise<string> {
   const res = await guardedFetch(rawUrl, { extraSuffixes }, fetchImpl)
   if (!res.ok) {
-    throw new AppError('REMOTE_UNREACHABLE', `远端 ${res.status}: ${rawUrl}`)
+    throw new AppError(
+      'REMOTE_UNREACHABLE',
+      `远端 ${res.status}: ${rawUrl}`,
+      undefined,
+      await remoteErrorBody(res),
+    )
   }
   return await res.text()
+}
+
+/**
+ * 读远端的错误正文（诊断原文）。
+ *
+ * ⚠️ **截断到 200 字**：远端正文可能是整页 HTML 或超长 JSON，
+ * 全量塞进 detail 会把界面撑爆。200 字与 core 的 `classifyNativeFailure`
+ * 的截断口径一致（同一仓里同一类「诊断原文过长」的问题，一处口径）。
+ */
+async function remoteErrorBody(res: Response): Promise<string | undefined> {
+  let text: string
+  try {
+    text = (await res.text()).trim()
+  } catch {
+    return undefined
+  }
+  if (text === '') return undefined
+  return text.length > 200 ? `${text.slice(0, 200)}…` : text
 }

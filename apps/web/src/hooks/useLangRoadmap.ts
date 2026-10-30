@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiJson } from '../api/client'
 import type {
   LangCode,
@@ -10,6 +10,7 @@ import type {
   TopicProfileLite,
   TopicStageLite,
 } from '@openvibe/shared'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 /**
  * M9「开发能力」页的读端 hook（dev-plan §6.9 P3）。
@@ -130,7 +131,7 @@ export function useLangModes(projectId?: string) {
  */
 export function useLangModeChoice() {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (choice: ProfileChoice) =>
       apiJson<{ mode_choice: ProfileChoice }>('/api/lang/modes/choice', {
         method: 'POST',
@@ -151,7 +152,7 @@ export function useLangModeChoice() {
  */
 export function useLangStageChoice() {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (stage: number | null) =>
       apiJson<{ stage_choice: number | null; effective_profile: EffectiveProfileOut }>(
         '/api/lang/modes/stage',

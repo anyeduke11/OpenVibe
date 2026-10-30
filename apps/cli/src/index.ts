@@ -17,7 +17,15 @@ import { requirementAddAction, requirementLines } from './commands/requirement'
 import { verifyAction } from './commands/verify'
 import { runMcpServer } from './commands/mcp'
 import { discussAction, discussLines } from './commands/discuss'
-import { createPrinter, ExitCode, type Printer, type ReportRow } from './output'
+import { skillGetAction, SkillGetError } from './commands/skill'
+import {
+  createPrinter,
+  emitWarnings,
+  ExitCode,
+  splitArgs,
+  type Printer,
+  type ReportRow,
+} from './output'
 import { clientFromConfig, type ApiClient } from './client'
 import { resolveConfig } from './config'
 import { askTelemetryOnce, reportEvent, type AskReason, type ReportReason } from './telemetry'
@@ -125,14 +133,14 @@ async function runServe(
     await r.close()
     process.exit(ExitCode.ok)
   } catch (e) {
-    const err = e as { name?: string; code?: string; message?: string }
+    const err = e as { name?: string; code?: string; message?: string; detail?: string }
     const code =
       err.name === 'BootError'
         ? (err.code ?? 'BOOT_FAILED')
         : err.name === 'ConfigError'
           ? 'CONFIG_ERROR'
           : 'SERVE_FAILED'
-    printer.fail(code, err.message ?? String(e))
+    printer.fail(code, ...splitArgs(err.message ?? String(e), err.detail))
     process.exit(ExitCode.error)
   }
 }
@@ -188,7 +196,7 @@ async function runSync(
   const isTTY = process.stdout.isTTY === true
   try {
     const config = resolveConfig({ server: global.server, token: global.token })
-    for (const w of config.warnings) printer.warn(w)
+    emitWarnings(printer, config)
     // 令牌缺失 → 不建客户端：--file/--dir 的离线注入本就不该碰服务端
     const client = config.token === null ? undefined : clientFromConfig(config)
     let telemetry: { reported: ReportReason; ask: AskReason } | null = null
@@ -220,7 +228,7 @@ async function runSync(
       },
     )
 
-    for (const w of outcome.warnings) printer.warn(w)
+    emitWarnings(printer, outcome)
     printer.plan(outcome.rows)
     for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
     if (outcome.backupRoot) printer.info(`备份 ${outcome.backupRoot}`)
@@ -248,16 +256,16 @@ async function runSync(
     })
     process.exit(outcome.exitCode)
   } catch (e) {
-    const err = e as { code?: string; details?: unknown; message?: string }
+    const err = e as { code?: string; details?: unknown; message?: string; detail?: string }
     for (const line of violationLines(err.details)) printer.warn(line)
-    printer.fail(err.code ?? 'SYNC_FAILED', err.message ?? String(e))
+    printer.fail(err.code ?? 'SYNC_FAILED', ...splitArgs(err.message ?? String(e), err.detail))
     process.exit(ExitCode.error)
   }
 }
 
 function clientFrom(global: GlobalOptions, printer: Printer) {
   const config = resolveConfig({ server: global.server, token: global.token })
-  for (const w of config.warnings) printer.warn(w)
+  emitWarnings(printer, config)
   return config.token === null ? undefined : clientFromConfig(config)
 }
 
@@ -302,7 +310,7 @@ async function runDiscuss(
       },
       client ? { client } : {},
     )
-    for (const w of outcome.warnings) printer.warn(w)
+    emitWarnings(printer, outcome)
     for (const line of discussLines(outcome)) printer.info(line)
     printer.result({
       summary: {
@@ -322,8 +330,8 @@ async function runDiscuss(
     })
     process.exit(outcome.exitCode)
   } catch (e) {
-    const err = e as { code?: string; message?: string }
-    printer.fail(err.code ?? 'DISCUSS_FAILED', err.message ?? String(e))
+    const err = e as { code?: string; message?: string; detail?: string }
+    printer.fail(err.code ?? 'DISCUSS_FAILED', ...splitArgs(err.message ?? String(e), err.detail))
     process.exit(ExitCode.error)
   }
 }
@@ -358,7 +366,7 @@ async function runScan(cmd: ScanCmdOptions, global: GlobalOptions): Promise<void
       },
       client ? { client } : {},
     )
-    for (const w of outcome.warnings) printer.warn(w)
+    emitWarnings(printer, outcome)
     for (const row of outcome.prompts)
       printer.info(
         `${row.action === 'created' ? '新增' : '跳过'} ${row.title}${row.reason ? `（${row.reason}）` : ''}`,
@@ -385,8 +393,54 @@ async function runScan(cmd: ScanCmdOptions, global: GlobalOptions): Promise<void
     })
     process.exit(ExitCode.ok)
   } catch (e) {
-    const err = e as { code?: string; message?: string }
-    printer.fail(err.code ?? 'SCAN_FAILED', err.message ?? String(e))
+    const err = e as { code?: string; message?: string; detail?: string }
+    printer.fail(err.code ?? 'SCAN_FAILED', ...splitArgs(err.message ?? String(e), err.detail))
+    process.exit(ExitCode.error)
+  }
+}
+
+/**
+ * `openvibe skill get <name>`（2026-10-30）：从 OpenVibe 取回指定 skill。
+ *
+ * ⚠️ **CLI 侧零磁盘写**：落盘由服务端做（写进 `~/.openvibe/skills/<name>/`），
+ *   CLI 只发请求、报结果。取回的路径原样印出，脚本可直接拿去用。
+ */
+async function runSkillGet(name: string, global: GlobalOptions): Promise<void> {
+  const printer = printerFor('skill', global)
+  try {
+    const client = clientFrom(global, printer)
+    // ⚠️ **无令牌 ⇒ 没有客户端**：本命令必须经服务端下载（CLI 自己不出网），
+    //   缺令牌就没法干活 ⇒ 早失败并说清怎么补。
+    if (client === undefined) {
+      throw new SkillGetError(
+        'UNAUTHORIZED',
+        '未找到访问令牌，无法调用服务端 API',
+        '先运行 `openvibe serve` 生成 ~/.openvibe/config.json，或用 --token / OPENVIBE_TOKEN 指定',
+      )
+    }
+    const outcome = await skillGetAction({ name }, { client })
+    printer.info(
+      outcome.downloaded
+        ? `已取回「${outcome.name}」（${String(outcome.fileCount)} 个文件）→ ${outcome.path}`
+        : `「${outcome.name}」本机已有：${outcome.path}`,
+    )
+    printer.result({
+      report: [
+        { path: outcome.path, kind: 'skill', action: outcome.downloaded ? 'downloaded' : 'local' },
+      ],
+      summary: {
+        ok: true,
+        name: outcome.name,
+        path: outcome.path,
+        downloaded: outcome.downloaded,
+        fileCount: outcome.fileCount,
+        exitCode: ExitCode.ok,
+      },
+    })
+    process.exit(ExitCode.ok)
+  } catch (e) {
+    const err = e as { code?: string; message?: string; detail?: string }
+    printer.fail(err.code ?? 'SKILL_GET_FAILED', ...splitArgs(err.message ?? String(e), err.detail))
     process.exit(ExitCode.error)
   }
 }
@@ -408,7 +462,7 @@ async function runDiff(projectPath: string, global: GlobalOptions): Promise<void
   try {
     const client = clientFrom(global, printer)
     const outcome = await diffAction({ projectPath }, client ? { client } : {})
-    for (const w of outcome.warnings) printer.warn(w)
+    emitWarnings(printer, outcome)
     printer.info(
       `包 ${outcome.pack.name}@${outcome.pack.version}：跟踪 ${outcome.tracked} 项，漂移 ${outcome.drifted.length}，缺失 ${outcome.missing.length}`,
     )
@@ -447,8 +501,8 @@ async function runDiff(projectPath: string, global: GlobalOptions): Promise<void
     })
     process.exit(outcome.exitCode)
   } catch (e) {
-    const err = e as { code?: string; message?: string }
-    printer.fail(err.code ?? 'DIFF_FAILED', err.message ?? String(e))
+    const err = e as { code?: string; message?: string; detail?: string }
+    printer.fail(err.code ?? 'DIFF_FAILED', ...splitArgs(err.message ?? String(e), err.detail))
     process.exit(ExitCode.error)
   }
 }
@@ -459,7 +513,7 @@ async function runVerify(projectPath: string, global: GlobalOptions): Promise<vo
   try {
     const client = clientFrom(global, printer)
     const outcome = await verifyAction({ projectPath }, client ? { client } : {})
-    for (const w of outcome.warnings) printer.warn(w)
+    emitWarnings(printer, outcome)
     printer.info(`核验 ${outcome.state}：${outcome.reason}`)
     for (const m of outcome.missing) printer.info(`缺失 ${m}`)
     for (const d of outcome.drifted)
@@ -486,8 +540,8 @@ async function runVerify(projectPath: string, global: GlobalOptions): Promise<vo
     })
     process.exit(outcome.exitCode)
   } catch (e) {
-    const err = e as { code?: string; message?: string }
-    printer.fail(err.code ?? 'VERIFY_FAILED', err.message ?? String(e))
+    const err = e as { code?: string; message?: string; detail?: string }
+    printer.fail(err.code ?? 'VERIFY_FAILED', ...splitArgs(err.message ?? String(e), err.detail))
     process.exit(ExitCode.error)
   }
 }
@@ -522,7 +576,7 @@ async function runClean(
       },
       { isTTY },
     )
-    for (const w of outcome.warnings) printer.warn(w)
+    emitWarnings(printer, outcome)
     for (const row of outcome.report)
       printer.info(
         `${row.state.padEnd(8)} ${row.path}${row.backupPath ? `  备份 ${row.backupPath}` : ''}`,
@@ -553,9 +607,9 @@ async function runClean(
     })
     process.exit(outcome.exitCode)
   } catch (e) {
-    const err = e as { code?: string; details?: unknown; message?: string }
+    const err = e as { code?: string; details?: unknown; message?: string; detail?: string }
     for (const line of violationLines(err.details)) printer.warn(line)
-    printer.fail(err.code ?? 'CLEAN_FAILED', err.message ?? String(e))
+    printer.fail(err.code ?? 'CLEAN_FAILED', ...splitArgs(err.message ?? String(e), err.detail))
     process.exit(ExitCode.error)
   }
 }
@@ -603,7 +657,7 @@ async function runAsk(question: string, cmd: AskCmdOptions, global: GlobalOption
       { question, ...(cmd.project === undefined ? {} : { project: cmd.project }) },
       { ...(client ? { client } : {}), cwd: process.cwd() },
     )
-    for (const w of outcome.warnings) printer.warn(w)
+    emitWarnings(printer, outcome)
     for (const line of askLines(outcome)) printer.info(line)
     for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
     const commandRun: CommandRunReport = await reportCommandRun(
@@ -628,9 +682,9 @@ async function runAsk(question: string, cmd: AskCmdOptions, global: GlobalOption
     })
     process.exit(ExitCode.ok)
   } catch (e) {
-    const err = e as { code?: string; message?: string }
+    const err = e as { code?: string; message?: string; detail?: string }
     await reportCommandRun(client, 'ask', ExitCode.error, agentName())
-    printer.fail(err.code ?? 'ASK_FAILED', err.message ?? String(e))
+    printer.fail(err.code ?? 'ASK_FAILED', ...splitArgs(err.message ?? String(e), err.detail))
     process.exit(ExitCode.error)
   }
 }
@@ -648,7 +702,7 @@ async function runStatus(cmd: StatusCmdOptions, global: GlobalOptions): Promise<
       { ...(cmd.dir === undefined ? {} : { dir: cmd.dir }) },
       { ...(client ? { client } : {}), cwd: process.cwd() },
     )
-    for (const w of outcome.warnings) printer.warn(w)
+    emitWarnings(printer, outcome)
     for (const line of statusLines(outcome.snapshot)) printer.info(line)
     for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
     const commandRun: CommandRunReport = await reportCommandRun(
@@ -670,9 +724,9 @@ async function runStatus(cmd: StatusCmdOptions, global: GlobalOptions): Promise<
     })
     process.exit(outcome.exitCode)
   } catch (e) {
-    const err = e as { code?: string; message?: string }
+    const err = e as { code?: string; message?: string; detail?: string }
     await reportCommandRun(client, 'status', ExitCode.error, agentName())
-    printer.fail(err.code ?? 'STATUS_FAILED', err.message ?? String(e))
+    printer.fail(err.code ?? 'STATUS_FAILED', ...splitArgs(err.message ?? String(e), err.detail))
     process.exit(ExitCode.error)
   }
 }
@@ -702,7 +756,7 @@ async function runSessionLog(cmd: SessionLogCmdOptions, global: GlobalOptions): 
       },
       { ...(client ? { client } : {}) },
     )
-    for (const w of outcome.warnings) printer.warn(w)
+    emitWarnings(printer, outcome)
     for (const line of sessionLines(outcome)) printer.info(line)
     for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
     const commandRun: CommandRunReport = await reportCommandRun(
@@ -722,9 +776,12 @@ async function runSessionLog(cmd: SessionLogCmdOptions, global: GlobalOptions): 
     })
     process.exit(ExitCode.ok)
   } catch (e) {
-    const err = e as { code?: string; message?: string }
+    const err = e as { code?: string; message?: string; detail?: string }
     await reportCommandRun(client, 'session', ExitCode.error, agentName())
-    printer.fail(err.code ?? 'SESSION_LOG_FAILED', err.message ?? String(e))
+    printer.fail(
+      err.code ?? 'SESSION_LOG_FAILED',
+      ...splitArgs(err.message ?? String(e), err.detail),
+    )
     process.exit(ExitCode.error)
   }
 }
@@ -765,7 +822,7 @@ async function runRequirementAdd(
         platform: agentName(),
       },
     )
-    for (const w of outcome.warnings) printer.warn(w)
+    emitWarnings(printer, outcome)
     for (const line of requirementLines(outcome)) printer.info(line)
     for (const hint of outcome.hints) printer.info(`提示 ${hint}`)
     const commandRun: CommandRunReport = await reportCommandRun(
@@ -790,8 +847,11 @@ async function runRequirementAdd(
     })
     process.exit(outcome.exitCode)
   } catch (e) {
-    const err = e as { code?: string; message?: string }
-    printer.fail(err.code ?? 'REQUIREMENT_ADD_FAILED', err.message ?? String(e))
+    const err = e as { code?: string; message?: string; detail?: string }
+    printer.fail(
+      err.code ?? 'REQUIREMENT_ADD_FAILED',
+      ...splitArgs(err.message ?? String(e), err.detail),
+    )
     process.exit(ExitCode.error)
   }
 }
@@ -853,13 +913,20 @@ export function buildProgram(): Command {
     })
 
   program
+    .command('skill')
+    .description('从 OpenVibe 取回指定 skill（远程条目会下载落盘到 skill 库）')
+    .argument('<name>', 'skill 名')
+    .action(async (name: string) => {
+      await runSkillGet(name, program.opts<GlobalOptions>())
+    })
+
+  program
     .command('diff')
     .description('比对项目产物与 pack.lock.json，并探测是否有更新的导出版本')
     .argument('<projectPath>', '目标项目目录')
     .action(async (projectPath: string) => {
       await runDiff(projectPath, program.opts<GlobalOptions>())
     })
-
   program
     .command('verify')
     .description(

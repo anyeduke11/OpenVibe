@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { TaskCreateInput, TaskOut, TaskStatus, TaskUpdateInput } from '@openvibe/shared'
 import { apiJson } from '../api/client'
 import { PROJECT_STALE_TIME } from './useProjects'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 export function useTasks(projectId: string | null) {
   return useQuery({
@@ -29,17 +30,17 @@ export function useTaskMutations(projectId: string) {
     void qc.invalidateQueries({ queryKey: ['projects'] })
   }
 
-  const create = useMutation({
+  const create = useApiMutation({
     mutationFn: (input: TaskCreateInput) =>
       apiJson<TaskOut>(`/api/projects/${projectId}/tasks`, { method: 'POST', body: input }),
     onSuccess: invalidate,
   })
-  const update = useMutation({
+  const update = useApiMutation({
     mutationFn: ({ id, patch }: { id: string; patch: TaskUpdateInput }) =>
       apiJson<TaskOut>(`/api/tasks/${id}`, { method: 'PATCH', body: patch }),
     onSuccess: invalidate,
   })
-  const move = useMutation({
+  const move = useApiMutation({
     mutationFn: (m: TaskMove) =>
       apiJson<TaskOut>(`/api/tasks/${m.id}`, {
         method: 'PATCH',
@@ -48,7 +49,7 @@ export function useTaskMutations(projectId: string) {
     onSuccess: invalidate,
     onError: invalidate,
   })
-  const remove = useMutation({
+  const remove = useApiMutation({
     mutationFn: (id: string) => apiJson<void>(`/api/tasks/${id}`, { method: 'DELETE' }),
     onSuccess: invalidate,
   })

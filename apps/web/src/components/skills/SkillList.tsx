@@ -9,6 +9,17 @@ import { btnGhost, btnPrimary, ledgerHeadCls, ledgerNumCls, tagMonoCls } from '.
  *
  * 四态齐：改造前 `loading` 这个 prop 收了却从不渲染（加载台账是一张空表，
  * 看起来像「扫不到」），错误态与无结果态则完全缺失。
+ *
+ * ## 行内三个动作的分工（2026-10-30）
+ *
+ * | 动作 | 何时可点 | 作用 |
+ * |---|---|---|
+ * | 下载 | 有 `remoteRef` 且本机尚无目录 | 从远端把内容**真正落盘**（远程导入只建档） |
+ * | 备份 | 有本地目录 | 复制一份到 OpenVibe 的 skill 库（agent 卸载后内容还在） |
+ * | 恢复 | 有库内副本 | 从库副本写回本地目录 |
+ *
+ * ⚠️ **下载按钮只在「有远程溯源」时出现**：本地扫描来的条目没有溯源串，
+ *   给个点不动的按钮比不给更糟。
  */
 export function SkillList(props: {
   items: SkillRow[]
@@ -20,6 +31,14 @@ export function SkillList(props: {
   onEdit: (skill: SkillRow) => void
   onDelete: (skill: SkillRow) => void
   onCreate: () => void
+  /** 下载远程 skill 并落盘 */
+  onDownload?: (skill: SkillRow) => void
+  /** 备份到 skill 库 */
+  onBackup?: (skill: SkillRow) => void
+  /** 从 skill 库恢复 */
+  onRestore?: (skill: SkillRow) => void
+  /** 正在执行的动作（skill id），用于禁用按钮 */
+  busyId?: string | null
 }) {
   const body = () => {
     if (props.loading) return <AssetSkeleton rows={8} />
@@ -44,15 +63,17 @@ export function SkillList(props: {
       <table className="w-full table-fixed border-collapse text-sm">
         <thead className={`sticky top-0 z-10 bg-panel text-left ${ledgerHeadCls}`}>
           <tr className="border-b border-line">
-            <th className="w-60 px-5 py-1.5">{zh.skills.columns.name}</th>
+            <th className="w-56 px-5 py-1.5">{zh.skills.columns.name}</th>
             <th className="px-2 py-1.5">{zh.skills.columns.description}</th>
             <th className="w-24 px-2 py-1.5">{zh.skills.columns.source}</th>
             <th className="w-14 px-2 py-1.5 whitespace-nowrap text-right">
               {zh.skills.columns.versions}
             </th>
-            <th className="w-40 px-2 py-1.5">{zh.skills.columns.installed}</th>
+            <th className="w-32 px-2 py-1.5">{zh.skills.columns.installed}</th>
             <th className="w-32 px-2 py-1.5 whitespace-nowrap">{zh.projects.labels.updatedAt}</th>
-            <th className="w-28 px-2 py-1.5" />
+            {/* 动作列宽随行内动作数增长（下载/备份/恢复/编辑/删除 最多五个）——
+                固定宽度 + table-fixed ⇒ 不给够就会把中文压成竖排 */}
+            <th className="w-44 px-2 py-1.5" />
           </tr>
         </thead>
         <tbody>
@@ -96,6 +117,42 @@ export function SkillList(props: {
               </td>
               <td className="px-2 py-2">
                 <span className="flex items-center justify-end gap-1">
+                  {/* 下载：只有「有远程溯源」才有意义（本地扫描来的没溯源串） */}
+                  {s.remoteRef !== null && s.remoteRef !== '' && props.onDownload !== undefined && (
+                    <button
+                      className={`${btnGhost} shrink-0 px-2`}
+                      aria-label={`下载 ${s.name}`}
+                      title={zh.skills.library.downloadHint}
+                      disabled={props.busyId === s.id}
+                      onClick={() => props.onDownload?.(s)}
+                    >
+                      <Icon name="dl" size={12} />
+                    </button>
+                  )}
+                  {/* 备份到库：有本地目录才备份得动 */}
+                  {s.skillDir !== null && props.onBackup !== undefined && (
+                    <button
+                      className={`${btnGhost} shrink-0 px-2`}
+                      aria-label={`备份 ${s.name} 到库`}
+                      title={zh.skills.library.backupHint}
+                      disabled={props.busyId === s.id}
+                      onClick={() => props.onBackup?.(s)}
+                    >
+                      <Icon name="layers" size={12} />
+                    </button>
+                  )}
+                  {/* 从库恢复：只有库里有副本才有得恢复 */}
+                  {s.libraryDir !== null && props.onRestore !== undefined && (
+                    <button
+                      className={`${btnGhost} shrink-0 px-2`}
+                      aria-label={`从库恢复 ${s.name}`}
+                      title={zh.skills.library.restoreHint}
+                      disabled={props.busyId === s.id}
+                      onClick={() => props.onRestore?.(s)}
+                    >
+                      <Icon name="refresh" size={12} />
+                    </button>
+                  )}
                   <button
                     className={`${btnGhost} whitespace-nowrap px-2`}
                     onClick={() => props.onEdit(s)}

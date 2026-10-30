@@ -18,7 +18,7 @@ export function DialogPanel(props: {
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-scrim/30" />
       <DialogPrimitive.Content
-        aria-describedby={undefined}
+        aria-modal
         className={`z-50 flex flex-col bg-panel shadow-xl outline-none ${
           isSheet
             ? 'fixed right-0 top-0 h-full w-[min(760px,100vw)] border-l border-line'
@@ -29,6 +29,7 @@ export function DialogPanel(props: {
           <DialogPrimitive.Title className="text-base font-semibold">{title}</DialogPrimitive.Title>
           <DialogPrimitive.Close
             aria-label="关闭弹窗"
+            tabIndex={-1}
             className="rounded px-2 py-1 text-sm text-ink-muted hover:bg-panel-sunk"
           >
             ✕

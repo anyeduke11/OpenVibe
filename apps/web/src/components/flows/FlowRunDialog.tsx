@@ -3,9 +3,10 @@ import type { FlowTemplateOut, Stage } from '@openvibe/shared'
 import { extractVariables, fillVariables, remainingVariables } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 import { SheetDialog } from '../ui/SheetDialog'
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
 import { btnGhost, btnPrimary, inputCls, labelCls, noteCls, segCls, segItemCls } from '../ui/styles'
 import { useFlowMutations } from '../../hooks/useFlows'
+import type { ApiError } from '../../api/client'
 
 /** 文案随组件走（不走中央 zh.ts）：本组件整体在懒加载 chunk，文案不占入口体积 */
 const zhFillRemain = (n: number, names: string) => `未填 ${n} 个（保留占位符）：{{${names}}}`
@@ -75,7 +76,7 @@ export function FlowRunDialog(props: {
       },
       {
         onSuccess: () => toast(zhRun.savedAsCustom),
-        onError: (e: Error) => toast(e.message, 'error'),
+        onError: (e: ApiError) => toastError(e),
       },
     )
   }

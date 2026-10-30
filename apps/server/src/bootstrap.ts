@@ -37,11 +37,20 @@ export type BootErrorCode = (typeof BOOT_ERROR_CODES)[number]
 
 export class BootError extends Error {
   code: BootErrorCode
+  /**
+   * 诊断原文（允许英文：Node/第三方错误消息、ABI 常量名、修复命令）。
+   *
+   * 与 `message` 分通道：`message` 只写中文一句话（说清哪里坏了），`detail` 承接排障原文。
+   * 合成一处会让中文终端里混进英文机器串，而丢掉原文又让排障失去依据。
+   * 打印在 `apps/cli/src/output.ts` 的 `printer.fail(code, message, detail)`。
+   */
+  detail?: string
 
-  constructor(code: BootErrorCode, message: string) {
+  constructor(code: BootErrorCode, message: string, detail?: string) {
     super(message)
     this.name = 'BootError'
     this.code = code
+    if (detail !== undefined) this.detail = detail
   }
 }
 
@@ -130,13 +139,13 @@ export async function bootstrap(options: BootstrapOptions): Promise<BootstrapRes
   try {
     db = openDatabase(dbPath, { autoMigrate: false })
   } catch (e) {
-    throw new BootError('DB_OPEN_FAILED', `数据库无法打开：${dbPath} — ${message(e)}`)
+    throw new BootError('DB_OPEN_FAILED', `数据库无法打开：${dbPath}`, message(e))
   }
   try {
     migrate(db)
   } catch (e) {
     db.close()
-    throw new BootError('MIGRATION_FAILED', `数据库迁移失败：${message(e)}`)
+    throw new BootError('MIGRATION_FAILED', '数据库迁移失败', message(e))
   }
 
   const token = options.token ?? randomBytes(32).toString('hex')
@@ -176,7 +185,7 @@ export async function bootstrap(options: BootstrapOptions): Promise<BootstrapRes
   } catch (e) {
     await app.close().catch(() => undefined)
     db.close()
-    throw new BootError('LISTEN_FAILED', `端口 ${port} 监听失败：${message(e)}`)
+    throw new BootError('LISTEN_FAILED', `端口 ${port} 监听失败`, message(e))
   }
   const address = app.server.address() as AddressInfo
   const url = `http://${address.address.includes(':') ? `[${address.address}]` : address.address}:${address.port}`

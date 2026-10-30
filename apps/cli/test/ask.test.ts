@@ -247,7 +247,8 @@ describe('ask 的答案塑形与项目解析', () => {
       (e: unknown) => e,
     )
     expect((err as AskError).code).toBe('SERVER_UNREACHABLE')
-    expect((err as Error).message).toContain('ECONNREFUSED')
+    // 英文诊断原文在 detail 通道（与中文人话分通道）
+    expect((err as AskError).detail).toContain('ECONNREFUSED')
     expect((err as Error).message).toContain('openvibe serve')
   })
 

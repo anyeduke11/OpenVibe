@@ -15,6 +15,7 @@ import {
   type ProjectOut,
 } from '@openvibe/shared'
 import { ApiError, type ApiClient } from './client'
+import { isEnglish } from './output'
 
 /**
  * 包来源解析（m6b FR-2.1）：--pack（在线 bundle）/ --file（离线单文件）/ --dir（离线导出目录）
@@ -35,11 +36,21 @@ export type SourceErrorCode =
 export class SourceError extends Error {
   readonly code: SourceErrorCode
   readonly details?: unknown
-  constructor(code: SourceErrorCode, message: string, details?: unknown) {
+  /**
+   * 诊断原文（允许英文：Node 的 errno 消息、JSON 解析器原文等）。
+   *
+   * 与 `message` 分通道：`message` 只写中文一句话（说清哪里坏了），
+   * `detail` 承接排障原文。⚠️ 与 `details` 是两件事：`details` 是**结构化**数据
+   * （供程序判断），`detail` 是**给人看的原文**（供排障）。混用会让「机器读」
+   * 与「人读」互相污染。
+   */
+  readonly detail?: string
+  constructor(code: SourceErrorCode, message: string, details?: unknown, detail?: string) {
     super(message)
     this.name = 'SourceError'
     this.code = code
     if (details !== undefined) this.details = details
+    if (detail !== undefined) this.detail = detail
   }
 }
 
@@ -86,12 +97,18 @@ function readJsonFile(path: string, label: string): unknown {
   try {
     text = readFileSync(path, 'utf8')
   } catch (e) {
-    throw new SourceError('SOURCE_READ', `读不到${label}：${path}（${(e as Error).message}）`)
+    // 英文 errno 原文走 detail 通道，不塞进中文 message
+    throw new SourceError('SOURCE_READ', `读不到${label}：${path}`, undefined, (e as Error).message)
   }
   try {
     return JSON.parse(text)
   } catch (e) {
-    throw new SourceError('BAD_JSON', `${label} 不是合法 JSON：${path}（${(e as Error).message}）`)
+    throw new SourceError(
+      'BAD_JSON',
+      `${label} 不是合法 JSON：${path}`,
+      undefined,
+      (e as Error).message,
+    )
   }
 }
 
@@ -141,8 +158,11 @@ export function verifyPack(
     const issue = manifestResult.error.issues[0]
     throw new SourceError(
       'BUNDLE_INVALID',
-      `${origin} 不符合标准包契约（design §7.2）：${issue ? `${issue.path.join('.')} ${issue.message}` : '未知字段错误'}`,
+      // zod 的 issue.message 语言不定（本仓自定义的可能是中文，zod 内置默认是英文）
+      // ⇒ 中文留人话、英文走 detail（见 isEnglish）
+      `${origin} 不符合标准包契约（design §7.2）：${issue ? `${issue.path.join('.')} ${issue.message}` : '未知字段错误'}`, // error-text-exempt: zod issue.message 语言不定，中文部分必须留在人话里
       { issues: manifestResult.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`) },
+      isEnglish(issue?.message) ? issue?.message : undefined,
     )
   }
   const manifest = manifestResult.data
@@ -214,7 +234,10 @@ export function loadBundleJson(raw: unknown, origin: string): LoadedPack {
     const issue = bundleResult.error.issues[0]
     throw new SourceError(
       'BUNDLE_INVALID',
-      `${origin} 不是合法 bundle（design §7.1）：${issue ? `${issue.path.join('.')} ${issue.message}` : '未知字段错误'}`,
+      // 同上：zod issue.message 语言不定 ⇒ 中文留人话、英文走 detail
+      `${origin} 不是合法 bundle（design §7.1）：${issue ? `${issue.path.join('.')} ${issue.message}` : '未知字段错误'}`, // error-text-exempt: zod issue.message 语言不定，中文部分必须留在人话里
+      undefined,
+      isEnglish(issue?.message) ? issue?.message : undefined,
     )
   }
   const contents: Record<string, string> = {}

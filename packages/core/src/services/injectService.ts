@@ -50,11 +50,21 @@ export type AskFn = (file: InjectPlanFile) => Promise<InjectDecision>
 export class InjectError extends Error {
   readonly code: string
   readonly details?: unknown
-  constructor(code: string, message: string, details?: unknown) {
+  /**
+   * 诊断原文（允许英文：Node 的 errno 消息等）。
+   *
+   * 与 `message` 分通道：`message` 只写中文一句话（说清哪里坏了），
+   * `detail` 承接排障原文。⚠️ 与 `details` 是两件事：`details` 是**结构化**数据
+   * （供程序判断），`detail` 是**给人看的原文**（供排障）。混用会让「机器读」
+   * 与「人读」互相污染。
+   */
+  readonly detail?: string
+  constructor(code: string, message: string, details?: unknown, detail?: string) {
     super(message)
     this.name = 'InjectError'
     this.code = code
     if (details !== undefined) this.details = details
+    if (detail !== undefined) this.detail = detail
   }
 }
 

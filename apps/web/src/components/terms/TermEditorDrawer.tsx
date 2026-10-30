@@ -10,8 +10,9 @@ import { useTermMutations } from '../../hooks/useTerms'
 import { zh } from '../../i18n/zh'
 import { ReflowOriginLine } from '../projects/ReflowActions'
 import { Dialog, DialogPanel } from '../ui/Dialog'
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
 import { btnGhost, btnPrimary, chipTone, inputCls, labelCls } from '../ui/styles'
+import type { ApiError } from '../../api/client'
 
 interface FormState {
   zh: string
@@ -129,7 +130,7 @@ export function TermEditorDrawer(props: {
       toast(zh.terms.editor.saved)
       props.onSaved(created)
     }
-    const onErr = (e: Error) => toast(e.message, 'error')
+    const onErr = (e: ApiError) => toastError(e)
     if (term === null) {
       create.mutate(payload, { onSuccess: onOk, onError: onErr })
     } else {

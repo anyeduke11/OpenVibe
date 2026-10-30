@@ -17,6 +17,7 @@ export function registerErrors(
     if (error instanceof AppError) {
       const body: ErrorBody = { code: error.code, message: error.message }
       if (error.details !== undefined) body.details = error.details
+      if (error.detail !== undefined) body.detail = error.detail
       return reply.code(error.httpStatus).send(body)
     }
 

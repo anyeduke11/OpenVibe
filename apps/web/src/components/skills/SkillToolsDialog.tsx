@@ -29,6 +29,8 @@ export function SkillToolsDialog(props: {
   onOpenUpdates: () => void
   onOpenCleanup: () => void
   onOpenReview: () => void
+  /** 清理失效条目（2026-10-30） */
+  onOpenCleanupBroken: () => void
 }) {
   const [roots, setRoots] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -95,6 +97,11 @@ export function SkillToolsDialog(props: {
                   },
                   { icon: 'layers' as const, label: zh.skills.cleanup, run: props.onOpenCleanup },
                   { icon: 'target' as const, label: zh.skills.review, run: props.onOpenReview },
+                  {
+                    icon: 'trash' as const,
+                    label: zh.skills.cleanupBroken.title,
+                    run: props.onOpenCleanupBroken,
+                  },
                 ] as const
               ).map((a) => (
                 <button key={a.label} className={btnGhost} onClick={a.run}>

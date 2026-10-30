@@ -44,11 +44,20 @@ export const DEFAULT_SOURCE_PLATFORM = 'cli'
 export class RequirementAddError extends Error {
   readonly code: string
   readonly details?: unknown
-  constructor(code: string, message: string, details?: unknown) {
+  /**
+   * 诊断原文（允许英文：Node 的 errno 消息等）。
+   *
+   * 与 `message` 分通道：`message` 只写中文一句话，`detail` 承接排障原文。
+   * ⚠️ 与 `details` 是两件事：`details` 是**结构化**数据（供程序判断），
+   * `detail` 是**给人看的原文**（供排障）。
+   */
+  readonly detail?: string
+  constructor(code: string, message: string, details?: unknown, detail?: string) {
     super(message)
     this.name = 'RequirementAddError'
     this.code = code
     if (details !== undefined) this.details = details
+    if (detail !== undefined) this.detail = detail
   }
 }
 
@@ -153,10 +162,14 @@ export function requirementIdempotencyKey(input: {
 }
 
 function unreachable(e: unknown): never {
-  const detail = e instanceof Error ? e.message : String(e)
+  // ServerUnreachable 的 message 是中文人话（连的是哪个地址），detail 是底层英文原文
+  const detail =
+    e instanceof ServerUnreachable ? e.detail : e instanceof Error ? e.message : String(e)
   throw new RequirementAddError(
     'SERVER_UNREACHABLE',
-    `${detail}。需求回流只经 HTTP 写服务端的待确认队列，本机不落任何文件：先运行 \`openvibe serve\` 起本地服务（或用 --server 指定地址）`,
+    '需求回流只经 HTTP 写服务端的待确认队列，本机不落任何文件：先运行 `openvibe serve` 起本地服务（或用 --server 指定地址）',
+    undefined,
+    detail,
   )
 }
 

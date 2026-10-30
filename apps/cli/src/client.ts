@@ -26,11 +26,16 @@ export class ApiError extends Error {
   }
 }
 
-/** 连不上服务端（未启动 / 地址不对）。sync 的离线分支与 scan 的硬失败都据此分流 */
+/**
+ * 连不上服务端（未启动 / 地址不对）。sync 的离线分支与 scan 的硬失败都据此分流。
+ *
+ * `message` 是中文人话（说清连的是哪个地址）；`detail` 是底层英文原文
+ * （`connect ECONNREFUSED` / `fetch failed`）——那是排障依据，不该混进中文句子里。
+ */
 export class ServerUnreachable extends Error {
   readonly detail: string
   constructor(serverUrl: string, detail: string) {
-    super(`无法连接 OpenVibe 服务（${serverUrl}）：${detail}`)
+    super(`无法连接 OpenVibe 服务（${serverUrl}）`)
     this.name = 'ServerUnreachable'
     this.detail = detail
   }

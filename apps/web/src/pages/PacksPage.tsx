@@ -8,7 +8,7 @@ import { PackDetailPane } from '../components/packs/PackDetailPane'
 import { PackDetailSheet } from '../components/packs/PackDetailSheet'
 import { ConfirmDeleteDialog } from '../components/ui/ConfirmDeleteDialog'
 import { Icon } from '../components/ui/icons'
-import { toast } from '../components/ui/Toaster'
+import { toast, toastError } from '../components/ui/Toaster'
 import {
   btnGhost,
   btnPrimary,
@@ -24,6 +24,7 @@ import {
   skelCls,
   tagCls,
 } from '../components/ui/styles'
+import type { ApiError } from '../api/client'
 
 /**
  * /packs（m6a FR-1–FR-5）：列表 + 详情。
@@ -236,7 +237,7 @@ export function PacksPage() {
               if (selectedId === deleting.id) setSelectedId(null)
               setDeleting(null)
             },
-            onError: (e: Error) => toast(e.message, 'error'),
+            onError: (e: ApiError) => toastError(e),
           })
         }}
       >

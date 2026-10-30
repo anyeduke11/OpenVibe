@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   InjectionStatusOut,
   ProjectCreateInput,
@@ -6,6 +6,7 @@ import type {
   ProjectUpdateInput,
 } from '@openvibe/shared'
 import { apiJson } from '../api/client'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 /** dev-plan §5.3：staleTime 15s；项目侧写后失效 ['projects']/['project',id] 及子资源 */
 export const PROJECT_STALE_TIME = 15_000
@@ -89,21 +90,21 @@ export function useProjectMutations(id?: string) {
     }
   }
 
-  const create = useMutation({
+  const create = useApiMutation({
     mutationFn: (input: ProjectCreateInput) =>
       apiJson<ProjectMutationResult>('/api/projects', { method: 'POST', body: input }),
     onSuccess: invalidate,
   })
-  const update = useMutation({
+  const update = useApiMutation({
     mutationFn: ({ id: pid, patch }: { id: string; patch: ProjectUpdateInput }) =>
       apiJson<ProjectMutationResult>(`/api/projects/${pid}`, { method: 'PATCH', body: patch }),
     onSuccess: invalidate,
   })
-  const remove = useMutation({
+  const remove = useApiMutation({
     mutationFn: (pid: string) => apiJson<void>(`/api/projects/${pid}`, { method: 'DELETE' }),
     onSuccess: invalidate,
   })
-  const switchStage = useMutation({
+  const switchStage = useApiMutation({
     mutationFn: ({ stageName }: { stageName: string }) =>
       apiJson<ProjectView>(`/api/projects/${id ?? ''}/stages/current`, {
         method: 'POST',
@@ -112,7 +113,7 @@ export function useProjectMutations(id?: string) {
     onSuccess: invalidate,
   })
   /** 勾选即时持久化（m5 FR-3.2）：PUT 幂等，取消勾选由服务端删登记行 */
-  const setCheck = useMutation({
+  const setCheck = useApiMutation({
     mutationFn: (input: { stageName: string; itemId: string; checked: boolean }) =>
       apiJson<{ checkStates: CheckState[]; health: ProjectHealth }>(
         `/api/projects/${id ?? ''}/check-states`,

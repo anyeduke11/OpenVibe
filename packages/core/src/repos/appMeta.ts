@@ -65,6 +65,17 @@ export const APP_META_KEYS = {
    *   补偿手段是**读端永不回显全文**（视图里只有 `has_api_key` ＋ 末 4 位）。
    */
   langInterpretProvider: 'langInterpretProvider',
+  /**
+   * **本地 skill 扫描根清单**（owner 2026-10-30 裁定「改成可配置清单」）。
+   *
+   * ⚠️ **值是 JSON 字符串数组**（绝对路径）。空数组 = 不扫任何根（不是「回落默认」）——
+   *   与 `POST /api/skills/scan` 的 `roots` 语义一致（显式传空数组即不扫）。
+   *
+   * ⚠️ **键不存在 ≠ 空数组**：键不存在 ⇒ 读侧回落「出厂默认清单」
+   *   （约定式发现 ∪ 已知 agent 路径），这是首次启动的期望行为；
+   *   键存在但值为空数组 ⇒ 用户显式清空 ⇒ 真的不扫。两者必须能区分。
+   */
+  skillScanRoots: 'skillScanRoots',
 } as const
 
 export class AppMetaRepo {

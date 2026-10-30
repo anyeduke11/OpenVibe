@@ -79,7 +79,6 @@ export {
   computeDirHash,
   parseSkillFrontmatter,
   defaultScanRoots,
-  discoverSkillRoots,
   zcodePluginSkillRoots,
   hashSkillEntries,
   skillNameIssue,
@@ -87,6 +86,19 @@ export {
   reviewSkill,
   SkillsRepo,
 } from './repos/skills'
+export {
+  KNOWN_SKILL_ROOTS,
+  defaultSkillRoots,
+  discoverSkillRoots,
+  expandKnownRoots,
+} from './repos/skill-scan-roots'
+export {
+  SqliteSkillLibrary,
+  skillLibraryDir,
+  skillLibraryRoot,
+  type BackupResult,
+  type SkillLibraryRepo,
+} from './repos/skillLibrary'
 export { PromptsRepo } from './repos/prompts'
 export { TermsRepo } from './repos/terms'
 export { PlaybooksRepo } from './repos/playbooks'

@@ -19,7 +19,8 @@ queryClient.getQueryCache().subscribe((event) => {
   const query = event.query
   const error = query?.state.error
   if (query?.state.status === 'error' && error instanceof ApiError) {
-    toast(error.message, 'error')
+    // 中文人话 + 英文诊断原文分两路：detail 存在时 toast 常驻（可点开看原文）
+    toast(error.message, 'error', error.detail)
   }
 })
 

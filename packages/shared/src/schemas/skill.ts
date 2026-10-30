@@ -24,6 +24,9 @@ export const SkillOut = z.object({
   // 与树级指纹（内容无关，检查更新用）。本地条目两列为 null。
   remoteRef: z.string().nullable().default(null),
   remoteTreeHash: z.string().nullable().default(null),
+  // 2026-10-30 起 additive：库内副本目录（~/.openvibe/skills/<name>/）。
+  // null = 未备份。备份与 agent 目录无关，故原件没了内容还在。
+  libraryDir: z.string().nullable().default(null),
 })
 export type SkillOut = z.infer<typeof SkillOut>
 
@@ -48,6 +51,125 @@ export const SkillScanInput = z.object({
   roots: z.array(z.string()).optional(),
 })
 export type SkillScanInput = z.infer<typeof SkillScanInput>
+
+// ---------------------------------------------------------------------------
+// 扫描根配置（2026-10-30：改成可配置清单，覆盖国内主流 agent）
+// ---------------------------------------------------------------------------
+
+/** 扫描根清单项 */
+export const SkillScanRoot = z.object({
+  /** 绝对路径 */
+  path: z.string().min(1),
+  /** 启用与否（停用的根保留在清单里，只是不扫） */
+  enabled: z.boolean().default(true),
+})
+export type SkillScanRoot = z.infer<typeof SkillScanRoot>
+
+/** 扫描根清单（整份覆盖式写入） */
+export const SkillScanRootsInput = z.object({
+  roots: z.array(SkillScanRoot),
+})
+export type SkillScanRootsInput = z.infer<typeof SkillScanRootsInput>
+
+/**
+ * 扫描根配置视图。
+ *
+ * ⚠️ `configured=false` ⇒ 用户从未改过 ⇒ 扫描走「出厂默认清单」。
+ * 这与「用户清空成空数组」是**两种状态**，必须能区分：
+ * 前者扫默认根，后者真的不扫。
+ */
+export const SkillScanRootsView = z.object({
+  /** 当前生效的根（启用的那些） */
+  roots: z.array(z.string()),
+  /** 清单全量（含停用的） */
+  items: z.array(SkillScanRoot),
+  /** 用户是否显式配置过（false = 走出厂默认） */
+  configured: z.boolean(),
+})
+export type SkillScanRootsView = z.infer<typeof SkillScanRootsView>
+
+// ---------------------------------------------------------------------------
+// Skill 库（2026-10-30：独立于其他 agent 的备份与生命周期）
+// ---------------------------------------------------------------------------
+
+/** 库操作：备份 / 恢复 / 移出 */
+export const SkillLibraryInput = z.object({
+  /** 恢复到的目标目录；缺省 = 原 skill 目录 */
+  targetDir: z.string().min(1).optional(),
+})
+export type SkillLibraryInput = z.input<typeof SkillLibraryInput>
+
+export const SkillLibraryReport = z.object({
+  skillId: z.string(),
+  name: z.string(),
+  /** 库内副本目录 */
+  libraryDir: z.string(),
+  /** 复制的文件数 */
+  fileCount: z.number().int().min(0),
+  /** 副本内容的目录指纹 */
+  dirHash: z.string(),
+})
+export type SkillLibraryReport = z.infer<typeof SkillLibraryReport>
+
+export const SkillLibraryRestoreReport = z.object({
+  skillId: z.string(),
+  name: z.string(),
+  /** 实际写入的目录 */
+  targetDir: z.string(),
+  fileCount: z.number().int().min(0),
+})
+export type SkillLibraryRestoreReport = z.infer<typeof SkillLibraryRestoreReport>
+
+// ---------------------------------------------------------------------------
+// 失效条目清理（2026-10-30：一键批量清理）
+// ---------------------------------------------------------------------------
+
+/** 清理判定的两问：路径还在吗 / 还能重新下载吗 */
+export const SkillCleanupInput = z.object({
+  /** 限定只清理这些 id；缺省 = 全部符合判定的条目 */
+  ids: z.array(z.string()).optional(),
+  /**
+   * 是否连「有库内副本」的条目一起清。
+   * 缺省 false —— 有副本的条目即使原件没了，内容还在库里，删了台账等于丢掉索引。
+   */
+  includeBackedUp: z.boolean().default(false),
+})
+export type SkillCleanupInput = z.input<typeof SkillCleanupInput>
+
+export const SkillCleanupItem = z.object({
+  id: z.string(),
+  name: z.string(),
+  /** 原 skill 目录（已不存在） */
+  skillDir: z.string(),
+  /** 是否还能从远端重新下载（有 remote 溯源即可） */
+  downloadable: z.boolean(),
+  /** 是否有库内副本 */
+  backedUp: z.boolean(),
+  /** 不可下载且无副本 ⇒ 内容已彻底丢失 */
+  unrecoverable: z.boolean(),
+})
+export type SkillCleanupItem = z.infer<typeof SkillCleanupItem>
+
+export const SkillCleanupReport = z.object({
+  /** 被删除的条目数 */
+  removed: z.number().int().min(0),
+  items: z.array(SkillCleanupItem),
+})
+export type SkillCleanupReport = z.infer<typeof SkillCleanupReport>
+
+/** 清理前的预检（不删，只报告） */
+export const SkillCleanupPreview = z.object({
+  items: z.array(SkillCleanupItem),
+  summary: z.object({
+    /** 目录已消失 */
+    stale: z.number().int().min(0),
+    /** 目录已消失且不可下载 */
+    unrecoverable: z.number().int().min(0),
+    /** 目录已消失但可下载（或有副本）⇒ 保留 */
+    recoverable: z.number().int().min(0),
+  }),
+})
+export type SkillCleanupPreview = z.infer<typeof SkillCleanupPreview>
 
 export const SkillScanReport = z.object({
   discovered: z.number().int().min(0),
@@ -115,6 +237,34 @@ export const SkillRemoteImportReport = z.object({
   warnings: z.array(z.string()),
 })
 export type SkillRemoteImportReport = z.infer<typeof SkillRemoteImportReport>
+
+/**
+ * 下载落盘（2026-10-30）：远程 skill 真正下到本地。
+ *
+ * ⚠️ 现状「远程导入」**只建档不落盘** —— 内容只用来算指纹，`skillDir` 留空。
+ *   本输入让用户显式指定落点，把内容真正写进磁盘。
+ */
+export const SkillDownloadInput = z.object({
+  /** 落盘根目录；缺省 = OpenVibe 的 skill 库目录（~/.openvibe/skills/） */
+  targetDir: z.string().min(1).optional(),
+  /** 缺省 = 台账里该条 skill 的 remote 溯源串 */
+  remoteRef: z.string().min(1).optional(),
+})
+export type SkillDownloadInput = z.input<typeof SkillDownloadInput>
+
+export const SkillDownloadReport = z.object({
+  skillId: z.string(),
+  name: z.string(),
+  /** 实际写入的目录 */
+  targetDir: z.string(),
+  fileCount: z.number().int().min(0),
+  /** 内容指纹（与扫描侧同公式） */
+  dirHash: z.string(),
+  /** 溯源串 */
+  origin: z.string(),
+  warnings: z.array(z.string()),
+})
+export type SkillDownloadReport = z.infer<typeof SkillDownloadReport>
 
 // ---------------------------------------------------------------------------
 // 检查更新（DEV-0068）：树指纹对比，GitHub 整仓一次 trees 调用，零内容下载

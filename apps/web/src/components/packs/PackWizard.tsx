@@ -13,7 +13,7 @@ import { ApiError } from '../../api/client'
 import { usePackExports, usePackList, usePackMutations, usePackPreview } from '../../hooks/usePacks'
 import { useFlowTemplates } from '../../hooks/useFlows'
 import { zh } from '../../i18n/zh'
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
 import {
   btnGhost,
   btnPrimary,
@@ -170,13 +170,13 @@ export function PackWizard(props: { initial: PackOut | null }) {
       const err = e as ApiError
       if (err.code === 'NAME_CONFLICT') {
         goTo(0)
-        toast(err.message, 'error')
+        toastError(err)
       } else if (err.code === 'STALE_SELECTION') {
         setStale(toAssetIds(err.details))
         goTo(2)
-        toast(err.message, 'error')
+        toastError(err)
       } else {
-        toast(err.message, 'error')
+        toastError(err)
       }
       return null
     }
@@ -225,7 +225,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
         setStale(toAssetIds(err.details))
         goTo(2)
       }
-      toast(err.message, 'error')
+      toastError(err)
     }
   }
 

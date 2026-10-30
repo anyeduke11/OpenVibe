@@ -1,6 +1,7 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import type { ExtractOut } from '@openvibe/shared'
 import { apiJson } from '../api/client'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 /**
  * M10/D 提取触发（日志区入口的 mutation 面）。
@@ -8,7 +9,7 @@ import { apiJson } from '../api/client'
  */
 export function useExtractRun(projectId: string) {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (input: { logIds: string[]; confirm: boolean; remember: boolean }) =>
       apiJson<ExtractOut>('/api/extract', {
         method: 'POST',

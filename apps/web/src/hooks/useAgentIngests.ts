@@ -1,6 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiJson } from '../api/client'
 import type { ProjectContextOut } from '@openvibe/shared'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 /**
  * M8-E 的取数 hook（`m8-agent-panel.md` FR-5.3.2 ＋ spec §3-3）。
@@ -82,7 +83,7 @@ export function useProjectContext(id: string | null, fields?: readonly string[])
  */
 export function useReviewIngest(id: string | null) {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (input: { ingestId: string; to: 'published' | 'rejected'; reason?: string }) =>
       apiJson(`/api/agent/ingests/${input.ingestId}/review`, {
         method: 'POST',

@@ -25,8 +25,9 @@ import {
 import { useFlowMutations } from '../../hooks/useFlows'
 import { zh } from '../../i18n/zh'
 import { Dialog, DialogPanel } from '../ui/Dialog'
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
 import { btnDanger, btnGhost, btnPrimary, inputCls, labelCls } from '../ui/styles'
+import type { ApiError } from '../../api/client'
 
 const csv = (value: string): string[] =>
   value
@@ -310,7 +311,7 @@ export function FlowTemplateEditor(props: {
       prompt: s.prompt,
     }))
     const payload: FlowTemplateCreateInput = { name: name.trim(), kind, stages: payloadStages }
-    const onError = (e: Error) => toast(e.message, 'error')
+    const onError = (e: ApiError) => toastError(e)
     if (template === null) {
       create.mutate(payload, {
         onSuccess: (t) => {

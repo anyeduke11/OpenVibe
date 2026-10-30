@@ -16,6 +16,7 @@ import {
   type SyncLockHandle,
 } from '@openvibe/core'
 import { compareCodeUnit, type PackLock } from '@openvibe/shared'
+import { createWarningBag } from '../output'
 import { releaseLockOnSignal, uniqueBackupRoot, utcStamp } from './sync'
 
 /**
@@ -32,11 +33,20 @@ import { releaseLockOnSignal, uniqueBackupRoot, utcStamp } from './sync'
 export class CleanError extends Error {
   readonly code: string
   readonly details?: unknown
-  constructor(code: string, message: string, details?: unknown) {
+  /**
+   * 诊断原文（允许英文：Node 的 errno 消息等）。
+   *
+   * 与 `message` 分通道：`message` 只写中文一句话，`detail` 承接排障原文。
+   * ⚠️ 与 `details` 是两件事：`details` 是**结构化**数据（供程序判断），
+   * `detail` 是**给人看的原文**（供排障）。
+   */
+  readonly detail?: string
+  constructor(code: string, message: string, details?: unknown, detail?: string) {
     super(message)
     this.name = 'CleanError'
     this.code = code
     if (details !== undefined) this.details = details
+    if (detail !== undefined) this.detail = detail
   }
 }
 
@@ -88,6 +98,8 @@ export interface CleanOutcome {
   report: CleanReportRow[]
   summary: CleanSummary
   warnings: string[]
+  /** 与 warnings 同序等长的诊断原文（允许英文） */
+  warningDetails?: (string | undefined)[]
   hints: string[]
   /**
    * FR-6.9 v1.4：0 全清 / 2 「没退干净」= 有被保留的 DRIFT **或** 用户在确认里答了「不」。
@@ -119,7 +131,7 @@ function diskReader(projectPath: string): (relPath: string) => string | null {
     } catch (e) {
       const err = e as NodeJS.ErrnoException
       if (err.code === 'ENOENT' || err.code === 'ENOTDIR') return null
-      throw new CleanError('READ_FAILED', `读取 ${abs} 失败：${err.message}`)
+      throw new CleanError('READ_FAILED', `读取 ${abs} 失败`, undefined, err.message)
     }
   }
 }
@@ -230,7 +242,9 @@ export async function cleanAction(
     ...(options.force === true ? { force: true } : {}),
   })
   const dryRun = options.dryRun === true
+  // 收集器：一次 push 同时记下人话与诊断原文，保证两路同序（base() 会快照 warnings）
   const warnings: string[] = []
+  const warns = createWarningBag(warnings)
   const hints: string[] = []
 
   // 只从 plan 推导一次：dry-run、取消、真跑三条腿共用，退出码与计数才不会各自漂移（I-4）。
@@ -253,6 +267,9 @@ export async function cleanAction(
     report: rows,
     summary,
     warnings,
+    // 活引用（不是快照）：早退路径与末尾路径都调 base()，快照需在每次调用处重算，
+    // 漏一处就丢一条 detail ⇒ 引用同一数组，任何时候 push 都自动跟上。
+    warningDetails: warns.warningDetails,
     hints,
     exitCode,
   })
@@ -284,9 +301,7 @@ export async function cleanAction(
   if (dryRun) {
     hints.push('dry-run：以上为计划，零写入零删除（不建 .openvibe/、不抢锁）')
     if (plan.removals.length > 0)
-      warnings.push(
-        `dry-run：${String(plan.removals.length)} 项将被删除，正式执行需 --yes 或交互确认`,
-      )
+      warns.push(`dry-run：${String(plan.removals.length)} 项将被删除，正式执行需 --yes 或交互确认`)
     return base(rowsOf(plan.files, new Map()), tally(0, 0, driftKept, null, false))
   }
 
@@ -373,10 +388,11 @@ export async function cleanAction(
       } catch (e) {
         throw new CleanError(
           'DELETE_FAILED',
-          `退场 ${abs} 失败：${(e as Error).message}。已完成 ${String(removedPaths.size)}/${String(
+          `退场 ${abs} 失败。已完成 ${String(removedPaths.size)}/${String(
             plan.removals.length,
           )} 项` + (backupRoot ? `；已删文件在 ${backupRoot} 有逐字节副本，可逐个复制回去` : ''),
           { done: [...removedPaths] },
+          (e as Error).message,
         )
       }
       backup.set(relPath, backupPath)
@@ -395,8 +411,10 @@ export async function cleanAction(
         unlinkSync(lockPath)
       } catch (e) {
         cleaned = false
-        warnings.push(
-          `pack.lock.json 删除失败（${(e as Error).message}）：受管文件已退场，请手工删除该登记文件`,
+        // 人话只说「删除失败」；英文 errno 原文走 detail 位
+        warns.push(
+          'pack.lock.json 删除失败：受管文件已退场，请手工删除该登记文件',
+          (e as Error).message,
         )
       }
     }

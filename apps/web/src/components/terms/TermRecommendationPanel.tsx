@@ -1,4 +1,5 @@
 import type { TermRecommendationsResponse } from '@openvibe/shared'
+import { zh } from '../../i18n/zh'
 import { cardCls, chipTone, skelCls, tagCls } from '../ui/styles'
 
 /**
@@ -40,7 +41,11 @@ export function TermRecommendationPanel({ data, loading, error }: TermRecommenda
   if (error !== null && error !== undefined) {
     return (
       <section className={cardCls}>
-        <p className="px-4 py-3 text-xs text-warn">术语推荐读取失败：{String(error)}</p>
+        {/* `String(error)` 会给 Error 加上 "Error: " 前缀 —— 那是英文机器串，
+            中文界面上不该出现。取 message，拿不到才退回一句中文兜底。 */}
+        <p className="px-4 py-3 text-xs text-warn">
+          术语推荐读取失败：{error instanceof Error ? error.message : zh.common.unknownError}
+        </p>
       </section>
     )
   }

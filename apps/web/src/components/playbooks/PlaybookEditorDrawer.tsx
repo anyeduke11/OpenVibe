@@ -12,7 +12,7 @@ import { usePromptList } from '../../hooks/usePrompts'
 import { useSkillList } from '../../hooks/useSkills'
 import { useTermList } from '../../hooks/useTerms'
 import { Dialog, DialogPanel } from '../ui/Dialog'
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
 import {
   CHIP_TONES,
   btnGhost,
@@ -22,6 +22,7 @@ import {
   inputCls,
   labelCls,
 } from '../ui/styles'
+import type { ApiError } from '../../api/client'
 
 // 关联标签是可按压的多选 chip：选中走 chipPressed，未选中走 default 形制。
 // 两者各自带 border/bg/text 三个色类，叠加只会让 Tailwind 任意挑一个（顺序不由源码决定），
@@ -214,7 +215,7 @@ export function PlaybookEditorDrawer(props: {
             toast(zh.playbooks.editor.saved)
             onSaved(created)
           },
-          onError: (e) => toast(e.message, 'error'),
+          onError: (e: ApiError) => toastError(e),
         },
       )
       return
@@ -226,7 +227,7 @@ export function PlaybookEditorDrawer(props: {
           toast(zh.playbooks.editor.saved)
           onSaved(updated)
         },
-        onError: (e) => toast(e.message, 'error'),
+        onError: (e: ApiError) => toastError(e),
       },
     )
   }

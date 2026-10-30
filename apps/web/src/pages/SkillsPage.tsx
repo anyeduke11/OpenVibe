@@ -5,6 +5,7 @@ import { zh } from '../i18n/zh'
 import { AssetFilterBar, AssetPageHead, AssetSearchBox } from '../components/library/AssetPageHead'
 import { RefreshHint } from '../components/library/AssetStates'
 import { SkillCleanupDialog } from '../components/skills/SkillCleanupDialog'
+import { SkillCleanupBrokenDialog } from '../components/skills/SkillCleanupBrokenDialog'
 import { SkillEditorDrawer } from '../components/skills/SkillEditorDrawer'
 import { SkillList } from '../components/skills/SkillList'
 import { SkillRemoteDialog } from '../components/skills/SkillRemoteDialog'
@@ -14,11 +15,13 @@ import { SkillUpdateDialog } from '../components/skills/SkillUpdateDialog'
 import { SkillScanReportView } from '../components/skills/SkillScanReportView'
 import { ConfirmDeleteDialog } from '../components/ui/ConfirmDeleteDialog'
 import { Dialog, DialogPanel } from '../components/ui/Dialog'
-import { toast } from '../components/ui/Toaster'
+import { toast, toastError } from '../components/ui/Toaster'
 import { Icon } from '../components/ui/icons'
 import { btnGhost, btnPrimary } from '../components/ui/styles'
 import { useDebounced } from '../hooks/useDebounced'
 import { useSkillMutations, useSkillList, type SkillRow } from '../hooks/useSkills'
+import { useSkillBackup, useSkillDownload, useSkillRestore } from '../hooks/useSkillLibrary'
+import type { ApiError } from '../api/client'
 
 export function SkillsPage() {
   const [search, setSearch] = useState('')
@@ -31,8 +34,24 @@ export function SkillsPage() {
   const [reviewOpen, setReviewOpen] = useState(false)
   const [updatesOpen, setUpdatesOpen] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
+  const [cleanupBrokenOpen, setCleanupBrokenOpen] = useState(false)
   const list = useSkillList(q)
   const { remove, scan } = useSkillMutations()
+  const backup = useSkillBackup()
+  const download = useSkillDownload()
+  const restore = useSkillRestore()
+
+  /**
+   * 行内动作（下载 / 备份 / 恢复）的统一入口。
+   *
+   * ⚠️ **三个 mutation 共用一个 busyId**：同一条 skill 上连点两个动作，
+   * 第二个会在第一个还没落盘时读到过期的 `skillDir`。串行化比加锁便宜。
+   */
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const runOn = (id: string, fn: (done: () => void) => void): void => {
+    setBusyId(id)
+    fn(() => setBusyId(null))
+  }
 
   const runScan = (roots?: string[]) =>
     scan.mutate(roots, {
@@ -40,7 +59,7 @@ export function SkillsPage() {
         setReport(r)
         toast(zh.skills.scanReport.done)
       },
-      onError: (e: Error) => toast(e.message, 'error'),
+      onError: (e: ApiError) => toastError(e),
     })
 
   const clearFilters = useCallback(() => setSearch(''), [])
@@ -111,6 +130,55 @@ export function SkillsPage() {
         onEdit={(skill) => setEditor({ skill })}
         onDelete={setDeleting}
         onCreate={() => setEditor({ skill: null })}
+        busyId={busyId}
+        onDownload={(skill) =>
+          runOn(skill.id, (done) => {
+            download.mutate(
+              { skillId: skill.id },
+              {
+                onSuccess: (r) => {
+                  toast(zh.skills.library.downloadDone(r.name, r.fileCount, r.targetDir))
+                  done()
+                },
+                onError: (e: ApiError) => {
+                  toastError(e)
+                  done()
+                },
+              },
+            )
+          })
+        }
+        onBackup={(skill) =>
+          runOn(skill.id, (done) => {
+            backup.mutate(skill.id, {
+              onSuccess: (r) => {
+                toast(zh.skills.library.backupDone(r.name, r.fileCount))
+                done()
+              },
+              onError: (e: ApiError) => {
+                toastError(e)
+                done()
+              },
+            })
+          })
+        }
+        onRestore={(skill) =>
+          runOn(skill.id, (done) => {
+            restore.mutate(
+              { skillId: skill.id },
+              {
+                onSuccess: (r) => {
+                  toast(zh.skills.library.restoreDone(r.name, r.targetDir))
+                  done()
+                },
+                onError: (e: ApiError) => {
+                  toastError(e)
+                  done()
+                },
+              },
+            )
+          })
+        }
       />
 
       <footer className="flex shrink-0 items-center gap-3 border-t border-line-hair px-5 py-1.5 text-xs text-ink-muted">
@@ -150,11 +218,19 @@ export function SkillsPage() {
           () => setToolsOpen(false),
           () => setReviewOpen(true),
         )}
+        onOpenCleanupBroken={handoff(
+          () => setToolsOpen(false),
+          () => setCleanupBrokenOpen(true),
+        )}
       />
       <SkillRemoteDialog open={remoteOpen} onClose={() => setRemoteOpen(false)} />
       <SkillCleanupDialog open={cleanupOpen} onClose={() => setCleanupOpen(false)} />
       <SkillReviewDialog open={reviewOpen} onClose={() => setReviewOpen(false)} />
       <SkillUpdateDialog open={updatesOpen} onClose={() => setUpdatesOpen(false)} />
+      <SkillCleanupBrokenDialog
+        open={cleanupBrokenOpen}
+        onClose={() => setCleanupBrokenOpen(false)}
+      />
 
       <Dialog open={report !== null} onOpenChange={(o) => (o ? undefined : setReport(null))}>
         <DialogPanel
@@ -182,7 +258,7 @@ export function SkillsPage() {
               toast(zh.skills.deleteDialog.done)
               setDeleting(null)
             },
-            onError: (e: Error) => toast(e.message, 'error'),
+            onError: (e: ApiError) => toastError(e),
           })
         }}
       >

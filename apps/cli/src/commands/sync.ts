@@ -41,7 +41,7 @@ import {
   targetPathsFor,
   type LoadedPack,
 } from '../pack-source'
-import { ExitCode, type PlanItem } from '../output'
+import { ExitCode, createWarningBag, type PlanItem, type WarningBag } from '../output'
 
 /**
  * `openvibe sync <projectPath>` —— 注入状态机（m6b FR-2）。
@@ -107,6 +107,8 @@ export interface SyncOutcome {
   backupRoot: string | null
   injectionReported: boolean
   warnings: string[]
+  /** 与 warnings 同序等长的诊断原文（允许英文） */
+  warningDetails?: (string | undefined)[]
   hints: string[]
   exitCode: 0 | 1 | 2
 }
@@ -162,7 +164,7 @@ function assertProjectDir(projectPath: string): string {
 function resolveTargets(
   pack: LoadedPack,
   targets: AdapterId[] | undefined,
-  warnings: string[],
+  warnings: WarningBag,
 ): readonly string[] | null {
   if (!targets || targets.length === 0) return null
   const adapterPaths = new Set<string>(targets.map((id) => ADAPTER_MAIN_PATH[id]))
@@ -194,7 +196,7 @@ async function loadSource(
     try {
       raw = JSON.parse(text)
     } catch (e) {
-      throw new SourceError('BAD_JSON', `bundle 不是合法 JSON：${(e as Error).message}`)
+      throw new SourceError('BAD_JSON', 'bundle 不是合法 JSON', undefined, (e as Error).message)
     }
     return loadBundleJson(raw, options.file)
   }
@@ -286,6 +288,9 @@ export async function syncAction(
   deps: SyncDeps = {},
   warningsOut: string[] = [],
 ): Promise<SyncOutcome> {
+  // 收集器复用调用方的数组（不复制）：外部读 warningsOut 仍读得到实际产出，
+  // 同时 bag 额外记下诊断原文，保证两路同序。
+  const warns = createWarningBag(warningsOut)
   const projectPath = assertProjectDir(options.projectPath)
   const pack = await loadSource(options, deps, projectPath)
 
@@ -295,12 +300,12 @@ export async function syncAction(
   if (lockText !== null) {
     oldLock = parsePackLock(lockText)
     if (!oldLock) {
-      warningsOut.push('pack.lock.json 无法解析，本次按未注入处理（覆盖前仍会备份原文件）')
+      warns.push('pack.lock.json 无法解析，本次按未注入处理（覆盖前仍会备份原文件）')
     } else {
       // verify 前置核验（FR-4.4，只读）：lock 登记的受管文件在磁盘缺失 ⇒ 疑似上次注入中断
       const preMissing = summarizeDiff(diffPackLock(oldLock, diskReader(projectPath))).missing
       if (preMissing.length > 0) {
-        warningsOut.push(
+        warns.push(
           `上次注入可能中断：lock 登记 ${preMissing.length} 个文件在磁盘缺失（${preMissing.join('、')}）；` +
             '本次按包内容重建，openvibe verify 可复查',
         )
@@ -308,7 +313,7 @@ export async function syncAction(
     }
   }
 
-  const targets = resolveTargets(pack, options.targets, warningsOut)
+  const targets = resolveTargets(pack, options.targets, warns)
   const dryRun = options.dryRun === true
 
   /**
@@ -332,6 +337,7 @@ export async function syncAction(
       isTTY: deps.isTTY,
       ask: deps.ask,
     },
+    // core 的 injectService 只认 string[]（既有契约），诊断原文由 CLI 侧的 bag 承担
     warningsOut,
   })
 
@@ -358,6 +364,9 @@ export async function syncAction(
     backupRoot: null,
     injectionReported: false,
     warnings: warningsOut,
+    // 活引用（不是快照）：reportInjection 在 outcome 构造之后才 push 提示，
+    // 快照会漏掉那一条的 detail ⇒ 引用同一数组，事后 push 自动跟上。
+    warningDetails: warns.warningDetails,
     hints: [],
     exitCode: 0,
   }
@@ -414,9 +423,10 @@ export async function syncAction(
         // §6.5：中止后续写入，已写文件保留（幂等重跑可收敛），并给手工回滚指引
         throw new InjectError(
           'WRITE_FAILED',
-          `写入 ${abs} 失败：${(e as Error).message}。已完成 ${written.length}/${writes.length} 项` +
+          `写入 ${abs} 失败。已完成 ${written.length}/${writes.length} 项` +
             (backupRoot ? `；被覆盖的旧文件在 ${backupRoot}，可逐个复制回去` : ''),
           { done: written },
+          (e as Error).message,
         )
       }
       written.push(write.path)
@@ -451,7 +461,7 @@ export async function syncAction(
     }
     outcome.hints.push('建议把 .openvibe/backup/ 加入 .gitignore（本命令不会改动 .gitignore）')
 
-    await reportInjection(outcome, deps, pack, warningsOut)
+    await reportInjection(outcome, deps, pack, warns)
     if (written.length > 0) {
       await deps.onInjected?.({ name: outcome.pack.name, version: outcome.pack.version })
     }
@@ -500,7 +510,7 @@ async function reportInjection(
   outcome: SyncOutcome,
   deps: SyncDeps,
   pack: LoadedPack,
-  warningsOut: string[],
+  warningsOut: WarningBag,
 ): Promise<void> {
   if (!deps.client) {
     warningsOut.push('离线模式：跳过注入历史上报（lock 文件已写入，后续联网再 sync 会补记录）')
@@ -515,8 +525,11 @@ async function reportInjection(
     await deps.client.postJson<{ id: string }>('/api/injections', body)
     outcome.injectionReported = true
   } catch (e) {
-    const detail =
-      e instanceof ServerUnreachable ? '服务端不可达' : ((e as Error).message ?? String(e))
-    warningsOut.push(`注入历史上报失败（${detail}），文件与 lock 已就位`)
+    // 人话只说「上报失败」；英文诊断原文走 detail 位（warn 通道的双通道纪律）
+    const reason = e instanceof ServerUnreachable ? '服务端不可达' : '上报失败'
+    warningsOut.push(
+      `注入历史上报失败（${reason}），文件与 lock 已就位`,
+      e instanceof ServerUnreachable ? e.detail : ((e as Error).message ?? String(e)),
+    )
   }
 }

@@ -1,6 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiJson, qs } from '../api/client'
 import type { LocalEventsClearOut, LocalEventsSummaryOut } from '@openvibe/shared'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 /**
  * 本机事件台账（local-event-ledger.md FR-4 / FR-7）的前端读面与清空面。
@@ -56,7 +57,7 @@ export function useLocalEventsSummary(days: LocalEventsWindowDays, now: Date) {
 /** 「一键清空」（FR-3.2）—— 不可逆，UI 必须二次确认，服务端不代做这个决定 */
 export function useClearLocalEvents() {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: () => apiJson<LocalEventsClearOut>('/api/local-events/clear', { method: 'POST' }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['local-events'] })

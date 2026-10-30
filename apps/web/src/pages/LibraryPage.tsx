@@ -19,10 +19,11 @@ import { TagFilterBar } from '../components/library/TagFilterBar'
 import { VariableFillModal } from '../components/library/VariableFillModal'
 import { ConfirmDeleteDialog, deleteReceipts } from '../components/ui/ConfirmDeleteDialog'
 import { btnGhost, btnPrimary } from '../components/ui/styles'
-import { toast } from '../components/ui/Toaster'
+import { toast, toastError } from '../components/ui/Toaster'
 import { useDebounced } from '../hooks/useDebounced'
 import { usePromptAggregates, usePromptList, usePromptMutations } from '../hooks/usePrompts'
 import type { PromptFilters } from '../hooks/usePrompts'
+import type { ApiError } from '../api/client'
 
 const PAGE_SIZE = 20
 
@@ -79,7 +80,7 @@ export function LibraryPage() {
       { id: promptId, patch: { folderPath } },
       {
         onSuccess: () => toast(`已移动到 ${folderPath}`),
-        onError: (e) => toast(e.message, 'error'),
+        onError: (e: ApiError) => toastError(e),
       },
     )
   }

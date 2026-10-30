@@ -13,12 +13,13 @@ import {
 import { usePromptMutations } from '../../hooks/usePrompts'
 import { zh } from '../../i18n/zh'
 import { Dialog, DialogPanel } from '../ui/Dialog'
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
 import { btnGhost, btnPrimary, inputCls, labelCls } from '../ui/styles'
 import { ReflowOriginLine } from '../projects/ReflowActions'
 import { CodeEditor } from './CodeEditor'
 import { MarkdownPreview } from './MarkdownPreview'
 import { VersionHistoryPanel } from './VersionHistoryPanel'
+import type { ApiError } from '../../api/client'
 
 /** 填参生成面板懒加载（DEV-0074）：填参 UI 留在懒加载 chunk，入口不过 bundle 门槛 */
 const VariableFillPanel = lazy(() => import('./VariableFillPanel'))
@@ -104,7 +105,7 @@ export function PromptEditorDrawer(props: {
       toast(zh.editor.saved)
       props.onSaved(r.prompt)
     }
-    const onSaveError = (e: Error) => toast(e.message, 'error')
+    const onSaveError = (e: ApiError) => toastError(e)
 
     if (prompt === null) {
       create.mutate(

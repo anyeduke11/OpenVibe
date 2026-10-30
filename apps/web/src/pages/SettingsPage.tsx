@@ -15,6 +15,7 @@ import { SourceConsentSection } from '../components/settings/SourceConsentSectio
 import { SourceShareSection } from '../components/settings/SourceShareSection'
 import { InterpretProviderSection } from '../components/settings/InterpretProviderSection'
 import { LangModeSection } from '../components/settings/LangModeSection'
+import { SkillScanPathsSection } from '../components/settings/SkillScanPathsSection'
 import { sys } from '../i18n/lane-system'
 import { btnGhost, proseCls, skelCls } from '../components/ui/styles'
 import { Icon } from '../components/ui/icons'
@@ -77,6 +78,8 @@ export function SettingsPage() {
         ) : (
           <PathsSection settings={settings.data} />
         )}
+        {/* Skill 扫描路径（2026-10-30：改成可配置清单，覆盖国内主流 agent） */}
+        <SkillScanPathsSection />
         <LedgerSection />
         <CliSection />
         {/* 第 7 区（可读性与设计系统）的**同级**新一区，不并入其中（m8-agent-panel.md FR-5.5.1） */}

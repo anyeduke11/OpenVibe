@@ -1,6 +1,7 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiJson } from '../../api/client'
 import { agentZh } from '../../i18n/lane-agent'
+import { useApiMutation } from '../../hooks/useApiMutation'
 
 /**
  * 设置页的「助手桥接」节（`m8-agent-panel.md` FR-5.5）。
@@ -32,7 +33,7 @@ export function AgentSettingsSection() {
     queryFn: () => apiJson<{ enabled: boolean }>('/api/settings/agent-write'),
     staleTime: 5_000,
   })
-  const m = useMutation({
+  const m = useApiMutation({
     mutationFn: (enabled: boolean) =>
       apiJson<{ enabled: boolean }>('/api/settings/agent-write', {
         method: 'POST',

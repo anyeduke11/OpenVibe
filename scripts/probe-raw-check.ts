@@ -32,9 +32,10 @@
  *   node scripts/probe-raw-check.ts                                   # 默认 raw 目录 + 默认四轮
  *   node scripts/probe-raw-check.ts --rounds trae-r1 trae-r5         # 自定义轮次
  *   node scripts/probe-raw-check.ts --dir /tmp/fixture --rounds a-r1  # 自定义目录（夹具自测用）
+ *   node scripts/probe-raw-check.ts --ignore-missing                 # 缺轮次仅告警不计失败
  *
- * 退出码 0 = 全绿；1 = 有无效项。**只判不修**：它不替 owner 判定三问的答案，
- * 只判定「这份文件能不能作为该问的证据」。
+ * 退出码 0 = 全绿；1 = 有无效项（除非 `--ignore-missing` 时仅缺轮次而无坏项）。**只判不修**：
+ * 它不替 owner 判定三问的答案，只判定「这份文件能不能作为该问的证据」。
  *
  * ⚠️ **为什么要留 `--dir`**：一条只会红的闸等于没有闸。
  * 本判据必须能被证伪到**绿**，否则无法区分「判据严」与「判据坏」。
@@ -62,7 +63,53 @@ const SHELL_BYPASS_RE =
 const ALLOWED_VERDICTS = ['支持', '不支持', '未测到'] // 枚举顺序即文档提示里的排列顺序
 const QUESTION_KEYS = ['Q1 加载时机', 'Q3 脚本可执行性', 'Q4 symlink 跟随']
 
-function parseArgs(): { rounds: string[]; dir: string } {
+/** 结论段解析结果里某一条目：一行对应一个问（Q1/Q3/Q4）。 */
+export interface ConclusionVerdict {
+  /** 问的键（来自 QUESTION_KEYS），如「Q1 加载时机」 */
+  key: string
+  /** 结论段内命中的那一行；小节缺失或行缺失时为 null */
+  line: string | null
+  /** 从该行解析出的合法档位（支持 / 不支持 / 未测到）；行存在但解析不出时为空串 */
+  verdict: string
+}
+
+/**
+ * 从探针报告全文里解析「## 四问结论」小节的档位。
+ *
+ * ⚠️ 档位**只从该小节里取**。之前用 `text.split('\n').find(...)` 在全文件里找
+ * 首个含「Q1 加载时机」等键的行，若结论段**之前**出现同名小节标题（如「问三 · Q1 加载时机」），
+ * 会先命中明细行、档位解析失败 —— 那是把明细行误当结论行。这里先把文件按 H2 切段，
+ * 只取 `## 四问结论` 那一节，再逐行找结论行。
+ *
+ * ⚠️ 措辞变体也要兼容：实测里键可能写成 `Q1加载时机`（无空格），冒号可能用半角 `:`；
+ * 所以键内空白统一放宽为 `\s*`，冒号允许全角 `：` / 半角 `:`。
+ */
+export function parseConclusionVerdicts(text: string): {
+  sectionFound: boolean
+  entries: ConclusionVerdict[]
+} {
+  const conclusionSection = text.split(/\n(?=##\s)/).find((s) => s.startsWith('## 四问结论'))
+  const sectionLines = conclusionSection ? conclusionSection.split('\n') : []
+  const sectionFound = sectionLines.length > 0
+  // 交替串由 `ALLOWED_VERDICTS` 派生 ⇒ 常量仍是唯一出处，改档位只改一处。
+  const alt = ALLOWED_VERDICTS.join('|')
+  const entries = QUESTION_KEYS.map((q) => {
+    // 键模板：先转义正则特殊字符，再把键内空白放宽为 `\s*`（如「Q1 加载时机」→ `Q1\s*加载时机`）
+    const keyPattern = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*')
+    const line = sectionLines.find((l) => new RegExp(keyPattern).test(l)) ?? null
+    // ⚠️ 档位用**枚举交替**捕获，不要用 `\S+`：实测里结论行常写成
+    // 「支持。直接执行成功，exitCode 0」——`\S+` 会把整句吞成一个"取值"，
+    // 然后报「不在允许档内」，那是**判据自身的解析缺陷**，
+    // 会把「其实档位合法、只是被后面的方法问题判红」这件事掩盖成另一个原因。
+    const verdict = line
+      ? (line.match(new RegExp(`${keyPattern}\\s*[：:]\\s*(${alt})`))?.[1] ?? '')
+      : ''
+    return { key: q, line, verdict }
+  })
+  return { sectionFound, entries }
+}
+
+function parseArgs(): { rounds: string[]; dir: string; ignoreMissing: boolean } {
   const take = (flag: string): string | undefined => {
     const i = process.argv.indexOf(flag)
     // ⚠️ **必须先判 i >= 0**：`indexOf` 找不到时返回 **-1**，而 `argv[-1 + 1]` 就是
@@ -71,8 +118,14 @@ function parseArgs(): { rounds: string[]; dir: string } {
     return i >= 0 ? process.argv[i + 1] : undefined
   }
   const roundList = take('--rounds')
-  const rounds = roundList ? process.argv.slice(process.argv.indexOf('--rounds') + 1) : DEFAULT_ROUNDS
-  return { rounds, dir: take('--dir') ?? DEFAULT_RAW_DIR }
+  const rounds = roundList
+    ? process.argv.slice(process.argv.indexOf('--rounds') + 1)
+    : DEFAULT_ROUNDS
+  return {
+    rounds,
+    dir: take('--dir') ?? DEFAULT_RAW_DIR,
+    ignoreMissing: process.argv.includes('--ignore-missing'),
+  }
 }
 
 interface Finding {
@@ -102,11 +155,17 @@ function checkRound(round: string, rawDir: string): Finding[] {
   push(
     '机器索引头',
     Boolean(idx),
-    idx ? `platform=${idx[1]} round=${idx[2]}` : '首行附近无 <!-- M8-PROBE platform=… round=… -->（提示词很可能被截断）',
+    idx
+      ? `platform=${idx[1]} round=${idx[2]}`
+      : '首行附近无 <!-- M8-PROBE platform=… round=… -->（提示词很可能被截断）',
   )
 
   // ② 脚本 stdout 字面量
-  push('脚本 stdout 字面量', text.includes(SCRIPT_MARKER), text.includes(SCRIPT_MARKER) ? '命中' : '未命中 ⇒ 脚本可能未被执行')
+  push(
+    '脚本 stdout 字面量',
+    text.includes(SCRIPT_MARKER),
+    text.includes(SCRIPT_MARKER) ? '命中' : '未命中 ⇒ 脚本可能未被执行',
+  )
 
   // ③ Q3：脚本必须**经平台路径**被调用
   //
@@ -122,26 +181,30 @@ function checkRound(round: string, rawDir: string): Finding[] {
   if (!pathField) {
     push('Q3 脚本 path 字段', false, 'stdout 里没有 path= 字段 ⇒ 取证不完整，无法确认走了哪条路径')
   } else {
-    push('Q3 脚本 path 字段', true, `path=${pathField[1]}（需人工过目：经软链解析也可能是平台跟随软链的正面证据）`)
+    push(
+      'Q3 脚本 path 字段',
+      true,
+      `path=${pathField[1]}（需人工过目：经软链解析也可能是平台跟随软链的正面证据）`,
+    )
   }
 
   // ④ 四问结论
-  for (const q of QUESTION_KEYS) {
-    const line = text.split('\n').find((l) => l.includes(q))
-    if (!line) {
-      push(`${q} 结论`, false, '未找到该问的结论行')
-      continue
+  //    解析逻辑在 `parseConclusionVerdicts`（独立函数，见文件头），这里只把结果转成 Finding。
+  const { sectionFound, entries } = parseConclusionVerdicts(text)
+  for (const entry of entries) {
+    if (!sectionFound) {
+      push(`${entry.key} 结论`, false, '未找到「## 四问结论」小节')
+    } else if (!entry.line) {
+      push(`${entry.key} 结论`, false, '结论段内未找到该问的结论行')
+    } else if (!entry.verdict) {
+      push(
+        `${entry.key} 结论`,
+        false,
+        `未找到合法档位（应为 ${ALLOWED_VERDICTS.join(' / ')} 之一）`,
+      )
+    } else {
+      push(`${entry.key} 结论`, true, `= ${entry.verdict}`)
     }
-    // ⚠️ 档位用**枚举交替**捕获，不要用 `\S+`：实测里结论行常写成
-    // 「支持。直接执行成功，exitCode 0」——`\S+` 会把整句吞成一个"取值"，
-    // 然后报「不在允许档内」，那是**判据自身的解析缺陷**，
-    // 会把「其实档位合法、只是被后面的方法问题判红」这件事掩盖成另一个原因。
-    // 交替串由 `ALLOWED_VERDICTS` 派生 ⇒ 常量仍是唯一出处，改档位只改一处。
-    const alt = ALLOWED_VERDICTS.join('|')
-    const m = line.match(new RegExp(`${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}：\\s*(${alt})`))
-    const verdict = m?.[1] ?? ''
-    const ok = verdict !== ''
-    push(`${q} 结论`, ok, ok ? `= ${verdict}` : `未找到合法档位（应为 ${ALLOWED_VERDICTS.join(' / ')} 之一）`)
   }
 
   // ⑤ 客户端自证：没有平台身份，这一轮的观察**无法归属给 Trae／CodeBuddy**。
@@ -167,7 +230,11 @@ function checkRound(round: string, rawDir: string): Finding[] {
   if (!hasShellRead) {
     push('Q4 取证方式', true, '未发现绕过平台的 shell 取证')
   } else if (declaresPreflight) {
-    push('Q4 取证方式', true, '有 shell 读取，但文件声明了「前置自检／不作为结论依据」⇒ 视为登记事实')
+    push(
+      'Q4 取证方式',
+      true,
+      '有 shell 读取，但文件声明了「前置自检／不作为结论依据」⇒ 视为登记事实',
+    )
   } else {
     push(
       'Q4 取证方式',
@@ -178,13 +245,37 @@ function checkRound(round: string, rawDir: string): Finding[] {
 
   // ⑦ 平台软链确为软链（前置事实，缺失则整轮不可判）
   const linkProof = /-> \.\.\/\.\.\/\.agents\/skills\/openvibe-probe/.test(text)
-  push('平台路径为软链（前置）', linkProof, linkProof ? 'trae/codebuddy 路径已确认为指向真源的软链' : '未见软链指向真源的证据')
+  push(
+    '平台路径为软链（前置）',
+    linkProof,
+    linkProof ? 'trae/codebuddy 路径已确认为指向真源的软链' : '未见软链指向真源的证据',
+  )
 
   return out
 }
 
-function main(): void {
-  const { rounds, dir } = parseArgs()
+/** 一次完整校验的运行结果：计算部分与打印/退出分离，便于单测。 */
+export interface RunResult {
+  /** 目录里实际落盘的轮次（过滤掉 README / REJECTED） */
+  present: string[]
+  /** 期望轮次里缺失的 */
+  missing: string[]
+  /** 实际落盘但不在期望轮次里的 */
+  extra: string[]
+  /** 本轮真正要检查的轮次（--ignore-missing 时剔除缺失轮） */
+  checkRounds: string[]
+  /** 全部判定结果 */
+  findings: Finding[]
+  /** 已检查轮次里的坏项数 */
+  bad: number
+  /** 缺轮次是否计入失败（!ignoreMissing && 有缺失） */
+  missingFail: boolean
+  /** 进程退出码：0 = 全绿，1 = 有坏项或缺轮次（缺轮次仅在非 ignoreMissing 时计） */
+  exitCode: number
+}
+
+/** 执行校验（纯计算，不打印、不退出）：读目录 → 逐轮检查 → 汇总。 */
+export function runCheck(rounds: string[], dir: string, ignoreMissing: boolean): RunResult {
   // `README.md` 与 `REJECTED-*.md` 不是轮次文件：前者是目录说明，
   // 后者是被判无效的历史记录。**留着不过滤会让它们混进「计划外轮次」告警里**，
   // 而那份驳回记录恰恰是最不该被误认成一轮实测的东西。
@@ -194,24 +285,48 @@ function main(): void {
         .map((f) => f.replace(/\.md$/, ''))
     : []
 
+  const missing = rounds.filter((r) => !present.includes(r))
+  const extra = present.filter((p) => !rounds.includes(p))
+
+  // 缺轮次被忽略时，只对已落盘的轮次做判定（缺的那几轮没有文件，无从检查）。
+  const checkRounds = ignoreMissing ? rounds.filter((r) => present.includes(r)) : rounds
+  const findings = checkRounds.flatMap((r) => checkRound(r, dir))
+
+  let bad = 0
+  for (const r of checkRounds) {
+    const failed = findings.filter((f) => f.round === r && !f.ok)
+    bad += failed.length
+  }
+
+  // 缺轮次是否计入失败由 `ignoreMissing` 决定；已落盘轮次的坏项（bad）始终计入。
+  const missingFail = !ignoreMissing && missing.length > 0
+  const exitCode = bad === 0 && !missingFail ? 0 : 1
+  return { present, missing, extra, checkRounds, findings, bad, missingFail, exitCode }
+}
+
+function main(): void {
+  const { rounds, dir, ignoreMissing } = parseArgs()
+  const result = runCheck(rounds, dir, ignoreMissing)
+  const { present, missing, extra, checkRounds, findings, bad, missingFail } = result
+
   console.log('── 探针 raw 校验 ──')
   console.log(`   期望轮次：${rounds.join(' / ')}`)
   console.log(`   实际落盘：${present.length ? present.join(' / ') : '（无）'}\n`)
 
-  const missing = rounds.filter((r) => !present.includes(r))
   if (missing.length) {
-    console.log(`✗ 缺轮次：${missing.join(' / ')}`)
-    console.log('  轮次 2/4 必须先 Cmd+Q 完全退出再重开 —— 没有重启对比，Q1 答不了。\n')
+    // `--ignore-missing`：缺轮次只是提示，不作为失败、也不阻止其余轮次判定；
+    // 反之（默认）缺轮次即失败 —— 提示词 §1 要求 r1–r4 四轮齐备才能答 Q1。
+    if (ignoreMissing) {
+      console.log(`⚠ 忽略缺轮次（--ignore-missing）：${missing.join(' / ')}\n`)
+    } else {
+      console.log(`✗ 缺轮次：${missing.join(' / ')}`)
+      console.log('  轮次 2/4 必须先 Cmd+Q 完全退出再重开 —— 没有重启对比，Q1 答不了。\n')
+    }
   }
-  const extra = present.filter((p) => !rounds.includes(p))
   if (extra.length) console.log(`⚠ 计划外轮次：${extra.join(' / ')}（不计入判定）\n`)
 
-  const findings = rounds.flatMap((r) => checkRound(r, dir))
-  let bad = 0
-  for (const r of rounds) {
-    const mine = findings.filter((f) => f.round === r)
-    const failed = mine.filter((f) => !f.ok)
-    bad += failed.length
+  for (const r of checkRounds) {
+    const failed = findings.filter((f) => f.round === r && !f.ok)
     if (failed.length === 0) {
       console.log(`✓ ${r}`)
     } else {
@@ -221,9 +336,17 @@ function main(): void {
   }
 
   console.log()
-  console.log(bad === 0 && missing.length === 0 ? '✓ 全绿' : `✗ ${bad} 项不合格${missing.length ? ` ＋ 缺 ${missing.length} 轮` : ''}`)
+  console.log(
+    bad === 0 && !missingFail
+      ? '✓ 全绿'
+      : `✗ ${bad} 项不合格${missingFail ? ` ＋ 缺 ${missing.length} 轮` : ''}`,
+  )
   console.log('   ⚠ 本脚本只判「这份文件能否作为该问的证据」，**不替 owner 判定三问的答案**。')
-  process.exit(bad === 0 && missing.length === 0 ? 0 : 1)
+  process.exit(result.exitCode)
 }
 
-main()
+// 仅在被当作 CLI 直接执行时才跑 main()；被测试导入（import parseConclusionVerdicts）时不得退出进程。
+// `import.meta.main`（Node ≥22.12）判定当前文件是否为直接执行入口，比比较 process.argv[1] 更稳。
+if (import.meta.main) {
+  main()
+}

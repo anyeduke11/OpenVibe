@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   SkillCreateInput,
   SkillDuplicatesReport,
@@ -21,6 +21,7 @@ import type {
   SkillVersionOut,
 } from '@openvibe/shared'
 import { apiJson, qs } from '../api/client'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 export const SKILL_STALE_TIME = 15_000
 
@@ -56,22 +57,22 @@ export function useSkillMutations() {
     void qc.invalidateQueries({ queryKey: ['skill-versions'] })
   }
 
-  const create = useMutation({
+  const create = useApiMutation({
     mutationFn: (input: SkillCreateInput) =>
       apiJson<SkillOut>('/api/skills', { method: 'POST', body: input }),
     onSuccess: invalidate,
   })
-  const update = useMutation({
+  const update = useApiMutation({
     mutationFn: ({ id, patch }: { id: string; patch: SkillUpdateInput }) =>
       apiJson<SkillOut>(`/api/skills/${id}`, { method: 'PATCH', body: patch }),
     onSuccess: invalidate,
   })
-  const remove = useMutation({
+  const remove = useApiMutation({
     mutationFn: (id: string) => apiJson<void>(`/api/skills/${id}`, { method: 'DELETE' }),
     onSuccess: invalidate,
   })
   /** roots 省略即扫描默认目录清单（m2 FR-1.1）；Web 只触发同一入口，不自己走目录 */
-  const scan = useMutation({
+  const scan = useApiMutation({
     mutationFn: (roots?: string[]) =>
       apiJson<SkillScanReport>('/api/skills/scan', {
         method: 'POST',
@@ -85,14 +86,14 @@ export function useSkillMutations() {
 
 /** 远程源（DEV-0067）：搜索 SkillHub 市场 / 按源导入，全部走服务端出站守卫 */
 export function useSkillRemote() {
-  const search = useMutation({
+  const search = useApiMutation({
     mutationFn: (q: string) =>
       apiJson<SkillRemoteSearchReport>('/api/skills/remote/search', {
         method: 'POST',
         body: { source: 'skillhub', q },
       }),
   })
-  const importSkill = useMutation({
+  const importSkill = useApiMutation({
     mutationFn: (input: SkillRemoteImportInput) =>
       apiJson<SkillRemoteImportReport>('/api/skills/remote/import', {
         method: 'POST',
@@ -104,7 +105,7 @@ export function useSkillRemote() {
 
 /** 检查更新（DEV-0068）：树指纹对比；报告里 remoteChanged 的条目可一键走 importSkill 重导 */
 export function useSkillUpdateCheck() {
-  return useMutation({
+  return useApiMutation({
     mutationFn: (input: SkillUpdateCheckInput) =>
       apiJson<SkillUpdateCheckReport>('/api/skills/remote/check-updates', {
         method: 'POST',
@@ -115,7 +116,7 @@ export function useSkillUpdateCheck() {
 
 /** 补档（DEV-0069）：未建档的存量远程条目按版本线溯源串重导一次，写树指纹 */
 export function useSkillRetrack() {
-  return useMutation({
+  return useApiMutation({
     mutationFn: (input: SkillRetrackInput) =>
       apiJson<SkillRetrackReport>('/api/skills/remote/retrack', { method: 'POST', body: input }),
   })
@@ -123,7 +124,7 @@ export function useSkillRetrack() {
 
 /** 重复整理报告（GET 语义但随对话框打开/手动刷新按需跑，故用 mutation 免缓存歧义） */
 export function useSkillDuplicates() {
-  return useMutation({
+  return useApiMutation({
     mutationFn: () => apiJson<SkillDuplicatesReport>('/api/skills/duplicates'),
   })
 }
@@ -131,7 +132,7 @@ export function useSkillDuplicates() {
 /** 整合（DEV-0073）：同内容组选保留项吸收其余 */
 export function useSkillMerge() {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (input: SkillMergeInput) =>
       apiJson<SkillMergeReport>('/api/skills/merge', { method: 'POST', body: input }),
     onSuccess: () => {
@@ -144,7 +145,7 @@ export function useSkillMerge() {
 /** 名称修复（DEV-0073）：quoted 去引号 / convention 规范化+重写源文件 / 撞名自动并入 */
 export function useSkillRepair() {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (input: SkillRepairInput) =>
       apiJson<SkillRepairReport>('/api/skills/repair', { method: 'POST', body: input }),
     onSuccess: () => {
@@ -156,7 +157,7 @@ export function useSkillRepair() {
 
 /** 内置审查：ids 缺省=全量（无本地目录的条目仅元数据审查） */
 export function useSkillReview() {
-  return useMutation({
+  return useApiMutation({
     mutationFn: (input: SkillReviewInput) =>
       apiJson<SkillReviewReport>('/api/skills/review', { method: 'POST', body: input }),
   })

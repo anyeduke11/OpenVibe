@@ -12,7 +12,8 @@ import { AssetEmpty, AssetError, AssetNoResults, AssetSkeleton } from '../librar
 // 所以这里不叠加，三元也不散进 JSX。
 const toggleChip = (on: boolean): string =>
   `${chipCls} ${on ? chipPressed : `${CHIP_TONES.default} hover:bg-panel`}`
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
+import type { ApiError } from '../../api/client'
 
 interface RoadmapTerm {
   term: TermOut
@@ -104,7 +105,7 @@ export function TermRoadmapView(props: {
       { id: term.id, patch: { tags } },
       {
         onSuccess: () => toast(zhRoadmap.regrouped(term.zh ?? term.en ?? '')),
-        onError: (e: Error) => toast(e.message, 'error'),
+        onError: (e: ApiError) => toastError(e),
       },
     )
   }

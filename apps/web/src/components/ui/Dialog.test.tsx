@@ -77,4 +77,25 @@ describe('关闭语义的可访问名', () => {
     expect(inside).toHaveLength(1)
     expect(byText).toHaveLength(2)
   })
+
+  it('弹层壳：aria-modal 存在、关闭按钮不在 Tab 序列里', () => {
+    render(
+      <Dialog open>
+        <DialogPanel title="导入提示词">正文</DialogPanel>
+      </Dialog>,
+    )
+    const dlg = document.body.querySelector('[role="dialog"]') as HTMLElement
+    expect(dlg).not.toBeNull()
+    // Radix 1.1.x 在 modal=true（默认）时不自动写 aria-modal，
+    // 但这是 WCAG 对 role=dialog 的硬性要求——DialogPanel 必须显式加上。
+    expect(dlg.getAttribute('aria-modal')).toBe('true')
+    // 关掉 aria-describedby 的显式清空：没 DialogDescription 时 Radix 不生成 id，
+    // 但我们不再自己把这条关系掐断——有一天调用点加了 DialogDescription 会自动连上。
+    expect(dlg.hasAttribute('aria-describedby')).toBe(false)
+    // Close 按钮 tabIndex=-1：从 Tab 序列里拿掉，让 Radix 的 autoFocus 去找 content 里
+    // 第一个可聚焦元素，而不是每次都落在 header 里那个 ✕ 上。
+    const closeBtn = dlg.querySelector('button[aria-label="关闭弹窗"]') as HTMLButtonElement
+    expect(closeBtn).not.toBeNull()
+    expect(closeBtn.tabIndex).toBe(-1)
+  })
 })

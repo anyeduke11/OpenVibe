@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { DevLogCreateInput, DevLogOut, DevLogType, ReflowOriginOut } from '@openvibe/shared'
 import { apiJson } from '../api/client'
 import { PROJECT_STALE_TIME } from './useProjects'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 export function useDevLog(projectId: string | null, type: DevLogType) {
   return useQuery({
@@ -34,13 +35,13 @@ export function useDevLogMutations(projectId: string) {
     void qc.invalidateQueries({ queryKey: ['projects'] })
   }
 
-  const create = useMutation({
+  const create = useApiMutation({
     mutationFn: (input: DevLogCreateInput) =>
       apiJson<DevLogOut>(`/api/projects/${projectId}/devlog`, { method: 'POST', body: input }),
     onSuccess: invalidate,
   })
   /** 回流第二跳：新资产 id 记进 linkedAssetIds（m5 FR-7.1），失败只提示不回滚资产 */
-  const linkAsset = useMutation({
+  const linkAsset = useApiMutation({
     mutationFn: ({ logId, assetId }: { logId: string; assetId: string }) =>
       apiJson<{ log: DevLogOut }>(`/api/projects/${projectId}/devlog/${logId}/assets`, {
         method: 'POST',

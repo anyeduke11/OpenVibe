@@ -1,4 +1,5 @@
 import { sys } from '../../i18n/lane-system'
+import { ErrorDetail, detailOf } from './ErrorDetail'
 import { Icon } from './icons'
 import { btnGhost, emptyHintCls, proseCls, skelCls } from './styles'
 
@@ -44,7 +45,11 @@ export function QueryError(props: { wrap: string; error: unknown; onRetry: () =>
   return (
     <div className={props.wrap}>
       <div className={emptyHintCls}>
-        <p className="text-danger">{sys.state.error(message)}</p>
+        <div className="w-full">
+          <p className="text-danger">{sys.state.error(message)}</p>
+          {/* 诊断原文（英文机器串）折叠在下面：排障要它，平时不该抢视线 */}
+          <ErrorDetail detail={detailOf(props.error)} />
+        </div>
         <button type="button" className={btnGhost} onClick={props.onRetry}>
           <Icon name="refresh" size={13} />
           {sys.state.retry}

@@ -1,7 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiJson } from '../api/client'
 import type { AdoptionOut, ExtractConsentOut } from '@openvibe/shared'
 import { SETTINGS_STALE_TIME } from './useSettings'
+import { useApiMutation } from '../hooks/useApiMutation'
 
 /** M10/D 批次 D：提取链的设置面（总闸/采纳率/同意）。取数口径与 useSettings 同族。 */
 export function useExtractGate() {
@@ -14,7 +15,7 @@ export function useExtractGate() {
 
 export function useExtractGateToggle() {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (enabled: boolean) =>
       apiJson<{ enabled: boolean }>('/api/extract/gate', { method: 'POST', body: { enabled } }),
     onSuccess: () => {
@@ -41,7 +42,7 @@ export function useExtractConsents() {
 
 export function useExtractConsentClear() {
   const qc = useQueryClient()
-  return useMutation({
+  return useApiMutation({
     mutationFn: (projectId: string) =>
       apiJson<ExtractConsentOut>(`/api/extract/consents/${projectId}`, { method: 'DELETE' }),
     onSuccess: () => {

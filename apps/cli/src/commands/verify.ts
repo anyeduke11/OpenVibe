@@ -26,10 +26,18 @@ const PRODUCT_MARKER = '<!-- openvibe:pack='
 
 export class VerifyError extends Error {
   readonly code: string
-  constructor(code: string, message: string) {
+  /**
+   * 诊断原文（允许英文：Node 的 errno 消息等）。
+   *
+   * 与 `message` 分通道：`message` 只写中文一句话（说清哪里坏了），
+   * `detail` 承接排障原文。打印在 `printer.fail(code, message, detail)`。
+   */
+  readonly detail?: string
+  constructor(code: string, message: string, detail?: string) {
     super(message)
     this.name = 'VerifyError'
     this.code = code
+    if (detail !== undefined) this.detail = detail
   }
 }
 
@@ -58,6 +66,8 @@ export interface VerifyOutcome {
   /** 是否真的调过服务端（离线/无令牌时 false） */
   probedOnline: boolean
   warnings: string[]
+  /** 与 warnings 同序等长的诊断原文（允许英文） */
+  warningDetails?: (string | undefined)[]
   hints: string[]
   exitCode: 0 | 2
 }
@@ -82,7 +92,7 @@ function diskTextOf(projectPath: string, relPath: string): string | null {
   } catch (e) {
     const err = e as NodeJS.ErrnoException
     if (err.code === 'ENOENT' || err.code === 'ENOTDIR') return null
-    throw new VerifyError('READ_FAILED', `读取 ${abs} 失败：${err.message}`)
+    throw new VerifyError('READ_FAILED', `读取 ${abs} 失败`, err.message)
   }
 }
 
@@ -106,7 +116,12 @@ function scanMarkedUnregistered(projectPath: string, lock: PackLock): string[] {
 async function probeLatestVersion(
   client: ApiClient,
   pack: PackLock['pack'],
-): Promise<{ latest: string | null; warnings: string[]; probedOnline: boolean }> {
+): Promise<{
+  latest: string | null
+  warnings: string[]
+  warningDetails?: (string | undefined)[]
+  probedOnline: boolean
+}> {
   try {
     const list = await client.getJson<{ items: PackExportOut[] }>(`/api/packs/${pack.id}/exports`)
     if (list.items.length === 0) {
@@ -118,13 +133,14 @@ async function probeLatestVersion(
     }
     return { latest: pickExport(list.items, null).version, warnings: [], probedOnline: true }
   } catch (e) {
-    const detail =
-      e instanceof ServerUnreachable
-        ? `服务端不可达（${e.detail}）`
-        : ((e as Error).message ?? String(e))
+    // 人话只说「探测失败」；英文诊断原文走 detail 位（warn 通道的双通道纪律）
+    const reason = e instanceof ServerUnreachable ? '服务端不可达' : '探测失败'
     return {
       latest: null,
-      warnings: [`包侧未核（${detail}）；lock 与磁盘的比对不受影响`],
+      warnings: [`包侧未核（${reason}）；lock 与磁盘的比对不受影响`],
+      warningDetails: [
+        e instanceof ServerUnreachable ? e.detail : ((e as Error).message ?? String(e)),
+      ],
       probedOnline: false,
     }
   }
@@ -161,7 +177,7 @@ export async function verifyAction(
   try {
     lock = parsePackLock(readFileSync(lockPath, 'utf8'))
   } catch (e) {
-    throw new VerifyError('LOCK_INVALID', `${lockPath} 读取失败：${(e as Error).message}`)
+    throw new VerifyError('LOCK_INVALID', `${lockPath} 读取失败`, (e as Error).message)
   }
   if (!lock) {
     throw new VerifyError(
@@ -176,14 +192,18 @@ export async function verifyAction(
 
   let latest: string | null = null
   const warnings: string[] = []
+  // 与 warnings 同序等长：每条提示的诊断原文（没有诊断的位置是 undefined）
+  const warningDetails: (string | undefined)[] = []
   let probedOnline = false
   if (deps.client) {
     const probe = await probeLatestVersion(deps.client, lock.pack)
     latest = probe.latest
     warnings.push(...probe.warnings)
+    warningDetails.push(...(probe.warningDetails ?? probe.warnings.map(() => undefined)))
     probedOnline = probe.probedOnline
   } else {
     warnings.push('离线：包侧未核（未探测服务端是否有更新导出版本）')
+    warningDetails.push(undefined)
   }
 
   const plan = planVerify({
@@ -213,6 +233,9 @@ export async function verifyAction(
     newer: plan.newer,
     probedOnline,
     warnings,
+    // 活引用（不是快照）：probe 的 warnings 是整段汇入的，快照需与 push 逐次对齐，
+    // 漏一处就丢一条 detail ⇒ 引用同一数组。
+    warningDetails,
     hints,
     exitCode: plan.exitCode,
   }

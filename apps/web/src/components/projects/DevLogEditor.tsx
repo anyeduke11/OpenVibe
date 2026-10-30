@@ -3,9 +3,10 @@ import type { DevLogType } from '@openvibe/shared'
 import { useDevLogMutations } from '../../hooks/useDevLog'
 import { zh } from '../../i18n/zh'
 import { SheetDialog } from '../ui/SheetDialog'
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
 import { CodeEditor } from '../library/CodeEditor'
 import { btnGhost, btnPrimary, inputCls, labelCls } from '../ui/styles'
+import type { ApiError } from '../../api/client'
 
 function stamp(): string {
   const d = new Date()
@@ -75,7 +76,7 @@ export function DevLogEditor(props: {
           toast(zh.projects.devlog.created(log.displayNo))
           props.onSaved()
         },
-        onError: (e: Error) => toast(e.message, 'error'),
+        onError: (e: ApiError) => toastError(e),
       },
     )
   }

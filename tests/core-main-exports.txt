@@ -16,6 +16,7 @@ ApplyResult
 AssembleInterpretOptions
 AssembleOpts
 AttachResult
+BackupResult
 BuildLockInput
 CLI_COMMAND_RUN_COMMANDS
 CLI_COMMAND_RUN_PAYLOAD_KEYS
@@ -87,6 +88,7 @@ InterpretOptions
 InterpretRunnerError
 KEYCHAIN_ACCOUNT
 KEYCHAIN_SERVICE
+KNOWN_SKILL_ROOTS
 KeychainStore
 KeychainSupport
 KeychainWriteResult
@@ -187,6 +189,7 @@ SeedMergeAction
 SeedMergeSpec
 ShareRow
 ShareSummaryRow
+SkillLibraryRepo
 SkillsRepo
 SnippetReadResult
 SnippetWindow
@@ -195,6 +198,7 @@ SourceInterpretRunner
 SourceScanError
 SourceServiceError
 SqliteDatabase
+SqliteSkillLibrary
 StagePhaseGuardOptions
 StagePhaseViolation
 StageTrackRow
@@ -274,6 +278,7 @@ dayOf
 decideInjections
 defaultDbPath
 defaultScanRoots
+defaultSkillRoots
 deriveExtractConsent
 detectGoToolchain
 diffPackLock
@@ -285,6 +290,7 @@ divergenceText
 ensureGoHelper
 estimateBundle
 estimateTokens
+expandKnownRoots
 exportFindingsText
 exportResourcesReadme
 extractCallsToday
@@ -414,6 +420,8 @@ selectProviderEntry
 setConsent
 setExtractConsent
 sha256Hex
+skillLibraryDir
+skillLibraryRoot
 skillNameIssue
 splitByConfidence
 splitByRefs

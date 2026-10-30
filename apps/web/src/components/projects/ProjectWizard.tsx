@@ -6,8 +6,9 @@ import { usePackExports, usePackList } from '../../hooks/usePacks'
 import { useProjectMutations } from '../../hooks/useProjects'
 import { zh } from '../../i18n/zh'
 import { Dialog, DialogPanel } from '../ui/Dialog'
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
 import { btnGhost, btnPrimary, inputCls, labelCls, tagCls } from '../ui/styles'
+import type { ApiError } from '../../api/client'
 
 const STEPS = [zh.projects.wizard.step1, zh.projects.wizard.step2, zh.projects.wizard.step3]
 
@@ -78,7 +79,7 @@ export function ProjectWizard(props: { open: boolean; onClose: () => void }) {
         props.onClose()
         navigate(`/projects/${project.id}`)
       },
-      onError: (e: Error) => toast(e.message, 'error'),
+      onError: (e: ApiError) => toastError(e),
     })
   }
 

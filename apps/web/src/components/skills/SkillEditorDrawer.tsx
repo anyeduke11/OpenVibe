@@ -6,6 +6,7 @@ import { zh } from '../../i18n/zh'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { toast } from '../ui/Toaster'
 import { btnGhost, btnPrimary, chipTone, inputCls, labelCls } from '../ui/styles'
+import type { ApiError } from '../../api/client'
 
 const csv = (value: string): string[] =>
   value
@@ -35,7 +36,7 @@ export function SkillEditorDrawer(props: {
       return
     }
     const targetsList = csv(targets)
-    const onError = (e: Error) =>
+    const onError = (e: ApiError) =>
       toast(
         e.message.includes('NAME_CONFLICT') ? zh.skills.create.nameConflict : e.message,
         'error',

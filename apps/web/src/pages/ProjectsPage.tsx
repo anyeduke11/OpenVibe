@@ -4,7 +4,7 @@ import { PROJECT_STATUS } from '@openvibe/shared'
 import { ProjectList } from '../components/projects/ProjectList'
 import { ProjectWizard } from '../components/projects/ProjectWizard'
 import { ConfirmDeleteDialog } from '../components/ui/ConfirmDeleteDialog'
-import { toast } from '../components/ui/Toaster'
+import { toast, toastError } from '../components/ui/Toaster'
 import {
   btnPrimary,
   chipPressed,
@@ -17,6 +17,7 @@ import {
 import { useProjectMutations, useProjectList, type ProjectView } from '../hooks/useProjects'
 import { laneEngineering } from '../i18n/lane-engineering'
 import { zh } from '../i18n/zh'
+import type { ApiError } from '../api/client'
 
 const FILTERS: readonly ('all' | (typeof PROJECT_STATUS)[number])[] = ['all', ...PROJECT_STATUS]
 
@@ -109,7 +110,7 @@ export function ProjectsPage() {
               toast(zh.projects.deleteDialog.done)
               setDeleting(null)
             },
-            onError: (e: Error) => toast(e.message, 'error'),
+            onError: (e: ApiError) => toastError(e),
           })
         }}
       >

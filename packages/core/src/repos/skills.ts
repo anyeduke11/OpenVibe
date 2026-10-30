@@ -3,6 +3,9 @@ import { nowIso } from '../db/runner'
 import {
   AppError,
   newId,
+  type SkillCleanupItem,
+  type SkillCleanupPreview,
+  type SkillCleanupReport,
   type SkillCreateInput,
   type SkillDuplicatesReport,
   type SkillOut,
@@ -12,6 +15,7 @@ import {
   type SkillVersionOut,
 } from '@openvibe/shared'
 import { parseJsonColumn, sha256Hex } from './util'
+import { defaultSkillRoots } from './skill-scan-roots'
 import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -30,6 +34,8 @@ type SkillRow = {
   updated_at: string
   remote_ref: string | null
   remote_tree_hash: string | null
+  /** 库内副本目录（2026-10-30 起；存量行为 null） */
+  library_dir?: string | null
 }
 
 function rowToSkill(row: SkillRow): SkillOut {
@@ -45,13 +51,12 @@ function rowToSkill(row: SkillRow): SkillOut {
     updatedAt: row.updated_at,
     remoteRef: row.remote_ref ?? null,
     remoteTreeHash: row.remote_tree_hash ?? null,
+    libraryDir: row.library_dir ?? null,
   }
 }
 
 const IGNORED_FILES = new Set(['.DS_Store'])
 const IGNORED_DIRS = new Set(['node_modules'])
-/** home 点目录里永不扫描的：.Trash 里的 skill 是已删除的，扫了会复活台账条目 */
-const EXCLUDED_HOME_ENTRIES = new Set(['.Trash'])
 
 /** 目录指纹（m2 FR-1.3）：按相对路径排序，逐文件 sha256，拼接 `${rel}:${hash}\n` 后整体 sha256 */
 export function computeDirHash(dir: string): { dirHash: string; fileCount: number } {
@@ -135,28 +140,20 @@ function isDirectory(abs: string): boolean {
  * （claude/qoder/trae/codebuddy/workbuddy/openclaw 系等）+ cwd 的 `.claude/skills`。
  * 各 agent 工具已统一采纳 claude 的 SKILL.md 约定，故按「存在即扫」发现而非硬编码
  * 工具清单——新工具无需改代码即可覆盖；非约定路径走显式 roots。
+ *
+ * @deprecated 迁到 `skill-scan-roots.ts`（与已知 agent 清单同处）。
+ *   此处保留转发，避免打断既有调用点与测试。
  */
-export function discoverSkillRoots(homeDir: string, cwdSkillsDir?: string): string[] {
-  const roots = new Set<string>()
-  let entries: string[]
-  try {
-    entries = readdirSync(homeDir)
-  } catch {
-    entries = []
-  }
-  for (const name of entries) {
-    if (!name.startsWith('.') || EXCLUDED_HOME_ENTRIES.has(name)) continue
-    const skillsDir = join(homeDir, name, 'skills')
-    if (isDirectory(skillsDir)) roots.add(skillsDir)
-  }
-  const cwdRoot = cwdSkillsDir ?? join(process.cwd(), '.claude', 'skills')
-  if (isDirectory(cwdRoot)) roots.add(cwdRoot)
-  return [...roots].sort()
-}
+export { discoverSkillRoots } from './skill-scan-roots'
 
+/**
+ * 出厂默认扫描根：约定式发现 ∪ 已知 agent 清单（嵌套/异形路径）∪ ZCode 插件根。
+ *
+ * @deprecated 迁到 `skill-scan-roots.ts`（不含 ZCode 部分）。
+ */
 export function defaultScanRoots(): string[] {
   const home = homedir()
-  return [...new Set([...discoverSkillRoots(home), ...zcodePluginSkillRoots(home)])].sort()
+  return [...new Set([...defaultSkillRoots(home), ...zcodePluginSkillRoots(home)])].sort()
 }
 
 /**
@@ -491,6 +488,11 @@ export class SkillsRepo {
   }
 
   delete(id: string): void {
+    // ⚠️ **只删台账行，不碰库内副本的文件**：库的文件生命周期由
+    //   `SqliteSkillLibrary.remove()` 独占（那是唯一知道「库根怎么解析」的地方）。
+    //   这里若也去删，两边对「库根」的拼法一旦分叉（构造参数 vs `OPENVIBE_HOME`）
+    //   就会判成「不在库内」而留下没人认领的孤儿目录。
+    //   调用方（服务端 DELETE 路由）先 `library.remove(id)` 再 `skills.delete(id)`。
     const info = this.db.prepare('DELETE FROM skills WHERE id = ?').run(id)
     if (info.changes === 0) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
   }
@@ -498,6 +500,99 @@ export class SkillsRepo {
   get(id: string): SkillOut | null {
     const row = this.db.prepare('SELECT * FROM skills WHERE id = ?').get(id) as SkillRow | undefined
     return row ? rowToSkill(row) : null
+  }
+
+  /**
+   * 失效条目清理的**预检**（2026-10-30）：只报告，不删。
+   *
+   * ## 判定（三问，缺一不可）
+   *
+   * 1. **路径还在吗** —— `skillDir` 指向的目录不存在 ⇒ 条目已失效。
+   *    只看 `source=local` 的条目：远程条目本就没有本地目录（那是「未下载」，
+   *    不是「失效」）—— 混进来会把好端端的远程条目判成垃圾。
+   * 2. **还能重新下载吗** —— 有 `remoteRef` ⇒ 能从远端再拉一份回来。
+   * 3. **还有副本吗** —— 有 `library_dir` 且目录在 ⇒ 内容还在库里，删台账等于丢索引。
+   *
+   * ## 为什么第 1 条限定 `source=local`
+   *
+   * 远程条目（`source=github/skillhub`）的 `skillDir` **恒为 null**（只建档不落盘），
+   * 若不限定来源，它们会 100% 命中「目录不存在」⇒ 被判失效 ⇒ 被一键清掉。
+   * 那会把用户刚导入的远程 skill 全部删光。
+   */
+  cleanupPreview(ids?: readonly string[]): SkillCleanupPreview {
+    const rows = this.db
+      .prepare(
+        `SELECT id, name, source, skill_dir, remote_ref, library_dir FROM skills
+          WHERE source = 'local' AND skill_dir IS NOT NULL`,
+      )
+      .all() as {
+      id: string
+      name: string
+      source: string
+      skill_dir: string
+      remote_ref: string | null
+      library_dir: string | null
+    }[]
+    const wanted = ids === undefined ? null : new Set(ids)
+    const items: SkillCleanupItem[] = []
+    for (const row of rows) {
+      if (wanted !== null && !wanted.has(row.id)) continue
+      if (existsSync(row.skill_dir)) continue // 路径还在 ⇒ 没失效
+      const downloadable = row.remote_ref !== null && row.remote_ref !== ''
+      const backedUp = row.library_dir !== null && existsSync(row.library_dir)
+      items.push({
+        id: row.id,
+        name: row.name,
+        skillDir: row.skill_dir,
+        downloadable,
+        backedUp,
+        unrecoverable: !downloadable && !backedUp,
+      })
+    }
+    return {
+      items,
+      summary: {
+        stale: items.length,
+        unrecoverable: items.filter((i) => i.unrecoverable).length,
+        recoverable: items.filter((i) => !i.unrecoverable).length,
+      },
+    }
+  }
+
+  /**
+   * 一键批量清理失效条目（2026-10-30）。
+   *
+   * ## 删什么
+   *
+   * 默认只删**不可恢复**的：路径已消失 ∧ 无 remote 溯源 ∧ 无库内副本
+   * —— 这三条同时成立的条目，内容已经彻底没有了，台账留着它只是一条死记录。
+   *
+   * ## 保留什么
+   *
+   * - **可下载的**（有 remote 溯源）：能重拉回来，删了等于让用户重新导入。
+   * - **有库内副本的**：内容还在 `~/.openvibe/skills/`，台账是它的索引。
+   *   `includeBackedUp=true` 才连这类一起删（用户明确要「连备份都不要了」时才用）。
+   *
+   * ⚠️ **只删台账行，不动磁盘**：原目录已经不存在了，没什么可删；
+   *   库内副本由 `onRemove` 回调交给库去清（库是唯一知道「库根怎么解析」的地方）。
+   */
+  cleanup(input: {
+    ids?: readonly string[]
+    includeBackedUp?: boolean
+    /** 删行**之前**的回调：把库内副本的文件清掉（由库自己实现） */
+    onRemove?: (items: SkillCleanupItem[]) => void
+  }): SkillCleanupReport {
+    const preview = this.cleanupPreview(input.ids)
+    const includeBackedUp = input.includeBackedUp ?? false
+    const doomed = preview.items.filter(
+      (i) => i.unrecoverable || (includeBackedUp && !i.downloadable),
+    )
+    // 先清文件再删行：行删了就查不到副本路径 ⇒ 副本变成没人认领的孤儿目录
+    if (doomed.length > 0) input.onRemove?.(doomed)
+    for (const item of doomed) {
+      this.db.prepare('DELETE FROM skills WHERE id = ?').run(item.id)
+    }
+    return { removed: doomed.length, items: doomed }
   }
 
   list(): SkillOut[] {

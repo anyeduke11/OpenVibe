@@ -3,10 +3,11 @@ import { useQueryClient } from '@tanstack/react-query'
 import type { SkillUpdateCheckItem } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
 import { Icon, type IconName } from '../ui/icons'
-import { toast } from '../ui/Toaster'
+import { toast, toastError } from '../ui/Toaster'
 import { btnGhost, btnPrimary, chipTone, noteCls, rowCls } from '../ui/styles'
 import { useSkillRemote, useSkillRetrack, useSkillUpdateCheck } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
+import type { ApiError } from '../../api/client'
 
 // 四种检查结论落四支形制色；每格都带图标 + 文字，颜色只是第三重信号
 const STATUS_CHIP: Record<SkillUpdateCheckItem['status'], string> = {
@@ -70,7 +71,7 @@ export function SkillUpdateDialog(props: { open: boolean; onClose: () => void })
         void qc.invalidateQueries({ queryKey: ['skills'] })
         void check.mutateAsync({}) // 重导后树指纹已刷新，重跑对比归零
       },
-      onError: (e: Error) => toast(e.message, 'error'),
+      onError: (e: ApiError) => toastError(e),
       onSettled: () => setImporting(null),
     })
   }
@@ -83,7 +84,7 @@ export function SkillUpdateDialog(props: { open: boolean; onClose: () => void })
           toast(zh.skills.updates.retracked(r.summary.retracked, r.summary.failed))
           void check.mutateAsync({})
         },
-        onError: (e: Error) => toast(e.message, 'error'),
+        onError: (e: ApiError) => toastError(e),
       },
     )
   }

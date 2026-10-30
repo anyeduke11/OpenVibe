@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { SkillDuplicatesReport } from '@openvibe/shared'
 import { Dialog, DialogPanel } from '../ui/Dialog'
-import { toast } from '../ui/Toaster'
-import { apiJson } from '../../api/client'
+import { toast, toastError } from '../ui/Toaster'
+import { apiJson, type ApiError } from '../../api/client'
 import { btnDanger, btnGhost, chipTone, emptyHintCls } from '../ui/styles'
 import { useSkillDuplicates, useSkillMerge, useSkillRepair } from '../../hooks/useSkills'
 import { zh } from '../../i18n/zh'
@@ -87,7 +87,7 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
           toast(zh.skills.cleanupDialog.mergeDone(r.keptName, r.versionsMoved, r.versionsDropped))
           refresh()
         },
-        onError: (e: Error) => toast(e.message, 'error'),
+        onError: (e: ApiError) => toastError(e),
       },
     )
   }
@@ -108,7 +108,7 @@ export function SkillCleanupDialog(props: { open: boolean; onClose: () => void }
           toast(zh.skills.cleanupDialog.repairDone(r.summary))
           refresh()
         },
-        onError: (e: Error) => toast(e.message, 'error'),
+        onError: (e: ApiError) => toastError(e),
       },
     )
   }
