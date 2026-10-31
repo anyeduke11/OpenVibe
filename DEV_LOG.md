@@ -3518,3 +3518,36 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
 - **核心变更**: toRelativePath `split(/[\\\\/]/).join('/')`；skills:sync/--check（diff→复制→提示 scan 刷新，实跑一致 1/漂移 0）；RETRO_SCHEMA_VERSION=1 单源；pi-runner 回退保留 sh 版（本地 8/8 绿）。
 - **测试验证**: 全量 **188/2370 绿**；lint 0；docs:check 0；骨架拒绝双验（坏报告 ⛔1、六节报告走到 serve 检查）；ci:preview run 40196925584 复验：三平台仍红但失败清单较 40153023249 缩减（timeout/ENOENT/D:\ 族已消）。
 - **剩余 CI 债登记（分域，publish 前清偿）**：① export 脱敏 '/app.py' + '' to contain '版本'（source-ai export 域）；② m8-ledger 顺序 ×2 + FR-3.4 变异 + [ …(14) ]（docs-check 深语义，本地 95/95 绿无法复现——需 CI 侧调试）；③ misconfigured/ready + runner-version-mismatch + EFTYPE（provider/runner 命令域，macOS EFTYPE 需 CI 复现）；④ source-scan 夹具形态 [ ['python','parser'] ]；⑤ prj_child 父子项目 + null/+0/null/2（context/projects 域）；⑥ m9-collect 外部源对账（网络作业，源站漂移需重collect）。
+
+## [DEV-0152] 2026-10-30 · 提交前护栏加「整文件回退」规则 D ＋ pre-commit 增排版闸
+
+- **时间**: 2026-10-30
+- **类型**: 工具（提交前护栏；无产品行为变更）
+- **关联文件**: `scripts/concurrency-guard.ts`、`scripts/hooks/pre-commit`、`.git/hooks/pre-commit`、`tests/concurrency-guard.test.ts`
+- **问题描述**: 上一轮真机实测发现 `docs/tasks.md` 的 T12 段落被**整段退回**（日期从 2026-10-03 倒退到 2026-10-01），而当时的护栏只有规则 A（暂存与工作树分歧）/ B（回退特征）/ C（回退态·新增行口径）三条 —— 整文件回退**三条都拦不住**：A 看的是「暂存 vs 工作树」而非「暂存 vs HEAD」，B/C 找的是回退**字样**，而整段退回的正文里根本没有那些字样。另有一项：一次全仓 `prettier --write` 的重排被混进语义提交，diff 里大量表格对齐改动淹没了真正的语义行。
+- **实现思路**: 规则 D 走**时间倒流**口径 —— 本仓 docs 的日期只增不减 ⇒ 已暂存文本的**最新日期**早于 HEAD 版的最新日期即判定为整文件回退。日期用字符串比较（`YYYY-MM-DD` 的字典序即时间序），不做 `Date` 解析（避免时区副作用）。排版侧：pre-commit 增加第三道闸，只查**本次暂存文件**是否合 prettier（不合即拦），不合规时给出修复命令；两个实测口径决定写法 —— 必须加 `--ignore-unknown`（否则 `.png` 等未知扩展名会被误拦），必须先判暂存文件数（prettier 无文件参数时会读标准输入挂住）。
+- **核心变更**: `latestDate` / `detectTimeTravel` 两个纯函数 + `TimeTravelHit` 类型；HEAD 内容采集从「只取有新增行的文件」改为按全部暂存文件取一份映射（供 C 与 D 共用，无重复 git 调用）；`runGuard` 接线与报告新增「规则 D」段落（逐条打印 HEAD 与本次提交的最新日期）；`--help` 补规则 D 说明；pre-commit 新增闸三（排版）。
+- **测试验证**: `npx vitest run tests/concurrency-guard.test.ts` → 37 例绿（新增 5 例：取最大日期 / 无日期返回 null / 日期倒退命中 / 纯排版不误报 / 删旧条目保留最新日期不误报 / 新增文件不误报）；真实数据验证：用 HEAD 版 `docs/tasks.md` 实跑，最新日期 2026-10-03，人为删掉含该日期的行后倒退到 2026-10-01 ⇒ 规则 D 命中为 true；pre-commit 端到端三验（暂存合规 ⇒ 退出码 0；给注释行尾加 3 个空格并暂存 ⇒ 退出码 1 且点名文件与修复命令；格式化后重新暂存 ⇒ 退出码 0）。
+- **潜在风险**: 规则 D 依赖「docs 日期只增不减」这一仓内约定 —— 若将来某份文档引入「历史日期倒序」的写法，该文件会被误报（处置：用 `git add -p` 分拆，或 owner 确认后 `--no-verify`）。同日内的部分回退靠规则 B/C 兜底，规则 D 抓不到。排版闸只管「本次暂存文件」，不覆盖工作树里尚未暂存的改动。
+
+## [DEV-0153] 2026-10-31 · 技能库真机实测 ＋ 修复「清理失效条目」吃旧快照
+
+- **时间**: 2026-10-31
+- **类型**: 修复（前端报告取数时机；无接口契约变更）
+- **关联文件**: `apps/web/src/hooks/useSkillLibrary.ts`、`apps/web/src/components/skills/SkillCleanupBrokenDialog.tsx`、`apps/web/src/components/skills/SkillCleanupBrokenDialog.test.tsx`
+- **问题描述**: 技能库真机实测（浏览器走「设置页扫描路径 → 技能页列出 → 备份到库 → 清理失效条目 → 从库恢复 → 删除」）时发现一处缺陷：`GET /api/skills/cleanup` 的预检走 react-query 缓存（`staleTime` 15 秒），而查询在**页面挂载时**就发起了（对话框常驻挂载，只切换开合）⇒ 用户在别处删掉目录后再打开对话框，看到的仍是加载那一刻的快照 —— 实测服务端已返回 2 条失效条目，界面显示「没有失效条目」，必须刷新页面才对。
+- **实现思路**: 预检结论的有效期由**磁盘**决定而非时间决定 ⇒ 不进任何缓存。改法与同仓「整理重复」报告一致（mutation + 打开对话框时触发），清理完再算一遍，让对话框里的名单与磁盘保持同一时刻的真相。
+- **核心变更**: `useSkillCleanupPreview` 由 `useQuery` 改为 `useApiMutation`；对话框打开时 `reset()` + `mutate()`，清理成功后重新 `mutate()`；配套组件测试 3 例。
+- **测试验证**: 新增 `SkillCleanupBrokenDialog.test.tsx` 3 例（打开时向服务端要一次预检 / 重新打开必须重算不得沿用上次名单 / 关闭时不发请求）；**回退验证**（把实现临时改回 query 版 ⇒ 3 例全红 ⇒ 测试有牙齿）；浏览器复验：不刷新页面直接打开对话框，正确报出条目（修复前报「没有失效条目」），清理后立即重算为「没有失效条目」；环境还原核对（台账 798 条、demo 条目 0 条、失效条目 0 条、扫描根清单 38 项与测试前逐项一致、临时目录与库副本已删）。
+- **潜在风险**: 本轮实测跑在**真实用户库**上（端口写死 + 禁用 `kill` 导致无法起隔离实例，见 DEV-0154）⇒ 已逐项核对环境还原，但隔离化本身仍是缺口。
+
+## [DEV-0154] 2026-10-31 · dev 隔离实例 ＋ 报告类端点缓存口径统一 ＋ 排版闸占比提示
+
+- **时间**: 2026-10-31
+- **类型**: 工具 + 修复（三项：开发环境隔离能力 / 前端取数口径契约 / 提交前提示）
+- **关联文件**: `packages/shared/src/constants.ts`、`packages/shared/src/report-endpoints.ts`、`apps/web/vite.config.ts`、`apps/server/src/index.ts`、`scripts/dev-all.mjs`、`scripts/format-diff-guard.ts`、`scripts/hooks/pre-commit`、`tests/dev-ports.test.ts`、`tests/dev-isolation.test.ts`、`tests/report-endpoint-cache.test.ts`、`tests/format-diff-guard.test.ts`、`CONTRIBUTING.md`
+- **问题描述**: 上一轮收尾报告列了三条「未考虑且需要增强的需求」，本轮逐条落地。① **dev 无法起隔离实例**：端口是写死常量 + vite `strictPort` ⇒ 同机只能起一套 ⇒ 任何写库的真机实测只能跑在用户真实数据上（上一轮实测正是如此，风险只能靠「手轻」兜）。② **报告类接口的缓存策略无统一口径**：同一个语义（GET 语义的只读报告）有两种处理 ——「整理重复」用 mutation、「清理失效条目」用 query ⇒ 后者出过一次真缺陷（DEV-0153）。③ **排版闸只判「合不合 prettier」**：合了就不管，于是「排版合规却与大段语义改动混在同一批」照样淹没语义行。
+- **实现思路**: ① 端口覆盖层：`OPENVIBE_API_PORT` / `OPENVIBE_WEB_PORT` 两个环境变量，**三处进程（server / vite / dev-all）读同名变量** ⇒ server 监听、vite 代理目标、浏览器入口三者必然一致；变量名单源在 shared，两处因加载机制限制（Node 原生 ESM 引不了 TS 源）各留一份字面量，由 `tests/dev-ports.test.ts` 钉死。**非法值大声失败**（静默回落会让用户以为在隔离端口上跑、实际连真实实例 ⇒ 写库写进真实数据而他毫不知情）；`0` 合法（内核分配空闲端口，测试用）。数据目录隔离沿用既有的 `OPENVIBE_HOME`。② 缓存口径：**单源清单**（`packages/shared/src/report-endpoints.ts` 登记磁盘态报告端点）+ **判据测试**（扫 `apps/web/src/**` 的 `useQuery` 调用块，命中清单即判红；另有两道反向检查：登记项必须真被前端用、且必须走 mutation）。为何用清单而非自动推导服务端代码：自动推导会给出过宽结论（很多接口只是顺带读一下磁盘）⇒ 闸会变成噪音，而噪音的闸人只会绕过。③ 占比提示：纯排版行数 = 总改动行数 − `--ignore-all-space` 下的改动行数（prettier 对 Markdown 表格的列对齐只加空格 ⇒ 正好落这一格）；占比 > 60% **且** 纯排版 > 30 行才提示；**只提示不拦**（作者可能就是想一次做完重排，拆不拆是他的判断）。
+- **核心变更**: shared 新增 `API_PORT_ENV` / `WEB_PORT_ENV` / `resolvePort`（含「0 合法、非法抛错」口径）；vite 侧新增覆盖解析与 `effectiveApiPort` / `effectiveWebPort`；server 侧按覆盖值监听并在横幅显示实际端口；dev-all 横幅在覆盖时额外打印「这是隔离实例」与数据目录；`packages/shared/src/report-endpoints.ts`（磁盘态报告端点清单）；`scripts/format-diff-guard.ts`（占比计算与文案）；pre-commit 闸三之下挂占比提示（`|| true`，提示失败不得影响提交）；CONTRIBUTING.md 补「起一套隔离的 dev 实例」用法。
+- **测试验证**: `tests/dev-ports.test.ts` 20 例（新增变量名单源 6 例 + 覆盖值解析 5 例）；`tests/dev-isolation.test.ts` 3 例（**真起 server 进程**：覆盖变量生效且库落沙箱目录 / 沙箱台账为空而真实库几百条 / 非法覆盖值进程非零退出且报「端口覆盖值非法」）；`tests/report-endpoint-cache.test.ts` 6 例（**回退验证**：把实现改回 query 版 ⇒ 判红并点名文件与端点）；`tests/format-diff-guard.test.ts` 10 例（真 git 仓库造场景：纯排版差异占比近 100% / 纯语义改动占比 0 / 一行语义 + 大段对齐判为排版主导 / 新增文件不参与 / 小文件空白差异不提示 / 两条件同时满足才提示 / 阈值可调）；**真机隔离验证**：`OPENVIBE_HOME=/tmp/ov-sandbox OPENVIBE_API_PORT=8788 OPENVIBE_WEB_PORT=5145 pnpm dev` 起第二套 ⇒ 横幅正确显示覆盖端口与沙箱数据目录；经 web 代理（Origin 头）访问 ⇒ `dataDir` / `port` / `db.detail` 三项全部指向沙箱与 8788；向隔离实例写入一条 skill ⇒ 隔离库 1 条且含新条目，**真实库仍 798 条且不含新条目**；提示脚本实跑输出「纯排版差异 102 行 / 共 102 行改动（100%）」。四闸：lint 0、typecheck 0、全量 **202 文件 / 2565 例绿**（较上轮 2535 多 30 例）、docs:check error 0 · warning 132 基线内。
+- **潜在风险**: ① 端口覆盖只覆盖 dev 链（server / vite / dev-all），`openvibe serve` 走的是 CLI 自己的 `--port` 与 config.json，与本机制无关（未合并，两者语义不同）。② 磁盘态报告端点清单是**人工登记**的 ⇒ 新增此类端点若忘登记，判据测试抓不到（靠 review 纪律兜底）；清单登记错（把库表报告当磁盘态）会让闸过度拦截。③ 占比提示的阈值（60% / 30 行）是拍的，可能需要按实际仓库噪声调；它只提示不拦，故误报代价低、漏报代价是「噪声 diff 继续存在」。④ `--ignore-all-space` 的口径对「改了缩进层级的代码」也算纯排版（那是事实，但作者可能认为那是语义）⇒ 提示语已写明「确认这次就是要一起改，那就忽略它」。

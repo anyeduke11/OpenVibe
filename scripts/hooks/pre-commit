@@ -76,6 +76,13 @@ if [ "$STAGED_COUNT" -gt 0 ]; then
     echo "  （只想跳过这一次：用 git commit --no-verify）"
     exit 1
   fi
+
+  # ── 闸三之二：排版差异占比提示（只提示，不拦）──
+  # 闸三只管「排版合不合 prettier」，管不到「排版合了却和大段语义改动混在一起」——
+  # 那种提交照样让 reviewer 在对齐改动里找不到那一行语义改动（本仓真发生过）。
+  # ⇒ 这里补一只眼睛：算清这一笔里有多少比例是纯排版差异，占比过高就提示。
+  # ⚠️ 提示失败**不得影响提交**（`|| true`）：它只是提示，闸三那步才是硬红线。
+  npx tsx scripts/format-diff-guard.ts 2>/dev/null || true
 fi
 
 exit 0
