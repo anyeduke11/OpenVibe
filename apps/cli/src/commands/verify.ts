@@ -50,7 +50,7 @@ export interface VerifyDeps {
 }
 
 export type VerifyOutcomeState =
-  'CONSISTENT' | 'PARTIAL' | 'ORPHAN' | 'DISK_DRIFT' | 'STALE_LOCK' | 'UNMANAGED'
+  'CONSISTENT' | 'PARTIAL' | 'ORPHAN' | 'DISK_DRIFT' | 'STALE_LOCK' | 'UNVERIFIED' | 'UNMANAGED'
 
 export interface VerifyOutcome {
   projectPath: string
@@ -212,6 +212,9 @@ export async function verifyAction(
     markedUnregistered: orphan,
     latestExportVersion: latest,
     packVersion: lock.pack.version,
+    // ⚠️ **R0 · 证据诚实（2026-10-31）**：把「到底问没问到服务端」传给判定函数。
+    //   离线（无 client）或探测失败 ⇒ probedOnline=false ⇒ 判 UNVERIFIED（不再判 CONSISTENT）。
+    probedOnline,
   })
 
   const hints: string[] = []

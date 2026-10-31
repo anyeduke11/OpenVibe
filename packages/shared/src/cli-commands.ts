@@ -160,7 +160,7 @@ export const CLI_COMMANDS: readonly CliCommandMeta[] = [
     name: 'verify',
     usage: 'openvibe verify <projectPath> [flags]',
     summary:
-      '三方一致性核验：包版本 / lock / 磁盘（只读，输出 CONSISTENT / PARTIAL / ORPHAN / DISK_DRIFT / STALE_LOCK / UNMANAGED 之一）',
+      '三方一致性核验：包版本 / lock / 磁盘（只读，输出 CONSISTENT / PARTIAL / ORPHAN / DISK_DRIFT / STALE_LOCK / UNVERIFIED / UNMANAGED 之一）',
     flags: [],
     risk: 'readonly',
     writesDisk: false,

@@ -46,6 +46,15 @@ import { CommandInterpretRunner, InterpretRunnerError, type SourceInterpretRunne
 
 const dirs: string[] = []
 
+/**
+ * 当前进程是不是 root（2026-10-31 R0）。
+ *
+ * ⚠️ **root 读不出权限错误**（chmod 000 对 root 无效）⇒ 权限那支用例在 root 下无意义。
+ * ⇒ 用 `it.skipIf(IS_ROOT)` 显式跳过（报告里出现 skipped），
+ *   而不是裸 `return`（那会被计为 passed ⇒ 环境缺失被读作覆盖率）。
+ */
+const IS_ROOT = typeof process.getuid === 'function' && process.getuid() === 0
+
 afterEach(() => {
   while (dirs.length > 0) {
     const d = dirs.pop()
@@ -176,9 +185,10 @@ describe('M9 增强 2 · 片段读取的失败原因（**六种，各自归对**
     expect(r.failure).toBe('too_large')
   })
 
-  it('⑤ 读不了（权限）⇒ `unreadable`', () => {
-    // ⚠️ **root 读不出权限错误** ⇒ 该分支在 root 下没有意义（跳过并说明）
-    if (typeof process.getuid === 'function' && process.getuid() === 0) return
+  it.skipIf(IS_ROOT)('⑤ 读不了（权限）⇒ `unreadable`', () => {
+    // ⚠️ **root 读不出权限错误** ⇒ 该分支在 root 下没有意义
+    // ⇒ 改用 `it.skipIf`（2026-10-31 R0）：报告里显式出现 skipped，
+    //   而裸 `return` 会被计为 passed（环境缺失被读作覆盖率）。
     const dir = makeProject({ 'locked.py': 'secret\n' })
     const path = join(dir, 'locked.py')
     chmodSync(path, 0o000)

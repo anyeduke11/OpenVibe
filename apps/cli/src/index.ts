@@ -930,7 +930,7 @@ export function buildProgram(): Command {
   program
     .command('verify')
     .description(
-      '三方一致性核验：包版本 / lock / 磁盘（只读，输出 CONSISTENT / PARTIAL / ORPHAN / DISK_DRIFT / STALE_LOCK / UNMANAGED 之一）',
+      '三方一致性核验：包版本 / lock / 磁盘（只读，输出 CONSISTENT / PARTIAL / ORPHAN / DISK_DRIFT / STALE_LOCK / UNVERIFIED / UNMANAGED 之一）',
     )
     .argument('<projectPath>', '目标项目目录')
     .action(async (projectPath: string) => {

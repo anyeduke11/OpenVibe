@@ -14,7 +14,7 @@
     "dev:iso": "node scripts/dev-iso.mjs",
     "dev:each": "pnpm -r --if-present dev",
     "build": "pnpm -r --if-present build",
-    "test": "vitest run",
+    "test": "tsx scripts/test-summary.ts",
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",

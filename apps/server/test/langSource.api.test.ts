@@ -36,6 +36,14 @@ interface Harness {
 const openHandles: Harness[] = []
 const dirs: string[] = []
 
+/**
+ * 当前是不是 Windows（2026-10-31 R0）。
+ *
+ * ⚠️ `it.skipIf(IS_WINDOWS)` 的条件必须在**用例注册前**同步已知；
+ *   而「看平台再 return」是运行时判断 ⇒ 框架把它计为 passed（PRD v0.2.4 F13 / R0）。
+ */
+const IS_WINDOWS = process.platform === 'win32'
+
 afterEach(() => {
   while (openHandles.length > 0) {
     const h = openHandles.pop()
@@ -129,33 +137,38 @@ describe('M9 P4 · POST /api/lang/scan', () => {
     expect(res.statusCode).toBe(422)
   })
 
-  it('⚠️ 真扫一个 Python 项目 ⇒ 落库成功，且**响应里没有命中列表**', async () => {
-    if (process.platform === 'win32') return // 真扫描依赖 Python 工具链探测，win CI 上超 20s 闸——win32 门控（README 既有纪律：CI win 腿不构成 POSIX/工具链语义用例的证据）
-    const h = await makeHarness()
-    const dir = makePyProject()
-    addProject(h.handle.db, 'p1', dir)
-    addTopics(h.handle.db)
+  it.skipIf(IS_WINDOWS)(
+    '⚠️ 真扫一个 Python 项目 ⇒ 落库成功，且**响应里没有命中列表**',
+    async () => {
+      // 真扫描依赖 Python 工具链探测，win CI 上超 20s 闸——win32 门控（README 既有纪律：
+      // CI win 腿不构成 POSIX/工具链语义用例的证据）。⚠️ 2026-10-31 R0：原写法是裸
+      // `return`，会被计为 passed ⇒ 环境缺失被读作覆盖率。
+      const h = await makeHarness()
+      const dir = makePyProject()
+      addProject(h.handle.db, 'p1', dir)
+      addTopics(h.handle.db)
 
-    const res = await post(h, '/api/lang/scan', { project_id: 'p1' })
+      const res = await post(h, '/api/lang/scan', { project_id: 'p1' })
 
-    expect(res.statusCode).toBe(200)
-    const body = res.json() as {
-      scan_id: number
-      languages: { lang: string; mode: string | null; toolchain: string | null }[]
-      written: number
-    }
-    // ⚠️ **扫描的账 ≠ 命中列表**（两种形状）⇒ 端点只回账
-    expect(body).not.toHaveProperty('findings')
-    expect(body.written).toBeGreaterThan(0)
-    expect(body.languages.find((l) => l.lang === 'python')?.mode).toBe('parser')
+      expect(res.statusCode).toBe(200)
+      const body = res.json() as {
+        scan_id: number
+        languages: { lang: string; mode: string | null; toolchain: string | null }[]
+        written: number
+      }
+      // ⚠️ **扫描的账 ≠ 命中列表**（两种形状）⇒ 端点只回账
+      expect(body).not.toHaveProperty('findings')
+      expect(body.written).toBeGreaterThan(0)
+      expect(body.languages.find((l) => l.lang === 'python')?.mode).toBe('parser')
 
-    // 命中真的落库了
-    const rows = h.handle.db
-      .prepare('SELECT file_rel_path, line, confidence, scanner_mode FROM lang_topic_findings')
-      .all() as { file_rel_path: string; confidence: string }[]
-    expect(rows.length).toBe(body.written)
-    expect(rows[0]?.file_rel_path).toBe('app.py')
-  })
+      // 命中真的落库了
+      const rows = h.handle.db
+        .prepare('SELECT file_rel_path, line, confidence, scanner_mode FROM lang_topic_findings')
+        .all() as { file_rel_path: string; confidence: string }[]
+      expect(rows.length).toBe(body.written)
+      expect(rows[0]?.file_rel_path).toBe('app.py')
+    },
+  )
 
   it('缺 project_id ⇒ 422', async () => {
     const h = await makeHarness()
@@ -165,8 +178,9 @@ describe('M9 P4 · POST /api/lang/scan', () => {
 })
 
 describe('M9 P4 · GET /api/lang/findings', () => {
-  it('返回最近一次扫描的命中，且**路径是相对的**（DL-23）', async () => {
-    if (process.platform === 'win32') return // 真扫描依赖 Python 工具链探测，win CI 上超 20s 闸——win32 门控（README 既有纪律：CI win 腿不构成 POSIX/工具链语义用例的证据）
+  it.skipIf(IS_WINDOWS)('返回最近一次扫描的命中，且**路径是相对的**（DL-23）', async () => {
+    // win32 门控（同上：真扫描依赖 Python 工具链探测，win CI 上超 20s 闸）。
+    // ⚠️ 2026-10-31 R0：原写法是裸 `return`，会被计为 passed。
     const h = await makeHarness()
     const dir = makePyProject()
     addProject(h.handle.db, 'p1', dir)

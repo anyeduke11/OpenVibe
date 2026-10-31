@@ -46,6 +46,15 @@ import type {
 } from '@openvibe/shared'
 
 const dbs: TestDbHandle[] = []
+
+/**
+ * 当前是不是 Windows（2026-10-31 R0）。
+ *
+ * ⚠️ **为什么要有这个常量**：`it.skipIf(IS_WINDOWS)` 的条件必须在**用例注册前**同步已知；
+ *   而「看平台再 return」是运行时判断 ⇒ 框架把它计为 passed（PRD v0.2.4 F13 / R0）。
+ */
+const IS_WINDOWS = process.platform === 'win32'
+
 function db() {
   const h = newDb()
   dbs.push(h)
@@ -198,8 +207,10 @@ describe('M9 · provider 配置层 · 三档能力探测（不许塌成一个兜
     expect(r.detail).toContain('找不到命令')
   })
 
-  it('命令形态：**命令存在** ⇒ `ready`', async () => {
-    if (process.platform === 'win32') return // /bin/echo 是 POSIX 路径——win32 门控（README 既有纪律：CI win 腿不构成 POSIX 语义用例的证据）
+  it.skipIf(IS_WINDOWS)('命令形态：**命令存在** ⇒ `ready`', async () => {
+    // /bin/echo 是 POSIX 路径——win32 门控（README 既有纪律：CI win 腿不构成
+    // POSIX 语义用例的证据）。⚠️ 2026-10-31 R0：原写法是裸 `return`，
+    //   会被计为 passed ⇒ 环境缺失被读作覆盖率。
     const d = db()
     writeProviderCollection(
       d,

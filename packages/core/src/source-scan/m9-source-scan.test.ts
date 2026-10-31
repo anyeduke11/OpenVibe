@@ -37,6 +37,25 @@ const FIXTURE_DIR = resolve(REPO_ROOT, 'packages/core/src/fixtures/m9')
 const PY_BUILD_DIR = resolve(REPO_ROOT, 'packages/core/src/db/seeds/_build')
 const SCAN_DIR = resolve(REPO_ROOT, 'packages/core/src/source-scan')
 
+/**
+ * 本机有没有 Go 工具链（2026-10-31 R0）。
+ *
+ * ⚠️ **为什么在模块顶层 await 探测**：环境门控要在**用例注册之前**判定，
+ *   才能用 `it.skipIf` / `describe.skipIf` ⇒ 条件必须是**同步已知**的。
+ *   顶层 await 让「探测」与「注册」分成两步，且探测只做一次。
+ *
+ * ⚠️ **为什么不再用裸 `if (!hasGo) return`**：那会被测试框架计为 **passed**
+ *   ⇒ 环境缺失被读作覆盖率（PRD v0.2.4 F13 / R0 的核心判据）。
+ */
+const HAS_GO = await (async () => {
+  try {
+    await execFileAsync('go', ['version'], { encoding: 'utf8' })
+    return true
+  } catch {
+    return false
+  }
+})()
+
 /** 真实 Go 样本的目录（标准库里的一个包）。 */
 async function realGoSample(): Promise<string> {
   const res = await execFileAsync('go', ['env', 'GOROOT'], { encoding: 'utf8' })
@@ -120,15 +139,10 @@ describe('M9 P4.2 · DL-19 · 回退只降精度、不减结果', () => {
     expect(findSubsetViolations(parser, heuristic)).toEqual([])
   })
 
-  it('真实样本（Go 标准库 net/http）上：parser ⊇ 正则', async () => {
-    // 环境门控：无 go 工具链即跳过（CI runner 默认不带 Go——本地/带 Go 的环境才是证据面）
-    let hasGo = true
-    try {
-      await execFileAsync('go', ['version'], { encoding: 'utf8' })
-    } catch {
-      hasGo = false
-    }
-    if (!hasGo) return
+  it.skipIf(!HAS_GO)('真实样本（Go 标准库 net/http）上：parser ⊇ 正则', async () => {
+    // 环境门控：无 go 工具链即**显式跳过**（CI runner 默认不带 Go——
+    // 本地/带 Go 的环境才是证据面）。⚠️ 2026-10-31 R0：原写法是裸 `return`，
+    //   会被计为 passed ⇒ 环境缺失被读作覆盖率。
     const root = await realGoSample()
     const { parser, heuristic } = await bothPaths(root)
     // ⚠️ 先自证样本非空（否则「⊇」是空集真）

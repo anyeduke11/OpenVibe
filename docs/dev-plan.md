@@ -219,6 +219,7 @@ openvibe/
 ├── scripts/report-endpoints-snapshot.ts（pnpm report:snapshot 入口：只读端点的数据来源自述快照落档 packages/shared/src/report-endpoints.ts，由 tests/report-endpoint-cache.test.ts 比对）
 ├── scripts/isolated-home.mjs（真机实测隔离守卫：`assertIsolatedHome(home)` 判该 home 是否指向真实 ~/.openvibe，是则拒绝执行；`spawnIsolated` / `spawnSyncIsolated` 把「断言」与「投递 OPENVIBE_HOME」绑成一步——走查脚本共用这一份）
 ├── scripts/iso-ports.mjs（隔离实例的端口分配与冲突重试：`pickPortPair()` 探一组空闲端口，`detectPortConflict()` 认端口占用信号，`withPortRetry()` 撞端口就换一组重试（最多 2 次）——由 tests/iso-ports-guard.test.ts 判据）
+├── scripts/test-summary.ts（pnpm test 入口：跑 vitest 并给出 passed / failed / skipped / todo 四数汇总——todo 单列不计入 passed；由 tests/test-summary.test.ts 判据）
 ├── scripts/migrate-drill.ts（pnpm migrate:drill 入口：0019→0022 升级路径真库演练对账，行数/内容指纹/seed_hash 不回填三判据）
 ├── scripts/v023-preflight.ts（pnpm v023:preflight 入口：v0.2.3 提交清单对账——清单 vs 工作树差异 + 存在性，退出码判净）
 ├── scripts/vibe-retro-ingest.ts（pnpm vibe:retro 入口：复盘报告按节拆条回流 agent 桥 pending——docs/vibe-retro.md 协议）

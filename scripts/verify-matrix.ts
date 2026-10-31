@@ -193,7 +193,10 @@ async function run(): Promise<number> {
   check('sync', ['sync', project, '--pack', 'default', '--dry-run'], [0], 'dry-run 预览')
   check('sync', ['sync', project, '--pack', 'default'], [0], '真实注入')
   check('diff', ['diff', project], [0], '注入后应 clean')
-  check('verify', ['verify', project], [0], '注入后应 CONSISTENT')
+  // ⚠️ **2026-10-31 R0 语义变更**：`runCli` 强制 `OPENVIBE_SERVER=''`（离线）⇒
+  //   verify 判 `UNVERIFIED`（包侧未核）+ 退出码 2，不再是 CONSISTENT + 0。
+  //   ⇒ 这条断言改的是**期望值**，不是把实现改回旧语义。
+  check('verify', ['verify', project], [2], '离线 ⇒ 包侧未核，判 UNVERIFIED（退出码 2）')
   check('scan', ['scan', '--project', project], [0, 2], '项目规则文件登记')
   check('clean', ['clean', project, '--dry-run'], [0, 2], 'dry-run 退场计划')
 

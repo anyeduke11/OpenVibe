@@ -24,6 +24,12 @@ import type { PackExportOut } from '@openvibe/shared'
  * 判据映射：四/六态各一支（人为造中间态：删文件=PARTIAL / 改文件=DISK_DRIFT /
  * 放弃儿=ORPHAN / 空目录=UNMANAGED / 服务端新版本=STALE_LOCK）；目录零变化断言；
  * --json 单对象 + 退出码。纯函数腿在 packages/core/src/inject/verify.test.ts。
+ *
+ * ⚠️ **2026-10-31（v0.2.4 R0 · 证据诚实）本文件有一处语义变更，不是测试修补**：
+ *   旧语义下，离线 verify（`OPENVIBE_SERVER=''` ⇒ 服务端不可达）返回
+ *   `CONSISTENT` + 退出码 0 ⇒ 脚本与人都读作「三方一致」，而包侧根本没问。
+ *   ⇒ 新语义：离线返回 `UNVERIFIED` + 退出码 2。
+ *   ⇒ 「问到了服务端但该包无导出记录」**仍**是 `CONSISTENT`（确定结论，非未知）。
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -87,13 +93,27 @@ function dirFingerprint(root: string): string {
 }
 
 describe('verifyAction 的状态判定（FR-4，进程内）', () => {
-  it('VERIFY-01: 注入后 → CONSISTENT（离线时包侧未核只降级为警告）', async () => {
+  it('⚠️ VERIFY-01: 注入后 + 离线 ⇒ UNVERIFIED（语义变更：旧语义是 CONSISTENT）', async () => {
+    // ⚠️ **这是语义变更，不是测试修补**（PRD v0.2.4 F7 / R0）：
+    //   旧语义：离线时判 CONSISTENT + 退出码 0 ⇒ 「没问过服务端」与「真的一致」共享同一个词。
+    //   新语义：判 UNVERIFIED + 退出码 2 ⇒ 脚本与人都能区分「真的一致」与「只核了本地」。
     const { project } = await injectedProject()
     const outcome = await verifyAction({ projectPath: project }, {})
+    expect(outcome.state).toBe('UNVERIFIED')
+    expect(outcome.exitCode).toBe(2)
+    expect(outcome.probedOnline).toBe(false)
+    // 仍保留警告位（不吞掉细节），但**结论态**已是 UNVERIFIED
+    expect(outcome.warnings.join('\n')).toContain('离线')
+  })
+
+  it('VERIFY-01b: 注入后 + 问到服务端（该包无导出记录）⇒ CONSISTENT（确定结论，非未知）', async () => {
+    // ⚠️ 这条是「不可达」与「没有记录」的**分界**：前者是未知，后者是已知为空。
+    //   首次使用（还没导出过标准包）的用户不该被判成异常。
+    const { project } = await injectedProject()
+    const outcome = await verifyAction({ projectPath: project }, clientWithExports([]))
     expect(outcome.state).toBe('CONSISTENT')
     expect(outcome.exitCode).toBe(0)
-    expect(outcome.probedOnline).toBe(false)
-    expect(outcome.warnings.join('\n')).toContain('离线')
+    expect(outcome.probedOnline).toBe(true)
   })
 
   it('VERIFY-02: 删一个受管文件 → PARTIAL（疑似上次注入中断）', async () => {
@@ -169,19 +189,21 @@ describe('verify 真子进程（退出码与 --json 契约）', () => {
       env: { ...process.env, OPENVIBE_HOME: home, OPENVIBE_SERVER: '', OPENVIBE_TOKEN: '' },
     })
 
-  it('VERIFY-09: --json 下 stdout 单对象，command=verify + state + exitCode', async () => {
+  it('⚠️ VERIFY-09: --json 下 stdout 单对象；离线 ⇒ UNVERIFIED + 退出码 2', async () => {
+    // ⚠️ **语义变更**（PRD v0.2.4 F7 / R0）：旧语义下这条是 CONSISTENT + 退出码 0。
+    //   ⇒ `--json` 的 state 取值集合多一个 `UNVERIFIED`，旧消费方按未知枚举处理。
     const { project } = await injectedProject()
     const home = tempDir('ov-verify-home-')
     const res = runCli(['--json', 'verify', project], home)
-    expect(res.status).toBe(0)
+    expect(res.status).toBe(2)
     const env = JSON.parse(res.stdout) as {
       command: string
       summary: { state: string; exitCode: number; ok: boolean }
     }
     expect(env.command).toBe('verify')
-    expect(env.summary.state).toBe('CONSISTENT')
-    expect(env.summary.exitCode).toBe(0)
-    expect(env.summary.ok).toBe(true)
+    expect(env.summary.state).toBe('UNVERIFIED')
+    expect(env.summary.exitCode).toBe(2)
+    expect(env.summary.ok).toBe(false)
   }, 30_000)
 
   it('VERIFY-10: 无 lock → 退出码 2 + state=UNMANAGED', () => {
