@@ -55,12 +55,41 @@ function readPorts() {
   return { api: pick('DEFAULT_PORT'), web: pick('WEB_PORT') }
 }
 
+/**
+ * dev 隔离实例的端口覆盖（2026-10-30）。
+ *
+ * 起第二套实例时用：
+ *
+ * ```sh
+ * OPENVIBE_HOME=/tmp/ov-sandbox OPENVIBE_API_PORT=8788 OPENVIBE_WEB_PORT=5145 pnpm dev
+ * ```
+ *
+ * ⚠️ **变量名与 shared 的 `API_PORT_ENV` / `WEB_PORT_ENV` 同源但各自留一份字面量**：
+ *   理由同 `readPorts`（本文件引不了 shared 的 TS 源）⇒ 由 `tests/dev-ports.test.ts` 钉死一致。
+ *
+ * ⚠️ **非法值大声失败**：静默回落会让横幅显示一个没在跑的端口，
+ *   而 vite 的 `strictPort` 会直接报错退出 ⇒ 两边对不上，人只会怀疑 vite。
+ */
+const API_PORT_ENV = 'OPENVIBE_API_PORT'
+const WEB_PORT_ENV = 'OPENVIBE_WEB_PORT'
+
+function resolvePort(raw, fallback, label) {
+  if (raw === undefined || raw.trim() === '') return fallback
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n < 0 || n > 65535) {
+    return fail(`${label} 覆盖值非法：${raw}（必须是 0–65535 的整数；未设置时用 ${fallback}）`)
+  }
+  return n
+}
+
 function fail(msg) {
   console.error(`[dev:all] ${msg}`)
   process.exit(1)
 }
 
-const { api, web } = readPorts()
+const { api: apiDefault, web: webDefault } = readPorts()
+const api = resolvePort(process.env[API_PORT_ENV], apiDefault, API_PORT_ENV)
+const web = resolvePort(process.env[WEB_PORT_ENV], webDefault, WEB_PORT_ENV)
 const WEB_URL = `http://127.0.0.1:${web}`
 const API_URL = `http://127.0.0.1:${api}`
 
@@ -70,6 +99,12 @@ console.log(`[dev:all] API（脚本直连）            ${API_URL}`)
 console.log(`[dev:all] 浏览器走 Origin 白名单；脚本走 Bearer token。`)
 console.log(`[dev:all]   curl 经 web 代理要手动带头，否则 401：`)
 console.log(`[dev:all]     curl -H "Origin: ${WEB_URL}" ${WEB_URL}/api/terms`)
+if (api !== apiDefault || web !== webDefault) {
+  console.log(
+    `[dev:all] ⚠️ 这是**隔离实例**（端口被 ${API_PORT_ENV}=${api} / ${WEB_PORT_ENV}=${web} 覆盖）。`,
+  )
+  console.log(`[dev:all]   数据目录：${process.env.OPENVIBE_HOME ?? '~/.openvibe（未隔离！）'}`)
+}
 console.log(`[dev:all] Ctrl-C 会同时停掉两个进程。`)
 console.log(`[dev:all] ${RULES}`)
 

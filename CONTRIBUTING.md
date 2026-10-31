@@ -7,6 +7,31 @@
 - Node.js ≥ 22，pnpm ≥ 10（仓库以 `packageManager` 字段锁定版本，`corepack enable` 即可）
 - 克隆后：`pnpm install && pnpm lint && pnpm typecheck && pnpm test` 应全绿
 
+### 起一套隔离的 dev 实例（2026-10-30）
+
+默认端口是写死的常量（web 5144 / API 8787），且 vite 侧 `strictPort: true`
+⇒ 同一台机器上**只能起一套** dev 实例。
+
+需要第二套（尤其是**会写库**的真机实测）时，用这三个环境变量起隔离实例：
+
+```sh
+OPENVIBE_HOME=/tmp/ov-sandbox OPENVIBE_API_PORT=8788 OPENVIBE_WEB_PORT=5145 pnpm dev
+```
+
+| 变量                | 作用                                             | 缺省          |
+| ------------------- | ------------------------------------------------ | ------------- |
+| `OPENVIBE_HOME`     | 数据目录（库文件、packs 导出、skill 库都在这儿） | `~/.openvibe` |
+| `OPENVIBE_API_PORT` | API 监听端口                                     | 8787          |
+| `OPENVIBE_WEB_PORT` | web 端口（浏览器打开这个）                       | 5144          |
+
+三点注意：
+
+1. **非法端口值会让进程直接退出**（不静默回落）——静默回落会让你以为自己在隔离端口上跑，
+   实际连的是真实实例，写库就写进真实数据了。
+2. `OPENVIBE_API_PORT=0` 表示「让内核分配一个空闲端口」，测试里用它避开端口冲突。
+3. 端口覆盖的变量名单源在 `packages/shared/src/constants.ts`，三处进程（server / vite / dev-all）
+   读的是同名变量，`tests/dev-ports.test.ts` 钉死三者一致。
+
 ## 仓库结构
 
 ```

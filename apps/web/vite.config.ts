@@ -32,6 +32,43 @@ export const WEB_PORT = 5144
 /** ⚠️ 同上：与 shared 的 `DEFAULT_PORT` 同源，由 tests/dev-ports.test.ts 钉住。 */
 const API_PORT = 8787
 
+/**
+ * dev 隔离实例的端口覆盖（2026-10-30）。
+ *
+ * ## 为什么 vite 侧也要读这两个变量
+ *
+ * 起第二套实例时，三处必须指向同一个 API 端口，否则「隔离」只是幻觉：
+ *  ① server 的监听端口；② vite 的 `/api` 代理目标；③ 浏览器实际打开的 web 端口。
+ * 前两处都在本文件与 server 进程里 ⇒ **读同一个环境变量名**是唯一能保证一致的做法
+ * （各写各的默认值 + 各自的覆盖逻辑，迟早有一处漏改）。
+ *
+ * ⚠️ **变量名与 shared 的 `API_PORT_ENV` / `WEB_PORT_ENV` 同源但各自留一份字面量**：
+ *   理由同上（本文件不能 import shared）⇒ 由 `tests/dev-ports.test.ts` 钉死一致。
+ *
+ * ⚠️ **非法值大声失败**：静默回落会让用户以为自己在隔离端口上跑，
+ *   实际连的是默认端口那个真实实例 ⇒ 写库写进了真实数据而他毫不知情。
+ */
+const API_PORT_ENV = 'OPENVIBE_API_PORT'
+const WEB_PORT_ENV = 'OPENVIBE_WEB_PORT'
+
+/** 端口覆盖值解析（与 shared 的 `resolvePort` 同口径；本文件不能 import shared） */
+function resolvePort(raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw.trim() === '') return fallback
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n < 0 || n > 65535) {
+    throw new Error(
+      `端口覆盖值非法：${raw}（必须是 0–65535 的整数；未设置时用 ${String(fallback)}）`,
+    )
+  }
+  return n
+}
+
+/** 实际生效的 web 端口（缺省即上面那个常量，可被 `OPENVIBE_WEB_PORT` 覆盖） */
+const effectiveWebPort = resolvePort(process.env[WEB_PORT_ENV], WEB_PORT)
+
+/** 实际生效的 API 端口（缺省即上面那个常量，可被 `OPENVIBE_API_PORT` 覆盖） */
+const effectiveApiPort = resolvePort(process.env[API_PORT_ENV], API_PORT)
+
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
@@ -39,18 +76,19 @@ export default defineConfig({
     // 会导致 127.0.0.1:5144 拒连（DEV-0071 实测）。绑 127.0.0.1 后 localhost 走浏览器
     // fallback 仍可达；与 server 侧的回环绑定纪律（design §11.1）一致。
     host: '127.0.0.1',
-    port: WEB_PORT,
+    port: effectiveWebPort,
     strictPort: true,
     proxy: {
       // ⚠️ 目标端口与上面 WEB_PORT 同源（都取自 shared 的常量，由 tests/dev-ports.test.ts 钉住）。
       // 原先这里直接硬写了服务端那个端口字面量 —— 改 shared 的 DEFAULT_PORT 时它不跟着动，
       // 代理会静默指向一个没人监听的端口，而 vite 本身完全不报错。
-      '/api': { target: `http://127.0.0.1:${API_PORT}`, changeOrigin: false },
+      // ⚠️ 覆盖时与 server 的监听端口读**同一个** `OPENVIBE_API_PORT` ⇒ 两边必然一致。
+      '/api': { target: `http://127.0.0.1:${String(effectiveApiPort)}`, changeOrigin: false },
     },
   },
   preview: {
     host: '127.0.0.1',
-    port: WEB_PORT,
+    port: effectiveWebPort,
     strictPort: true,
   },
 })

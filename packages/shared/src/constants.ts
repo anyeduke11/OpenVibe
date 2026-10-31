@@ -6,6 +6,60 @@ export const APP_ID = 'openvibe-cli' as const
 export const DEFAULT_PORT = 8787
 
 /**
+ * dev 隔离实例的**端口覆盖环境变量名**（2026-10-30）。
+ *
+ * ## 为什么要有这一层
+ *
+ * 本仓的端口是**写死的常量**（`DEFAULT_PORT` / `WEB_PORT`），而 vite 侧还
+ * `strictPort: true`（端口被占直接报错退出，绝不静默漂移）。⇒ 同一台机器上
+ * 只能起**一套** dev 实例 ⇒ 任何涉及写库的真机实测都只能跑在用户真实数据上。
+ *
+ * 覆盖这一层之后，`pnpm dev` 的第二套实例可以是：
+ *
+ * ```sh
+ * OPENVIBE_HOME=/tmp/ov-sandbox OPENVIBE_API_PORT=8788 OPENVIBE_WEB_PORT=5145 pnpm dev
+ * ```
+ *
+ * - 数据目录走 `OPENVIBE_HOME`（core 的 `openvibeHome()` 已支持，见 packages/core/src/db/index.ts）
+ * - API 端口走 `OPENVIBE_API_PORT`，web 端口走 `OPENVIBE_WEB_PORT`
+ * - web 的 `/api` 代理目标与 server 的监听端口**读同一个变量** ⇒ 两边必然一致
+ *
+ * ⚠️ **为什么变量名带 `OPENVIBE_` 前缀**：本仓已有 `OPENVIBE_HOME` /
+ *   `OPENVIBE_SEED_DIR` / `OPENVIBE_SERVER` / `OPENVIBE_TOKEN` 四个同族变量，
+ *   裸 `PORT` 会被机器上任何无关工具占用（且 `PORT` 已被 `deploy/telemetry` 占用）。
+ *
+ * ⚠️ **这三个名字是单源**：本文件是唯一出处；`apps/web/vite.config.ts` 与
+ *   `scripts/dev-all.mjs` 因为加载机制限制（Node 原生 ESM）无法 import 本包，
+ *   各留一份字面量，**由 `tests/dev-ports.test.ts` 钉死三者一致**（形态同端口常量）。
+ */
+export const API_PORT_ENV = 'OPENVIBE_API_PORT'
+export const WEB_PORT_ENV = 'OPENVIBE_WEB_PORT'
+
+/**
+ * 端口覆盖值的解析：**非法值大声失败**，绝不静默回落。
+ *
+ * 静默回落是这里最坏的一种行为：用户以为自己在 8788 上跑隔离实例，实际连的是
+ * 8787 的真实实例 —— 写库写进了真实数据，而他毫不知情。
+ * ⇒ 覆盖值不是合法端口（NaN / 非整数 / 越界）时直接抛错，由进程退出。
+ *
+ * ⚠️ **0 是合法值**：它的含义是「让内核分配一个空闲端口」（本仓既有语义：
+ *   `openvibe serve --port 0` 用于测试里避开端口冲突）⇒ 隔离实例的测试也靠它。
+ *
+ * @param raw 环境变量原始值（undefined = 未覆盖）
+ * @param fallback 未覆盖时的默认端口
+ */
+export function resolvePort(raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw.trim() === '') return fallback
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n < 0 || n > 65535) {
+    throw new Error(
+      `端口覆盖值非法：${raw}（必须是 0–65535 的整数；未设置时用 ${String(fallback)}）`,
+    )
+  }
+  return n
+}
+
+/**
  * 前端唯一约定端口（owner 2026-09-30 定）：dev 与 preview 都锁 5144。
  * strictPort=true → 端口被占时 vite 直接报错退出，绝不静默漂移到 5174 等备用端口；
  * 「禁止使用其他端口」由此机制保证，而不是靠约定。

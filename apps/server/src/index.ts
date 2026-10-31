@@ -1,8 +1,27 @@
 // apps/server dev 入口（DEV-0013 C-7/C-8）：复用 bootstrap 的建库/播种/监听/静态托管，
 // 令牌保持每次随机（m6b D-3：只有 serve 把 token 持久化进 config.json）。
 import { defaultDbPath } from '@openvibe/core'
-import { DEFAULT_PORT, LOOPBACK_HOST, WEB_PORT } from '@openvibe/shared'
+import {
+  API_PORT_ENV,
+  DEFAULT_PORT,
+  LOOPBACK_HOST,
+  WEB_PORT,
+  WEB_PORT_ENV,
+  resolvePort,
+} from '@openvibe/shared'
 import { bootstrap, defaultSeedDir, type BootError, type SeedSummary } from './bootstrap'
+
+/**
+ * 本次实例的**实际**端口（2026-10-30：dev 隔离实例）。
+ *
+ * `OPENVIBE_API_PORT` 覆盖监听端口，`OPENVIBE_WEB_PORT` 覆盖横幅里那个「应用入口」。
+ * 两者与 vite 侧读**同名**变量 ⇒ server 监听、vite 代理目标、浏览器入口三者必然一致。
+ *
+ * ⚠️ 非法值大声失败（`resolvePort` 抛错 ⇒ 进程退出）：静默回落会让用户以为自己在
+ *   隔离端口上跑，实际连的是真实实例 ⇒ 写库写进真实数据而他毫不知情。
+ */
+const apiPort = resolvePort(process.env[API_PORT_ENV], DEFAULT_PORT)
+const webPort = resolvePort(process.env[WEB_PORT_ENV], WEB_PORT)
 
 function seedLines(seed: SeedSummary): string[] {
   return Object.entries(seed.bundles).map(
@@ -16,7 +35,7 @@ try {
   boot = await bootstrap({
     dbPath: defaultDbPath(),
     seedDir: defaultSeedDir(),
-    port: Number(process.env.PORT ?? DEFAULT_PORT),
+    port: apiPort,
   })
 } catch (e) {
   const err = e as BootError
@@ -40,14 +59,14 @@ for (const line of [...seedLines(boot.seed), ...boot.seed.warnings, ...boot.warn
  *    ⚠️ 本文件的**注释里也不许出现端口数字**：`tests/dev-ports.test.ts` 扫的是整份文本，
  *    散文里写一个数字会让守卫红，而那次红的修复方式是把措辞改掉，不是把守卫放松。
  */
-const webUrl = `http://${LOOPBACK_HOST}:${WEB_PORT}`
+const webUrl = `http://${LOOPBACK_HOST}:${String(webPort)}`
 const rule = '─'.repeat(58)
 console.log(`[openvibe] ${rule}`)
 console.log(`[openvibe] 应用入口（浏览器打开这个）  ${webUrl}`)
 console.log(`[openvibe] API（脚本直连）            ${boot.url}`)
 console.log(`[openvibe] 鉴权走两条通道：浏览器靠 Origin 白名单，脚本靠 Bearer token（下一行）。`)
 console.log(
-  `[openvibe]   ⚠️ curl 若走 web 代理（:${WEB_PORT}）必须手动带 Origin，否则 401 —— 代理不会替你补这个头：`,
+  `[openvibe]   ⚠️ curl 若走 web 代理（:${String(webPort)}）必须手动带 Origin，否则 401 —— 代理不会替你补这个头：`,
 )
 console.log(`[openvibe]     curl -H "Origin: ${webUrl}" ${webUrl}/api/terms`)
 console.log(`[openvibe] ${rule}`)
