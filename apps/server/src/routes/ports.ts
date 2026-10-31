@@ -25,7 +25,11 @@ export function registerPortRoutes(deps: PortRouteDeps): (app: FastifyInstance) 
   return (app) => {
     app.get(
       '/api/projects/:id/ports',
-      reportRoute('/api/projects/:id/ports', 'filesystem'),
+      reportRoute(
+        '/api/projects/:id/ports',
+        'filesystem',
+        '结论含「本机此刻有哪些端口在监听」＋「项目目录里声明了哪些服务」⇒ 进程起停、目录被删即变',
+      ),
       async (req) => {
         const { id } = parseOrThrow(zPortParams, (req as { params?: unknown }).params)
         const projects = new ProjectsRepo(deps.db)

@@ -5,6 +5,7 @@ import {
   DISK_STATE_REPORT_ENDPOINTS,
   REPORT_ENDPOINT_SOURCES,
   isDiskDependentSource,
+  type ReportEndpointDeclaration,
 } from '@openvibe/shared'
 import { buildApp } from '../apps/server/src/app'
 
@@ -86,9 +87,13 @@ function callBlocks(src: string, callee: string): string[] {
 const useQueryBlocks = (src: string): string[] => callBlocks(src, 'useQuery')
 
 /** 服务端路由注册处的自述（运行时真值） */
-async function serverDeclarations(): Promise<{ path: string; source: string }[]> {
+async function serverDeclarations(): Promise<ReportEndpointDeclaration[]> {
   const { routeSources } = await buildApp({})
-  return routeSources.map((r) => ({ path: r.path, source: r.source }))
+  return routeSources.map((r) => ({
+    path: r.path,
+    source: r.source,
+    ...(r.reason === undefined ? {} : { reason: r.reason }),
+  }))
 }
 
 describe('报告类端点 · 服务端自述与缓存口径判据', () => {
@@ -107,6 +112,36 @@ describe('报告类端点 · 服务端自述与缓存口径判据', () => {
       snapshot,
       '清单与服务端路由注册处的自述不一致 ⇒ 跑 `pnpm report:snapshot` 重新生成',
     ).toEqual(actual)
+  })
+
+  it('⚠️ 磁盘态声明必须写下理由（判据的依据要留在代码里，不能只在脑子里）', async () => {
+    // 声明只有三个取值时，判对与否全靠写 handler 的人当时想清楚了；
+    // 而「看起来像库表、实际读了磁盘」正是最容易判错的边界情形
+    // ⇒ 强制把依据写在声明旁边，它随清单落档（diff 里看得见）。
+    //
+    // ⚠️ 类型层已用重载拦住「忘了写」（`reportRoute(p, 'filesystem')` 编译不过），
+    //   这条再查一遍是因为**清单文件可能被人直接编辑**（它是生成件，但没人拦得住）。
+    const declared = await serverDeclarations()
+    const missing = declared
+      .filter((d) => isDiskDependentSource(d.source))
+      .filter((d) => d.reason === undefined || d.reason.trim() === '')
+      .map((d) => `${d.path}（${d.source}）`)
+    expect(missing, `这些磁盘态端点的声明没有写理由（reason）：\n${missing.join('\n')}`).toEqual([])
+  })
+
+  it('快照里的磁盘态条目也带理由（生成件本身也要一致）', () => {
+    const missing = REPORT_ENDPOINT_SOURCES.filter(
+      (e) => isDiskDependentSource(e.source) && (e.reason === undefined || e.reason.trim() === ''),
+    ).map((e) => `${e.path}（${e.source}）`)
+    expect(missing, `快照里的磁盘态条目缺理由：\n${missing.join('\n')}`).toEqual([])
+  })
+
+  it('理由要落在清单里（不是只在路由源码里）⇒ 复核时看清单就够', () => {
+    // 理由的价值在于「随清单落档」⇒ 若路由源码有而清单没有，
+    // 说明快照过期了（此时上面的「一致性」闸也会红，但这条单独点名 reason）。
+    const withReason = REPORT_ENDPOINT_SOURCES.filter((e) => e.reason !== undefined).length
+    const diskCount = REPORT_ENDPOINT_SOURCES.filter((e) => isDiskDependentSource(e.source)).length
+    expect(withReason).toBe(diskCount)
   })
 
   it('⚠️ 每个 GET 端点都必须声明来源（不许有没声明的端点混过去）', async () => {

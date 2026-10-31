@@ -35,6 +35,7 @@
  *
  * 抛出的错误信息里带「怎么修」的命令，不只说「不许跑」。
  */
+import { spawn, spawnSync } from 'node:child_process'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -80,4 +81,60 @@ export function assertIsolatedHome(home, label) {
       '    pnpm dev:iso',
     ].join('\n'),
   )
+}
+
+/**
+ * 造一个「`OPENVIBE_HOME` 只能是被断言过的那个值」的 env。
+ *
+ * ## 为什么需要这一层（而不只是「脚本自己 assert 一次」）
+ *
+ * 之前的守卫断言的是「脚本自算的沙箱常量」，但真正决定数据落点的是**传给子进程的 env**。
+ * 这两件事之间隔着一层「人自己写的 env 对象」⇒ 断言与实际投递可以不一致：
+ * 脚本断言了 `HOME`，却把 `OPENVIBE_HOME: 另一个值` 传给子进程，守卫照样放行。
+ *
+ * ⇒ 本包装把「断言」与「投递」**绑成一步**：断言不通过就不给 env；
+ *   通过时 env 里的 `OPENVIBE_HOME` 就是刚断言过的那个值（调用方无法另设）。
+ *
+ * @param {string} home 沙箱 home（会被断言；不隔离则抛错）
+ * @param {Record<string, string | undefined>} [extra] 额外环境变量（**盖不掉** `OPENVIBE_HOME`）
+ * @param {string} [label] 出错时说明「哪个 home 不对」
+ * @returns {Record<string, string | undefined>} 可直接交给 spawn/spawnSync 的 env
+ */
+export function isolatedEnv(home, extra = {}, label) {
+  assertIsolatedHome(home, label)
+  // ⚠️ `OPENVIBE_HOME` 放在**最后** ⇒ extra 里就算塞了它，也盖不掉被断言过的那个值
+  return { ...process.env, ...extra, OPENVIBE_HOME: home }
+}
+
+/**
+ * 起一个**被守卫罩住**的子进程：`OPENVIBE_HOME` 只能是被断言过的值。
+ *
+ * @param {string} cmd 可执行文件
+ * @param {string[]} args 参数
+ * @param {string} home 沙箱 home（会被断言；不隔离则抛错，**不会起进程**）
+ * @param {object} [options] 其余 spawn 选项（`env` 会被合并，但 `OPENVIBE_HOME` 由本函数决定）
+ * @param {string} [options.label] 出错时说明「哪个 home 不对」
+ * @returns {import('node:child_process').ChildProcess}
+ */
+export function spawnIsolated(cmd, args, home, options = {}) {
+  const { env, label, ...rest } = options
+  return spawn(cmd, args, { ...rest, env: isolatedEnv(home, env, label) })
+}
+
+/**
+ * `spawnIsolated` 的同步版（`spawnSync`）。
+ *
+ * ⚠️ **为什么同步版也要有**：走查脚本里有一批「跑完就拿输出」的短命令
+ *   （`diff` / `clean --dry-run`），它们同样会把 home 传给子进程 ⇒ 同样要过守卫。
+ *
+ * @param {string} cmd 可执行文件
+ * @param {string[]} args 参数
+ * @param {string} home 沙箱 home（会被断言；不隔离则抛错，**不会起进程**）
+ * @param {object} [options] 其余 spawnSync 选项（`env` 会被合并，但 `OPENVIBE_HOME` 由本函数决定）
+ * @param {string} [options.label] 出错时说明「哪个 home 不对」
+ * @returns {import('node:child_process').SpawnSyncReturns<string>}
+ */
+export function spawnSyncIsolated(cmd, args, home, options = {}) {
+  const { env, label, ...rest } = options
+  return spawnSync(cmd, args, { ...rest, env: isolatedEnv(home, env, label) })
 }

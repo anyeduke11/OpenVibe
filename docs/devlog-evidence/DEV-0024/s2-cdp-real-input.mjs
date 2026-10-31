@@ -8,7 +8,7 @@
 // 附带负向对照 N1：证明「合成 click 拿不到剪贴板」不是本探针的运气。
 import { spawn, spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { assertIsolatedHome } from '../../../scripts/isolated-home.mjs'
+import { assertIsolatedHome, spawnIsolated } from '../../../scripts/isolated-home.mjs'
 import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -97,10 +97,11 @@ if (buildCode !== 0) {
 say('  构建完成')
 
 // ---------- serve（随机端口 + 隔离 HOME；绝不碰同机 8898 的并行项目） ----------
-const serveProc = spawn(
+const serveProc = spawnIsolated(
   process.execPath,
   ['--import', 'tsx', join(REPO, 'apps/cli/src/index.ts'), '--json', 'serve', '--port', '0'],
-  { cwd: REPO, env: { ...process.env, OPENVIBE_HOME: HOME }, stdio: ['ignore', 'pipe', 'pipe'] },
+  HOME,
+  { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'] },
 )
 let serveOut = ''
 serveProc.stdout.on('data', (d) => {

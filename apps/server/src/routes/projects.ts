@@ -212,7 +212,11 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
 
   app.get(
     '/api/projects/:id/injection-status',
-    reportRoute('/api/projects/:id/injection-status', 'mixed'),
+    reportRoute(
+      '/api/projects/:id/injection-status',
+      'mixed',
+      '库里记了项目路径，但要读那个路径下的 lock 文件才知道注入了没有 ⇒ 目录被删即变',
+    ),
     async (req) => {
       const { id } = req.params as { id: string }
       const project = projects.get(id)
@@ -231,7 +235,11 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
    */
   app.get(
     '/api/injection-status',
-    reportRoute('/api/injection-status', 'mixed'),
+    reportRoute(
+      '/api/injection-status',
+      'mixed',
+      '按请求里的目录路径读 lock 文件判有没有注入 ⇒ 目录被删或 lock 变了即变',
+    ),
     async (req): Promise<InjectionStatusOut> => {
       const { dir } = parseOrThrow(InjectionStatusQuery, req.query)
       if (!isAbsolute(dir)) {

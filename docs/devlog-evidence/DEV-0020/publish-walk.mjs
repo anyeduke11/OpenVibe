@@ -9,7 +9,7 @@
 // 预编译包，而是复用本机 pnpm store 里已构建好的同一版本（pnpm 11 默认 Ignored build scripts）。
 // 因此 §2b 另跑一次**真 npm 装包**：--ignore-scripts 那次证的是 npm 也认这份清单与 bin 软链，
 // 带 install 脚本那次证的才是普通用户「取预编译包」那一跳——取不到时如实打 SKIP 与原因，不伪装成 PASS。
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import {
   existsSync,
@@ -21,7 +21,11 @@ import {
   writeFileSync,
   cpSync,
 } from 'node:fs'
-import { assertIsolatedHome } from '../../../scripts/isolated-home.mjs'
+import {
+  assertIsolatedHome,
+  spawnIsolated,
+  spawnSyncIsolated,
+} from '../../../scripts/isolated-home.mjs'
 import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -62,10 +66,12 @@ const check = (label, ok, detail = '') => {
   say(`${ok ? 'PASS' : 'FAIL'} ${label}${detail === '' ? '' : ` — ${detail}`}`)
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-const run = (cwd, file, args, env, timeout) =>
-  spawnSync(file, args, {
+// ⚠️ **子进程的 home 只能经守卫投递**（2026-10-31）：`OPENVIBE_HOME` 由 `spawnSyncIsolated`
+//   决定（它先断言、再投递），调用方**不能**另设 ⇒ 「断言的值」与「实际投递的值」永远同一个。
+//   ⇒ 本函数不再接受 env 参数：谁想改 home 都得走守卫。
+const run = (cwd, file, args, timeout, home = HOME) =>
+  spawnSyncIsolated(file, args, home, {
     cwd,
-    env: { ...process.env, ...env },
     encoding: 'utf8',
     ...(timeout === undefined ? {} : { timeout }),
   })
@@ -260,9 +266,8 @@ if (npmFullOk) {
   assertIsolatedHome(NPM_HOME, 'npm 沙箱 home')
   const FULL_BIN = join(FULL_DIR, 'node_modules/.bin/openvibe')
   mkdirSync(NPM_HOME, { recursive: true })
-  const npmServe = spawn(FULL_BIN, ['--json', 'serve', '--port', '0'], {
+  const npmServe = spawnIsolated(FULL_BIN, ['--json', 'serve', '--port', '0'], NPM_HOME, {
     cwd: FULL_DIR,
-    env: { ...process.env, OPENVIBE_HOME: NPM_HOME },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   let npmOut = ''
@@ -331,9 +336,8 @@ check(
 // ---------- 3. 起装出来的 serve（干净 HOME） ----------
 const WALK_START = Date.now()
 const SETUP_MS = WALK_START - WALK_BOOT
-const serveProc = spawn(BIN, ['--json', 'serve', '--port', '0'], {
+const serveProc = spawnIsolated(BIN, ['--json', 'serve', '--port', '0'], HOME, {
   cwd: CONSUMER,
-  env: { ...process.env, OPENVIBE_HOME: HOME },
   stdio: ['ignore', 'pipe', 'pipe'],
 })
 let serveOut = ''
@@ -410,10 +414,8 @@ check('发布包 seed 播种 ≥100 词条', termList.total >= 100, `terms=${Str
 check('首启自动组装 default 包', stats.packs >= 1, `packs=${String(stats.packs)}`)
 
 // ---------- 4. 第三条命令：sync + 九项产物 + diff ----------
-// 必须带 OPENVIBE_HOME：serve 用的是沙箱 home，sync/diff 否则去读真实 ~/.openvibe 的端点与令牌
-const sync = run(CONSUMER, BIN, ['--json', 'sync', DEMO, '--pack', 'default', '--yes'], {
-  OPENVIBE_HOME: HOME,
-})
+// home 由 `run` 经守卫投递（沙箱 home）：sync/diff 否则去读真实 ~/.openvibe 的端点与令牌
+const sync = run(CONSUMER, BIN, ['--json', 'sync', DEMO, '--pack', 'default', '--yes'])
 let syncSummary = null
 const syncRaw = `${String(sync.stdout)}${String(sync.stderr)}`.trim()
 try {
@@ -442,7 +444,7 @@ say(
   `  sync 摘要 written=${String(syncSummary?.written)} lock=${String(syncSummary?.lockPath ?? '').replace(ROOT, '沙箱')}`,
 )
 
-const diff = run(CONSUMER, BIN, ['--json', 'diff', DEMO], { OPENVIBE_HOME: HOME })
+const diff = run(CONSUMER, BIN, ['--json', 'diff', DEMO])
 let diffClean = false
 try {
   diffClean = JSON.parse(String(diff.stdout)).summary.clean === true
@@ -478,7 +480,7 @@ const sha = (rel) => {
 }
 const beforeClean = Object.fromEntries(managed.map((p) => [p, sha(p)]))
 
-const cleanDry = run(CONSUMER, BIN, ['--json', 'clean', DEMO, '--dry-run'], { OPENVIBE_HOME: HOME })
+const cleanDry = run(CONSUMER, BIN, ['--json', 'clean', DEMO, '--dry-run'])
 let dryOut = null
 try {
   dryOut = JSON.parse(String(cleanDry.stdout))
@@ -507,7 +509,7 @@ check(
   `backedUpTo=${String(dryS?.backedUpTo)}`,
 )
 
-const cleanRun = run(CONSUMER, BIN, ['--json', 'clean', DEMO, '--yes'], { OPENVIBE_HOME: HOME })
+const cleanRun = run(CONSUMER, BIN, ['--json', 'clean', DEMO, '--yes'])
 let ranOut = null
 try {
   ranOut = JSON.parse(String(cleanRun.stdout))

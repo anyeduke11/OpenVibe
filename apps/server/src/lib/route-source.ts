@@ -29,26 +29,62 @@ import type { ReportDataSource, ReportEndpointDeclaration } from '@openvibe/shar
 /** 挂在 Fastify route config 上的键（框架不解释它，由本仓自己读） */
 export const ROUTE_SOURCE_CONFIG_KEY = 'openvibeReportSource'
 
+/** 挂在 Fastify route config 上的「理由」键 */
+export const ROUTE_REASON_CONFIG_KEY = 'openvibeReportReason'
+
 /** 采集到的端点自述（`onRoute` 钩子的产物） */
 export interface CollectedRouteSource extends ReportEndpointDeclaration {
   method: string
 }
 
+/** `reportRoute` 的返回类型（Fastify 的 route config 子集） */
+export interface ReportRouteConfig {
+  config: {
+    [ROUTE_SOURCE_CONFIG_KEY]: ReportDataSource
+    /** 声明时写的路径（用于采集；Fastify 自己的 url 也带，但参数占位写法可能不同） */
+    reportPath: string
+    [ROUTE_REASON_CONFIG_KEY]?: string
+  }
+}
+
 /**
  * 声明一个只读端点的数据来源。
  *
+ * ## 重载的作用：**编译期**强制磁盘态必须给理由
+ *
+ * 磁盘态（`filesystem` / `mixed`）的声明**必须**带第三参 `reason`，
+ * 少了它 TypeScript 直接编译不过；`db` 可以省略。
+ *
+ * ⚠️ **为什么放在类型层而不是只靠测试**：判据测试是**提交时**才跑的，
+ *   而编译错误是**写代码那一刻**就摆在眼前的 ⇒ 开发者写 `reportRoute(p, 'filesystem')`
+ *   时立刻看到「缺 reason」，而不是等提交被拒。
+ *
  * @param path 端点路径（必须与注册的路径**逐字相同**，含参数占位）
- * @param source 数据来源：`db`（只读库表）/ `filesystem`（结论取决于磁盘）/ `mixed`（两者都有）
+ * @param source 数据来源
+ * @param reason 「这个结论为什么会随磁盘变化」的一句话说明（磁盘态必填）
  *
  * ⚠️ **路径必须逐字相同**：本函数不校验（校验要等到快照比对那一步），
  *   写错时的表现是「快照比对判红」而不是运行时炸掉 —— 后者会让人以为
  *   服务端坏了，而真相只是少了一处声明。
  */
+export function reportRoute(path: string, source: 'db', reason?: string): ReportRouteConfig
+export function reportRoute(
+  path: string,
+  source: 'filesystem' | 'mixed',
+  reason: string,
+): ReportRouteConfig
 export function reportRoute(
   path: string,
   source: ReportDataSource,
-): { config: { [ROUTE_SOURCE_CONFIG_KEY]: ReportDataSource; reportPath: string } } {
-  return { config: { [ROUTE_SOURCE_CONFIG_KEY]: source, reportPath: path } }
+  reason?: string,
+): ReportRouteConfig {
+  return {
+    config: {
+      [ROUTE_SOURCE_CONFIG_KEY]: source,
+      reportPath: path,
+      ...(reason === undefined ? {} : { [ROUTE_REASON_CONFIG_KEY]: reason }),
+    },
+  }
 }
 
 /**
@@ -62,7 +98,12 @@ export function collectRouteSources(app: FastifyInstance): CollectedRouteSource[
   const collected: CollectedRouteSource[] = []
   app.addHook('onRoute', (routeOptions) => {
     const config = routeOptions.config as
-      { [ROUTE_SOURCE_CONFIG_KEY]?: ReportDataSource; reportPath?: string } | undefined
+      | {
+          [ROUTE_SOURCE_CONFIG_KEY]?: ReportDataSource
+          [ROUTE_REASON_CONFIG_KEY]?: string
+          reportPath?: string
+        }
+      | undefined
     const source = config?.[ROUTE_SOURCE_CONFIG_KEY]
     if (source === undefined) return
     // ⚠️ **Fastify 给每个 GET 自动注册一条 HEAD 路由** ⇒ 同一个端点会触发两次
@@ -71,10 +112,13 @@ export function collectRouteSources(app: FastifyInstance): CollectedRouteSource[
       ? routeOptions.method.join(',')
       : routeOptions.method
     if (method !== 'GET') return
+    const reason = config?.[ROUTE_REASON_CONFIG_KEY]
     collected.push({
       method,
       path: config?.reportPath ?? routeOptions.url,
       source,
+      // ⚠️ **空理由当作没有理由**（`''` / 纯空格都不算数）⇒ 判据测试能抓到
+      ...(reason !== undefined && reason.trim() !== '' ? { reason } : {}),
     })
   })
   return collected

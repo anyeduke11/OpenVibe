@@ -8,7 +8,7 @@
 // 再用真实网络事件断言「首屏没下它、用到它的那一步才下」。
 import { spawn } from 'node:child_process'
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
-import { assertIsolatedHome } from '../../../scripts/isolated-home.mjs'
+import { assertIsolatedHome, spawnIsolated } from '../../../scripts/isolated-home.mjs'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -134,10 +134,11 @@ check(
 )
 
 // ---------- serve ----------
-const serveProc = spawn(
+const serveProc = spawnIsolated(
   process.execPath,
   ['--import', 'tsx', join(REPO, 'apps/cli/src/index.ts'), '--json', 'serve', '--port', '0'],
-  { cwd: REPO, env: { ...process.env, OPENVIBE_HOME: HOME }, stdio: ['ignore', 'pipe', 'pipe'] },
+  HOME,
+  { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'] },
 )
 let serveOut = ''
 serveProc.stdout.on('data', (d) => {

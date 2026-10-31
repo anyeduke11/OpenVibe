@@ -22,7 +22,7 @@
 // **能力**；本文件跑的是**场景链**，输入只用真鼠标点击 + Input.insertText。
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
-import { assertIsolatedHome } from '../../../scripts/isolated-home.mjs'
+import { assertIsolatedHome, spawnIsolated } from '../../../scripts/isolated-home.mjs'
 import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -163,10 +163,11 @@ if (buildCode !== 0) {
 say('  构建完成')
 
 // ---------- serve（随机端口 + 隔离 HOME；绝不碰同机并行项目的端口） ----------
-const serveProc = spawn(
+const serveProc = spawnIsolated(
   process.execPath,
   ['--import', 'tsx', join(REPO, 'apps/cli/src/index.ts'), '--json', 'serve', '--port', '0'],
-  { cwd: REPO, env: { ...process.env, OPENVIBE_HOME: HOME }, stdio: ['ignore', 'pipe', 'pipe'] },
+  HOME,
+  { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'] },
 )
 let serveOut = ''
 serveProc.stdout.on('data', (d) => {
@@ -691,7 +692,7 @@ try {
   if (demoDir === '') throw new Error('步③没给出建议目录，夹具不成立')
   mkdirSync(demoDir, { recursive: true })
   info('步③建议命令', syncLine.slice(0, 120))
-  const sync = spawn(
+  const sync = spawnIsolated(
     process.execPath,
     [
       '--import',
@@ -704,7 +705,8 @@ try {
       'default',
       '--yes',
     ],
-    { cwd: REPO, env: { ...process.env, OPENVIBE_HOME: HOME }, stdio: ['ignore', 'pipe', 'pipe'] },
+    HOME,
+    { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'] },
   )
   let syncOut = ''
   sync.stdout.on('data', (d) => {

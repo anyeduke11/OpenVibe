@@ -114,12 +114,15 @@ describe('隔离实例入口（pnpm dev:iso）', () => {
  *
  * ## 判定口径
  *
- * 「这个脚本会让数据落到某个 home」的**语法特征**：
- * - `.mjs`：`OPENVIBE_HOME:`（作为 env 对象的一个键传给子进程）
+ * 「这个脚本会让数据落到某个 home」的**语法特征**（2026-10-31 起随守卫包装器一起变）：
+ * - `.mjs`：`spawnIsolated(` / `spawnSyncIsolated(`（经守卫投递 home —— 合法形态）
  * - `.sh`：`export OPENVIBE_HOME=` / `OPENVIBE_HOME=`
  *
+ * ⚠️ **`.mjs` 里裸写 `OPENVIBE_HOME:` 不再是合法形态**（那是「断言的值」与
+ *   「投递的值」分离的写法）⇒ 由 `tests/iso-ports-guard.test.ts` 单独判红。
+ *
  * ⚠️ **只提到 `OPENVIBE_HOME` 这几个字不算**（例如「本脚本不碰 OPENVIBE_HOME」
- *   这类只读脚本的注释）⇒ 用上面两种赋值形态判，避免把只读脚本误判成漏接。
+ *   这类只读脚本的注释）⇒ 用上面两种形态判，避免把只读脚本误判成漏接。
  */
 function walkthroughScripts(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -130,9 +133,9 @@ function walkthroughScripts(dir: string, out: string[] = []): string[] {
   return out.sort()
 }
 
-/** 该脚本是否会让数据落到某个 home（按赋值形态判，不看注释里的字样） */
+/** 该脚本是否会让数据落到某个 home（按形态判，不看注释里的字样） */
 function writesToSomeHome(src: string): boolean {
-  return /OPENVIBE_HOME:/.test(src) || /(export\s+)?OPENVIBE_HOME=/.test(src)
+  return /\bspawn(Sync)?Isolated\s*\(/.test(src) || /(export\s+)?OPENVIBE_HOME=/.test(src)
 }
 
 describe('走查脚本 · 隔离守卫的接入覆盖率', () => {
@@ -142,23 +145,31 @@ describe('走查脚本 · 隔离守卫的接入覆盖率', () => {
     for (const file of walkthroughScripts(dir)) {
       const src = readFileSync(file, 'utf8')
       if (!writesToSomeHome(src)) continue
-      if (!src.includes('assertIsolatedHome')) {
+      // 经守卫包装器投递（包装器内部断言）算已接守卫
+      if (
+        !src.includes('assertIsolatedHome') &&
+        !src.includes('spawnIsolated') &&
+        !src.includes('spawnSyncIsolated')
+      ) {
         offenders.push(file.replace(dir + '/', ''))
       }
     }
     expect(
       offenders,
-      `这些走查脚本会让数据落到某个 home，却没接隔离守卫（请 import 并调用 assertIsolatedHome）：\n${offenders.join('\n')}`,
+      `这些走查脚本会让数据落到某个 home，却没接隔离守卫（请 import 并调用 assertIsolatedHome 或 spawnIsolated）：\n${offenders.join('\n')}`,
     ).toEqual([])
   })
 
   it('判据能红：造一个「写 home 但没接守卫」的脚本会被逮到', () => {
+    // ⚠️ `.mjs` 裸写 `OPENVIBE_HOME:` 的形态由 `tests/iso-ports-guard.test.ts` 判红；
+    //   这里考的是「shell 形态（export）忘了接守卫」这一路。
     const fake = `
-      const HOME = join(ROOT, 'home')
-      const proc = spawn(BIN, ['serve'], { env: { ...process.env, OPENVIBE_HOME: HOME } })
+      export OPENVIBE_HOME=/tmp/ov-walk-XXXX
+      node "$CLI" serve
     `
     expect(writesToSomeHome(fake)).toBe(true)
     expect(fake.includes('assertIsolatedHome')).toBe(false)
+    expect(fake.includes('spawnIsolated')).toBe(false)
   })
 
   it('只读脚本不会被误判（注释里提到字样不算「会写 home」）', () => {

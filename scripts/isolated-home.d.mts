@@ -25,3 +25,65 @@ export function isIsolatedHome(home: string | undefined | null): boolean
  * @param label 出错时说明「哪个 home 不对」（脚本常有多个沙箱）
  */
 export function assertIsolatedHome(home: string | undefined | null, label?: string): void
+
+/**
+ * 造一个「`OPENVIBE_HOME` 只能是被断言过的那个值」的 env。
+ *
+ * 断言不通过 ⇒ 抛错，**不给 env**。
+ *
+ * @param home 沙箱 home（会被断言）
+ * @param extra 额外环境变量（盖不掉 `OPENVIBE_HOME`）
+ * @param label 出错时说明「哪个 home 不对」
+ */
+export function isolatedEnv(
+  home: string,
+  extra?: Record<string, string | undefined>,
+  label?: string,
+): Record<string, string | undefined>
+
+/**
+ * 起一个**被守卫罩住**的子进程：`OPENVIBE_HOME` 只能是被断言过的值。
+ *
+ * 断言不通过 ⇒ 抛错，**不会起进程**。
+ *
+ * @param cmd 可执行文件
+ * @param args 参数
+ * @param home 沙箱 home（会被断言）
+ * @param options 其余 spawn 选项（`env` 会被合并，但 `OPENVIBE_HOME` 由本函数决定）
+ */
+export function spawnIsolated(
+  cmd: string,
+  args: readonly string[],
+  home: string,
+  options?: {
+    env?: Record<string, string | undefined>
+    cwd?: string
+    stdio?: unknown
+    shell?: boolean
+    label?: string
+    [key: string]: unknown
+  },
+): import('node:child_process').ChildProcess
+
+/**
+ * `spawnIsolated` 的同步版（`spawnSync`）。
+ *
+ * @param cmd 可执行文件
+ * @param args 参数
+ * @param home 沙箱 home（会被断言）
+ * @param options 其余 spawnSync 选项（`env` 会被合并，但 `OPENVIBE_HOME` 由本函数决定）
+ */
+export function spawnSyncIsolated(
+  cmd: string,
+  args: readonly string[],
+  home: string,
+  options?: {
+    env?: Record<string, string | undefined>
+    cwd?: string
+    encoding?: BufferEncoding
+    input?: string
+    timeout?: number
+    label?: string
+    [key: string]: unknown
+  },
+): import('node:child_process').SpawnSyncReturns<string>

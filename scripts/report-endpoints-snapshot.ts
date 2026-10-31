@@ -24,7 +24,7 @@
 import { writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { buildApp } from '../apps/server/src/app'
-import type { ReportEndpointDeclaration } from '@openvibe/shared'
+import { isDiskDependentSource, type ReportEndpointDeclaration } from '@openvibe/shared'
 
 const ROOT = process.cwd()
 const OUT = join(ROOT, 'packages', 'shared', 'src', 'report-endpoints.ts')
@@ -46,12 +46,34 @@ for (const s of routeSources) {
     process.exit(1)
   }
   seen.add(s.path)
-  decls.push({ path: s.path, source: s.source })
+  decls.push({
+    path: s.path,
+    source: s.source,
+    ...(s.reason === undefined ? {} : { reason: s.reason }),
+  })
 }
 
 decls.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
 
-const body = decls.map((d) => `  { path: '${d.path}', source: '${d.source}' },`).join('\n')
+// ⚠️ **磁盘态必须带理由**：这是「声明的判据是否写下」的机器检查点。
+//   类型层已用重载强制（`reportRoute(p, 'filesystem')` 编译不过），
+//   这里再查一遍是因为**快照文件可能被人手改过**（它是生成件，但没人拦得住直接编辑）。
+const missingReason = decls.filter(
+  (d) => isDiskDependentSource(d.source) && (d.reason === undefined || d.reason.trim() === ''),
+)
+if (missingReason.length > 0) {
+  console.error('✗ 这些磁盘态端点的声明没有写理由（reason）：')
+  for (const d of missingReason) console.error(`  · ${d.path}（${d.source}）`)
+  process.exit(1)
+}
+
+const body = decls
+  .map((d) =>
+    d.reason === undefined
+      ? `  { path: '${d.path}', source: '${d.source}' },`
+      : `  { path: '${d.path}', source: '${d.source}', reason: '${d.reason.replace(/'/g, "\\'")}' },`,
+  )
+  .join('\n')
 
 const file = `/**
  * **报告类端点的缓存口径**（2026-10-30；2026-10-31 改为服务端自述）。
@@ -109,6 +131,22 @@ export interface ReportEndpointDeclaration {
   path: string
   /** 数据来源 */
   source: ReportDataSource
+  /**
+   * 「这个结论为什么会随磁盘变化」的一句话说明（2026-10-31）。
+   *
+   * ⚠️ **磁盘态来源（\`filesystem\` / \`mixed\`）必须给**，\`db\` 可省。
+   *
+   * ## 为什么要有它
+   *
+   * 声明只有 \`db\` / \`filesystem\` / \`mixed\` 三个值时，判对与否全靠写 handler 的人
+   * 当时想清楚了。而这类判断最容易错在「看起来像库表、实际读了磁盘」的边界情形
+   * （例如「库表里记了目录名，但要读那个目录才知道结论对不对」）。
+   * ⇒ 后人复核时无从还原当时的依据，判错也无人发现。
+   *
+   * ⇒ 把依据**写在声明旁边**：它随清单落档（diff 里看得见），
+   *   且判据测试会检查「磁盘态必须有非空理由」⇒ 忘了写就红。
+   */
+  reason?: string
 }
 
 /**
@@ -137,6 +175,27 @@ export function isDiskStateReport(endpoint: string): boolean {
 `
 
 writeFileSync(OUT, file, 'utf8')
+
+/**
+ * ⚠️ **生成件必须自己排版合规**：本文件是 `.ts`（会被 prettier 管），
+ *   而带 `reason` 的长行会超 100 字符 ⇒ 手拼的模板串不是 prettier 格式
+ *   ⇒ 每次重跑快照都会被 pre-commit 的排版闸拦下（闸是硬红线，绕不过去）。
+ *
+ * ⚠️ **为什么不在 `.prettierignore` 里豁免它**：豁免等于「生成件可以是任意排版」
+ *   ⇒ 它的 diff 里会混着格式噪声，审阅者看不出「这次改了哪条声明」。
+ *   仓内既有先例（`barrel-snapshot.ts` 生成 `.txt`）不撞这个闸，是因为
+ *   **prettier 根本不处理 `.txt`** —— 不是因为它豁免了什么。
+ *
+ * ⇒ 做法：写盘后让 prettier 自己排一遍（**在同一个进程里**跑，
+ *   避免再起一个 node 进程的启动开销）。
+ */
+const prettier = await import('prettier')
+const formatted = await prettier.format(file, {
+  parser: 'typescript',
+  ...(await prettier.resolveConfig(OUT)),
+})
+if (formatted !== file) writeFileSync(OUT, formatted, 'utf8')
+
 console.log(
   `端点来源快照：${String(decls.length)} 个只读端点（磁盘态 ${String(
     decls.filter((d) => d.source !== 'db').length,

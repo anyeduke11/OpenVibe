@@ -211,7 +211,11 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   app.get(
     '/api/skills/duplicates',
     // ⚠️ 磁盘态：报告里的「失效目录」一段判「本地目录还在不在」⇒ 目录随时会消失。
-    reportRoute('/api/skills/duplicates', 'filesystem'),
+    reportRoute(
+      '/api/skills/duplicates',
+      'filesystem',
+      '报告里的「失效目录」一段逐条判本地 skill 目录还在不在 ⇒ 目录被删即变',
+    ),
     async () => {
       return skills.duplicates()
     },
@@ -239,7 +243,11 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
     // ⚠️ 混合态：**已配置**时结论全在库表（app_meta 的清单）；
     //   **未配置**时走 `defaultSkillRoots()` —— 那是一次磁盘发现（home 下的约定目录）。
     //   ⇒ 两种状态的结论来源不同 ⇒ 标 mixed（按磁盘态处理，前端现算）。
-    reportRoute('/api/skills/scan-roots', 'mixed'),
+    reportRoute(
+      '/api/skills/scan-roots',
+      'mixed',
+      '已配置时结论在库表；未配置时走 defaultSkillRoots() —— 那是一次磁盘发现（home 下的约定目录）',
+    ),
     async () => {
       const raw = meta.read<SkillScanRoot[] | null>(APP_META_KEYS.skillScanRoots, null)
       if (raw === null) {
@@ -284,7 +292,11 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   app.get(
     '/api/skills/scan-roots/defaults',
     // ⚠️ 磁盘态：`expandKnownRoots` 逐条判「这个目录在本机存在吗」⇒ 装了/删了 agent 即变。
-    reportRoute('/api/skills/scan-roots/defaults', 'filesystem'),
+    reportRoute(
+      '/api/skills/scan-roots/defaults',
+      'filesystem',
+      'expandKnownRoots 逐条判「这个 agent 目录在本机存在吗」⇒ 装了或删了 agent 即变',
+    ),
     async () => ({
       items: expandKnownRoots(homedir()),
       /** 库根：OpenVibe 自己的 skill 存放处 */
@@ -381,7 +393,11 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
     '/api/skills/cleanup',
     // ⚠️ 磁盘态：逐条判「skill 目录还在不在」⇒ 目录随时会消失。
     // （真机实测 2026-10-30 踩到过：走 query 缓存 ⇒ 服务端 2 条 / 界面 0 条。）
-    reportRoute('/api/skills/cleanup', 'filesystem'),
+    reportRoute(
+      '/api/skills/cleanup',
+      'filesystem',
+      '逐条判「skill 目录还在不在」⇒ 目录被删即变（真机实测 2026-10-30 踩到过：走 query 缓存 ⇒ 服务端 2 条 / 界面 0 条）',
+    ),
     async () => {
       return skills.cleanupPreview()
     },

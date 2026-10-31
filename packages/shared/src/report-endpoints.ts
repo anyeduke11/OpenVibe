@@ -54,6 +54,22 @@ export interface ReportEndpointDeclaration {
   path: string
   /** 数据来源 */
   source: ReportDataSource
+  /**
+   * 「这个结论为什么会随磁盘变化」的一句话说明（2026-10-31）。
+   *
+   * ⚠️ **磁盘态来源（`filesystem` / `mixed`）必须给**，`db` 可省。
+   *
+   * ## 为什么要有它
+   *
+   * 声明只有 `db` / `filesystem` / `mixed` 三个值时，判对与否全靠写 handler 的人
+   * 当时想清楚了。而这类判断最容易错在「看起来像库表、实际读了磁盘」的边界情形
+   * （例如「库表里记了目录名，但要读那个目录才知道结论对不对」）。
+   * ⇒ 后人复核时无从还原当时的依据，判错也无人发现。
+   *
+   * ⇒ 把依据**写在声明旁边**：它随清单落档（diff 里看得见），
+   *   且判据测试会检查「磁盘态必须有非空理由」⇒ 忘了写就红。
+   */
+  reason?: string
 }
 
 /**
@@ -68,7 +84,11 @@ export const REPORT_ENDPOINT_SOURCES: readonly ReportEndpointDeclaration[] = [
   { path: '/api/extract/consents', source: 'db' },
   { path: '/api/extract/gate', source: 'db' },
   { path: '/api/flow-templates', source: 'db' },
-  { path: '/api/injection-status', source: 'mixed' },
+  {
+    path: '/api/injection-status',
+    source: 'mixed',
+    reason: '按请求里的目录路径读 lock 文件判有没有注入 ⇒ 目录被删或 lock 变了即变',
+  },
   { path: '/api/lang/findings', source: 'db' },
   { path: '/api/lang/interpret/capability', source: 'db' },
   { path: '/api/lang/interpret/providers', source: 'db' },
@@ -103,8 +123,17 @@ export const REPORT_ENDPOINT_SOURCES: readonly ReportEndpointDeclaration[] = [
   { path: '/api/projects/:id/context', source: 'db' },
   { path: '/api/projects/:id/devlog', source: 'db' },
   { path: '/api/projects/:id/devlog/export', source: 'db' },
-  { path: '/api/projects/:id/injection-status', source: 'mixed' },
-  { path: '/api/projects/:id/ports', source: 'filesystem' },
+  {
+    path: '/api/projects/:id/injection-status',
+    source: 'mixed',
+    reason: '库里记了项目路径，但要读那个路径下的 lock 文件才知道注入了没有 ⇒ 目录被删即变',
+  },
+  {
+    path: '/api/projects/:id/ports',
+    source: 'filesystem',
+    reason:
+      '结论含「本机此刻有哪些端口在监听」＋「项目目录里声明了哪些服务」⇒ 进程起停、目录被删即变',
+  },
   { path: '/api/projects/:id/tasks', source: 'db' },
   { path: '/api/projects/:id/term-recommendations', source: 'db' },
   { path: '/api/prompts', source: 'db' },
@@ -117,10 +146,28 @@ export const REPORT_ENDPOINT_SOURCES: readonly ReportEndpointDeclaration[] = [
   { path: '/api/settings/telemetry', source: 'db' },
   { path: '/api/skills', source: 'db' },
   { path: '/api/skills/:id/versions', source: 'db' },
-  { path: '/api/skills/cleanup', source: 'filesystem' },
-  { path: '/api/skills/duplicates', source: 'filesystem' },
-  { path: '/api/skills/scan-roots', source: 'mixed' },
-  { path: '/api/skills/scan-roots/defaults', source: 'filesystem' },
+  {
+    path: '/api/skills/cleanup',
+    source: 'filesystem',
+    reason:
+      '逐条判「skill 目录还在不在」⇒ 目录被删即变（真机实测 2026-10-30 踩到过：走 query 缓存 ⇒ 服务端 2 条 / 界面 0 条）',
+  },
+  {
+    path: '/api/skills/duplicates',
+    source: 'filesystem',
+    reason: '报告里的「失效目录」一段逐条判本地 skill 目录还在不在 ⇒ 目录被删即变',
+  },
+  {
+    path: '/api/skills/scan-roots',
+    source: 'mixed',
+    reason:
+      '已配置时结论在库表；未配置时走 defaultSkillRoots() —— 那是一次磁盘发现（home 下的约定目录）',
+  },
+  {
+    path: '/api/skills/scan-roots/defaults',
+    source: 'filesystem',
+    reason: 'expandKnownRoots 逐条判「这个 agent 目录在本机存在吗」⇒ 装了或删了 agent 即变',
+  },
   { path: '/api/stats', source: 'db' },
   { path: '/api/telemetry/events', source: 'db' },
   { path: '/api/terms', source: 'db' },

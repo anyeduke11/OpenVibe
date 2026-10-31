@@ -13,7 +13,7 @@
 
 import { spawn } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { assertIsolatedHome } from '../../../scripts/isolated-home.mjs'
+import { assertIsolatedHome, spawnIsolated } from '../../../scripts/isolated-home.mjs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -101,10 +101,11 @@ try {
     }),
     { mode: 0o600 },
   )
-  serve = spawn(
+  serve = spawnIsolated(
     process.execPath,
     ['--import', 'tsx', join(REPO, 'apps/cli/src/index.ts'), '--json', 'serve', '--port', '0'],
-    { cwd: REPO, env: { ...process.env, OPENVIBE_HOME: HOME }, stdio: ['ignore', 'pipe', 'pipe'] },
+    HOME,
+    { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'] },
   )
   let serveOut = ''
   serve.stdout.on('data', (d) => {
@@ -234,9 +235,8 @@ try {
     '--port',
     '0',
   ]
-  serve = spawn(process.execPath, serveArgs(true), {
+  serve = spawnIsolated(process.execPath, serveArgs(true), HOME2, {
     cwd: REPO,
-    env: { ...process.env, OPENVIBE_HOME: HOME2 },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   let out2 = ''
@@ -267,9 +267,8 @@ try {
 
   // 人读模式：提示是给真人看的，必须真出现在 stdout 上，且说清「不外发」
   const HOME3 = mkdtempSync(join(tmpdir(), 'ov-tel-egress-human-'))
-  serve = spawn(process.execPath, serveArgs(false), {
+  serve = spawnIsolated(process.execPath, serveArgs(false), HOME3, {
     cwd: REPO,
-    env: { ...process.env, OPENVIBE_HOME: HOME3 },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   let out3 = ''

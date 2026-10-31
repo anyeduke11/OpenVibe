@@ -2,9 +2,13 @@
 // 用法：node docs/devlog-evidence/DEV-0019/onboarding-walk.mjs
 // 自己构建 apps/web、起 serve（随机端口 + 隔离 OPENVIBE_HOME）与 headless Chrome（裸 CDP），
 // 因此可在任意干净环境重跑；证据（日志 + PNG + 网络清单）写进本目录。
-import { spawn, spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { assertIsolatedHome } from '../../../scripts/isolated-home.mjs'
+import {
+  assertIsolatedHome,
+  spawnIsolated,
+  spawnSyncIsolated,
+} from '../../../scripts/isolated-home.mjs'
 import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -83,10 +87,11 @@ say(`  构建完成 ${buildLine.trim()}`)
 // 构建 apps/web 单独计入——它对应干净环境的首次 npx 下载，本地重跑时是热缓存，不代表用户耗时。
 const WALK_START = Date.now()
 const BUILD_MS = WALK_START - WALK_BOOT
-const serveProc = spawn(
+const serveProc = spawnIsolated(
   process.execPath,
   ['--import', 'tsx', join(REPO, 'apps/cli/src/index.ts'), '--json', 'serve', '--port', '0'],
-  { cwd: REPO, env: { ...process.env, OPENVIBE_HOME: HOME }, stdio: ['ignore', 'pipe', 'pipe'] },
+  HOME,
+  { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'] },
 )
 let serveOut = ''
 serveProc.stdout.on('data', (d) => {
@@ -349,7 +354,7 @@ check(
 await shot('step3-waiting')
 
 const t0 = Date.now()
-const sync = spawn(
+const sync = spawnIsolated(
   process.execPath,
   [
     '--import',
@@ -362,7 +367,8 @@ const sync = spawn(
     'default',
     '--yes',
   ],
-  { cwd: REPO, env: { ...process.env, OPENVIBE_HOME: HOME }, stdio: ['ignore', 'pipe', 'pipe'] },
+  HOME,
+  { cwd: REPO, stdio: ['ignore', 'pipe', 'pipe'] },
 )
 let syncOut = ''
 sync.stdout.on('data', (d) => {
@@ -409,10 +415,11 @@ for (const p of PRODUCTS) {
   const size = existsSync(join(demoDir, p)) ? statSync(join(demoDir, p)).size : -1
   say(`  · ${p} ${size >= 0 ? `${String(size)}B` : '缺失'}`)
 }
-const diffRun = spawnSync(
+const diffRun = spawnSyncIsolated(
   process.execPath,
   ['--import', 'tsx', join(REPO, 'apps/cli/src/index.ts'), '--json', 'diff', demoDir],
-  { cwd: REPO, encoding: 'utf8', env: { ...process.env, OPENVIBE_HOME: HOME } },
+  HOME,
+  { cwd: REPO, encoding: 'utf8' },
 )
 let diffSummary = null
 try {
