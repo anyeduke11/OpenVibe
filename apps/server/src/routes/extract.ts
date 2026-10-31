@@ -22,6 +22,7 @@ import {
   type ExtractOut,
 } from '@openvibe/shared'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 import type { SqliteDatabase } from '@openvibe/core'
 
 /**
@@ -80,9 +81,13 @@ export function registerExtractRoutes(app: FastifyInstance, deps: ExtractRouteDe
   })
 
   /** 总闸状态（设置页开关的读侧） */
-  app.get('/api/extract/gate', async (): Promise<{ enabled: boolean }> => ({
-    enabled: extractGateOpen(deps.db),
-  }))
+  app.get(
+    '/api/extract/gate',
+    reportRoute('/api/extract/gate', 'db'),
+    async (): Promise<{ enabled: boolean }> => ({
+      enabled: extractGateOpen(deps.db),
+    }),
+  )
 
   /** 总闸开关（AN4；默认关——写侧在这里，拦截在 core 服务层） */
   app.post('/api/extract/gate', async (req): Promise<{ enabled: boolean }> => {
@@ -100,7 +105,11 @@ export function registerExtractRoutes(app: FastifyInstance, deps: ExtractRouteDe
     })),
   })
 
-  app.get('/api/extract/consents', async (): Promise<ExtractConsentOut> => consentView())
+  app.get(
+    '/api/extract/consents',
+    reportRoute('/api/extract/consents', 'db'),
+    async (): Promise<ExtractConsentOut> => consentView(),
+  )
 
   app.put('/api/extract/consents/:projectId', async (req): Promise<ExtractConsentOut> => {
     const params = parseOrThrow(ProjectParams, req.params)
@@ -124,12 +133,18 @@ export function registerExtractRoutes(app: FastifyInstance, deps: ExtractRouteDe
    * AN5 采纳率（影子门槛的数据面；现算 + 轮次历史）。
    * POST = 快照动作（达到窗口下限的 kind 落一行轮次记录，QG1「连续 2 轮」的判定源）。
    */
-  app.get('/api/ai/adoption', async (): Promise<unknown> => adoptionStatsWithHistory(deps.db))
+  app.get('/api/ai/adoption', reportRoute('/api/ai/adoption', 'db'), async (): Promise<unknown> =>
+    adoptionStatsWithHistory(deps.db),
+  )
   app.post('/api/ai/adoption/snapshot', async (): Promise<unknown> => {
     const now = (deps.now ?? (() => new Date()))().toISOString()
     return { snapshots: writeAdoptionSnapshots(deps.db, now) }
   })
 
   /** 成本台账（「AI 与出网」区）：按 provider/model 分组的出网计数（本机现算） */
-  app.get('/api/ai/extract/usage', async (): Promise<unknown> => ({ usage: extractUsage(deps.db) }))
+  app.get(
+    '/api/ai/extract/usage',
+    reportRoute('/api/ai/extract/usage', 'db'),
+    async (): Promise<unknown> => ({ usage: extractUsage(deps.db) }),
+  )
 }

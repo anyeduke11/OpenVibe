@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { reportRoute } from '../lib/route-source'
 import { CLI_COMMANDS, type CliCommandsOut } from '@openvibe/shared'
 
 /**
@@ -13,5 +14,9 @@ import { CLI_COMMANDS, type CliCommandsOut } from '@openvibe/shared'
  * 纯静态常量 ⇒ 无依赖注入点、无 DB 访问。
  */
 export function registerCliCommandRoutes(app: FastifyInstance): void {
-  app.get('/api/cli/commands', async (): Promise<CliCommandsOut> => ({ items: [...CLI_COMMANDS] }))
+  app.get(
+    '/api/cli/commands',
+    reportRoute('/api/cli/commands', 'db'),
+    async (): Promise<CliCommandsOut> => ({ items: [...CLI_COMMANDS] }),
+  )
 }

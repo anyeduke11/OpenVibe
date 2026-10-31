@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { AppError, TERMS_ORDER_BY, TermCreateInput, TermUpdateInput } from '@openvibe/shared'
 import { TermsRepo, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 import { referencedPackNames } from '../lib/refs'
 import { assetEventInput, resolveLedger, type LedgerDeps } from '../lib/ledger'
 
@@ -21,7 +22,7 @@ export function registerTermRoutes(app: FastifyInstance, deps: TermRouteDeps): v
   const terms = new TermsRepo(deps.db)
   const ledger = resolveLedger(deps)
 
-  app.get('/api/terms', async () => {
+  app.get('/api/terms', reportRoute('/api/terms', 'db'), async () => {
     const items = terms.list()
     return { items, total: items.length }
   })
@@ -34,7 +35,7 @@ export function registerTermRoutes(app: FastifyInstance, deps: TermRouteDeps): v
   })
 
   // 静态段先于 :id 匹配（find-my-way 优先级）
-  app.get('/api/terms/search', async (req) => {
+  app.get('/api/terms/search', reportRoute('/api/terms/search', 'db'), async (req) => {
     const { q } = req.query as { q?: unknown }
     if (typeof q !== 'string' || q.trim() === '') {
       throw new AppError('VALIDATION_ERROR', 'q 为必填查询词（m3 FR-3）')

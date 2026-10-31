@@ -32,6 +32,7 @@ import {
   type SqliteDatabase,
 } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 import {
   checkRemoteUpdates,
   importFromGithub,
@@ -60,7 +61,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   const meta = new AppMetaRepo(deps.db)
   const ledger = resolveLedger(deps)
 
-  app.get('/api/skills', async (req) => {
+  app.get('/api/skills', reportRoute('/api/skills', 'db'), async (req) => {
     const { q } = req.query as { q?: unknown }
     // 列表要显示版本数（m2 FR-3.1）：台账量小，逐条 count 比新增端点划算
     const all = skills.list().map((s) => ({ ...s, versionCount: skills.versions(s.id).length }))
@@ -207,9 +208,14 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   })
 
   // 重复整理报告（DEV-0067）：只报告不删，删除由客户端按 id 走既有 DELETE 逐条确认
-  app.get('/api/skills/duplicates', async () => {
-    return skills.duplicates()
-  })
+  app.get(
+    '/api/skills/duplicates',
+    // ⚠️ 磁盘态：报告里的「失效目录」一段判「本地目录还在不在」⇒ 目录随时会消失。
+    reportRoute('/api/skills/duplicates', 'filesystem'),
+    async () => {
+      return skills.duplicates()
+    },
+  )
 
   // 内置审查（DEV-0067）：ids 缺省=全量；无本地目录的条目仅元数据审查
   app.post('/api/skills/review', async (req) => {
@@ -228,20 +234,27 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
    *   （约定式发现 ∪ 已知 agent 路径）；用户显式清空（值为 `[]`）才是「真的不扫」。
    *   两者必须能区分，否则「清空清单」会被当成「没配置过」而回落默认。
    */
-  app.get('/api/skills/scan-roots', async () => {
-    const raw = meta.read<SkillScanRoot[] | null>(APP_META_KEYS.skillScanRoots, null)
-    if (raw === null) {
-      // 未配置 ⇒ 出厂默认清单（只给存在的那些，避免清单里塞一堆死路径）
-      const items = defaultSkillRoots().map((path) => ({ path, enabled: true }))
-      return { roots: items.map((i) => i.path), items, configured: false }
-    }
-    const items = raw.map((r) => ({ path: r.path, enabled: r.enabled !== false }))
-    return {
-      roots: items.filter((i) => i.enabled).map((i) => i.path),
-      items,
-      configured: true,
-    }
-  })
+  app.get(
+    '/api/skills/scan-roots',
+    // ⚠️ 混合态：**已配置**时结论全在库表（app_meta 的清单）；
+    //   **未配置**时走 `defaultSkillRoots()` —— 那是一次磁盘发现（home 下的约定目录）。
+    //   ⇒ 两种状态的结论来源不同 ⇒ 标 mixed（按磁盘态处理，前端现算）。
+    reportRoute('/api/skills/scan-roots', 'mixed'),
+    async () => {
+      const raw = meta.read<SkillScanRoot[] | null>(APP_META_KEYS.skillScanRoots, null)
+      if (raw === null) {
+        // 未配置 ⇒ 出厂默认清单（只给存在的那些，避免清单里塞一堆死路径）
+        const items = defaultSkillRoots().map((path) => ({ path, enabled: true }))
+        return { roots: items.map((i) => i.path), items, configured: false }
+      }
+      const items = raw.map((r) => ({ path: r.path, enabled: r.enabled !== false }))
+      return {
+        roots: items.filter((i) => i.enabled).map((i) => i.path),
+        items,
+        configured: true,
+      }
+    },
+  )
 
   /**
    * 写扫描根清单（整份覆盖）。空数组 = 显式清空 = 之后扫描不扫任何根。
@@ -268,11 +281,16 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   })
 
   /** 出厂默认清单（相对 home 的已知 agent 路径，含「本机是否存在」标记） */
-  app.get('/api/skills/scan-roots/defaults', async () => ({
-    items: expandKnownRoots(homedir()),
-    /** 库根：OpenVibe 自己的 skill 存放处 */
-    libraryRoot: skillLibraryRoot(),
-  }))
+  app.get(
+    '/api/skills/scan-roots/defaults',
+    // ⚠️ 磁盘态：`expandKnownRoots` 逐条判「这个目录在本机存在吗」⇒ 装了/删了 agent 即变。
+    reportRoute('/api/skills/scan-roots/defaults', 'filesystem'),
+    async () => ({
+      items: expandKnownRoots(homedir()),
+      /** 库根：OpenVibe 自己的 skill 存放处 */
+      libraryRoot: skillLibraryRoot(),
+    }),
+  )
 
   // ───────────────────────────────────────────────────────────────────────────
   // Skill 库（2026-10-30：独立于其他 agent 的备份与生命周期）
@@ -359,9 +377,15 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   // ───────────────────────────────────────────────────────────────────────────
 
   /** 清理预检：只报告，不删 */
-  app.get('/api/skills/cleanup', async () => {
-    return skills.cleanupPreview()
-  })
+  app.get(
+    '/api/skills/cleanup',
+    // ⚠️ 磁盘态：逐条判「skill 目录还在不在」⇒ 目录随时会消失。
+    // （真机实测 2026-10-30 踩到过：走 query 缓存 ⇒ 服务端 2 条 / 界面 0 条。）
+    reportRoute('/api/skills/cleanup', 'filesystem'),
+    async () => {
+      return skills.cleanupPreview()
+    },
+  )
 
   /** 一键批量清理：删「路径已消失 ∧ 不可下载 ∧ 无副本」的台账条目 */
   app.post('/api/skills/cleanup', async (req) => {
@@ -374,12 +398,16 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
     })
   })
 
-  app.get('/api/skills/:id/versions', async (req) => {
-    const { id } = req.params as { id: string }
-    if (!skills.get(id)) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
-    const items = skills.versions(id)
-    return { items, total: items.length }
-  })
+  app.get(
+    '/api/skills/:id/versions',
+    reportRoute('/api/skills/:id/versions', 'db'),
+    async (req) => {
+      const { id } = req.params as { id: string }
+      if (!skills.get(id)) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
+      const items = skills.versions(id)
+      return { items, total: items.length }
+    },
+  )
 
   app.patch('/api/skills/:id', async (req) => {
     const { id } = req.params as { id: string }

@@ -43,6 +43,7 @@ import { DEFAULT_PACK_VERSION, ensureDefaultPack } from '../lib/default-pack'
 import { renderPack } from '../lib/pack-assemble'
 import { defaultSeedDir } from '../lib/seed-dir'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 
 /**
  * 设置路由（dev-plan §3.12 / §607）：服务信息 + 遥测（C-3）+ 向导标记 + 种子重播。
@@ -129,7 +130,7 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
   const platform = deps.platform ?? process.platform
   const seedDir = deps.seedDir ?? defaultSeedDir()
 
-  app.get('/api/settings', async () => settingsView(deps))
+  app.get('/api/settings', reportRoute('/api/settings', 'db'), async () => settingsView(deps))
 
   /** 重置/完成向导（onboarding FR-2.3）：done=false 即设置页「重新显示向导」 */
   app.post('/api/settings/onboarding', async (req) => {
@@ -138,7 +139,9 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
     return { onboardingDone: done }
   })
 
-  app.get('/api/settings/telemetry', async () => telemetryView(meta))
+  app.get('/api/settings/telemetry', reportRoute('/api/settings/telemetry', 'db'), async () =>
+    telemetryView(meta),
+  )
 
   /**
    * M8-E 写侧总闸（`m8-agent-panel.md` FR-5.5.2.1）。
@@ -147,9 +150,13 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
    * 「台账总开关与遥测总开关**不在此处重复**」—— 混进同一个端点，
    * 前端就得维护一份「哪些键属于哪节」的映射，而那正是重复开关的成因。
    */
-  app.get('/api/settings/agent-write', async () => ({
-    enabled: meta.read<boolean>(APP_META_KEYS.agentWriteEnabled, false),
-  }))
+  app.get(
+    '/api/settings/agent-write',
+    reportRoute('/api/settings/agent-write', 'db'),
+    async () => ({
+      enabled: meta.read<boolean>(APP_META_KEYS.agentWriteEnabled, false),
+    }),
+  )
 
   app.post('/api/settings/agent-write', async (req) => {
     const { enabled } = parseOrThrow(AgentWriteToggleInput, req.body)
@@ -244,48 +251,52 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
    *
    * `?limit=` 走「非法回落默认、超限夹到 200」而非 422（契约要求）：纯读端点不该因坏参数被整体打挂。
    */
-  app.get('/api/telemetry/events', async (req): Promise<TelemetryLedgerOut> => {
-    const { limit } = req.query as { limit?: unknown }
-    const rows = deps.db
-      .prepare(
-        `SELECT id, event, value, day, os, app_version, queued_at, sent_at
+  app.get(
+    '/api/telemetry/events',
+    reportRoute('/api/telemetry/events', 'db'),
+    async (req): Promise<TelemetryLedgerOut> => {
+      const { limit } = req.query as { limit?: unknown }
+      const rows = deps.db
+        .prepare(
+          `SELECT id, event, value, day, os, app_version, queued_at, sent_at
            FROM telemetry_events ORDER BY id DESC LIMIT ?`,
-      )
-      .all(ledgerLimit(limit)) as {
-      id: number
-      event: TelemetryEvent
-      value: string
-      day: string
-      os: TelemetryOs
-      app_version: string
-      queued_at: string
-      sent_at: string | null
-    }[]
-    const total = (
-      deps.db.prepare('SELECT COUNT(*) AS c FROM telemetry_events').get() as { c: number }
-    ).c
-    return {
-      items: rows.map((r) => ({
-        id: r.id,
-        name: r.event,
-        ts: r.queued_at,
-        props: {
-          value: r.value,
-          day: r.day,
-          os: r.os,
-          appVersion: r.app_version,
-          sentAt: r.sent_at,
-        },
-      })),
-      total,
-    }
-  })
+        )
+        .all(ledgerLimit(limit)) as {
+        id: number
+        event: TelemetryEvent
+        value: string
+        day: string
+        os: TelemetryOs
+        app_version: string
+        queued_at: string
+        sent_at: string | null
+      }[]
+      const total = (
+        deps.db.prepare('SELECT COUNT(*) AS c FROM telemetry_events').get() as { c: number }
+      ).c
+      return {
+        items: rows.map((r) => ({
+          id: r.id,
+          name: r.event,
+          ts: r.queued_at,
+          props: {
+            value: r.value,
+            day: r.day,
+            os: r.os,
+            appVersion: r.app_version,
+            sentAt: r.sent_at,
+          },
+        })),
+        total,
+      }
+    },
+  )
 
   /**
    * 飞轮五项（onboarding FR-3，D-4 新增）：全本地 SQL 聚合，不参与遥测。
    * 圈数口径 FR-3.2：同一项目「登记了标准包且该包有导出 → 该路径有注入记录 → 有 ≥1 条回流资产」记 1 圈。
    */
-  app.get('/api/stats', async (): Promise<FlywheelStatsOut> => {
+  app.get('/api/stats', reportRoute('/api/stats', 'db'), async (): Promise<FlywheelStatsOut> => {
     const one = (sql: string): number => (deps.db.prepare(sql).get() as { c: number }).c
     return {
       assets: countOf(deps.db, 'prompts') + countOf(deps.db, 'terms') + countOf(deps.db, 'skills'),
@@ -316,7 +327,7 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
    * 走与 preview/export 同一 renderPack（字节同源）。OM2 首次见效：
    * 台账首次事件 → injections 首次注入的墙钟差；台账被清空或从未注入 ⇒ null（面板显示待采集）。
    */
-  app.get('/api/om', async (req): Promise<OmOut> => {
+  app.get('/api/om', reportRoute('/api/om', 'db'), async (req): Promise<OmOut> => {
     const askedPackId = (req.query as { pack_id?: string } | undefined)?.pack_id
     const repo = new PacksRepo(deps.db)
     let packRow: { id: string } | undefined

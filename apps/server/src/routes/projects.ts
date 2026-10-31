@@ -17,6 +17,7 @@ import {
   type SqliteDatabase,
 } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 import { resolveLedger, type LedgerDeps } from '../lib/ledger'
 
 export interface ProjectRouteDeps extends LedgerDeps {
@@ -48,7 +49,7 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
   const projects = new ProjectsRepo(deps.db)
   const ledger = resolveLedger(deps)
 
-  app.get('/api/projects', async (req) => {
+  app.get('/api/projects', reportRoute('/api/projects', 'db'), async (req) => {
     const { status } = req.query as { status?: unknown }
     let items = projects.list().map((p) => ({ ...p, health: projects.healthSummary(p.id) }))
     if (typeof status === 'string' && status !== '' && status !== 'all') {
@@ -93,7 +94,7 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
     })
   })
 
-  app.get('/api/projects/:id', async (req) => {
+  app.get('/api/projects/:id', reportRoute('/api/projects/:id', 'db'), async (req) => {
     const { id } = req.params as { id: string }
     const project = projects.get(id)
     if (!project) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
@@ -171,12 +172,16 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
    * 取消勾选（`checked: false`）**不记**：`checklist_item_checked` 的语义是「已勾选」，
    * 记一条「取消」既不是这个 kind，也没法在读侧还原成同一件事。
    */
-  app.get('/api/projects/:id/check-states', async (req) => {
-    const { id } = req.params as { id: string }
-    if (!projects.get(id)) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
-    const items = projects.listCheckStates(id)
-    return { items, total: items.length }
-  })
+  app.get(
+    '/api/projects/:id/check-states',
+    reportRoute('/api/projects/:id/check-states', 'db'),
+    async (req) => {
+      const { id } = req.params as { id: string }
+      if (!projects.get(id)) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
+      const items = projects.listCheckStates(id)
+      return { items, total: items.length }
+    },
+  )
 
   app.put('/api/projects/:id/check-states', async (req) => {
     const { id } = req.params as { id: string }
@@ -205,38 +210,46 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
     return { checkStates: projects.listCheckStates(id), health: projects.healthSummary(id) }
   })
 
-  app.get('/api/projects/:id/injection-status', async (req) => {
-    const { id } = req.params as { id: string }
-    const project = projects.get(id)
-    if (!project) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
-    return readInjectionStatus({
-      localPath: project.localPath,
-      registered: { packId: project.standardPackId, version: project.standardPackVersion },
-    })
-  })
+  app.get(
+    '/api/projects/:id/injection-status',
+    reportRoute('/api/projects/:id/injection-status', 'mixed'),
+    async (req) => {
+      const { id } = req.params as { id: string }
+      const project = projects.get(id)
+      if (!project) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
+      return readInjectionStatus({
+        localPath: project.localPath,
+        registered: { packId: project.standardPackId, version: project.standardPackVersion },
+      })
+    },
+  )
 
   /**
    * 目录版注入状态（onboarding FR-2.4 步骤③自动确认，T8b 的 D-5）：
    * 向导注入那一刻项目记录还不存在，Web 只能按绝对路径轮询 lock 文件。
    * 与 :id 版同一份 core 只读实现；只回 InjectionStatusOut，绝不列目录内容。
    */
-  app.get('/api/injection-status', async (req): Promise<InjectionStatusOut> => {
-    const { dir } = parseOrThrow(InjectionStatusQuery, req.query)
-    if (!isAbsolute(dir)) {
-      throw new AppError('VALIDATION_ERROR', 'dir 必须是绝对路径', {
-        fieldErrors: { dir: ['需要绝对路径'] },
-      })
-    }
-    if (!existsSync(dir)) throw new AppError('NOT_FOUND', `目录不存在: ${dir}`)
-    if (!statSync(dir).isDirectory()) {
-      throw new AppError('VALIDATION_ERROR', 'dir 不是目录', {
-        fieldErrors: { dir: ['需要一个已存在的目录'] },
-      })
-    }
-    // 尚未注入与 lock 损坏要分开报：readInjectionStatus 只认「读不到/解不开」这一种情形
-    if (!existsSync(join(dir, PACK_LOCK_REL))) {
-      return { lockPresent: false, error: `尚未注入（缺 ${PACK_LOCK_REL}）` }
-    }
-    return readInjectionStatus({ localPath: dir, registered: null })
-  })
+  app.get(
+    '/api/injection-status',
+    reportRoute('/api/injection-status', 'mixed'),
+    async (req): Promise<InjectionStatusOut> => {
+      const { dir } = parseOrThrow(InjectionStatusQuery, req.query)
+      if (!isAbsolute(dir)) {
+        throw new AppError('VALIDATION_ERROR', 'dir 必须是绝对路径', {
+          fieldErrors: { dir: ['需要绝对路径'] },
+        })
+      }
+      if (!existsSync(dir)) throw new AppError('NOT_FOUND', `目录不存在: ${dir}`)
+      if (!statSync(dir).isDirectory()) {
+        throw new AppError('VALIDATION_ERROR', 'dir 不是目录', {
+          fieldErrors: { dir: ['需要一个已存在的目录'] },
+        })
+      }
+      // 尚未注入与 lock 损坏要分开报：readInjectionStatus 只认「读不到/解不开」这一种情形
+      if (!existsSync(join(dir, PACK_LOCK_REL))) {
+        return { lockPresent: false, error: `尚未注入（缺 ${PACK_LOCK_REL}）` }
+      }
+      return readInjectionStatus({ localPath: dir, registered: null })
+    },
+  )
 }

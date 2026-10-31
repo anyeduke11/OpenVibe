@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { AppError, DEVLOG_TYPES, DevLogCreateInput, type DevLogType } from '@openvibe/shared'
 import { DevLogRepo, ProjectsRepo, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 
 export interface DevLogRouteDeps {
   db: SqliteDatabase
@@ -16,17 +17,21 @@ export function registerDevLogRoutes(app: FastifyInstance, deps: DevLogRouteDeps
   const logs = new DevLogRepo(deps.db)
   const projects = new ProjectsRepo(deps.db)
 
-  app.get('/api/projects/:id/devlog', async (req) => {
-    const { id } = req.params as { id: string }
-    if (!projects.get(id)) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
-    const { type } = req.query as { type?: unknown }
-    const filter =
-      typeof type === 'string' && (DEVLOG_TYPES as readonly string[]).includes(type)
-        ? (type as DevLogType)
-        : undefined
-    const items = logs.list(id, filter)
-    return { items, total: items.length }
-  })
+  app.get(
+    '/api/projects/:id/devlog',
+    reportRoute('/api/projects/:id/devlog', 'db'),
+    async (req) => {
+      const { id } = req.params as { id: string }
+      if (!projects.get(id)) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
+      const { type } = req.query as { type?: unknown }
+      const filter =
+        typeof type === 'string' && (DEVLOG_TYPES as readonly string[]).includes(type)
+          ? (type as DevLogType)
+          : undefined
+      const items = logs.list(id, filter)
+      return { items, total: items.length }
+    },
+  )
 
   app.post('/api/projects/:id/devlog', async (req, reply) => {
     const { id } = req.params as { id: string }
@@ -36,16 +41,20 @@ export function registerDevLogRoutes(app: FastifyInstance, deps: DevLogRouteDeps
     return reply.code(201).send(logs.create(id, input))
   })
 
-  app.get('/api/projects/:id/devlog/export', async (req, reply) => {
-    const { id } = req.params as { id: string }
-    if (!projects.get(id)) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
-    const { type } = parseOrThrow(TypeQuery, req.query)
-    const fileName = type === 'DEV' ? 'DEV_LOG.md' : 'CHECK_LOG.md'
-    return reply
-      .header('content-type', 'text/markdown; charset=utf-8')
-      .header('content-disposition', `attachment; filename="${fileName}"`)
-      .send(logs.export(id, type))
-  })
+  app.get(
+    '/api/projects/:id/devlog/export',
+    reportRoute('/api/projects/:id/devlog/export', 'db'),
+    async (req, reply) => {
+      const { id } = req.params as { id: string }
+      if (!projects.get(id)) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
+      const { type } = parseOrThrow(TypeQuery, req.query)
+      const fileName = type === 'DEV' ? 'DEV_LOG.md' : 'CHECK_LOG.md'
+      return reply
+        .header('content-type', 'text/markdown; charset=utf-8')
+        .header('content-disposition', `attachment; filename="${fileName}"`)
+        .send(logs.export(id, type))
+    },
+  )
 
   /** 回流动作第二跳：术语/提示词已建好，把资产 id 记进日志 linkedAssetIds */
   app.post('/api/projects/:id/devlog/:logId/assets', async (req) => {
@@ -59,8 +68,12 @@ export function registerDevLogRoutes(app: FastifyInstance, deps: DevLogRouteDeps
   })
 
   /** 反查：资产详情页显示「来源：项目 X 的 DEV-0007」（m5 FR-7.2） */
-  app.get('/api/reflow-origin/:assetId', async (req) => {
-    const { assetId } = req.params as { assetId: string }
-    return { origin: logs.reflowOriginFor(assetId) }
-  })
+  app.get(
+    '/api/reflow-origin/:assetId',
+    reportRoute('/api/reflow-origin/:assetId', 'db'),
+    async (req) => {
+      const { assetId } = req.params as { assetId: string }
+      return { origin: logs.reflowOriginFor(assetId) }
+    },
+  )
 }

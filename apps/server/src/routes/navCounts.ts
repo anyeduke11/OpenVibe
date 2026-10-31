@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { reportRoute } from '../lib/route-source'
 import type { SqliteDatabase } from '@openvibe/core'
 import type { NavCountsOut } from '@openvibe/shared'
 
@@ -33,8 +34,12 @@ const NAV_COUNTS_SQL = `
 `
 
 export function registerNavCountRoutes(app: FastifyInstance, deps: NavCountRouteDeps): void {
-  app.get('/api/nav-counts', async (): Promise<NavCountsOut> => {
-    const row = deps.db.prepare(NAV_COUNTS_SQL).get() as NavCountsOut
-    return row
-  })
+  app.get(
+    '/api/nav-counts',
+    reportRoute('/api/nav-counts', 'db'),
+    async (): Promise<NavCountsOut> => {
+      const row = deps.db.prepare(NAV_COUNTS_SQL).get() as NavCountsOut
+      return row
+    },
+  )
 }

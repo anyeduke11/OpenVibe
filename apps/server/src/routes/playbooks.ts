@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { AppError, PlaybookCreateInput, PlaybookUpdateInput } from '@openvibe/shared'
 import { PlaybooksRepo, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 import { referencedPackNames } from '../lib/refs'
 import { assetEventInput, resolveLedger, type LedgerDeps } from '../lib/ledger'
 
@@ -20,7 +21,7 @@ export function registerPlaybookRoutes(app: FastifyInstance, deps: PlaybookRoute
   const playbooks = new PlaybooksRepo(deps.db)
   const ledger = resolveLedger(deps)
 
-  app.get('/api/playbooks', async () => {
+  app.get('/api/playbooks', reportRoute('/api/playbooks', 'db'), async () => {
     const items = playbooks.list()
     return { items, total: items.length }
   })
@@ -33,7 +34,7 @@ export function registerPlaybookRoutes(app: FastifyInstance, deps: PlaybookRoute
   })
 
   // 静态段先于 :id 匹配（find-my-way 优先级）
-  app.get('/api/playbooks/search', async (req) => {
+  app.get('/api/playbooks/search', reportRoute('/api/playbooks/search', 'db'), async (req) => {
     const { q } = req.query as { q?: unknown }
     if (typeof q !== 'string' || q.trim() === '') {
       throw new AppError('VALIDATION_ERROR', 'q 为必填查询词（m4 FR-3）')

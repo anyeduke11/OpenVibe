@@ -31,6 +31,7 @@ import { registerTaskRoutes } from './routes/tasks'
 import { registerTermRoutes } from './routes/terms'
 import { registerTermRecommendationRoutes } from './routes/termRecommendations'
 import { NO_WEB, setupStatic, type WebStatus } from './plugins/static'
+import { collectRouteSources, type CollectedRouteSource } from './lib/route-source'
 
 export interface BuildAppOptions {
   /** 注入 SQLite 连接（测试用临时库；缺省 :memory:，C-7） */
@@ -77,6 +78,18 @@ export interface BuiltApp {
   token: string
   /** 静态托管结论（产物缺失时 served=false 并带构建提示） */
   web: WebStatus
+  /**
+   * 只读端点的**数据来源自述**（2026-10-31）。
+   *
+   * 每个 GET 端点在注册处用 `reportRoute(path, source)` 声明自己的来源
+   * （`db` / `filesystem` / `mixed`），这里收集成清单 ⇒ 快照脚本据此导出
+   * `packages/shared/src/report-endpoints.ts` 里的清单（`pnpm report:snapshot`）。
+   *
+   * ⚠️ **为什么清单不手写**：手写的清单与服务端的路由注册是**两处独立书写**，
+   *   必然漂移，而漂移的方向必然是「闸越来越松」（新增磁盘态端点而忘了登记
+   *   ⇒ 缓存闸完全看不见它）。⇒ 唯一书写处是路由注册处，清单是它的投影。
+   */
+  routeSources: CollectedRouteSource[]
 }
 
 /** 未注入版本时的兜底（bootstrap 与遥测上报共用同一个值，免得两处各写一份字面量） */
@@ -95,6 +108,10 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   const web = options.webRoot ? await setupStatic(app, options.webRoot) : NO_WEB
   registerErrors(app, web.served && web.root ? { spaFallbackRoot: web.root } : {})
   registerAuth(app, { token })
+
+  // ⚠️ **采集钩子必须早于任何路由注册**（Fastify 的 onRoute 在注册时同步触发）。
+  //   装晚了 ⇒ 采集不到 ⇒ 快照缺条目 ⇒ 快照比对判红。
+  const routeSources = collectRouteSources(app)
 
   // `now` 透传给每个路由：台账的 `day` 由事件时间派生，不透传就只能拿到隐式 `new Date()`，
   // 测试无法钉住「这条事件落在哪一天」。见 lib/ledger.ts 的「为什么缺省也照记」。
@@ -149,5 +166,5 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
     db: { status: 'ready' },
   }))
 
-  return { app, db, token, web }
+  return { app, db, token, web, routeSources }
 }

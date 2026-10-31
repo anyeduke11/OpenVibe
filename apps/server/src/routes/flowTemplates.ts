@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { FlowTemplateCreateInput, FlowTemplateUpdateInput } from '@openvibe/shared'
 import { FlowTemplatesRepo, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 import { assetEventInput, resolveLedger, type LedgerDeps } from '../lib/ledger'
 
 export interface FlowRouteDeps extends LedgerDeps {
@@ -13,7 +14,7 @@ export function registerFlowTemplateRoutes(app: FastifyInstance, deps: FlowRoute
   const flows = new FlowTemplatesRepo(deps.db)
   const ledger = resolveLedger(deps)
 
-  app.get('/api/flow-templates', async () => {
+  app.get('/api/flow-templates', reportRoute('/api/flow-templates', 'db'), async () => {
     const items = flows.list()
     return { items, total: items.length }
   })

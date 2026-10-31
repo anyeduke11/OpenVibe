@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { reportRoute } from '../lib/route-source'
 import { createTermRecommendService, type SqliteDatabase } from '@openvibe/core'
 
 export interface TermRecommendationRouteDeps {
@@ -18,8 +19,12 @@ export function registerTermRecommendationRoutes(
 ): void {
   const service = createTermRecommendService({ db: deps.db })
 
-  app.get('/api/projects/:id/term-recommendations', async (req) => {
-    const { id } = req.params as { id: string }
-    return service.recommend(id)
-  })
+  app.get(
+    '/api/projects/:id/term-recommendations',
+    reportRoute('/api/projects/:id/term-recommendations', 'db'),
+    async (req) => {
+      const { id } = req.params as { id: string }
+      return service.recommend(id)
+    },
+  )
 }

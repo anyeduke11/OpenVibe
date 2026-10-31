@@ -7,6 +7,7 @@ import {
 } from '@openvibe/shared'
 import { LocalEventsRepo, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 
 /**
  * 本机事件台账的读面与清空面（local-event-ledger.md FR-4 / FR-7 · g/h/i 三条验收的被验收物）。
@@ -40,27 +41,31 @@ export function registerLocalEventsRoutes(app: FastifyInstance, deps: LocalEvent
    * **窗内与累计同时返回**是这条端点的核心：只给窗内计数，
    * 一个只查过最近三天的用户会以为本机一直这么安静。
    */
-  app.get('/api/local-events/summary', async (req): Promise<SummaryOut> => {
-    const q = parseOrThrow(LocalEventsQuery, req.query)
-    const byDay = repo.summaryInWindow(q.from, q.to)
-    const cumulativeByKind = repo.cumulativeByKind()
+  app.get(
+    '/api/local-events/summary',
+    reportRoute('/api/local-events/summary', 'db'),
+    async (req): Promise<SummaryOut> => {
+      const q = parseOrThrow(LocalEventsQuery, req.query)
+      const byDay = repo.summaryInWindow(q.from, q.to)
+      const cumulativeByKind = repo.cumulativeByKind()
 
-    // 窗内按 kind 汇总：从 byDay 聚合，避免两条 SQL 各算一遍而口径漂
-    const byKindMap = new Map<string, number>()
-    for (const row of byDay) byKindMap.set(row.kind, (byKindMap.get(row.kind) ?? 0) + row.count)
+      // 窗内按 kind 汇总：从 byDay 聚合，避免两条 SQL 各算一遍而口径漂
+      const byKindMap = new Map<string, number>()
+      for (const row of byDay) byKindMap.set(row.kind, (byKindMap.get(row.kind) ?? 0) + row.count)
 
-    return LocalEventsSummaryOut.parse({
-      window: { from: q.from, to: q.to, inclusive: 'start-only' },
-      byDay,
-      byKind: [...byKindMap.entries()]
-        .map(([kind, count]) => ({ kind, count }))
-        .sort((a, b) => (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0)),
-      windowTotal: byDay.reduce((s, r) => s + r.count, 0),
-      cumulativeTotal: cumulativeByKind.reduce((s, r) => s + r.count, 0),
-      cumulativeByKind,
-      activeDays: new Set(byDay.map((r) => r.day)).size,
-    })
-  })
+      return LocalEventsSummaryOut.parse({
+        window: { from: q.from, to: q.to, inclusive: 'start-only' },
+        byDay,
+        byKind: [...byKindMap.entries()]
+          .map(([kind, count]) => ({ kind, count }))
+          .sort((a, b) => (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0)),
+        windowTotal: byDay.reduce((s, r) => s + r.count, 0),
+        cumulativeTotal: cumulativeByKind.reduce((s, r) => s + r.count, 0),
+        cumulativeByKind,
+        activeDays: new Set(byDay.map((r) => r.day)).size,
+      })
+    },
+  )
 
   /**
    * 一键清空（FR-3.2）。

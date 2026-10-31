@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { reportRoute } from '../lib/route-source'
 import { z } from 'zod'
 import {
   AppError,
@@ -161,7 +162,7 @@ function toEffectiveProfileView(eff: EffectiveProfile): EffectiveProfileView {
 }
 
 export function registerLangRoutes(app: FastifyInstance, deps: LangRouteDeps): void {
-  app.get('/api/lang/roadmap', async (req) => {
+  app.get('/api/lang/roadmap', reportRoute('/api/lang/roadmap', 'db'), async (req) => {
     const parsed = RoadmapQuery.safeParse(req.query)
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', 'lang 必须是 python 或 go')
@@ -171,7 +172,7 @@ export function registerLangRoutes(app: FastifyInstance, deps: LangRouteDeps): v
     return view
   })
 
-  app.get('/api/lang/topics/:id', async (req) => {
+  app.get('/api/lang/topics/:id', reportRoute('/api/lang/topics/:id', 'db'), async (req) => {
     const params = TopicParams.safeParse(req.params)
     if (!params.success) {
       throw new AppError('VALIDATION_ERROR', 'id 必须是正整数')
@@ -189,7 +190,7 @@ export function registerLangRoutes(app: FastifyInstance, deps: LangRouteDeps): v
 
   // CS4：站点过滤的读端（m9-topic-filter 接入生产）——菜单/筛选器一次拿到
   // 可选语言、站号、kind 与覆盖度，不必再拉全量自算。纯读，零副作用。
-  app.get('/api/lang/topics', async (req) => {
+  app.get('/api/lang/topics', reportRoute('/api/lang/topics', 'db'), async (req) => {
     const q = (req.query as { lang?: string; stage?: string; kind?: string } | undefined) ?? {}
     const stage = q.stage !== undefined && q.stage !== '' ? Number(q.stage) : undefined
     if (stage !== undefined && !Number.isInteger(stage)) {
@@ -205,13 +206,17 @@ export function registerLangRoutes(app: FastifyInstance, deps: LangRouteDeps): v
 
   // CS4：资源清单的 README 导出（m9-p1b-readme 接入生产）——
   // 与采集脚本同一份 exportResourcesReadme（口径只留一处）；只读，不写盘。
-  app.get('/api/lang/resources/readme', async () => {
-    return { markdown: exportResourcesReadme(listReadmeRows(deps.db)) }
-  })
+  app.get(
+    '/api/lang/resources/readme',
+    reportRoute('/api/lang/resources/readme', 'db'),
+    async () => {
+      return { markdown: exportResourcesReadme(listReadmeRows(deps.db)) }
+    },
+  )
 
   // ⚠️ **模式层的读端**（P1e / P1f 的四个界面件一直缺的就是这一层）
   //   ⇒ 一次给全量，界面侧不必自己拼三四个请求。
-  app.get('/api/lang/modes', async (req) => {
+  app.get('/api/lang/modes', reportRoute('/api/lang/modes', 'db'), async (req) => {
     const parsed = ModesQuery.safeParse(req.query)
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', 'project 参数不合法')
@@ -275,7 +280,7 @@ export function registerLangRoutes(app: FastifyInstance, deps: LangRouteDeps): v
    * ⚠️ **筛选是纯计算** ⇒ 它在 `@openvibe/shared` 的 `filterResourceCatalog`，
    *   这里只负责**读行 ＋ 调用**（口径只留一处）。
    */
-  app.get('/api/lang/resources', async (req) => {
+  app.get('/api/lang/resources', reportRoute('/api/lang/resources', 'db'), async (req) => {
     const parsed = ResourceCatalogQuery.safeParse(req.query)
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', '资源筛选参数不合法')

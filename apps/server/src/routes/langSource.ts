@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { reportRoute } from '../lib/route-source'
 import { z } from 'zod'
 import { AppError } from '@openvibe/shared'
 import {
@@ -107,7 +108,7 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
     }
   })
 
-  app.get('/api/lang/findings', async (req) => {
+  app.get('/api/lang/findings', reportRoute('/api/lang/findings', 'db'), async (req) => {
     const parsed = ProjectQuery.safeParse(req.query)
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', 'project 必填')
@@ -117,21 +118,25 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
     return { findings: readFindings(deps.db, parsed.data.project) }
   })
 
-  app.get('/api/lang/source/consent', async (req) => {
-    const parsed = ProjectQuery.safeParse(req.query)
-    if (!parsed.success) {
-      throw new AppError('VALIDATION_ERROR', 'project 必填')
-    }
-    // ⚠️ **没有行 = 没有记忆** ⇒ 返回 `remember_all: false`（回到全不勾）
-    const row = readConsent(deps.db, parsed.data.project)
-    return {
-      remember_all: row?.remember_all ?? false,
-      remembered_at: row?.remembered_at ?? null,
-      shares: readShares(deps.db, parsed.data.project),
-    }
-  })
+  app.get(
+    '/api/lang/source/consent',
+    reportRoute('/api/lang/source/consent', 'db'),
+    async (req) => {
+      const parsed = ProjectQuery.safeParse(req.query)
+      if (!parsed.success) {
+        throw new AppError('VALIDATION_ERROR', 'project 必填')
+      }
+      // ⚠️ **没有行 = 没有记忆** ⇒ 返回 `remember_all: false`（回到全不勾）
+      const row = readConsent(deps.db, parsed.data.project)
+      return {
+        remember_all: row?.remember_all ?? false,
+        remembered_at: row?.remembered_at ?? null,
+        shares: readShares(deps.db, parsed.data.project),
+      }
+    },
+  )
 
-  app.get('/api/lang/source/consents', async () => {
+  app.get('/api/lang/source/consents', reportRoute('/api/lang/source/consents', 'db'), async () => {
     // ⚠️ 设置页用：列出「你 Remember 过哪些项目」⇒ 每一条都能单独清除（DL-21）
     return { consents: readAllConsents(deps.db) }
   })
@@ -155,17 +160,21 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
     return { cleared, remember_all: false, remembered_at: null }
   })
 
-  app.get('/api/lang/source/export', async (req, reply) => {
-    const parsed = ProjectQuery.safeParse(req.query)
-    if (!parsed.success) {
-      throw new AppError('VALIDATION_ERROR', 'project 必填')
-    }
-    const text = exportFindingsText(deps.db, parsed.data.project)
-    return reply
-      .header('content-type', 'text/plain; charset=utf-8')
-      .header('content-disposition', 'attachment; filename="m9-source-findings.txt"')
-      .send(text)
-  })
+  app.get(
+    '/api/lang/source/export',
+    reportRoute('/api/lang/source/export', 'db'),
+    async (req, reply) => {
+      const parsed = ProjectQuery.safeParse(req.query)
+      if (!parsed.success) {
+        throw new AppError('VALIDATION_ERROR', 'project 必填')
+      }
+      const text = exportFindingsText(deps.db, parsed.data.project)
+      return reply
+        .header('content-type', 'text/plain; charset=utf-8')
+        .header('content-disposition', 'attachment; filename="m9-source-findings.txt"')
+        .send(text)
+    },
+  )
 
   app.post('/api/lang/source/share', async (req) => {
     const parsed = ShareBody.safeParse(req.body)
@@ -183,9 +192,13 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
 
   // ⚠️ 出网汇总（**只读**）：界面据此显示「出网过几次」
   //   ⇒ 与「记忆列表」**分开**：当次勾了但没记住的出网，也必须在这里看得见。
-  app.get('/api/lang/source/share-summary', async () => {
-    return { summaries: readShareSummary(deps.db) }
-  })
+  app.get(
+    '/api/lang/source/share-summary',
+    reportRoute('/api/lang/source/share-summary', 'db'),
+    async () => {
+      return { summaries: readShareSummary(deps.db) }
+    },
+  )
 
   /**
    * **按日**的出网分类计数（审计问法：「这个月有多少次是用户自己全勾的」）。
@@ -194,18 +207,22 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
    *   相对 `date('now')` 的读端会随日历漂移（测试与报表都踩过这个坑）。
    * ⚠️ `[from, to)` 含头不含尾，与 `summaryInWindow` 同口径。
    */
-  app.get('/api/lang/source/share-daily', async (req) => {
-    const parsed = ShareDailyQuery.safeParse(req.query)
-    if (!parsed.success) {
-      throw new AppError('VALIDATION_ERROR', 'from 与 to 必填（YYYY-MM-DD），project 可选')
-    }
-    if (parsed.data.from > parsed.data.to) {
-      throw new AppError('VALIDATION_ERROR', 'from 晚于 to')
-    }
-    return {
-      daily: readShareDaily(deps.db, parsed.data.from, parsed.data.to, parsed.data.project),
-    }
-  })
+  app.get(
+    '/api/lang/source/share-daily',
+    reportRoute('/api/lang/source/share-daily', 'db'),
+    async (req) => {
+      const parsed = ShareDailyQuery.safeParse(req.query)
+      if (!parsed.success) {
+        throw new AppError('VALIDATION_ERROR', 'from 与 to 必填（YYYY-MM-DD），project 可选')
+      }
+      if (parsed.data.from > parsed.data.to) {
+        throw new AppError('VALIDATION_ERROR', 'from 晚于 to')
+      }
+      return {
+        daily: readShareDaily(deps.db, parsed.data.from, parsed.data.to, parsed.data.project),
+      }
+    },
+  )
 
   /**
    * **按 provider 分组**的出网汇总（owner 2026-10-22 增强 1）。
@@ -219,16 +236,20 @@ export function registerLangSourceRoutes(app: FastifyInstance, deps: LangSourceR
    * ⚠️ **「未知」那一组会出现在结果里**（provider 配置改过 ⇒ 改之前出的网没有标识）
    *   ⇒ 界面必须把它显示出来，不许悄悄并进当前那家。
    */
-  app.get('/api/lang/source/share-by-provider', async (req) => {
-    const parsed = ShareDailyQuery.safeParse(req.query)
-    if (!parsed.success) {
-      throw new AppError('VALIDATION_ERROR', 'from 与 to 必填（YYYY-MM-DD），project 可选')
-    }
-    if (parsed.data.from > parsed.data.to) {
-      throw new AppError('VALIDATION_ERROR', 'from 晚于 to')
-    }
-    return {
-      groups: readShareByProvider(deps.db, parsed.data.from, parsed.data.to, parsed.data.project),
-    }
-  })
+  app.get(
+    '/api/lang/source/share-by-provider',
+    reportRoute('/api/lang/source/share-by-provider', 'db'),
+    async (req) => {
+      const parsed = ShareDailyQuery.safeParse(req.query)
+      if (!parsed.success) {
+        throw new AppError('VALIDATION_ERROR', 'from 与 to 必填（YYYY-MM-DD），project 可选')
+      }
+      if (parsed.data.from > parsed.data.to) {
+        throw new AppError('VALIDATION_ERROR', 'from 晚于 to')
+      }
+      return {
+        groups: readShareByProvider(deps.db, parsed.data.from, parsed.data.to, parsed.data.project),
+      }
+    },
+  )
 }

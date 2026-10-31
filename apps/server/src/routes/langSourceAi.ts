@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { reportRoute } from '../lib/route-source'
 import { z } from 'zod'
 import { AppError, SourceInterpretSummary } from '@openvibe/shared'
 import {
@@ -185,7 +186,7 @@ export function registerLangSourceAiRoutes(
       ? await resolveProviderRunner(deps.db, process.env, keychain, sel)
       : deps.runner
 
-  app.get('/api/lang/snippet', async (req) => {
+  app.get('/api/lang/snippet', reportRoute('/api/lang/snippet', 'db'), async (req) => {
     const parsed = SnippetQuery.safeParse(req.query)
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', 'project 与 finding_id 必填')
@@ -225,7 +226,7 @@ export function registerLangSourceAiRoutes(
     }
   })
 
-  app.get('/api/lang/snippets', async (req) => {
+  app.get('/api/lang/snippets', reportRoute('/api/lang/snippets', 'db'), async (req) => {
     const parsed = ProjectQuery.safeParse(req.query)
     if (!parsed.success) {
       throw new AppError('VALIDATION_ERROR', 'project 必填')
@@ -260,23 +261,27 @@ export function registerLangSourceAiRoutes(
     }
   })
 
-  app.get('/api/lang/interpret/capability', async (req) => {
-    // ⚠️ **注入优先**（测试注入的 runner 直接算「可用」）；
-    //   没注入 ⇒ 走配置层探测（**三档 ＋ 人话原因** —— 设置页要告诉用户「为什么不可用」）。
-    if (deps.runner !== undefined) {
-      return capabilityOf({
-        runner: deps.runner,
-        status: deps.runner === null ? 'unconfigured' : 'ready',
-        detail: deps.runner === null ? 'AI 解读不可用' : 'AI 解读可用',
-      })
-    }
-    const parsed = CapabilityQuery.safeParse(req.query ?? {})
-    const sel = {
-      providerId: parsed.success ? parsed.data.provider_id : undefined,
-      projectId: parsed.success ? parsed.data.project_id : undefined,
-    }
-    return capabilityOf(await resolveProvider(deps.db, process.env, keychain, sel))
-  })
+  app.get(
+    '/api/lang/interpret/capability',
+    reportRoute('/api/lang/interpret/capability', 'db'),
+    async (req) => {
+      // ⚠️ **注入优先**（测试注入的 runner 直接算「可用」）；
+      //   没注入 ⇒ 走配置层探测（**三档 ＋ 人话原因** —— 设置页要告诉用户「为什么不可用」）。
+      if (deps.runner !== undefined) {
+        return capabilityOf({
+          runner: deps.runner,
+          status: deps.runner === null ? 'unconfigured' : 'ready',
+          detail: deps.runner === null ? 'AI 解读不可用' : 'AI 解读可用',
+        })
+      }
+      const parsed = CapabilityQuery.safeParse(req.query ?? {})
+      const sel = {
+        providerId: parsed.success ? parsed.data.provider_id : undefined,
+        projectId: parsed.success ? parsed.data.project_id : undefined,
+      }
+      return capabilityOf(await resolveProvider(deps.db, process.env, keychain, sel))
+    },
+  )
 
   // ============ provider 配置（owner 2026-10-22 裁决一：手动调控 ＋ 增强 2：多份并存）============
 
@@ -286,11 +291,15 @@ export function registerLangSourceAiRoutes(
    * ⚠️ **读端永不回显 key 全文**：视图形状里**装不下**全文
    *   ⇒ 这件事在类型上就发生不了。
    */
-  app.get('/api/lang/interpret/providers', async () => {
-    const { collection } = readProviderCollection(deps.db)
-    // ⚠️ **每份的 key 各自解析**（各有各的钥匙串项）⇒ 视图要显示各自那一把的末 4 位
-    return providerCollectionView(collection, keychain)
-  })
+  app.get(
+    '/api/lang/interpret/providers',
+    reportRoute('/api/lang/interpret/providers', 'db'),
+    async () => {
+      const { collection } = readProviderCollection(deps.db)
+      // ⚠️ **每份的 key 各自解析**（各有各的钥匙串项）⇒ 视图要显示各自那一把的末 4 位
+      return providerCollectionView(collection, keychain)
+    },
+  )
 
   /**
    * 写 provider 配置集合（**整份覆盖**；`api_key` 除外）。

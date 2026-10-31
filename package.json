@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "node scripts/dev-all.mjs",
     "dev:all": "node scripts/dev-all.mjs",
+    "dev:iso": "node scripts/dev-iso.mjs",
     "dev:each": "pnpm -r --if-present dev",
     "build": "pnpm -r --if-present build",
     "test": "vitest run",
@@ -40,6 +41,7 @@
     "memory:verify": "tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --verify",
     "barrel:audit": "tsx scripts/barrel-audit.ts",
     "barrel:snapshot": "tsx scripts/barrel-snapshot.ts",
+    "report:snapshot": "tsx scripts/report-endpoints-snapshot.ts",
     "migrate:drill": "tsx scripts/migrate-drill.ts",
     "v023:preflight": "tsx scripts/v023-preflight.ts",
     "vibe:retro": "tsx scripts/vibe-retro-ingest.ts",

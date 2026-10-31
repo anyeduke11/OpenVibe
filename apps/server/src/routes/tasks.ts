@@ -9,6 +9,7 @@ import {
 } from '@openvibe/shared'
 import { ProjectsRepo, TasksRepo, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 
 export interface TaskRouteDeps {
   db: SqliteDatabase
@@ -25,7 +26,7 @@ export function registerTaskRoutes(app: FastifyInstance, deps: TaskRouteDeps): v
   const tasks = new TasksRepo(deps.db)
   const projects = new ProjectsRepo(deps.db)
 
-  app.get('/api/projects/:id/tasks', async (req) => {
+  app.get('/api/projects/:id/tasks', reportRoute('/api/projects/:id/tasks', 'db'), async (req) => {
     const { id } = req.params as { id: string }
     if (!projects.get(id)) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
     const { status } = req.query as { status?: unknown }

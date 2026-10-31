@@ -15,6 +15,7 @@ import {
   type SqliteDatabase,
 } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 
 export interface AgentRouteDeps {
   db: SqliteDatabase
@@ -80,12 +81,16 @@ export function registerAgentRoutes(app: FastifyInstance, deps: AgentRouteDeps):
   })
 
   /** 待确认队列：pending 与 conflict 都要人看（M8-E 的数据源） */
-  app.get('/api/projects/:id/agent-ingests', async (req) => {
-    const { id } = req.params as { id: string }
-    const { limit } = req.query as { limit?: unknown }
-    const items = service.listPending(id, typeof limit === 'number' ? limit : undefined)
-    return { items, total: items.length }
-  })
+  app.get(
+    '/api/projects/:id/agent-ingests',
+    reportRoute('/api/projects/:id/agent-ingests', 'db'),
+    async (req) => {
+      const { id } = req.params as { id: string }
+      const { limit } = req.query as { limit?: unknown }
+      const items = service.listPending(id, typeof limit === 'number' ? limit : undefined)
+      return { items, total: items.length }
+    },
+  )
 
   /**
    * 聚合查询面（M8-D）。**只读**：写面只有上面那一个 POST（FR-3.1）。
@@ -93,13 +98,17 @@ export function registerAgentRoutes(app: FastifyInstance, deps: AgentRouteDeps):
    * `?fields=` 的非法值在这里就拒 —— 不静默忽略（FR-3.3）；
    * 裁剪留痕由服务层负责，本路由不加工。
    */
-  app.get('/api/projects/:id/context', async (req) => {
-    const { id } = req.params as { id: string }
-    const { fields, budget } = req.query as { fields?: unknown; budget?: unknown }
-    const wanted = parseContextFields(typeof fields === 'string' ? fields : undefined)
-    const cap = typeof budget === 'string' ? Number(budget) : undefined
-    return context.build(id, wanted, Number.isFinite(cap) ? cap : undefined)
-  })
+  app.get(
+    '/api/projects/:id/context',
+    reportRoute('/api/projects/:id/context', 'db'),
+    async (req) => {
+      const { id } = req.params as { id: string }
+      const { fields, budget } = req.query as { fields?: unknown; budget?: unknown }
+      const wanted = parseContextFields(typeof fields === 'string' ? fields : undefined)
+      const cap = typeof budget === 'string' ? Number(budget) : undefined
+      return context.build(id, wanted, Number.isFinite(cap) ? cap : undefined)
+    },
+  )
 
   /** 人工裁决：owner 裁⑥「合并交给用户在 Web 裁决」，服务层不给自动策略 */
   app.post('/api/agent/ingests/:id/review', async (req) => {

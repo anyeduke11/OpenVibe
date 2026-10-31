@@ -11,6 +11,7 @@ import {
 } from '@openvibe/shared'
 import { parseImportFiles, PromptsRepo, type ImportFile, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 import { referencedPackNames } from '../lib/refs'
 import { assetEventInput, resolveLedger, type LedgerDeps } from '../lib/ledger'
 
@@ -49,7 +50,7 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
   const prompts = new PromptsRepo(deps.db)
   const ledger = resolveLedger(deps)
 
-  app.get('/api/prompts', async (req) => {
+  app.get('/api/prompts', reportRoute('/api/prompts', 'db'), async (req) => {
     const query = parseOrThrow(PromptQuery, req.query)
     return prompts.list(query)
   })
@@ -62,7 +63,7 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
   })
 
   // 静态段先于 :id 匹配（find-my-way 优先级），导出通道独立
-  app.get('/api/prompts/export', async (req, reply) => {
+  app.get('/api/prompts/export', reportRoute('/api/prompts/export', 'db'), async (req, reply) => {
     const raw = req.query as Record<string, unknown>
     const format = typeof raw['format'] === 'string' ? (raw['format'] as string) : 'json'
     if (format !== 'json' && format !== 'md') {
@@ -92,7 +93,7 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
     })
   })
 
-  app.get('/api/prompts/:id', async (req) => {
+  app.get('/api/prompts/:id', reportRoute('/api/prompts/:id', 'db'), async (req) => {
     const { id } = req.params as { id: string }
     const prompt = prompts.get(id)
     if (!prompt) throw new AppError('NOT_FOUND', `提示词不存在: ${id}`)
@@ -115,11 +116,15 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
     return reply.code(204).send()
   })
 
-  app.get('/api/prompts/:id/versions', async (req) => {
-    const { id } = req.params as { id: string }
-    if (!prompts.get(id)) throw new AppError('NOT_FOUND', `提示词不存在: ${id}`)
-    return prompts.versions(id)
-  })
+  app.get(
+    '/api/prompts/:id/versions',
+    reportRoute('/api/prompts/:id/versions', 'db'),
+    async (req) => {
+      const { id } = req.params as { id: string }
+      if (!prompts.get(id)) throw new AppError('NOT_FOUND', `提示词不存在: ${id}`)
+      return prompts.versions(id)
+    },
+  )
 
   app.post('/api/prompts/:id/versions/:no/restore', async (req) => {
     const { id, no: noRaw } = req.params as { id: string; no: string }

@@ -17,6 +17,7 @@ import {
   type SqliteDatabase,
 } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
+import { reportRoute } from '../lib/route-source'
 import { renderPack, toPreviewOut } from '../lib/pack-assemble'
 import { packExportDir, writeDirectoryExport } from '../lib/pack-export'
 
@@ -55,7 +56,7 @@ export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): v
     return pack
   }
 
-  app.get('/api/packs', async () => {
+  app.get('/api/packs', reportRoute('/api/packs', 'db'), async () => {
     const items = packs.list()
     return { items, total: items.length }
   })
@@ -65,7 +66,9 @@ export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): v
     return reply.code(201).send(packs.create(input))
   })
 
-  app.get('/api/packs/:id', async (req) => needPack((req.params as { id: string }).id))
+  app.get('/api/packs/:id', reportRoute('/api/packs/:id', 'db'), async (req) =>
+    needPack((req.params as { id: string }).id),
+  )
 
   app.patch('/api/packs/:id', async (req) => {
     const { id } = req.params as { id: string }
@@ -91,7 +94,7 @@ export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): v
     return packService.exportPackWithRecord({ packId: id, version, channel })
   })
 
-  app.get('/api/packs/:id/exports', async (req) => {
+  app.get('/api/packs/:id/exports', reportRoute('/api/packs/:id/exports', 'db'), async (req) => {
     const { id } = req.params as { id: string }
     needPack(id)
     const items = packs.exportsOf(id)
@@ -99,26 +102,35 @@ export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): v
   })
 
   /** bundle 下载：内容来自库内 bundle_json，删源资产/删目录都不影响（m6a §7.5） */
-  app.get('/api/packs/:id/exports/:exportId/bundle', async (req, reply) => {
-    const { id, exportId } = req.params as { id: string; exportId: string }
-    const row = packs.getExport(id, exportId)
-    if (!row) throw new AppError('NOT_FOUND', `导出记录不存在: ${exportId}`)
-    return reply
-      .header('content-type', 'application/json; charset=utf-8')
-      .header(
-        'content-disposition',
-        `attachment; filename="${bundleFileName(row.packName, row.version)}"`,
-      )
-      .header('x-pack-fingerprint', row.fingerprint)
-      .send(row.bundleJson)
-  })
+  app.get(
+    '/api/packs/:id/exports/:exportId/bundle',
+    // ⚠️ 库表：bundle 内容存在库内 `bundle_json` 列里 ⇒ 删源资产/删目录都不影响（m6a §7.5）。
+    reportRoute('/api/packs/:id/exports/:exportId/bundle', 'db'),
+    async (req, reply) => {
+      const { id, exportId } = req.params as { id: string; exportId: string }
+      const row = packs.getExport(id, exportId)
+      if (!row) throw new AppError('NOT_FOUND', `导出记录不存在: ${exportId}`)
+      return reply
+        .header('content-type', 'application/json; charset=utf-8')
+        .header(
+          'content-disposition',
+          `attachment; filename="${bundleFileName(row.packName, row.version)}"`,
+        )
+        .header('x-pack-fingerprint', row.fingerprint)
+        .send(row.bundleJson)
+    },
+  )
 
-  app.get('/api/packs/:id/injections', async (req) => {
-    const { id } = req.params as { id: string }
-    needPack(id)
-    const items = packs.listInjections(id)
-    return { items, total: items.length }
-  })
+  app.get(
+    '/api/packs/:id/injections',
+    reportRoute('/api/packs/:id/injections', 'db'),
+    async (req) => {
+      const { id } = req.params as { id: string }
+      needPack(id)
+      const items = packs.listInjections(id)
+      return { items, total: items.length }
+    },
+  )
 
   /** CLI 上报（m6a FR-5.1 / m6b FR-2.5）；pack 已删除时 packId 传 null 仅留痕 */
   app.post('/api/injections', async (req, reply) => {
