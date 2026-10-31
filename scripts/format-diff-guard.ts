@@ -186,6 +186,89 @@ export function renderFormatHints(hints: readonly FormatDiffHint[]): string {
   return lines.join('\n')
 }
 
+/* ------------------------------------------------------------------ 提交级判据 */
+
+/**
+ * 「这一笔像一次全仓重排」的判定（2026-10-31）。
+ *
+ * ## 为什么单文件判据不够
+ *
+ * 单文件判据（占比 > 60% 且纯排版 > 30 行）抓的是「**一个文件**里排版淹没了语义」。
+ * 但本仓原始事故的形态不是那样 —— 那是一次**全仓** `prettier --write`，
+ * 排版改动**摊在几十个文件上**，每个文件里的占比都可能不高（每个文件也就改几行）
+ * ⇒ 单文件判据一句都不提示 ⇒ 闸形同虚设。
+ *
+ * ## 提交级口径
+ *
+ * 两个条件同时满足才提示：
+ * 1. **被排版主导的文件数 ≥ `FORMAT_FILES_THRESHOLD`**（默认 5 个）
+ *    —— 单个文件的占比不必高，但**很多个**文件都被排版主导 ⇒ 这是重排的形态。
+ * 2. **纯排版总行数 ≥ `FORMAT_TOTAL_LINES_THRESHOLD`**（默认 100 行）
+ *    —— 防止「5 个文件各改 1 行空格」被当成重排（那是日常改动）。
+ *
+ * ## 为什么仍然只提示不拦
+ *
+ * 与单文件判据同理由：作者可能就是想一次把某个目录排版做完（那是一次合理提交）。
+ * 拆不拆是他的判断 ⇒ 本闸只把形态摆出来。
+ */
+export const FORMAT_FILES_THRESHOLD = 5
+export const FORMAT_TOTAL_LINES_THRESHOLD = 100
+
+/** 一处「像一次全仓重排」的结论 */
+export interface CommitLevelFormatHint {
+  /** 被排版主导的文件数 */
+  fileCount: number
+  /** 纯排版总行数 */
+  formatLines: number
+  /** 改动总行数 */
+  totalLines: number
+  /** 整体纯排版占比（0–1） */
+  ratio: number
+  /** 被排版主导的文件（按纯排版行数降序） */
+  paths: string[]
+}
+
+/**
+ * 判「这一笔像一次全仓重排」。
+ *
+ * ⚠️ **被排版主导的文件**用的是**单文件口径**（占比 > 60%），
+ *   但**不要求**纯排版行数超阈 —— 提交级看的是「面」，
+ *   单文件的「行数得多」由提交级的「总行数」条件统一兜。
+ */
+export function pickCommitLevelHint(
+  reports: readonly FormatDiffReport[],
+  filesThreshold = FORMAT_FILES_THRESHOLD,
+  totalLinesThreshold = FORMAT_TOTAL_LINES_THRESHOLD,
+): CommitLevelFormatHint | null {
+  const dominant = reports
+    .filter((r) => r.ratio > FORMAT_RATIO_THRESHOLD && r.formatLines > 0)
+    .sort((a, b) => b.formatLines - a.formatLines)
+  if (dominant.length < filesThreshold) return null
+  const formatLines = dominant.reduce((sum, r) => sum + r.formatLines, 0)
+  if (formatLines < totalLinesThreshold) return null
+  const totalLines = reports.reduce((sum, r) => sum + r.totalLines, 0)
+  return {
+    fileCount: dominant.length,
+    formatLines,
+    totalLines,
+    ratio: totalLines === 0 ? 0 : formatLines / totalLines,
+    paths: dominant.map((r) => r.path),
+  }
+}
+
+/** 提交级提示的渲染 */
+export function renderCommitLevelHint(hint: CommitLevelFormatHint): string {
+  const shown = hint.paths.slice(0, 5).join('、')
+  return [
+    `  这一笔像一次**全仓排版重排**：${String(hint.fileCount)} 个文件被排版主导，`,
+    `  纯排版共 ${String(hint.formatLines)} 行 / 全部改动 ${String(hint.totalLines)} 行（${String(Math.round(hint.ratio * 100))}%）。`,
+    `  涉及：${shown}${hint.paths.length > 5 ? ' 等' : ''}`,
+    '  建议：把排版重排单独提交一次（先 git stash 排版 → 提交语义 → 恢复排版），',
+    '        否则 reviewer 要在几十个文件的对齐改动里找你的语义行。',
+    '  （这只是提示，不拦提交；确认这次就是要一次做完，那就忽略它。）',
+  ].join('\n')
+}
+
 /* ------------------------------------------------------------------ CLI */
 
 /**
@@ -198,9 +281,17 @@ function main(): void {
   const repoRoot = process.cwd()
   const reports = collectFormatDiffReports(repoRoot)
   const hints = pickFormatHints(reports)
-  if (hints.length === 0) return
+  const commitHint = pickCommitLevelHint(reports)
+  if (hints.length === 0 && commitHint === null) return
   console.log('⚠️ 这一笔里排版改动占比偏高（提示，不拦提交）：')
-  console.log(renderFormatHints(hints))
+  if (hints.length > 0) console.log(renderFormatHints(hints))
+  // ⚠️ **提交级提示与单文件提示是两段**：单文件管「一个文件里排版淹了语义」，
+  //   提交级管「很多个文件一起被排版主导」（全仓重排的形态）。
+  //   两者可能同时命中（一次重排里既有单文件重排也有多文件摊开）⇒ 都打印。
+  if (commitHint !== null) {
+    console.log('')
+    console.log(renderCommitLevelHint(commitHint))
+  }
 }
 
 if (process.argv[1]?.endsWith('format-diff-guard.ts') === true) {

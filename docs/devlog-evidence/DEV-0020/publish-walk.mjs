@@ -21,10 +21,15 @@ import {
   writeFileSync,
   cpSync,
 } from 'node:fs'
+import { assertIsolatedHome } from '../../../scripts/isolated-home.mjs'
 import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 
+// 真机实测必须跑在隔离的数据目录里（2026-10-31）：不隔离 ⇒ 拒绝执行。
+// ⚠️ 断言的是**本进程**的环境变量：脚本把沙箱 home 传给子进程，
+//   但自身进程若还指着真实 home ⇒ 说明这次跑法没隔离 ⇒ 停在这里。
+assertIsolatedHome(process.env.OPENVIBE_HOME)
 const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO = resolve(HERE, '..', '..', '..')
 const RUN = process.pid
@@ -32,6 +37,11 @@ const ROOT = join(tmpdir(), `ov-pub-walk-${String(RUN)}`)
 const STAGE = join(REPO, 'apps', 'cli', 'pkg')
 const CONSUMER = join(ROOT, 'consumer')
 const HOME = join(ROOT, 'home')
+
+// 真机实测必须跑在隔离的数据目录里（2026-10-31）：不隔离 ⇒ 拒绝执行。
+// ⚠️ 断言的是**这个脚本实际用的沙箱 home**（它被当作 OPENVIBE_HOME 传给子进程）——
+//   若哪天有人把它改成真实 home，这行会当场拦住，而不是等写库之后才发现。
+assertIsolatedHome(HOME, '脚本沙箱 home')
 const DEMO = join(ROOT, 'demo-project')
 const WALK_BOOT = Date.now()
 
@@ -246,6 +256,8 @@ if (npmFullOk) {
 // 这一步证的才是「普通用户 npm/npx 装完能不能起来」：建库、跑迁移、托管 Web、健康检查全走一遍。
 if (npmFullOk) {
   const NPM_HOME = join(ROOT, 'home-npm')
+  // 第二个沙箱 home（npm 装出来的那一份）：同样必须隔离（它也被当作 OPENVIBE_HOME 传给子进程）。
+  assertIsolatedHome(NPM_HOME, 'npm 沙箱 home')
   const FULL_BIN = join(FULL_DIR, 'node_modules/.bin/openvibe')
   mkdirSync(NPM_HOME, { recursive: true })
   const npmServe = spawn(FULL_BIN, ['--json', 'serve', '--port', '0'], {

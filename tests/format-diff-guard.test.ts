@@ -7,7 +7,9 @@ import {
   FORMAT_LINES_THRESHOLD,
   FORMAT_RATIO_THRESHOLD,
   collectFormatDiffReports,
+  pickCommitLevelHint,
   pickFormatHints,
+  renderCommitLevelHint,
   renderFormatHints,
 } from '../scripts/format-diff-guard'
 
@@ -204,5 +206,103 @@ describe('排版差异占比 · 阈值与文案', () => {
     expect(pickFormatHints(reports)).toEqual([])
     // 阈值调低 ⇒ 提示
     expect(pickFormatHints(reports, 0.5, 30)).toHaveLength(1)
+  })
+})
+
+/**
+ * 提交级判据（2026-10-31）：识别「这一笔像一次全仓重排」。
+ *
+ * ## 它钉的是哪一次事故
+ *
+ * 本仓原始事故是**一次全仓** `prettier --write`，排版改动摊在几十个文件上，
+ * 每个文件里的占比都不高 ⇒ **单文件判据一句都不提示** ⇒ 闸形同虚设。
+ *
+ * ⇒ 提交级判据看的是「**面**」：很多个文件都被排版主导 ⇒ 这是重排的形态。
+ */
+describe('排版差异占比 · 提交级判据', () => {
+  /** 造一份「每个文件都被排版主导」的报告 */
+  const dominantReports = (files: number, formatLinesEach: number) =>
+    Array.from({ length: files }, (_, i) => ({
+      path: `file-${String(i)}.md`,
+      totalLines: formatLinesEach,
+      semanticLines: 0,
+      formatLines: formatLinesEach,
+      ratio: 1,
+    }))
+
+  it('⚠️ 多文件摊开的排版改动 ⇒ 判为「像一次全仓重排」（单文件判据在此不响）', () => {
+    // 8 个文件各改 25 行纯排版：单文件口径（> 30 行）不响，提交级要响
+    const reports = dominantReports(8, 25)
+    expect(pickFormatHints(reports)).toEqual([])
+    const hint = pickCommitLevelHint(reports)
+    expect(hint).not.toBeNull()
+    expect(hint!.fileCount).toBe(8)
+    expect(hint!.formatLines).toBe(200)
+    expect(hint!.paths).toHaveLength(8)
+  })
+
+  it('文件数够但总行数不够 ⇒ 不提示（5 个文件各改 1 行是日常改动）', () => {
+    const reports = dominantReports(6, 3)
+    expect(pickCommitLevelHint(reports)).toBeNull()
+  })
+
+  it('总行数够但文件数不够 ⇒ 不提示（一个大文件的重排归单文件判据管）', () => {
+    const reports = dominantReports(2, 80)
+    expect(pickCommitLevelHint(reports)).toBeNull()
+    // 同一份数据，单文件判据要响 ⇒ 两道闸各管一段，不重叠
+    expect(pickFormatHints(reports)).toHaveLength(2)
+  })
+
+  it('纯语义改动 ⇒ 两道闸都不响', () => {
+    const reports = Array.from({ length: 20 }, (_, i) => ({
+      path: `file-${String(i)}.md`,
+      totalLines: 100,
+      semanticLines: 100,
+      formatLines: 0,
+      ratio: 0,
+    }))
+    expect(pickFormatHints(reports)).toEqual([])
+    expect(pickCommitLevelHint(reports)).toBeNull()
+  })
+
+  it('阈值可调（文件数与总行数两个阈值都是参数）', () => {
+    const reports = dominantReports(6, 20)
+    // 默认：6 个文件（≥ 5）但总行数 120（≥ 100）⇒ 提示
+    expect(pickCommitLevelHint(reports)).not.toBeNull()
+    // 总行数阈值调高 ⇒ 不提示
+    expect(pickCommitLevelHint(reports, 5, 500)).toBeNull()
+    // 文件数阈值调高 ⇒ 不提示
+    expect(pickCommitLevelHint(reports, 10, 100)).toBeNull()
+  })
+
+  it('提示文案带文件数、总行数与「不拦提交」', () => {
+    const hint = pickCommitLevelHint(dominantReports(8, 25))
+    const text = renderCommitLevelHint(hint!)
+    expect(text).toContain('8')
+    expect(text).toContain('200')
+    expect(text).toContain('全仓')
+    expect(text).toContain('不拦提交')
+  })
+
+  it('真仓库里造「多文件摊开的排版改动」⇒ 提交级判据能逮到', () => {
+    // 纯函数能算出来还不够 ⇒ 口径要落在 git 的真实 numstat 上。
+    const dir = makeRepo()
+    const files = 8
+    for (let i = 0; i < files; i++) {
+      const lines = Array.from({ length: 30 }, (_, j) => `行${String(j)}`).join('\n')
+      writeFileSync(join(dir, `f${String(i)}.md`), `${lines}\n`)
+    }
+    commitAll(dir, '初始')
+    for (let i = 0; i < files; i++) {
+      const lines = Array.from({ length: 30 }, (_, j) => `行${String(j)}`).join('\n')
+      writeFileSync(join(dir, `f${String(i)}.md`), `${lines.replace(/\n/g, '  \n')}\n`)
+    }
+    execFileSync('git', ['add', '-A'], { cwd: dir })
+
+    const reports = collectFormatDiffReports(dir)
+    expect(reports.length).toBe(files)
+    const hint = pickCommitLevelHint(reports)
+    expect(hint).not.toBeNull()
+    expect(hint!.fileCount).toBe(files)
   })
 })

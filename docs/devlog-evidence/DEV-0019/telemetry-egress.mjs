@@ -13,6 +13,7 @@
 
 import { spawn } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { assertIsolatedHome } from '../../../scripts/isolated-home.mjs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -43,6 +44,11 @@ process.on('exit', () => {
 })
 
 const HOME = mkdtempSync(join(tmpdir(), 'ov-tel-egress-home-'))
+
+// 真机实测必须跑在隔离的数据目录里（2026-10-31）：不隔离 ⇒ 拒绝执行。
+// ⚠️ 断言的是**这个脚本实际用的沙箱 home**（它被当作 OPENVIBE_HOME 传给子进程）——
+//   若哪天有人把它改成真实 home，这行会当场拦住，而不是等写库之后才发现。
+assertIsolatedHome(HOME, '脚本沙箱 home')
 let adapter = null
 let serve = null
 

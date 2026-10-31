@@ -8,6 +8,7 @@
 // 附带负向对照 N1：证明「合成 click 拿不到剪贴板」不是本探针的运气。
 import { spawn, spawnSync } from 'node:child_process'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { assertIsolatedHome } from '../../../scripts/isolated-home.mjs'
 import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -16,6 +17,11 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO = resolve(HERE, '..', '..', '..')
 const ROOT = join(tmpdir(), `ov-s2-${String(process.pid)}`)
 const HOME = join(ROOT, 'home')
+
+// 真机实测必须跑在隔离的数据目录里（2026-10-31）：不隔离 ⇒ 拒绝执行。
+// ⚠️ 断言的是**这个脚本实际用的沙箱 home**（它被当作 OPENVIBE_HOME 传给子进程）——
+//   若哪天有人把它改成真实 home，这行会当场拦住，而不是等写库之后才发现。
+assertIsolatedHome(HOME, '脚本沙箱 home')
 const CHROME =
   process.env.CHROME_BIN ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 const CDP_PORT = Number(process.env.CDP_PORT ?? '9345')

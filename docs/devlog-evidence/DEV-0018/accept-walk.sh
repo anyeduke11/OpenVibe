@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # T7f 真机验收走查：m6b §7 八条逐项 + §6 安全样本（悬空符号链接 / 512KB 规模防线 / bundle 篡改）
 # 全程真 CLI 子进程 + 真服务端；日志 /tmp/ov-t7f/accept.log，机器可读 JSON 单独落文件供断言
+
 set -uo pipefail
 REPO=/Users/duke/Documents/OpenVibe
 ROOT=/tmp/ov-t7f
@@ -8,6 +9,12 @@ export OPENVIBE_HOME=$ROOT/home
 CLI="$REPO/apps/cli/src/index.ts"
 LOG=$ROOT/accept.log
 : >"$LOG"
+
+# 真机实测必须跑在隔离的数据目录里（2026-10-31）：不隔离 ⇒ 拒绝执行。
+# ⚠️ 断言的是**这个脚本实际 export 的沙箱 home**（它被传给子进程）——
+#   若哪天有人把它改成真实 home，这行会当场拦住，而不是等写库之后才发现。
+#   守卫是 node 模块 ⇒ 用 node -e 调它；退出码非 0 ⇒ 本脚本停在这里。
+node -e "import('../../../scripts/isolated-home.mjs').then(m => m.assertIsolatedHome(process.env.OPENVIBE_HOME, '脚本沙箱 home'))" || exit 1
 
 step() { printf '\n=========== %s ===========\n' "$1" | tee -a "$LOG"; }
 say() { printf '%s\n' "$1" | tee -a "$LOG"; }

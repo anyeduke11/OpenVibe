@@ -200,6 +200,7 @@ openvibe/
 ├── scripts/golden-update.ts（pnpm golden:update 入口：重新生成 tests/golden/** 契约快照）
 ├── scripts/failure-evidence.sh（pnpm evidence 入口：固化测试失败的现场——git 状态 + vitest 全量输出 + 两套 tsc 输出；用法 `pnpm evidence [<测试文件>] [-o 目录] [--dev DEV-NNNN]`，全绿自清、失败自动归档到 `docs/devlog-evidence/`（`--dev` 指定时归档到 `DEV-NNNN/evidence/`，`DEV-NNNN` 需为 DEV-+四位数字否则拒绝，`evidence/` 已存在时归档到 `evidence-<时间戳>/` 不覆盖且文件误建会明确报错；`-o` 指定目录时不归档，与 `--dev` 同传时打印冲突提示）；**报障约定：跑出失败后把脚本打印的证据目录路径原样贴出**）
 ├── scripts/dev-all.mjs（pnpm dev / dev:all 入口：一条命令同时起 web 与 server，Ctrl-C 会清干净孙进程）
+├── scripts/dev-iso.mjs（pnpm dev:iso 入口：起一套**隔离**实例——自动生成临时数据目录与两个空闲端口，不碰真实 ~/.openvibe）
 ├── scripts/collect-m9-sources.ts（pnpm m9:collect 入口：M9 素材采集，P1.9 收口）
 ├── scripts/collect-m9-github-sources.ts（pnpm m9:collect:github 入口：M9 另三源采集）
 ├── scripts/m9-content-fingerprint.ts（pnpm m9:fingerprint 入口：内容指纹，验「内容未变」）
@@ -215,6 +216,8 @@ openvibe/
 ├── scripts/m9-grade-guard.ts（pnpm m9:grade-guard 入口：「专家级断言」卫生守卫，命中断言式文案即非零退出）
 ├── scripts/barrel-audit.ts（pnpm barrel:audit 入口：主出口零消费符号审计，只审计不改写）
 ├── scripts/barrel-snapshot.ts（pnpm barrel:snapshot 入口：主出口面快照落档 tests/core-main-exports.txt）
+├── scripts/report-endpoints-snapshot.ts（pnpm report:snapshot 入口：只读端点的数据来源自述快照落档 packages/shared/src/report-endpoints.ts，由 tests/report-endpoint-cache.test.ts 比对）
+├── scripts/isolated-home.mjs（真机实测隔离守卫：`assertIsolatedHome(home)` 判该 home 是否指向真实 ~/.openvibe，是则拒绝执行——走查脚本共用这一份）
 ├── scripts/migrate-drill.ts（pnpm migrate:drill 入口：0019→0022 升级路径真库演练对账，行数/内容指纹/seed_hash 不回填三判据）
 ├── scripts/v023-preflight.ts（pnpm v023:preflight 入口：v0.2.3 提交清单对账——清单 vs 工作树差异 + 存在性，退出码判净）
 ├── scripts/vibe-retro-ingest.ts（pnpm vibe:retro 入口：复盘报告按节拆条回流 agent 桥 pending——docs/vibe-retro.md 协议）

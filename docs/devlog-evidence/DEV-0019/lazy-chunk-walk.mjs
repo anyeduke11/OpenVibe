@@ -8,6 +8,7 @@
 // 再用真实网络事件断言「首屏没下它、用到它的那一步才下」。
 import { spawn } from 'node:child_process'
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { assertIsolatedHome } from '../../../scripts/isolated-home.mjs'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -17,6 +18,11 @@ const REPO = join(HERE, '..', '..', '..')
 const DIST = join(REPO, 'apps/web/dist')
 const ROOT = join(tmpdir(), `ov-lazy-walk-${String(process.pid)}`)
 const HOME = join(ROOT, 'home')
+
+// 真机实测必须跑在隔离的数据目录里（2026-10-31）：不隔离 ⇒ 拒绝执行。
+// ⚠️ 断言的是**这个脚本实际用的沙箱 home**（它被当作 OPENVIBE_HOME 传给子进程）——
+//   若哪天有人把它改成真实 home，这行会当场拦住，而不是等写库之后才发现。
+assertIsolatedHome(HOME, '脚本沙箱 home')
 const PROJ = join(ROOT, 'project')
 const CHROME =
   process.env.CHROME_BIN ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
