@@ -25,6 +25,7 @@
  *   （那会让「汇总脚本本身坏了」被读成「测试全绿」）。
  */
 import { spawn } from 'node:child_process'
+import { DEFAULT_WORKERS, decideWorkers, readMemoryPressure } from './machine-preflight'
 
 const ROOT = process.cwd()
 
@@ -62,7 +63,42 @@ export function parseSummary(output: string): {
   }
 }
 
-const child = spawn('npx', ['vitest', 'run', ...process.argv.slice(2)], {
+/**
+ * 跑 vitest 前的**机器适配**：扛不住就把并发降下来。
+ *
+ * ⚠️ **为什么要在这里做**（2026-11-02 实测）：全量跑先后两轮超时红，
+ *   而两轮机器负载完全不同（509 与 73）⇒ 负载不是原因，**换页**才是
+ *   （`vm.swapusage` used 15.9/17.4 GB、可用内存仅 117 MB ⇒ 耗时操作放大 10 倍）。
+ *   ⇒ 跑之前读一次内存压力 ⇒ 扛不住就降并发 ⇒ 少假红。
+ *
+ * ⚠️ **用户显式给了 `--maxWorkers` 就听用户的**（显式意图 > 自动判断）。
+ */
+function preflightWorkers(userArgs: string[]): number | undefined {
+  const explicit = userArgs.some(
+    (a) =>
+      a === '--maxWorkers' ||
+      a.startsWith('--maxWorkers=') ||
+      a === '--max-workers' ||
+      a.startsWith('--max-workers='),
+  )
+  if (explicit) return undefined
+
+  // 默认并发取自 `vitest.config.ts`（本仓是 2）⇒ **单源在配置文件**，这里只读不改。
+  const decision = decideWorkers(readMemoryPressure(), DEFAULT_WORKERS)
+  console.log(`[preflight] ${decision.reason}`)
+  if (!decision.degraded) return undefined
+  console.log(
+    '[preflight] ⚠️ 这是**环境问题**不是代码问题：机器内存吃紧时，超时闸会误判成「功能回归」。',
+  )
+  return decision.workers
+}
+
+const userArgs = process.argv.slice(2)
+const preflight = preflightWorkers(userArgs)
+const vitestArgs = ['vitest', 'run', ...userArgs]
+if (preflight !== undefined) vitestArgs.push(`--maxWorkers=${String(preflight)}`)
+
+const child = spawn('npx', vitestArgs, {
   cwd: ROOT,
   stdio: ['inherit', 'pipe', 'pipe'],
   shell: false,

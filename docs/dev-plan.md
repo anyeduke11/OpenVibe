@@ -221,6 +221,8 @@ openvibe/
 ├── scripts/iso-ports.mjs（隔离实例的端口分配与冲突重试：`pickPortPair()` 探一组空闲端口，`detectPortConflict()` 认端口占用信号，`withPortRetry()` 撞端口就换一组重试（最多 2 次）——由 tests/iso-ports-guard.test.ts 判据）
 ├── scripts/test-summary.ts（pnpm test 入口：跑 vitest 并给出 passed / failed / skipped / todo 四数汇总——todo 单列不计入 passed；由 tests/test-summary.test.ts 判据）
 ├── scripts/sweep-stale-temps.ts（pnpm temps:sweep 入口：清掉超过保鲜期（默认 24 小时）的测试临时目录——兜底 SIGKILL 那类「exit 处理器救不了」的残留）
+├── scripts/machine-preflight.ts（pnpm preflight 入口：**跑测试前读机器内存压力**——可用内存 < 1 GB 或 swap 使用率 > 80% ⇒ 判定「扛不住」⇒ 把并发降到 1 并打印带具体数字的说明；判定逻辑是纯函数 decideWorkers()，由 tests/machine-preflight.test.ts 判据；**已作为 `pnpm test` 的前置**（scripts/test-summary.ts 调用它，扛不住时给 vitest 传 --maxWorkers=1）⇒ 假红时能立刻分辨「环境问题 vs 代码问题」）
+├── scripts/check-orphan-workers.ts（pnpm orphans:check 入口：查**孤儿 worker**——父进程已死（PPID=1，被 launchd 收养）且是 worker 候选（命令含 vitest 或同时含 tsx 与 scripts/）且**工作目录在本仓内**（用 lsof 取 cwd，避免误伤同机别人的 vitest）⇒ 报数；超过 5 个才提醒清理；`pnpm orphans:clean` 才动手（逐个确认 cwd 后发 SIGTERM，默认不杀）；由 tests/check-orphan-workers.test.ts 判据）
 ├── scripts/migrate-drill.ts（pnpm migrate:drill 入口：0019→0022 升级路径真库演练对账，行数/内容指纹/seed_hash 不回填三判据）
 ├── scripts/v023-preflight.ts（pnpm v023:preflight 入口：v0.2.3 提交清单对账——清单 vs 工作树差异 + 存在性，退出码判净）
 ├── scripts/vibe-retro-ingest.ts（pnpm vibe:retro 入口：复盘报告按节拆条回流 agent 桥 pending——docs/vibe-retro.md 协议）
@@ -2000,3 +2002,37 @@ grep -n '1[-]7' docs/dev-plan.md                 # → 0，v0.2.1 未侵占 RF �
 ### 18.5 v0.2.4 / v0.2.5 的计划指针
 
 本文是「执行计划」主入口，但 v0.2.4（R0–R8）与 v0.2.5（S0–S8）两轮**尚未并入本文的迭代节**，其计划分别落在各自 PRD 内：[PRD-v0.2.4-v0.9-20261029.md](./PRD-v0.2.4-v0.9-20261029.md) 第 6 章（批次表）、[PRD-v0.2.5-v0.9-20261029.md](./PRD-v0.2.5-v0.9-20261029.md) 第 15 章（开发计划）。本节只做指路，不复制两轮的批次内容（数字单源规矩同本文头部）。owner 2026-10-30 裁定：v0.2.5 计划写入其 PRD 第 15 章，不另立计划文件。
+
+---
+
+## §19 测试环境与并发口径（2026-11-02 开档 · 承接 DEV-0158 性能事故）
+
+### 19.1 这次事故暴露的是什么
+
+2026-11-02 全量测试先后两轮超时红（18 文件/50 例、13 文件/28 例）。取证结论：
+
+| 维度               | 实测值                            | 结论                                        |
+| ------------------ | --------------------------------- | ------------------------------------------- |
+| 机器负载           | 一轮 509、一轮 73（10 核）        | **不是原因**（两次 `collect` 耗时几乎相同） |
+| `collect` 阶段耗时 | 1292s / 1317s（正常约 40s）       | **被放大了约 30 倍**                        |
+| swap               | total 17.4 GB / used 15.9 GB      | **根因**：机器在疯狂换页                    |
+| 可用内存           | `Pages free` 7494 页 ≈ **117 MB** | 内存耗尽 ⇒ 一切耗时操作被放大               |
+
+⇒ 真正的杠杆是**内存**，不是核数 ⇒ 由此撤掉了一条旧口径：**「用数字而非百分比是为了跨机器可复算」是错的**（数字只反映核数，不反映内存）。`vitest.config.ts` 的 `maxWorkers: 2` 现在是**本机实测的保守值**，不是普适最优。
+
+### 19.2 已落地的三层
+
+1. **跑前自检**：`scripts/machine-preflight.ts`（`pnpm preflight`）读内存压力 ⇒ 扛不住就建议降并发并打印**带具体数字**的说明；已作为 `pnpm test` 的前置（`scripts/test-summary.ts` 调用它，扛不住时给 vitest 传 `--maxWorkers=1`；用户显式给了 `--maxWorkers` 则听用户的）。
+2. **孤儿体检**：`scripts/check-orphan-workers.ts`（`pnpm orphans:check`）查父进程已死（`PPID=1`）且工作目录在本仓内的 worker ⇒ 报数；超过 5 个才提醒；`pnpm orphans:clean` 才动手（逐个确认 cwd 后发 SIGTERM）。
+3. **临时目录自愈**：`scripts/sweep-stale-temps.ts`（`pnpm temps:sweep`）按年龄清残留（见 [DEV-0158](../DEV_LOG.md)）。
+
+### 19.3 未闭合的待办（本节即登记处）
+
+| #   | 待办                                                            | 为什么还没做                                                                                                                    | 怎么验收                                                                                                    |
+| --- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | **`maxWorkers: 2` 未在 CI 上验证过**                            | CI runner 的核数与内存都不同于本机 ⇒ 这个数字在本机是「实测保守值」，在 CI 上只是「照抄」                                       | CI 上跑一轮全量 ⇒ 记下耗时与 `collect` 占比；若 CI 明显更宽裕，再评估是否调高（**调整需 owner 明确同意**）  |
+| 2   | **按「可用内存 ÷ 每 worker 估算占用」推导并发**                 | 现在是「扛不住就降到 1」的二值判断 ⇒ 机器只是**略微**紧张时也一律降到 1 ⇒ 慢得没必要                                            | 判定改成**分级**（如内存紧张度分三档 ⇒ 并发 2/1）⇒ 判据测试补边界值；且**分级表要有实测依据**，不能拍脑袋   |
+| 3   | **`scripts/check-orphan-workers.ts` 的「本仓」判定依赖 `lsof`** | `lsof` 是 macOS/Linux 通用工具但**非 POSIX 标准** ⇒ Windows 上没有 ⇒ 判据在 win32 runner 上会拿不到 cwd（表现为「孤儿数报 0」） | win32 runner 上验证一次；取不到 cwd 时**如实说「无法判定」**，不静默报 0（这条已实现，待真机验证）          |
+| 4   | **孤儿 worker 的「产生原因」尚未定位**                          | 本闸只**发现与清理**，没解释「为什么父进程死了 worker 还活着」⇒ 治标不治本                                                      | 用 `sample`/调用栈确认 vitest worker 的存活条件；若是 vitest 侧问题 ⇒ 升级上游或改跑法（如 `--pool=forks`） |
+
+⚠️ **口径纪律**：本表的「怎么验收」列是**判据的来源** ⇒ 实现时直接把它翻成 `tests/` 里的用例，**不另写一套验收**。
