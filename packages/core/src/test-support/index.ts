@@ -30,3 +30,4 @@ export {
   type ForbiddenMechanism,
   type ForbiddenRow,
 } from './forbidden-scan'
+export { cleanupTempDir, tempDir, trackedTempDirCount } from './temp-dir'

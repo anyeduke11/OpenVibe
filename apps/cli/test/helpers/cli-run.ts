@@ -1,8 +1,7 @@
 import { spawn } from 'node:child_process'
-import { mkdtempSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * 真 CLI 子进程（`--json` 契约 / 退出码那几支的载体）。
@@ -29,8 +28,15 @@ export interface CliRunResult {
   stderr: string
 }
 
+/**
+ * CLI 子进程用的临时 home（不让子进程读写真实 `~/.openvibe/config.json`）。
+ *
+ * ⚠️ **2026-11-01 改为走 `tempDir()`**：原写法直接 `mkdtempSync` 且**从不清理**
+ *   ⇒ 每次 `runCli` 都在磁盘上留一个目录（2026-10-31 实测积了数百个）。
+ *   ⇒ 现在由 `tempDir()` 登记，**进程退出时兜底清理**。
+ */
 export function tempHome(): string {
-  return mkdtempSync(join(tmpdir(), 'ov-cli-home-'))
+  return tempDir('ov-cli-home-')
 }
 
 export async function runCli(args: string[], options: CliRunOptions = {}): Promise<CliRunResult> {

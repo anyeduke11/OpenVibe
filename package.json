@@ -16,6 +16,7 @@
     "build": "pnpm -r --if-present build",
     "test": "tsx scripts/test-summary.ts",
     "test:watch": "vitest",
+    "temps:sweep": "tsx scripts/sweep-stale-temps.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

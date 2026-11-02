@@ -140,6 +140,71 @@ function testCallBodies(src: string): string[] {
 }
 
 /**
+ * 逐行算**花括号深度**（跳过字符串与注释）。
+ *
+ * ## 为什么用深度而不是缩进
+ *
+ * 缩进是 prettier 的**渲染结果**，不是语义 ⇒ 判据依赖它，等于把闸的正确性
+ * 挂在「所有人都守排版纪律」这个约定上。绕过 prettier 写测试（或改 prettier 配置）
+ * ⇒ 缩进基准失准 ⇒ 表现为误报或漏报。
+ *
+ * 花括号深度是**语法事实** ⇒ 与格式化无关。
+ *
+ * @param lines 源码行
+ * @returns 每行的深度（该行**开始前**已打开的花括号数）
+ */
+function braceDepths(lines: string[]): number[] {
+  const depths: number[] = []
+  let depth = 0
+  let quote: string | null = null
+  let inLineComment = false
+  let inBlockComment = false
+  for (const line of lines) {
+    depths.push(depth)
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i] ?? ''
+      const n = line[i + 1] ?? ''
+      if (inLineComment) {
+        if (c === '\n') inLineComment = false
+        continue
+      }
+      if (inBlockComment) {
+        if (c === '*' && n === '/') {
+          inBlockComment = false
+          i += 1
+        }
+        continue
+      }
+      if (quote !== null) {
+        if (c === '\\') {
+          i += 1
+          continue
+        }
+        if (c === quote) quote = null
+        continue
+      }
+      if (c === '/' && n === '/') {
+        inLineComment = true
+        i += 1
+        continue
+      }
+      if (c === '/' && n === '*') {
+        inBlockComment = true
+        i += 1
+        continue
+      }
+      if (c === "'" || c === '"' || c === '`') {
+        quote = c
+        continue
+      }
+      if (c === '{') depth += 1
+      else if (c === '}') depth -= 1
+    }
+  }
+  return depths
+}
+
+/**
  * 裸早退的形态：`if (…) return`（单行或花括号块），且该行无 `// gate: skip` 标记。
  *
  * ⚠️ **必须排除「业务逻辑早退」**：测试体里大量 `if (…) return` 是**正常业务代码**
@@ -149,25 +214,26 @@ function testCallBodies(src: string): string[] {
  * ⇒ 判据用**两条正交特征**同时成立才算门控：
  *   1. **void 早退**：`return` 后面**没有值**（`return new Response(…)` / `return false`
  *      是业务返回值，调用方要用它，不是「什么都不做就结束」）。
- *   2. **不在嵌套函数里**：用**缩进**判定 —— 早退行的缩进必须与「用例体的基准缩进」
- *      相同（本仓测试都过 prettier，缩进可靠）；业务早退都在嵌套回调里 ⇒ 缩进更深。
+ *   2. **不在嵌套函数里**：用**花括号深度**判定 —— 早退行的深度必须等于
+ *      「用例体第一层」的深度；业务早退都在嵌套回调里 ⇒ 深度更深。
+ *      ⚠️ **不用缩进**：缩进是 prettier 的渲染结果，不是语法事实。
  *
  * ⚠️ **不能用「早退后还有没有 expect」来区分**：真实的环境门控（无 Go 工具链就早退）
  *   早退之后**照样有断言**（断言在「有 Go」的分支里）⇒ 用那条判据会把真门控放过。
  */
 function hasBareEarlyReturn(body: string): boolean {
   const lines = body.split('\n')
-  // 基准缩进：**函数体第一层**的缩进。
-  // ⚠️ 不是「全段最小缩进」：抽出的 body 首行是 `{`（缩进 0）⇒ 用它当基准会把
-  //   「函数体第一层的语句」全部判成「嵌套」⇒ 真门控被放过。
-  // ⇒ 基准 = 首行之后**第一行非空语句**的缩进（那才是函数体第一层）。
-  let baseIndent: number | null = null
-  for (const l of lines.slice(1)) {
-    if (l.trim() === '') continue
-    baseIndent = l.length - l.trimStart().length
+  const depths = braceDepths(lines)
+  // 基准深度 = 函数体第一层。
+  // ⚠️ 抽出的 body 首行是 `{` ⇒ 它的深度是 0，而**函数体内部的语句**深度是 1。
+  // ⇒ 基准 = 首行之后**第一行非空语句**的深度。
+  let baseDepth: number | null = null
+  for (let i = 1; i < lines.length; i++) {
+    if ((lines[i] ?? '').trim() === '') continue
+    baseDepth = depths[i] ?? 0
     break
   }
-  if (baseIndent === null) return false
+  if (baseDepth === null) return false
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? ''
     if (!/\bif\s*\(/.test(line)) continue
@@ -178,9 +244,8 @@ function hasBareEarlyReturn(body: string): boolean {
     const retSrc = sameLine ? line.slice(line.indexOf(')') + 1) : nextLine
     // 特征 1：void 早退
     if (/\breturn\s+(?!$|;|\/\/)/.test(retSrc)) continue
-    // 特征 2：不在嵌套函数里（缩进与函数体第一层相同）
-    const indent = line.length - line.trimStart().length
-    if (indent !== baseIndent) continue
+    // 特征 2：不在嵌套函数里（深度与函数体第一层相同）
+    if ((depths[i] ?? 0) !== baseDepth) continue
     // 标记豁免：本行或下一行有 `// gate: skip`
     if (line.includes('// gate: skip') || nextLine.includes('// gate: skip')) continue
     return true
@@ -191,35 +256,37 @@ function hasBareEarlyReturn(body: string): boolean {
 /**
  * 外层条件分支包住 `it(` / `describe(` 的形态。
  *
- * ⚠️ **判据靠「缩进关系」而非「后面几行内有没有 it(」**：
- *   `if (…) {` 之后、**缩进比 if 更深**的那一层，若出现 `it(` / `describe(`
+ * ⚠️ **判据靠「花括号深度关系」而非「后面几行内有没有 it(」**：
+ *   `if (…) {` 之后、**深度比 if 更深**的那一层，若出现 `it(` / `describe(`
  *   ⇒ 它被条件包住了（整块用例被吞，报告里连 skipped 都没有）。
- *   若 `it(` 与 `if` **同缩进** ⇒ 那是并列语句，不是条件体（常见于格式化后的样例代码）。
+ *   若 `it(` 与 `if` **同深度** ⇒ 那是并列语句，不是条件体。
  *
+ * ⚠️ **不用缩进**（同 `hasBareEarlyReturn`）：缩进是 prettier 的渲染结果，不是语法事实。
  * ⚠️ 粗判据（只要后面 12 行内有 `it(`）会把「测试体内有个 if」误判成「条件包裹」，
  *   那会让元测试变成噪音闸（而噪音的闸，人只会绕过它）。
  */
 function hasConditionalWrapper(src: string): boolean {
   const lines = src.split('\n')
+  const depths = braceDepths(lines)
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? ''
     if (!/\bif\s*\(/.test(line)) continue
     // 必须是「if (…) {」形态（单行带花括号），而不是 `if (…) xxx` 或裸 `if (`
     if (!/\{\s*$/.test(line)) continue
-    const indent = line.length - line.trimStart().length
-    // 从下一行往后找：缩进**更深** ⇒ 可能是 if 的直接体
+    const ifDepth = depths[i] ?? 0
+    // 从下一行往后找：深度**更深** ⇒ 在 if 的直接体里
     for (let j = i + 1; j < Math.min(i + 12, lines.length); j++) {
       const l = lines[j] ?? ''
       if (l.trim() === '') continue
-      const lIndent = l.length - l.trimStart().length
-      if (lIndent < indent) break
-      if (lIndent === indent) {
-        // 同缩进 ⇒ 不是 if 的直接体（要么并列，要么 if 体已闭合）
+      const lDepth = depths[j] ?? 0
+      if (lDepth < ifDepth) break
+      if (lDepth === ifDepth) {
+        // 同深度 ⇒ 不是 if 的直接体（要么并列，要么 if 体已闭合）
         // 但仍要看它是否**自身**是 if（嵌套）—— 保守起见继续往下找更深的一层
         continue
       }
       // 更深 ⇒ 在 if 的直接体里
-      if (/\b(?:it|describe)(?:\.\w+)?\s*\(/.test(l)) return true
+      if (/\b(?:it|describe)(?:\.\w+)*\s*\(/.test(l)) return true
       break
     }
   }
@@ -262,7 +329,7 @@ describe('测试门控 · 早退不许计为通过（R0 · F13 / X3）', () => {
 
   it('判据能红：裸早退形态会被逮到', () => {
     // ⚠️ 样例形态与**真实调用路径一致**：喂的是「抽出的函数体」（首行是 `{`），
-    //   否则基准缩进算的是 `it(` 那行 ⇒ 判据与实际用法不同形。
+    //   否则基准深度算的是 `it(` 那行 ⇒ 判据与实际用法不同形。
     const body = testCallBodies(`
       it('没有 Go 就早退', async () => {
         if (!hasGo) return
@@ -304,6 +371,36 @@ describe('测试门控 · 早退不许计为通过（R0 · F13 / X3）', () => {
       })
     `
     expect(hasBareEarlyReturn(fake)).toBe(false)
+  })
+
+  it('⚠️ 不 prettier 排版也认得出真门控（判据不依赖缩进）', () => {
+    // ⚠️ **这条是「判据不依赖 prettier」的验收**：下面的代码**故意不按 prettier 排版**
+    //   （缩进全乱、没有统一对齐）⇒ 缩进判据在这里会失效，**花括号深度判据仍须认出真门控**。
+    const unformatted = [
+      "it('没有 Go 就早退', async () => {",
+      'let hasGo = true',
+      'try { await execFileAsync("go", ["version"]) } catch { hasGo = false }',
+      'if (!hasGo) return',
+      'expect(x).toBe(1)',
+      '})',
+    ].join('\n')
+    const body = testCallBodies(unformatted)[0]
+    expect(body).toBeDefined()
+    expect(hasBareEarlyReturn(body ?? '')).toBe(true)
+  })
+
+  it('⚠️ 不 prettier 排版时，业务早退仍不误报（深度判据的另一半）', () => {
+    const unformatted = [
+      "it('mock 命中', async () => {",
+      'const handler = async (url) => {',
+      "if (url.includes('/x')) return new Response('ok')",
+      "return new Response('miss')",
+      '}',
+      'expect(await handler("/x")).toBeTruthy()',
+      '})',
+    ].join('\n')
+    const body = testCallBodies(unformatted)[0]
+    expect(hasBareEarlyReturn(body ?? '')).toBe(false)
   })
 
   it('判据能红：条件分支包住 it( 会被逮到', () => {
