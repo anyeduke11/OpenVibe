@@ -93,7 +93,7 @@ async function bothPaths(root: string): Promise<{
 }
 
 describe('M9 P4.1 / P4.2 · 夹具全跑过（dev-plan §6.10 出口 a）', () => {
-  it('四支夹具都被扫到，且命中落在预期的知识点上', async () => {
+  it.skipIf(!HAS_GO)('四支夹具都被扫到，且命中落在预期的知识点上', async () => {
     const result = await scanProjectSource({ projectId: 'p', root: FIXTURE_DIR })
 
     // 两侧都走了解析器（不是回退）
@@ -133,7 +133,7 @@ describe('M9 P4.1 / P4.2 · 夹具全跑过（dev-plan §6.10 出口 a）', () =
 })
 
 describe('M9 P4.2 · DL-19 · 回退只降精度、不减结果', () => {
-  it('夹具上：parser 的命中集合 ⊇ 正则的命中集合', async () => {
+  it.skipIf(!HAS_GO)('夹具上：parser 的命中集合 ⊇ 正则的命中集合', async () => {
     const { parser, heuristic } = await bothPaths(FIXTURE_DIR)
     expect(heuristic.size).toBeGreaterThan(0)
     expect(findSubsetViolations(parser, heuristic)).toEqual([])
