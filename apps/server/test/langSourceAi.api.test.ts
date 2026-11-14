@@ -14,7 +14,7 @@
 // runner 的契约是「stdin 收 JSON、stdout 出 JSON」⇒ 那就得**真跑一次**，
 // 否则「契约」只是一句注释。⇒ 这里用 `/bin/sh` 脚本当假 runner：
 // 它把 stdin 抄进一个文件（证明**入参真的送到了**），再吐一份合法 JSON。
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -543,19 +543,31 @@ describe('M9 P5 · 命令适配器（stdin 收 JSON、stdout 出 JSON）', () =>
     const dir = mkdtempSync(join(tmpdir(), 'ov-m9-runner-'))
     dirs.push(dir)
     const captured = join(dir, 'captured.json')
-    const script = join(dir, 'fake-runner.sh')
+    // 2026-11-14：假 runner 从 /bin/sh 脚本改 node 脚本——windows 无 shebang 语义，spawn('.sh')
+    // 直接 EFTYPE（CI windows 实证，DEV-0151 债单「EFTYPE」条）；node 子进程（execPath + .mjs）
+    // 三平台同语义，契约不变：stdin 收 JSON、stdout 出 JSON。
+    const script = join(dir, 'fake-runner.mjs')
     writeFileSync(
       script,
       [
-        '#!/bin/sh',
-        `cat > ${JSON.stringify(captured)}`,
-        `printf '%s' '{"schema_version":1,"items":[{"topic_slug":"python-logging","summary":"在导入日志模块","risks":[],"claim_state":null}],"model":"m","provider":"p"}'`,
+        `import { writeFileSync } from 'node:fs'`,
+        `let input = ''`,
+        `process.stdin.setEncoding('utf8')`,
+        `process.stdin.on('data', (d) => { input += d })`,
+        `process.stdin.on('end', () => {`,
+        `  writeFileSync(${JSON.stringify(captured)}, input)`,
+        `  process.stdout.write(JSON.stringify({schema_version:1,items:[{topic_slug:'python-logging',summary:'在导入日志模块',risks:[],claim_state:null}],model:'m',provider:'p'}))`,
+        `})`,
         '',
       ].join('\n'),
     )
-    chmodSync(script, 0o755)
 
-    const runner = new CommandInterpretRunner({ cmd: script, model: 'm', provider: 'p' })
+    const runner = new CommandInterpretRunner({
+      cmd: process.execPath,
+      args: [script],
+      model: 'm',
+      provider: 'p',
+    })
     const result = await runner.interpret({
       schema_version: SOURCE_INTERPRET_SCHEMA_VERSION,
       fragments: [
@@ -581,12 +593,19 @@ describe('M9 P5 · 命令适配器（stdin 收 JSON、stdout 出 JSON）', () =>
   it('输出不合契约 ⇒ 归一成失败（不当成成功）', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'ov-m9-runner-bad-'))
     dirs.push(dir)
-    const script = join(dir, 'bad-runner.sh')
+    const script = join(dir, 'bad-runner.mjs')
     // ⚠️ **版本号是对的** ⇒ 这一支断的才是「字段不合契约」（版本不对有单独一支）
-    writeFileSync(script, `#!/bin/sh\nprintf '%s' '{"schema_version":1,"items":"不是数组"}'\n`)
-    chmodSync(script, 0o755)
+    writeFileSync(
+      script,
+      `process.stdout.write(JSON.stringify({schema_version:1,items:'不是数组'}))\n`,
+    )
 
-    const runner = new CommandInterpretRunner({ cmd: script, model: 'm', provider: 'p' })
+    const runner = new CommandInterpretRunner({
+      cmd: process.execPath,
+      args: [script],
+      model: 'm',
+      provider: 'p',
+    })
     await expect(
       runner.interpret({
         schema_version: SOURCE_INTERPRET_SCHEMA_VERSION,
@@ -599,14 +618,18 @@ describe('M9 P5 · 命令适配器（stdin 收 JSON、stdout 出 JSON）', () =>
   it('⚠️ **版本号对不上** ⇒ 归一成「版本不匹配」（不是笼统的「不合契约」）', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'ov-m9-runner-ver-'))
     dirs.push(dir)
-    const script = join(dir, 'old-runner.sh')
+    const script = join(dir, 'old-runner.mjs')
     writeFileSync(
       script,
-      `#!/bin/sh\nprintf '%s' '{"schema_version":0,"items":[],"model":"m","provider":"p"}'\n`,
+      `process.stdout.write(JSON.stringify({schema_version:0,items:[],model:'m',provider:'p'}))\n`,
     )
-    chmodSync(script, 0o755)
 
-    const runner = new CommandInterpretRunner({ cmd: script, model: 'm', provider: 'p' })
+    const runner = new CommandInterpretRunner({
+      cmd: process.execPath,
+      args: [script],
+      model: 'm',
+      provider: 'p',
+    })
     let reason: string | undefined
     try {
       await runner.interpret({
