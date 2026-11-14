@@ -1,4 +1,4 @@
-import { resolve, sep } from 'node:path'
+import { resolve } from 'node:path'
 import {
   compareCodeUnit,
   type ContextField,
@@ -70,7 +70,14 @@ function trimTrailingSep(p: string): string {
 
 /** `/a/b` 命中 `/a/b` 与 `/a/b/…`；`/a/bb` **不**命中 `/a/b`（前缀比较要带分隔符） */
 function covers(root: string, target: string): boolean {
-  return target === root || target.startsWith(root.endsWith(sep) ? root : root + sep)
+  return target === root || target.startsWith(root.endsWith('/') ? root : root + '/')
+}
+
+/** 路径比较统一走 POSIX 形态：localPath 落库是 POSIX 归一口径（DEV-0151），CLI 传入的
+ *  cwd 是平台原生形态（windows 还会被 resolve 盘符化）⇒ 两边归一后再比，否则 windows
+ *  上 `/w/openvibe` 被 resolve 成 `C:\w\openvibe` 永远不命中（CI windows 实证）。 */
+function toPosixComparable(p: string): string {
+  return trimTrailingSep(p).split(/[\\/]/).join('/')
 }
 
 /**
@@ -88,8 +95,8 @@ export function matchProjectByPath(
   let bestLen = -1
   for (const p of items) {
     if (!p.localPath) continue
-    const root = trimTrailingSep(resolve(p.localPath))
-    if (!covers(root, absDir)) continue
+    const root = toPosixComparable(resolve(p.localPath))
+    if (!covers(root, toPosixComparable(absDir))) continue
     if (root.length <= bestLen) continue
     best = p
     bestLen = root.length
