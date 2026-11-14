@@ -338,7 +338,7 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
       packRow = { id: askedPackId }
     } else {
       packRow = deps.db
-        .prepare(`SELECT id FROM standard_packs ORDER BY created_at DESC, id DESC LIMIT 1`)
+        .prepare(`SELECT id FROM standard_packs ORDER BY created_at DESC, rowid DESC LIMIT 1`)
         .get() as { id: string } | undefined
     }
     let density: OmOut['density'] = null
