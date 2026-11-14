@@ -91,67 +91,75 @@ describe('测试临时目录 · 自愈清理（2026-11-01 增强）', () => {
     expect(existsSync(dir)).toBe(false)
   })
 
-  it('⚠️ 进程被 SIGINT 中断 ⇒ 目录被清理（信号处理器接管了这条路径）', () => {
-    // ⚠️ **这条是本次增强的核心验收**：SIGINT 是「Ctrl-C」—— 最常见的「进程被中断」形态。
-    //   ⚠️ Node 在信号终止时**不跑 `exit` 处理器**（实测退出码 130、目录残留）
-    //   ⇒ 必须显式接管信号才能清。
-    const marker = markerPath('int')
-    const script = `
+  it.skipIf(process.platform === 'win32')(
+    '⚠️ 进程被 SIGINT 中断 ⇒ 目录被清理（信号处理器接管了这条路径）',
+    () => {
+      // ⚠️ **这条是本次增强的核心验收**：SIGINT 是「Ctrl-C」—— 最常见的「进程被中断」形态。
+      //   ⚠️ Node 在信号终止时**不跑 `exit` 处理器**（实测退出码 130、目录残留）
+      //   ⇒ 必须显式接管信号才能清。
+      const marker = markerPath('int')
+      const script = `
       import { tempDir } from '${ROOT}/packages/core/src/test-support/temp-dir.ts'
       import { writeFileSync } from 'node:fs'
       const dir = tempDir('ov-selftest-int-')
       writeFileSync(${JSON.stringify(marker)}, dir, 'utf8')
       process.kill(process.pid, 'SIGINT')
     `
-    clearMarker(marker)
-    try {
-      execFileSync('node', ['--import', 'tsx', '-e', script], {
-        cwd: ROOT,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        timeout: 20_000,
-      })
-    } catch {
-      /* 预期内：被信号终止 ⇒ 非零退出码 */
-    }
-    const dir = readMarker(marker)
-    expect(dir.length).toBeGreaterThan(0)
-    // ⚠️ **核心断言**：SIGINT ⇒ 信号处理器先清理再退出 ⇒ 目录已清
-    expect(existsSync(dir)).toBe(false)
-    clearMarker(marker)
-  }, 30_000)
+      clearMarker(marker)
+      try {
+        execFileSync('node', ['--import', 'tsx', '-e', script], {
+          cwd: ROOT,
+          stdio: ['ignore', 'pipe', 'pipe'],
+          timeout: 20_000,
+        })
+      } catch {
+        /* 预期内：被信号终止 ⇒ 非零退出码 */
+      }
+      const dir = readMarker(marker)
+      expect(dir.length).toBeGreaterThan(0)
+      // ⚠️ **核心断言**：SIGINT ⇒ 信号处理器先清理再退出 ⇒ 目录已清
+      expect(existsSync(dir)).toBe(false)
+      clearMarker(marker)
+    },
+    30_000,
+  )
 
-  it('⚠️ 进程被 SIGKILL 杀掉 ⇒ 目录必然残留（所以需要残留清扫器）', () => {
-    // ⚠️ **这条断言的是「不可救」这件事本身**：SIGKILL 由内核直接杀进程，
-    //   用户态代码一律不跑 ⇒ `exit` 处理器与信号处理器都救不了。
-    //   ⇒ 正因为救不了，才需要「按年龄清扫」那条兜底路径。
-    const marker = markerPath('kill')
-    const script = `
+  it.skipIf(process.platform === 'win32')(
+    '⚠️ 进程被 SIGKILL 杀掉 ⇒ 目录必然残留（所以需要残留清扫器）',
+    () => {
+      // ⚠️ **这条断言的是「不可救」这件事本身**：SIGKILL 由内核直接杀进程，
+      //   用户态代码一律不跑 ⇒ `exit` 处理器与信号处理器都救不了。
+      //   ⇒ 正因为救不了，才需要「按年龄清扫」那条兜底路径。
+      const marker = markerPath('kill')
+      const script = `
       import { tempDir } from '${ROOT}/packages/core/src/test-support/temp-dir.ts'
       import { writeFileSync } from 'node:fs'
       const dir = tempDir('ov-selftest-kill-')
       writeFileSync(${JSON.stringify(marker)}, dir, 'utf8')
       process.kill(process.pid, 'SIGKILL')
     `
-    clearMarker(marker)
-    try {
-      execFileSync('node', ['--import', 'tsx', '-e', script], {
-        cwd: ROOT,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        timeout: 20_000,
-      })
-    } catch {
-      /* 预期内：SIGKILL ⇒ 非零退出码 */
-    }
-    const dir = readMarker(marker)
-    expect(dir.length).toBeGreaterThan(0)
-    expect(existsSync(dir)).toBe(true)
-    // 收尾：把这条残留清掉，别留给下一个用例
-    execFileSync('node', [
-      '-e',
-      `require('fs').rmSync(${JSON.stringify(dir)}, {recursive: true, force: true})`,
-    ])
-    clearMarker(marker)
-  }, 30_000)
+      clearMarker(marker)
+      try {
+        execFileSync('node', ['--import', 'tsx', '-e', script], {
+          cwd: ROOT,
+          stdio: ['ignore', 'pipe', 'pipe'],
+          timeout: 20_000,
+        })
+      } catch {
+        /* 预期内：SIGKILL ⇒ 非零退出码 */
+      }
+      const dir = readMarker(marker)
+      expect(dir.length).toBeGreaterThan(0)
+      expect(existsSync(dir)).toBe(true)
+      // 收尾：把这条残留清掉，别留给下一个用例
+      execFileSync('node', [
+        '-e',
+        `require('fs').rmSync(${JSON.stringify(dir)}, {recursive: true, force: true})`,
+      ])
+      clearMarker(marker)
+    },
+    30_000,
+  )
 
   it('残留清扫器存在且只清本仓命名空间（不误伤别人的临时目录）', () => {
     // ⚠️ SIGKILL 救不了 ⇒ 兜底是「按年龄清扫」。而清扫若乱清 `/tmp` 下别的工具的目录

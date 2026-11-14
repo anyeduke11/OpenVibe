@@ -204,25 +204,29 @@ describe('M9 P4 · GET /api/lang/findings', () => {
     expect(res.statusCode).toBe(422)
   })
 
-  it('⚠️ **多项目互不覆盖**（owner 2026-10-22 加项目列的**目的**）', async () => {
-    const h = await makeHarness()
-    const dirA = makePyProject()
-    const dirB = makePyProject()
-    addProject(h.handle.db, 'p1', dirA)
-    addProject(h.handle.db, 'p2', dirB)
-    addTopics(h.handle.db)
+  // windows runner 无 python3 命令名 ⇒ 真扫腿（POSIX 命名语义）门控，与下方「真扫一个 Python 项目」同款口径
+  it.skipIf(IS_WINDOWS)(
+    '⚠️ **多项目互不覆盖**（owner 2026-10-22 加项目列的**目的**）',
+    async () => {
+      const h = await makeHarness()
+      const dirA = makePyProject()
+      const dirB = makePyProject()
+      addProject(h.handle.db, 'p1', dirA)
+      addProject(h.handle.db, 'p2', dirB)
+      addTopics(h.handle.db)
 
-    await post(h, '/api/lang/scan', { project_id: 'p1' })
-    const afterA = await get(h, '/api/lang/findings?project=p1')
-    expect((afterA.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
+      await post(h, '/api/lang/scan', { project_id: 'p1' })
+      const afterA = await get(h, '/api/lang/findings?project=p1')
+      expect((afterA.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
 
-    // ⚠️ 扫第二个项目 ⇒ **第一个项目的命中不许被清掉**
-    await post(h, '/api/lang/scan', { project_id: 'p2' })
-    const stillA = await get(h, '/api/lang/findings?project=p1')
-    const nowB = await get(h, '/api/lang/findings?project=p2')
-    expect((stillA.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
-    expect((nowB.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
-  })
+      // ⚠️ 扫第二个项目 ⇒ **第一个项目的命中不许被清掉**
+      await post(h, '/api/lang/scan', { project_id: 'p2' })
+      const stillA = await get(h, '/api/lang/findings?project=p1')
+      const nowB = await get(h, '/api/lang/findings?project=p2')
+      expect((stillA.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
+      expect((nowB.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
+    },
+  )
 })
 
 describe('M9 P4 · DL-21 · 同意记忆', () => {
