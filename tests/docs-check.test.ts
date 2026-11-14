@@ -190,7 +190,10 @@ describe('docs-check · FR-3.4 变异样本（相对链接）', () => {
   const files = [{ path: 'docs/a.md', content: '见 [分析文](./b.md)' }]
 
   it('目标存在 ⇒ 无 error', () => {
-    expect(errorsOf(checkRelativeLinks(files, (p) => p === 'docs/b.md'))).toEqual([])
+    // ⚠️ 回调归一 POSIX 再比：windows 的相对链接解析产出反斜杠形态（CI windows 实证）
+    expect(
+      errorsOf(checkRelativeLinks(files, (p) => p.replace(/\\/g, '/') === 'docs/b.md')),
+    ).toEqual([])
   })
 
   it('⚠️ 变异样本 r：目标不存在 ⇒ 报 1 违规', () => {
