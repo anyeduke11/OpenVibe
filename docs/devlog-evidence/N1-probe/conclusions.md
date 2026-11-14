@@ -10,14 +10,14 @@ Track N（新手单轨，decisions ㊻ / [DEV-0272]）需要把注入产物从�
 
 ## 结论表
 
-| 平台 | 主文件 | 二级文件加载机制 | 证据强度 | L1 可行性 |
-|---|---|---|---|---|
-| claude-code | `CLAUDE.md` | **`@path` import 语法**（官方特性）：会话启动时把被引文件展开进上下文 | **强／一手**（官方 memory 文档） | **✓** 主文件写 `@TERMS.md` 即生效；已知限制：`@~/.claude/` 家目录形态偶发失效（GitHub #8765），项目级路径不受影响 |
-| cursor | `.cursor/rules/openvibe.mdc` | 无 import 语法。机制 = frontmatter `globs` 触发加载 + agent 按需读文件（rule 指示） | 较强（官方 rules 文档＋论坛实测） | **部分**——L1 形态须是「rule 指示 agent 按需读 TERMS.md」，非启动时自动 |
-| generic-agents（codex/zcode/kimi） | `AGENTS.md` | **标准无 import**；Codex 自动枚举的是 AGENTS.md 本体（嵌套目录各层），无二级文件机制 | 较强（OpenAI Codex 指南＋标准） | **✗** 分层不可行——AGENTS.md 平台维持单文件全量（L0） |
-| codebuddy | `CODEBUDDY.md` | 本体自动加载；另有 `.codebuddy/rules/*.md` 模块化规则（各文件独立加载，无 import） | 较强（腾讯 guidelines＋腾讯云文档） | **部分**——可把术语拆进 `.codebuddy/rules/` 模块文件（形态不同于主文件引用） |
-| trae | `.trae/rules/openvibe.md` | 规则目录机制（类 cursor） | 较弱（官方 rules 文档，加载细节未逐条核） | **部分（待核）**——同 cursor 方向，逐条核验排后 |
-| minicode | `MINI.md` | 类 CLAUDE.md/AGENTS.md 单文件上下文 | 弱（GitHub README，无加载细节文档） | **✗（待证）**——维持单文件全量 |
+| 平台                               | 主文件                       | 二级文件加载机制                                                                     | 证据强度                                  | L1 可行性                                                                                                         |
+| ---------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| claude-code                        | `CLAUDE.md`                  | **`@path` import 语法**（官方特性）：会话启动时把被引文件展开进上下文                | **强／一手**（官方 memory 文档）          | **✓** 主文件写 `@TERMS.md` 即生效；已知限制：`@~/.claude/` 家目录形态偶发失效（GitHub #8765），项目级路径不受影响 |
+| cursor                             | `.cursor/rules/openvibe.mdc` | 无 import 语法。机制 = frontmatter `globs` 触发加载 + agent 按需读文件（rule 指示）  | 较强（官方 rules 文档＋论坛实测）         | **部分**——L1 形态须是「rule 指示 agent 按需读 TERMS.md」，非启动时自动                                            |
+| generic-agents（codex/zcode/kimi） | `AGENTS.md`                  | **标准无 import**；Codex 自动枚举的是 AGENTS.md 本体（嵌套目录各层），无二级文件机制 | 较强（OpenAI Codex 指南＋标准）           | **✗** 分层不可行——AGENTS.md 平台维持单文件全量（L0）                                                              |
+| codebuddy                          | `CODEBUDDY.md`               | 本体自动加载；另有 `.codebuddy/rules/*.md` 模块化规则（各文件独立加载，无 import）   | 较强（腾讯 guidelines＋腾讯云文档）       | **部分**——可把术语拆进 `.codebuddy/rules/` 模块文件（形态不同于主文件引用）                                       |
+| trae                               | `.trae/rules/openvibe.md`    | 规则目录机制（类 cursor）                                                            | 较弱（官方 rules 文档，加载细节未逐条核） | **部分（待核）**——同 cursor 方向，逐条核验排后                                                                    |
+| minicode                           | `MINI.md`                    | 类 CLAUDE.md/AGENTS.md 单文件上下文                                                  | 弱（GitHub README，无加载细节文档）       | **✗（待证）**——维持单文件全量                                                                                     |
 
 ## 对 N4（m11 L0/L1）的三个直接推论
 
