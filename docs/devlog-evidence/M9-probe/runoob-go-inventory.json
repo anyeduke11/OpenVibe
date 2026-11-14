@@ -1,7 +1,7 @@
 {
   "_readme": "runoob.com Go 教程全量清单。⚠️ 只存标题与 URL，正文一个字未取（spec §3.2 FR-2 版权与漂移约束）。",
   "source": "https://www.runoob.com/go/go-tutorial.html",
-  "collected_at": "2026-10-20",
+  "collected_at": "2026-11-14",
   "collect_method": "由 scripts/collect-m9-sources.ts 采集：抓索引页 → 切 <div class=\"design\" id=\"leftcolumn\"> → 按 <h2 class=\"left\"> 切段 → 取 <a> 的 title/href（属性顺序不敏感）→ 排除绝对地址的全站导航项 → 标题归一（解实体 ＋ 连字符转 ASCII ＋ 折叠空白）→ 链接按站点根解析",
   "counts": {
     "total": 34,
@@ -21,7 +21,7 @@
   "source_freshness": {
     "source": "go",
     "source_label": "runoob / Go",
-    "computed_at": "2026-10-20",
+    "computed_at": "2026-11-14",
     "last_pushed_at": null,
     "age_days": null,
     "stale": false,

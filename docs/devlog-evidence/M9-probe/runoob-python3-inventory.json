@@ -1,13 +1,13 @@
 {
   "_readme": "runoob.com Python3 教程全量清单。⚠️ 只存标题与 URL，正文一个字未取（spec §3.2 FR-2 版权与漂移约束）。",
   "source": "https://www.runoob.com/python3/python3-tutorial.html",
-  "collected_at": "2026-10-20",
+  "collected_at": "2026-11-14",
   "collect_method": "由 scripts/collect-m9-sources.ts 采集：抓索引页 → 切 <div class=\"design\" id=\"leftcolumn\"> → 按 <h2 class=\"left\"> 切段 → 取 <a> 的 title/href（属性顺序不敏感）→ 排除绝对地址的全站导航项 → 标题归一（解实体 ＋ 连字符转 ASCII ＋ 折叠空白）→ 链接按站点根解析",
   "counts": {
-    "total": 84,
+    "total": 82,
     "sections": {
       "基础教程": 40,
-      "高级教程": 44
+      "高级教程": 42
     }
   },
   "caveats": [
@@ -16,14 +16,14 @@
     "源里混有绝对 URL 的全站导航项，采集须显式排除"
   ],
   "link_probe": {
-    "method": "HEAD 全量 84 条，4 并发，15s 超时",
-    "result": "84/84 返回 2xx",
+    "method": "HEAD 全量 82 条，4 并发，15s 超时",
+    "result": "82/82 返回 2xx",
     "caveat": "全量验链通过"
   },
   "source_freshness": {
     "source": "python3",
     "source_label": "runoob / Python3",
-    "computed_at": "2026-10-20",
+    "computed_at": "2026-11-14",
     "last_pushed_at": null,
     "age_days": null,
     "stale": false,
@@ -522,18 +522,6 @@
       "section": "高级教程",
       "title": "Python PyQt",
       "url": "https://www.runoob.com/python3/python-pyqt.html"
-    },
-    {
-      "ordinal": 83,
-      "section": "高级教程",
-      "title": "Python for 循环",
-      "url": "https://www.runoob.com/python3/python3-for.html"
-    },
-    {
-      "ordinal": 84,
-      "section": "高级教程",
-      "title": "Python while 循环",
-      "url": "https://www.runoob.com/python3/python3-while.html"
     }
   ]
 }
