@@ -200,7 +200,10 @@ describe('status 的快照', () => {
         }),
       },
     })
-    const dirArg = process.platform === 'win32' ? 'W:\\openvibe' : '/w/openvibe' // 平台形态自洽：hint 回显用户给的路径
+    // 2026-11-14：恒用与 PROJECTS.localPath 同源的 '/w/openvibe'（03 同款）——原 win 分支
+    // 自造 'W:\\openvibe' 盘符与 fixture 不同源 ⇒ 匹配必然失败（CI windows 实证）；
+    // hint 回显用户给的路径这一断言意图不变（回显 = 输入原文，与输入形态无关）。
+    const dirArg = '/w/openvibe'
     const d = await statusAction({ dir: dirArg }, { client: drifted.client })
     expect(d.exitCode).toBe(ExitCode.drift)
     expect(d.snapshot.pack.drifted).toBe(true)
