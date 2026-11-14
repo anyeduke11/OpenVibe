@@ -891,7 +891,9 @@ export function OmSection() {
                   row.roundNo,
                   row.published,
                   row.rejected,
-                  row.rate === null ? sys.settings.om.adoptionRateNull : `${Math.round(row.rate * 100)}%`,
+                  row.rate === null
+                    ? sys.settings.om.adoptionRateNull
+                    : `${Math.round(row.rate * 100)}%`,
                   row.below === 1,
                 )}
               </p>

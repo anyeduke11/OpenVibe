@@ -416,18 +416,16 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
     // 测试时钟固定 ⇒ 用例不随日历漂移；ISO 参数与 created_at 的 ISO 存储同构比较）。
     // 窗口内无 verify 事件 ⇒ null（「待采集」语义，不显示 0）。
     const since = new Date(now().getTime() - 7 * 86_400_000).toISOString()
-    const verifyAgg = (
-      deps.db
-        .prepare(
-          `SELECT COUNT(*) AS total,
+    const verifyAgg = deps.db
+      .prepare(
+        `SELECT COUNT(*) AS total,
                   COALESCE(SUM(CASE WHEN json_extract(payload_json, '$.exitCode') = 0 THEN 1 ELSE 0 END), 0) AS passed
            FROM local_events
            WHERE kind = 'cli_agent_command_run'
              AND json_extract(payload_json, '$.command') = 'verify'
              AND created_at >= ?`,
-        )
-        .get(since) as { total: number; passed: number }
-    ) satisfies { total: number; passed: number }
+      )
+      .get(since) as { total: number; passed: number } satisfies { total: number; passed: number }
     const verifyRate =
       verifyAgg.total > 0
         ? {

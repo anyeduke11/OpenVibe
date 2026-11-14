@@ -66,7 +66,9 @@ describe('OmSection（设置页 OM 区）', () => {
     expect(screen.getByText(/首次注入距首次使用 5 分钟/)).toBeTruthy()
     expect(screen.getByText(/估算/)).toBeTruthy()
     // OM3/OM4 有数据态（1B 批次）：采纳率行与通过率行齐
-    expect(screen.getByText(/术语候选 第 2 轮：采纳 5 ／ 驳回 5 · 率 50% · ⚠️ 低于门槛/)).toBeTruthy()
+    expect(
+      screen.getByText(/术语候选 第 2 轮：采纳 5 ／ 驳回 5 · 率 50% · ⚠️ 低于门槛/),
+    ).toBeTruthy()
     expect(screen.getByText(/verify 共 3 次：三方一致 2 次 · 通过率 67%/)).toBeTruthy()
     // 取数真的打到了 /api/om
     expect(fetchMock.mock.calls.some((c) => String(c[0]).includes('/api/om'))).toBe(true)
