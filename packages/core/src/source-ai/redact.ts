@@ -60,6 +60,11 @@ export function redactAbsolutePaths(content: string, projectRoot: string): strin
   const root = projectRoot.endsWith(sep) ? projectRoot.slice(0, -1) : projectRoot
   if (root !== '') {
     out = out.replace(new RegExp(`${escapeRe(root + sep)}`, 'gu'), '')
+    // ⚠️ 混合分隔符也要脱：AI 输出/测试构造可能用 POSIX 斜杠拼 windows 根
+    // （`C:\proj/app.py`）——只换 `root + sep` 会残留 `/app.py`（CI windows 实证）。
+    if (sep !== '/') {
+      out = out.replace(new RegExp(`${escapeRe(root + '/')}`, 'gu'), '')
+    }
     out = out.replace(new RegExp(escapeRe(root), 'gu'), PROJECT_ROOT_PLACEHOLDER)
   }
 
@@ -67,6 +72,12 @@ export function redactAbsolutePaths(content: string, projectRoot: string): strin
   const home = homedir()
   if (home !== '' && home !== sep) {
     out = out.replace(new RegExp(`${escapeRe(home + sep)}`, 'gu'), `${EXTERNAL_PATH_PLACEHOLDER}/`)
+    if (sep !== '/') {
+      out = out.replace(
+        new RegExp(`${escapeRe(home + '/')}`, 'gu'),
+        `${EXTERNAL_PATH_PLACEHOLDER}/`,
+      )
+    }
     out = out.replace(new RegExp(escapeRe(home), 'gu'), EXTERNAL_PATH_PLACEHOLDER)
   }
 
