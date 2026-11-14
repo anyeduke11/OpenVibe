@@ -2,7 +2,7 @@
 // （`m9-dev-plan-2026-10.md` §6.2 / §9 ＋ `m9-dev-language-roadmap.md` §1.1 §1.5）
 //
 // 此前 `scripts/collect-m9-sources.ts` 只覆盖 runoob 两门；另三源
-// （xinliangnote 43 篇 / walter201230 101 篇 / awesome-* 4047 条）**只有结构骨架**，
+// （xinliangnote 43 篇 / walter201230 102 篇 / awesome-* 4054 条 · 2026-11-14 随源站漂移随迁）**只有结构骨架**，
 // 而骨架还是**手抄**的 ⇒ 里面的条数从没被复算过（实测两处都是错的，见下）。
 // 本文件断的是「那三源现在**一条命令能复跑**」这件事。
 //
@@ -167,19 +167,20 @@ describe('M9 另三源 · 已入库产物核对（真文件）', () => {
   })
 
   it('② 条数与实测值一致（**这些数字此前是手抄的，两处都是错的**）', () => {
-    // xinliangnote 43 / walter 101 —— 与旧骨架一致
+    // xinliangnote 43 / walter 102 —— 2026-11-14 随源站漂移随迁（walter 源仓库新增 examples/study_tracker）
     expect(loadInventory('xinliangnote-go').items).toHaveLength(43)
-    expect(loadInventory('walter201230-python').items).toHaveLength(101)
+    expect(loadInventory('walter201230-python').items).toHaveLength(102)
     // ⚠️ 旧骨架写 awesome-python-cn 874 / awesome-go 3323。
     //   实测：874 少算 3（真值 877）；3323 **多算 153**（把 151 个目录锚点当成了条目，真值 3170）。
+    //   2026-11-14 awesome-go 随源站漂移随迁：3170 → 3177（+10/-3/段名 1 处）。
     expect(loadInventory('awesome-python-cn').items).toHaveLength(877)
-    expect(loadInventory('awesome-go').items).toHaveLength(3170)
+    expect(loadInventory('awesome-go').items).toHaveLength(3177)
   })
 
-  it('③ 无序池真值 4047（旧骨架写 4197 ⇒ 多了 150）', () => {
+  it('③ 无序池真值 4054（旧骨架写 4197 ⇒ 多了 150；2026-11-14 随源站漂移 4047 → 4054）', () => {
     const apcn = loadInventory('awesome-python-cn').items.length
     const ago = loadInventory('awesome-go').items.length
-    expect(apcn + ago).toBe(4047)
+    expect(apcn + ago).toBe(4054)
   })
 
   it('④ URL 唯一性：**三份全唯一，awesome-python-cn 有 11 条同址**（同款事实，不合并）', () => {
