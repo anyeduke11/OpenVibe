@@ -49,7 +49,9 @@ async function startServer(env: Record<string, string>): Promise<{
   stop: () => void
 }> {
   const { spawn } = await import('node:child_process')
-  const proc = spawn('npx', ['tsx', SERVER_ENTRY], {
+  // windows 下 spawn('npx') 不带 .cmd 后缀找不到可执行（ENOENT）——同 test-summary.ts 口径
+  const npxBin = process.platform === 'win32' ? 'npx.cmd' : 'npx'
+  const proc = spawn(npxBin, ['tsx', SERVER_ENTRY], {
     cwd: ROOT,
     env: { ...process.env, ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -136,7 +138,7 @@ describe('dev 隔离实例 · 端口与数据目录真隔离', () => {
     let code = 0
     let out = ''
     try {
-      execFileSync('npx', ['tsx', SERVER_ENTRY], {
+      execFileSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['tsx', SERVER_ENTRY], {
         cwd: ROOT,
         env: { ...process.env, OPENVIBE_HOME: tempHome(), OPENVIBE_API_PORT: 'abc' },
         encoding: 'utf8',

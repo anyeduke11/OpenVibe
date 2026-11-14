@@ -98,7 +98,11 @@ const preflight = preflightWorkers(userArgs)
 const vitestArgs = ['vitest', 'run', ...userArgs]
 if (preflight !== undefined) vitestArgs.push(`--maxWorkers=${String(preflight)}`)
 
-const child = spawn('npx', vitestArgs, {
+// windows 下 PATHEXT 语义：spawn('npx') 不带 .cmd 后缀找不到可执行（ENOENT，CI windows 腿实证）
+// ——按平台取 npx.cmd；shell: false 保持不变（true 会引入参数注入面）。
+const npxBin = process.platform === 'win32' ? 'npx.cmd' : 'npx'
+
+const child = spawn(npxBin, vitestArgs, {
   cwd: ROOT,
   stdio: ['inherit', 'pipe', 'pipe'],
   shell: false,
