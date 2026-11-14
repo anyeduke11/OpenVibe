@@ -197,6 +197,10 @@ jobs:
   # ⚠️ **只存摘要不存正文**（spec §3.2）—— 灰区处置见 scripts/m9-content-fingerprint.ts 文件头，
   #   补偿控制（字段闭集 ＋ hex 校验 ＋ 仍在扫描面内）由 packages/core/src/db/m9-external-content-scan.ts 钉住。
   m9-fingerprint:
+    # ⚠️ 仅手动触发（workflow_dispatch，ci:preview 同款通道）：runoob 对数据中心 IP
+    #   返回稳定不同的正文变体（run 406472/435498 两轮同批 6 篇实证），push 触发时
+    #   该闸在 CI 环境永远无法判定 ⇒ 跳过（本地 `pnpm m9:fingerprint` 判据照常在）。
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
