@@ -98,6 +98,18 @@ jobs:
       # Chrome 由驱动器自己定位（CHROME_BIN 未设 ⇒ 平台常见路径 → PATH），失败退出码 2，
       # 与冒烟本身失败的 1 分得开。有头腿（真剪贴板逐字节）仍按发布节奏人工跑，留档
       # docs/devlog-evidence/DEV-0025/three-smokes-headed.txt。
+      # 2026-11-14：ubuntu-24.04 镜像不再预装 google-chrome-stable（run 43554951421 实证
+      # 驱动器三级候选路径全落空 ⇒ spawn('') 静默失败 ⇒ target 20s 超时「Chrome 未就绪」）。
+      # 只在 Linux 腿装；macOS 有系统 Chrome，Windows 镜像自带。
+      - name: Ensure Chrome (linux)
+        if: runner.os == 'Linux'
+        run: |
+          if ! command -v google-chrome-stable >/dev/null 2>&1; then
+            wget -qO- https://dl.google.com/linux/linux_signing_key.pub | sudo gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg
+            echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list > /dev/null
+            sudo apt-get update -qq && sudo apt-get install -y -qq google-chrome-stable
+          fi
+
       - name: Three smokes (headless, clipboard legs expected to SKIP)
         env:
           HEADLESS: '1'
