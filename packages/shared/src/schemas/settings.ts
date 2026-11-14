@@ -88,9 +88,34 @@ export const OmDensityOut = z.object({
 export type OmDensityOut = z.infer<typeof OmDensityOut>
 
 /**
- * 输出侧度量两件（PRD-v0.2.3 RQ5 / OM1+OM2，GET /api/om）。
+ * 采纳率快照的折叠形态（Phase 1 北极星补结果侧 · 1B 批次）：
+ * `adoption_snapshots` 每 kind 的**最新一轮**（候选经人工裁决的窗口下限时间序列，
+ * 迁移 0022 / M10 线）。`rate` 缺省为 null（published+rejected = 0 的轮次）；
+ * `below` = 该轮是否低于门槛（0/1，QG1「连续 2 轮低于门槛」的原料）。
+ */
+export const OmAdoptionRow = z.object({
+  kind: z.enum(['term_candidate', 'prompt_candidate', 'playbook_candidate']),
+  roundNo: z.number().int(),
+  published: z.number().int(),
+  rejected: z.number().int(),
+  rate: z.number().nullable(),
+  below: z.number().int(),
+})
+export type OmAdoptionRow = z.infer<typeof OmAdoptionRow>
+
+/** 核验通过率（7 天窗口）：`cli_agent_command_run` 且 command='verify' 的 exitCode=0 占比。 */
+export const OmVerifyRate = z.object({
+  total: z.number().int(),
+  passed: z.number().int(),
+  rate: z.number(),
+})
+export type OmVerifyRate = z.infer<typeof OmVerifyRate>
+
+/**
+ * 输出侧度量（PRD-v0.2.3 RQ5 / OM1+OM2，GET /api/om；Phase 1 · 1B 批次补结果侧两段）。
  * OM2 首次见效时间 = 首次本机事件（台账 MIN(created_at)，M8 起无条件记）→
  * 第一次注入（injections MIN(injected_at)）的墙钟差；任一端缺失为 null（面板显示「待采集」）。
+ * `adoption` = 表空时 null；`verifyRate` = 窗口内无 verify 事件时 null（「待采集」语义）。
  */
 export const OmOut = z.object({
   density: OmDensityOut.nullable(),
@@ -99,6 +124,8 @@ export const OmOut = z.object({
     firstInjectionAt: z.string().nullable(),
     seconds: z.number().int().nullable(),
   }),
+  adoption: z.array(OmAdoptionRow).nullable(),
+  verifyRate: OmVerifyRate.nullable(),
 })
 export type OmOut = z.infer<typeof OmOut>
 

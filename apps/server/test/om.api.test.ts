@@ -177,4 +177,50 @@ describe('GET /api/om（OM1 密度 + OM2 首次见效）', () => {
     const res = await api(h, 'GET', '/api/om?pack_id=pk_missing')
     expect(res.statusCode).toBe(404)
   })
+
+  // ── Phase 1 · 1B：结果侧北极星两段（采纳率 ＋ 核验通过率）────────────
+  it('OM-07: 采纳率取每 kind 最新一轮；表空 ⇒ null（待采集）', async () => {
+    const h = await makeHarness()
+    const empty = await api<OmOut>(h, 'GET', '/api/om')
+    expect(empty.json.adoption).toBeNull()
+
+    // 两轮 term_candidate ＋ 一轮 prompt_candidate ⇒ 每 kind 只取最新（MAX(id)）
+    const insert = h.db.prepare(
+      `INSERT INTO adoption_snapshots (kind, round_no, published, rejected, rate, below, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    )
+    insert.run('term_candidate', 1, 3, 7, 0.3, 1, '2026-10-20T00:00:00.000Z')
+    insert.run('term_candidate', 2, 5, 5, 0.5, 1, '2026-10-22T00:00:00.000Z')
+    insert.run('prompt_candidate', 1, 10, 0, 1, 0, '2026-10-23T00:00:00.000Z')
+
+    const res = await api<OmOut>(h, 'GET', '/api/om')
+    expect(res.json.adoption).toEqual([
+      { kind: 'prompt_candidate', roundNo: 1, published: 10, rejected: 0, rate: 1, below: 0 },
+      { kind: 'term_candidate', roundNo: 2, published: 5, rejected: 5, rate: 0.5, below: 1 },
+    ])
+  })
+
+  it('OM-08: 核验通过率 = 7 天窗口内 verify 的 exitCode=0 占比；窗口外与非 verify 不进分母；无事件 ⇒ null', async () => {
+    const h = await makeHarness()
+    const empty = await api<OmOut>(h, 'GET', '/api/om')
+    expect(empty.json.verifyRate).toBeNull()
+
+    // 时钟纪律：makeHarness 注入固定 now = 2026-10-24T12:00:00Z ⇒ 窗口 = 10-17 之后。
+    // 四条造数：窗口内 verify ×3（退 0 ×2 / 退 2 ×1）＋ 窗口外 verify ×1 ＋ 窗口内非 verify ×1。
+    const insert = h.db.prepare(
+      `INSERT INTO local_events (kind, subject_type, subject_id, project_id, payload_json, created_at, day)
+       VALUES ('cli_agent_command_run', 'cli', 'self', null, ?, ?, ?)`,
+    )
+    const mk = (command: string, exitCode: number, at: string): void => {
+      insert.run(JSON.stringify({ command, exitCode, agent: 'matrix' }), at, at.slice(0, 10))
+    }
+    mk('verify', 0, '2026-10-20T08:00:00.000Z')
+    mk('verify', 0, '2026-10-22T08:00:00.000Z')
+    mk('verify', 2, '2026-10-23T08:00:00.000Z') // 退 2 = 有偏差，进分母不进「通过」
+    mk('verify', 0, '2026-10-10T08:00:00.000Z') // 窗口外
+    mk('sync', 0, '2026-10-23T09:00:00.000Z') // 非 verify 命令
+
+    const res = await api<OmOut>(h, 'GET', '/api/om')
+    expect(res.json.verifyRate).toEqual({ total: 3, passed: 2, rate: 0.667 })
+  })
 })

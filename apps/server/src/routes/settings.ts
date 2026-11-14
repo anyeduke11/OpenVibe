@@ -386,6 +386,62 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
         ? Math.max(0, Math.round((Date.parse(firstInjectionAt) - Date.parse(firstEventAt)) / 1000))
         : null
 
-    return { density, timeToValue: { firstEventAt, firstInjectionAt, seconds } }
+    // ── Phase 1 · 1B：结果侧北极星两段（采纳率 ＋ 核验通过率）────────────
+    // 采纳率：adoption_snapshots 每 kind 的最新一轮（表空 ⇒ null，「待采集」语义）。
+    const adoptionRows = (
+      deps.db
+        .prepare(
+          `SELECT kind, round_no AS roundNo, published, rejected, rate, below
+           FROM adoption_snapshots
+           WHERE id IN (SELECT MAX(id) FROM adoption_snapshots GROUP BY kind)
+           ORDER BY kind`,
+        )
+        .all() as {
+        kind: 'term_candidate' | 'prompt_candidate' | 'playbook_candidate'
+        roundNo: number
+        published: number
+        rejected: number
+        rate: number | null
+        below: number
+      }[]
+    ).map((r) => ({
+      kind: r.kind,
+      roundNo: r.roundNo,
+      published: r.published,
+      rejected: r.rejected,
+      rate: r.rate ?? null,
+      below: r.below,
+    }))
+    // 核验通过率：7 天窗口内 verify 命令的 exitCode=0 占比（窗口起点用注入的 now——
+    // 测试时钟固定 ⇒ 用例不随日历漂移；ISO 参数与 created_at 的 ISO 存储同构比较）。
+    // 窗口内无 verify 事件 ⇒ null（「待采集」语义，不显示 0）。
+    const since = new Date(now().getTime() - 7 * 86_400_000).toISOString()
+    const verifyAgg = (
+      deps.db
+        .prepare(
+          `SELECT COUNT(*) AS total,
+                  COALESCE(SUM(CASE WHEN json_extract(payload_json, '$.exitCode') = 0 THEN 1 ELSE 0 END), 0) AS passed
+           FROM local_events
+           WHERE kind = 'cli_agent_command_run'
+             AND json_extract(payload_json, '$.command') = 'verify'
+             AND created_at >= ?`,
+        )
+        .get(since) as { total: number; passed: number }
+    ) satisfies { total: number; passed: number }
+    const verifyRate =
+      verifyAgg.total > 0
+        ? {
+            total: verifyAgg.total,
+            passed: verifyAgg.passed,
+            rate: Math.round((verifyAgg.passed / verifyAgg.total) * 1000) / 1000,
+          }
+        : null
+
+    return {
+      density,
+      timeToValue: { firstEventAt, firstInjectionAt, seconds },
+      adoption: adoptionRows.length > 0 ? adoptionRows : null,
+      verifyRate,
+    }
   })
 }

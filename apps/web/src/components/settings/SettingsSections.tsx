@@ -875,6 +875,45 @@ export function OmSection() {
           </p>
         )}
         <p className={`${proseCls} text-[11.5px] text-ink-muted`}>{sys.settings.om.timeRange}</p>
+        <p className={`${proseCls} mt-2 text-[13.5px] font-medium text-ink-body`}>
+          {sys.settings.om.adoptionTitle}
+        </p>
+        {om?.adoption == null || om.adoption.length === 0 ? (
+          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>
+            {sys.settings.om.adoptionEmpty}
+          </p>
+        ) : (
+          <div className="flex flex-col gap-0.5">
+            {om.adoption.map((row) => (
+              <p key={row.kind} className={`${proseCls} text-[12.5px] text-ink-body`}>
+                {sys.settings.om.adoptionLine(
+                  sys.settings.om.adoptionKind[row.kind],
+                  row.roundNo,
+                  row.published,
+                  row.rejected,
+                  row.rate === null ? sys.settings.om.adoptionRateNull : `${Math.round(row.rate * 100)}%`,
+                  row.below === 1,
+                )}
+              </p>
+            ))}
+          </div>
+        )}
+        <p className={`${proseCls} mt-2 text-[13.5px] font-medium text-ink-body`}>
+          {sys.settings.om.verifyTitle}
+        </p>
+        {om?.verifyRate == null ? (
+          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>
+            {sys.settings.om.verifyEmpty}
+          </p>
+        ) : (
+          <p className={`${proseCls} text-[12.5px] text-ink-body`}>
+            {sys.settings.om.verifyLine(
+              om.verifyRate.total,
+              om.verifyRate.passed,
+              `${Math.round(om.verifyRate.rate * 100)}%`,
+            )}
+          </p>
+        )}
       </div>
     </Section>
   )

@@ -210,6 +210,27 @@ export const sys = {
             ? `首次注入距首次使用 ${Math.round(seconds / 60)} 分钟`
             : `首次注入距首次使用 ${Math.round(seconds / 3600)} 小时`,
       timeRange: '台账口径：首次本机事件 → 首次注入记录（injections 表）。',
+      adoptionTitle: 'OM3 · 采纳率（AI 候选的人工裁决）',
+      adoptionEmpty: '待采集：AI 提取的候选完成人工裁决后出现。',
+      adoptionLine: (
+        kind: string,
+        round: number,
+        published: number,
+        rejected: number,
+        rate: string,
+        below: boolean,
+      ) =>
+        `${kind} 第 ${round} 轮：采纳 ${published} ／ 驳回 ${rejected} · 率 ${rate}${below ? ' · ⚠️ 低于门槛' : ''}`,
+      adoptionRateNull: '—',
+      verifyTitle: 'OM4 · 核验通过率（7 天）',
+      verifyEmpty: '待采集：跑过 `openvibe verify` 后出现。',
+      verifyLine: (total: number, passed: number, rate: string) =>
+        `verify 共 ${total} 次：三方一致 ${passed} 次 · 通过率 ${rate}`,
+      adoptionKind: {
+        term_candidate: '术语候选',
+        prompt_candidate: '提示词候选',
+        playbook_candidate: '技巧候选',
+      },
     },
   },
 
