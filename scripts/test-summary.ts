@@ -98,14 +98,16 @@ const preflight = preflightWorkers(userArgs)
 const vitestArgs = ['vitest', 'run', ...userArgs]
 if (preflight !== undefined) vitestArgs.push(`--maxWorkers=${String(preflight)}`)
 
-// windows 下 PATHEXT 语义：spawn('npx') 不带 .cmd 后缀找不到可执行（ENOENT，CI windows 腿实证）
-// ——按平台取 npx.cmd；shell: false 保持不变（true 会引入参数注入面）。
-const npxBin = process.platform === 'win32' ? 'npx.cmd' : 'npx'
+// windows 两层坑（CI windows 腿实证）：① spawn('npx') 不带 .cmd 后缀 ⇒ ENOENT；
+// ② Node ≥20.12 起（CVE-2024-27980）spawn('.cmd') 不带 shell ⇒ EINVAL。
+// ⇒ win32 取 npx.cmd 且开 shell；shell 仅在 win 开启（args 为内部构造 + 用户自传，无第三方注入面）。
+const winSpawn = process.platform === 'win32'
+const npxBin = winSpawn ? 'npx.cmd' : 'npx'
 
 const child = spawn(npxBin, vitestArgs, {
   cwd: ROOT,
   stdio: ['inherit', 'pipe', 'pipe'],
-  shell: false,
+  shell: winSpawn,
 })
 
 let captured = ''
