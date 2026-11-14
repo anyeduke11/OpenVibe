@@ -1,0 +1,44 @@
+name: 问题反馈（bug）
+description: 报告 OpenVibe 的问题——三段各一两句即可，环境信息自动带上
+labels: ['bug']
+body:
+  - type: textarea
+    id: did
+    attributes:
+      label: 你做了什么
+      description: 哪条命令、哪个页面、点了什么（如 `npx openvibe-cli sync ~/proj --pack default`）
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望什么
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际什么（含完整报错文本）
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: openvibe-cli 版本（`openvibe --version` 或 npx 输出版本）
+    validations:
+      required: true
+  - type: textarea
+    id: extras
+    attributes:
+      label: 其他（可选）
+      description: 哪个 AI 助手（Claude Code / Cursor / …）、注入了哪个标准包
