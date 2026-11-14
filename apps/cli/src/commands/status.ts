@@ -1,4 +1,4 @@
-import { resolve } from 'node:path'
+import { isAbsolute, resolve } from 'node:path'
 import {
   compareCodeUnit,
   type ContextField,
@@ -130,9 +130,10 @@ export async function resolveProjectByPath(
   cwd: string = process.cwd(),
 ): Promise<{ project: ResolvedProject; absDir: string }> {
   const list = await client.getJson<{ items: ProjectListItem[] }>(PROJECTS_PATH)
-  // ⚠️ absDir 与返回值统一 POSIX 口径（与 localPath 落库口径一致）——windows 的 resolve
-  //    输出反斜杠/盘符形态，会让快照比对与错误消息里的路径分裂成两种形态。
-  const absDir = toPosixComparable(resolve(cwd, dir))
+  // ⚠️ dir 已是绝对路径（POSIX `/x` 在 windows 也算绝对）⇒ 直接归一使用，不过 resolve——
+  //    windows 的 resolve 会把无盘符的 POSIX 绝对路径盘符化成「当前盘」⇒ 与落库的
+  //    POSIX localPath 永远错位；相对 dir 才需要 resolve 补全。
+  const absDir = toPosixComparable(isAbsolute(dir) ? dir : resolve(cwd, dir))
   const project = matchProjectByPath(list.items, absDir)
   if (!project) {
     const candidates = candidateNames(list.items)
