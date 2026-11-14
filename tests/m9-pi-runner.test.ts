@@ -36,7 +36,10 @@ const TEST_TIMEOUT = 60_000
 
 const REPO_ROOT = join(import.meta.dirname, '..')
 const SCRIPT = join(REPO_ROOT, 'scripts', 'pi-interpret-runner.ts')
-const TSX = join(REPO_ROOT, 'node_modules', '.bin', 'tsx')
+// 三平台统一走 node + tsx 的 js 入口：node_modules/.bin/tsx 在 windows 是 .cmd/.ps1
+// 形态（裸 `tsx` 是 sh 包装），spawnSync 起不来 ⇒ status=null（CI windows 实证）。
+const TSX_NODE = process.execPath
+const TSX_CLI = join(REPO_ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs')
 
 interface FakePi {
   bin: string
@@ -49,26 +52,52 @@ interface FakePi {
 /** 造一个「假 Pi」：记下 argv / stdin / cwd，然后吐固定的事件流。 */
 function makeFakePi(outputNdjson: string): FakePi {
   const dir = mkdtempSync(join(tmpdir(), 'ov-pi-fake-'))
-  const bin = join(dir, 'fake-pi')
   const argvFile = join(dir, 'argv.txt')
   const stdinFile = join(dir, 'stdin.txt')
   const cwdFile = join(dir, 'cwd.txt')
   const outFile = join(dir, 'out.ndjson')
   writeFileSync(outFile, outputNdjson, 'utf8')
-  writeFileSync(
-    bin,
-    [
-      '#!/bin/sh',
-      ': > "$FAKE_PI_ARGV_FILE"',
-      'for a in "$@"; do printf \'%s\\n\' "$a" >> "$FAKE_PI_ARGV_FILE"; done',
-      'cat > "$FAKE_PI_STDIN_FILE"',
-      'pwd > "$FAKE_PI_CWD_FILE"',
-      'cat "$FAKE_PI_OUTPUT_FILE"',
-      '',
-    ].join('\n'),
-    'utf8',
-  )
-  chmodSync(bin, 0o755)
+  // 2026-11-14 双形态：windows 无 shebang 语义（spawn('.sh') 报 EFTYPE），但 runner 起
+  // Pi 的 spawn 在 win32 开 shell（scripts/pi-interpret-runner.ts 同笔）⇒ windows 用
+  // fake-pi.cmd 包一层 node；POSIX 保持 sh shebang。四个 env 契约（FAKE_PI_*）两形态一致。
+  const jsLogic = [
+    `import { writeFileSync, appendFileSync, readFileSync } from 'node:fs'`,
+    `const A = process.env.FAKE_PI_ARGV_FILE`,
+    `writeFileSync(A, '')`,
+    `for (const a of process.argv.slice(2)) appendFileSync(A, a + '\\n')`,
+    `let stdin = ''`,
+    `process.stdin.setEncoding('utf8')`,
+    `process.stdin.on('data', (d) => { stdin += d })`,
+    `process.stdin.on('end', () => {`,
+    `  writeFileSync(process.env.FAKE_PI_STDIN_FILE, stdin)`,
+    `  writeFileSync(process.env.FAKE_PI_CWD_FILE, process.cwd())`,
+    `  process.stdout.write(readFileSync(process.env.FAKE_PI_OUTPUT_FILE, 'utf8'))`,
+    `})`,
+    '',
+  ].join('\n')
+  let bin: string
+  if (process.platform === 'win32') {
+    const jsPath = join(dir, 'fake-pi.mjs')
+    writeFileSync(jsPath, jsLogic, 'utf8')
+    bin = join(dir, 'fake-pi.cmd')
+    writeFileSync(bin, `@node "${jsPath}" %*\n`, 'utf8')
+  } else {
+    bin = join(dir, 'fake-pi')
+    writeFileSync(
+      bin,
+      [
+        '#!/bin/sh',
+        ': > "$FAKE_PI_ARGV_FILE"',
+        'for a in "$@"; do printf \'%s\\n\' "$a" >> "$FAKE_PI_ARGV_FILE"; done',
+        'cat > "$FAKE_PI_STDIN_FILE"',
+        'pwd > "$FAKE_PI_CWD_FILE"',
+        'cat "$FAKE_PI_OUTPUT_FILE"',
+        '',
+      ].join('\n'),
+      'utf8',
+    )
+    chmodSync(bin, 0o755)
+  }
   return { bin, argvFile, stdinFile, cwdFile, dir }
 }
 
@@ -77,7 +106,7 @@ function runScript(
   stdin: string,
   extraEnv: Record<string, string> = {},
 ): { status: number | null; stdout: string; stderr: string } {
-  const res = spawnSync(TSX, [SCRIPT], {
+  const res = spawnSync(TSX_NODE, [TSX_CLI, SCRIPT], {
     input: stdin,
     encoding: 'utf8',
     timeout: 60_000,

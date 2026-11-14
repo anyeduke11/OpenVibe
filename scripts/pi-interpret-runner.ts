@@ -144,6 +144,11 @@ function runPi(args: readonly string[], input: string): Promise<PiRun> {
       cwd: tmpdir(),
       env: process.env,
       stdio: ['pipe', 'pipe', 'pipe'],
+      // windows 两层坑（与 scripts/test-summary.ts 同款口径）：Pi 由 npm 全局安装时
+      // 是 .cmd 形态 ⇒ spawn('*.cmd') ①不带 .cmd 后缀 ENOENT ②Node ≥20.12 起不带
+      // shell 即 EINVAL（CVE-2024-27980）。⇒ win32 开 shell；args 只含本脚本拼的
+      // 固定 flags（提示词走 stdin，不进 argv——DL-18）⇒ 无第三方注入面。
+      shell: process.platform === 'win32',
     })
 
     const timer = setTimeout(() => {
