@@ -8,7 +8,7 @@
 //   ① **正文区取法**（按嵌套深度配对 `</div>`；取第一个会砍掉一大半正文）
 //   ② **归一化**（去 script/style、去标签、解实体、折叠空白 ⇒ 排版变了不算内容变了）
 //   ③ **指纹语义**（内容变 ⇒ 摘要变；只改空白 ⇒ 摘要不变；无正文区 ⇒ 取不到）
-//   ④ **已入库产物**（118 条 · 摘要全是 64 位十六进制 · URL 与清单一致）
+//   ④ **已入库产物**（116 条 · 摘要全是 64 位十六进制 · URL 与清单一致）
 //   ⑤ **§3.2 灰区的补偿控制**（hash-only 豁免是**显式登记**的，且有三条兜底）
 //
 // ⚠️ **单测不联网** —— 真跑由 `pnpm m9:fingerprint` 负责。
@@ -127,8 +127,8 @@ describe('M9 内容指纹 · 已入库产物', () => {
     items: Array<{ url: string; sha256: string; bytes: number }>
   } => JSON.parse(readFileSync(join(REPO_ROOT, FINGERPRINT_FILE), 'utf8'))
 
-  it('① 118 条（runoob 两门全部）', () => {
-    expect(load().items).toHaveLength(118)
+  it('① 116 条（runoob 两门全部；2026-11-14 随源站撤下两篇 python3 教程同步）', () => {
+    expect(load().items).toHaveLength(116)
   })
 
   it('② 摘要全是 64 位十六进制（**没有一个字节是正文**）', () => {

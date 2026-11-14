@@ -257,15 +257,15 @@ describe('M9 P1.9 · 已入库清单面（真文件）', () => {
     collect_method: string
   }
 
-  it('① 条数按 §1.5 实测：Python 84 ＋ Go 34', () => {
-    expect(py.items.length).toBe(84)
+  it('① 条数按 §1.5 实测：Python 82 ＋ Go 34（2026-11-14 源站撤下 Python for/while 循环两篇高级教程）', () => {
+    expect(py.items.length).toBe(82)
     expect(go.items.length).toBe(34)
-    expect(py.counts.total).toBe(84)
+    expect(py.counts.total).toBe(82)
     expect(go.counts.total).toBe(34)
   })
 
-  it('② 分段计数与条目一致（Python 基础 40 ＋ 高级 44；Go 基础 34）', () => {
-    expect(countSections(py.items)).toEqual({ 基础教程: 40, 高级教程: 44 })
+  it('② 分段计数与条目一致（Python 基础 40 ＋ 高级 42；Go 基础 34）', () => {
+    expect(countSections(py.items)).toEqual({ 基础教程: 40, 高级教程: 42 })
     expect(countSections(go.items)).toEqual({ 基础教程: 34 })
   })
 
@@ -289,7 +289,7 @@ describe('M9 P1.9 · 已入库清单面（真文件）', () => {
   })
 
   it('⑥ 两门都做了**全量**验链（不是抽样）', () => {
-    expect(py.link_probe?.result).toBe('84/84 返回 2xx')
+    expect(py.link_probe?.result).toBe('82/82 返回 2xx')
     expect(go.link_probe?.result).toBe('34/34 返回 2xx')
   })
 })
