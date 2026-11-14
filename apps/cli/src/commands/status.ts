@@ -1,4 +1,4 @@
-import { isAbsolute, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import {
   compareCodeUnit,
   type ContextField,
@@ -130,19 +130,31 @@ export async function resolveProjectByPath(
   cwd: string = process.cwd(),
 ): Promise<{ project: ResolvedProject; absDir: string }> {
   const list = await client.getJson<{ items: ProjectListItem[] }>(PROJECTS_PATH)
-  // ⚠️ dir 已是绝对路径（POSIX `/x` 在 windows 也算绝对）⇒ 直接归一使用，不过 resolve——
-  //    windows 的 resolve 会把无盘符的 POSIX 绝对路径盘符化成「当前盘」⇒ 与落库的
-  //    POSIX localPath 永远错位；相对 dir 才需要 resolve 补全。
-  const absDir = toPosixComparable(isAbsolute(dir) ? dir : resolve(cwd, dir))
+  // ⚠️ 路径口径三分流（CI windows 的 D:/W: 盘符错位实证）：
+  //    ① dir 本身已绝对（POSIX `/x` 或 win 盘符 `X:/x`）⇒ 归一形态即最终值——不过 resolve，
+  //      windows 的 resolve 会给无盘符 POSIX 绝对路径强加「当前进程盘符」（/w/openvibe
+  //      在 D: 盘 runner 上变 D:/w/openvibe）⇒ 与落库 POSIX localPath 永远错位；
+  //    ② cwd 也是 POSIX 形态（fixture / 跨平台调用）⇒ POSIX join 补全，不引盘符；
+  //    ③ cwd 是平台原生（真实 CLI）⇒ 平台 resolve 补全（win 用户 dir='.'/'C:\\proj' 语义不变）。
+  //    匹配一律用归一形态；错误消息与返回值用 absDirRaw（原生形态，用户可见路径不变形）。
+  const cwdPosix = toPosixComparable(cwd)
+  const dirPosix = toPosixComparable(dir)
+  const absDirRaw =
+    dirPosix.startsWith('/') || /^[A-Za-z]:/.test(dirPosix)
+      ? dir
+      : cwdPosix.startsWith('/')
+        ? join(cwdPosix, dir)
+        : resolve(cwd, dir)
+  const absDir = toPosixComparable(absDirRaw)
   const project = matchProjectByPath(list.items, absDir)
   if (!project) {
     const candidates = candidateNames(list.items)
     throw new StatusError(
       'NOT_FOUND',
-      `未找到与该路径匹配的项目：${absDir}。已登记项目（最多 ${String(MAX_CANDIDATES)} 条）：${
+      `未找到与该路径匹配的项目：${absDirRaw}。已登记项目（最多 ${String(MAX_CANDIDATES)} 条）：${
         candidates.join(' / ') || '(无)'
       }。用 \`openvibe ask --project <id>\` 或先在 Web 工作台绑定本机路径`,
-      { path: absDir, candidates },
+      { path: absDirRaw, candidates },
     )
   }
   return {
@@ -151,7 +163,7 @@ export async function resolveProjectByPath(
       name: project.name,
       localPath: toPosixComparable(project.localPath ?? ''),
     },
-    absDir,
+    absDir: absDirRaw,
   }
 }
 
