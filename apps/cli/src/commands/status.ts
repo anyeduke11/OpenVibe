@@ -95,7 +95,9 @@ export function matchProjectByPath(
   let bestLen = -1
   for (const p of items) {
     if (!p.localPath) continue
-    const root = toPosixComparable(resolve(p.localPath))
+    // ⚠️ 不 resolve：localPath 落库是 POSIX 绝对口径（DEV-0151），windows 的 resolve 会把
+    //    '/w/openvibe' 盘符化成 'C:\w\openvibe' ⇒ 归一后残留 'C:' 前缀永不命中（CI 实证）。
+    const root = toPosixComparable(p.localPath)
     if (!covers(root, toPosixComparable(absDir))) continue
     if (root.length <= bestLen) continue
     best = p
@@ -128,7 +130,9 @@ export async function resolveProjectByPath(
   cwd: string = process.cwd(),
 ): Promise<{ project: ResolvedProject; absDir: string }> {
   const list = await client.getJson<{ items: ProjectListItem[] }>(PROJECTS_PATH)
-  const absDir = trimTrailingSep(resolve(cwd, dir))
+  // ⚠️ absDir 与返回值统一 POSIX 口径（与 localPath 落库口径一致）——windows 的 resolve
+  //    输出反斜杠/盘符形态，会让快照比对与错误消息里的路径分裂成两种形态。
+  const absDir = toPosixComparable(resolve(cwd, dir))
   const project = matchProjectByPath(list.items, absDir)
   if (!project) {
     const candidates = candidateNames(list.items)
@@ -144,7 +148,7 @@ export async function resolveProjectByPath(
     project: {
       id: project.id,
       name: project.name,
-      localPath: trimTrailingSep(resolve(project.localPath ?? '')),
+      localPath: toPosixComparable(project.localPath ?? ''),
     },
     absDir,
   }
