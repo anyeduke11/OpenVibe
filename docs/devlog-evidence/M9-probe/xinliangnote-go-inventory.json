@@ -1,7 +1,7 @@
 {
   "_readme": "xinliangnote/Go 教程目录（GitHub 仓库树）。⚠️ 只存标题与 URL，正文一个字未取（spec §3.2 版权与漂移约束）。",
   "source": "https://github.com/xinliangnote/Go",
-  "collected_at": "2026-10-20",
+  "collected_at": "2026-11-14",
   "collect_method": "由 scripts/collect-m9-github-sources.ts 采集：GitHub git/trees API（recursive）→ 只取 .md blob → 自然序排序 → section 按「top-dir」取 → 标题剥编号前缀 → 链接为 GitHub 文件页（路径逐段百分号编码）",
   "counts": {
     "total": 43,
@@ -22,11 +22,11 @@
   "source_freshness": {
     "source": "xinliangnote-go",
     "source_label": "xinliangnote/Go",
-    "computed_at": "2026-10-20",
+    "computed_at": "2026-11-14",
     "last_pushed_at": "2024-04-07",
-    "age_days": 926,
+    "age_days": 951,
     "stale": false,
-    "basis": "源的最后提交时间 2024-04-07（926 天前）",
+    "basis": "源的最后提交时间 2024-04-07（951 天前）",
     "notice": null
   },
   "caveats": [

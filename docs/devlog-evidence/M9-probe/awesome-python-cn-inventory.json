@@ -1,7 +1,7 @@
 {
   "_readme": "jobbole/awesome-python-cn 资源清单（README 列表）。⚠️ 只存标题与 URL，正文一个字未取（spec §3.2 版权与漂移约束）。",
   "source": "https://github.com/jobbole/awesome-python-cn",
-  "collected_at": "2026-10-20",
+  "collected_at": "2026-11-14",
   "collect_method": "由 scripts/collect-m9-github-sources.ts 采集：GitHub readme API → 只看列表行 → 每个列表项只取第一个链接（其余在描述文字里）→ 锚点链接不算条目 → section 取最近的 ## / ### 标题",
   "counts": {
     "total": 877,
@@ -103,11 +103,11 @@
   "source_freshness": {
     "source": "awesome-python-cn",
     "source_label": "awesome-python-cn",
-    "computed_at": "2026-10-20",
+    "computed_at": "2026-11-14",
     "last_pushed_at": "2022-08-29",
-    "age_days": 1513,
+    "age_days": 1538,
     "stale": true,
-    "basis": "源的最后提交时间 2022-08-29（1513 天前）",
+    "basis": "源的最后提交时间 2022-08-29（1538 天前）",
     "notice": "该源已 4 年未更新（最后更新 2022-08-29）—— 只能当候选池，不作真相源"
   },
   "caveats": [

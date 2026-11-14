@@ -1,11 +1,11 @@
 {
   "_readme": "walter201230/Python 教程目录（GitHub 仓库树）。⚠️ 只存标题与 URL，正文一个字未取（spec §3.2 版权与漂移约束）。",
   "source": "https://github.com/walter201230/Python",
-  "collected_at": "2026-10-20",
+  "collected_at": "2026-11-14",
   "collect_method": "由 scripts/collect-m9-github-sources.ts 采集：GitHub git/trees API（recursive）→ 只取 .md blob → 自然序排序 → section 按「parent-dir」取 → 标题保留原名 → 链接为 GitHub 文件页（路径逐段百分号编码）",
   "counts": {
-    "total": 101,
-    "unique_urls": 101,
+    "total": 102,
+    "unique_urls": 102,
     "sections": {
       "Article/PythonBasis/python0": 1,
       "Article/PythonBasis/python1": 5,
@@ -38,22 +38,23 @@
       "Article/PythonBasis/python28": 1,
       "Article/codeSpecification": 4,
       "Article": 1,
-      "(根)": 1
+      "(根)": 1,
+      "examples/study_tracker": 1
     }
   },
   "link_probe": {
-    "method": "GitHub git/trees API 的一次响应（文件在树里 ⇒ blob 链接必然可达）· 101 条",
-    "result": "101/101 条在树里",
+    "method": "GitHub git/trees API 的一次响应（文件在树里 ⇒ blob 链接必然可达）· 102 条",
+    "result": "102/102 条在树里",
     "failed": []
   },
   "source_freshness": {
     "source": "walter201230-python",
     "source_label": "walter201230/Python",
-    "computed_at": "2026-10-20",
-    "last_pushed_at": "2026-10-17",
-    "age_days": 3,
+    "computed_at": "2026-11-14",
+    "last_pushed_at": "2026-11-12",
+    "age_days": 2,
     "stale": false,
-    "basis": "源的最后提交时间 2026-10-17（3 天前）",
+    "basis": "源的最后提交时间 2026-11-12（2 天前）",
     "notice": null
   },
   "caveats": [
@@ -666,6 +667,12 @@
       "section": "(根)",
       "title": "README",
       "url": "https://github.com/walter201230/Python/blob/master/README.md"
+    },
+    {
+      "ordinal": 102,
+      "section": "examples/study_tracker",
+      "title": "README",
+      "url": "https://github.com/walter201230/Python/blob/master/examples/study_tracker/README.md"
     }
   ]
 }
