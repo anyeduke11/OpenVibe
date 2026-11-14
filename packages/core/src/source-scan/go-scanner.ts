@@ -91,7 +91,9 @@ export async function ensureGoHelper(bin: string = 'go'): Promise<string> {
   const modSrc = readFileSync(join(HELPER_DIR, 'go.mod'), 'utf8')
   const key = createHash('sha256').update(mainSrc).update(modSrc).digest('hex').slice(0, 16)
   const outDir = join(tmpdir(), 'openvibe-m9-goparse')
-  const outBin = join(outDir, `scan-${key}`)
+  // windows 的 CreateProcess 只认 .exe：go build -o 能产无后缀 PE，但 spawn 无后缀文件
+  // 直接 ENOENT（CI windows 实证）⇒ 按平台补后缀。
+  const outBin = join(outDir, `scan-${key}${process.platform === 'win32' ? '.exe' : ''}`)
   if (existsSync(outBin)) return outBin
   mkdirSync(outDir, { recursive: true })
   await execFileAsync(bin, ['build', '-o', outBin, '.'], {
