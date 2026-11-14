@@ -182,13 +182,15 @@ describe('M9 P5 · GET /api/lang/interpret/capability', () => {
 })
 
 describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调控 ＋ 增强 2：多份并存）', () => {
+  // 探测只判「命令存在」⇒ 用 node 自身（三平台恒在）替代 POSIX 的 /bin/echo（windows 无此路径 ⇒ misconfigured，CI windows 腿实证）
+  const ECHO_CMD = process.execPath
   const BASE = {
     id: 'p1',
     name: '默认那份',
     projects: [],
     enabled: true,
     kind: 'command',
-    cmd: '/bin/echo',
+    cmd: ECHO_CMD,
     args: [],
     endpoint: '',
     model: 'm1',
@@ -226,7 +228,7 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
     expect(body.providers[0]).toMatchObject({
       enabled: true,
       kind: 'command',
-      cmd: '/bin/echo',
+      cmd: ECHO_CMD,
       model: 'm1',
     })
   })
@@ -334,7 +336,7 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
     const h = await makeHarness(undefined)
     const saved = await put(h, '/api/lang/interpret/providers', {
       providers: [
-        { ...BASE, id: 'p1', name: '命令那份', kind: 'command', cmd: '/bin/echo' },
+        { ...BASE, id: 'p1', name: '命令那份', kind: 'command', cmd: ECHO_CMD },
         {
           ...BASE,
           id: 'p2',
@@ -353,7 +355,7 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
       default_provider_id: string
     }
     expect(body.providers).toHaveLength(2)
-    expect(body.providers[0]?.cmd).toBe('/bin/echo')
+    expect(body.providers[0]?.cmd).toBe(ECHO_CMD)
     expect(body.providers[1]?.endpoint).toBe('http://127.0.0.1:11434/v1/chat/completions')
     expect(body.default_provider_id).toBe('p2')
   })
@@ -363,7 +365,7 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
     await put(h, '/api/lang/interpret/providers', {
       providers: [
         { ...BASE, id: 'p1', name: '默认那份', cmd: 'definitely-not-a-real-cmd-xyz' },
-        { ...BASE, id: 'p2', name: '绑 pX 的那份', cmd: '/bin/echo', projects: ['pX'] },
+        { ...BASE, id: 'p2', name: '绑 pX 的那份', cmd: ECHO_CMD, projects: ['pX'] },
       ],
       default_provider_id: 'p1',
     })
@@ -378,7 +380,7 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
     const h = await makeHarness(undefined)
     await put(h, '/api/lang/interpret/providers', {
       providers: [
-        { ...BASE, id: 'p1', name: '默认那份', cmd: '/bin/echo' },
+        { ...BASE, id: 'p1', name: '默认那份', cmd: ECHO_CMD },
         { ...BASE, id: 'p2', name: '另一份', cmd: 'definitely-not-a-real-cmd-xyz' },
       ],
       default_provider_id: 'p1',
@@ -407,7 +409,7 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
         JSON.stringify({
           enabled: true,
           kind: 'command',
-          cmd: '/bin/echo',
+          cmd: ECHO_CMD,
           args: [],
           endpoint: '',
           model: 'm1',
@@ -423,7 +425,7 @@ describe('M9 · provider 配置端点（owner 2026-10-22 裁决一：手动调�
       default_provider_id: string
     }
     expect(body.providers).toHaveLength(1)
-    expect(body.providers[0]?.cmd).toBe('/bin/echo')
+    expect(body.providers[0]?.cmd).toBe(ECHO_CMD)
     expect(body.providers[0]?.id).toBe('default')
     expect(body.default_provider_id).toBe('default')
   })
