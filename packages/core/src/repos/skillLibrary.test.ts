@@ -126,9 +126,11 @@ describe('扫描根清单（2026-10-30：改成可配置清单）', () => {
       const roots = defaultSkillRoots(home)
       expect(roots.every((r) => existsSync(r))).toBe(true)
       const expanded = expandKnownRoots(home)
-      const claude = expanded.find((e) => e.path.endsWith('.claude/skills'))
+      // ⚠️ 后缀比较归一 POSIX：windows 的 path 是反斜杠形态（CI windows 实证 endsWith 失配）
+      const posix = (p: string): string => p.replace(/\\/g, '/')
+      const claude = expanded.find((e) => posix(e.path).endsWith('.claude/skills'))
       expect(claude?.exists).toBe(true)
-      const missing = expanded.find((e) => e.path.endsWith('.stepclaw/skills'))
+      const missing = expanded.find((e) => posix(e.path).endsWith('.stepclaw/skills'))
       expect(missing?.exists).toBe(false)
     } finally {
       rmSync(home, { recursive: true, force: true })

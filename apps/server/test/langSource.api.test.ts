@@ -310,7 +310,10 @@ describe('M9 P4 · DL-22 / DL-23 · 导出清单', () => {
     // ⚠️ DL-23：**没有绝对路径**（导出的文件会被用户随手转发）
     expect(res.body).not.toContain(dir)
     expect(res.body).not.toContain('/Users/')
-  })
+    // ⚠️ 只放宽外层上限（与 tests/m9-pi-runner.test.ts 同款纪律，断言一字未改）：
+    //    CI runner 的 tmp 是全新的 ⇒ goparse 助手首次 go build 在 windows 上 10-30s
+    //    （unit 层默认 20s 在首编未完成时即超时——run 43556396682 windows 实证）。
+  }, 120_000)
 
   it('缺 project ⇒ 422', async () => {
     const h = await makeHarness()

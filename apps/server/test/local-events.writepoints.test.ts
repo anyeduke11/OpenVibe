@@ -494,10 +494,16 @@ describe('§7-d · payload 禁列（FR-6.3）', () => {
         'prompt',
         'prm_x',
         null,
-        // 动态家目录：CI runner 上同样触发「本机用户名」判定（写死 /Users/duke 只在 owner 机器绿）
+        // 动态家目录：CI runner 上同样触发「本机用户名」判定（写死 /Users/duke 只在 owner 机器绿）。
+        // ⚠️ 两条腿一起灌：windows 上 join(homedir()) 是盘符路径（不触发「Unix 绝对路径」类），
+        //    再补一条 POSIX 形态（扫描器的模式是平台无关正则，windows 照样命中）——
+        //    两类断言（「Unix 绝对路径」＋「本机用户名」）在任何平台都成立（CI windows 实证）。
         JSON.stringify({
           assetType: 'prompt',
-          nested: { where: join(homedir(), 'work', 'secret-repo') },
+          nested: {
+            where: join(homedir(), 'work', 'secret-repo'),
+            origin: '/srv/secret/creds',
+          },
         }),
         NOW,
         NOW_DAY,

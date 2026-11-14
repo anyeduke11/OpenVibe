@@ -46,27 +46,32 @@ async function startServer(env: Record<string, string>): Promise<{
   url: string
   token: string
   dbPath: string
-  stop: () => void
+  stop: () => Promise<void>
 }> {
   const { spawn } = await import('node:child_process')
-  // windows 两层坑：spawn('npx') 不带 .cmd ⇒ ENOENT；Node ≥20.12 spawn('.cmd') 不带 shell ⇒ EINVAL。
-  // 同 test-summary.ts 口径：win32 取 npx.cmd 且开 shell。
-  const winSpawn = process.platform === 'win32'
-  const npxBin = winSpawn ? 'npx.cmd' : 'npx'
-  const proc = spawn(npxBin, ['tsx', SERVER_ENTRY], {
+  // 2026-11-14：改走 node + tsx 的 js 入口（三平台统一，与 tests/m9-pi-runner.test.ts 同款）。
+  // 之前 win32 用 npx.cmd + shell:true——**kill('SIGTERM') 只杀 cmd.exe，node 孙进程存活**，
+  // 继续持有 openvibe.db 句柄 ⇒ afterEach 的 rmSync 撞 EBUSY（CI windows 实证）。
+  // 直接 spawn node.exe 无 shell ⇒ kill 干净；句柄随进程退出释放。
+  const tsxCli = join(ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs')
+  const proc = spawn(process.execPath, [tsxCli, SERVER_ENTRY], {
     cwd: ROOT,
     env: { ...process.env, ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
-    shell: winSpawn,
   })
   let buf = ''
-  const stop = () => {
-    try {
-      proc.kill('SIGTERM')
-    } catch {
-      /* 已退出 */
-    }
-  }
+  const stop = () =>
+    new Promise<void>((resolveStop) => {
+      try {
+        proc.kill()
+      } catch {
+        /* 已退出 */
+      }
+      // 等进程真退出再回：windows 上 db 文件句柄随进程释放，afterEach 的 rmSync 依赖这一点
+      const done = () => resolveStop()
+      proc.once('exit', done)
+      setTimeout(done, 5_000)
+    })
   return await new Promise((resolvePromise, reject) => {
     const timer = setTimeout(() => {
       stop()
@@ -112,7 +117,7 @@ describe('dev 隔离实例 · 端口与数据目录真隔离', () => {
       expect(srv.dbPath.startsWith(home)).toBe(true)
       expect(existsSync(join(home, 'data', 'openvibe.db'))).toBe(true)
     } finally {
-      srv.stop()
+      await srv.stop()
     }
   })
 
@@ -131,7 +136,7 @@ describe('dev 隔离实例 · 端口与数据目录真隔离', () => {
       // 沙箱实例刚建 ⇒ skill 台账是空的（真实库里有几百条）
       expect(before.total).toBe(0)
     } finally {
-      srv.stop()
+      await srv.stop()
     }
   })
 

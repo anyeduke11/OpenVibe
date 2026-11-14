@@ -114,11 +114,19 @@ export function parseVitestSummary(stdout: string): { failed: number; passed: nu
 
 /** 默认执行器：真跑 vitest。`--no-color` 保证输出尾部人类可读（诊断报告要贴给人看） */
 const defaultRunner: LegRunner = (testCmd, repoRoot) => {
-  const proc = spawnSync('npx', ['vitest', 'run', '--no-color', ...testCmd], {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    env: { ...process.env, CI: '1' },
-  })
+  // windows 两层坑（与 scripts/test-summary.ts 同款口径）：spawn('npx') ENOENT +
+  // npx.cmd 不带 shell 在 Node ≥20.12 即 EINVAL ⇒ win32 用 npx.cmd 且开 shell。
+  const winSpawn = process.platform === 'win32'
+  const proc = spawnSync(
+    winSpawn ? 'npx.cmd' : 'npx',
+    ['vitest', 'run', '--no-color', ...testCmd],
+    {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: { ...process.env, CI: '1' },
+      shell: winSpawn,
+    },
+  )
   return { stdout: `${proc.stdout ?? ''}\n${proc.stderr ?? ''}` }
 }
 

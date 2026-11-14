@@ -137,10 +137,13 @@ function collectClaims(): Claim[] {
  * 早先没区分这两个，v 条那句跨 spec 引用就被判成「文件不存在」（闸红 1 支）。
  */
 const EXCLUDE = ['**/node_modules/**', '**/dist/**', '**/.git/**', '**/coverage/**']
+// ⚠️ globSync 的返回路径是**平台原生形态**（windows 反斜杠）——spec 里写的凭据路径
+//    是 POSIX 字面量 ⇒ 统一归一成 POSIX 再比对，否则 windows 上「文件存在」判不存在
+//    （CI windows 实证：`docs\…` ≠ `docs/…`，docs 过滤与路径比对双双失配）。
 const codeFiles = globSync('{apps,packages,tests,scripts,content,docs}/**/*.{ts,tsx,sql,md}', {
   cwd: ROOT,
   exclude: EXCLUDE,
-})
+}).map((f) => f.split(/[\\/]/).join('/'))
 const allSourceFiles = codeFiles
 
 /**
