@@ -219,7 +219,11 @@ const TRACKED = new Set(
 function claimTargetExists(fragment: string): boolean {
   if (TOP_DIR_RE.test(fragment)) return TRACKED.has(fragment)
   if (!fragment.includes('/')) return fileExistsSomewhere(fragment)
-  return globSync(`**/${fragment}`, { cwd: ROOT, exclude: EXCLUDE }).some((p) => TRACKED.has(p))
+  // ⚠️ globSync 返回平台原生形态（windows 反斜杠），TRACKED 是 POSIX 口径（git ls-files）
+  //    ⇒ 归一后再比，否则 windows 上「glob 找到了却不在版本库视图」恒假（CI 实证）。
+  return globSync(`**/${fragment}`, { cwd: ROOT, exclude: EXCLUDE })
+    .map((p) => p.split(/[\\/]/).join('/'))
+    .some((p) => TRACKED.has(p))
 }
 
 function verdictFor(claims: Claim[]): string[] {
