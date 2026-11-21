@@ -1,15 +1,14 @@
 import {
   chmodSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   rmSync,
   statSync,
+  symlinkSync,
   utimesSync,
   writeFileSync,
 } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PACK_BACKUP_REL } from './lock'
 import {
@@ -20,6 +19,7 @@ import {
   type SyncLockAcquire,
 } from './sync-lock'
 import { PACK_LOCK_REL } from '../local/lock'
+import { tempDir } from '../test-support/temp-dir'
 
 /**
  * T8e · 并发 sync 文件锁（m6b §6.9 / design §11.3）。
@@ -32,7 +32,7 @@ import { PACK_LOCK_REL } from '../local/lock'
 
 const roots: string[] = []
 const project = (): string => {
-  const root = mkdtempSync(join(tmpdir(), 'ov-synclock-'))
+  const root = tempDir('ov-synclock-')
   roots.push(root)
   const dir = join(root, 'proj')
   mkdirSync(dir)
@@ -259,6 +259,17 @@ describe('sync.lock（并发注入互斥）', () => {
     expect(acq.reason).toBe('unavailable')
     expect(acq.holder).toBeNull()
     expect(String(acq.detail)).toContain('EEXIST')
+  })
+
+  it('SL-15: .openvibe 是指向项目外的 symlink → 拒绝建锁（v0.2.4 F4 / R3）', () => {
+    const dir = project()
+    const outside = join(dirname(dir), 'outside')
+    mkdirSync(outside, { recursive: true })
+    symlinkSync(outside, join(dir, '.openvibe'), 'dir')
+    const acq = busy(tryAcquireSyncLock(dir, 'sync', at(0)))
+    expect(acq.reason).toBe('unavailable')
+    expect(acq.holder).toBeNull()
+    expect(String(acq.detail)).toContain('越出项目根')
   })
 
   it('SL-13: `wx` 的 0 字节空窗 → 有界重读让路，不谎报 unreadable；真读不懂仍要收得住', () => {

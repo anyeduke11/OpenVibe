@@ -6,22 +6,21 @@ import {
   linkSync,
   lstatSync,
   mkdirSync,
-  mkdtempSync,
   realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { checkWritePath, resolveWriteTarget } from './security'
+import { tempDir } from '../test-support/temp-dir'
 
 const IS_WINDOWS = process.platform === 'win32'
 const roots: string[] = []
 
 function workspace(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-inject-link-'))
+  const dir = tempDir('ov-inject-link-')
   roots.push(dir)
   return dir
 }

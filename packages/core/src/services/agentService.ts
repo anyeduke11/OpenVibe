@@ -430,6 +430,11 @@ export function createAgentService(deps: AgentServiceDeps) {
    * `requirement` 会多出一条需求。已终态记录仍走既有 `review` 的状态更新语义，
    * `conflict` 仍由 repo 抛 `IDEMPOTENCY_CONFLICT`（既有行为不变）。
    *
+   * **分发 + 状态更新在同一事务（v0.2.4 F1 / R1）**：
+   * 原先两步各自独立 SQL —— 中途失败（如状态更新被触发器中止）会留下
+   * 「业务行已插、状态仍 pending」的半成品，重试即重复插入。
+   * 现在包进 `db.transaction`：要么一起成功，要么一起回滚。
+   *
    * **分发失败 ⇒ 整条 rejected 且业务表零写入**：不是抛错给前端，
    * 而是让这条回到队列里带一句 reject_reason，人能看见「为什么这条没落库」。
    */
@@ -441,13 +446,17 @@ export function createAgentService(deps: AgentServiceDeps) {
     const before = ingests.get(id)
     if (!before) throw new AppError('NOT_FOUND', `回流记录不存在：${id}`)
 
-    if (to === 'published' && before.status === 'pending') {
-      const result = dispatchPublish(before, deps.now().toISOString())
-      if (!result.ok) {
-        return ingests.review(id, 'rejected', result.reason, deps.now().toISOString())
+    // 分发 + 状态更新同一事务：任一失败整笔回滚，不留半成品
+    const run = deps.db.transaction((): AgentIngest => {
+      if (to === 'published' && before.status === 'pending') {
+        const result = dispatchPublish(before, deps.now().toISOString())
+        if (!result.ok) {
+          return ingests.review(id, 'rejected', result.reason, deps.now().toISOString())
+        }
       }
-    }
-    return ingests.review(id, to, reason, deps.now().toISOString())
+      return ingests.review(id, to, reason, deps.now().toISOString())
+    })
+    return run()
   }
 
   function listPending(projectId: string, limit?: number): AgentIngest[] {

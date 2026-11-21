@@ -12,6 +12,10 @@
       "types": "./src/test-support/index.ts",
       "default": "./src/test-support/index.ts"
     },
+    "./test-support/worker-registry": {
+      "types": "./src/test-support/worker-registry.ts",
+      "default": "./src/test-support/worker-registry.ts"
+    },
     "./tooling": {
       "types": "./src/tooling/index.ts",
       "default": "./src/tooling/index.ts"

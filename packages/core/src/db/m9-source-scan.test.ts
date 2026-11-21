@@ -17,7 +17,7 @@
 // 规格原话：「这条**必须真跑 grep**，不能只断言清单结构」。
 // ⇒ 本文件真的起一个 `grep` 子进程，逐项核对它命中的行号 == 清单声称的行号。
 import { execFile } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { promisify } from 'node:util'
@@ -38,6 +38,7 @@ import {
   setConsent,
   type FindingRowInput,
 } from './m9-source-scan'
+import { tempDir } from '../test-support/temp-dir'
 
 const execFileAsync = promisify(execFile)
 
@@ -285,7 +286,7 @@ describe('M9 P4.4 · DL-22 / DL-23 · 导出清单', () => {
     seed(db)
 
     // 造一个真实的项目目录（清单里的相对路径要真的存在）
-    const dir = mkdtempSync(join(tmpdir(), 'ov-m9-export-'))
+    const dir = tempDir('ov-m9-export-')
     dirs.push(dir)
     const rel = 'cmd/app/main.go'
     // ⚠️ 相对路径带目录 ⇒ 得**先建目录**再写文件（否则 writeFileSync 报 ENOENT）

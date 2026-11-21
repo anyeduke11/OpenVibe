@@ -1,4 +1,5 @@
 import {
+  BUNDLE_SCHEMA_VERSION,
   PACK_FILE_MANIFEST,
   PACK_FILES_SUBDIR,
   packSubject,
@@ -19,7 +20,7 @@ export function directoryFileName(name: string, version: string): string {
 /** 单文件 bundle：manifest 全文 + 每个渲染产物的内容（已导出包不依赖库存活，§7.2） */
 export function buildBundle(rendered: RenderedPack): PackBundle {
   return {
-    bundleSchemaVersion: 1,
+    bundleSchemaVersion: BUNDLE_SCHEMA_VERSION,
     manifest: rendered.manifest,
     files: rendered.files.map((f) => ({ path: f.path, content: f.content })),
   }

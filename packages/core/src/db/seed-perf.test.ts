@@ -1,5 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -10,6 +9,7 @@ import { seedConceptDeltas } from './m9-p1-6-concept-deltas'
 import { seedTopicEdges } from './m9-p1-7-topic-stages'
 import { seedProfilePhases, seedTopicProfiles } from './m9-p1d-seed-profiles'
 import { seedLangResourceLayer } from './m9-p1b-seed-resources'
+import { tempDir } from '../test-support/temp-dir'
 
 /**
  * 播种性能护栏（批次 C 收尾③）：mergeSeedRow 是**每行 SELECT + 判定 + 写**的
@@ -23,7 +23,7 @@ const SEEDS_DIR = join(HERE, '..', '..', '..', 'content', 'seed')
 
 describe('播种性能护栏（数量级闸）', () => {
   it('m9 全链重放（合并语义）天花板 10s；各段耗时按只报数输出', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-seedperf-'))
+    const dir = tempDir('ov-seedperf-')
     mkdirSync(dir, { recursive: true })
     // 真种子目录的四个 json 复制进临时目录（与运行时同源，避免合成数据自洽自欺）
     for (const f of [

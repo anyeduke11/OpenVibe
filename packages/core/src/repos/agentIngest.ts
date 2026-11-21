@@ -161,7 +161,22 @@ export class AgentIngestRepo {
     return { status: 'accepted', id }
   }
 
-  /** Web 的人工裁决入口（owner 裁⑥：合并交给用户在 Web 裁决，服务层不给自动策略） */
+  /**
+   * Web 的人工裁决入口（owner 裁⑥：合并交给用户在 Web 裁决，服务层不给自动策略）。
+   *
+   * **状态迁移表（v0.2.4 F1 / R1）**：
+   *
+   * | 从 \ 到 | published | rejected |
+   * |---------|-----------|----------|
+   * | pending | ✅ 放行   | ✅ 放行  |
+   * | rejected | ❌ 409   | ✅ 幂等  |
+   * | published | ✅ 幂等  | ❌ 409   |
+   * | conflict | ❌ 422（既有） | ❌ 422（既有） |
+   *
+   * `rejected → published` 拒绝的理由：被拒过的记录**必须重新 ingest**（新幂等键），
+   * 而不是重试同一条 —— 重试会跳过分发，让状态说「已发布」而业务表为空。
+   * `published → rejected` 拒绝的理由：已发布 = 已落库，撤销要走既有删除端点。
+   */
   review(
     id: string,
     to: Extract<AgentIngestStatus, 'published' | 'rejected'>,
@@ -173,6 +188,19 @@ export class AgentIngestRepo {
     if (!row) throw new AppError('NOT_FOUND', `回流记录不存在：${id}`)
     if (row.status === 'conflict') {
       throw new AppError('IDEMPOTENCY_CONFLICT', '冲突记录不能直接裁决，请先决定保留哪一方的幂等键')
+    }
+    // 终态与非法迁移：published 是终态；rejected 不可直接转 published
+    if (row.status === 'published' && to === 'rejected') {
+      throw new AppError(
+        'INVALID_TRANSITION',
+        '已发布的记录不可改判 rejected（撤销走既有删除端点）',
+      )
+    }
+    if (row.status === 'rejected' && to === 'published') {
+      throw new AppError(
+        'INVALID_TRANSITION',
+        '已拒绝的记录不可直接发布，请重新 ingest（新幂等键）',
+      )
     }
     this.db
       .prepare(

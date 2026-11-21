@@ -24,8 +24,7 @@ import { describe, expect, it } from 'vitest'
 import { spawn } from 'node:child_process'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { readFileSync, readdirSync, rmSync, mkdtempSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readFileSync, readdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { newDb } from '../test-support/new-db'
@@ -42,6 +41,7 @@ import {
   verdictOf,
   verifyLinkProbeRun,
 } from './m9-p1c-links'
+import { tempDir } from '../test-support/temp-dir'
 
 const SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))
 const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
@@ -362,12 +362,7 @@ describe('M9 P1c · 失效巡检（DL-30 · §3.14）', () => {
         }
         if (!/\.(ts|tsx|mts|js|mjs)$/.test(entry.name)) continue
         if (path.endsWith('.test.ts') || path.endsWith('.test.tsx')) continue
-        // ⚠️ 归一 POSIX：windows 的 slice 残留 `\apps\…` 形态，allowed 集合（POSIX 字面量）
-        //    永不命中 ⇒ 白名单文件全被误报（CI windows 实证 14 条）。
-        const rel = (path.startsWith(REPO_ROOT) ? path.slice(REPO_ROOT.length) : path).replace(
-          /\\/g,
-          '/',
-        )
+        const rel = path.startsWith(REPO_ROOT) ? path.slice(REPO_ROOT.length) : path
         if (allowed.has(rel)) continue
         const text = readFileSync(path, 'utf8')
         for (const needle of needles) {
@@ -406,7 +401,7 @@ describe('M9 P1c · 失效巡检（DL-30 · §3.14）', () => {
 describe('M9 P1c · 手动触发入口（scripts/check-m9-links.ts）', () => {
   /** 建一个只含一条合成资源的临时库，URL 指向本地服务。 */
   function tempDbWithOneResource(url: string): string {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-m9-links-'))
+    const dir = tempDir('ov-m9-links-')
     const dbPath = join(dir, 'links.db')
     const db = openDatabase(dbPath)
     db.prepare(

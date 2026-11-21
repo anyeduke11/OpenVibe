@@ -49,6 +49,8 @@ const adapters: AdapterBundle = {
       .map((id) => ({ path: PATHS[id], frontmatter: SHELLS[id] }))
       .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)),
   coveredPlatforms: () => ['Codex', 'Cursor'],
+  // N4 桩：能力位 false ⇒ 维持 L0，与既有确定性/字节断言兼容（E-6）
+  l1Capability: () => false,
 }
 
 const base = (): ResolvedPack => ({
@@ -157,7 +159,8 @@ describe('UT-COMPOSE-01 · 正文组装与确定性（m6a §7.1/§7.2）', () =>
     expect(claude.content).toContain('见 TERMS.md（1 条）')
     expect(claude.content).toContain('- 需求一句话写清\n\n**产物**: 需求便签')
     // 收口阶段无清单无产物 ⇒ 只剩标题
-    expect(claude.content).toContain('### 收口\n\n## 行为规则')
+    // D32（decisions ㊾）：节标题上方有段级受管标记 ⇒ 期望串插入标记行
+    expect(claude.content).toContain('### 收口\n\n<!-- openvibe:section=行为规则 -->\n## 行为规则')
   })
 
   it('正文零时间戳：换 exportedAt 后所有渲染产物字节不变', () => {

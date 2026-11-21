@@ -109,7 +109,9 @@ export { DevLogRepo } from './repos/devlog'
 export {
   checkLocalPath,
   readInjectionStatus,
+  scanInjectionFiles,
   PACK_LOCK_REL,
+  HOOKS_RUN_REL,
   type LocalPathCheck,
 } from './local/lock'
 export { PacksRepo } from './repos/packs'
@@ -149,6 +151,23 @@ export {
   type IngestBatchResult,
 } from './services/agentService'
 export { createContextService, type ContextServiceDeps } from './services/contextService'
+export {
+  createAgentRegistryService,
+  type AgentRegistryDeps,
+  type AgentRegistryService,
+  type HealthCheckResult,
+} from './services/agentRegistryService'
+export {
+  listAgentRegistry,
+  countAgentRegistry,
+  type AgentRegistryEntry,
+  type AgentHealth,
+} from './repos/agentRegistry'
+export {
+  AGENT_REGISTRY_SEEDS,
+  type AgentCapability,
+  type AgentRegistrySeed,
+} from './db/seed-agent-registry'
 export { createTermRecommendService, type TermRecommendDeps } from './services/termRecommendService'
 export {
   createCommandRunService,
@@ -295,7 +314,16 @@ export {
   type VibePitfall,
 } from './db/m9-vibe-static'
 export {
+  createPack,
   createPackService,
+  deletePack,
+  getPackById,
+  getPackExport,
+  listPacks,
+  packExportsOf,
+  packInjections,
+  reportPackInjection,
+  updatePack,
   type PackServiceDeps,
   type ExportWithRecordInput,
 } from './services/packService'
@@ -307,7 +335,116 @@ export {
   type PlanDecideApplyInput,
   type PlanDecideApplyResult,
 } from './services/injectService'
+export {
+  createDevLog,
+  createProject,
+  createTask,
+  deleteProject,
+  deleteTask,
+  exportDevLogs,
+  getDevLog,
+  getProject,
+  getTask,
+  linkDevLogAsset,
+  listDevLogs,
+  listProjectCheckStates,
+  listProjects,
+  listTasks,
+  moveTask,
+  projectHealthSummary,
+  reflowOriginFor,
+  setProjectCheckState,
+  switchProjectStage,
+  updateProject,
+  updateTask,
+  type ProjectServiceDeps,
+} from './services/projectService'
+export {
+  cleanupSkills,
+  createSkillRow,
+  deleteSkill,
+  getSkill,
+  listSkillRows,
+  mergeSkillRows,
+  repairSkillName,
+  reviewSkills,
+  scanSkills,
+  skillCleanupPreview,
+  skillDuplicates,
+  skillVersions,
+  updateSkillRow,
+  upsertRemoteSkill,
+  createFlowTemplate,
+  createPlaybook,
+  createPrompt,
+  createSkill,
+  createTerm,
+  deleteFlowTemplate,
+  deletePlaybook,
+  deletePrompt,
+  deleteSkillRow,
+  deleteTerm,
+  duplicateFlowTemplate,
+  exportAllPrompts,
+  getPlaybook,
+  getPrompt,
+  importPromptBatch,
+  listFlowTemplates,
+  listPlaybooks,
+  listPrompts,
+  listSkills,
+  listTerms,
+  readMetaBoolean,
+  readMetaJson,
+  writeMetaJson,
+  referencedPackNamesFor,
+  renderPlaybooksMd,
+  renderTermsMd,
+  searchPlaybooks,
+  searchTerms,
+  setAiExtractGate,
+  promptVersions,
+  restorePrompt,
+  updateFlowTemplate,
+  updatePlaybook,
+  updatePrompt,
+  updateSkill,
+  updateTerm,
+  type AssetServiceDeps,
+} from './services/assetService'
+export {
+  agentWriteView,
+  aiExtractEnabled,
+  enqueueTelemetryEvent,
+  getPack,
+  latestPackId,
+  onboardingDone,
+  packExists,
+  setAgentWrite,
+  setAiExtractEnabled,
+  setOnboardingDone,
+  setTelemetry,
+  telemetryView,
+  type SettingsServiceDeps,
+} from './services/settingsService'
+export {
+  clearLocalEvents,
+  countOf,
+  flywheelStats,
+  localEventCumulativeByKind,
+  localEventSummaryInWindow,
+  loopLedger,
+  localEventCount,
+  omDensity,
+  omTimeToValue,
+  telemetryEventCount,
+  telemetryEvents,
+  type CountableTable,
+  type StatsServiceDeps,
+  type TelemetryRow,
+} from './services/statsService'
 export { sha256Hex, stableJson } from './repos/util'
+export { referencedPackNames } from './repos/refs'
 export {
   composePack,
   resolvePack,
@@ -334,6 +471,7 @@ export {
   auditLockPaths,
   checkPackInjectable,
   checkWritePath,
+  resolveInside,
   resolveWriteTarget,
   planInjection,
   applyDecisions,
@@ -567,5 +705,8 @@ export {
   type ProviderSelection,
   type ProviderSelectionResult,
 } from './source-ai/provider-config'
+
+// ── N2 · Track N：slash 命令文件生成器（独立产物线，不触发 A 级链）──────────
+export { generateSlashCommands } from './slash/generate'
 
 export const CORE_VERSION = '0.0.0'

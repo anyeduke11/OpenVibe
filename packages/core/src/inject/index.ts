@@ -5,6 +5,7 @@ export {
   auditLockPaths,
   checkPackInjectable,
   checkWritePath,
+  resolveInside,
   resolveWriteTarget,
   type InjectablePack,
   type InjectionViolations,

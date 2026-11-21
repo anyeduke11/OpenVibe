@@ -1,9 +1,9 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { join, resolve, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { LIMITS } from '@openvibe/shared'
 import { auditLockPaths, checkPackInjectable, checkWritePath, resolveWriteTarget } from './security'
+import { tempDir } from '../test-support/temp-dir'
 
 interface Thrown {
   code: string
@@ -25,7 +25,7 @@ const OK = { path: 'CLAUDE.md', content: '# 规则\n' }
 const IS_WINDOWS = process.platform === 'win32'
 
 function workspace(prefix: string): { dir: string; close(): void } {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+  const dir = tempDir(prefix)
   return {
     dir,
     close() {

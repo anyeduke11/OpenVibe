@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { cpSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { TERM_DOMAINS, TERM_LEVELS } from '@openvibe/shared'
 import { newDb } from '../test-support/new-db'
 import { applyTermAnnotations, runSeed } from './seed'
 import { TermsRepo } from '../repos/terms'
+import { tempDir } from '../test-support/temp-dir'
 
 /**
  * 术语库学习化 P1（m3-terms-learning FR-1/FR-2/FR-3）。
@@ -293,7 +293,7 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
 
   it('真实种子首启：109 条自建词条全部按 zh+en 命中并落标', () => {
     const h = newDb()
-    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    const dir = tempDir('ov-ann-')
     seedTermsOnly(dir)
     const results = runSeed(h.db, dir)
     const ann = results.find((r) => r.bundle === 'term-annotations')!
@@ -327,7 +327,7 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
 
   it('⚠️ 场景句逐条落上：109 条自建词条一句都不能空、且与数据文件逐字一致', () => {
     const h = newDb()
-    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    const dir = tempDir('ov-ann-')
     seedTermsOnly(dir)
     runSeed(h.db, dir)
     const terms = new TermsRepo(h.db).list()
@@ -347,7 +347,7 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
 
   it('⚠️ 场景句回填同样不碰 seed_hash（走 update() 会把 441 条标成「用户改过」）', () => {
     const h = newDb()
-    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    const dir = tempDir('ov-ann-')
     seedTermsOnly(dir)
     runSeed(h.db, dir)
     const nulls = (
@@ -360,7 +360,7 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
 
   it('⚠️ 回填不碰 updated_at（否则 441 条会被顶到 list() 最前面）', () => {
     const h = newDb()
-    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    const dir = tempDir('ov-ann-')
     seedTermsOnly(dir)
     runSeed(h.db, dir)
     // 首启后 updated_at 应仍与 created_at 同源（回填未刷新它）
@@ -376,7 +376,7 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
 
   it('⚠️ 幂等：二次运行 created=0 且 status=skipped（既有契约「二次启动全 skipped」）', () => {
     const h = newDb()
-    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    const dir = tempDir('ov-ann-')
     seedTermsOnly(dir)
     runSeed(h.db, dir)
     const second = applyTermAnnotations(h.db, dir)
@@ -388,7 +388,7 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
 
   it('⚠️ 走的是 setLearning 不是 update：回填后 seed_hash 全部还在', () => {
     const h = newDb()
-    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    const dir = tempDir('ov-ann-')
     seedTermsOnly(dir)
     runSeed(h.db, dir)
     const h1 = new TermsRepo(h.db)
@@ -403,7 +403,7 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
 
   it('vibe-hub 词条：tags[0] 就是领域，经映射表查不到时按原值直取', () => {
     const h = newDb()
-    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    const dir = tempDir('ov-ann-')
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, 'term-levels.json'), JSON.stringify({ schemaVersion: 1, items: [] }))
     writeFileSync(
@@ -421,7 +421,7 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
 
   it('两个标注文件都缺失 ⇒ status=error 且不抛（与 bundle 同口径，单文件失败不阻塞）', () => {
     const h = newDb()
-    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    const dir = tempDir('ov-ann-')
     const ann = applyTermAnnotations(h.db, dir)
     expect(ann.status).toBe('error')
     expect(ann.warnings.length).toBeGreaterThan(0)
@@ -431,7 +431,7 @@ describe('UT-TERM-ANN-05 · applyTermAnnotations 主流程', () => {
 
   it('条目字段非法时计入 skipped 并告警，不整轮崩掉', () => {
     const h = newDb()
-    const dir = mkdtempSync(join(tmpdir(), 'ov-ann-'))
+    const dir = tempDir('ov-ann-')
     mkdirSync(dir, { recursive: true })
     writeFileSync(
       join(dir, 'term-levels.json'),

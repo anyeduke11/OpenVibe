@@ -1,4 +1,11 @@
-import { AppError, compareSemver, type ExportOut, type PackOut } from '@openvibe/shared'
+import {
+  AppError,
+  compareSemver,
+  type ExportOut,
+  type PackCreateInput,
+  type PackOut,
+  type PackUpdateInput,
+} from '@openvibe/shared'
 import type { SqliteDatabase } from '../db'
 import { PacksRepo } from '../repos/packs'
 import { bundleJson, directoryFiles, type RenderedPack } from '../pack'
@@ -106,4 +113,88 @@ export function createPackService(deps: PackServiceDeps) {
   }
 
   return { exportPackWithRecord, needPack }
+}
+
+/**
+ * 标准包 CRUD 与历史读取（F-1 · service-layer.md FR-3 的服务层收敛）。
+ *
+ * ## 为什么这些是函数而不是 `createPackService()` 的返回成员
+ *
+ * `createPackService` 的返回值是「一次用户意图」级的**编排**（导出带记录、版本校验、
+ * 落盘），它需要注入外部能力（renderPack / 落盘 / 目录）。而 CRUD 与历史读取是**纯库内动作**，
+ * 只需要 db——把它们塞进同一个工厂会让「导出」的依赖被迫流到 CRUD 的调用方。
+ * 故 CRUD 单列为一组函数，与 assetService 的五类资产同形制（函数 + deps，不建 class）。
+ *
+ * ## 为什么仍住 packService.ts
+ *
+ * 它与导出编排读的是同两张表（`standard_packs` / `pack_exports`），且 `needPack` 的
+ * 「包不存在就 404」是同一条规则——拆成两个文件会让那条规则出现两次。
+ */
+
+/** 取包（不存在返回 null；路由据 null 抛 404） */
+export function getPackById(
+  deps: { db: SqliteDatabase },
+  id: string,
+): ReturnType<PacksRepo['get']> {
+  return new PacksRepo(deps.db).get(id)
+}
+
+/** 包列表 */
+export function listPacks(deps: { db: SqliteDatabase }): ReturnType<PacksRepo['list']> {
+  return new PacksRepo(deps.db).list()
+}
+
+/** 建包 */
+export function createPack(
+  deps: { db: SqliteDatabase },
+  input: PackCreateInput,
+): ReturnType<PacksRepo['create']> {
+  return new PacksRepo(deps.db).create(input)
+}
+
+/** 改包 */
+export function updatePack(
+  deps: { db: SqliteDatabase },
+  id: string,
+  patch: PackUpdateInput,
+): ReturnType<PacksRepo['update']> {
+  return new PacksRepo(deps.db).update(id, patch)
+}
+
+/** 删包 */
+export function deletePack(deps: { db: SqliteDatabase }, id: string): void {
+  new PacksRepo(deps.db).delete(id)
+}
+
+/** 导出历史 */
+export function packExportsOf(
+  deps: { db: SqliteDatabase },
+  packId: string,
+): ReturnType<PacksRepo['exportsOf']> {
+  return new PacksRepo(deps.db).exportsOf(packId)
+}
+
+/** 单条导出记录（bundle 下载用） */
+export function getPackExport(
+  deps: { db: SqliteDatabase },
+  packId: string,
+  exportId: string,
+): ReturnType<PacksRepo['getExport']> {
+  return new PacksRepo(deps.db).getExport(packId, exportId)
+}
+
+/** 注入历史 */
+export function packInjections(
+  deps: { db: SqliteDatabase },
+  packId?: string,
+): ReturnType<PacksRepo['listInjections']> {
+  return new PacksRepo(deps.db).listInjections(packId)
+}
+
+/** CLI 上报的注入记录（`POST /api/injections`） */
+export function reportPackInjection(
+  deps: { db: SqliteDatabase },
+  input: Parameters<PacksRepo['reportInjection']>[0],
+): ReturnType<PacksRepo['reportInjection']> {
+  return new PacksRepo(deps.db).reportInjection(input)
 }

@@ -544,7 +544,7 @@ describe('发布分发 · 幂等（同一个 id 重复 review 不产生第二条
     h.close()
   })
 
-  it('已发布的记录被改判 rejected ⇒ 业务行**不被撤销**（记录状态变，行留下）', () => {
+  it('已发布的记录不可改判 rejected（published 是终态，v0.2.4 F1）', () => {
     const { svc, projectId, h } = fixture()
     const id = push(svc, projectId, 'dev_log', 'flip', {
       type: 'DEV',
@@ -552,9 +552,13 @@ describe('发布分发 · 幂等（同一个 id 重复 review 不产生第二条
       body: 'x',
     })
     svc.reviewIngest(id, 'published', null)
-    const out = svc.reviewIngest(id, 'rejected', '看错了')
-    expect(out.status).toBe('rejected')
-    // 这是**已登记的语义**：分发只做加法，不做减法（撤一条 dev_log 要走既有的删除端点）
+    // v0.2.4 F1：published 是终态，改判被拒（409 INVALID_TRANSITION）
+    // 旧语义「状态变、行留下」正是 R1 要修的缺陷（状态与业务行分离）
+    expect(() => svc.reviewIngest(id, 'rejected', '看错了')).toThrow(
+      expect.objectContaining({ code: 'INVALID_TRANSITION' }),
+    )
+    expect(svc.getIngest(id)!.status).toBe('published')
+    // 分发只做加法，不做减法（撤一条 dev_log 要走既有的删除端点）
     expect(countRows(h, 'dev_log_entries')).toBe(1)
     h.close()
   })
@@ -589,6 +593,65 @@ describe('发布分发 · 未定义的落点（登记在案的缺口）', () => 
     // 这是**如实登记的缺口**不是漏写：agent_sessions 表在 0007 建了但全仓无写入路径，
     // spec 的 FR-2 也没给 session 任何落点。若日后补上落点，这条断言就是它的红线
     expectBusinessTablesEmpty(h)
+    h.close()
+  })
+})
+
+/**
+ * v0.2.4 F1 / R1：回流状态机与业务写入必须在同一提交。
+ *
+ * **为什么这三条是红的（2026-11-07 前）**：
+ * ① `review` 只拦 `conflict`，`rejected → published` 直接放行且**跳过分发**
+ *    ⇒ 状态说「已发布」，业务表说「没有」（P-B reject_first 臂实测 0 行）。
+ * ② 分发与状态更新不在同一事务：`update_abort` 臂用触发器制造「业务行成功、
+ *    状态更新失败」后重试，业务行变 2 条（P-B 实测 entry_no 1,2）。
+ * ③ `published` 不是终态：已发布记录可被改判 rejected，状态与业务行再次分离。
+ */
+describe('R1 · 状态迁移与事务（v0.2.4 F1）', () => {
+  it('① rejected → published 返回 409，且业务表零写入', () => {
+    const { svc, projectId, h } = fixture()
+    const id = push(svc, projectId, 'dev_log', 'r1-rej', { type: 'DEV', title: 't', body: 'b' })
+    svc.reviewIngest(id, 'rejected', '看错了')
+    // 被拒过的记录要重新发布 ⇒ 必须重新 ingest（新幂等键），不是重试同一条
+    expect(() => svc.reviewIngest(id, 'published', null)).toThrow(
+      expect.objectContaining({ code: 'INVALID_TRANSITION' }),
+    )
+    // 状态没被改，业务表也没落
+    expect(svc.getIngest(id)!.status).toBe('rejected')
+    expect(countRows(h, 'dev_log_entries')).toBe(0)
+    h.close()
+  })
+
+  it('② 中止触发器：状态更新失败 ⇒ 业务行回滚为 0，重试后恰好 1 行', () => {
+    const { svc, projectId, h } = fixture()
+    const id = push(svc, projectId, 'dev_log', 'r1-abort', { type: 'DEV', title: 't', body: 'b' })
+    // 注入中止触发器：pending → published 的 UPDATE 被 ABORT
+    h.db.exec(`CREATE TEMP TRIGGER r1_abort BEFORE UPDATE OF status ON agent_ingests
+      WHEN OLD.status = 'pending' AND NEW.status = 'published'
+      BEGIN SELECT RAISE(ABORT, 'injected'); END;`)
+    // 第一次发布：触发器中止状态更新 ⇒ 必须整笔回滚（业务行 0）
+    expect(() => svc.reviewIngest(id, 'published', null)).toThrow()
+    expect(svc.getIngest(id)!.status).toBe('pending')
+    expect(countRows(h, 'dev_log_entries')).toBe(0)
+    // 撤掉触发器后重试 ⇒ 恰好 1 行（不是 2 行）
+    h.db.exec('DROP TRIGGER r1_abort')
+    svc.reviewIngest(id, 'published', null)
+    expect(svc.getIngest(id)!.status).toBe('published')
+    expect(countRows(h, 'dev_log_entries')).toBe(1)
+    h.close()
+  })
+
+  it('③ published 是终态：已发布记录不可改判 rejected（状态与业务行不再分离）', () => {
+    const { svc, projectId, h } = fixture()
+    const id = push(svc, projectId, 'dev_log', 'r1-term', { type: 'DEV', title: 't', body: 'b' })
+    svc.reviewIngest(id, 'published', null)
+    expect(countRows(h, 'dev_log_entries')).toBe(1)
+    // 已发布 = 已落库，不允许再改判（要撤走既有删除端点）
+    expect(() => svc.reviewIngest(id, 'rejected', '反悔')).toThrow(
+      expect.objectContaining({ code: 'INVALID_TRANSITION' }),
+    )
+    expect(svc.getIngest(id)!.status).toBe('published')
+    expect(countRows(h, 'dev_log_entries')).toBe(1)
     h.close()
   })
 })

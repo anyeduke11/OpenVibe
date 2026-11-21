@@ -1,6 +1,8 @@
 import {
   AppError,
+  L1_DEFAULT,
   type FlowTemplateOut,
+  type Hooks,
   type PackSelection,
   type PlaybookOut,
   type PromptOut,
@@ -151,6 +153,10 @@ export function resolvePack(
       verified: p.verified,
       status: p.status,
     })),
+    // N3 hooks（n3-hooks.md FR-2.2）：缺省按空集补齐（A 级链：旧形态兼容，无钩子包不写）
+    hooks: selection.hooks ?? { pre: [], post: [] },
+    // N4 特性位（m11 FR-3.5）：缺省按产品默认补齐（claude-code=true，其余关）
+    l1: { ...L1_DEFAULT, ...selection.l1 },
   }
 }
 

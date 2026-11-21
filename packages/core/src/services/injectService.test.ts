@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { planInjection, type InjectPlan } from '../inject'
 import { fileSha256 } from '../pack'
 import { decideInjections, planDecideApply, InjectError, type AskFn } from './injectService'
 import type { InjectDecision } from '../inject'
+import { tempDir } from '../test-support/temp-dir'
 
 /**
  * `injectService` 单测（service-layer.md §7 a 条 `UT-SVC-01`）。
@@ -16,7 +16,7 @@ import type { InjectDecision } from '../inject'
  */
 
 function tmpProject(): { path: string; cleanup(): void } {
-  const path = mkdtempSync(join(tmpdir(), 'ov-inject-test-'))
+  const path = tempDir('ov-inject-test-')
   mkdirSync(join(path, '.claude'), { recursive: true })
   return { path, cleanup: () => rmSync(path, { recursive: true, force: true }) }
 }

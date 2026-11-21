@@ -4,25 +4,17 @@
 // 等于把「注入只动项目内」这句承诺在最现实的平台上留成未验证面（承 owner 裁定 2026-09-27：
 // 替换式写入、不拒绝）。mode 的透传不在这里重复断言——既有 POSIX 腿（CLI-SYNC-03d 等）已经
 // 走的就是这个函数，win32 的 mode 语义归 apps/cli/test/win32-facts.test.ts 记录。
-import {
-  linkSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs'
-import { tmpdir } from 'node:os'
+import { linkSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { writeReplacingLinks } from './atomic-write'
+import { tempDir } from '../test-support/temp-dir'
 
 const roots: string[] = []
 
 /** 一次性沙箱：`root/proj` 与链外文件分居两侧，链外那一份才是「副作用漏没漏出去」的判据 */
 function workspace(): { root: string; proj: string } {
-  const root = mkdtempSync(join(tmpdir(), 'ov-atomic-write-'))
+  const root = tempDir('ov-atomic-write-')
   roots.push(root)
   const proj = join(root, 'proj')
   mkdirSync(proj)

@@ -18,8 +18,7 @@
 // ⚠️ **变异一律在临时目录里做** —— 真实证据目录与真实种子文件里放人造内容是错的：
 //   那里放的东西会被将来的读者当成实测。
 import { describe, expect, it } from 'vitest'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { newDb } from '../test-support/new-db'
@@ -45,6 +44,7 @@ import {
   checkNoMappingStatementsStillThere,
   findStagePhaseArtifacts,
 } from './m9-p1d-stage-phase-guard'
+import { tempDir } from '../test-support/temp-dir'
 
 const SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))
 const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
@@ -135,7 +135,7 @@ function diffPhasesAgainstSpec(db: Db, specRows: readonly SpecPhaseRow[]): strin
 
 /** 把种子文件拷进临时目录并做一次改动（不动真实种子）。 */
 function tamperedSeedDir(mutate: (text: string) => string): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-p1d-seed-'))
+  const dir = tempDir('ov-p1d-seed-')
   const src = readFileSync(join(SEEDS_DIR, 'lang_profile_phases.json'), 'utf8')
   writeFileSync(join(dir, 'lang_profile_phases.json'), mutate(src))
   return dir
@@ -764,7 +764,7 @@ describe('M9 P1d · DL-50 8 站与附件分期不做逐格映射', () => {
   })
 
   it('变异 ②：仓内真出现一张「站↔段」映射表 ⇒ 红（临时目录，不碰真实仓）', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-p1d-map-'))
+    const dir = tempDir('ov-p1d-map-')
     try {
       mkdirSync(join(dir, 'migrations'), { recursive: true })
       writeFileSync(

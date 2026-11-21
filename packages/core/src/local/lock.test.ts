@@ -1,13 +1,14 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { checkLocalPath, readInjectionStatus } from './lock'
+import { checkLocalPath, readInjectionStatus, scanInjectionFiles } from './lock'
+import { fileSha256 } from '../pack/fingerprint'
+import { tempDir } from '../test-support/temp-dir'
 
 const HASH = 'a'.repeat(64)
 
 function workspace(): { dir: string; close(): void } {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-lock-test-'))
+  const dir = tempDir('ov-lock-test-')
   return {
     dir,
     close() {
@@ -98,6 +99,81 @@ describe('UT-LOCK-02 · 异常口径不得波及他字段（m5 §6.1/§6.4）', 
     expect(readInjectionStatus({ localPath: filePath, registered: null }).error).toBe(
       'lock 文件异常',
     )
+    w.close()
+  })
+})
+
+describe('UT-LOCK-03 · 注入产物扫描（原型「产物台账」）', () => {
+  const lockWith = (files: Array<{ path: string; sha256: string; managed: boolean }>) =>
+    JSON.stringify({
+      schemaVersion: 1,
+      pack: { id: 'pk_x', name: 'default', version: '1.0.0', fingerprint: HASH },
+      injectedAt: '2026-09-20T02:11:00Z',
+      files,
+    })
+
+  it('无 localPath / 缺 lock → lockPresent false 且 files 为空（不抛错）', () => {
+    expect(scanInjectionFiles(null)).toEqual({
+      lockPresent: false,
+      files: [],
+      error: '未登记本地路径',
+    })
+    const w = workspace()
+    expect(scanInjectionFiles(w.dir)).toMatchObject({ lockPresent: false, files: [] })
+    w.close()
+  })
+
+  it('内容与 lock 一致 ⇒ IN_SYNC；lock 自身作为合成行 LOCK 附在末尾', () => {
+    const w = workspace()
+    const content = '# CLAUDE\n一致\n'
+    writeFileSync(join(w.dir, 'CLAUDE.md'), content, 'utf8')
+    writeLock(w.dir, lockWith([{ path: 'CLAUDE.md', sha256: fileSha256(content), managed: true }]))
+
+    const out = scanInjectionFiles(w.dir)
+    expect(out.lockPresent).toBe(true)
+    expect(out.pack).toMatchObject({ name: 'default', version: '1.0.0' })
+    expect(out.files).toHaveLength(2)
+    expect(out.files[0]).toMatchObject({ path: 'CLAUDE.md', state: 'IN_SYNC', managed: true })
+    expect(out.files[1]).toMatchObject({
+      path: join('.openvibe', 'pack.lock.json'),
+      state: 'LOCK',
+      managed: false,
+    })
+    w.close()
+  })
+
+  it('磁盘内容变了 ⇒ DRIFT（受管）/ FOREIGN（未受管），删文件 ⇒ ABSENT', () => {
+    const w = workspace()
+    const managed = '# 受管\n'
+    const unmanaged = '# 未受管\n'
+    writeFileSync(join(w.dir, 'CLAUDE.md'), `${managed}手改`, 'utf8')
+    writeFileSync(join(w.dir, 'NOTES.md'), `${unmanaged}也改了`, 'utf8')
+    writeFileSync(join(w.dir, 'GONE.md'), 'x', 'utf8')
+    writeLock(
+      w.dir,
+      lockWith([
+        { path: 'CLAUDE.md', sha256: fileSha256(managed), managed: true },
+        { path: 'NOTES.md', sha256: fileSha256(unmanaged), managed: false },
+        { path: 'GONE.md', sha256: fileSha256('x'), managed: true },
+      ]),
+    )
+    rmSync(join(w.dir, 'GONE.md'))
+
+    const rows = scanInjectionFiles(w.dir).files
+    const byPath = Object.fromEntries(rows.map((r) => [r.path, r.state]))
+    expect(byPath['CLAUDE.md']).toBe('DRIFT')
+    expect(byPath['NOTES.md']).toBe('FOREIGN')
+    expect(byPath['GONE.md']).toBe('ABSENT')
+    w.close()
+  })
+
+  it('⚠️ 与 CLI 同口径：未受管且内容一致仍是 FOREIGN，不是 IN_SYNC（FR-2 判据在哈希之前）', () => {
+    const w = workspace()
+    const content = '# 未受管但一致\n'
+    writeFileSync(join(w.dir, 'NOTES.md'), content, 'utf8')
+    writeLock(w.dir, lockWith([{ path: 'NOTES.md', sha256: fileSha256(content), managed: false }]))
+    const row = scanInjectionFiles(w.dir).files.find((r) => r.path === 'NOTES.md')
+    expect(row?.state).toBe('FOREIGN')
     w.close()
   })
 })

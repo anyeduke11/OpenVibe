@@ -1,7 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest'
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { mkdtempSync } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
   computeDirHash,
@@ -14,10 +12,11 @@ import {
   zcodePluginSkillRoots,
 } from './skills'
 import { newDb } from '../test-support/new-db'
+import { tempDir } from '../test-support/temp-dir'
 
 describe('dirHash 算法（m2 FR-1.3）', () => {
   it('忽略 .DS_Store 与 node_modules；内容变化 → 哈希变化', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-skill-'))
+    const dir = tempDir('ov-skill-')
     try {
       writeFileSync(join(dir, 'SKILL.md'), '---\nname: pdf\ndescription: d\n---\nbody')
       const h1 = computeDirHash(dir)
@@ -54,7 +53,7 @@ describe('dirHash 算法（m2 FR-1.3）', () => {
   })
 
   it('hashSkillEntries 与 computeDirHash 同公式：同一套文件两边指纹一致', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-hash-'))
+    const dir = tempDir('ov-hash-')
     try {
       writeFileSync(join(dir, 'SKILL.md'), '---\nname: x\n---\nbody')
       mkdirSync(join(dir, 'sub'))
@@ -78,7 +77,7 @@ describe('SkillsRepo.scan（m2 FR-1 验收前置）', () => {
   let handle: ReturnType<typeof newDb>
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'ov-skills-root-'))
+    root = tempDir('ov-skills-root-')
     handle = newDb()
     const mk = (name: string, content: string) => {
       mkdirSync(join(root, name))
@@ -190,7 +189,7 @@ describe('远程导入落账 upsertRemote（DEV-0067）', () => {
 
   it('与本地同名条目合并：追加远程版本且不覆盖已有 skill_dir', () => {
     const repo = new SkillsRepo(handle.db)
-    const dir = mkdtempSync(join(tmpdir(), 'ov-remote-merge-'))
+    const dir = tempDir('ov-remote-merge-')
     try {
       mkdirSync(join(dir, 'pdf-kit'))
       writeFileSync(
@@ -235,7 +234,7 @@ describe('重复整理与内置审查（DEV-0067）', () => {
 
   it('duplicates：同内容不同名归组；目录消失记 stale；引号名记异常；manual 空指纹不参与', async () => {
     const { createHash } = await import('node:crypto')
-    const dir = mkdtempSync(join(tmpdir(), 'ov-dup-'))
+    const dir = tempDir('ov-dup-')
     try {
       const repo = new SkillsRepo(handle.db)
       const body = '---\nname: aa\ndescription: 同内容甲\n---\n完全一样的内容'
@@ -331,7 +330,7 @@ describe('重复整理与内置审查（DEV-0067）', () => {
 
 describe('默认扫描根发现（DEV-0063：~/.<tool>/skills 存在即扫）', () => {
   it('发现全部点目录下的 skills；.Trash 排除；非目录点项与无 skills 的点项忽略', () => {
-    const home = mkdtempSync(join(tmpdir(), 'ov-home-'))
+    const home = tempDir('ov-home-')
     try {
       for (const dot of ['.claude', '.qoder', '.trae', '.workbuddy', '.openclaw-autoclaw']) {
         mkdirSync(join(home, dot, 'skills'), { recursive: true })
@@ -353,8 +352,8 @@ describe('默认扫描根发现（DEV-0063：~/.<tool>/skills 存在即扫）', 
   })
 
   it('cwd 的 .claude/skills 存在时并入同一清单（去重、无重复条目）', () => {
-    const home = mkdtempSync(join(tmpdir(), 'ov-home2-'))
-    const cwdRoot = mkdtempSync(join(tmpdir(), 'ov-cwd-'))
+    const home = tempDir('ov-home2-')
+    const cwdRoot = tempDir('ov-cwd-')
     try {
       mkdirSync(join(cwdRoot, '.claude', 'skills'), { recursive: true })
       mkdirSync(join(home, '.agents', 'skills'), { recursive: true })
@@ -376,7 +375,7 @@ describe('ZCode 插件 skill 根（DEV-0066：清单钉版 + 缓存最高版本�
   let cacheRoot: string
 
   beforeEach(() => {
-    home = mkdtempSync(join(tmpdir(), 'ov-zcode-'))
+    home = tempDir('ov-zcode-')
     manifest = join(home, '.zcode', 'cli', 'plugins', 'installed_plugins.json')
     cacheRoot = join(home, '.zcode', 'cli', 'plugins', 'cache')
     mkdirSync(join(home, '.zcode', 'cli', 'plugins'), { recursive: true })
@@ -439,7 +438,7 @@ describe('ZCode 插件 skill 根（DEV-0066：清单钉版 + 缓存最高版本�
 describe('手动登记与扫描并入（m2 FR-2.2 / §7.4）', () => {
   it('create 即生成无指纹的 v1 首版本；同名目录扫到后成为版本 2 且主档仍为 manual', () => {
     const handle = newDb()
-    const dir = mkdtempSync(join(tmpdir(), 'ov-skills-manual-'))
+    const dir = tempDir('ov-skills-manual-')
     try {
       const repo = new SkillsRepo(handle.db)
       const manual = repo.create({
@@ -540,7 +539,7 @@ describe('整合与名称修复（DEV-0073）', () => {
 
   it('mergeSkills：版本搬移去重、空指纹丢弃、目标并集、目录继承、吸收者删除', () => {
     const repo = new SkillsRepo(handle.db)
-    const dir = mkdtempSync(join(tmpdir(), 'ov-merge-'))
+    const dir = tempDir('ov-merge-')
     try {
       // 真实成因的等价夹具：一个真实扫描条目（keep），两个"改名副本"——手动建账后
       // 白盒把版本指纹设为与 keep 相同（同内容不同名的唯一稳定来源，见 duplicates 用例）
@@ -598,7 +597,7 @@ describe('整合与名称修复（DEV-0073）', () => {
 
   it('mergeSkills：保留项无目录时继承吸收者目录；不存在的 id → NOT_FOUND；吸收自己 → 422', () => {
     const repo = new SkillsRepo(handle.db)
-    const dir = mkdtempSync(join(tmpdir(), 'ov-merge2-'))
+    const dir = tempDir('ov-merge2-')
     try {
       mkdirSync(join(dir, 'local-one'))
       writeFileSync(join(dir, 'local-one', 'SKILL.md'), '---\nname: local-one\n---\n正文')
@@ -630,7 +629,7 @@ describe('整合与名称修复（DEV-0073）', () => {
 
   it('repairName：quoted 去引号改名且不动源文件；convention 改名并重写 SKILL.md；撞名自动并入', () => {
     const repo = new SkillsRepo(handle.db)
-    const dir = mkdtempSync(join(tmpdir(), 'ov-repair-'))
+    const dir = tempDir('ov-repair-')
     try {
       // quoted 存量：手动造（新解析器已剥引号，磁盘文件保持带引号原样）
       const quoted = repo.create({
@@ -691,7 +690,7 @@ describe('整合与名称修复（DEV-0073）', () => {
 
   it('repairName：convention 源文件不可写时失败且台账未动（原子性）', () => {
     const repo = new SkillsRepo(handle.db)
-    const dir = mkdtempSync(join(tmpdir(), 'ov-repair-atomic-'))
+    const dir = tempDir('ov-repair-atomic-')
     try {
       mkdirSync(join(dir, 'broken'))
       // 目录存在但 SKILL.md 缺失 → 读失败 → failed，不改台账

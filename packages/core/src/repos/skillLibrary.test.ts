@@ -1,12 +1,12 @@
 import { describe, expect, it, afterEach } from 'vitest'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { SkillsRepo } from './skills'
 import { zcodePluginSkillRoots } from './skills'
 import { SqliteSkillLibrary, skillLibraryDir, skillLibraryRoot } from './skillLibrary'
 import { defaultSkillRoots, expandKnownRoots, KNOWN_SKILL_ROOTS } from './skill-scan-roots'
 import { newDb } from '../test-support/new-db'
+import { tempDir } from '../test-support/temp-dir'
 
 /**
  * Skill 库 / 扫描根清单 / 失效清理的**行为**测试（2026-10-30）。
@@ -42,7 +42,7 @@ function makeDb(): ReturnType<typeof newDb> {
  *   这个分叉正是本文件第一版踩到的坑。
  */
 function tempHome(): string {
-  const home = mkdtempSync(join(tmpdir(), 'ov-skillhome-'))
+  const home = tempDir('ov-skillhome-')
   // OpenVibe 家目录与 agent 家目录分开：布局与生产一致（家目录下再开 .openvibe）
   process.env.OPENVIBE_HOME = join(home, '.openvibe')
   return home
@@ -126,11 +126,9 @@ describe('扫描根清单（2026-10-30：改成可配置清单）', () => {
       const roots = defaultSkillRoots(home)
       expect(roots.every((r) => existsSync(r))).toBe(true)
       const expanded = expandKnownRoots(home)
-      // ⚠️ 后缀比较归一 POSIX：windows 的 path 是反斜杠形态（CI windows 实证 endsWith 失配）
-      const posix = (p: string): string => p.replace(/\\/g, '/')
-      const claude = expanded.find((e) => posix(e.path).endsWith('.claude/skills'))
+      const claude = expanded.find((e) => e.path.endsWith('.claude/skills'))
       expect(claude?.exists).toBe(true)
-      const missing = expanded.find((e) => posix(e.path).endsWith('.stepclaw/skills'))
+      const missing = expanded.find((e) => e.path.endsWith('.stepclaw/skills'))
       expect(missing?.exists).toBe(false)
     } finally {
       rmSync(home, { recursive: true, force: true })

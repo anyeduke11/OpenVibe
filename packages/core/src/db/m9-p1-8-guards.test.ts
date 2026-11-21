@@ -19,8 +19,7 @@
 //   - DL-14 守的是**筛选器可选值来自库** ＋ **两门行数按 §1.5 实测钉住**。
 
 import { describe, expect, it } from 'vitest'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { newDb } from '../test-support/new-db'
@@ -50,6 +49,7 @@ import {
 } from './m9-topic-terms'
 import { filterTopics, langCoverage, topicFilterOptions } from './m9-topic-filter'
 import type { SqliteDatabase } from './index'
+import { tempDir } from '../test-support/temp-dir'
 
 const SEEDS_DIR = fileURLToPath(new URL('./seeds', import.meta.url))
 const REPO_ROOT = fileURLToPath(new URL('../../../../', import.meta.url))
@@ -251,7 +251,7 @@ describe('M9 P1.8 · DL-02 教程正文零进仓', () => {
 
   it('变异 ⑦：外部源派生目录里多出一个文件 ⇒ 必须报出（临时目录，不碰真实证据目录）', () => {
     // ⚠️ **绝不在真实证据目录里造人造文件** —— 那里放的东西会被将来的读者当成实测。
-    const dir = mkdtempSync(join(tmpdir(), 'ov-m9-scan-'))
+    const dir = tempDir('ov-m9-scan-')
     try {
       const probeDir = join(dir, 'M9-probe')
       mkdirSync(probeDir)

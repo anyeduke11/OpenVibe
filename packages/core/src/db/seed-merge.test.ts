@@ -1,10 +1,10 @@
-import { mkdtempSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { newDb } from '../test-support/new-db'
 import { mergeSeedRow, seedRowHash, type SeedMergeSpec } from './seed-merge'
 import { seedLangTopics } from './m9-p1-seed-lang-topics'
+import { tempDir } from '../test-support/temp-dir'
 
 /**
  * v0.2.3 批次 C CS2（spec `v023-c-consolidation.md` FR-2）验收：
@@ -175,7 +175,7 @@ describe('CS2 验收：lang_topics 播种器端到端（真种子文件 + reseed
   const SEED_FILE = 'lang_topics_python3.json'
 
   it('CS2-01: 改一条种子内容 ⇒ 已装库 reseed 后生效（updated 计数可见）', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-cs2-'))
+    const dir = tempDir('ov-cs2-')
     const h = newDb()
     try {
       const raw = JSON.stringify({
@@ -233,7 +233,7 @@ describe('CS2 验收：lang_topics 播种器端到端（真种子文件 + reseed
   })
 
   it('CS2-02: 用户手改该行 ⇒ reseed 跳过且内容保留（userModified 计数可见）', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-cs2-'))
+    const dir = tempDir('ov-cs2-')
     const h = newDb()
     try {
       const items = {
