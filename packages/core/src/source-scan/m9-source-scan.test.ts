@@ -144,7 +144,9 @@ describe('M9 P4.1 / P4.2 · 夹具全跑过（dev-plan §6.10 出口 a）', () =
 })
 
 describe('M9 P4.2 · DL-19 · 回退只降精度、不减结果', () => {
-  it('夹具上：parser 的命中集合 ⊇ 正则的命中集合', async () => {
+  // 环境门控（与下方真实样本腿同款）：无 go 工具链时 parser 侧不存在 ⇒ 「⊇」无从谈起，
+  //   显式跳过而非假绿（2026-11-21：macOS/Windows CI runner 无 Go ⇒ 必红）。
+  it.skipIf(!HAS_GO)('夹具上：parser 的命中集合 ⊇ 正则的命中集合', async () => {
     const { parser, heuristic } = await bothPaths(FIXTURE_DIR)
     expect(heuristic.size).toBeGreaterThan(0)
     expect(findSubsetViolations(parser, heuristic)).toEqual([])
