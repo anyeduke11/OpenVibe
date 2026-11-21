@@ -1,11 +1,12 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { coveredPlatforms, planMainFiles } from '@openvibe/adapters'
+import { coveredPlatforms, l1Capability, planMainFiles } from '@openvibe/adapters'
 import { buildBundle, composePack, directoryFiles, type AdapterBundle } from '@openvibe/core'
 import {
   PACK_NAME_RE,
   SEMVER_RE,
   type AdapterId,
+  type Hooks,
   type PackBundle,
   type PackManifest,
   type PlannedFileOut,
@@ -17,7 +18,7 @@ import {
  * （`CLAUDE.md` / `.cursor/rules/openvibe.mdc` / `TERMS.md` / `CHECKLIST.md` …），
  * `--target` 与路径安全相关的断言才有意义（packages/core/src/pack/pack.test.ts 用的是桩 adapter）。
  */
-const adapters: AdapterBundle = { planMainFiles, coveredPlatforms }
+const adapters: AdapterBundle = { planMainFiles, coveredPlatforms, l1Capability }
 
 export const EXPORTED_AT = '2026-09-21T00:00:00Z'
 
@@ -40,6 +41,8 @@ export interface DemoOptions {
   withFlow?: boolean
   withSkills?: boolean
   id?: string
+  /** N3 hooks（n3-hooks.md FR-2.2）：注入 manifest.hooks，供 sync 端到端钩子用例 */
+  hooks?: Hooks
 }
 
 export function demoResolved(options: DemoOptions = {}): ResolvedPack {
@@ -99,6 +102,7 @@ export function demoResolved(options: DemoOptions = {}): ResolvedPack {
             },
           ]
         : [],
+    hooks: options.hooks,
   }
 }
 

@@ -22,9 +22,23 @@ import {
   type SkillScanRoot,
 } from '@openvibe/shared'
 import {
-  AppMetaRepo,
+  readMetaJson,
+  writeMetaJson,
   APP_META_KEYS,
-  SkillsRepo,
+  cleanupSkills,
+  createSkillRow,
+  getSkill,
+  mergeSkillRows,
+  repairSkillName,
+  reviewSkills,
+  skillCleanupPreview,
+  skillDuplicates,
+  deleteSkill,
+  listSkillRows,
+  scanSkills,
+  skillVersions,
+  updateSkillRow,
+  upsertRemoteSkill,
   SqliteSkillLibrary,
   defaultSkillRoots,
   expandKnownRoots,
@@ -56,15 +70,16 @@ function matchQuery(query: string, text: string): boolean {
 
 /** dev-plan §3.2 五端点 + 扫描（Web 按钮与 CLI `scan --skills` 打同一入口，m2 §5） */
 export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps): void {
-  const skills = new SkillsRepo(deps.db)
   const library = new SqliteSkillLibrary(deps.db)
-  const meta = new AppMetaRepo(deps.db)
   const ledger = resolveLedger(deps)
 
   app.get('/api/skills', reportRoute('/api/skills', 'db'), async (req) => {
     const { q } = req.query as { q?: unknown }
     // 列表要显示版本数（m2 FR-3.1）：台账量小，逐条 count 比新增端点划算
-    const all = skills.list().map((s) => ({ ...s, versionCount: skills.versions(s.id).length }))
+    const all = listSkillRows({ db: deps.db }).map((s) => ({
+      ...s,
+      versionCount: skillVersions({ db: deps.db }, s.id).length,
+    }))
     const items =
       typeof q === 'string' && q.trim() !== ''
         ? all.filter((s) => matchQuery(q.trim(), s.name) || matchQuery(q.trim(), s.description))
@@ -74,7 +89,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
 
   app.post('/api/skills', async (req, reply) => {
     const input = parseOrThrow(SkillCreateInput, req.body)
-    const created = skills.create(input)
+    const created = createSkillRow({ db: deps.db }, input)
     ledger(assetEventInput('asset_created', 'skill', created.id))
     return reply.code(201).send(created)
   })
@@ -85,10 +100,17 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
     // ⚠️ **roots 显式传入时不回落默认**（m2 FR-1.1：空数组即不扫）。
     //   但「没传 roots」≠「不扫」——那是「按配置清单扫」：
     //   用户在设置页配了清单，扫描就该按清单走，而不是每次都扫全盘约定根。
-    if (roots !== undefined) return skills.scan(roots)
-    const configured = meta.read<SkillScanRoot[] | null>(APP_META_KEYS.skillScanRoots, null)
-    if (configured === null) return skills.scan() // 未配置 ⇒ 出厂默认清单
-    return skills.scan(configured.filter((r) => r.enabled !== false).map((r) => r.path))
+    if (roots !== undefined) return scanSkills({ db: deps.db }, roots)
+    const configured = readMetaJson<SkillScanRoot[] | null>(
+      { db: deps.db },
+      APP_META_KEYS.skillScanRoots,
+      null,
+    )
+    if (configured === null) return scanSkills({ db: deps.db }) // 未配置 ⇒ 出厂默认清单
+    return scanSkills(
+      { db: deps.db },
+      configured.filter((r) => r.enabled !== false).map((r) => r.path),
+    )
   })
 
   // 远程源（DEV-0067）：SkillHub 搜索 → 选 slug 导入；GitHub 整仓导入（ref 缺省=默认分支）
@@ -117,7 +139,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
     }
     for (const entry of fetched.entries) {
       report.discovered += 1
-      report[skills.upsertRemote(entry)] += 1
+      report[upsertRemoteSkill({ db: deps.db }, entry)] += 1
     }
     return report
   })
@@ -125,7 +147,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   // 检查更新（DEV-0068）：树指纹对比，GitHub 整仓一次 trees 调用；ids 缺省=全部远程条目
   app.post('/api/skills/remote/check-updates', async (req) => {
     const { ids } = parseOrThrow(SkillUpdateCheckInput, req.body ?? {})
-    const all = skills.list()
+    const all = listSkillRows({ db: deps.db })
     const tracked = all
       .filter(
         (s) =>
@@ -145,8 +167,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   // 补档（DEV-0069）：未建档的存量远程条目按版本线溯源串重导一次，写树指纹
   app.post('/api/skills/remote/retrack', async (req) => {
     const { ids } = parseOrThrow(SkillRetrackInput, req.body ?? {})
-    const candidates = skills
-      .list()
+    const candidates = listSkillRows({ db: deps.db })
       .filter(
         (s) =>
           (s.source === 'github' || s.source === 'skillhub') &&
@@ -154,7 +175,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
           (ids === undefined || ids.includes(s.id)),
       )
       .map((s) => {
-        const versions = skills.versions(s.id)
+        const versions = skillVersions({ db: deps.db }, s.id)
         return {
           skillId: s.id,
           name: s.name,
@@ -166,7 +187,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
     const { results } = await retrackRemoteSkills(
       candidates,
       (entry) => {
-        skills.upsertRemote(entry)
+        upsertRemoteSkill({ db: deps.db }, entry)
       },
       deps.fetchImpl,
     )
@@ -180,7 +201,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   // 整合（DEV-0073）：同内容组选保留项，其余被吸收（版本线搬移、目标并集、目录继承）
   app.post('/api/skills/merge', async (req) => {
     const { keepId, absorbIds } = parseOrThrow(SkillMergeInput, req.body)
-    const merged = skills.mergeSkills(keepId, absorbIds)
+    const merged = mergeSkillRows({ db: deps.db }, keepId, absorbIds)
     return { keptId: keepId, ...merged }
   })
 
@@ -193,13 +214,13 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
       summary: { renamed: 0, merged: 0, notApplicable: 0, failed: 0 },
     }
     for (const id of [...new Set(ids)]) {
-      const skill = skills.get(id)
+      const skill = getSkill({ db: deps.db }, id)
       if (skill === null) {
         report.items.push({ id, name: '', status: 'failed', note: `skill 不存在: ${id}` })
         report.summary.failed += 1
         continue
       }
-      const r = skills.repairName(id)
+      const r = repairSkillName({ db: deps.db }, id)
       report.items.push({ id, name: skill.name, ...r })
       if (r.status === 'not-applicable') report.summary.notApplicable += 1
       else report.summary[r.status] += 1
@@ -217,14 +238,14 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
       '报告里的「失效目录」一段逐条判本地 skill 目录还在不在 ⇒ 目录被删即变',
     ),
     async () => {
-      return skills.duplicates()
+      return skillDuplicates({ db: deps.db })
     },
   )
 
   // 内置审查（DEV-0067）：ids 缺省=全量；无本地目录的条目仅元数据审查
   app.post('/api/skills/review', async (req) => {
     const { ids } = parseOrThrow(SkillReviewInput, req.body ?? {})
-    return skills.review(ids)
+    return reviewSkills({ db: deps.db }, ids)
   })
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -249,7 +270,11 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
       '已配置时结论在库表；未配置时走 defaultSkillRoots() —— 那是一次磁盘发现（home 下的约定目录）',
     ),
     async () => {
-      const raw = meta.read<SkillScanRoot[] | null>(APP_META_KEYS.skillScanRoots, null)
+      const raw = readMetaJson<SkillScanRoot[] | null>(
+        { db: deps.db },
+        APP_META_KEYS.skillScanRoots,
+        null,
+      )
       if (raw === null) {
         // 未配置 ⇒ 出厂默认清单（只给存在的那些，避免清单里塞一堆死路径）
         const items = defaultSkillRoots().map((path) => ({ path, enabled: true }))
@@ -280,7 +305,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
         return true
       })
       .map((r) => ({ path: r.path, enabled: r.enabled !== false }))
-    meta.write(APP_META_KEYS.skillScanRoots, items)
+    writeMetaJson({ db: deps.db }, APP_META_KEYS.skillScanRoots, items)
     return {
       roots: items.filter((i) => i.enabled).map((i) => i.path),
       items,
@@ -311,7 +336,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   /** 备份到库：把 skill 的文件复制一份到 ~/.openvibe/skills/<name>/ */
   app.post('/api/skills/:id/library/backup', async (req) => {
     const { id } = req.params as { id: string }
-    const skill = skills.get(id)
+    const skill = getSkill({ db: deps.db }, id)
     if (skill === null) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
     const r = library.backup(id)
     return { skillId: id, name: skill.name, ...r }
@@ -320,7 +345,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   /** 从库恢复：把库内副本写回原 skill 目录（或指定目标目录） */
   app.post('/api/skills/:id/library/restore', async (req) => {
     const { id } = req.params as { id: string }
-    const skill = skills.get(id)
+    const skill = getSkill({ db: deps.db }, id)
     if (skill === null) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
     const { targetDir } = parseOrThrow(SkillLibraryInput, req.body ?? {})
     const r = library.restore(id, targetDir)
@@ -330,7 +355,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   /** 移出库：删副本并清空台账列（原 skill 目录不动） */
   app.post('/api/skills/:id/library/remove', async (req) => {
     const { id } = req.params as { id: string }
-    const skill = skills.get(id)
+    const skill = getSkill({ db: deps.db }, id)
     if (skill === null) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
     library.remove(id)
     return { skillId: id, name: skill.name }
@@ -349,7 +374,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
    */
   app.post('/api/skills/:id/download', async (req) => {
     const { id } = req.params as { id: string }
-    const skill = skills.get(id)
+    const skill = getSkill({ db: deps.db }, id)
     if (skill === null) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
     const input = parseOrThrow(SkillDownloadInput, req.body ?? {})
     const remoteRef = input.remoteRef ?? skill.remoteRef
@@ -399,19 +424,22 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
       '逐条判「skill 目录还在不在」⇒ 目录被删即变（真机实测 2026-10-30 踩到过：走 query 缓存 ⇒ 服务端 2 条 / 界面 0 条）',
     ),
     async () => {
-      return skills.cleanupPreview()
+      return skillCleanupPreview({ db: deps.db })
     },
   )
 
   /** 一键批量清理：删「路径已消失 ∧ 不可下载 ∧ 无副本」的台账条目 */
   app.post('/api/skills/cleanup', async (req) => {
     const input = parseOrThrow(SkillCleanupInput, req.body ?? {})
-    return skills.cleanup({
-      ...(input.ids === undefined ? {} : { ids: input.ids }),
-      includeBackedUp: input.includeBackedUp,
-      // 副本的文件由库自己清（它是唯一知道「库根怎么解析」的地方）
-      onRemove: (items) => library.removeCopies(items.map((i) => i.id)),
-    })
+    return cleanupSkills(
+      { db: deps.db },
+      {
+        ...(input.ids === undefined ? {} : { ids: input.ids }),
+        includeBackedUp: input.includeBackedUp,
+        // 副本的文件由库自己清（它是唯一知道「库根怎么解析」的地方）
+        onRemove: (items) => library.removeCopies(items.map((i) => i.id)),
+      },
+    )
   })
 
   app.get(
@@ -419,8 +447,8 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
     reportRoute('/api/skills/:id/versions', 'db'),
     async (req) => {
       const { id } = req.params as { id: string }
-      if (!skills.get(id)) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
-      const items = skills.versions(id)
+      if (!getSkill({ db: deps.db }, id)) throw new AppError('NOT_FOUND', `skill 不存在: ${id}`)
+      const items = skillVersions({ db: deps.db }, id)
       return { items, total: items.length }
     },
   )
@@ -428,7 +456,7 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
   app.patch('/api/skills/:id', async (req) => {
     const { id } = req.params as { id: string }
     const patch = parseOrThrow(SkillUpdateInput, req.body)
-    const updated = skills.update(id, patch)
+    const updated = updateSkillRow({ db: deps.db }, id, patch)
     ledger(assetEventInput('asset_updated', 'skill', id))
     return updated
   })
@@ -438,7 +466,9 @@ export function registerSkillRoutes(app: FastifyInstance, deps: SkillRouteDeps):
     // ⚠️ **先移出库再删台账**：库内副本的文件由 library 独占管理（它是唯一知道
     //   「库根怎么解析」的地方）。顺序反了 ⇒ 台账行没了就查不到副本路径 ⇒ 孤儿目录。
     library.remove(id)
-    skills.delete(id)
+    deleteSkill({ db: deps.db }, id)
+    // U-11：删除成功后记 asset_deleted（W-1·F-3）
+    ledger(assetEventInput('asset_deleted', 'skill', id))
     return reply.code(204).send()
   })
 }

@@ -8,25 +8,17 @@
  * Web 界面的等价证据由 DEV-0019 的 CDP 走查驱动器承担，两者不互相替代。
  */
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs'
-import { tmpdir } from 'node:os'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { tempDir } from '@openvibe/core/test-support'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const CLI_ENTRY = join(HERE, '..', 'src', 'index.ts')
 // serve 只带 --port 0：腿 1 要证的就是零参数首启能自己找到仓库的 seed 与 Web 产物
 
-const ROOT = mkdtempSync(join(tmpdir(), 'openvibe-e2e-flow-'))
+const ROOT = tempDir('openvibe-e2e-flow-')
 const HOME = join(ROOT, 'home')
 const PROJECT = join(ROOT, 'project')
 const BUNDLE = join(ROOT, 'bundle.json')
@@ -129,7 +121,7 @@ describe('E2E-FLOW-01 飞轮主链（dev-plan §9-T9）', () => {
     }
     expect(settings.db.status).toBe('ok')
     expect(settings.seed.terms).toBeGreaterThanOrEqual(100)
-    expect(settings.seed.flowTemplates).toBe(7)
+    expect(settings.seed.flowTemplates).toBe(9)
     expect(settings.seed.prompts).toBe(21)
     expect(serveSummary?.firstRun).toBe(true)
     // 零外联是发布口径：没手写端点就连上报器都不建（结构闸门，不是运行时开关）

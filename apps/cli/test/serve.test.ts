@@ -1,11 +1,11 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { TELEMETRY_FLUSH_INTERVAL_MS } from '@openvibe/shared'
 import { openerArgs, serveAction, type ServeResult } from '../src/commands/serve'
+import { tempDir } from '@openvibe/core/test-support'
 
 const SEED_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'content', 'seed')
 const CLI_ENTRY = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'index.ts')
@@ -14,7 +14,7 @@ const homes: string[] = []
 const open: ServeResult[] = []
 
 function tempHome(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-serve-home-'))
+  const dir = tempDir('ov-serve-home-')
   homes.push(dir)
   return dir
 }

@@ -1,18 +1,18 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { ADAPTER_IDS } from '@openvibe/shared'
 import { BootError, bootstrap, type BootstrapResult } from '../src/bootstrap'
 import { packExportDir } from '../src/lib/pack-export'
+import { tempDir } from '@openvibe/core/test-support'
 
 const SEED_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'content', 'seed')
 const open: BootstrapResult[] = []
 const roots: string[] = []
 
 function tempRoot(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-boot-'))
+  const dir = tempDir('ov-boot-')
   roots.push(dir)
   return dir
 }

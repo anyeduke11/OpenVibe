@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { resolveSeedDir, resolveWebRoot } from '../src/lib/asset-roots'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * T9a-1：`npx openvibe-cli` 的产物链。bootstrap 与 seed-dir 原先各写一条 monorepo 相对路径
@@ -13,7 +13,7 @@ import { resolveSeedDir, resolveWebRoot } from '../src/lib/asset-roots'
 
 const roots: string[] = []
 function tempRoot(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-asset-'))
+  const dir = tempDir('ov-asset-')
   roots.push(dir)
   return dir
 }

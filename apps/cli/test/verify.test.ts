@@ -1,15 +1,6 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -18,6 +9,7 @@ import { syncAction } from '../src/commands/sync'
 import { verifyAction } from '../src/commands/verify'
 import type { ApiClient } from '../src/client'
 import type { PackExportOut } from '@openvibe/shared'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * v0.2.3 批次 B FR-4：`openvibe verify` 端到端（spec `v023-b-first-lap.md` §7-1/2）。
@@ -36,8 +28,8 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const CLI_ENTRY = join(HERE, '..', 'src', 'index.ts')
 const roots: string[] = []
 
-function tempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+function makeTempDir(prefix: string): string {
+  const dir = tempDir(prefix)
   roots.push(dir)
   return dir
 }
@@ -48,7 +40,7 @@ afterAll(() => {
 
 /** 真注入一遍拿到 lock 与产物（同 diff.test 的夹具手法） */
 async function injectedProject(): Promise<{ project: string; bundlePath: string }> {
-  const root = tempDir('ov-verify-test-')
+  const root = makeTempDir('ov-verify-test-')
   const project = join(root, 'proj')
   mkdirSync(project)
   const pack = demoPack()
@@ -172,7 +164,7 @@ describe('verifyAction 的状态判定（FR-4，进程内）', () => {
   })
 
   it('VERIFY-08: 无 lock 目录 → UNMANAGED（这是状态不是错误，退 2）', async () => {
-    const project = join(tempDir('ov-verify-empty-'), 'proj')
+    const project = join(makeTempDir('ov-verify-empty-'), 'proj')
     mkdirSync(project)
     const outcome = await verifyAction({ projectPath: project }, {})
     expect(outcome.state).toBe('UNMANAGED')
@@ -193,7 +185,7 @@ describe('verify 真子进程（退出码与 --json 契约）', () => {
     // ⚠️ **语义变更**（PRD v0.2.4 F7 / R0）：旧语义下这条是 CONSISTENT + 退出码 0。
     //   ⇒ `--json` 的 state 取值集合多一个 `UNVERIFIED`，旧消费方按未知枚举处理。
     const { project } = await injectedProject()
-    const home = tempDir('ov-verify-home-')
+    const home = makeTempDir('ov-verify-home-')
     const res = runCli(['--json', 'verify', project], home)
     expect(res.status).toBe(2)
     const env = JSON.parse(res.stdout) as {
@@ -207,9 +199,9 @@ describe('verify 真子进程（退出码与 --json 契约）', () => {
   }, 30_000)
 
   it('VERIFY-10: 无 lock → 退出码 2 + state=UNMANAGED', () => {
-    const project = join(tempDir('ov-verify-empty2-'), 'proj')
+    const project = join(makeTempDir('ov-verify-empty2-'), 'proj')
     mkdirSync(project)
-    const home = tempDir('ov-verify-home2-')
+    const home = makeTempDir('ov-verify-home2-')
     const res = runCli(['--json', 'verify', project], home)
     expect(res.status).toBe(2)
     const env = JSON.parse(res.stdout) as { summary: { state: string } }

@@ -10,7 +10,15 @@ import {
   type PackOut,
 } from '@openvibe/shared'
 import {
-  PacksRepo,
+  createPack,
+  deletePack,
+  getPackById,
+  getPackExport,
+  listPacks,
+  packExportsOf,
+  packInjections,
+  reportPackInjection,
+  updatePack,
   bundleFileName,
   createPackService,
   nowIso,
@@ -18,10 +26,11 @@ import {
 } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
 import { reportRoute } from '../lib/route-source'
+import { injectionConfirmedEventInput, resolveLedger, type LedgerDeps } from '../lib/ledger'
 import { renderPack, toPreviewOut } from '../lib/pack-assemble'
 import { packExportDir, writeDirectoryExport } from '../lib/pack-export'
 
-export interface PackRouteDeps {
+export interface PackRouteDeps extends LedgerDeps {
   db: SqliteDatabase
 }
 
@@ -33,7 +42,8 @@ const PreviewBody = z.object({ version: z.string().regex(SEMVER_RE).default('1.0
 
 /** dev-plan §3.8 + bundle 下载通道（owner 裁定 2026-09-21） */
 export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): void {
-  const packs = new PacksRepo(deps.db)
+  // U-11（local-event-ledger §7-d 的 pack 三 kind）：写入点集中在此，payload 只放 id 与版本枚举
+  const ledger = resolveLedger(deps)
 
   /**
    * 导出编排已迁入 `packService`（service-layer.md FR-3.2）。
@@ -51,19 +61,19 @@ export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): v
   })
 
   const needPack = (id: string): PackOut => {
-    const pack = packs.get(id)
+    const pack = getPackById({ db: deps.db }, id)
     if (!pack) throw new AppError('NOT_FOUND', `标准包不存在: ${id}`)
     return pack
   }
 
   app.get('/api/packs', reportRoute('/api/packs', 'db'), async () => {
-    const items = packs.list()
+    const items = listPacks({ db: deps.db })
     return { items, total: items.length }
   })
 
   app.post('/api/packs', async (req, reply) => {
     const input = parseOrThrow(PackCreateInput, req.body)
-    return reply.code(201).send(packs.create(input))
+    return reply.code(201).send(createPack({ db: deps.db }, input))
   })
 
   app.get('/api/packs/:id', reportRoute('/api/packs/:id', 'db'), async (req) =>
@@ -72,11 +82,11 @@ export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): v
 
   app.patch('/api/packs/:id', async (req) => {
     const { id } = req.params as { id: string }
-    return packs.update(id, parseOrThrow(PackUpdateInput, req.body))
+    return updatePack({ db: deps.db }, id, parseOrThrow(PackUpdateInput, req.body))
   })
 
   app.delete('/api/packs/:id', async (req, reply) => {
-    packs.delete((req.params as { id: string }).id)
+    deletePack({ db: deps.db }, (req.params as { id: string }).id)
     return reply.code(204).send()
   })
 
@@ -85,19 +95,24 @@ export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): v
     const { id } = req.params as { id: string }
     const pack = needPack(id)
     const { version } = parseOrThrow(PreviewBody, req.body)
+    // U-11：preview 即「组装了一次标准包」（预览与导出字节一致，m6）⇒ 记 pack_composed
+    ledger({ kind: 'pack_composed', payload: { packId: id, packVersion: version } })
     return toPreviewOut(renderPack(deps.db, pack, version, pack.updatedAt))
   })
 
   app.post('/api/packs/:id/export', async (req) => {
     const { id } = req.params as { id: string }
     const { version, channel } = parseOrThrow(ExportInput, req.body)
-    return packService.exportPackWithRecord({ packId: id, version, channel })
+    const out = await packService.exportPackWithRecord({ packId: id, version, channel })
+    // U-11：导出成功后记 pack_exported（channel 是枚举值，FR-6.3 允许；失败抛错不会走到这里）
+    ledger({ kind: 'pack_exported', payload: { packId: id, packVersion: version, channel } })
+    return out
   })
 
   app.get('/api/packs/:id/exports', reportRoute('/api/packs/:id/exports', 'db'), async (req) => {
     const { id } = req.params as { id: string }
     needPack(id)
-    const items = packs.exportsOf(id)
+    const items = packExportsOf({ db: deps.db }, id)
     return { items, total: items.length }
   })
 
@@ -108,7 +123,7 @@ export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): v
     reportRoute('/api/packs/:id/exports/:exportId/bundle', 'db'),
     async (req, reply) => {
       const { id, exportId } = req.params as { id: string; exportId: string }
-      const row = packs.getExport(id, exportId)
+      const row = getPackExport({ db: deps.db }, id, exportId)
       if (!row) throw new AppError('NOT_FOUND', `导出记录不存在: ${exportId}`)
       return reply
         .header('content-type', 'application/json; charset=utf-8')
@@ -127,7 +142,7 @@ export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): v
     async (req) => {
       const { id } = req.params as { id: string }
       needPack(id)
-      const items = packs.listInjections(id)
+      const items = packInjections({ db: deps.db }, id)
       return { items, total: items.length }
     },
   )
@@ -135,6 +150,10 @@ export function registerPackRoutes(app: FastifyInstance, deps: PackRouteDeps): v
   /** CLI 上报（m6a FR-5.1 / m6b FR-2.5）；pack 已删除时 packId 传 null 仅留痕 */
   app.post('/api/injections', async (req, reply) => {
     const input = parseOrThrow(InjectionCreateInput, req.body)
-    return reply.code(201).send(packs.reportInjection(input))
+    const out = reportPackInjection({ db: deps.db }, input)
+    // U-11：CLI 在线 sync 成功的上报即「注入确认」⇒ 记 injection_confirmed
+    //（OM2「首次见效时间」的机读源第一次有了写入点；payload 无 projectPath——禁列）
+    ledger(injectionConfirmedEventInput(input))
+    return reply.code(201).send(out)
   })
 }

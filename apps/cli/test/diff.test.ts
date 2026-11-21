@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it, vi } from 'vitest'
@@ -12,6 +11,7 @@ import { DiffError, diffAction, lockPathOf } from '../src/commands/diff'
 import { ServerUnreachable, type ApiClient } from '../src/client'
 import { demoPack, writeBundleFile } from './helpers/pack-fixture'
 import { fakeClient } from './helpers/fake-client'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * T7e · `openvibe diff`（m6b FR-5）。
@@ -29,8 +29,8 @@ vi.mock('@clack/prompts', () => ({
 const CLI_ENTRY = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'index.ts')
 const roots: string[] = []
 
-function tempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+function makeTempDir(prefix: string): string {
+  const dir = tempDir(prefix)
   roots.push(dir)
   return dir
 }
@@ -41,7 +41,7 @@ afterAll(() => {
 
 /** 真注入一遍拿到 lock 文件（夹具产物含 TERMS.md，漂移用例改它） */
 async function injectedProject(): Promise<{ project: string; bundlePath: string }> {
-  const root = tempDir('ov-diff-test-')
+  const root = makeTempDir('ov-diff-test-')
   const project = join(root, 'proj')
   mkdirSync(project)
   const pack = demoPack()
@@ -116,7 +116,7 @@ describe('diff 的磁盘比对（FR-5.1/5.2）', () => {
   })
 
   it('无 lock → NO_LOCK，提示先 sync，退出码 1 由调用方落地', async () => {
-    const project = tempDir('ov-diff-empty-')
+    const project = makeTempDir('ov-diff-empty-')
 
     const err = await diffAction({ projectPath: project }, {}).catch((e: unknown) => e)
 
@@ -207,7 +207,7 @@ describe('diff 的磁盘比对（FR-5.1/5.2）', () => {
   })
 
   it('项目路径不是目录 → PROJECT_NOT_DIR', async () => {
-    const root = tempDir('ov-diff-file-')
+    const root = makeTempDir('ov-diff-file-')
     const file = join(root, 'lock.json')
     writeFileSync(file, '{}', 'utf8')
 
@@ -307,7 +307,7 @@ describe('在线新版本探测（FR-5.3）', () => {
 
 describe('--json 契约与退出码（m6b §5.2，真子进程）', () => {
   const tempHome = (): string => {
-    const home = tempDir('ov-diff-home-')
+    const home = makeTempDir('ov-diff-home-')
     writeFileSync(
       join(home, 'config.json'),
       JSON.stringify({ serverUrl: 'http://127.0.0.1:1', token: 't', port: 1 }),
@@ -341,7 +341,7 @@ describe('--json 契约与退出码（m6b §5.2，真子进程）', () => {
   })
 
   it('无 lock → 退出码 1 + error.code=NO_LOCK', () => {
-    const project = tempDir('ov-diff-nolock-')
+    const project = makeTempDir('ov-diff-nolock-')
 
     const res = runCli(['--json', 'diff', project], tempHome())
 

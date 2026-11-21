@@ -1,5 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -13,7 +12,7 @@ import {
   type PackOut,
   type PreviewOut,
 } from '@openvibe/shared'
-import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
+import { newDb, type TestDbHandle, tempDir } from '@openvibe/core/test-support'
 import { PacksRepo, SIZE_WARN_THRESHOLD, runSeed } from '@openvibe/core'
 import { buildApp } from '../src/app'
 import { ensureDefaultPack } from '../src/lib/default-pack'
@@ -33,7 +32,7 @@ const openHandles: Harness[] = []
 
 async function makeHarness(): Promise<Harness> {
   // 目录导出落在 ~/.openvibe/packs/，测试用 OPENVIBE_HOME 指向临时沙箱（core/db/index.ts）
-  const home = mkdtempSync(join(tmpdir(), 'ov-pack-home-'))
+  const home = tempDir('ov-pack-home-')
   process.env.OPENVIBE_HOME = home
   const handle = newDb()
   const { app } = await buildApp({ db: handle.db, token: TOKEN })

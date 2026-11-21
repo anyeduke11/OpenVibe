@@ -55,7 +55,7 @@ export function resolveLedger(deps: LedgerDeps): LedgerWriter {
  * 「`asset_created` 且 `source != seed`」要的方向：**宁可少记不可虚高**。
  */
 export function assetEventInput(
-  kind: 'asset_created' | 'asset_updated',
+  kind: 'asset_created' | 'asset_updated' | 'asset_deleted',
   assetType: AssetSubjectType,
   assetId: string,
 ): LocalEventInput {
@@ -64,5 +64,21 @@ export function assetEventInput(
     subjectType: assetType,
     subjectId: assetId,
     payload: { assetType, origin: 'user' },
+  }
+}
+
+/**
+ * `injection_confirmed` 的 payload（W-1·F-3 U-11：CLI 在线 sync 成功后必调
+ * `POST /api/injections`，台账行在服务端落——CLI 是薄客户端从不碰 DB）。
+ * payload 只放 id 与版本枚举值（FR-6.3 禁列）：**projectPath 绝不进**（绝对路径）。
+ * `packId` 为 null 是合法形态（pack 已删除仅留痕，m6a FR-5.1）。
+ */
+export function injectionConfirmedEventInput(input: {
+  packId: string | null
+  packVersion: string | null
+}): LocalEventInput {
+  return {
+    kind: 'injection_confirmed',
+    payload: { packId: input.packId, packVersion: input.packVersion },
   }
 }

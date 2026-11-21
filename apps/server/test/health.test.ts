@@ -14,5 +14,5 @@ it('IT-EXAMPLE-01: GET /api/health 返回 200 与版本信息', async () => {
   expect(body.status).toBe('ok')
   expect(body.app).toBe('openvibe')
   expect(body.version).toBe('0.1.0-test')
-  expect(body.schemaVersion).toBe(1)
+  expect(body.schemaVersion).toBe(2)
 })

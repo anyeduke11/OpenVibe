@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
+import { newDb, type TestDbHandle, tempDir } from '@openvibe/core/test-support'
 import { buildApp } from '../src/app'
 
 /**
@@ -176,7 +175,7 @@ describe('GET/POST /api/skills/scan-roots（扫描根清单）', () => {
 
 describe('Skill 库端点（备份 / 恢复 / 移出）', () => {
   it('备份 ⇒ 副本落进库目录、台账记下 library_dir；恢复 ⇒ 写回原目录', async () => {
-    const home = mkdtempSync(join(tmpdir(), 'ov-lib-'))
+    const home = tempDir('ov-lib-')
     process.env.OPENVIBE_HOME = join(home, '.openvibe')
     const h = await makeHarness()
     const root = join(home, '.claude', 'skills')
@@ -240,7 +239,7 @@ describe('POST /api/skills/:id/download（下载落盘）', () => {
   it('落盘后把 skill_dir / library_dir / remote_ref 一并写回台账', async () => {
     // ⚠️ **remote_ref 必须写回**：它是「检查更新」与「重新下载」的唯一依据。
     //   不写回 ⇒ 台账里这条仍像本地条目 ⇒ 界面不给下载按钮、也查不了更新。
-    const home = mkdtempSync(join(tmpdir(), 'ov-dl-api-'))
+    const home = tempDir('ov-dl-api-')
     process.env.OPENVIBE_HOME = join(home, '.openvibe')
     const h = await makeHarness(mockGithub())
     try {
@@ -295,7 +294,7 @@ describe('POST /api/skills/:id/download（下载落盘）', () => {
 
 describe('失效条目清理端点', () => {
   it('预检只报告；清理删掉不可恢复的，可下载的保留', async () => {
-    const home = mkdtempSync(join(tmpdir(), 'ov-clean-'))
+    const home = tempDir('ov-clean-')
     process.env.OPENVIBE_HOME = join(home, '.openvibe')
     const h = await makeHarness()
     const root = join(home, '.claude', 'skills')

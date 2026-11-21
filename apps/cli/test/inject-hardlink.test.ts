@@ -6,7 +6,6 @@ import {
   existsSync,
   linkSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   readdirSync,
   realpathSync,
@@ -15,7 +14,6 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { PACK_LOCK_REL } from '@openvibe/core'
@@ -23,6 +21,7 @@ import { AppError } from '@openvibe/shared'
 import { cleanAction } from '../src/commands/clean'
 import { syncAction } from '../src/commands/sync'
 import { contentOf, demoPack, writeBundleFile, type PackFixture } from './helpers/pack-fixture'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * 断言映射：01c ↔ §7.11 a（§7.5 的写侧半边）+ owner 裁定「替换式写入，不拒绝」；
@@ -43,7 +42,7 @@ vi.mock('@clack/prompts', () => ({
 const roots: string[] = []
 
 function sandbox(): { root: string; project: string } {
-  const root = mkdtempSync(join(tmpdir(), 'ov-hardlink-test-'))
+  const root = tempDir('ov-hardlink-test-')
   roots.push(root)
   const project = join(root, 'proj')
   mkdirSync(project)

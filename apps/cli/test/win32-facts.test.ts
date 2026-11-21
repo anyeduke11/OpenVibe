@@ -9,7 +9,6 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   readdirSync,
   realpathSync,
@@ -18,13 +17,13 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it, vi } from 'vitest'
 import { PACK_LOCK_REL, checkWritePath } from '@openvibe/core'
 import { syncAction } from '../src/commands/sync'
 import { writeConfigFile } from '../src/config'
 import { demoPack, writeBundleFile } from './helpers/pack-fixture'
+import { tempDir } from '@openvibe/core/test-support'
 
 const NOW = new Date('2026-09-27T10:20:30.400Z')
 const IS_WINDOWS = process.platform === 'win32'
@@ -38,7 +37,7 @@ vi.mock('@clack/prompts', () => ({
 const roots: string[] = []
 
 function sandbox(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+  const dir = tempDir(prefix)
   roots.push(dir)
   return dir
 }

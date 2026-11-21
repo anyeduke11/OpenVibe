@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { homedir, userInfo } from 'node:os'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 import type { FastifyInstance } from 'fastify'
 import { newDb, scanForbidden, payloadKeys, type TestDbHandle } from '@openvibe/core/test-support'
@@ -57,7 +57,7 @@ afterEach(() => {
 
 function api(
   app: FastifyInstance,
-  method: 'GET' | 'POST' | 'PATCH' | 'PUT',
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   url: string,
   payload?: object,
 ) {
@@ -103,9 +103,13 @@ function only(h: Harness, kind: string): Row {
 const PAYLOAD_KEYS: Record<string, string[]> = {
   asset_created: ['assetType', 'origin'],
   asset_updated: ['assetType', 'origin'],
+  asset_deleted: ['assetType', 'origin'],
   checklist_item_checked: ['stage'],
   flow_template_run: ['origin'],
   stage_view_switched: ['origin'],
+  pack_composed: ['packId', 'packVersion'],
+  pack_exported: ['channel', 'packId', 'packVersion'],
+  injection_confirmed: ['packId', 'packVersion'],
 }
 
 /* ------------------------------------------------------------------------- */
@@ -494,16 +498,10 @@ describe('§7-d · payload 禁列（FR-6.3）', () => {
         'prompt',
         'prm_x',
         null,
-        // 动态家目录：CI runner 上同样触发「本机用户名」判定（写死 /Users/duke 只在 owner 机器绿）。
-        // ⚠️ 三类一起灌：「Unix 绝对路径」模式只认 /Users|/home|/tmp|… 白名单目录 ⇒
-        //    灌 /home/<当前用户>/ 形态（同时触发「本机用户名」）；windows 上 join(homedir())
-        //    是盘符路径，触发「Windows 绝对路径」与「home 目录片段」——三类在任何平台齐。
+        // 动态家目录：CI runner 上同样触发「本机用户名」判定（写死 /Users/duke 只在 owner 机器绿）
         JSON.stringify({
           assetType: 'prompt',
-          nested: {
-            where: join(homedir(), 'work', 'secret-repo'),
-            origin: `/home/${String(userInfo().username)}/secret-repo`,
-          },
+          nested: { where: join(homedir(), 'work', 'secret-repo') },
         }),
         NOW,
         NOW_DAY,
@@ -560,5 +558,196 @@ describe('§7-d · 时钟注入：day 由事件时间派生而非墙上时钟', 
     expect(out.windowTotal).toBe(1)
     expect(repo.countAll()).toBe(1)
     expect(out.byDay).toEqual([{ day: '2026-10-01', kind: 'asset_created', count: 1 }])
+  })
+})
+
+/* ---------------------------------------------------------------------------
+ * U-11（W-1·F-3，DEV-0279）：pack 三 kind ＋ asset_deleted —— 写入点全部落在**既有端点**
+ * （POST /api/packs/:id/preview、/export、POST /api/injections、五资产 DELETE），零新出网面。
+ * injection_failed / injection_conflict_resolved / asset_reflowed / pack_composed 之外的
+ * 缺口见 DEV-0279「登记不虚挂」段。
+ * ------------------------------------------------------------------------- */
+
+describe('§7-d · 生产写入点：asset_deleted 五类资产各一条', () => {
+  it('删除各产生一条，subject 逐条等于被删 id、payload 同 created 形态', async () => {
+    const h = await makeHarness()
+    const prompt = (await api(h.app, 'POST', '/api/prompts', { title: 't', content: 'c' })).json()
+    const skill = (
+      await api(h.app, 'POST', '/api/skills', {
+        name: 'del-me',
+        description: 'd',
+        source: 'manual',
+      })
+    ).json()
+    const term = (
+      await api(h.app, 'POST', '/api/terms', { en: 'T', zh: '术语', definition: '定义' })
+    ).json()
+    const playbook = (
+      await api(h.app, 'POST', '/api/playbooks', { scenario: 's', problem: 'p', practice: 'q' })
+    ).json()
+    const flow = (
+      await api(h.app, 'POST', '/api/flow-templates', {
+        name: '待删模板',
+        kind: 'custom',
+        stages: [
+          { name: '开发', checklist: [{ id: '开发-c1', text: 'x' }], artifacts: [], prompt: '' },
+        ],
+      })
+    ).json()
+
+    // 先清掉 created 的 5 条，让断言只看 deleted
+    const res = await api(h.app, 'POST', '/api/local-events/clear')
+    expect(res.statusCode).toBe(200)
+
+    await api(h.app, 'DELETE', `/api/prompts/${prompt.id}`)
+    await api(h.app, 'DELETE', `/api/skills/${skill.id}`)
+    await api(h.app, 'DELETE', `/api/terms/${term.id}`)
+    await api(h.app, 'DELETE', `/api/playbooks/${playbook.id}`)
+    await api(h.app, 'DELETE', `/api/flow-templates/${flow.id}`)
+
+    const got = ofKind(h, 'asset_deleted')
+    expect(got).toHaveLength(5)
+    const idByType = new Map(got.map((r) => [r.subject_type, r.subject_id]))
+    expect(idByType.get('prompt')).toBe(prompt.id)
+    expect(idByType.get('skill')).toBe(skill.id)
+    expect(idByType.get('term')).toBe(term.id)
+    expect(idByType.get('playbook')).toBe(playbook.id)
+    expect(idByType.get('flow_template')).toBe(flow.id)
+    for (const r of got) {
+      const who = r.subject_type ?? '?'
+      expect(payloadKeys(r), who).toEqual(PAYLOAD_KEYS.asset_deleted)
+      expect(JSON.parse(r.payload_json), who).toMatchObject({
+        assetType: r.subject_type,
+        origin: 'user',
+      })
+    }
+  })
+
+  it('**删除失败不记**：不存在 ⇒ 404 且台账零新增（校验失败不留半条）', async () => {
+    const h = await makeHarness()
+    const res = await api(h.app, 'DELETE', '/api/prompts/pk_not_there')
+    expect(res.statusCode).toBe(404)
+    expect(ofKind(h, 'asset_deleted')).toHaveLength(0)
+  })
+})
+
+describe('§7-d · 生产写入点：pack_composed（预览即组装）', () => {
+  it('preview 产生一条：payload 只放 packId/packVersion（无包名——名称是可识别文本）', async () => {
+    const h = await makeHarness()
+    const term = (
+      await api(h.app, 'POST', '/api/terms', { en: 'RAG', zh: '检索增强生成', definition: '定义' })
+    ).json()
+    const pack = (
+      await api(h.app, 'POST', '/api/packs', {
+        name: 'my-pack',
+        selection: { termIds: [term.id] },
+        targets: ['claude-code'],
+      })
+    ).json()
+    const before = ofKind(h, 'pack_composed').length
+    const res = await api(h.app, 'POST', `/api/packs/${pack.id}/preview`, {})
+    expect(res.statusCode).toBe(200)
+    const got = ofKind(h, 'pack_composed')
+    expect(got.length).toBe(before + 1)
+    const last = got[got.length - 1]!
+    expect(payloadKeys(last)).toEqual(PAYLOAD_KEYS.pack_composed)
+    const payload = JSON.parse(last.payload_json)
+    expect(payload.packId).toBe(pack.id)
+    expect(payload.packVersion).toBe('1.0.0')
+    expect(JSON.stringify(payload)).not.toContain('my-pack')
+  })
+
+  it('**预览失败不记**：包不存在 ⇒ 404 且零新增', async () => {
+    const h = await makeHarness()
+    const res = await api(h.app, 'POST', '/api/packs/pk_missing/preview', {})
+    expect(res.statusCode).toBe(404)
+    expect(ofKind(h, 'pack_composed')).toHaveLength(0)
+  })
+})
+
+describe('§7-d · 生产写入点：pack_exported（导出成功后）', () => {
+  it('export 成功记一条，channel 是枚举值入 payload；**失败不记**', async () => {
+    const h = await makeHarness()
+    const term = (
+      await api(h.app, 'POST', '/api/terms', { en: 'FP', zh: '指纹', definition: '定义' })
+    ).json()
+    const pack = (
+      await api(h.app, 'POST', '/api/packs', {
+        name: 'exp-pack',
+        selection: { termIds: [term.id] },
+        targets: ['claude-code'],
+      })
+    ).json()
+    await api(h.app, 'POST', `/api/packs/${pack.id}/preview`, {})
+    const before = ofKind(h, 'pack_exported').length
+    const res = await api(h.app, 'POST', `/api/packs/${pack.id}/export`, {
+      version: '1.0.0',
+      channel: 'download',
+    })
+    expect(res.statusCode).toBe(200)
+    const got = ofKind(h, 'pack_exported')
+    expect(got.length).toBe(before + 1)
+    const last = got[got.length - 1]!
+    expect(payloadKeys(last)).toEqual(PAYLOAD_KEYS.pack_exported)
+    expect(JSON.parse(last.payload_json)).toMatchObject({
+      packId: pack.id,
+      packVersion: '1.0.0',
+      channel: 'download',
+    })
+    // 失败腿：不存在的 pack ⇒ 404，零新增
+    const fail = await api(h.app, 'POST', '/api/packs/pk_missing/export', {
+      version: '1.0.0',
+      channel: 'download',
+    })
+    expect(fail.statusCode).toBe(404)
+    expect(ofKind(h, 'pack_exported').length).toBe(got.length)
+  })
+})
+
+describe('§7-d · 生产写入点：injection_confirmed（CLI 在线 sync 上报）', () => {
+  it('POST /api/injections 记一条；packId null（pack 已删除仅留痕）也是合法 payload；无 projectPath（禁列）', async () => {
+    const h = await makeHarness()
+    const pack = (
+      await api(h.app, 'POST', '/api/packs', {
+        name: 'inj-pack',
+        selection: {},
+        targets: ['claude-code'],
+      })
+    ).json()
+    const res = await api(h.app, 'POST', '/api/injections', {
+      packId: pack.id,
+      packVersion: '1.0.0',
+      projectPath: `${homedir()}/work/some-project`,
+    })
+    expect(res.statusCode).toBe(201)
+    const got = ofKind(h, 'injection_confirmed')
+    expect(got).toHaveLength(1)
+    const row = got[0]!
+    expect(payloadKeys(row)).toEqual(PAYLOAD_KEYS.injection_confirmed)
+    const payload = JSON.parse(row.payload_json)
+    expect(payload).toEqual({ packId: pack.id, packVersion: '1.0.0' })
+    // FR-6.3：绝对路径（projectPath）绝不入台账
+    expect(JSON.stringify(payload)).not.toContain('some-project')
+    expect(row.subject_type).toBeNull()
+    // null 形态（pack 已删除）
+    const res2 = await api(h.app, 'POST', '/api/injections', {
+      packId: null,
+      packVersion: null,
+      projectPath: `${homedir()}/work/another-project`,
+    })
+    expect(res2.statusCode).toBe(201)
+    const got2 = ofKind(h, 'injection_confirmed')
+    expect(got2).toHaveLength(2)
+    expect(JSON.parse(got2[1]!.payload_json)).toEqual({ packId: null, packVersion: null })
+  })
+
+  it('**校验失败不记**：缺 projectPath ⇒ 422 且零新增（半条台账都不留）', async () => {
+    const h = await makeHarness()
+    const res = await api(h.app, 'POST', '/api/injections', {
+      packId: 'pk_x',
+      packVersion: '1.0.0',
+    })
+    expect([400, 422]).toContain(res.statusCode)
+    expect(ofKind(h, 'injection_confirmed')).toHaveLength(0)
   })
 })

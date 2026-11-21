@@ -1,6 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
@@ -9,6 +8,7 @@ import { ServerUnreachable, type ApiClient } from '../src/client'
 import { ScanError, scanAction } from '../src/commands/scan'
 import { fakeClient, type FakeRoutes } from './helpers/fake-client'
 import { putFile } from './helpers/tree'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * T7e · `openvibe scan`（m6b FR-3 / FR-4）。
@@ -21,7 +21,7 @@ const CLI_ENTRY = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'in
 const roots: string[] = []
 
 function projectFixture(files: Record<string, string>): string {
-  const root = mkdtempSync(join(tmpdir(), 'ov-scan-test-'))
+  const root = tempDir('ov-scan-test-')
   roots.push(root)
   for (const [rel, content] of Object.entries(files)) putFile(root, rel, content)
   return root
@@ -138,7 +138,7 @@ describe('scan --project · 规则文件探测与导入（FR-4）', () => {
   })
 
   it('项目路径不是目录 → PROJECT_NOT_DIR，零请求', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'ov-scan-test-'))
+    const root = tempDir('ov-scan-test-')
     roots.push(root)
     const file = join(root, 'afile.md')
     writeFileSync(file, 'x', 'utf8')
@@ -237,7 +237,7 @@ describe('scan 的前置条件（FR-3.2 / FR-4.3）', () => {
 
 describe('--json 契约（m6b §5.1，真子进程）', () => {
   const tempHome = (): string => {
-    const home = mkdtempSync(join(tmpdir(), 'ov-scan-home-'))
+    const home = tempDir('ov-scan-home-')
     roots.push(home)
     writeFileSync(
       join(home, 'config.json'),

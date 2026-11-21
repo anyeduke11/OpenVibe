@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * v0.2.3 批次 A FR-3 端到端腿（真子进程）：
@@ -34,7 +34,7 @@ Module._load = function (request, parent, isMain) {
 `
 
 describe('批次 A FR-3：better-sqlite3 载入失败的可读诊断（真子进程）', () => {
-  const home = mkdtempSync(join(tmpdir(), 'ov-native-home-'))
+  const home = tempDir('ov-native-home-')
   const hookPath = join(home, 'break-better-sqlite3.cjs')
   writeFileSync(hookPath, BREAK_HOOK, 'utf8')
 

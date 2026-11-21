@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { downloadSkillFiles } from '../src/lib/skill-remote'
 import { downloadSkillToDisk } from '../src/lib/skill-download'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * 下载落盘的行为测试（2026-10-30）。
@@ -21,8 +21,8 @@ afterEach(() => {
   while (temps.length > 0) rmSync(temps.pop()!, { recursive: true, force: true })
 })
 
-function tempDir(): string {
-  const d = mkdtempSync(join(tmpdir(), 'ov-dl-'))
+function makeTempDir(): string {
+  const d = tempDir('ov-dl-')
   temps.push(d)
   return d
 }
@@ -147,7 +147,7 @@ describe('downloadSkillFiles（按 remoteRef 取回文件内容）', () => {
 
 describe('downloadSkillToDisk（落盘）', () => {
   it('真的把文件写进磁盘，并保留相对路径结构', async () => {
-    const target = join(tempDir(), 'pdf')
+    const target = join(makeTempDir(), 'pdf')
     const r = await downloadSkillToDisk({
       remoteRef: 'github:owner/repo@main:skills/pdf',
       targetDir: target,
@@ -162,7 +162,7 @@ describe('downloadSkillToDisk（落盘）', () => {
   })
 
   it('中途失败不留半份内容（临时目录被清掉）', async () => {
-    const target = join(tempDir(), 'pdf')
+    const target = join(makeTempDir(), 'pdf')
     // repo/trees 成功但 raw 全 404 ⇒ 一个文件都没下到
     const treeOnly = (async (input: Parameters<typeof fetch>[0]) => {
       const url = String(input)
@@ -205,7 +205,7 @@ describe('downloadSkillToDisk（落盘）', () => {
       }
       return new Response('x', { status: 200 })
     }) as typeof fetch
-    const target = join(tempDir(), 'pdf')
+    const target = join(makeTempDir(), 'pdf')
     const r = await downloadSkillToDisk({
       remoteRef: 'github:owner/repo@main:skills/pdf',
       targetDir: target,

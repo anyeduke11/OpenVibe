@@ -1,11 +1,11 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { demoPack, writeBundleFile } from './helpers/pack-fixture'
 import { syncAction } from '../src/commands/sync'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * v0.2.3 批次 F / AN3：`openvibe mcp` 的 stdio 协议面（spec `v023-e-ai-assistant.md` FR-5）。
@@ -18,8 +18,8 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const CLI_ENTRY = join(HERE, '..', 'src', 'index.ts')
 const roots: string[] = []
 
-function tempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+function makeTempDir(prefix: string): string {
+  const dir = tempDir(prefix)
   roots.push(dir)
   return dir
 }
@@ -85,7 +85,7 @@ async function startMcp(envHome: string): Promise<McpProc> {
 
 describe('openvibe mcp（stdio JSON-RPC，只读三工具）', () => {
   let proc: McpProc
-  const home = tempDir('ov-mcp-home-')
+  const home = makeTempDir('ov-mcp-home-')
 
   beforeAll(async () => {
     proc = await startMcp(home)
@@ -134,7 +134,7 @@ describe('openvibe mcp（stdio JSON-RPC，只读三工具）', () => {
   })
 
   it('MCP-03: tools/call pack_diff（本地比对，无需 serve）——注入后 clean，手改后 drifted', async () => {
-    const root = tempDir('ov-mcp-proj-')
+    const root = makeTempDir('ov-mcp-proj-')
     const project = join(root, 'proj')
     mkdirSync(project)
     const bundlePath = writeBundleFile(root, demoPack())

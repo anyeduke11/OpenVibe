@@ -9,10 +9,22 @@ import {
   SCHEMA_VERSION,
   type PromptOut,
 } from '@openvibe/shared'
-import { parseImportFiles, PromptsRepo, type ImportFile, type SqliteDatabase } from '@openvibe/core'
+import {
+  createPrompt,
+  deletePrompt,
+  exportAllPrompts,
+  getPrompt,
+  importPromptBatch,
+  listPrompts,
+  promptVersions,
+  restorePrompt,
+  updatePrompt,
+  parseImportFiles,
+  type ImportFile,
+  type SqliteDatabase,
+} from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
 import { reportRoute } from '../lib/route-source'
-import { referencedPackNames } from '../lib/refs'
 import { assetEventInput, resolveLedger, type LedgerDeps } from '../lib/ledger'
 
 export interface PromptRouteDeps extends LedgerDeps {
@@ -47,17 +59,16 @@ export function renderPromptsMarkdown(items: PromptOut[]): string {
 
 /** dev-plan §3.1 八端点（import/export 计入第九、十条通道） */
 export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps): void {
-  const prompts = new PromptsRepo(deps.db)
   const ledger = resolveLedger(deps)
 
   app.get('/api/prompts', reportRoute('/api/prompts', 'db'), async (req) => {
     const query = parseOrThrow(PromptQuery, req.query)
-    return prompts.list(query)
+    return listPrompts({ db: deps.db }, query)
   })
 
   app.post('/api/prompts', async (req, reply) => {
     const input = parseOrThrow(PromptCreateInput, req.body)
-    const { prompt, warnings } = prompts.create(input)
+    const { prompt, warnings } = createPrompt({ db: deps.db }, input)
     ledger(assetEventInput('asset_created', 'prompt', prompt.id))
     return reply.code(201).send({ ...prompt, warnings })
   })
@@ -70,13 +81,16 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
       throw new AppError('VALIDATION_ERROR', `format 仅支持 json|md，收到 ${format}`)
     }
     const query = parseOrThrow(PromptQuery, req.query)
-    const items = prompts.exportAll({
-      tag: query.tag,
-      folder: query.folder,
-      platform: query.platform,
-      status: query.status,
-      q: query.q,
-    })
+    const items = exportAllPrompts(
+      { db: deps.db },
+      {
+        tag: query.tag,
+        folder: query.folder,
+        platform: query.platform,
+        status: query.status,
+        q: query.q,
+      },
+    )
     if (format === 'md') {
       reply
         .header('content-type', 'text/markdown; charset=utf-8')
@@ -95,7 +109,7 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
 
   app.get('/api/prompts/:id', reportRoute('/api/prompts/:id', 'db'), async (req) => {
     const { id } = req.params as { id: string }
-    const prompt = prompts.get(id)
+    const prompt = getPrompt({ db: deps.db }, id)
     if (!prompt) throw new AppError('NOT_FOUND', `提示词不存在: ${id}`)
     return prompt
   })
@@ -103,16 +117,17 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
   app.patch('/api/prompts/:id', async (req) => {
     const { id } = req.params as { id: string }
     const patch = parseOrThrow(PromptUpdateInput, req.body)
-    const updated = prompts.update(id, patch)
+    const updated = updatePrompt({ db: deps.db }, id, patch)
     ledger(assetEventInput('asset_updated', 'prompt', id))
     return updated
   })
 
   app.delete('/api/prompts/:id', async (req, reply) => {
     const { id } = req.params as { id: string }
-    const names = referencedPackNames(deps.db, id, 'promptIds')
+    const { referencedPackNames: names } = deletePrompt({ db: deps.db }, id)
     if (names.length > 0) reply.header('x-referenced-packs', names.join(','))
-    prompts.delete(id)
+    // U-11：删除成功后记 asset_deleted（W-1·F-3）
+    ledger(assetEventInput('asset_deleted', 'prompt', id))
     return reply.code(204).send()
   })
 
@@ -121,19 +136,19 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
     reportRoute('/api/prompts/:id/versions', 'db'),
     async (req) => {
       const { id } = req.params as { id: string }
-      if (!prompts.get(id)) throw new AppError('NOT_FOUND', `提示词不存在: ${id}`)
-      return prompts.versions(id)
+      if (!getPrompt({ db: deps.db }, id)) throw new AppError('NOT_FOUND', `提示词不存在: ${id}`)
+      return promptVersions({ db: deps.db }, id)
     },
   )
 
   app.post('/api/prompts/:id/versions/:no/restore', async (req) => {
     const { id, no: noRaw } = req.params as { id: string; no: string }
-    if (!prompts.get(id)) throw new AppError('NOT_FOUND', `提示词不存在: ${id}`)
+    if (!getPrompt({ db: deps.db }, id)) throw new AppError('NOT_FOUND', `提示词不存在: ${id}`)
     const versionNo = Number(noRaw)
     if (!Number.isInteger(versionNo) || versionNo < 1) {
       throw new AppError('VALIDATION_ERROR', `版本号需为正整数，收到 ${noRaw}`)
     }
-    return prompts.restore(id, versionNo)
+    return restorePrompt({ db: deps.db }, id, versionNo)
   })
 
   // DEV-0013 C-9：JSON body 双形态（files 经 importers 归一 / items 直给），不引入 multipart
@@ -142,11 +157,11 @@ export function registerPromptRoutes(app: FastifyInstance, deps: PromptRouteDeps
     if (Array.isArray(body?.files)) {
       const files = parseOrThrow(z.array(importFileSchema).min(1), body.files)
       const items = parseImportFiles(files as ImportFile[])
-      return prompts.importBatch(items)
+      return importPromptBatch({ db: deps.db }, items)
     }
     if (Array.isArray(body?.items)) {
       const items = parseOrThrow(z.array(PromptImportItem).min(1), body.items)
-      return prompts.importBatch(items)
+      return importPromptBatch({ db: deps.db }, items)
     }
     throw new AppError(
       'VALIDATION_ERROR',

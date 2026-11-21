@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * AN2 · `openvibe discuss` 的 CLI 腿（真子进程）：--json 契约（stdout 单对象）+
@@ -15,8 +15,8 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const CLI_ENTRY = join(HERE, '..', 'src', 'index.ts')
 const roots: string[] = []
 
-function tempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+function makeTempDir(prefix: string): string {
+  const dir = tempDir(prefix)
   roots.push(dir)
   return dir
 }
@@ -33,7 +33,7 @@ const runCli = (args: string[], home: string) =>
   })
 
 describe('openvibe discuss（CLI 腿）', () => {
-  const home = tempDir('ov-discuss-home-')
+  const home = makeTempDir('ov-discuss-home-')
 
   it('DISC-CLI-01: --json 下 stdout 单对象（command=discuss），退出码映射（serve 不可达/未配置）', () => {
     writeFileSync(

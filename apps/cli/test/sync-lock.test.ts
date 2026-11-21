@@ -1,12 +1,12 @@
 import { spawn, spawnSync, type ChildProcessWithoutNullStreams } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PACK_LOCK_REL, SYNC_LOCK_REL, SYNC_LOCK_STALE_MS } from '@openvibe/core'
 import { demoPack, writeBundleFile } from './helpers/pack-fixture'
 import { putFile, treeSnapshot } from './helpers/tree'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * T8e · 并发 sync 互斥锁的**真进程**用例（m6b §6.9 / design §11.3）。
@@ -25,7 +25,7 @@ const LOCK_REL = SYNC_LOCK_REL
 const roots: string[] = []
 
 function sandbox(): { root: string; project: string } {
-  const root = mkdtempSync(join(tmpdir(), 'ov-lock-test-'))
+  const root = tempDir('ov-lock-test-')
   roots.push(root)
   const project = join(root, 'proj')
   mkdirSync(project)
@@ -33,7 +33,7 @@ function sandbox(): { root: string; project: string } {
 }
 
 function tempHome(): string {
-  const home = mkdtempSync(join(tmpdir(), 'ov-lock-home-'))
+  const home = tempDir('ov-lock-home-')
   roots.push(home)
   return home
 }

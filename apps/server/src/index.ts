@@ -62,13 +62,38 @@ for (const line of [...seedLines(boot.seed), ...boot.seed.warnings, ...boot.warn
 const webUrl = `http://${LOOPBACK_HOST}:${String(webPort)}`
 const rule = '─'.repeat(58)
 console.log(`[openvibe] ${rule}`)
-console.log(`[openvibe] 应用入口（浏览器打开这个）  ${webUrl}`)
+/**
+ * 应用入口按「server 是否自己托管 web 产物」决定（2026-11-10）。
+ *
+ * 生产形态下 server 用 `@fastify/static` 托管 `apps/web/dist`（design §4 步骤 7）
+ * ⇒ 页面与 API **同端口同源**，入口就是 `boot.url`。
+ * 若产物缺失（`web.served === false`），server 只提供 API（m6b D-1 的降级），
+ * 此时代理式入口是 vite 那个端口 —— 如实印出来，不假装页面在。
+ */
+if (boot.web.served) {
+  console.log(`[openvibe] 应用入口（浏览器打开这个）  ${boot.url}`)
+  console.log(`[openvibe] 页面与 API 同源（server 托管 web 产物）`)
+} else {
+  console.log(`[openvibe] 应用入口（浏览器打开这个）  ${webUrl}`)
+  console.log('[openvibe]   ⚠️ 未找到 web 产物，本进程只提供 API；请先构建 web')
+}
 console.log(`[openvibe] API（脚本直连）            ${boot.url}`)
 console.log(`[openvibe] 鉴权走两条通道：浏览器靠 Origin 白名单，脚本靠 Bearer token（下一行）。`)
-console.log(
-  `[openvibe]   ⚠️ curl 若走 web 代理（:${String(webPort)}）必须手动带 Origin，否则 401 —— 代理不会替你补这个头：`,
-)
-console.log(`[openvibe]     curl -H "Origin: ${webUrl}" ${webUrl}/api/terms`)
+/**
+ * curl 提示按入口口径给（2026-11-10）。
+ *
+ * 生产形态（`web.served`）下页面与 API 同源 ⇒ 直接打 `boot.url` 即可；
+ * 产物缺失时才回落到 vite 那个端口，此时确实要经代理。
+ */
+if (boot.web.served) {
+  console.log(`[openvibe]   ⚠️ curl 必须手动带 Origin，否则 401（同源也要带，浏览器会自动带）：`)
+  console.log(`[openvibe]     curl -H "Origin: ${boot.url}" ${boot.url}/api/terms`)
+} else {
+  console.log(
+    `[openvibe]   ⚠️ curl 若走 web 代理（:${String(webPort)}）必须手动带 Origin，否则 401 —— 代理不会替你补这个头：`,
+  )
+  console.log(`[openvibe]     curl -H "Origin: ${webUrl}" ${webUrl}/api/terms`)
+}
 console.log(`[openvibe] ${rule}`)
 console.log(`[openvibe] db: ${boot.dbPath}`)
 console.log(

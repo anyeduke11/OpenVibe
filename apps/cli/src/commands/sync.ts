@@ -42,6 +42,7 @@ import {
   type LoadedPack,
 } from '../pack-source'
 import { ExitCode, createWarningBag, type PlanItem, type WarningBag } from '../output'
+import { runHooks } from './hooks'
 
 /**
  * `openvibe sync <projectPath>` —— 注入状态机（m6b FR-2）。
@@ -49,7 +50,12 @@ import { ExitCode, createWarningBag, type PlanItem, type WarningBag } from '../o
  * 破坏性动作要么交互确认要么 --yes 显式授权（非 TTY 且无 --yes 直接拒执行）。
  */
 
-const AUX_PRODUCT_PATHS = new Set([PACK_FILE_TERMS, PACK_FILE_CHECKLIST, PACK_FILE_SKILLS])
+/**
+ * `--target` 的作用域清单：主文件 + 这三类辅助产物。
+ * ⚠️ 比 `PACK_CONTEXT_AUX_FILES` 少 `PLAYBOOKS.md`——补齐会改变注入产物字节，属 A 级变更，
+ * 已登记为 `docs/context-governance-plan-20261103.md` 的 A-1，未签收前不改行为。
+ */
+const AUX_TARGET_SCOPE_FILES = new Set([PACK_FILE_TERMS, PACK_FILE_CHECKLIST, PACK_FILE_SKILLS])
 
 /**
  * 历史名。错误类已随「决策」规则下沉到 core（`injectService.InjectError`），
@@ -171,7 +177,7 @@ function resolveTargets(
   const selected = targetPathsFor(
     pack.files.map((f) => f.path),
     adapterPaths,
-    AUX_PRODUCT_PATHS,
+    AUX_TARGET_SCOPE_FILES,
   )
   // 只挑主规则文件不够——术语表/检查清单/skill 也是包产物，否则 --target 会退化成单文件写入
   const inPack = new Set(pack.files.map((f) => f.path))
@@ -396,6 +402,18 @@ export async function syncAction(
   const stopSignalHandlers = releaseLockOnSignal(lock)
   try {
     const now = (deps.now ?? (() => new Date()))()
+
+    // N3 FR-4.1：pre 钩子在锁内、落盘循环之前按序执行；block 失败即中止注入（不落盘、不写锁）
+    const hooks = pack.manifest.hooks ?? { pre: [], post: [] }
+    const preHooks = await runHooks('pre', hooks.pre, {
+      cwd: projectPath,
+      now: () => now,
+      onWarning: (msg) => warns.push(msg),
+    })
+    if (preHooks.blocked) {
+      throw new InjectError('HOOK_BLOCKED', 'pre 钩子失败（block），已中止注入：未落盘、未写锁')
+    }
+
     const written: string[] = []
     /** 落盘前发现「目标还挂在别处」的条目——写成了新文件，链的另一侧原样保留 */
     const linkBroken: string[] = []
@@ -408,6 +426,14 @@ export async function syncAction(
       let backupPath: string | null = null
       if (write.backup && existsSync(abs)) {
         if (backupRoot === null) {
+          // ⚠️ 路径权威（v0.2.4 F4 / R3）：`.openvibe` 若是指向项目外的 symlink，
+          // 备份就写到项目外了。先过 `resolveWriteTarget`，越界整包中止。
+          if (resolveWriteTarget(projectPath, PACK_BACKUP_REL) === null) {
+            throw new InjectError(
+              'PATH_REJECTED',
+              '.openvibe/backup 路径解析后越出项目根（符号链接？），整包中止',
+            )
+          }
           backupRoot = uniqueBackupRoot(projectPath, utcStamp(now))
           mkdirSync(backupRoot, { recursive: true })
         }
@@ -451,6 +477,17 @@ export async function syncAction(
     }
     outcome.lockPath = lockPath
     outcome.backupRoot = backupRoot
+
+    // N3 FR-4.2/FR-4.3：post 钩子在锁写完后执行；block 失败不回滚（落盘与锁已完），
+    // 仅让 sync 返回非零退出码，与既有 exitCode 语义叠加。
+    const postHooks = await runHooks('post', hooks.post, {
+      cwd: projectPath,
+      now: () => now,
+      onWarning: (msg) => warns.push(msg),
+    })
+    if (postHooks.hasFailure && outcome.exitCode === 0) {
+      outcome.exitCode = ExitCode.error
+    }
 
     // 解链不是静默行为：用户以为覆盖的是项目里那份，实际上磁盘上还挂着另一处同名内容
     if (linkBroken.length > 0) {

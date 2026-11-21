@@ -1,4 +1,9 @@
-import { ADAPTER_MAIN_PATH, coveredPlatforms, planMainFiles } from '@openvibe/adapters'
+import {
+  ADAPTER_MAIN_PATH,
+  coveredPlatforms,
+  l1Capability,
+  planMainFiles,
+} from '@openvibe/adapters'
 import {
   FlowTemplatesRepo,
   PlaybooksRepo,
@@ -16,11 +21,8 @@ import {
   type SqliteDatabase,
 } from '@openvibe/core'
 import {
-  PACK_FILE_CHECKLIST,
+  PACK_CONTEXT_AUX_FILES,
   PACK_FILE_MANIFEST,
-  PACK_FILE_PLAYBOOKS,
-  PACK_FILE_SKILLS,
-  PACK_FILE_TERMS,
   compareCodeUnit,
   utf8ByteLength,
   type AdapterId,
@@ -38,7 +40,7 @@ import {
  * server 与 golden 测试是同一对接方式（tests/golden/compose.ts），
  * 因此「预览即产物」在两条路径上字节同源。
  */
-export const packAdapters: AdapterBundle = { planMainFiles, coveredPlatforms }
+export const packAdapters: AdapterBundle = { planMainFiles, coveredPlatforms, l1Capability }
 
 /** preview 与 export 唯一的生成入口（m6a FR-2.3）；version 与 exportedAt 由调用方给 */
 export function renderPack(
@@ -87,15 +89,6 @@ export function toPreviewOut(rendered: RenderedPack): PreviewOut {
   }
 }
 
-/** 某平台真正读进上下文的那批文件：自己的主文件 + 四个辅助产物（存在才算） */
-const CONTEXT_AUX = [
-  PACK_FILE_TERMS,
-  PACK_FILE_CHECKLIST,
-  PACK_FILE_SKILLS,
-  // m4 FR-7.4：漏收会让 ≈token 系统性低估，技巧越多低估越多
-  PACK_FILE_PLAYBOOKS,
-] as const
-
 export function buildSizeEstimate(
   files: { path: string; content: string }[],
   manifestJson: string,
@@ -103,7 +96,9 @@ export function buildSizeEstimate(
 ): SizeEstimate {
   const byPath = new Map(files.map((f) => [f.path, f.content]))
   const perTarget: SizeEstimatePerTarget[] = [...targets].sort(compareCodeUnit).map((adapter) => {
-    const paths = [ADAPTER_MAIN_PATH[adapter], ...CONTEXT_AUX].filter((p) => byPath.has(p))
+    const paths = [ADAPTER_MAIN_PATH[adapter], ...PACK_CONTEXT_AUX_FILES].filter((p) =>
+      byPath.has(p),
+    )
     const rows: SizeEstimateFile[] = paths.map((path) => ({
       path,
       approxTokens: estimateTokens(byPath.get(path) ?? '').approxTokens,

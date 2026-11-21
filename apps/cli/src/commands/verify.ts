@@ -8,7 +8,7 @@ import {
   resolveWriteTarget,
   summarizeDiff,
 } from '@openvibe/core'
-import type { PackExportOut, PackLock } from '@openvibe/shared'
+import { PACK_MARKER_PREFIX, type PackExportOut, type PackLock } from '@openvibe/shared'
 import { ServerUnreachable, type ApiClient } from '../client'
 import { pickExport } from '../pack-source'
 import { lockPathOf } from './diff'
@@ -22,7 +22,7 @@ import { lockPathOf } from './diff'
  */
 
 /** 磁盘上若出现带注入标记却不在 lock 里的文件，就是弃儿（lock 被删/重建的残骸） */
-const PRODUCT_MARKER = '<!-- openvibe:pack='
+const PRODUCT_MARKER = PACK_MARKER_PREFIX
 
 export class VerifyError extends Error {
   readonly code: string

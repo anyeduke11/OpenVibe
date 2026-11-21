@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { AppError, type ProjectPortsOut, type PortStatus } from '@openvibe/shared'
-import { ProjectsRepo, type SqliteDatabase } from '@openvibe/core'
+import { getProject, type SqliteDatabase } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
 import { reportRoute } from '../lib/route-source'
 import { assertScannableDir, listListeners, scanDeclaredServices } from '../lib/port-scan'
@@ -32,8 +32,8 @@ export function registerPortRoutes(deps: PortRouteDeps): (app: FastifyInstance) 
       ),
       async (req) => {
         const { id } = parseOrThrow(zPortParams, (req as { params?: unknown }).params)
-        const projects = new ProjectsRepo(deps.db)
-        const project = projects.get(id)
+        // F-1：项目读取经 projectService（FR-3.1）
+        const project = getProject({ db: deps.db }, id)
         if (!project) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
 
         const out: ProjectPortsOut = {

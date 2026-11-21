@@ -1,13 +1,4 @@
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  symlinkSync,
-} from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, symlinkSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { PACK_BACKUP_REL, PACK_LOCK_REL } from '@openvibe/core'
@@ -18,6 +9,7 @@ import { SyncError, syncAction } from '../src/commands/sync'
 import { contentOf, demoPack, writeBundleFile } from './helpers/pack-fixture'
 import { fakeClient } from './helpers/fake-client'
 import { putFile, treeSnapshot } from './helpers/tree'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * T7f · m6b §6 的安全边界用例集（§6.3 规模防线 / §6.5 写入中止 / §6.1 符号链接 / §6.6 令牌失效）。
@@ -39,7 +31,7 @@ const IS_WINDOWS = process.platform === 'win32'
 const roots: string[] = []
 
 function sandbox(): { root: string; project: string } {
-  const root = mkdtempSync(join(tmpdir(), 'ov-sec-test-'))
+  const root = tempDir('ov-sec-test-')
   roots.push(root)
   const project = join(root, 'proj')
   mkdirSync(project)

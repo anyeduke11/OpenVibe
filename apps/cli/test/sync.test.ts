@@ -2,14 +2,12 @@ import { spawnSync } from 'node:child_process'
 import {
   lstatSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   rmSync,
   statSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it, vi } from 'vitest'
@@ -34,6 +32,7 @@ import {
 } from './helpers/pack-fixture'
 import { fakeClient, onlineSyncRoutes } from './helpers/fake-client'
 import { putFile, treeSnapshot } from './helpers/tree'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * T7d · `openvibe sync`（m6b FR-2/FR-3 + design §7.5/§7.6/§7.7、§9）。
@@ -59,7 +58,7 @@ const roots: string[] = []
 
 /** 每用例一套沙箱：root/bundle.json + root/proj（bundle 放项目外，dry-run 的树快照才干净） */
 function sandbox(): { root: string; project: string } {
-  const root = mkdtempSync(join(tmpdir(), 'ov-sync-test-'))
+  const root = tempDir('ov-sync-test-')
   roots.push(root)
   const project = join(root, 'proj')
   mkdirSync(project)
@@ -797,7 +796,7 @@ describe('--json 契约与退出码（m6b §5 / §7.7，真子进程）', () => 
     })
 
   const tempHome = (): string => {
-    const home = mkdtempSync(join(tmpdir(), 'ov-sync-home-'))
+    const home = tempDir('ov-sync-home-')
     roots.push(home)
     return home
   }

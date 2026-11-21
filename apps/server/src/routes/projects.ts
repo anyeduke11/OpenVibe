@@ -11,9 +11,18 @@ import {
 } from '@openvibe/shared'
 import {
   PACK_LOCK_REL,
-  ProjectsRepo,
   checkLocalPath,
+  createProject,
+  deleteProject,
+  getProject,
+  listProjectCheckStates,
+  listProjects,
+  projectHealthSummary,
+  setProjectCheckState,
+  switchProjectStage,
+  updateProject,
   readInjectionStatus,
+  scanInjectionFiles,
   type SqliteDatabase,
 } from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
@@ -46,18 +55,19 @@ const CheckStateBody = z.object({
 
 /** dev-plan §3.5 六端点 + 健康摘要内联（列表/详情都带，删除确认框据此显示「将删除 N 条日志」） */
 export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDeps): void {
-  const projects = new ProjectsRepo(deps.db)
   const ledger = resolveLedger(deps)
 
   app.get('/api/projects', reportRoute('/api/projects', 'db'), async (req) => {
     const { status } = req.query as { status?: unknown }
-    let items = projects.list().map((p) => ({ ...p, health: projects.healthSummary(p.id) }))
+    let items = listProjects({ db: deps.db }).map((p) => ({
+      ...p,
+      health: projectHealthSummary({ db: deps.db }, p.id),
+    }))
     if (typeof status === 'string' && status !== '' && status !== 'all') {
       if (status === 'archived') {
-        items = projects
-          .list({ includeArchived: true })
+        items = listProjects({ db: deps.db }, { includeArchived: true })
           .filter((p) => p.status === 'archived')
-          .map((p) => ({ ...p, health: projects.healthSummary(p.id) }))
+          .map((p) => ({ ...p, health: projectHealthSummary({ db: deps.db }, p.id) }))
       } else {
         items = items.filter((p) => p.status === status)
       }
@@ -68,7 +78,7 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
   app.post('/api/projects', async (req, reply) => {
     const input = parseOrThrow(ProjectCreateInput, req.body)
     assertLocalPath(input.localPath)
-    const project = projects.create(input)
+    const project = createProject({ db: deps.db }, input)
     // `flow_template_run` 的写入点（local-event-ledger FR-2.3 列的四类之一）。
     //
     // **为什么落在这里而不是新造一个「运行模板」端点**：`ProjectCreateInput.flowTemplateId`
@@ -89,27 +99,27 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
     const check = checkLocalPath(project.localPath)
     return reply.code(201).send({
       ...project,
-      health: projects.healthSummary(project.id),
+      health: projectHealthSummary({ db: deps.db }, project.id),
       localPathWarning: check.warning ?? null,
     })
   })
 
   app.get('/api/projects/:id', reportRoute('/api/projects/:id', 'db'), async (req) => {
     const { id } = req.params as { id: string }
-    const project = projects.get(id)
+    const project = getProject({ db: deps.db }, id)
     if (!project) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
-    return { ...project, health: projects.healthSummary(id) }
+    return { ...project, health: projectHealthSummary({ db: deps.db }, id) }
   })
 
   app.patch('/api/projects/:id', async (req) => {
     const { id } = req.params as { id: string }
     const patch = parseOrThrow(ProjectUpdateInput, req.body)
     assertLocalPath(patch.localPath)
-    const project = projects.update(id, patch)
+    const project = updateProject({ db: deps.db }, id, patch)
     const check = checkLocalPath(project.localPath)
     return {
       ...project,
-      health: projects.healthSummary(id),
+      health: projectHealthSummary({ db: deps.db }, id),
       localPathWarning: check.warning ?? null,
     }
   })
@@ -117,7 +127,7 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
   // 级联由外键保证；不触碰 localPath 目录内任何文件（m5 §6.5）
   app.delete('/api/projects/:id', async (req, reply) => {
     const { id } = req.params as { id: string }
-    projects.delete(id)
+    deleteProject({ db: deps.db }, id)
     return reply.code(204).send()
   })
 
@@ -127,9 +137,9 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
     // ⚠️ 先读一次再切：去重需要「切换前」的阶段，而 `switchStage` 内部也会 get。
     // 抛错顺序与改动前一致（不存在 ⇒ NOT_FOUND，不在快照 ⇒ VALIDATION_ERROR，
     // 两者都由 `switchStage` 自己抛，这里只是把「不存在」提前到同一位置）。
-    const before = projects.get(id)
+    const before = getProject({ db: deps.db }, id)
     if (!before) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
-    projects.switchStage(id, stageName)
+    switchProjectStage({ db: deps.db }, id, stageName)
 
     // `stage_view_switched` 的写入点（local-event-ledger FR-2.3 点名的**四类之四**）。
     //
@@ -157,9 +167,9 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
       })
     }
 
-    const project = projects.get(id)
+    const project = getProject({ db: deps.db }, id)
     if (!project) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
-    return { ...project, health: projects.healthSummary(id) }
+    return { ...project, health: projectHealthSummary({ db: deps.db }, id) }
   })
 
   /**
@@ -177,15 +187,15 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
     reportRoute('/api/projects/:id/check-states', 'db'),
     async (req) => {
       const { id } = req.params as { id: string }
-      if (!projects.get(id)) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
-      const items = projects.listCheckStates(id)
+      if (!getProject({ db: deps.db }, id)) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
+      const items = listProjectCheckStates({ db: deps.db }, id)
       return { items, total: items.length }
     },
   )
 
   app.put('/api/projects/:id/check-states', async (req) => {
     const { id } = req.params as { id: string }
-    const project = projects.get(id)
+    const project = getProject({ db: deps.db }, id)
     if (!project) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
     const { stageName, itemId, checked } = parseOrThrow(CheckStateBody, req.body)
     const stage = project.stagesSnapshot.find((s) => s.name === stageName)
@@ -193,10 +203,10 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
     if (!stage.checklist.some((item) => item.id === itemId)) {
       throw new AppError('VALIDATION_ERROR', `检查项不存在于该阶段: ${itemId}`)
     }
-    const wasChecked = projects
-      .listCheckStates(id)
-      .some((c) => c.stageName === stageName && c.itemId === itemId)
-    projects.checkState(id, stageName, itemId, checked)
+    const wasChecked = listProjectCheckStates({ db: deps.db }, id).some(
+      (c) => c.stageName === stageName && c.itemId === itemId,
+    )
+    setProjectCheckState({ db: deps.db }, id, stageName, itemId, checked)
     if (checked && !wasChecked) {
       // payload 只放枚举值（FR-6.3）：stageName 取自该项目的 stagesSnapshot，是阶段枚举不是项目名
       ledger({
@@ -207,7 +217,10 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
         payload: { stage: stageName },
       })
     }
-    return { checkStates: projects.listCheckStates(id), health: projects.healthSummary(id) }
+    return {
+      checkStates: listProjectCheckStates({ db: deps.db }, id),
+      health: projectHealthSummary({ db: deps.db }, id),
+    }
   })
 
   app.get(
@@ -219,12 +232,34 @@ export function registerProjectRoutes(app: FastifyInstance, deps: ProjectRouteDe
     ),
     async (req) => {
       const { id } = req.params as { id: string }
-      const project = projects.get(id)
+      const project = getProject({ db: deps.db }, id)
       if (!project) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
       return readInjectionStatus({
         localPath: project.localPath,
         registered: { packId: project.standardPackId, version: project.standardPackVersion },
       })
+    },
+  )
+
+  /**
+   * 注入产物台账（原型 inject「产物台账（九文件 + lock）」）。
+   *
+   * 与 `:id/injection-status` 分工：后者答「注入过没有、版本对不对」，
+   * 本端点答「**每个文件现在对不对得上**」。⚠️ 只读 lock 与磁盘，不写盘
+   * （写盘唯一通道是 CLI，见 InjectPage 的写盘边界说明）。
+   */
+  app.get(
+    '/api/projects/:id/injection-files',
+    reportRoute(
+      '/api/projects/:id/injection-files',
+      'mixed',
+      '读 localPath 下的 lock 与每个登记文件的实算哈希 ⇒ 目录被删 / 文件被改即变',
+    ),
+    async (req) => {
+      const { id } = req.params as { id: string }
+      const project = getProject({ db: deps.db }, id)
+      if (!project) throw new AppError('NOT_FOUND', `项目不存在: ${id}`)
+      return scanInjectionFiles(project.localPath)
     },
   )
 

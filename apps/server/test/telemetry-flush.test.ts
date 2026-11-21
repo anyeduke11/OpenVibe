@@ -1,6 +1,5 @@
 import { spawn } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
@@ -11,7 +10,7 @@ import {
   LocalEventsRepo,
   ProjectsRepo,
 } from '@openvibe/core'
-import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
+import { newDb, type TestDbHandle, tempDir } from '@openvibe/core/test-support'
 import { TELEMETRY_FLUSH_INTERVAL_MS, TelemetryBatch, type TelemetryEvent } from '@openvibe/shared'
 import { bootstrap, type BootstrapResult } from '../src/bootstrap'
 import { flushTelemetryOnce, startTelemetryFlush } from '../src/lib/telemetry-flush'
@@ -44,7 +43,7 @@ const roots: string[] = []
 
 function harness(): Harness {
   // 预置包导出落在 <home>/packs/ 且含条目 id：每用例一个新沙箱，否则第二次撞 VERSION_IMMUTABLE
-  const home = mkdtempSync(join(tmpdir(), 'ov-tel-home-'))
+  const home = tempDir('ov-tel-home-')
   process.env.OPENVIBE_HOME = home
   const handle = newDb()
   opens.push(() => handle.close())
@@ -321,7 +320,7 @@ describe('bootstrap 接线 + 真接收端端到端', () => {
   }
 
   function tempHome(): string {
-    const home = mkdtempSync(join(tmpdir(), 'ov-tel-boot-'))
+    const home = tempDir('ov-tel-boot-')
     roots.push(home)
     process.env.OPENVIBE_HOME = home
     return home

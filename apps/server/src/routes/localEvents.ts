@@ -5,7 +5,12 @@ import {
   LocalEventsSummaryOut,
   type LocalEventsSummaryOut as SummaryOut,
 } from '@openvibe/shared'
-import { LocalEventsRepo, type SqliteDatabase } from '@openvibe/core'
+import {
+  clearLocalEvents,
+  localEventCumulativeByKind,
+  localEventSummaryInWindow,
+  type SqliteDatabase,
+} from '@openvibe/core'
 import { parseOrThrow } from '../lib/validate'
 import { reportRoute } from '../lib/route-source'
 
@@ -33,8 +38,6 @@ export interface LocalEventsRouteDeps {
 }
 
 export function registerLocalEventsRoutes(app: FastifyInstance, deps: LocalEventsRouteDeps): void {
-  const repo = new LocalEventsRepo(deps.db)
-
   /**
    * 聚合查询（FR-4 / FR-7）。
    *
@@ -46,8 +49,8 @@ export function registerLocalEventsRoutes(app: FastifyInstance, deps: LocalEvent
     reportRoute('/api/local-events/summary', 'db'),
     async (req): Promise<SummaryOut> => {
       const q = parseOrThrow(LocalEventsQuery, req.query)
-      const byDay = repo.summaryInWindow(q.from, q.to)
-      const cumulativeByKind = repo.cumulativeByKind()
+      const byDay = localEventSummaryInWindow({ db: deps.db }, q.from, q.to)
+      const cumulativeByKind = localEventCumulativeByKind({ db: deps.db })
 
       // 窗内按 kind 汇总：从 byDay 聚合，避免两条 SQL 各算一遍而口径漂
       const byKindMap = new Map<string, number>()
@@ -77,7 +80,7 @@ export function registerLocalEventsRoutes(app: FastifyInstance, deps: LocalEvent
    */
   app.post('/api/local-events/clear', async (): Promise<LocalEventsClearOut> => {
     const now = (deps.now ?? (() => new Date()))()
-    const cleared = repo.clearAll()
+    const cleared = clearLocalEvents({ db: deps.db })
     return LocalEventsClearOut.parse({ cleared, clearedAt: now.toISOString() })
   })
 }

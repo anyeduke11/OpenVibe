@@ -1,11 +1,11 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { contentOf, demoPack, writeBundleFile } from './helpers/pack-fixture'
 import { syncAction } from '../src/commands/sync'
 import { diffAction } from '../src/commands/diff'
 import type { ApiClient } from '../src/client'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * v0.2.3 批次 C RQ4 的 CLI 端到端腿：漂移文件在包侧可达时给出段级明细
@@ -15,8 +15,8 @@ import type { ApiClient } from '../src/client'
 
 const roots: string[] = []
 
-function tempDir(prefix: string): string {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+function makeTempDir(prefix: string): string {
+  const dir = tempDir(prefix)
   roots.push(dir)
   return dir
 }
@@ -26,7 +26,7 @@ afterAll(() => {
 })
 
 async function injectedProject(): Promise<{ project: string; pack: ReturnType<typeof demoPack> }> {
-  const root = tempDir('ov-dsec-')
+  const root = makeTempDir('ov-dsec-')
   const project = join(root, 'proj')
   mkdirSync(project)
   const pack = demoPack()
@@ -46,7 +46,7 @@ const fakeClient = (pack: ReturnType<typeof demoPack>): { client: ApiClient } =>
 })
 
 describe('diff 的段级明细（RQ4，包侧可达时）', () => {
-  it('DSEC-01: 改受管块内一行 ⇒ sections 给出受管块 changed 与两侧行数', async () => {
+  it('DSEC-01: 改受管块内一行 ⇒ sections 给出所在受管段 changed 与两侧行数（D32 段级标记起按段报告）', async () => {
     const { project, pack } = await injectedProject()
     const claude = join(project, 'CLAUDE.md')
     const text = readFileSync(claude, 'utf8')
@@ -61,9 +61,15 @@ describe('diff 的段级明细（RQ4，包侧可达时）', () => {
     expect(outcome.exitCode).toBe(2)
     const entry = outcome.sections.find((s) => s.path === 'CLAUDE.md')
     expect(entry).toBeDefined()
-    const managed = entry?.result.regions.find((r) => r.region === '受管块')
-    expect(managed?.status).toBe('changed')
-    expect(managed?.actualLines).toBe((managed?.expectedLines ?? 0) + 1)
+    // END 之前的追加行落在最后一个**存在**的受管段（demoPack 无参考提示词 ⇒ 参考节连同
+    // 其段标记一起省略，末段 = 术语表）；D32 后按段报告
+    const last = entry?.result.regions.find((r) => r.region === '受管段·术语表')
+    expect(last?.status).toBe('changed')
+    expect(last?.actualLines).toBe((last?.expectedLines ?? 0) + 1)
+    // 其余段与壳头不受牵连（段级隔离的直接证明）
+    expect(
+      entry?.result.regions.filter((r) => r.region !== '块外自由区' && r.status === 'changed'),
+    ).toHaveLength(1)
     expect(outcome.hints.join('\n')).toContain('永不触碰')
   })
 

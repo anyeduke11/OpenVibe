@@ -2,6 +2,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync, unlinkSync
 import { dirname, join, resolve } from 'node:path'
 import { confirm, isCancel } from '@clack/prompts'
 import {
+  PACK_BACKUP_REL,
   PACK_LOCK_REL,
   SYNC_LOCK_STALE_MS,
   auditLockPaths,
@@ -377,6 +378,15 @@ export async function cleanAction(
       }
       if (!existsSync(abs)) continue // 见上：真不存在 = ABSENT，不是违规
       if (backupRoot === null) {
+        // ⚠️ 路径权威（v0.2.4 F4 / R3）：`.openvibe` 若是指向项目外的 symlink，
+        // 备份就写到项目外了。先过 `resolveWriteTarget`，越界整包中止。
+        if (resolveWriteTarget(projectPath, PACK_BACKUP_REL) === null) {
+          throw new CleanError(
+            'PATH_ESCAPE',
+            '.openvibe/backup 路径解析后越出项目根（符号链接？），整包中止',
+            { escapingPaths: [PACK_BACKUP_REL], done: [...removedPaths] },
+          )
+        }
         backupRoot = uniqueBackupRoot(projectPath, utcStamp(now))
         mkdirSync(backupRoot, { recursive: true })
       }

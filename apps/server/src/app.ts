@@ -10,6 +10,7 @@ import {
 import { registerAuth } from './plugins/auth'
 import { registerErrors } from './plugins/errors'
 import { registerAgentRoutes } from './routes/agent'
+import { registerAgentRegistryRoutes, type AgentRegistryRouteDeps } from './routes/agentRegistry'
 import { registerExtractRoutes } from './routes/extract'
 import type { ExtractRunner } from '@openvibe/core'
 import { registerCliCommandRoutes } from './routes/cliCommands'
@@ -26,6 +27,7 @@ import { registerProjectRoutes } from './routes/projects'
 import { type PortRouteDeps, registerPortRoutes } from './routes/ports'
 import { registerPromptRoutes, type PromptRouteDeps } from './routes/prompts'
 import { registerSettingsRoutes, type SettingsRouteInput } from './routes/settings'
+import { registerContextGovernanceRoutes } from './routes/contextGovernance'
 import { registerSkillRoutes } from './routes/skills'
 import { registerTaskRoutes } from './routes/tasks'
 import { registerTermRoutes } from './routes/terms'
@@ -56,6 +58,8 @@ export interface BuildAppOptions {
   discussDailyCallLimit?: number
   /** 本机端口监听查询实现（m5 FR-8 测试注入点；缺省走真机 lsof / netstat） */
   listListenersImpl?: PortRouteDeps['listListenersImpl']
+  /** agent 注册表健康探测（v0.3.0 FR-3.0-1 注入点；缺省走 `which`） */
+  agentProbe?: AgentRegistryRouteDeps['probe']
   /**
    * M9 P5 的**解读 runner**（T2 的注入点）。
    *
@@ -117,6 +121,11 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
   // 测试无法钉住「这条事件落在哪一天」。见 lib/ledger.ts 的「为什么缺省也照记」。
   const deps: PromptRouteDeps = { db, now: options.now }
   registerAgentRoutes(app, deps)
+  registerAgentRegistryRoutes(app, {
+    db: deps.db,
+    now: options.now,
+    probe: options.agentProbe,
+  })
   registerExtractRoutes(app, {
     db,
     now: options.now,
@@ -157,6 +166,8 @@ export async function buildApp(options: BuildAppOptions = {}): Promise<BuiltApp>
     now: options.now,
     ...options.settings,
   })
+  // 上下文治理结论（只读；数据源是本机 test-results/context-check.json ＋ 入仓棘轮基线）
+  registerContextGovernanceRoutes(app)
 
   app.get('/api/health', async () => ({
     status: 'ok',

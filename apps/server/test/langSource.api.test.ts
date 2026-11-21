@@ -18,12 +18,11 @@
 //
 // 临时目录里放一个真实的 `.py` 文件 ⇒ 走 `python3 + ast` 那条路，
 // 落库的是**真实命中** ⇒ 导出清单里的 `file:line` 指的是真实存在的文件。
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
+import { newDb, type TestDbHandle, tempDir } from '@openvibe/core/test-support'
 import { buildApp } from '../src/app'
 
 const TOKEN = 'test-token'
@@ -107,7 +106,7 @@ function addTopics(db: TestDbHandle['db']): void {
 
 /** 一个**真实**的 Python 项目目录（一个模块 ＋ 一个装饰器）。 */
 function makePyProject(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-m9-api-'))
+  const dir = tempDir('ov-m9-api-')
   dirs.push(dir)
   writeFileSync(
     join(dir, 'app.py'),
@@ -204,29 +203,25 @@ describe('M9 P4 · GET /api/lang/findings', () => {
     expect(res.statusCode).toBe(422)
   })
 
-  // windows runner 无 python3 命令名 ⇒ 真扫腿（POSIX 命名语义）门控，与下方「真扫一个 Python 项目」同款口径
-  it.skipIf(IS_WINDOWS)(
-    '⚠️ **多项目互不覆盖**（owner 2026-10-22 加项目列的**目的**）',
-    async () => {
-      const h = await makeHarness()
-      const dirA = makePyProject()
-      const dirB = makePyProject()
-      addProject(h.handle.db, 'p1', dirA)
-      addProject(h.handle.db, 'p2', dirB)
-      addTopics(h.handle.db)
+  it('⚠️ **多项目互不覆盖**（owner 2026-10-22 加项目列的**目的**）', async () => {
+    const h = await makeHarness()
+    const dirA = makePyProject()
+    const dirB = makePyProject()
+    addProject(h.handle.db, 'p1', dirA)
+    addProject(h.handle.db, 'p2', dirB)
+    addTopics(h.handle.db)
 
-      await post(h, '/api/lang/scan', { project_id: 'p1' })
-      const afterA = await get(h, '/api/lang/findings?project=p1')
-      expect((afterA.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
+    await post(h, '/api/lang/scan', { project_id: 'p1' })
+    const afterA = await get(h, '/api/lang/findings?project=p1')
+    expect((afterA.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
 
-      // ⚠️ 扫第二个项目 ⇒ **第一个项目的命中不许被清掉**
-      await post(h, '/api/lang/scan', { project_id: 'p2' })
-      const stillA = await get(h, '/api/lang/findings?project=p1')
-      const nowB = await get(h, '/api/lang/findings?project=p2')
-      expect((stillA.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
-      expect((nowB.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
-    },
-  )
+    // ⚠️ 扫第二个项目 ⇒ **第一个项目的命中不许被清掉**
+    await post(h, '/api/lang/scan', { project_id: 'p2' })
+    const stillA = await get(h, '/api/lang/findings?project=p1')
+    const nowB = await get(h, '/api/lang/findings?project=p2')
+    expect((stillA.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
+    expect((nowB.json() as { findings: unknown[] }).findings.length).toBeGreaterThan(0)
+  })
 })
 
 describe('M9 P4 · DL-21 · 同意记忆', () => {
@@ -310,10 +305,7 @@ describe('M9 P4 · DL-22 / DL-23 · 导出清单', () => {
     // ⚠️ DL-23：**没有绝对路径**（导出的文件会被用户随手转发）
     expect(res.body).not.toContain(dir)
     expect(res.body).not.toContain('/Users/')
-    // ⚠️ 只放宽外层上限（与 tests/m9-pi-runner.test.ts 同款纪律，断言一字未改）：
-    //    CI runner 的 tmp 是全新的 ⇒ goparse 助手首次 go build 在 windows 上 10-30s
-    //    （unit 层默认 20s 在首编未完成时即超时——run 43556396682 windows 实证）。
-  }, 120_000)
+  })
 
   it('缺 project ⇒ 422', async () => {
     const h = await makeHarness()

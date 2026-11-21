@@ -18,6 +18,7 @@ import { verifyAction } from './commands/verify'
 import { runMcpServer } from './commands/mcp'
 import { discussAction, discussLines } from './commands/discuss'
 import { skillGetAction, SkillGetError } from './commands/skill'
+import { commandsExportAction } from './commands/commands'
 import {
   createPrinter,
   emitWarnings,
@@ -35,6 +36,7 @@ import {
   DEFAULT_PORT,
   DEVLOG_TYPES,
   REQUIREMENT_PRIORITIES,
+  SLASH_DIR,
   compareCodeUnit,
   type AdapterId,
 } from '@openvibe/shared'
@@ -1030,6 +1032,31 @@ export function buildProgram(): Command {
     .option('--related <path>', '相关文件（可重复，保序去重）', collectRelated, [])
     .action(async (opts: SessionLogCmdOptions) => {
       await runSessionLog(opts, program.opts<GlobalOptions>())
+    })
+
+  // N2 · Track N：slash 命令文件导出（独立产物线，纯本地，不经服务端）
+  const commandsCmd = program
+    .command('commands')
+    .description('slash 命令文件集（独立产物，N2）：导出 OpenVibe CLI 能力的 slash 命令入口')
+
+  commandsCmd
+    .command('export')
+    .description(`导出 slash 命令文件到指定目录（缺省 ./${SLASH_DIR}/）`)
+    .argument('[dir]', `输出根目录（缺省当前目录下的 ${SLASH_DIR}/）`)
+    .action(async (dir: string | undefined) => {
+      const global = program.opts<GlobalOptions>()
+      const printer = printerFor('commands', global)
+      const outcome = await commandsExportAction({ dir })
+      printer.info(`已导出 ${outcome.files.length} 个 slash 命令文件到 ${outcome.dir}`)
+      for (const f of outcome.files) printer.info(`  ${f}`)
+      printer.result({
+        summary: {
+          ok: true,
+          dir: outcome.dir,
+          count: outcome.files.length,
+          files: outcome.files,
+        },
+      })
     })
 
   return program

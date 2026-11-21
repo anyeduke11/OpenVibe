@@ -95,6 +95,17 @@ function topLevelCommands(): RegisteredCommand[] {
   return registeredCommands().filter((c) => c.receiver === 'program')
 }
 
+/**
+ * 管理命令（非 CLI 能力命令）豁免清单。
+ *
+ * N2 新增的 `commands`（导出 slash 命令文件集）是**管理命令**，不属 CLI_COMMANDS
+ * 描述的「CLI 能力命令」（它不调用 sync/scan 等 CLI 能力，而是导出 slash 命令文件），
+ * 故不参与漂移闸的「CLI 注册 ↔ shared 元数据」一一对应校验。其子命令 `export` 随其豁免。
+ * 漂移闸的本意是「CLI 能力命令不漂移」，管理命令不在此列。
+ */
+const MANAGEMENT_TOP_COMMANDS = ['commands']
+const MANAGEMENT_SUB_COMMANDS = ['export']
+
 describe('GET /api/cli/commands（CLI 命令参考）', () => {
   it('IT-CLI-CMD-01: 200 + 十三条命令（既有五条 + M8 四条 + v0.2.3 verify/mcp/discuss + skill），字段齐全且 risk 落在闭集内', async () => {
     const h = await makeHarness()
@@ -125,11 +136,13 @@ describe('GET /api/cli/commands（CLI 命令参考）', () => {
   })
 
   it('IT-CLI-CMD-02: 漂移闸——shared 的顶层命令名集合 == apps/cli 的真实注册名集合', () => {
-    const top = topLevelCommands()
+    // 管理命令（N2 的 commands）豁免：非 CLI 能力命令，不参与一一对应校验
+    const top = topLevelCommands().filter((c) => !MANAGEMENT_TOP_COMMANDS.includes(c.name))
     expect(top.length).toBeGreaterThan(0)
     expect(top.map((c) => c.name).sort()).toEqual([...CLI_COMMANDS].map((c) => c.name).sort())
     // 子命令闭集：挂在别的命令对象上的注册。改动它必须同时改 shared 的 usage，
     // 否则漂移闸看不见这条命令 ⇒ 这里钉成闭集，多一条少一条都红。
+    // （管理命令 commands 的子命令 export 随其豁免。）
     //
     // ⚠️ 逐字序而非排序序：`requirement add` 的注册刻意排在 `session log` **之前**
     // （apps/cli/src/index.ts 的 buildProgram 里有注释说明），故源码序恰等于码点序
@@ -137,7 +150,7 @@ describe('GET /api/cli/commands（CLI 命令参考）', () => {
     // 若日后挪动注册顺序，必须改成排序比较并在测试里说明放弃了顺序校验。
     expect(
       registeredCommands()
-        .filter((c) => c.receiver !== 'program')
+        .filter((c) => c.receiver !== 'program' && !MANAGEMENT_SUB_COMMANDS.includes(c.name))
         .map((c) => c.name),
     ).toEqual(['add', 'log'])
   })

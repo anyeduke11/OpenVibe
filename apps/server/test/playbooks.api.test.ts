@@ -290,7 +290,8 @@ describe('IT-PB-02 · 组包接入（FR-7 / §6.4）', () => {
     // 正文交叉引用行也必须出现（FR-7.6），且未选技巧的包字节逐字节不变
     const main = (out: PreviewOut): string =>
       out.files.find((f) => f.path === 'CLAUDE.md')?.content ?? ''
-    expect(main(withPb)).toContain(`见 ${PACK_FILE_PLAYBOOKS}（1 条）`)
+    // N4（m11 FR-3.5）：claude-code 的 L1 默认开启，交叉引用行走 L1 渲染形态
+    expect(main(withPb)).toContain(`\`${PACK_FILE_PLAYBOOKS}\`：1 条技巧`)
     expect(main(without)).not.toContain(PACK_FILE_PLAYBOOKS)
 
     // lock 侧：走真 planner + buildPackLock，files 必须差出 PLAYBOOKS.md 一条

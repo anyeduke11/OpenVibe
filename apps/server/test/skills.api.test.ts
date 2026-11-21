@@ -1,9 +1,8 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
+import { newDb, type TestDbHandle, tempDir } from '@openvibe/core/test-support'
 import { hashSkillEntries } from '@openvibe/core'
 import type {
   SkillDuplicatesReport,
@@ -44,7 +43,7 @@ async function makeHarness(opts: { remoteFetchImpl?: typeof fetch } = {}): Promi
     token: TOKEN,
     remoteFetchImpl: opts.remoteFetchImpl,
   })
-  const harness = { app, handle, root: mkdtempSync(join(tmpdir(), 'ov-m2-test-')) }
+  const harness = { app, handle, root: tempDir('ov-m2-test-') }
   openHandles.push(harness)
   return harness
 }

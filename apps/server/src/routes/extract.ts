@@ -1,11 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import {
+  setAiExtractGate,
   adoptionStatsWithHistory,
   extractUsage,
   runDiscussion,
   writeAdoptionSnapshots,
-  AppMetaRepo,
   clearExtractConsent,
   extractGateOpen,
   listExtractConsents,
@@ -92,7 +92,8 @@ export function registerExtractRoutes(app: FastifyInstance, deps: ExtractRouteDe
   /** 总闸开关（AN4；默认关——写侧在这里，拦截在 core 服务层） */
   app.post('/api/extract/gate', async (req): Promise<{ enabled: boolean }> => {
     const { enabled } = parseOrThrow(GateToggleInput, req.body)
-    new AppMetaRepo(deps.db).write('aiExtractEnabled', enabled)
+    // F-1：总闸写入经 assetService 的 setAiExtractGate（与读侧同一处，FR-3.1）
+    setAiExtractGate({ db: deps.db }, enabled)
     return { enabled }
   })
 

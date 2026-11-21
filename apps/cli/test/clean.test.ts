@@ -3,13 +3,11 @@ import {
   existsSync,
   lstatSync,
   mkdirSync,
-  mkdtempSync,
   readFileSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it, vi } from 'vitest'
@@ -29,6 +27,7 @@ import { cleanAction, CleanError } from '../src/commands/clean'
 import { syncAction } from '../src/commands/sync'
 import { demoPack, writeBundleFile, type PackFixture } from './helpers/pack-fixture'
 import { putFile, treeSnapshot } from './helpers/tree'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * T10 · `openvibe clean`（m6b FR-6 + 验收 §7.10 a–j）。
@@ -64,7 +63,7 @@ const CLI_ENTRY = join(HERE, '..', 'src', 'index.ts')
 const roots: string[] = []
 
 function sandbox(): { root: string; project: string } {
-  const root = mkdtempSync(join(tmpdir(), 'ov-clean-test-'))
+  const root = tempDir('ov-clean-test-')
   roots.push(root)
   const project = join(root, 'proj')
   mkdirSync(project)
@@ -787,7 +786,7 @@ describe('命令注册与 --json 契约（FR-6.10）', () => {
     })
   const runClean = (args: string[], home: string) => runCli(['--json', 'clean', ...args], home)
   const newHome = (): string => {
-    const home = mkdtempSync(join(tmpdir(), 'ov-clean-home-'))
+    const home = tempDir('ov-clean-home-')
     roots.push(home)
     return home
   }

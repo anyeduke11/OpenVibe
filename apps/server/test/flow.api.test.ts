@@ -1,19 +1,10 @@
 import { createHash } from 'node:crypto'
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
+import { newDb, type TestDbHandle, tempDir } from '@openvibe/core/test-support'
 import { runSeed } from '@openvibe/core'
 import type { DevLogOut, FlowTemplateOut, ProjectOut, Stage, TaskOut } from '@openvibe/shared'
 import { buildApp } from '../src/app'
@@ -46,7 +37,7 @@ async function makeHarness(seed = false): Promise<Harness> {
   const handle = newDb()
   if (seed) runSeed(handle.db, SEED_DIR)
   const { app } = await buildApp({ db: handle.db, token: TOKEN })
-  const harness = { app, handle, root: mkdtempSync(join(tmpdir(), 'ov-m5-test-')) }
+  const harness = { app, handle, root: tempDir('ov-m5-test-') }
   openHandles.push(harness)
   return harness
 }
@@ -223,12 +214,14 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
     expect(again.statusCode).toBe(404)
     expect(again.json().code).toBe('NOT_FOUND')
 
-    // 内置模板仍在列表里（七档：三套基线 + DEV-0074 四套问答框架）
+    // 内置模板仍在列表里（九档：三套基线 + DEV-0074 四套问答框架 + G-1 两套 SDD 裁剪）
     const list = await injectApi(h, 'GET', '/api/flow-templates')
     const builtins = (list.json().items as FlowTemplateOut[]).filter((t) => t.builtin)
     expect(builtins.map((t) => t.name).sort()).toEqual([
       'Bug 根因排查',
+      'OpenSpec 变更流',
       'Spec 驱动流',
+      'Spec-Kit 流',
       '个人轻量流',
       '发布闸问答',
       '周度复盘问答',
@@ -267,6 +260,54 @@ describe('T5b · m5 §7 验收映射（API 行为层）', () => {
     const stale = (await injectApi(h, 'GET', `/api/projects/${project.id}/injection-status`)).json()
     expect(stale.upToDate).toBe(false)
     expect(stale.lockPresent).toBe(true)
+  })
+
+  it('IT-PROJECT-01b（原型「产物台账」）: 逐文件状态 + lock 合成行；无路径报 lockPresent=false', async () => {
+    const h = await makeHarness()
+    const tpl = await mkTemplate(h, '产物台账流', [stage('开发', 1)])
+    const dir = writeLock(h, '1.2.0', 'team-pack')
+    const project = await mkProject(h, tpl.id, { name: '产物台账', localPath: dir })
+
+    // CLAUDE.md 在 lock 里声明为 'a'*64，但磁盘上不存在 ⇒ ABSENT
+    const res = await injectApi(h, 'GET', `/api/projects/${project.id}/injection-files`)
+    expect(res.statusCode).toBe(200)
+    const body = res.json()
+    expect(body.lockPresent).toBe(true)
+    expect(body.pack).toEqual({ name: 'team-pack', version: '1.2.0', fingerprint: 'f'.repeat(64) })
+    expect(body.files).toEqual([
+      {
+        path: 'CLAUDE.md',
+        state: 'ABSENT',
+        managed: true,
+        declaredSha256: 'a'.repeat(64),
+        diskSha256: null,
+      },
+      { path: join('.openvibe', 'pack.lock.json'), state: 'LOCK', managed: false },
+    ])
+
+    // 内容与声明一致 ⇒ IN_SYNC（磁盘实算哈希与 lock 逐字相同）
+    const content = '# CLAUDE\n一致\n'
+    writeFileSync(join(dir, 'CLAUDE.md'), content, 'utf8')
+    const sha = (s: string) => createHash('sha256').update(s, 'utf8').digest('hex')
+    writeFileSync(
+      join(dir, '.openvibe', 'pack.lock.json'),
+      JSON.stringify({
+        schemaVersion: 1,
+        pack: { id: 'pk_std', name: 'team-pack', version: '1.2.0', fingerprint: 'f'.repeat(64) },
+        injectedAt: '2026-09-20T02:11:00.000Z',
+        files: [{ path: 'CLAUDE.md', sha256: sha(content), managed: true }],
+      }),
+    )
+    const synced = (await injectApi(h, 'GET', `/api/projects/${project.id}/injection-files`)).json()
+    expect(synced.files.find((f: { path: string }) => f.path === 'CLAUDE.md')?.state).toBe(
+      'IN_SYNC',
+    )
+
+    // 未登记路径 ⇒ lockPresent=false（不 500、不臆造文件行）
+    const noPath = await mkProject(h, tpl.id, { name: '无路径' })
+    const bare = await injectApi(h, 'GET', `/api/projects/${noPath.id}/injection-files`)
+    expect(bare.statusCode).toBe(200)
+    expect(bare.json()).toMatchObject({ lockPresent: false, files: [] })
   })
 
   it('IT-CHECK-01（§7.4）: 勾 3/5 → 完成度 60%，重取仍保持；取消回落到 2/5 已勾', async () => {

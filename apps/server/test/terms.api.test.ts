@@ -231,7 +231,7 @@ describe('T4c · m3 §7 验收映射（API 行为层）', () => {
     expect(
       (first.find((r) => r.bundle === 'flow-templates')?.created ?? 0) +
         (first.find((r) => r.bundle === 'flow-templates')?.updated ?? 0),
-    ).toBe(7)
+    ).toBe(9)
 
     const count = (
       db.prepare("SELECT COUNT(*) AS n FROM terms WHERE source='openvibe-seed'").get() as {

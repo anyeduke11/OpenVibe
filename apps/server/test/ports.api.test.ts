@@ -1,9 +1,8 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
+import { newDb, type TestDbHandle, tempDir } from '@openvibe/core/test-support'
 import { buildApp } from '../src/app'
 import type { PortRouteDeps } from '../src/routes/ports'
 import {
@@ -29,7 +28,7 @@ async function makeHarness(
 ): Promise<Harness> {
   const handle = newDb()
   const { app } = await buildApp({ db: handle.db, token: TOKEN, listListenersImpl })
-  const h: Harness = { app, handle, root: mkdtempSync(join(tmpdir(), 'ov-ports-')) }
+  const h: Harness = { app, handle, root: tempDir('ov-ports-') }
   openHandles.push(h)
   return h
 }
@@ -60,7 +59,7 @@ async function api<T>(
 
 describe('port-scan · 声明扫描器（纯文件解析）', () => {
   it('读 .env PORT / package.json --port / 约定依赖 / compose / Dockerfile，同端口按优先级去重', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-scan-'))
+    const dir = tempDir('ov-scan-')
     try {
       writeFileSync(join(dir, '.env'), 'PORT=4321\nDATABASE_URL=postgres://…\n')
       writeFileSync(
@@ -102,7 +101,7 @@ describe('port-scan · 声明扫描器（纯文件解析）', () => {
   })
 
   it('monorepo 一级子包：apps/*/package.json 的约定依赖与 scripts 端口都被认出', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-scan-mono-'))
+    const dir = tempDir('ov-scan-mono-')
     try {
       const web = join(dir, 'apps', 'web')
       mkdirSync(web, { recursive: true })
@@ -130,7 +129,7 @@ describe('port-scan · 声明扫描器（纯文件解析）', () => {
   })
 
   it('空目录零声明零文件；非法 JSON 不炸', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-scan-empty-'))
+    const dir = tempDir('ov-scan-empty-')
     try {
       writeFileSync(join(dir, 'package.json'), '{not json')
       expect(scanDeclaredServices(dir)).toEqual({ declared: [], scannedFiles: ['./package.json'] })

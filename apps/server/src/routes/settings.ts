@@ -1,9 +1,20 @@
 import type { FastifyInstance } from 'fastify'
 import {
-  APP_META_KEYS,
-  AppMetaRepo,
-  PacksRepo,
-  TelemetryRepo,
+  agentWriteView,
+  countOf as countRows,
+  enqueueTelemetryEvent,
+  flywheelStats,
+  getPack,
+  latestPackId,
+  onboardingDone as readOnboardingDone,
+  packExists,
+  setAgentWrite,
+  setOnboardingDone,
+  setTelemetry,
+  telemetryView as readTelemetryView,
+  omTimeToValue,
+  telemetryEventCount,
+  telemetryEvents,
   estimateTokens,
   seedConceptContent,
   seedConceptDeltas,
@@ -20,23 +31,18 @@ import {
 import {
   FlywheelStatsOut,
   AgentWriteToggleInput,
-  TELEMETRY_EVENTS,
   TelemetryEventInput,
   TelemetryLedgerLimit,
   TelemetryToggleInput,
   OnboardingToggleInput,
   TELEMETRY_EVENTS_LIMIT_DEFAULT,
   TELEMETRY_EVENTS_LIMIT_MAX,
-  telemetryDay,
-  telemetryOs,
   type OmOut,
   type SeedSummary,
   type SettingsOut,
-  type TelemetryAskState,
   type TelemetryEvent,
   type TelemetryLedgerOut,
   type TelemetryOs,
-  type TelemetrySettingsOut,
 } from '@openvibe/shared'
 import { AppError } from '@openvibe/shared'
 import { DEFAULT_PACK_VERSION, ensureDefaultPack } from '../lib/default-pack'
@@ -69,18 +75,6 @@ export interface SettingsRouteDeps {
 /** buildApp 可注入的 settings 入参（db / appVersion 由 buildApp 自己持有） */
 export type SettingsRouteInput = Omit<SettingsRouteDeps, 'db'>
 
-/** 默认关闭（design §11.5）：两个 app_meta 键缺行即为 unset/false */
-function telemetryView(meta: AppMetaRepo): TelemetrySettingsOut {
-  return {
-    enabled: meta.read<boolean>(APP_META_KEYS.telemetryEnabled, false),
-    askState: meta.read<TelemetryAskState>(APP_META_KEYS.telemetryAskState, 'unset'),
-    whitelist: [...TELEMETRY_EVENTS],
-  }
-}
-
-const countOf = (db: SqliteDatabase, table: string): number =>
-  (db.prepare(`SELECT COUNT(*) AS c FROM ${table}`).get() as { c: number }).c
-
 /**
  * `?limit=` 的读侧口径（契约：默认 50、上限 200、非法值回落默认）：
  * 合法整数直接用；超 200 夹到 200（不是回落 50）；其余（缺省 / 非数 / 0 / 负数 / 小数 / 重复键）
@@ -108,24 +102,22 @@ export function seedSummaryOf(results: SeedBundleResult[]): SeedSummary {
 }
 
 export function settingsView(deps: SettingsRouteDeps): SettingsOut {
-  const meta = new AppMetaRepo(deps.db)
   return {
     appVersion: deps.appVersion,
     dataDir: deps.dataDir ?? '',
     port: deps.port ?? 0,
     seed: {
-      terms: countOf(deps.db, 'terms'),
-      flowTemplates: countOf(deps.db, 'flow_templates'),
-      prompts: countOf(deps.db, 'prompts'),
+      terms: countRows({ db: deps.db }, 'terms'),
+      flowTemplates: countRows({ db: deps.db }, 'flow_templates'),
+      prompts: countRows({ db: deps.db }, 'prompts'),
     },
     db: { status: 'ok', ...(deps.dbPath ? { detail: deps.dbPath } : {}) },
-    onboardingDone: meta.read<boolean>(APP_META_KEYS.onboardingDone, false),
+    onboardingDone: readOnboardingDone({ db: deps.db }),
   }
 }
 
 export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRouteDeps): void {
-  const meta = new AppMetaRepo(deps.db)
-  const telemetry = new TelemetryRepo(deps.db)
+  // F-1：app_meta / telemetry 的读写全部经 settingsService（FR-3.1：路由只做「解析 → 调 service → 序列化」）
   const now = deps.now ?? (() => new Date())
   const platform = deps.platform ?? process.platform
   const seedDir = deps.seedDir ?? defaultSeedDir()
@@ -135,12 +127,11 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
   /** 重置/完成向导（onboarding FR-2.3）：done=false 即设置页「重新显示向导」 */
   app.post('/api/settings/onboarding', async (req) => {
     const { done } = parseOrThrow(OnboardingToggleInput, req.body)
-    meta.write(APP_META_KEYS.onboardingDone, done)
-    return { onboardingDone: done }
+    return setOnboardingDone({ db: deps.db }, done)
   })
 
   app.get('/api/settings/telemetry', reportRoute('/api/settings/telemetry', 'db'), async () =>
-    telemetryView(meta),
+    readTelemetryView({ db: deps.db }),
   )
 
   /**
@@ -154,22 +145,19 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
     '/api/settings/agent-write',
     reportRoute('/api/settings/agent-write', 'db'),
     async () => ({
-      enabled: meta.read<boolean>(APP_META_KEYS.agentWriteEnabled, false),
+      ...agentWriteView({ db: deps.db }),
     }),
   )
 
   app.post('/api/settings/agent-write', async (req) => {
     const { enabled } = parseOrThrow(AgentWriteToggleInput, req.body)
-    meta.write(APP_META_KEYS.agentWriteEnabled, enabled)
-    return { enabled }
+    return setAgentWrite({ db: deps.db }, enabled)
   })
 
   /** D13：一次询问的落点。accepted=开关打开，declined=关掉且永不再问，故由 enabled 反推 askState */
   app.post('/api/settings/telemetry', async (req) => {
     const { enabled } = parseOrThrow(TelemetryToggleInput, req.body)
-    meta.write(APP_META_KEYS.telemetryEnabled, enabled)
-    meta.write(APP_META_KEYS.telemetryAskState, enabled ? 'accepted' : 'declined')
-    return telemetryView(meta)
+    return setTelemetry({ db: deps.db }, enabled)
   })
 
   /**
@@ -224,19 +212,11 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
   /** 事件入队（服务端第二道闸门：开关关闭时连队列都不写，更不会有外联） */
   app.post('/api/telemetry/events', async (req) => {
     const { event, value } = parseOrThrow(TelemetryEventInput, req.body)
-    if (!meta.read<boolean>(APP_META_KEYS.telemetryEnabled, false)) {
-      return { queued: false, reason: 'disabled' as const }
-    }
-    const at = now()
-    telemetry.enqueue({
-      event,
-      value,
-      day: telemetryDay(at),
-      os: telemetryOs(platform),
-      appVersion: deps.appVersion,
-      queuedAt: at.toISOString(),
-    })
-    return { queued: true, reason: 'enabled' as const }
+    // F-1：入队连同「开关关闭就不入队」这条闸门一起迁进 settingsService
+    return enqueueTelemetryEvent(
+      { db: deps.db },
+      { event, value, appVersion: deps.appVersion, at: now(), platform },
+    )
   })
 
   /**
@@ -256,12 +236,8 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
     reportRoute('/api/telemetry/events', 'db'),
     async (req): Promise<TelemetryLedgerOut> => {
       const { limit } = req.query as { limit?: unknown }
-      const rows = deps.db
-        .prepare(
-          `SELECT id, event, value, day, os, app_version, queued_at, sent_at
-           FROM telemetry_events ORDER BY id DESC LIMIT ?`,
-        )
-        .all(ledgerLimit(limit)) as {
+      // F-1：分页与计数迁入 statsService（FR-3.1：路由只做「解析 → 调 service → 序列化」）
+      const rows = telemetryEvents({ db: deps.db }, ledgerLimit(limit)) as Array<{
         id: number
         event: TelemetryEvent
         value: string
@@ -270,10 +246,8 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
         app_version: string
         queued_at: string
         sent_at: string | null
-      }[]
-      const total = (
-        deps.db.prepare('SELECT COUNT(*) AS c FROM telemetry_events').get() as { c: number }
-      ).c
+      }>
+      const total = telemetryEventCount({ db: deps.db })
       return {
         items: rows.map((r) => ({
           id: r.id,
@@ -297,27 +271,11 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
    * 圈数口径 FR-3.2：同一项目「登记了标准包且该包有导出 → 该路径有注入记录 → 有 ≥1 条回流资产」记 1 圈。
    */
   app.get('/api/stats', reportRoute('/api/stats', 'db'), async (): Promise<FlywheelStatsOut> => {
-    const one = (sql: string): number => (deps.db.prepare(sql).get() as { c: number }).c
-    return {
-      assets: countOf(deps.db, 'prompts') + countOf(deps.db, 'terms') + countOf(deps.db, 'skills'),
-      packs: countOf(deps.db, 'standard_packs'),
-      injections: countOf(deps.db, 'injections'),
-      reflows: one(
-        `SELECT COUNT(*) AS c FROM dev_log_entries WHERE json_array_length(linked_asset_ids) > 0`,
-      ),
-      loops: one(
-        `SELECT COUNT(*) AS c FROM projects p
-          WHERE p.standard_pack_id IS NOT NULL
-            AND p.local_path IS NOT NULL
-            AND EXISTS (SELECT 1 FROM pack_exports e WHERE e.pack_id = p.standard_pack_id)
-            AND EXISTS (SELECT 1 FROM injections i
-                         WHERE i.project_path = p.local_path
-                           AND i.pack_id = p.standard_pack_id)
-            AND EXISTS (SELECT 1 FROM dev_log_entries d
-                         WHERE d.project_id = p.id
-                           AND json_array_length(d.linked_asset_ids) > 0)`,
-      ),
-    }
+    // F-1（service-layer FR-3.1/FR-3.2）：聚合 SQL 整体迁入 `statsService`——
+    // 圈数的三条 EXISTS 判定与「达成日取三时间戳最大值」是**业务规则**，
+    // 留在 route 里等于把判定规则的实现处数从 1 摊成 N（spec §1 的价值判据）。
+    // 圈数台账（逐项目求值）与 `loops` 同源判定，只把「数项目」换成「列项目」。
+    return flywheelStats({ db: deps.db })
   })
 
   /**
@@ -329,21 +287,25 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
    */
   app.get('/api/om', reportRoute('/api/om', 'db'), async (req): Promise<OmOut> => {
     const askedPackId = (req.query as { pack_id?: string } | undefined)?.pack_id
-    const repo = new PacksRepo(deps.db)
     let packRow: { id: string } | undefined
     if (askedPackId !== undefined && askedPackId !== '') {
-      if (repo.get(askedPackId) === null) {
+      if (!packExists({ db: deps.db }, askedPackId)) {
         throw new AppError('NOT_FOUND', `标准包不存在: ${askedPackId}`)
       }
       packRow = { id: askedPackId }
     } else {
-      packRow = deps.db
-        .prepare(`SELECT id FROM standard_packs ORDER BY created_at DESC, rowid DESC LIMIT 1`)
-        .get() as { id: string } | undefined
+      // ⚠️ 2026-11-07 修 DEV-0202 登记的 flaky（OM-05 偶发失败）。
+      //   原实现 `ORDER BY created_at DESC, id DESC`：`created_at` 是 ISO **毫秒**字符串，
+      //   两次快速建包会落在同一毫秒（实测 repo 直调：间隔 0–1 ms，`created_at` 去重后 = 1）；
+      //   此时 tiebreak 是 `id DESC`，而 `id` 是 **nanoid（随机）** ⇒「最新」由随机数决定。
+      //   ⇒ tiebreak 换成 `rowid DESC`：`standard_packs` 是普通 rowid 表（非 WITHOUT ROWID），
+      //     `rowid` 即落库序，同毫秒时后插者赢，与「最新建包」的语义一致。
+      //   （同仓先例：`repos/skills.ts:606` 的 `versions()` 早已因同一理由改用 rowid。）
+      packRow = latestPackId({ db: deps.db })
     }
     let density: OmOut['density'] = null
     if (packRow) {
-      const pack = repo.get(packRow.id)
+      const pack = getPack({ db: deps.db }, packRow.id)
       if (pack) {
         const rendered = renderPack(deps.db, pack, DEFAULT_PACK_VERSION, pack.updatedAt)
         const per = rendered.files
@@ -369,77 +331,7 @@ export function registerSettingsRoutes(app: FastifyInstance, deps: SettingsRoute
       }
     }
 
-    const firstEventAt =
-      (
-        deps.db.prepare(`SELECT MIN(created_at) AS t FROM local_events`).get() as {
-          t: string | null
-        }
-      ).t ?? null
-    const firstInjectionAt =
-      (
-        deps.db.prepare(`SELECT MIN(injected_at) AS t FROM injections`).get() as {
-          t: string | null
-        }
-      ).t ?? null
-    const seconds =
-      firstEventAt !== null && firstInjectionAt !== null
-        ? Math.max(0, Math.round((Date.parse(firstInjectionAt) - Date.parse(firstEventAt)) / 1000))
-        : null
-
-    // ── Phase 1 · 1B：结果侧北极星两段（采纳率 ＋ 核验通过率）────────────
-    // 采纳率：adoption_snapshots 每 kind 的最新一轮（表空 ⇒ null，「待采集」语义）。
-    const adoptionRows = (
-      deps.db
-        .prepare(
-          `SELECT kind, round_no AS roundNo, published, rejected, rate, below
-           FROM adoption_snapshots
-           WHERE id IN (SELECT MAX(id) FROM adoption_snapshots GROUP BY kind)
-           ORDER BY kind`,
-        )
-        .all() as {
-        kind: 'term_candidate' | 'prompt_candidate' | 'playbook_candidate'
-        roundNo: number
-        published: number
-        rejected: number
-        rate: number | null
-        below: number
-      }[]
-    ).map((r) => ({
-      kind: r.kind,
-      roundNo: r.roundNo,
-      published: r.published,
-      rejected: r.rejected,
-      rate: r.rate ?? null,
-      below: r.below,
-    }))
-    // 核验通过率：7 天窗口内 verify 命令的 exitCode=0 占比（窗口起点用注入的 now——
-    // 测试时钟固定 ⇒ 用例不随日历漂移；ISO 参数与 created_at 的 ISO 存储同构比较）。
-    // 窗口内无 verify 事件 ⇒ null（「待采集」语义，不显示 0）。
-    const since = new Date(now().getTime() - 7 * 86_400_000).toISOString()
-    const verifyAgg = deps.db
-      .prepare(
-        `SELECT COUNT(*) AS total,
-                  COALESCE(SUM(CASE WHEN json_extract(payload_json, '$.exitCode') = 0 THEN 1 ELSE 0 END), 0) AS passed
-           FROM local_events
-           WHERE kind = 'cli_agent_command_run'
-             AND json_extract(payload_json, '$.command') = 'verify'
-             AND created_at >= ?`,
-      )
-      .get(since) as { total: number; passed: number } satisfies { total: number; passed: number }
-    const verifyRate =
-      verifyAgg.total > 0
-        ? {
-            total: verifyAgg.total,
-            passed: verifyAgg.passed,
-            rate: Math.round((verifyAgg.passed / verifyAgg.total) * 1000) / 1000,
-          }
-        : null
-
-    return {
-      density,
-      timeToValue: { firstEventAt, firstInjectionAt, seconds },
-      adoption: adoptionRows.length > 0 ? adoptionRows : null,
-      verifyRate,
-    }
+    // F-1：OM2 的两个 MIN + 墙钟差整体迁入 statsService（判定规则只此一处实现）
+    return { density, timeToValue: omTimeToValue({ db: deps.db }) }
   })
 }

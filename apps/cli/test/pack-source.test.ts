@@ -1,5 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { fileSha256, fingerprintOf, verifyAgainstLock } from '@openvibe/core'
@@ -27,6 +26,7 @@ import {
   writePackDir,
   type PackFixture,
 } from './helpers/pack-fixture'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * 包来源层（m6b FR-2.1 / §6.7 / design §7.1）：三条通道必须在验签后汇成同一个 LoadedPack，
@@ -35,7 +35,7 @@ import {
 
 const roots: string[] = []
 function tempRoot(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-source-test-'))
+  const dir = tempDir('ov-source-test-')
   roots.push(dir)
   return dir
 }
@@ -157,6 +157,34 @@ describe('离线通道：--file 与 --dir 两种形态等价（design §7.1）',
       expect(err.code).toBe('SCHEMA_UNSUPPORTED')
       expect(err.message).toContain('manifest schemaVersion 为 99')
     }
+  })
+
+  it('SOURCE-06a: v1 旧导出包可读（D33 兼容读 · decisions ㊾）——过闸后不再被 zod 的 literal(2) 拒掉', () => {
+    // GAP-1（DEV-0281）：版本闸声明「< 兼容（旧版可读）」，但 schema 曾用 z.literal(SCHEMA_VERSION)=2
+    // ⇒ v1 manifest 过闸后被 schema 拒。修复后 1 与 2 并收；1 的语义 = 旧包（hooks/l1 缺省，
+    // 两字段本就 optional，1→2 间其余形状零分叉）。
+    const root = tempRoot()
+    const legacy = demoPack()
+    const v1Manifest = { ...legacy.manifest, schemaVersion: 1 } as typeof legacy.manifest
+    const v1Bundle = { ...legacy.bundle, manifest: v1Manifest }
+
+    const loaded = loadBundleJson(v1Bundle, 'legacy.json')
+    expect(loaded.manifest.schemaVersion).toBe(1)
+    // 兼容读不等于放宽验签：逐文件哈希与整体指纹照常核（旧包内容被篡改仍要拒）
+    expect(loaded.manifest.fingerprint).toBe(legacy.fingerprint)
+
+    // 突变腿：schemaVersion 撞合法集合外的值（0 / 字符串 '2'）仍按 BUNDLE_INVALID 拒
+    writeFileSync(
+      join(root, 'm0.json'),
+      JSON.stringify({ ...v1Bundle, manifest: { ...v1Manifest, schemaVersion: 0 } }),
+      'utf8',
+    )
+    expect(() =>
+      loadBundleJson({ ...v1Bundle, manifest: { ...v1Manifest, schemaVersion: 0 } }, 'm0.json'),
+    ).toThrowError(/manifest\.schemaVersion/)
+    expect(() =>
+      loadBundleJson({ ...v1Bundle, manifest: { ...v1Manifest, schemaVersion: '2' } }, 'ms.json'),
+    ).toThrowError(/manifest\.schemaVersion/)
   })
 
   it('SOURCE-07: 结构不合契约（缺 manifest / 顶层不是对象）→ BUNDLE_INVALID 而非崩溃', () => {

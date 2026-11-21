@@ -1,11 +1,10 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
 import { APP_META_KEYS, type SqliteDatabase } from '@openvibe/core'
-import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
+import { newDb, type TestDbHandle, tempDir } from '@openvibe/core/test-support'
 import { PACK_FILE_MANIFEST } from '@openvibe/shared'
 import type {
   FlywheelStatsOut,
@@ -43,7 +42,7 @@ const openHandles: Harness[] = []
 async function makeHarness(seedDir: string = SEED_DIR): Promise<Harness> {
   // 预置包导出落在 `<home>/packs/`，且导出内容含条目 id：每个用例一个新沙箱，
   // 两个临时库共用目录会让第二次导出撞 VERSION_IMMUTABLE
-  const home = mkdtempSync(join(tmpdir(), 'ov-onb-home-'))
+  const home = tempDir('ov-onb-home-')
   process.env.OPENVIBE_HOME = home
   const handle = newDb()
   const { app, db } = await buildApp({
@@ -124,7 +123,7 @@ describe('GET /api/settings（服务信息，C-56 遗留补齐）', () => {
       prompts: count(h, 'SELECT COUNT(*) AS n FROM prompts'),
     })
     expect(res.json.seed.terms).toBeGreaterThanOrEqual(100)
-    expect(res.json.seed.flowTemplates).toBe(7)
+    expect(res.json.seed.flowTemplates).toBe(9)
     expect(res.json.seed.prompts).toBeGreaterThanOrEqual(21)
   })
 })
@@ -284,7 +283,7 @@ describe('POST /api/settings/reseed + 预置 default 包（FR-1，D-3）', () =>
   })
 
   it('IT-ONB-10: 种子目录不存在 → 200 而非 500，逐 bundle error 且预置包 failed（§4.1 不阻塞）', async () => {
-    const sandbox = mkdtempSync(join(tmpdir(), 'ov-onb-noseed-'))
+    const sandbox = tempDir('ov-onb-noseed-')
     const h = await makeHarness(join(sandbox, 'missing'))
     const res = await api<ReseedOut>(h, 'POST', '/api/settings/reseed')
     expect(res.statusCode).toBe(200)
@@ -326,17 +325,24 @@ describe('POST /api/settings/reseed + 预置 default 包（FR-1，D-3）', () =>
 })
 
 describe('GET /api/stats（FR-3 飞轮五项）', () => {
-  it('IT-ONB-12: 空库五项全 0；缺令牌 401', async () => {
+  it('IT-ONB-12: 空库五项全 0、台账空；缺令牌 401', async () => {
     const h = await makeHarness()
     const res = await api<FlywheelStatsOut>(h, 'GET', '/api/stats')
-    expect(res.json).toEqual({ assets: 0, packs: 0, injections: 0, reflows: 0, loops: 0 })
+    expect(res.json).toEqual({
+      assets: 0,
+      packs: 0,
+      injections: 0,
+      reflows: 0,
+      loops: 0,
+      loops_ledger: [],
+    })
     expect((await api(h, 'GET', '/api/stats', undefined, false)).statusCode).toBe(401)
   })
 
   it('IT-ONB-13: 完整一圈（有导出→有注入→有回流）→ loops=1，四项同增', async () => {
     const h = await makeHarness()
     const packId = await seededPack(h)
-    const projectPath = mkdtempSync(join(tmpdir(), 'ov-onb-proj-'))
+    const projectPath = tempDir('ov-onb-proj-')
     const flowId = oneId(h, 'flow_templates')
     const project = await api<ProjectOut>(h, 'POST', '/api/projects', {
       name: '飞轮夹具',
@@ -365,6 +371,15 @@ describe('GET /api/stats（FR-3 飞轮五项）', () => {
         count(h, 'SELECT COUNT(*) AS n FROM skills'),
     )
     expect(stats.json).toMatchObject({ packs: 1, injections: 1, reflows: 1, loops: 1 })
+    // 台账与 loops 同源：一条记录，含项目 / 包 / 达成日（最后一条件达成之日）
+    expect(stats.json.loops_ledger).toHaveLength(1)
+    expect(stats.json.loops_ledger[0]).toMatchObject({
+      projectId,
+      projectName: '飞轮夹具',
+      packName: 'default',
+      packVersion: '1.0.0',
+    })
+    expect(typeof stats.json.loops_ledger[0]?.completedAt).toBe('string')
     rmSync(projectPath, { recursive: true, force: true })
   })
 
@@ -372,8 +387,8 @@ describe('GET /api/stats（FR-3 飞轮五项）', () => {
     const h = await makeHarness()
     const packId = await seededPack(h)
     const flowId = oneId(h, 'flow_templates')
-    const dirA = mkdtempSync(join(tmpdir(), 'ov-onb-a-'))
-    const dirB = mkdtempSync(join(tmpdir(), 'ov-onb-b-'))
+    const dirA = tempDir('ov-onb-a-')
+    const dirB = tempDir('ov-onb-b-')
 
     const mk = async (name: string, localPath?: string): Promise<string> =>
       (
@@ -426,7 +441,7 @@ describe('GET /api/injection-status?dir=（FR-2.4 步骤③自动确认，D-5）
   const q = (dir: string): string => `/api/injection-status?dir=${encodeURIComponent(dir)}`
 
   function injectedDir(): string {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-onb-injected-'))
+    const dir = tempDir('ov-onb-injected-')
     mkdirSync(join(dir, '.openvibe'), { recursive: true })
     writeFileSync(
       join(dir, '.openvibe', 'pack.lock.json'),
@@ -460,7 +475,7 @@ describe('GET /api/injection-status?dir=（FR-2.4 步骤③自动确认，D-5）
 
   it('IT-ONB-16: 空目录报「尚未注入」，坏 lock 报「lock 文件异常」——两种文案必须分开', async () => {
     const h = await makeHarness()
-    const empty = mkdtempSync(join(tmpdir(), 'ov-onb-empty-'))
+    const empty = tempDir('ov-onb-empty-')
     const first = await api<InjectionStatusOut>(h, 'GET', q(empty))
     expect(first.statusCode).toBe(200)
     expect(first.json).toEqual({ lockPresent: false, error: expect.stringContaining('尚未注入') })

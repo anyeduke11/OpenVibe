@@ -1,4 +1,4 @@
-import { join, resolve } from 'node:path'
+import { resolve, sep } from 'node:path'
 import {
   compareCodeUnit,
   type ContextField,
@@ -70,14 +70,7 @@ function trimTrailingSep(p: string): string {
 
 /** `/a/b` 命中 `/a/b` 与 `/a/b/…`；`/a/bb` **不**命中 `/a/b`（前缀比较要带分隔符） */
 function covers(root: string, target: string): boolean {
-  return target === root || target.startsWith(root.endsWith('/') ? root : root + '/')
-}
-
-/** 路径比较统一走 POSIX 形态：localPath 落库是 POSIX 归一口径（DEV-0151），CLI 传入的
- *  cwd 是平台原生形态（windows 还会被 resolve 盘符化）⇒ 两边归一后再比，否则 windows
- *  上 `/w/openvibe` 被 resolve 成 `C:\w\openvibe` 永远不命中（CI windows 实证）。 */
-function toPosixComparable(p: string): string {
-  return trimTrailingSep(p).split(/[\\/]/).join('/')
+  return target === root || target.startsWith(root.endsWith(sep) ? root : root + sep)
 }
 
 /**
@@ -95,10 +88,8 @@ export function matchProjectByPath(
   let bestLen = -1
   for (const p of items) {
     if (!p.localPath) continue
-    // ⚠️ 不 resolve：localPath 落库是 POSIX 绝对口径（DEV-0151），windows 的 resolve 会把
-    //    '/w/openvibe' 盘符化成 'C:\w\openvibe' ⇒ 归一后残留 'C:' 前缀永不命中（CI 实证）。
-    const root = toPosixComparable(p.localPath)
-    if (!covers(root, toPosixComparable(absDir))) continue
+    const root = trimTrailingSep(resolve(p.localPath))
+    if (!covers(root, absDir)) continue
     if (root.length <= bestLen) continue
     best = p
     bestLen = root.length
@@ -130,40 +121,25 @@ export async function resolveProjectByPath(
   cwd: string = process.cwd(),
 ): Promise<{ project: ResolvedProject; absDir: string }> {
   const list = await client.getJson<{ items: ProjectListItem[] }>(PROJECTS_PATH)
-  // ⚠️ 路径口径三分流（CI windows 的 D:/W: 盘符错位实证）：
-  //    ① dir 本身已绝对（POSIX `/x` 或 win 盘符 `X:/x`）⇒ 归一形态即最终值——不过 resolve，
-  //      windows 的 resolve 会给无盘符 POSIX 绝对路径强加「当前进程盘符」（/w/openvibe
-  //      在 D: 盘 runner 上变 D:/w/openvibe）⇒ 与落库 POSIX localPath 永远错位；
-  //    ② cwd 也是 POSIX 形态（fixture / 跨平台调用）⇒ POSIX join 补全，不引盘符；
-  //    ③ cwd 是平台原生（真实 CLI）⇒ 平台 resolve 补全（win 用户 dir='.'/'C:\\proj' 语义不变）。
-  //    匹配一律用归一形态；错误消息与返回值用 absDirRaw（原生形态，用户可见路径不变形）。
-  const cwdPosix = toPosixComparable(cwd)
-  const dirPosix = toPosixComparable(dir)
-  const absDirRaw =
-    dirPosix.startsWith('/') || /^[A-Za-z]:/.test(dirPosix)
-      ? dir
-      : cwdPosix.startsWith('/')
-        ? join(cwdPosix, dir)
-        : resolve(cwd, dir)
-  const absDir = toPosixComparable(absDirRaw)
+  const absDir = trimTrailingSep(resolve(cwd, dir))
   const project = matchProjectByPath(list.items, absDir)
   if (!project) {
     const candidates = candidateNames(list.items)
     throw new StatusError(
       'NOT_FOUND',
-      `未找到与该路径匹配的项目：${absDirRaw}。已登记项目（最多 ${String(MAX_CANDIDATES)} 条）：${
+      `未找到与该路径匹配的项目：${absDir}。已登记项目（最多 ${String(MAX_CANDIDATES)} 条）：${
         candidates.join(' / ') || '(无)'
       }。用 \`openvibe ask --project <id>\` 或先在 Web 工作台绑定本机路径`,
-      { path: absDirRaw, candidates },
+      { path: absDir, candidates },
     )
   }
   return {
     project: {
       id: project.id,
       name: project.name,
-      localPath: toPosixComparable(project.localPath ?? ''),
+      localPath: trimTrailingSep(resolve(project.localPath ?? '')),
     },
-    absDir: absDirRaw,
+    absDir,
   }
 }
 

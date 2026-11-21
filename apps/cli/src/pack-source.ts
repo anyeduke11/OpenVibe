@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fingerprintOf, verifyAgainstLock, type PackFileWithHash } from '@openvibe/core'
 import {
+  BUNDLE_SCHEMA_VERSION,
   PACK_FILE_MANIFEST,
   PACK_FILES_SUBDIR,
   PackBundleSchema,
@@ -122,21 +123,25 @@ function assertContractVersion(raw: unknown, origin: string): void {
     )
   }
   const obj = raw as { bundleSchemaVersion?: unknown; schemaVersion?: unknown; manifest?: unknown }
-  const candidates: [string, unknown][] = [
-    ['bundle schemaVersion', obj.bundleSchemaVersion],
+  // bundle 容器版本（BUNDLE_SCHEMA_VERSION）与 manifest 契约版本（SCHEMA_VERSION）分开判定：
+  // 两者当前不同（1 vs 2）。以 `>` 判超前——`<` 兼容（design §7：旧版可读），
+  // 只有高于本 CLI 支持的版本才要求升级（n3-hooks.md §3.2）。
+  const candidates: [string, unknown, number][] = [
+    ['bundle schemaVersion', obj.bundleSchemaVersion, BUNDLE_SCHEMA_VERSION],
     [
       'manifest schemaVersion',
       typeof obj.manifest === 'object' && obj.manifest
         ? (obj.manifest as { schemaVersion?: unknown }).schemaVersion
         : obj.schemaVersion,
+      SCHEMA_VERSION,
     ],
   ]
-  for (const [label, value] of candidates) {
-    if (typeof value === 'number' && value !== SCHEMA_VERSION) {
+  for (const [label, value, supported] of candidates) {
+    if (typeof value === 'number' && value > supported) {
       throw new SourceError(
         'SCHEMA_UNSUPPORTED',
-        `${origin} 的 ${label} 为 ${value}，本 CLI 只支持 ${SCHEMA_VERSION}——请升级 CLI（npx openvibe-cli@latest）后重试`,
-        { schemaVersion: value, supported: SCHEMA_VERSION },
+        `${origin} 的 ${label} 为 ${value}，本 CLI 只支持 ${supported}——请升级 CLI（npx openvibe-cli@latest）后重试`,
+        { schemaVersion: value, supported },
       )
     }
   }
