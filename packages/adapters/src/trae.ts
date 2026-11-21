@@ -26,6 +26,7 @@ export function traeFrontmatter(pack: ResolvedPack): Frontmatter {
 
 export const traeAdapter: PackAdapter = {
   id: 'trae',
+  l1Capability: 'on-demand',
   plan(pack: ResolvedPack): PlannedFile[] {
     return [{ path: TRAE_PATH, frontmatter: traeFrontmatter(pack) }]
   },

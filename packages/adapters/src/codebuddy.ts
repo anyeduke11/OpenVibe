@@ -5,6 +5,7 @@ export const CODEBUDDY_PATH = 'CODEBUDDY.md'
 
 export const codebuddyAdapter: PackAdapter = {
   id: 'codebuddy',
+  l1Capability: 'module',
   plan(): PlannedFile[] {
     return [{ path: CODEBUDDY_PATH }]
   },

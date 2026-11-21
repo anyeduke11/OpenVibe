@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readFileSync, readdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { newDb } from '../test-support/new-db'
@@ -12,12 +11,13 @@ import { LocalEventsRepo, dayOf } from '../repos/localEvents'
 import { ProjectsRepo } from '../repos/projects'
 import { PromptsRepo } from '../repos/prompts'
 import { SkillsRepo } from '../repos/skills'
+import { tempDir } from '../test-support/temp-dir'
 
 const basePrompt = { title: '代码审查请求', content: '审查代码', useAs: 'reference' as const }
 
 describe('UT-MIGRATION-01 · migration 只前进且幂等', () => {
   it('首开建全部版本，重跑不重复不报错', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-mig-'))
+    const dir = tempDir('ov-mig-')
     const db = openDatabase(join(dir, 'm.db'), { autoMigrate: false })
     const applied = migrate(db)
     expect(applied).toEqual([
@@ -45,12 +45,13 @@ describe('UT-MIGRATION-01 · migration 只前进且幂等', () => {
       '0022_adoption_snapshots',
       '0023_ai_extract_shares',
       '0024_skill_library',
+      '0025_agent_registry',
     ])
     expect(migrate(db)).toEqual([])
     const count = (db.prepare('SELECT COUNT(*) AS c FROM schema_migrations').get() as { c: number })
       .c
-    // ⚠️ **迁移数 = 24**（0024 是第 24 个）⇒ 改迁移就要改这个数（既有纪律）
-    expect(count).toBe(24)
+    // ⚠️ **迁移数 = 25**（0025 是第 25 个）⇒ 改迁移就要改这个数（既有纪律）
+    expect(count).toBe(25)
     db.close()
     rmSync(dir, { recursive: true, force: true })
   })
@@ -168,6 +169,7 @@ const ALL_VERSIONS = [
   '0022_adoption_snapshots',
   '0023_ai_extract_shares',
   '0024_skill_library',
+  '0025_agent_registry',
 ]
 
 /** 存量行的记账时间戳：刻意早于 0007 落库（2026-10-14），好断言「旧行没被重写」 */
@@ -209,7 +211,7 @@ function migrateUpTo(db: SqliteDatabase, lastVersion: string): void {
 
 /** 不自动迁移地开一个空库（构造老库用），close 连临时目录一起清 */
 function openLegacyDb(): { db: SqliteDatabase; close(): void } {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-mig-legacy-'))
+  const dir = tempDir('ov-mig-legacy-')
   const db = openDatabase(join(dir, 'legacy.db'), { autoMigrate: false })
   return {
     db,
@@ -293,6 +295,7 @@ describe('CORE-EVT-01 · 0007 升级的既有库两径（local-event-ledger §7-
         '0022_adoption_snapshots',
         '0023_ai_extract_shares',
         '0024_skill_library',
+        '0025_agent_registry',
       ])
       expect(ledgerRows(legacy.db).map((r) => r.version)).toEqual(ALL_VERSIONS)
       // 旧记账行没被重写（新行的时间戳严格晚于存量行）
@@ -351,6 +354,7 @@ describe('CORE-EVT-01 · 0007 升级的既有库两径（local-event-ledger §7-
         '0022_adoption_snapshots',
         '0023_ai_extract_shares',
         '0024_skill_library',
+        '0025_agent_registry',
       ])
       expect(ledgerRows(legacy.db).map((r) => r.version)).toEqual(ALL_VERSIONS)
       expect(tableNames(legacy.db)).toContain('playbooks')

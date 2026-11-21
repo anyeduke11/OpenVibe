@@ -3,6 +3,7 @@ import { agentZh, AGENT_SUMMARY_MAX } from '../../i18n/lane-agent'
 import { useAgentIngests, useReviewIngest, type AgentIngestItem } from '../../hooks/useAgentIngests'
 import { AgentEmptyStateBox } from './EmptyState'
 import { noteCls } from '../ui/styles'
+import { toast } from '../ui/Toaster'
 
 /**
  * 待确认回流列表（`m8-agent-panel.md` FR-5.1.2 ＋ FR-5.6）。
@@ -70,6 +71,18 @@ export function PendingIngestList(props: { projectId: string | null; onGoToInsta
   const items = q.data?.items ?? []
   const shown = onlyConflict ? items.filter((i) => i.status === 'conflict') : items
 
+  /** 裁决后给一次结果反馈（FR-2.5 的人工确认门 + FR-5.6 的冲突处置共用一个出口） */
+  const onReview = (input: {
+    ingestId: string
+    to: 'published' | 'rejected'
+    reason?: string
+  }): void => {
+    review.mutate(input, {
+      onSuccess: () =>
+        toast(input.to === 'published' ? agentZh.ingest.confirmDone : agentZh.ingest.rejectDone),
+    })
+  }
+
   return (
     <div className="space-y-2">
       {items.length > 0 && !q.isError ? (
@@ -97,7 +110,7 @@ export function PendingIngestList(props: { projectId: string | null; onGoToInsta
       ) : (
         <ul className="divide-y divide-line-hair">
           {shown.map((item) => (
-            <IngestRow key={item.id} item={item} onReview={review.mutate} busy={review.isPending} />
+            <IngestRow key={item.id} item={item} onReview={onReview} busy={review.isPending} />
           ))}
         </ul>
       )}
@@ -131,8 +144,45 @@ function IngestRow(props: {
       </span>
       {isConflict ? (
         <ConflictActions item={it} busy={props.busy} onReview={props.onReview} />
+      ) : it.status === 'pending' ? (
+        <PendingActions item={it} busy={props.busy} onReview={props.onReview} />
       ) : null}
     </li>
+  )
+}
+
+/**
+ * pending 的人工确认门（FR-2.5：一律先落 pending，用户在 Web 点「确认」才转 published）。
+ *
+ * ⚠️ 与 conflict 的裁决**不是同一件事**：pending 是「这条要不要入库」，
+ *   conflict 是「同键异载荷留哪条」（FR-5.6）。两者都走既有 review 端点，
+ *   但控件分开 —— 把 pending 也做成「二选一留谁」会让人以为每条都在冲突。
+ */
+function PendingActions(props: {
+  item: AgentIngestItem
+  busy: boolean
+  onReview: (input: { ingestId: string; to: 'published' | 'rejected'; reason?: string }) => void
+}) {
+  const cls = 'rounded-sm border border-line-strong px-1.5 py-0.5 text-xs'
+  return (
+    <span className="flex items-center gap-1.5">
+      <button
+        type="button"
+        className={cls}
+        disabled={props.busy}
+        onClick={() => props.onReview({ ingestId: props.item.id, to: 'published' })}
+      >
+        {agentZh.ingest.confirm}
+      </button>
+      <button
+        type="button"
+        className={cls}
+        disabled={props.busy}
+        onClick={() => props.onReview({ ingestId: props.item.id, to: 'rejected' })}
+      >
+        {agentZh.ingest.reject}
+      </button>
+    </span>
   )
 }
 

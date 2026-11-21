@@ -5,6 +5,7 @@ export const MINICODE_PATH = 'MINI.md'
 
 export const minicodeAdapter: PackAdapter = {
   id: 'minicode',
+  l1Capability: false,
   plan(): PlannedFile[] {
     return [{ path: MINICODE_PATH }]
   },

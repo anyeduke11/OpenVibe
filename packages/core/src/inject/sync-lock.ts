@@ -6,6 +6,7 @@
 // 不做的事：不防 SIGKILL（残留锁由陈旧判定接管）、不做跨机锁（项目目录本就在单机）。
 import { chmodSync, mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { resolveInside } from './security'
 
 /** 锁文件相对项目根；与 pack.lock.json（登记）和 backup/（备份）同居 .openvibe/ 但互不占用 */
 export const SYNC_LOCK_REL = join('.openvibe', 'sync.lock')
@@ -209,6 +210,21 @@ export function tryAcquireSyncLock(
     pid: deps.pid?.() ?? process.pid,
     startedAt: now().toISOString(),
     command,
+  }
+
+  // ⚠️ 路径权威（v0.2.4 F4 / R3）：`.openvibe` 若是指向项目外的 symlink，
+  // 建锁就等于把锁文件写到项目外。这里先过 `resolveInside`，越界直接让路。
+  const check = resolveInside(projectPath, SYNC_LOCK_REL)
+  if (!check.ok) {
+    return {
+      acquired: false,
+      path,
+      reason: 'unavailable',
+      holder: null,
+      ageMs: 0,
+      detail: `.openvibe 路径解析后越出项目根（符号链接？）：${check.reason}`,
+      tookOver: null,
+    }
   }
 
   const first = inspect(path, now, isAlive, readText)

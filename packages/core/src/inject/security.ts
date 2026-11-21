@@ -24,6 +24,60 @@ export interface SecurityDeps {
 export type PathCheck =
   { ok: true; absPath: string } | { ok: false; reason: 'MALFORMED' | 'ESCAPE' }
 
+/**
+ * 统一路径权威入口（v0.2.4 F4 / R3）。
+ *
+ * **词法 + 真实路径双重校验**：
+ * 1. 词法：绝对路径 / `..` / 反斜杠 / 空段 / 超长 ⇒ `MALFORMED`；
+ * 2. 真实：`resolve` 后比对项目根；`realpath(root)` 与目标（或最近存在祖先）比对；
+ *    目标是 symlink 时，其**解析后**的位置必须仍在项目内。
+ *
+ * **为什么读侧也要走它**：`readSnippet` 此前只做词法校验，随后 `statSync`/`readFileSync`
+ * 跟随 symlink ⇒ 项目内放一个指向外部的 symlink，读取就拿到项目根外的内容（P-D 两臂实测）。
+ * 写侧（`checkWritePath`）与读侧共用这一处，避免「读宽写严」的口径分叉。
+ *
+ * 返回的 `absPath` 是**词法解析后**的绝对路径（未解引用 symlink）——调用方按需再 `realpath`。
+ */
+export function resolveInside(root: string, rel: string, deps: SecurityDeps = {}): PathCheck {
+  if (!isValidPackRelativePath(rel)) return { ok: false, reason: 'MALFORMED' }
+  const realpath = deps.realpath ?? tryRealpath
+  // 根与目标两侧都先过 resolve 再比对：resolve 出来的目标已经是平台写法（Windows 上把
+  // '/tmp/proj' 归成 '\tmp\proj'），拿未归一的根去 startsWith 必然不等，一次正常注入会被判成逃逸。
+  const rootPath = resolve(root)
+  const absPath = resolve(rootPath, rel)
+  if (!isInside(rootPath, absPath)) return { ok: false, reason: 'ESCAPE' }
+
+  // 项目根自身也可能经符号链接到达（macOS 的 /var → /private/var、Linux 的 /tmp），两侧都要归一。
+  // 父目录尚未创建时（NEW 文件要 mkdir -p）realpath 必然失败：在项目根内逐级上溯到最近的存在
+  // 祖先再比对，否则「新项目 + 链接来的项目根」会被误判成逃逸，拒掉一次本该成功的注入。
+  const realRoot = realpath(rootPath) ?? rootPath
+  const parent = dirname(absPath)
+  const realParent = realpathNearestWithin(parent, rootPath, realpath) ?? parent
+  if (!isInside(realRoot, realParent)) return { ok: false, reason: 'ESCAPE' }
+  // 目标自身是符号链接时，写/读会顺着它落到项目外
+  const realSelf = realpath(absPath)
+  if (realSelf === null) {
+    // 悬空链接（目标文件还不存在）realpath 必然失败，落点无法证明在项目内：
+    // 一律拒绝，否则写会在项目外凭空建出文件、读会拿到无法证明归属的内容
+    if (isSymbolicLink(absPath)) return { ok: false, reason: 'ESCAPE' }
+  } else if (!isInside(realRoot, realSelf)) {
+    return { ok: false, reason: 'ESCAPE' }
+  }
+  return { ok: true, absPath }
+}
+
+/**
+ * 单文件写入路径校验（design §7.7 规则 3 的双保险）。
+ * 语义与 `resolveInside` 一致 —— 写侧不额外放宽，读侧也不额外收紧。
+ */
+export function checkWritePath(
+  projectPath: string,
+  relPath: string,
+  deps: SecurityDeps = {},
+): PathCheck {
+  return resolveInside(projectPath, relPath, deps)
+}
+
 export interface InjectablePack {
   /** 相对路径 → 已校验落在项目内的绝对路径（CLI 落盘前直接用它，不再自行 resolve） */
   absPaths: Record<string, string>
@@ -40,42 +94,6 @@ function tryRealpath(p: string): string | null {
 
 function isInside(root: string, abs: string): boolean {
   return abs === root || abs.startsWith(root.endsWith(sep) ? root : `${root}${sep}`)
-}
-
-/**
- * 单文件写入路径校验（design §7.7 规则 3 的双保险）。
- * 语法违规与「resolve / 符号链接解析后越出项目根」都算不合法，调用方必须拒绝整个包。
- */
-export function checkWritePath(
-  projectPath: string,
-  relPath: string,
-  deps: SecurityDeps = {},
-): PathCheck {
-  if (!isValidPackRelativePath(relPath)) return { ok: false, reason: 'MALFORMED' }
-  const realpath = deps.realpath ?? tryRealpath
-  // 根与目标两侧都先过 resolve 再比对：resolve 出来的目标已经是平台写法（Windows 上把
-  // '/tmp/proj' 归成 '\tmp\proj'），拿未归一的根去 startsWith 必然不等，一次正常注入会被判成逃逸。
-  const rootPath = resolve(projectPath)
-  const absPath = resolve(rootPath, relPath)
-  if (!isInside(rootPath, absPath)) return { ok: false, reason: 'ESCAPE' }
-
-  // 项目根自身也可能经符号链接到达（macOS 的 /var → /private/var、Linux 的 /tmp），两侧都要归一。
-  // 父目录尚未创建时（NEW 文件要 mkdir -p）realpath 必然失败：在项目根内逐级上溯到最近的存在
-  // 祖先再比对，否则「新项目 + 链接来的项目根」会被误判成逃逸，拒掉一次本该成功的注入。
-  const root = realpath(rootPath) ?? rootPath
-  const parent = dirname(absPath)
-  const realParent = realpathNearestWithin(parent, rootPath, realpath) ?? parent
-  if (!isInside(root, realParent)) return { ok: false, reason: 'ESCAPE' }
-  // 目标自身是符号链接时，writeFile 会顺着它写到项目外
-  const realSelf = realpath(absPath)
-  if (realSelf === null) {
-    // 悬空链接（目标文件还不存在）realpath 必然失败，落点无法证明在项目内：
-    // 注入从不需要顺着链接写，一律拒绝，否则 writeFile 会在项目外凭空建出文件
-    if (isSymbolicLink(absPath)) return { ok: false, reason: 'ESCAPE' }
-  } else if (!isInside(root, realSelf)) {
-    return { ok: false, reason: 'ESCAPE' }
-  }
-  return { ok: true, absPath }
 }
 
 function isSymbolicLink(abs: string): boolean {

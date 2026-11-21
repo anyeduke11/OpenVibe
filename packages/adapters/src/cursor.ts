@@ -20,6 +20,7 @@ export function cursorFrontmatter(pack: ResolvedPack): Frontmatter {
 
 export const cursorAdapter: PackAdapter = {
   id: 'cursor',
+  l1Capability: 'on-demand',
   plan(pack: ResolvedPack): PlannedFile[] {
     return [{ path: CURSOR_PATH, frontmatter: cursorFrontmatter(pack) }]
   },

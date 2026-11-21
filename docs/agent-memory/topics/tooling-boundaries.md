@@ -80,3 +80,21 @@ Type: incident-lesson
 **因此：状态机的验收判据不能只断「最终值」，要断中间状态。** 本轮验证脚本一开始只输出两个聚合计数，于是「单次失败不判死」与「连续两次才判死」两种实现会给出**同一个 0** ⇒ 改完 bug 后复跑仍是 0，一度以为没修好。⇒ **判据输出里只有聚合计数时，它区分不了「没发生」和「发生了但没被记录」。**
 
 - 任何用「界面不应出现某字样」当判据的检查：必须先排除**不在场但仍在 DOM 里**的区域，否则这个数会被看不见的文本污染，而且**排除项要逐条写出来**。
+
+## 七、Bot 群讨论：受理 ≠ 完成，接力链会自动长出计划外的分支
+
+MiniMax Bot 的 `post_group` 只负责把讨论任务**持久受理**（返回 task_id / batch_id），`get_tasks` 的状态 `running` 只说明**讨论还在进行**，不代表有人已发言。判完成要看**群会话里是否出现非空 assistant 正文**，不能看任务状态。
+
+- **每个 Bot 在群里各自一个 session**：`post_group` 返回的 `session_id` 指向**第一个发言者**的会话（`first_speaker` 列出首轮应答者），后续 Bot 的会话另开。想知道谁说了什么，必须按 `mavis_session_list(mode=peers)` 拉同组会话列表，逐个读，**只盯首个 session_id 会漏掉其他人的结论**。
+- **Bot 在回复里 @名字 = 拉起下一个 Bot**。这会形成**自动接力链**：Sector 为交叉验证 @Macro、@Screener，Screener 为候选池 @PM —— 链条会**超出原始任务的边界**，且每一环都可能失败（Screener 那次会话直接 `ERR_NETWORK_CHANGED`，属环境型失败，不是内容问题）。收尾时必须把「计划外接力」与「原任务要求」分开报告。
+- **讨论任务运行期间再调 `post_group` 会报路由错**：「无法确认工具调用来自哪个正在进行的回复，请在当前聊天里重试」。这是**并发占用**而非参数错，重复调用无效 —— 要么等当前任务结束，要么改用 `message_bot` 私聊该 Bot。
+- **Bot 会自己查库核数**，一篇解读可长达 5000 字、含 10+ 轮 SQL 交叉验证。`assistant` 消息里大量 `finish_reason=toolUse` 且正文为空是**正常中间态**，不是卡死；真正的卡死信号是消息数长时间不增且任务仍 `running`。
+- **apply when**：任何用 Bot 团队做定时复盘/评审的任务。收尾三问：**任务状态是 done 还是 running？每个 Bot 的会话各自是否都出过结论？有没有计划外接力被拉进来、其中谁失败了？**
+### 群讨论锁的根因与解锁路径（Bot 工具）
+
+- **现象**：`post_group` 报「群「{name}」正在讨论中，等这一轮结束再发」，且反复重试永不恢复 —— 这里的 `{name}` 是未被模板填充的字面量，说明报错文案本身也是占位符残留，别照着它去找群。
+- **根因形态**：上一轮 `kind="discussion"` 的群任务停在 `error="AGENT_OUTCOME_UNKNOWN"`（`status="unknown"`，`chat_id="group:<gid>"`）。任务已算 `complete`，但讨论轮次没收口，群锁不释放。
+- **解锁三步**：① `get_tasks({batch_id})` 找到那条 unknown 的 discussion 任务，记下它的 `session_id`；② `cancel_tasks({task_id})` 清掉这个任务；③ `mavis_session_interrupt({session_id})` 终断对应会话（返回 `outcome: "not_running"` 说明已经不在跑，可忽略）。之后 `post_group` 立即受理，返回 `kind="discussion"` + `first_speaker` 列表。
+- **受理≠落地**：受理后讨论任务状态是 `queued`，真正发言要看群会话里有没有非空 assistant 正文；`post_group` 的 `posted_to` 只代表消息已入队。
+- **副作用**：为避免重复投递，另开的「让某个 Bot 转发进群」接力单要在主帖受理后立刻 `cancel_tasks` 撤销。
+- **判据**：解锁后必须复核「群内确有该帖正文」，只看 `post_group` 返回值会误判成功。

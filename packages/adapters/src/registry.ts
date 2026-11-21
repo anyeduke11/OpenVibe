@@ -3,6 +3,7 @@ import {
   AppError,
   compareCodeUnit,
   type AdapterId,
+  type L1Capability,
   type PackAdapter,
   type PlannedFile,
   type ResolvedPack,
@@ -56,10 +57,16 @@ export function planMainFiles(pack: ResolvedPack): PlannedFile[] {
   const byPath = new Map<string, PlannedFile>()
   for (const adapter of adaptersFor(pack.targets)) {
     for (const file of adapter.plan(pack)) {
-      if (!byPath.has(file.path)) byPath.set(file.path, file)
+      // N4：按来源 adapter 盖章，供 composePack 选择 L1 引用形态（能力位是入参，m11 FR-2.1）
+      if (!byPath.has(file.path)) byPath.set(file.path, { ...file, adapterId: adapter.id })
     }
   }
   return [...byPath.values()].sort((a, b) => compareCodeUnit(a.path, b.path))
+}
+
+/** N4 能力位查询（m11 FR-3.1）：供 composer 按能力位渲染 L1 引用形态（core 经注入读取，E-1） */
+export function l1Capability(id: AdapterId): L1Capability {
+  return registry[id].l1Capability
 }
 
 /** 预览页「本包**额外**覆盖平台」（m6 FR-1.4）：只来自兼容矩阵，所选 adapter 自身不重复列 */

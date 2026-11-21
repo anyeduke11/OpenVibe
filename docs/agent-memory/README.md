@@ -8,9 +8,9 @@
 | 项 | 值 |
 |---|---|
 | 来源 profile | **mavis** |
-| 导出日 | **2026-10-24** |
-| 索引条目数 | **38** |
-| 导出文件数 | **8 + 1**（本 README） |
+| 导出日 | **2026-11-21** |
+| 索引条目数 | **45** |
+| 导出文件数 | **9 + 1**（本 README） |
 
 ## 文件清单
 
@@ -18,17 +18,18 @@
 |---|---|
 | `topics/gate-design.md` | **6** |
 | `topics/spec-doc-discipline.md` | **9** |
-| `topics/git-worktree-discipline.md` | **6** |
+| `topics/git-worktree-discipline.md` | **7** |
 | `topics/tooling-boundaries.md` | **6** |
 | `topics/fake-red-triage.md` | **6** |
 | `topics/sql-table-semantics.md` | **2** |
+| `topics/api-data-integrity.md` | **6** |
 | `topics/ui-craft.md` | **3** |
 
 ## 复算命令
 
 ```bash
 # 条目数复算：数索引表的数据行（表头与分隔行不算）
-npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --date 2026-10-24
+npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --date 2026-11-21
 
 # 核对「仓里这份」与「源」是否分叉（只读，不写文件；分叉即退出码 1）
 npx tsx scripts/export-agent-memory.ts --from ~/.minimax/agents/mavis/memory --check

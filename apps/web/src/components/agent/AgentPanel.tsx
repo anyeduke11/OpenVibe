@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { agentZh } from '../../i18n/lane-agent'
+import { useProject } from '../../hooks/useProjects'
 import { ContextPreview } from './ContextPreview'
 import { PendingIngestList } from './PendingIngestList'
 import { InstallGuide } from './InstallGuide'
@@ -19,6 +20,8 @@ import { DiscussBlock } from './DiscussBlock'
  */
 export function AgentPanel(props: { projectId: string | null }) {
   const installRef = useRef<HTMLDivElement>(null)
+  // 接入脚本要带项目路径（`openvibe sync <path> …`）—— 与列表/上下文同一个项目
+  const project = useProject(props.projectId)
 
   const goToInstall = (): void => {
     installRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
@@ -46,7 +49,7 @@ export function AgentPanel(props: { projectId: string | null }) {
       {/* ③ 接入指引 */}
       <div ref={installRef}>
         <Block title={agentZh.panel.installTitle}>
-          <InstallGuide />
+          <InstallGuide projectPath={project.data?.localPath ?? null} />
         </Block>
       </div>
     </section>

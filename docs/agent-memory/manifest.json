@@ -1,17 +1,18 @@
 {
   "note": "agent 记忆导出件的 sha256 清单 —— 由 scripts/export-agent-memory.ts 生成，勿手改。CI 用 `pnpm memory:verify` 核对：清单与文件逐一对不上即红（抓「导出件被手改」）。⚠️ **清单不含源侧信息**：源在本机数据目录，CI 上没有 ⇒ 「源改了没重导」只能靠本机的 `pnpm memory:check` 抓。",
   "profile": "mavis",
-  "exportedAt": "2026-10-24",
-  "entryCount": 38,
+  "exportedAt": "2026-11-21",
+  "entryCount": 45,
   "files": {
-    "MEMORY.md": "bd7153be8bcd6db9e0f0b21c1f0dc18339572b5dbccf871a9e9a07996ffb446b",
-    "topics/fake-red-triage.md": "58c272f1d79620b187ecc30949cc9a71921196aeda8535801db7dac9854bc748",
-    "topics/gate-design.md": "6e39a71ce71c18e1ae79322a4c4c550c1ed68077cf819eb6d109717fbc6050d6",
-    "topics/git-worktree-discipline.md": "fcd1ad08f3f759d37eb4b1fa563de3962322ab061ec13cfedbfc62ee7ac60558",
+    "MEMORY.md": "f051dfb6c6cd12accb44fd91ea9d5e59b293369dbb5d2338d11bbcd8ccaaa6ad",
+    "topics/api-data-integrity.md": "d497a4cb73f0f797b8c0560cc9a4bfa21da6d3032a7f02cb1aafa00d51c6005a",
+    "topics/fake-red-triage.md": "bde0de2a4d6617a3407694cf211108496352ef5d6413ef4c21ed9974a1586938",
+    "topics/gate-design.md": "371a6c1e99f59f9a4bbc485ea832e84e282d57cda8c5ef66471ea39dbed94ae8",
+    "topics/git-worktree-discipline.md": "3eecf36f076754629c33ee7aa6ab6978a1bdf1dfe5f4105bab32b4fe0adab3ae",
     "topics/spec-doc-discipline.md": "e20e0e8abd8fe3b40810691aa9b0e6b71590ba81f23ef8b95bd1b27251c87732",
     "topics/sql-table-semantics.md": "79a542212778a648bbe18b85b24ab9d1282a7cb3a0069d6f991181f0b28484d4",
-    "topics/tooling-boundaries.md": "ed5c7dc154ee6935a83cff0b4f038a5cfa482d1d342687dc0379b41efbf3e7ec",
+    "topics/tooling-boundaries.md": "f831dcf3e00852b92d465f17c42c00477e2636b3953eb71db237a97b8c1e7660",
     "topics/ui-craft.md": "a0caed8abcf57ce6be6c3b3b542436f1a8ddf0f8077387ed0dca6bf764cfca85",
-    "README.md": "f87c0e2d37bf4024097ae847617fc3e1fd1454639133d043004fd92cafa808eb"
+    "README.md": "7a593dafa81923bba60c0ba5e63af3668a6f1b8f113197ce08b707be5da16a49"
   }
 }

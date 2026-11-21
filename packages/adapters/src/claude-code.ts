@@ -5,6 +5,7 @@ export const CLAUDE_CODE_PATH = 'CLAUDE.md'
 
 export const claudeCodeAdapter: PackAdapter = {
   id: 'claude-code',
+  l1Capability: 'auto-import',
   plan(): PlannedFile[] {
     return [{ path: CLAUDE_CODE_PATH }]
   },

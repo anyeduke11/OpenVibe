@@ -5,6 +5,7 @@ export const GENERIC_AGENTS_PATH = 'AGENTS.md'
 
 export const genericAgentsAdapter: PackAdapter = {
   id: 'generic-agents',
+  l1Capability: false,
   plan(): PlannedFile[] {
     return [{ path: GENERIC_AGENTS_PATH }]
   },
