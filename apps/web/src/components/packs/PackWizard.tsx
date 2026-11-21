@@ -2,10 +2,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   ADAPTER_IDS,
+  LIMITS,
   PACK_NAME_RE,
   SEMVER_RE,
   type AdapterId,
   type ExportOut,
+  type HookDef,
+  type Hooks,
   type PackCreateInput,
   type PackOut,
 } from '@openvibe/shared'
@@ -29,6 +32,7 @@ import {
 } from '../ui/styles'
 import { laneEngineering } from '../../i18n/lane-engineering'
 import { AssetPicker, type AssetIds } from './AssetPicker'
+import { HookEditor } from './HookEditor'
 import { PackPreviewPane } from './PackPreviewPane'
 
 const STEPS = [
@@ -37,11 +41,31 @@ const STEPS = [
   zh.packs.wizard.step3,
   zh.packs.wizard.step4,
   zh.packs.wizard.step5,
+  zh.packs.wizard.step6,
 ]
 
 const EMPTY_STALE: AssetIds = { promptIds: [], termIds: [], skillIds: [], playbookIds: [] }
 
-/** 第 4 步的文件名提示（design §8.2 映射；实际清单以第 5 步预览为准） */
+/** N3 FR-3.3：校验一组钩子（pre/post 各自独立命名空间，组内 name 唯一、无控制字符） */
+function validateHookGroup(list: HookDef[], phase: 'pre' | 'post'): string | null {
+  const seen = new Set<string>()
+  for (const hook of list) {
+    if (hook.name.trim() === '') return zh.packs.wizard.hooksNameRequired
+    if (/[\u0000-\u001f\u007f]/.test(hook.name)) return zh.packs.wizard.hooksDupName
+    if (seen.has(hook.name)) return zh.packs.wizard.hooksNameDup
+    seen.add(hook.name)
+    if (hook.command.trim() === '') return zh.packs.wizard.hooksCommandRequired
+    if (!Number.isInteger(hook.timeoutMs) || hook.timeoutMs <= 0) {
+      return zh.packs.wizard.hooksTimeoutRequired
+    }
+    if (hook.timeoutMs > LIMITS.hooks.maxTimeoutMs) {
+      return zh.packs.wizard.hooksTimeoutMax(LIMITS.hooks.maxTimeoutMs)
+    }
+  }
+  return null
+}
+
+/** 第 4 步的文件名提示（design §8.2 映射；实际清单以第 6 步预览为准） */
 const MAIN_PATH_HINT: Record<AdapterId, string> = {
   'claude-code': 'CLAUDE.md',
   cursor: '.cursor/rules/openvibe.mdc',
@@ -96,16 +120,27 @@ export function PackWizard(props: { initial: PackOut | null }) {
   const [targets, setTargets] = useState<AdapterId[]>(
     initial?.targets ?? ['claude-code', 'generic-agents'],
   )
+  /** N3 FR-3.3：钩子配置（pre/post 两组）。缺省为空集，由 resolvePack 补齐 */
+  const [hooks, setHooks] = useState<Hooks>(initial?.selection.hooks ?? { pre: [], post: [] })
   const [version, setVersion] = useState('1.0.0')
   const [stale, setStale] = useState<AssetIds>(EMPTY_STALE)
   const [saving, setSaving] = useState(false)
   const [result, setResult] = useState<ExportOut | null>(null)
+  /**
+   * 表单相对上次保存是否有改动（v0.2.4 F6 / R5）。
+   *
+   * **为什么需要它**：步骤条允许回到走过的任一步（`i <= maxStep`），而 `goTo(4)`
+   * 不经过 `next()` 的保存分支 ⇒ 用户在第 3 步改完资产后直接点步骤条进第 4 步，
+   * 预览/导出用的是**旧定义**（`savedId`）。这条标志让「进预览 / 导出」前先落库。
+   */
+  const [dirty, setDirty] = useState(false)
+  const markDirty = (): void => setDirty(true)
   const { create, update, exportPack } = usePackMutations(savedId)
 
   const items = packs.data?.items ?? []
   const templates = flows.data?.items ?? []
-  const preview = usePackPreview(step === 4 ? savedId : null, version, rev)
-  const exports = usePackExports(step === 4 ? savedId : null)
+  const preview = usePackPreview(step === 5 ? savedId : null, version, rev)
+  const exports = usePackExports(step === 5 ? savedId : null)
   const lastExport = exports.data?.items[0]
   /** §6.2：预览失败常因引用资产被删，明细用于把失效项带回第 3 步标红 */
   const previewStale =
@@ -132,6 +167,12 @@ export function PackWizard(props: { initial: PackOut | null }) {
       if (empty) return zh.packs.wizard.assetsRequired
     }
     if (step === 3 && targets.length === 0) return zh.packs.wizard.targetsRequired
+    if (step === 4) {
+      const preErr = validateHookGroup(hooks.pre, 'pre')
+      if (preErr !== null) return preErr
+      const postErr = validateHookGroup(hooks.post, 'post')
+      if (postErr !== null) return postErr
+    }
     return null
   }
 
@@ -144,6 +185,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
       skillIds: assets.skillIds,
       playbookIds: assets.playbookIds,
       flowTemplateId: flowTemplateId === '' ? null : flowTemplateId,
+      hooks,
     }
     try {
       let pack: PackOut
@@ -164,6 +206,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
       }
       setRev((n) => n + 1)
       setResult(null)
+      setDirty(false)
       toast(zh.packs.wizard.saved)
       return pack.id
     } catch (e) {
@@ -182,13 +225,26 @@ export function PackWizard(props: { initial: PackOut | null }) {
     }
   }
 
+  /**
+   * 进预览 / 导出前确保定义已落库（v0.2.4 F6 / R5）。
+   * 有未保存改动 ⇒ 先保存；保存失败（重名 / 选集失效 / 网络）⇒ 返回 null，调用方中止。
+   */
+  const ensureSaved = async (): Promise<string | null> => {
+    if (savedId !== null && !dirty) return savedId
+    setSaving(true)
+    const id = await saveDefinition()
+    setSaving(false)
+    return id
+  }
+
   const next = async () => {
     const problem = validateStep()
     if (problem !== null) {
       toast(problem, 'error')
       return
     }
-    if (step === 3) {
+    if (step === 4) {
+      // N3 FR-3.3：钩子配置是进预览前的最后一步，进入预览前落库（含 hooks）
       setSaving(true)
       const id = await saveDefinition()
       setSaving(false)
@@ -198,13 +254,15 @@ export function PackWizard(props: { initial: PackOut | null }) {
   }
 
   const runExport = async (channel: 'download' | 'directory') => {
-    if (savedId === null) return
+    // 有未保存改动 ⇒ 先落库，否则导出的是旧定义（v0.2.4 F6 / R5）
+    const id = await ensureSaved()
+    if (id === null) return
     if (!SEMVER_RE.test(version)) {
       toast(zh.packs.preview.versionHint, 'error')
       return
     }
     try {
-      const out = await exportPack.mutateAsync({ id: savedId, body: { version, channel } })
+      const out = await exportPack.mutateAsync({ id, body: { version, channel } })
       setResult(out)
       setStale(EMPTY_STALE)
       toast(
@@ -240,9 +298,10 @@ export function PackWizard(props: { initial: PackOut | null }) {
         type="checkbox"
         className="mt-0.5"
         checked={targets.includes(id)}
-        onChange={() =>
+        onChange={() => {
           setTargets((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))
-        }
+          markDirty()
+        }}
       />
       <span className="min-w-0">
         <span className="block font-medium">{zh.packs.targetLabels[id] ?? id}</span>
@@ -270,7 +329,14 @@ export function PackWizard(props: { initial: PackOut | null }) {
                   aria-current={on ? 'step' : undefined}
                   disabled={!visited}
                   className={`${segItemCls} ${on ? chipPressed : ''} disabled:opacity-40`}
-                  onClick={() => goTo(i)}
+                  onClick={async () => {
+                    // 跳到预览步前先落库：否则预览用的是旧定义（v0.2.4 F6 / R5）
+                    if (i === 5) {
+                      const id = await ensureSaved()
+                      if (id === null) return
+                    }
+                    goTo(i)
+                  }}
                 >
                   {label}
                 </button>
@@ -288,7 +354,10 @@ export function PackWizard(props: { initial: PackOut | null }) {
               <input
                 className={`${inputCls} mono`}
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  markDirty()
+                }}
                 placeholder={zh.packs.wizard.namePlaceholder}
               />
               <p className="mt-1 text-[11px] text-ink-faint">{zh.packs.wizard.nameHint}</p>
@@ -298,7 +367,10 @@ export function PackWizard(props: { initial: PackOut | null }) {
               <textarea
                 className={`${inputCls} min-h-20`}
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  setDescription(e.target.value)
+                  markDirty()
+                }}
               />
             </div>
           </div>
@@ -317,7 +389,10 @@ export function PackWizard(props: { initial: PackOut | null }) {
                 name="packFlow"
                 className="mt-1"
                 checked={flowTemplateId === ''}
-                onChange={() => setFlowTemplateId('')}
+                onChange={() => {
+                  setFlowTemplateId('')
+                  markDirty()
+                }}
               />
               <span>{zh.packs.wizard.flowSkip}</span>
             </label>
@@ -333,7 +408,10 @@ export function PackWizard(props: { initial: PackOut | null }) {
                   name="packFlow"
                   className="mt-1"
                   checked={flowTemplateId === t.id}
-                  onChange={() => setFlowTemplateId(t.id)}
+                  onChange={() => {
+                    setFlowTemplateId(t.id)
+                    markDirty()
+                  }}
                 />
                 <span className="min-w-0">
                   <span className="font-medium">{t.name}</span>
@@ -356,6 +434,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
             onChange={(patch) => {
               setStale(EMPTY_STALE)
               setAssets((cur) => ({ ...cur, ...patch }))
+              markDirty()
             }}
           />
         )}
@@ -369,6 +448,16 @@ export function PackWizard(props: { initial: PackOut | null }) {
         )}
 
         {step === 4 && (
+          <HookEditor
+            value={hooks}
+            onChange={(next) => {
+              setHooks(next)
+              markDirty()
+            }}
+          />
+        )}
+
+        {step === 5 && (
           <div className="flex flex-col gap-3 text-sm">
             <div className="flex flex-wrap items-end gap-3">
               <div className="w-48">
@@ -452,7 +541,7 @@ export function PackWizard(props: { initial: PackOut | null }) {
           <button className={btnPrimary} disabled={saving} onClick={() => void next()}>
             {saving
               ? zh.packs.wizard.saving
-              : step === 3
+              : step === 4
                 ? zh.packs.wizard.saveNext
                 : zh.packs.wizard.next}
           </button>

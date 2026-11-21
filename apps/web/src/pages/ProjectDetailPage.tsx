@@ -19,7 +19,9 @@ import { toast, toastError } from '../components/ui/Toaster'
 import { Icon } from '../components/ui/icons'
 import {
   btnGhost,
+  cardBodyCls,
   cardCls,
+  cardHeadCls,
   h1Cls,
   h1SubCls,
   noteCls,
@@ -28,6 +30,7 @@ import {
   segItemCls,
   skelCls,
 } from '../components/ui/styles'
+import { ProBlock } from '../components/ui/layout'
 import { useFlowTemplates } from '../hooks/useFlows'
 import { useDevLog } from '../hooks/useDevLog'
 import {
@@ -298,6 +301,31 @@ export function ProjectDetailPage() {
           />
 
           <PortsPanel data={ports.data} />
+
+          {/* 专家视图：端口判定的**口径**（`sourceFile` 的匹配规则与 15s 轮询的代价）。
+              普通用户只需要知道「有没有在跑」；排查「为什么没认出来」时才需要这段。 */}
+          <ProBlock>
+            <section className={cardCls}>
+              <header className={cardHeadCls}>
+                <h3 className="text-xs font-semibold text-ink-muted">端口判定口径</h3>
+              </header>
+              <div className={`${cardBodyCls} space-y-1.5 text-[12.5px] text-ink-muted`}>
+                <p>
+                  监听态来自 <span className="mono">lsof -nP -iTCP:&lt;port&gt; -sTCP:LISTEN</span>
+                  ，每 15s 一次轻轮询；判据是「端口命中」而非「进程名命中」。
+                </p>
+                <p>
+                  来源文件按 <span className="mono">config.json</span> →{' '}
+                  <span className="mono">~/.openvibe/</span> 的优先级回退；识别到的{' '}
+                  <span className="mono">sourceFile</span> 即实际命中的那一份。
+                </p>
+                <p>
+                  <span className="mono">listenersWarning</span> 在有监听但判不出归属时出现 ——
+                  那是「本机有东西在跑、但不是我们认的服务」，不是故障。
+                </p>
+              </div>
+            </section>
+          </ProBlock>
         </div>
 
         <div className="min-h-0 space-y-3 xl:overflow-auto">

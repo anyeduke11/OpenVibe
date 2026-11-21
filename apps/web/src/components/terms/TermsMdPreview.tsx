@@ -1,4 +1,4 @@
-import type { TermsOrderBy } from '@openvibe/shared'
+import { PACK_FILE_TERMS, type TermsOrderBy } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 import { useTermsMd } from '../../hooks/useTerms'
 import { toast } from '../ui/Toaster'
@@ -14,7 +14,7 @@ export function TermsMdPreview(props: { termIds: string[]; orderBy: TermsOrderBy
     const url = URL.createObjectURL(new Blob([content], { type: 'text/markdown;charset=utf-8' }))
     const a = document.createElement('a')
     a.href = url
-    a.download = 'TERMS.md'
+    a.download = PACK_FILE_TERMS
     a.click()
     URL.revokeObjectURL(url)
     toast(zh.terms.preview.downloaded)

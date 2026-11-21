@@ -6,8 +6,17 @@
 // -soft / -line 配对），调用点不得写字面色阶——`tests/design-tokens.test.ts` 四道闸钉住这件事。
 // 形制名（左列）对应 DESIGN.md 的组件名（右列注释），改组件名时两处一起改。
 
+/**
+ * 按钮**基座**（只放非 display 类）。
+ *
+ * ⚠️ **`display` 类一律不进 `btnBase`**（2026-11-08 定的口径，由 `tests/btn-display.test.ts` 钉住）：
+ * `inline-flex` 与调用点的 `hidden` / `block` 同属性，而 Tailwind v4 的生成顺序里
+ * `inline-flex` 在 `hidden` **之后** ⇒ 调用点写 `hidden` 会被静默覆盖。
+ * 实测后果：375px 下顶栏三个按钮全部渲染并横向溢出（x 到 435 > 375）。
+ * 故 `inline-flex` 下沉到四个变体各自；需要 block 的调用点自己写 `block`。
+ */
 export const btnBase =
-  'inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm transition-colors ' +
+  'items-center gap-1 rounded-md border px-3 py-1.5 text-sm transition-colors ' +
   // focus-visible 2px accent outline + 2px offset（DESIGN.md button-primary；
   // 用 focus-visible 而非 focus，鼠标点击不该留下环）
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ' +
@@ -15,12 +24,12 @@ export const btnBase =
   'disabled:cursor-not-allowed disabled:opacity-40'
 
 // 强调动作只给「使生效」类（注入/应用/保存/确认）；ok 退居状态位（一致/通过/监听）。
-export const btnPrimary = `${btnBase} border-accent bg-accent text-on-accent shadow-1 hover:bg-accent-deep`
-export const btnSecondary = `${btnBase} border-line-strong bg-panel text-ink-body hover:border-ink-muted hover:bg-panel-2`
-export const btnGhost = `${btnBase} border-line bg-panel text-ink-body hover:border-line-strong hover:bg-panel-2`
+export const btnPrimary = `${btnBase} inline-flex border-accent bg-accent text-on-accent shadow-1 hover:bg-accent-deep`
+export const btnSecondary = `${btnBase} inline-flex border-line-strong bg-panel text-ink-body hover:border-ink-muted hover:bg-panel-2`
+export const btnGhost = `${btnBase} inline-flex border-line bg-panel text-ink-body hover:border-line-strong hover:bg-panel-2`
 // 危险动作与强调互斥（DESIGN.md Components）：danger-soft 底 + danger-line 描边 + danger 字，
 // hover 转实心 + 调用点二次确认并给出影响范围。
-export const btnDanger = `${btnBase} border-danger-line bg-danger-soft text-danger hover:bg-danger hover:text-panel`
+export const btnDanger = `${btnBase} inline-flex border-danger-line bg-danger-soft text-danger hover:bg-danger hover:text-panel`
 
 export const inputCls =
   'w-full rounded-sm border border-line-strong bg-panel px-3 py-1.5 text-sm ' +

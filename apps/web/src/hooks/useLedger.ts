@@ -2,10 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { apiJson, qs } from '../api/client'
 
 /**
- * 本机事件台账（读侧）。
+ * 遥测事件读侧（`GET /api/telemetry/events` → `telemetry_events` 表）。
  *
- * 只读本机 SQLite，绝不出网；与 D3「遥测默认关闭」是正交的两件事——这条是
- * 「本机可复算的自证层」，不是遥测。契约见 `GET /api/telemetry/events`。
+ * ⚠️ 这**不是**本机事件台账：本表受 `telemetryEnabled` 开关控制、带 `sent_at`、
+ * 开关打开后**会出网**（D3 白名单三类）。真正的「本机自证层」是
+ * `hooks/useLocalEvents.ts` → `/api/local-events/summary` → `local_events`
+ * （append-only、不出网、设置页 LocalLedgerSection 呈现）——两者是
+ * FR-2.2 要求严格区分的正交两层，历史上本注释曾写反（local-event-ledger.md ⚠️l）。
  */
 export interface LedgerEvent {
   id: number

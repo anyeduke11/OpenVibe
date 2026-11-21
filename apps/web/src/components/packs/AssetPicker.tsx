@@ -40,6 +40,8 @@ interface ColumnProps<T> {
   onToggle: (id: string) => void
   onSelectAll: (ids: string[]) => void
   onClear: () => void
+  /** 服务端结果被截断（v0.2.4 F8 / R5）：提示「仅显示前 N 条」，避免用户以为就这些 */
+  truncated?: { shown: number; total: number }
 }
 
 function Column<T extends { id: string }>(props: ColumnProps<T>) {
@@ -82,6 +84,11 @@ function Column<T extends { id: string }>(props: ColumnProps<T>) {
           {zh.packs.wizard.clearSel}
         </button>
       </div>
+      {props.truncated && (
+        <p className="px-2.5 py-1 text-[11px] text-warn">
+          {zh.packs.wizard.truncatedHint(props.truncated.shown, props.truncated.total)}
+        </p>
+      )}
       <ul className="min-h-0 flex-1 overflow-auto border-t border-line-hair px-1 py-1">
         {shown.length === 0 && (
           <li className="px-3 py-2 text-xs text-ink-faint">{zh.packs.wizard.noneAvailable}</li>
@@ -149,6 +156,11 @@ export function AssetPicker(props: AssetPickerProps) {
           onToggle={(id) => onChange({ promptIds: toggle(value.promptIds, id) })}
           onSelectAll={(ids) => onChange({ promptIds: [...value.promptIds, ...ids] })}
           onClear={() => onChange({ promptIds: [] })}
+          truncated={
+            prompts.data && prompts.data.total > prompts.data.items.length
+              ? { shown: prompts.data.items.length, total: prompts.data.total }
+              : undefined
+          }
         />
         <Column
           title={zh.packs.wizard.termsCol}

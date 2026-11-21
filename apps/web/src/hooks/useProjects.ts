@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  InjectionFileScanOut,
   InjectionStatusOut,
   ProjectCreateInput,
   ProjectOut,
@@ -72,6 +73,17 @@ export function useInjectionStatus(id: string | null) {
   return useQuery({
     queryKey: ['injection-status', id],
     queryFn: () => apiJson<InjectionStatusOut>(`/api/projects/${id ?? ''}/injection-status`),
+    enabled: id !== null && id !== '',
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  })
+}
+
+/** 注入产物台账（只读扫描 lock 与每个文件的实算哈希）：窗口聚焦即刷新，无推送 */
+export function useInjectionFiles(id: string | null) {
+  return useQuery({
+    queryKey: ['injection-files', id],
+    queryFn: () => apiJson<InjectionFileScanOut>(`/api/projects/${id ?? ''}/injection-files`),
     enabled: id !== null && id !== '',
     staleTime: 0,
     refetchOnWindowFocus: true,

@@ -35,7 +35,9 @@ import {
   proseCls,
   rowCls,
 } from '../components/ui/styles'
+import { PageHead, ProBlock } from '../components/ui/layout'
 import { QueryError, QueryOffline, QuerySkeleton } from '../components/ui/QueryStates'
+import { DemoChip } from '../components/ui/DemoChip'
 import { Icon } from '../components/ui/icons'
 import { LedgerCardHead } from '../components/ui/LedgerCardHead'
 
@@ -95,25 +97,22 @@ export function GrowthPage() {
 
   return (
     <div className="flex flex-col gap-4 px-6 py-6 max-md:px-4">
-      {/* view-head：h1 + 一句话说明 + 右侧主动作 */}
-      <header className="flex flex-wrap items-start gap-3">
-        <div className="min-w-0">
-          <h1 className="text-[30px] font-semibold leading-[1.25] tracking-tight text-ink max-sm:text-[25px]">
-            {zh.growth.title}
-          </h1>
-          <p className={`${proseCls} mt-1 text-[13.5px] text-ink-muted`}>{zh.growth.subtitle}</p>
-        </div>
-        <div className="ml-auto flex shrink-0 items-center gap-2">
-          <Link to="/settings" className={btnGhost}>
-            <Icon name="cog" size={14} />
-            {zh.settings.title}
-          </Link>
-          <button type="button" className={btnGhost} onClick={reset}>
-            <Icon name="refresh" size={14} />
-            {sys.growth.action.reset}
-          </button>
-        </div>
-      </header>
+      <PageHead
+        title={zh.growth.title}
+        hint={zh.growth.subtitle}
+        actions={
+          <>
+            <Link to="/settings" className={btnGhost}>
+              <Icon name="cog" size={14} />
+              {zh.settings.title}
+            </Link>
+            <button type="button" className={btnGhost} onClick={reset}>
+              <Icon name="refresh" size={14} />
+              {sys.growth.action.reset}
+            </button>
+          </>
+        }
+      />
 
       {/* 红线 3：阶段可见可解释——这句话永远在，展开即得 */}
       <div className={noteCls('info')}>
@@ -229,7 +228,10 @@ export function GrowthPage() {
                 />
                 <DetailItem label="英文名" value={detail.en} />
               </dl>
-              <p className={`${proseCls} mt-2 text-[11.5px] text-ink-muted`}>
+              <p
+                className={`${proseCls} mt-2 flex flex-wrap items-center gap-2 text-[11.5px] text-ink-muted`}
+              >
+                <DemoChip id="growth-auto-stage" />
                 {sys.growth.vector.pendingHint}
               </p>
             </div>
@@ -255,6 +257,27 @@ export function GrowthPage() {
               </span>
             </div>
           </section>
+
+          {/* 专家视图：阶段向量与越级的**存储口径** —— 存在哪、怎么读写、为什么按模块记住。
+              普通用户只需要「我的阶段是什么」；排查「换了浏览器怎么没了」时才需要这段。 */}
+          <ProBlock>
+            <section className={cardCls}>
+              <div className={cardHeadCls}>
+                <h3 className="text-xs font-semibold text-ink-muted">阶段向量的存储口径</h3>
+              </div>
+              <div className={`${cardBodyCls} space-y-1.5 text-[12.5px] text-ink-muted`}>
+                <p>
+                  存在浏览器 <span className="mono">localStorage['openvibe.growth.v1']</span>，
+                  **不进服务端、不出网**；键位带版本号，结构变更时旧值可识别并回落默认。
+                </p>
+                <p>
+                  越级（专家列）**按模块分别记忆**，不是一次性全放开 —— 红线 4 要求
+                  「渐进披露」：单模块想看完就开那一个，其余保持简化。
+                </p>
+                <p>换浏览器 / 清缓存即回落默认（F0 + 全模块未越级），**不影响任何资产数据**。</p>
+              </div>
+            </section>
+          </ProBlock>
         </div>
 
         <LedgerPanel state={ledger} />

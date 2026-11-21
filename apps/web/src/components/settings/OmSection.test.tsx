@@ -43,17 +43,6 @@ const FULL_OM = {
     firstInjectionAt: '2026-10-24T10:05:00.000Z',
     seconds: 300,
   },
-  adoption: [
-    {
-      kind: 'term_candidate',
-      roundNo: 2,
-      published: 5,
-      rejected: 5,
-      rate: 0.5,
-      below: 1,
-    },
-  ],
-  verifyRate: { total: 3, passed: 2, rate: 0.667 },
 }
 
 describe('OmSection（设置页 OM 区）', () => {
@@ -65,29 +54,22 @@ describe('OmSection（设置页 OM 区）', () => {
     expect(screen.getByText(/TERMS\.MD · 600 token/i)).toBeTruthy()
     expect(screen.getByText(/首次注入距首次使用 5 分钟/)).toBeTruthy()
     expect(screen.getByText(/估算/)).toBeTruthy()
-    // OM3/OM4 有数据态（1B 批次）：采纳率行与通过率行齐
-    expect(
-      screen.getByText(/术语候选 第 2 轮：采纳 5 ／ 驳回 5 · 率 50% · ⚠️ 低于门槛/),
-    ).toBeTruthy()
-    expect(screen.getByText(/verify 共 3 次：三方一致 2 次 · 通过率 67%/)).toBeTruthy()
     // 取数真的打到了 /api/om
     expect(fetchMock.mock.calls.some((c) => String(c[0]).includes('/api/om'))).toBe(true)
   })
 
-  it('OM-W2: 空数据 → 四件都显示「待采集」，不显示 0（1B 批次：OM3 采纳率 ＋ OM4 核验通过率并入）', async () => {
+  it('OM-W2: 空数据 → 两件都显示「待采集」，不显示 0', async () => {
     fetchMock.mockResolvedValue(
       new Response(
         JSON.stringify({
           density: null,
           timeToValue: { firstEventAt: null, firstInjectionAt: null, seconds: null },
-          adoption: null,
-          verifyRate: null,
         }),
         { status: 200 },
       ),
     )
     renderOm()
-    await waitFor(() => expect(screen.getAllByText(/待采集/).length).toBe(4))
+    await waitFor(() => expect(screen.getAllByText(/待采集/).length).toBe(2))
     expect(screen.queryByText(/token\/条/)).toBeNull()
   })
 })

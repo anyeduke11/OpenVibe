@@ -41,16 +41,22 @@ const GROUP_LABEL: Record<Group, string> = {
 /** 全部**静态路由**（参数化的 /projects/:id、/packs/:id/edit 只能从各自的列表进，故不在此列）。
  *  少一条就是「面板能搜到但跳不到」，所以这份表与 App.tsx 的 Route 一一对照维护。 */
 const NAV_TARGETS: ReadonlyArray<{ to: string; label: string; hint: string; icon: IconName }> = [
-  { to: '/', label: zh.nav.workbench, hint: '总览 · 飞轮统计', icon: 'home' },
-  { to: '/library', label: zh.nav.library, hint: '资产', icon: 'doc' },
-  { to: '/terms', label: zh.nav.terms, hint: '资产', icon: 'book' },
-  { to: '/playbooks', label: zh.nav.playbooks, hint: '资产', icon: 'sparkle' },
-  { to: '/skills', label: zh.nav.skills, hint: '资产', icon: 'box' },
-  { to: '/flows', label: zh.nav.flows, hint: '资产', icon: 'flow' },
-  { to: '/projects', label: zh.nav.projects, hint: '工程', icon: 'folder' },
-  { to: '/packs', label: zh.nav.packs, hint: '工程', icon: 'pack' },
+  { to: '/', label: zh.nav.home, hint: '飞轮全景', icon: 'home' },
+  { to: '/guide', label: zh.nav.guide, hint: '跟随 · F0', icon: 'compass' },
+  { to: '/library', label: zh.nav.library, hint: '作者 · F2', icon: 'doc' },
+  { to: '/terms', label: zh.nav.terms, hint: '实践 · F1', icon: 'book' },
+  { to: '/playbooks', label: zh.nav.playbooks, hint: '实践 · F1', icon: 'sparkle' },
+  { to: '/learn', label: zh.nav.learn, hint: '实践 · F1', icon: 'list' },
+  { to: '/agent', label: zh.nav.agent, hint: '实践 · F1', icon: 'flow' },
+  { to: '/skills', label: zh.nav.skills, hint: '作者 · F2', icon: 'box' },
+  { to: '/flows', label: zh.nav.flows, hint: '作者 · F2', icon: 'flow' },
+  { to: '/projects', label: zh.nav.projects, hint: '跟随 · F0', icon: 'folder' },
+  { to: '/packs', label: zh.nav.packs, hint: '作者 · F2', icon: 'pack' },
   { to: '/packs/new', label: '组包向导', hint: '五步组装一个新包', icon: 'plus' },
-  { to: '/growth', label: zh.nav.growth, hint: '系统', icon: 'chart' },
+  { to: '/inject', label: zh.nav.inject, hint: '定标 · F3', icon: 'pulse' },
+  { to: '/loading', label: zh.nav.loading, hint: '定标 · F3', icon: 'clock' },
+  { to: '/team', label: zh.nav.team, hint: '定标 · F3', icon: 'git' },
+  { to: '/growth', label: zh.nav.growth, hint: '定标 · F3', icon: 'chart' },
   { to: '/settings', label: zh.nav.settings, hint: '系统', icon: 'cog' },
 ]
 

@@ -1,11 +1,20 @@
-import { Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useNavCounts } from '../hooks/useNavCounts'
 import { useTheme } from '../hooks/useTheme'
+import { useExpertMode } from '../hooks/useExpertMode'
 import { appName, common, nav } from '../i18n/core'
 import { CommandPaletteHost, OPEN_PALETTE_EVENT } from './CommandPaletteHost'
 import { Icon, type IconName } from './ui/icons'
 import { btnGhost } from './ui/styles'
+
+/**
+ * 覆盖地图**懒加载**：它带一份能力位表（≈10KB）与 Radix Dialog，
+ * 进入口 chunk 会把 `bundle:check` 的 300kB 闸顶破（壳层纪律 1 的同一条理由）。
+ */
+const CoverageMapDialog = lazy(() =>
+  import('./CoverageMapDialog').then((m) => ({ default: m.CoverageMapDialog })),
+)
 
 /**
  * 壳层 = 顶栏 + 侧栏 + 出口（DESIGN.md Layout）。
@@ -19,51 +28,57 @@ import { btnGhost } from './ui/styles'
  */
 
 /**
- * 「学习资源」的导航文案（**就地定义**，不往 `i18n/` 加键）。
+ * 侧栏六组十六项（成长视角 · 原型 NAV）。
  *
- * ⚠️ **为什么不加 i18n 键**：仓库约定「新组件就地定义文案常量」；
- *   这一项是**新增的导航项**，文案只在这一处出现 ⇒ 就地定义即可。
- *   ⚠️ **其余导航项仍走 `nav.*`** —— 不动既有结构（i18n 键一多就成第二份口径）。
+ * 分组口径 = 成长阶段（F0 跟随 → F3 定标），见 `i18n/core.ts` 的 `nav.group` 注。
+ * count 走单端点 `/api/nav-counts`，不是七个请求；设计稿页（加载协议 / 团队协作）
+ * 不占角标 —— 它们的「设计稿」标记在页头，不伪装成数量。
  */
-const RESOURCES_LABEL = '学习资源'
-
-/** 四组八项（DESIGN.md Layout）。count 走单端点 `/api/nav-counts`，不是七个请求。 */
 const NAV: {
   group: string
   items: { to: string; label: string; icon: IconName; count?: (c: Counts) => number }[]
 }[] = [
   {
-    group: nav.group.overview,
-    items: [{ to: '/', label: nav.workbench, icon: 'home' }],
+    group: nav.group.panorama,
+    items: [{ to: '/', label: nav.home, icon: 'home' }],
   },
   {
-    group: nav.group.assets,
+    group: nav.group.follow,
     items: [
-      { to: '/library', label: nav.library, icon: 'doc', count: (c) => c.prompts },
-      { to: '/terms', label: nav.terms, icon: 'book', count: (c) => c.terms },
-      // M9 开发能力（§3.5：紧随「术语」之后 —— 两者互链最密）
-      { to: '/dev', label: nav.devAbility, icon: 'compass' },
-      // M9 学习资源（owner 2026-10-22：独立资源页；⚠️ **必须排在「开发能力」之后** ——
-      //   导航判据要求「开发能力」紧随「术语库」，插在前面会把那条判据弄红）
-      { to: '/resources', label: RESOURCES_LABEL, icon: 'list' },
-      { to: '/playbooks', label: nav.playbooks, icon: 'sparkle', count: (c) => c.playbooks },
-      { to: '/skills', label: nav.skills, icon: 'box', count: (c) => c.skills },
-      { to: '/flows', label: nav.flows, icon: 'flow', count: (c) => c.flows },
+      { to: '/guide', label: nav.guide, icon: 'compass' },
+      { to: '/projects', label: nav.projects, icon: 'folder', count: (c) => c.projects },
     ],
   },
   {
-    group: nav.group.engineering,
+    group: nav.group.practice,
     items: [
-      { to: '/projects', label: nav.projects, icon: 'folder', count: (c) => c.projects },
+      { to: '/terms', label: nav.terms, icon: 'book', count: (c) => c.terms },
+      { to: '/playbooks', label: nav.playbooks, icon: 'sparkle', count: (c) => c.playbooks },
+      { to: '/learn', label: nav.learn, icon: 'list' },
+      { to: '/agent', label: nav.agent, icon: 'flow' },
+    ],
+  },
+  {
+    group: nav.group.author,
+    items: [
+      { to: '/library', label: nav.library, icon: 'doc', count: (c) => c.prompts },
+      { to: '/skills', label: nav.skills, icon: 'box', count: (c) => c.skills },
+      { to: '/flows', label: nav.flows, icon: 'flow', count: (c) => c.flows },
       { to: '/packs', label: nav.packs, icon: 'pack', count: (c) => c.packs },
     ],
   },
   {
-    group: nav.group.system,
+    group: nav.group.standard,
     items: [
+      { to: '/inject', label: nav.inject, icon: 'pulse' },
+      { to: '/loading', label: nav.loading, icon: 'clock' },
+      { to: '/team', label: nav.team, icon: 'git' },
       { to: '/growth', label: nav.growth, icon: 'chart' },
-      { to: '/settings', label: nav.settings, icon: 'cog' },
     ],
+  },
+  {
+    group: nav.group.system,
+    items: [{ to: '/settings', label: nav.settings, icon: 'cog' }],
   },
 ]
 
@@ -117,7 +132,8 @@ function ThemeSwitch() {
               if ((opt.key === 'dark') !== dark) toggle()
             }}
             aria-pressed={on}
-            className={`inline-flex items-center gap-1 rounded-[4px] px-2 py-[3px] text-xs transition-colors ${
+            // min-h-11 = 44px：触屏最小可点区（2026-11-08 窄屏核验实测 38px，不足）
+            className={`inline-flex min-h-11 items-center gap-1 rounded-[4px] px-2 text-xs transition-colors ${
               on ? 'bg-panel text-ink shadow-1' : 'text-ink-muted hover:text-ink'
             }`}
           >
@@ -130,7 +146,15 @@ function ThemeSwitch() {
   )
 }
 
-function Sidebar() {
+function Sidebar(props: {
+  moreOpen: boolean
+  /** 直接设值（不传 updater 形态）：两个调用点都是「关掉展开」 */
+  setMoreOpen: (v: boolean) => void
+  setMapOpen: (v: boolean) => void
+  expert: boolean
+  toggleExpert: () => void
+}) {
+  const { moreOpen, setMoreOpen, setMapOpen, expert, toggleExpert } = props
   const { data } = useNavCounts()
   const counts = (data ?? {
     prompts: 0,
@@ -142,7 +166,7 @@ function Sidebar() {
     packs: 0,
   }) as Counts
   return (
-    <aside className="flex w-[216px] shrink-0 flex-col border-r border-line bg-canvas max-lg:h-auto max-lg:w-full max-lg:flex-row max-lg:overflow-x-auto max-lg:border-b max-lg:border-r-0">
+    <aside className="flex w-[216px] shrink-0 flex-col border-r border-line bg-canvas max-lg:h-auto max-lg:w-full max-lg:flex-col max-lg:border-b max-lg:border-r-0">
       <nav
         className="flex flex-1 flex-col gap-3.5 overflow-y-auto p-2.5 max-lg:flex-row max-lg:gap-1 max-lg:overflow-visible max-lg:p-2"
         aria-label="主导航"
@@ -194,6 +218,70 @@ function Sidebar() {
           </div>
         ))}
       </nav>
+
+      {/* 窄屏「更多」：顶栏在 <640px 藏起了三个 ghost 按钮，能力不能跟着消失。
+          ⚠️ 只在这三档以下出现（`max-sm:flex`）——桌面与宽屏下它是冗余入口。 */}
+      <div className="mt-auto flex-col gap-1 border-t border-line-hair px-2 py-2 max-sm:flex sm:hidden">
+        <button
+          type="button"
+          onClick={() => setMoreOpen(!moreOpen)}
+          aria-expanded={moreOpen}
+          aria-controls="sidebar-more"
+          aria-label={nav.more.aria}
+          className="flex min-h-11 items-center gap-2 rounded-md px-2.5 text-[12.5px] text-ink-muted hover:bg-panel-2 hover:text-ink"
+        >
+          <Icon name="list" size={14} />
+          <span className="flex-1 text-left">{nav.more.label}</span>
+          <span aria-hidden className="text-[10px]">
+            {moreOpen ? '▴' : '▾'}
+          </span>
+        </button>
+        {moreOpen && (
+          <div id="sidebar-more" className="flex flex-col gap-0.5">
+            <button
+              type="button"
+              onClick={() => {
+                setMoreOpen(false)
+                setMapOpen(true)
+              }}
+              className="flex min-h-11 items-center gap-2 rounded-md px-2.5 text-left text-[12.5px] text-ink-muted hover:bg-panel-2 hover:text-ink"
+            >
+              <Icon name="map" size={14} />
+              {common.coverageMap.label}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMoreOpen(false)
+                toggleExpert()
+              }}
+              aria-pressed={expert}
+              aria-label={common.expertMode.aria}
+              className={`flex min-h-11 items-center gap-2 rounded-md px-2.5 text-left text-[12.5px] ${
+                expert
+                  ? 'bg-accent-soft font-medium text-accent-deep'
+                  : 'text-ink-muted hover:bg-panel-2 hover:text-ink'
+              }`}
+            >
+              <Icon name="clock" size={14} />
+              {common.expertMode.label}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMoreOpen(false)
+                window.dispatchEvent(new CustomEvent(OPEN_PALETTE_EVENT))
+              }}
+              aria-label={common.commandPalette.aria}
+              className="flex min-h-11 items-center gap-2 rounded-md px-2.5 text-left text-[12.5px] text-ink-muted hover:bg-panel-2 hover:text-ink"
+            >
+              <Icon name="search" size={14} />
+              {common.commandPalette.label}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* 页脚：本机优先的落点（~/.openvibe · 127.0.0.1），不是版权信息 */}
       <div className="border-t border-line-hair px-4 py-2.5 text-[11.5px] leading-relaxed text-ink-faint max-lg:hidden">
         <div className="mono break-all">{nav.footerPath}</div>
@@ -218,7 +306,64 @@ function PageLoading() {
   )
 }
 
+/**
+ * 顶栏右侧的两个「产品视角」开关（原型顶栏同位置）。
+ *
+ * ## 为什么是 ghost 小按钮而不是菜单项
+ *
+ * 它们**不改变路由**，只改变「看见多少」：覆盖地图是**只读视图**、专家视图是**显示偏好**。
+ * 混进导航会让人以为它们是可到达的页面。
+ *
+ * ## 状态为什么在 AppShell 顶层
+ *
+ * 窄屏下这三个入口搬进侧栏的「更多」展开项（顶栏在 <640px 藏起它们）。
+ * `mapOpen` 与 `expert` 因此是**两个组件共用的**：提到 AppShell，由 props 下发。
+ */
+function TopbarTools(props: {
+  mapOpen: boolean
+  setMapOpen: (v: boolean) => void
+  expert: boolean
+  toggleExpert: () => void
+}) {
+  const { mapOpen, setMapOpen, expert, toggleExpert } = props
+  return (
+    <>
+      <button
+        type="button"
+        className={`${btnGhost} max-sm:hidden shrink-0 px-2 py-1 text-xs text-ink-muted`}
+        onClick={() => setMapOpen(true)}
+        aria-label={common.coverageMap.aria}
+        title="全功能与需求覆盖地图（数据源 data/coverage.ts）"
+      >
+        <Icon name="map" size={13} />
+        <span className="hidden md:inline">{common.coverageMap.label}</span>
+      </button>
+      <button
+        type="button"
+        className={`${btnGhost} max-sm:hidden shrink-0 px-2 py-1 text-xs ${
+          expert ? 'text-accent-deep' : 'text-ink-muted'
+        }`}
+        onClick={toggleExpert}
+        aria-pressed={expert}
+        aria-label={common.expertMode.aria}
+        title="一键越级：显示全部高级块（渐进披露红线 4）"
+      >
+        <Icon name="clock" size={13} />
+        <span className="hidden md:inline">{common.expertMode.label}</span>
+      </button>
+      <Suspense fallback={null}>
+        <CoverageMapDialog open={mapOpen} onClose={() => setMapOpen(false)} />
+      </Suspense>
+    </>
+  )
+}
+
 export function AppShell() {
+  // 顶栏与侧栏「更多」共用的两处状态（窄屏下入口搬进侧栏，见 TopbarTools 注）
+  const [mapOpen, setMapOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const { expert, toggle: toggleExpert } = useExpertMode()
+
   return (
     <div className="flex h-full flex-col">
       {/* 顶栏 58px：品牌 tile + 版本 + 主题切换（全站唯一入口） */}
@@ -228,16 +373,22 @@ export function AppShell() {
           v0.2.0
         </span>
         <div className="flex-1" />
-        <span className="mono hidden items-center gap-1 text-xs text-ink-muted sm:flex">
+        <span className="mono max-sm:hidden items-center gap-1 text-xs text-ink-muted sm:flex">
           <Icon name="pulse" size={13} />
           {nav.footerHost}
         </span>
+        <TopbarTools
+          mapOpen={mapOpen}
+          setMapOpen={setMapOpen}
+          expert={expert}
+          toggleExpert={toggleExpert}
+        />
         <ThemeSwitch />
         {/* ⌘K 的可见入口。键盘监听在 CommandPaletteHost（全站唯一挂载点），这里只发一个
             自定义事件唤起它——面板本体懒加载，顶栏不因此把面板拖进入口 chunk。 */}
         <button
           type="button"
-          className={`${btnGhost} hidden shrink-0 px-2 py-1 text-xs text-ink-muted sm:inline-flex`}
+          className={`${btnGhost} max-sm:hidden shrink-0 px-2 py-1 text-xs text-ink-muted`}
           onClick={() => window.dispatchEvent(new CustomEvent(OPEN_PALETTE_EVENT))}
           aria-label={common.commandPalette.aria}
         >
@@ -249,7 +400,13 @@ export function AppShell() {
         </button>
       </header>
       <div className="flex min-h-0 flex-1 max-lg:flex-col">
-        <Sidebar />
+        <Sidebar
+          moreOpen={moreOpen}
+          setMoreOpen={setMoreOpen}
+          setMapOpen={setMapOpen}
+          expert={expert}
+          toggleExpert={toggleExpert}
+        />
         <main className="min-w-0 flex-1 overflow-y-auto">
           <Suspense fallback={<PageLoading />}>
             <Outlet />

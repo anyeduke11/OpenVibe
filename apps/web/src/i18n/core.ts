@@ -13,26 +13,51 @@
 
 export const appName = 'OpenVibe 灵典'
 
-/** 侧栏四组八项（DESIGN.md Layout）：概览 / 资产 / 工程 / 系统，每项带 API total 计数 */
+/**
+ * 侧栏六组（成长视角 · 原型 `灵典-全功能Demo-成长视角-20261107.html` 的 NAV）：
+ * 飞轮全景 / 跟随·F0 / 实践·F1 / 作者·F2 / 定标·F3 / 系统。
+ *
+ * ⚠️ 分组口径是**成长阶段**（F0 跟随 → F3 定标），不是旧版的「概览/资产/工程/系统」
+ * ——后者按功能面切，前者按「你在哪一步」切，与首页「飞轮全景」的叙事一致。
+ */
 export const nav = {
   group: {
-    overview: '概览',
-    assets: '资产',
-    engineering: '工程',
+    panorama: '飞轮全景',
+    follow: '跟随 · F0',
+    practice: '实践 · F1',
+    author: '作者 · F2',
+    standard: '定标 · F3',
     system: '系统',
   },
-  workbench: '工作台',
+  home: '飞轮全景',
+  guide: '今日下一步',
   growth: '成长与统计',
   library: '提示词库',
   terms: '术语库',
-  // M9「开发能力」（§3.5：assets 组里紧随「术语」之后）
+  // M9「开发能力」（§3.5）：现并入「学习与开发」页的一个页签（原型 learn 视图）
   devAbility: '开发能力',
+  resources: '学习资源',
+  learn: '学习与开发',
   playbooks: '技巧库',
   skills: 'Skill',
   flows: '流程模板',
-  projects: '项目',
+  projects: '项目工作台',
   packs: '标准包',
+  inject: '注入与漂移',
+  loading: '加载协议',
+  team: '团队协作',
+  agent: 'Agent 接入',
   settings: '设置',
+  /**
+   * 侧栏「更多」（窄屏专用）。
+   *
+   * 顶栏在 <640px 藏起了三个 ghost 按钮（覆盖地图 / 专家视图 / ⌘K），
+   * 这一项把它们接回来 —— **藏起入口不等于取消能力**。
+   */
+  more: {
+    label: '更多',
+    aria: '展开更多入口（覆盖地图 / 专家视图 / 命令面板）',
+  },
   // 侧栏底部：本机优先的落点，不是版权信息
   footerPath: '~/.openvibe/',
   footerHost: '127.0.0.1:8787',
@@ -69,5 +94,20 @@ export const common = {
   commandPalette: {
     aria: '打开命令面板（快捷键 ⌘K）',
     label: '搜索',
+  },
+  /** 顶栏「覆盖地图」：全功能与需求覆盖地图（数据源 data/coverage.ts） */
+  coverageMap: {
+    aria: '打开覆盖地图（全功能与需求覆盖）',
+    label: '覆盖地图',
+  },
+  /**
+   * 顶栏「专家视图」：一键越级显示高级块。
+   *
+   * 文案里带「越级」是刻意的 —— 它不是「设置」，是**临时放开信息密度**，
+   * 读的人应当知道这不是默认状态。
+   */
+  expertMode: {
+    aria: '切换专家视图（显示全部高级块）',
+    label: '专家视图',
   },
 }

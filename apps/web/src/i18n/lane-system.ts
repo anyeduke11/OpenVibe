@@ -177,6 +177,59 @@ export const sys = {
         '硬约束：任何承载文字的配对在两套主题都要 ≥4.5；3.0 只对 ≥24px 或 ≥18.66px bold 生效。ink-faint 只允许落在 canvas / panel / panel-2 / panel-sunk 四种纸底上。',
       pairCols: { pair: '配对', sample: '样例', ratio: '对比度', verdict: '判定' },
     },
+    contextGovernance: {
+      title: '上下文治理',
+      hint: '只读：最近一次 pnpm context:check 的落盘结论 ＋ 入仓棘轮基线；不代你运行',
+      unavailable: '本机还没有结论 —— 先运行 pnpm context:check（结论落在 test-results/）',
+      cols: { item: '项', value: '值', judge: '判定' },
+      rows: {
+        errors: '判红数（C-1～C-4 / C-6 / C-5 棘轮）',
+        c5: 'C-5 上下游未回指',
+        upper: 'C-5 棘轮上界（只降不升）',
+        coAnchors: '共锚自检（趋势主指标）',
+      },
+      pass: '通过',
+      fail: (n: number) => `${String(n)} 处红`,
+      unknown: '未知',
+      notJudged: '—',
+      overBy: (n: number) => `超上界 ${String(n)} 条`,
+      suggestLower: (n: number) =>
+        `建议把上界下调到 ${String(n)}（改 docs/context-check-baseline.json，并往 c5History 追加一条含日期与理由的留痕）`,
+      historyTitle: '历史趋势（最近 5 轮，最旧→最新）',
+      historyEmpty: '历史不足：多跑几次 pnpm context:check 才有趋势（本机历史上限 50 轮）',
+      historyCols: { at: '时间', source: '来源', errors: '判红', c5: 'C-5', coAnchors: '共锚' },
+      mergesTitle: (n: number) => `合并来源清单（最近 ${String(n)} 条）`,
+      mergesHint: '每次 pnpm context:history:merge 留一条：哪个文件合进来、净增几轮',
+      mergesCols: {
+        at: '时间',
+        from: '来源文件',
+        accepted: '读入',
+        added: '净增',
+        dropped: '丢弃',
+      },
+      mergesAggTitle: (n: number) => `来源聚合（全量 ${String(n)} 条合并记录）`,
+      mergesAggCols: {
+        from: '来源文件',
+        count: '次数',
+        added: '累计净增',
+        accepted: '累计读入',
+        dropped: '累计丢弃',
+        lastAt: '最近',
+      },
+      mergesFilterClear: (from: string) => `取消筛选：显示全部（当前只看 ${from}）`,
+      mergesFiltered: (from: string, total: number | undefined, shown: number) =>
+        total === undefined
+          ? `合并来源清单 · 已按「${from}」筛选（当前显示 ${String(shown)} 条）`
+          : `合并来源清单 · 已按「${from}」筛选（全量 ${String(total)} 条，当前显示 ${String(shown)} 条）`,
+      mergesLoadEarlier: (n: number) => `显示更早的 ${String(n)} 条`,
+      mergesBackToRecent: () => '回到最近',
+      mergesNoMoreEarlier: () => '已显示到最早的记录',
+      mergesOutsideWindow: (n: number) =>
+        `另有 ${String(n)} 条更早的合并记录不在本窗口内（点某个来源可看它的全部记录；全量见 test-results/context-check-history.json）`,
+      mergesSourceEmpty: (from: string) =>
+        `来源「${from}」没有合并记录（可能已被合并日志上限截掉；取消筛选可看全部来源）`,
+      sampledAt: (t: string) => `采样 ${t}`,
+    },
     aiExtract: {
       title: 'AI 提取（M10）',
       aside: '默认关 · 出网需逐项目同意',
@@ -210,27 +263,6 @@ export const sys = {
             ? `首次注入距首次使用 ${Math.round(seconds / 60)} 分钟`
             : `首次注入距首次使用 ${Math.round(seconds / 3600)} 小时`,
       timeRange: '台账口径：首次本机事件 → 首次注入记录（injections 表）。',
-      adoptionTitle: 'OM3 · 采纳率（AI 候选的人工裁决）',
-      adoptionEmpty: '待采集：AI 提取的候选完成人工裁决后出现。',
-      adoptionLine: (
-        kind: string,
-        round: number,
-        published: number,
-        rejected: number,
-        rate: string,
-        below: boolean,
-      ) =>
-        `${kind} 第 ${round} 轮：采纳 ${published} ／ 驳回 ${rejected} · 率 ${rate}${below ? ' · ⚠️ 低于门槛' : ''}`,
-      adoptionRateNull: '—',
-      verifyTitle: 'OM4 · 核验通过率（7 天）',
-      verifyEmpty: '待采集：跑过 `openvibe verify` 后出现。',
-      verifyLine: (total: number, passed: number, rate: string) =>
-        `verify 共 ${total} 次：三方一致 ${passed} 次 · 通过率 ${rate}`,
-      adoptionKind: {
-        term_candidate: '术语候选',
-        prompt_candidate: '提示词候选',
-        playbook_candidate: '技巧候选',
-      },
     },
   },
 

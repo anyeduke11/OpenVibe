@@ -3,7 +3,6 @@ import {
   AiSection,
   AppearanceSection,
   CliSection,
-  LedgerSection,
   OmSection,
   PathsSection,
   ReadabilitySection,
@@ -11,13 +10,15 @@ import {
 } from '../components/settings/SettingsSections'
 import { LocalLedgerSection } from '../components/settings/LocalLedgerSection'
 import { AgentSettingsSection } from '../components/settings/AgentSettingsSection'
+import { ContextGovernanceSection } from '../components/settings/ContextGovernanceSection'
 import { SourceConsentSection } from '../components/settings/SourceConsentSection'
 import { SourceShareSection } from '../components/settings/SourceShareSection'
 import { InterpretProviderSection } from '../components/settings/InterpretProviderSection'
 import { LangModeSection } from '../components/settings/LangModeSection'
 import { SkillScanPathsSection } from '../components/settings/SkillScanPathsSection'
 import { sys } from '../i18n/lane-system'
-import { btnGhost, proseCls, skelCls } from '../components/ui/styles'
+import { btnGhost, skelCls } from '../components/ui/styles'
+import { PageHead, ProBlock } from '../components/ui/layout'
 import { Icon } from '../components/ui/icons'
 
 /**
@@ -31,24 +32,21 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-4 px-6 py-6 max-md:px-4">
-      {/* view-head：h1 + 一句话说明 + 右侧主动作 */}
-      <header className="flex flex-wrap items-start gap-3">
-        <div className="min-w-0">
-          <h1 className="text-[30px] font-semibold leading-[1.25] tracking-tight text-ink max-sm:text-[25px]">
-            {sys.settings.title}
-          </h1>
-          <p className={`${proseCls} mt-1 text-[13.5px] text-ink-muted`}>{sys.settings.subtitle}</p>
-        </div>
-        <button
-          type="button"
-          className={`${btnGhost} ml-auto shrink-0`}
-          disabled={wizard.isPending}
-          onClick={() => void wizard.mutate(false)}
-        >
-          <Icon name="flow" size={14} />
-          {sys.settings.action.showWizard}
-        </button>
-      </header>
+      <PageHead
+        title={sys.settings.title}
+        hint={sys.settings.subtitle}
+        actions={
+          <button
+            type="button"
+            className={btnGhost}
+            disabled={wizard.isPending}
+            onClick={() => void wizard.mutate(false)}
+          >
+            <Icon name="flow" size={14} />
+            {sys.settings.action.showWizard}
+          </button>
+        }
+      />
 
       <div className="grid max-w-[1120px] gap-4 lg:grid-cols-2">
         {settings.data === undefined ? (
@@ -62,10 +60,18 @@ export function SettingsPage() {
           <>
             <AppearanceSection />
             <TelemetrySection />
-            {/* 真·本机台账紧跟遥测节：两节并排正是为了让「正交的两层」看得见 */}
-            <LocalLedgerSection />
-            {/* OM（输出侧度量）紧跟台账节：数据同源（本机台账 + injections），同区呈现 */}
-            <OmSection />
+            {/* 真·本机台账显式落在遥测节**正下方**（lg 两栏时同一列相邻，r1c2 → r2c2）：
+                FR-5.1「两节同屏并列」是 D29 否证触发器的判定物——2026-11-21 屏摄实测发现
+                纯 JSX 顺序（遥测第 2 项、台账第 3 项）在行优先填充下会错成斜对角
+                （遥测 r1c2 / 台账 r2c1），并列形态不成立，故用网格定位钉死。 */}
+            <div className="lg:col-start-2 lg:row-start-2">
+              <LocalLedgerSection />
+            </div>
+            {/* OM（输出侧度量）与台账同排异列：数据同源（本机台账 + injections），同区呈现；
+                显式定位同时填掉 col-start-2 造成的稀疏空洞（r2c1）。 */}
+            <div className="lg:col-start-1 lg:row-start-2">
+              <OmSection />
+            </div>
             {/* AI 与出网（M10/D）：总闸/采纳率/同意——同为「本机状态归口」区 */}
             <AiSection />
           </>
@@ -80,7 +86,6 @@ export function SettingsPage() {
         )}
         {/* Skill 扫描路径（2026-10-30：改成可配置清单，覆盖国内主流 agent） */}
         <SkillScanPathsSection />
-        <LedgerSection />
         <CliSection />
         {/* 第 7 区（可读性与设计系统）的**同级**新一区，不并入其中（m8-agent-panel.md FR-5.5.1） */}
         <AgentSettingsSection />
@@ -93,6 +98,25 @@ export function SettingsPage() {
         {/* M9（owner 2026-10-22 裁决一）：AI 解读 provider 的**手动调控**入口 */}
         <InterpretProviderSection />
         <ReadabilitySection />
+        {/* 上下文治理（只读）：最近一次 context:check 的落盘结论 ＋ 棘轮上界 */}
+        <ContextGovernanceSection />
+
+        {/* 专家视图块（原型「渐进披露红线 4」）：客户端本地状态的键位清单。
+            普通用户不需要它；排查「我的偏好没记住」时它是第一手线索。 */}
+        <ProBlock>
+          <section className="rounded-md border border-line bg-panel px-3.5 py-3 shadow-1">
+            <h2 className="text-sm font-semibold text-ink">客户端本地状态键位</h2>
+            <p className="mt-1 text-[13px] text-ink-muted">
+              以下键存在浏览器 localStorage，**不进服务端**、不出网。删掉即回到默认。
+            </p>
+            <ul className="mono mt-2 flex flex-col gap-1 text-[12px] text-ink-body">
+              <li>openvibe.theme —— 亮暗主题（paper / dark）</li>
+              <li>openvibe:expert —— 专家视图（1 / 0）</li>
+              <li>openvibe.growth.v1 —— 成长页阶段向量与越级选择</li>
+              <li>terms.roadmap.order.v1 —— 术语站位图的自定义顺序</li>
+            </ul>
+          </section>
+        </ProBlock>
       </div>
     </div>
   )

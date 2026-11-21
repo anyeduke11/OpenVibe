@@ -266,3 +266,20 @@ input {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* 专家视图闸（原型 `.pro` 的口径）：默认隐藏，顶栏开关往 body 加 `expert` 才显示。
+   用属性选择器而不是工具类，是为了让「显示与否」只有一处口径 ——
+   调用点写 `<ProBlock>`，不写 `hidden`/`block` 的判定。 */
+[data-problock] {
+  display: none;
+}
+body.expert [data-problock] {
+  display: block;
+}
+/* 少数块本身是栅格/弹性（如统计格），按原角色的显示方式还原 */
+body.expert [data-problock][data-display='grid'] {
+  display: grid;
+}
+body.expert [data-problock][data-display='flex'] {
+  display: flex;
+}

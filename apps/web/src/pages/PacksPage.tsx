@@ -24,6 +24,7 @@ import {
   skelCls,
   tagCls,
 } from '../components/ui/styles'
+import { ProBlock } from '../components/ui/layout'
 import type { ApiError } from '../api/client'
 
 /**
@@ -200,6 +201,31 @@ export function PacksPage() {
           )}
         </div>
       </div>
+
+      {/* 专家视图：内容指纹与漂移判定的口径。
+          普通用户只需要「有没有漂移」；核对「为什么判成 DRIFT」时才需要这段。 */}
+      <ProBlock>
+        <section className="rounded-md border border-line bg-panel px-3.5 py-3 shadow-1">
+          <h2 className="text-sm font-semibold text-ink">内容指纹与漂移判定</h2>
+          <div className="mt-1.5 space-y-1.5 text-[12.5px] text-ink-muted">
+            <p>
+              指纹 = 渲染产物（不含 <span className="mono">openvibe.pack.json</span>）逐文件
+              <span className="mono"> sha256</span> 后取前 12 位；预览与导出走**同一生成器**，
+              所以预览里的指纹就是导出后的指纹。
+            </p>
+            <p>
+              漂移判定在 CLI 侧：本机 <span className="mono">.openvibe/pack.lock.json</span> 的
+              指纹与当前包不一致即 <span className="mono">DRIFT</span>，处置三选一（以包为准 /
+              保留本地 / 跳过）；文件级冲突是 <span className="mono">CONFLICT</span>，只有两档 ——
+              本包从未拥有该文件，「保留本地」无从成立。
+            </p>
+            <p className="text-[12px] text-ink-faint">
+              判据出处 <span className="mono">specs/m6-standard-pack.md FR-7.5</span>； 覆盖地图编号{' '}
+              <span className="mono">M6-3 / M6-6</span>。
+            </p>
+          </div>
+        </section>
+      </ProBlock>
 
       <footer className="flex items-center gap-3 border-t border-line-hair px-5 py-1.5 text-xs text-ink-muted">
         <span className="tabular-nums">

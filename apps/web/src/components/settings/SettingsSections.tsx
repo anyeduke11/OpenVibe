@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import type { DefaultPackOutcomeOut, ReseedOut, SettingsOut } from '@openvibe/shared'
 import { ApiError, apiJson } from '../../api/client'
-import { useLedger } from '../../hooks/useLedger'
 import { usePackExports, usePackList } from '../../hooks/usePacks'
 import {
   useExtractConsentClear,
@@ -32,7 +31,6 @@ import {
   proseCls,
   skelCls,
 } from '../ui/styles'
-import { QueryError, QueryOffline, QuerySkeleton } from '../ui/QueryStates'
 import { Icon, type IconName } from '../ui/icons'
 import { toast } from '../ui/Toaster'
 
@@ -214,94 +212,6 @@ export function TelemetrySection() {
   )
 }
 
-/* ---------- 本机自证层（MT 层） ---------- */
-
-/**
- * 事件台账只读展示。
- *
- * 为什么不给「清空」按钮：server 侧只有 `GET /api/telemetry/events`（写端点只在 POST 的
- * 事件入队路径上），没有清空端点。这里因此只讲清「可清空」的事实与代价，不摆一个
- * 点了没反应或会误删资产的假按钮。
- */
-export function LedgerSection() {
-  const state = useLedger(50)
-  const missing = state.error instanceof ApiError && state.error.status === 404
-  const items = state.data?.items ?? []
-
-  return (
-    <Section
-      title={sys.settings.ledger.title}
-      icon="lock"
-      aside={
-        <span className={chipTone('default')}>
-          <Icon name="lock" size={12} />
-          不出网
-        </span>
-      }
-      foot={
-        <>
-          <span className={`${proseCls} text-[11.5px] text-ink-muted`}>
-            {sys.settings.ledger.clearHint}
-          </span>
-          <Link to="/growth" className="ml-auto shrink-0 text-xs text-ink-muted hover:text-ink">
-            {sys.settings.ledger.openGrowth} ›
-          </Link>
-        </>
-      }
-    >
-      <p className={`${proseCls} text-[13.5px] text-ink-body`}>{sys.settings.ledger.body}</p>
-
-      {state.isLoading ? (
-        <QuerySkeleton wrap="mt-2" />
-      ) : missing ? (
-        <QueryOffline wrap="mt-2" />
-      ) : state.error ? (
-        <QueryError wrap="mt-2" error={state.error} onRetry={() => void state.refetch()} />
-      ) : items.length === 0 ? (
-        <div className="mt-2">
-          <div className={emptyHintCls}>
-            <p>{sys.settings.ledger.empty}</p>
-            <p>{sys.settings.ledger.emptyHint}</p>
-            <Link to="/packs" className={btnGhost}>
-              <Icon name="pack" size={13} />
-              {sys.workbench.action.newPack}
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <table className="mt-2 w-full border-collapse text-[13px]">
-          <thead>
-            <tr>
-              <th className={`${ledgerHeadCls} border-b border-line py-1.5 text-left font-normal`}>
-                时间
-              </th>
-              <th className={`${ledgerHeadCls} border-b border-line py-1.5 text-left font-normal`}>
-                事件
-              </th>
-              <th
-                className={`${ledgerHeadCls} ${ledgerNumCls} border-b border-line py-1.5 font-normal`}
-              >
-                累计
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.slice(0, 8).map((e) => (
-              <tr key={e.id} className="border-b border-line-hair last:border-b-0">
-                <td className="num py-1.5 text-ink-muted">
-                  {new Date(e.ts).toLocaleString('zh-CN', { hour12: false })}
-                </td>
-                <td className="mono py-1.5 text-ink-body">{e.name}</td>
-                <td className={`${ledgerNumCls} num py-1.5 text-ink-muted`}>{String(e.id)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </Section>
-  )
-}
-
 /* ---------- 数据与路径 ---------- */
 
 /** 重播结果：逐 bundle 状态 + 预置包结论 + 警告，全按服务端原文展示（不美化、不吞原因） */
@@ -444,7 +354,7 @@ export function PathsSection(props: { settings: SettingsOut | undefined }) {
             <span className="flex flex-wrap items-center gap-2">
               <span>{s.onboardingDone ? zh.settings.wizard.done : zh.settings.wizard.pending}</span>
               <Link to="/projects" className="text-xs text-ink-muted hover:text-ink">
-                {zh.nav.workbench} ›
+                {zh.nav.home} ›
               </Link>
             </span>
           </Row>
@@ -875,47 +785,6 @@ export function OmSection() {
           </p>
         )}
         <p className={`${proseCls} text-[11.5px] text-ink-muted`}>{sys.settings.om.timeRange}</p>
-        <p className={`${proseCls} mt-2 text-[13.5px] font-medium text-ink-body`}>
-          {sys.settings.om.adoptionTitle}
-        </p>
-        {om?.adoption == null || om.adoption.length === 0 ? (
-          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>
-            {sys.settings.om.adoptionEmpty}
-          </p>
-        ) : (
-          <div className="flex flex-col gap-0.5">
-            {om.adoption.map((row) => (
-              <p key={row.kind} className={`${proseCls} text-[12.5px] text-ink-body`}>
-                {sys.settings.om.adoptionLine(
-                  sys.settings.om.adoptionKind[row.kind],
-                  row.roundNo,
-                  row.published,
-                  row.rejected,
-                  row.rate === null
-                    ? sys.settings.om.adoptionRateNull
-                    : `${Math.round(row.rate * 100)}%`,
-                  row.below === 1,
-                )}
-              </p>
-            ))}
-          </div>
-        )}
-        <p className={`${proseCls} mt-2 text-[13.5px] font-medium text-ink-body`}>
-          {sys.settings.om.verifyTitle}
-        </p>
-        {om?.verifyRate == null ? (
-          <p className={`${proseCls} text-[12.5px] text-ink-muted`}>
-            {sys.settings.om.verifyEmpty}
-          </p>
-        ) : (
-          <p className={`${proseCls} text-[12.5px] text-ink-body`}>
-            {sys.settings.om.verifyLine(
-              om.verifyRate.total,
-              om.verifyRate.passed,
-              `${Math.round(om.verifyRate.rate * 100)}%`,
-            )}
-          </p>
-        )}
       </div>
     </Section>
   )

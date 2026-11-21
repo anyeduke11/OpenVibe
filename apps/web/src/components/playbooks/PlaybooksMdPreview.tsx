@@ -1,3 +1,4 @@
+import { PACK_FILE_PLAYBOOKS } from '@openvibe/shared'
 import { zh } from '../../i18n/zh'
 import { usePlaybooksMd } from '../../hooks/usePlaybooks'
 import { toast } from '../ui/Toaster'
@@ -13,7 +14,7 @@ export function PlaybooksMdPreview(props: { playbookIds: string[] }) {
     const url = URL.createObjectURL(new Blob([content], { type: 'text/markdown;charset=utf-8' }))
     const a = document.createElement('a')
     a.href = url
-    a.download = 'PLAYBOOKS.md'
+    a.download = PACK_FILE_PLAYBOOKS
     a.click()
     URL.revokeObjectURL(url)
     toast(zh.playbooks.preview.downloaded)

@@ -73,6 +73,11 @@ export const agentZh = {
     keepFirst: '保留先到的那条',
     acceptThis: '接受本条并改幂等键重试',
     reviewedToast: '已提交你的裁决。',
+    /** pending 的人工确认门（FR-2.5：agent 的判断不可作为事实源，确认才落业务表） */
+    confirm: '确认',
+    reject: '拒绝',
+    confirmDone: '已确认 → published：分发进业务表',
+    rejectDone: '已拒绝 → rejected：agent 的判断不作为事实源',
     /** 回流正文是不可信输入，一律纯文本渲染（FR-5.1.2.1） */
     untrustedNote: '内容由 agent 自报，按纯文本显示。',
     emptyFilterHint: '当前筛选无结果。',
@@ -81,13 +86,15 @@ export const agentZh = {
 
   install: {
     title: '让 agent 接入',
-    hint: '下面只是指令文本，复制到你的终端执行即可 —— 注入是你的决定，面板不代执行。',
-    pickAdapter: '选择平台',
-    commandLabel: '安装指令',
-    copy: '复制',
+    hint: '勾选要接入的平台（可多选），生成接入脚本 —— 复制到终端执行即可。注入是你的决定，面板不代执行。',
+    pickAdapter: '选择平台（可多选）',
+    pickOne: '先选一个平台。',
+    selectAll: '全选',
+    clearAll: '清空',
+    copy: '复制接入脚本',
     copied: '已复制。',
-    /** FR-5.4.3：error 态复用工程域既有文案，不新造 */
-    retry: '重试',
+    /** 口径诚实：MCP 配置路径来自官方文档 / 第三方参考，尚未本机实测 */
+    verifiedNote: 'MCP 配置口径来自各平台官方文档 / 第三方参考，尚未本机实测。',
   },
 
   /** 设置页第 7 区**同级**的新一区（FR-5.5） */

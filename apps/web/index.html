@@ -9,6 +9,11 @@
         if (localStorage.getItem('openvibe.theme') === 'dark')
           document.documentElement.dataset.theme = 'dark'
       } catch (e) {}
+      // 专家视图同理：预涂 body 类，防「先闪一屏高级块再消失」
+      // （与 useExpertMode.ts 同键位；落 body 不落 html，口径见该文件）
+      try {
+        if (localStorage.getItem('openvibe:expert') === '1') document.body.classList.add('expert')
+      } catch (e) {}
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>OpenVibe 灵典 · 标准化工作台</title>
