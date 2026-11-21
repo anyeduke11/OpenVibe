@@ -270,6 +270,7 @@ npm / npx 用户走 `prebuild-install` 按平台与 Node ABI 取预编译包，�
   这 8 支靠本机三平台正向断言 + win32 事实探针覆盖，**CI 的 win32 腿不构成它们的证据**；
   浏览器侧自 2026-09-24 起有一条裸 CDP **真输入**驱动器，覆盖复制按钮与中文输入搜索两条场景
   （真鼠标点击 + 真中文注入 + 系统剪贴板逐字节反查，需有头浏览器），**看板拖拽仍无自动化证据**，如需验证请手工做一次。
+- **六平台适配质量的真实评估有边界**：合成夹具 + 二进制证据不等于六平台真机读测。最近一次复跑（2026-11-21，证据 `docs/devlog-evidence/refactor-w5/adapter-probe-20261121.txt`，机器可读面 `tests/golden/adapters/probe-last-run.json`）：Trae frontmatter 键解析 PASS（二进制资源命中 alwaysApply 处理面）、Codex AGENTS.md 腿 SKIP（模型/凭据不可用）、Trae GUI 暗号腿 SKIP（有头腿按发布节奏人工跑）。复跑方式见该驱动器脚本。
 - 中文 UI 优先，暂无英文版；种子内容以中文技术术语为主，欢迎补其他语言与领域。
 - 团队权限、审批流、LLM 密钥托管均在 P2/P3 计划内，本期没有。
 

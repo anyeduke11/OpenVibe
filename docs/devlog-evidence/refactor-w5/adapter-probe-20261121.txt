@@ -1,0 +1,6 @@
+PASS 腿1 Trae frontmatter 键解析 — 二进制资源命中 alwaysApply 处理面 3 个文件（首处：/Applications/Trae CN.app/Contents/Resources/app/out/vs/workbench/workbench.desktop.main.solo-lite-slim.js）
+SKIP 腿2 Codex AGENTS.md 读取 — 模型/凭据不可用（FR-5.2）：ERROR codex_core::session::session: failed to load skill /Users/duke/.agents/skills/_retired-bid-master/SKILL.md: invalid YAML: found unexpected end of stream at line 3 column 15, while scanning a quoted scalar at line 2 column 14
+SKIP 腿3 Trae GUI 暗号 — 无头环境不可判（有头腿按发布节奏人工跑，DEV-0025 同款纪律）
+
+结果：PASS=1 SKIP=2 FAIL=0
+证据落档：docs/devlog-evidence/refactor-w5/（.txt；FR-6.3 要求时间戳带本路径）

@@ -5671,3 +5671,15 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
   5. **V 段交接**：V-1 的 W-1 前置已满足；交接完成态 = owner 裁 ⑥ 即交接（重构线不是「关账后」才放行中台线）。
 - **测试验证**: adapters:matrix:check ✓（7 行同源）；docs:check error 0 · warning 190；全量回归 3082/3082（分笔收口基线，本笔仅文档 + CI 步无代码变更）。
 - **潜在风险**: ① reconciliation 的 RG2② 引用 ㊽㊼ 两个裁定号的张力——owner 追认口径若选「改写判据」，goal-plan（owner 文件）需同步；② owner-gated 清单 A–I 若长期不答，RG3 悬置会传导到 v0.3.0 线的开工叙事（两线在 ⑥ 上交汇）。
+
+## [DEV-0286] 2026-11-21 · FR-5 真机探针复跑化落地 ＋ FR-6 三处登记面补齐（adapter-fixtures v1.0 的收尾两 FR）
+
+- **时间**: 2026-11-21
+- **类型**: 重构线收官 · W-1 残余腿（adapter-fixtures 的 FR-5/FR-6，owner-gated 清单 I 的可代跑半）
+- **关联文件**: `docs/devlog-evidence/refactor-w5/{adapter-probe.mjs,adapter-probe-20261121.txt,codex-leg-*.txt}`、`tests/golden/adapters/probe-last-run.json`（侧车 json 新增）、`README.md`（已知局限段补 FR-6.1 人类可读面）、`DEV_LOG.md`（本条）
+- **核心变更**:
+  1. **FR-5.1 复跑化驱动器**（`adapter-probe.mjs`）：三支腿——① Trae frontmatter 键解析（无头可跑：grep Trae 二进制资源面的 alwaysApply 处理痕迹，T6 同款一手证据的复跑形态）；② Codex AGENTS.md 读取（N1 探针同款假术语＋对照腿）；③ Trae GUI 暗号（有头腿，按发布节奏人工跑——本驱动器预留 SKIP）。EXPECT_SKIP 口径（FR-5.2）：声明几支就必须恰好几支，skip 不计为通过。
+  2. **首跑实据（FR-5.3 .txt 形制）**：腿1 **PASS**——Trae CN 二进制资源命中 `alwaysApply` 处理面 **3 个文件**（首处 workbench.desktop.main.solo-lite-slim.js）；腿2 **SKIP**（codex CLI 在位但模型不在授权组，且用户 retired skill 的 YAML 报错先现——凭据面属 owner 环境，FR-5.2 形制：SKIP 不是 FAIL）；腿3 **SKIP**（无头不可判）。PASS=1 SKIP=2 FAIL=0，与声明一致。
+  3. **FR-6 三处登记**：机器可读＝`tests/golden/adapters/probe-last-run.json`（㊺ 侧车 json 裁定；时间戳按 FR-6.3 带证据文件路径与驱动器路径）；人类可读＝README 已知局限段补「六平台适配质量的真实评估有边界」一条（含复跑方式）；只登记不做新鲜度闸（FR-6.2/§6.4：装不齐六 IDE 是物理限制）。
+- **测试验证**: golden 套件 13/13（侧车 json 不触碰既有夹具字节——ADP-FIX-01/03 的字节恒等不受影响）；docs:check error 0 · warning 196（+3＝FR-9.1 冻结面提示随 probe-last-run 入库即消＋DEV_LOG FR-5 族）；探针脚本退出码 0。
+- **潜在风险**: ① 腿1 的 PASS 是「解析面存在」的证据，不是「解析正确」的证据——frontmatter 值语义仍需 GUI 真机（有头腿）；② codex 腿的 SKIP 会随 owner 侧凭据/模型配置变化而翻转，复跑即可升级为 PASS/FAIL；③ probe-last-run.json 在 golden 冻结面内——后续更新时间戳的提交会再次触发 FR-9.1 提示，属该闸的正常工作形态。

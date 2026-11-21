@@ -1,0 +1,11 @@
+{
+  "lastRun": "2026-11-21",
+  "evidence": "docs/devlog-evidence/refactor-w5/adapter-probe-20261121.txt",
+  "driver": "docs/devlog-evidence/refactor-w5/adapter-probe.mjs",
+  "legs": {
+    "trae-frontmatter": "PASS（二进制资源命中 alwaysApply 处理面 3 文件）",
+    "codex-agents-md": "SKIP（模型/凭据不可用——FR-5.2 形制，SKIP 不计为通过）",
+    "trae-gui": "SKIP（有头腿按发布节奏人工跑）"
+  },
+  "note": "FR-6 只登记不做新鲜度闸（§6.4：装不齐六 IDE 是物理限制）；时间戳按 FR-6.3 带证据路径"
+}
