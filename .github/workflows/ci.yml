@@ -110,6 +110,12 @@ jobs:
       #   每轮自己上传 ⇒ 下轮自取；首轮没有 ⇒ 降级为只报本轮计数。
       # `--history`：本轮快照追加进 test-results/docs-diff-history.json（上轮有历史文件则
       #   先拷来做底），随 docs-check.json 一并上传 ⇒ 跨轮趋势在 summary 可见。
+      # U-8 的 CI 接线半（2026-11-21 补齐）：adapter 兼容矩阵是生成物，磁盘字节与
+      # COMPAT_MATRIX 重渲染必须一致（ADP-FIX-04 的脚本半）。vitest 的 golden 测试
+      # 只在 Test 步跑单测形态；这里用 check 形态直接对账（不修复、不一致即红）。
+      - name: Adapter matrix check
+        run: pnpm adapters:matrix:check
+
       - name: Docs check warning diff (this vs last run)
         if: always()
         continue-on-error: true
