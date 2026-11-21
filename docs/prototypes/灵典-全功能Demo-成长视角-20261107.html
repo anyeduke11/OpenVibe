@@ -1,0 +1,1569 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="paper">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OpenVibe 灵典 · 全功能交互 Demo C · 成长视角</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   OpenVibe · 灵典 ——「暖纸 · 可读性工作台 V2」
+   设计口径唯一出处：DESIGN.md；token 值取自 apps/web/src/index.css（29 支 × 双主题）。
+   本文件为交互演示：单文件、零外部依赖、断网双击即开；全部数据为演示样例。
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  color-scheme:light;
+  --canvas:#faf5ec; --panel:#fffdf9; --panel-2:#f8f1e6; --panel-sunk:#f1e7d8;
+  --line-hair:#efe5d5; --line:#e3d6c1; --line-strong:#cdbca2;
+  --ink:#2a2018; --ink-body:#4a3b2d; --ink-muted:#6a5846; --ink-faint:#75634c;
+  --accent:#a8501c; --accent-deep:#7c3811; --accent-soft:#f7e8d7; --accent-line:#e4c9ab; --on-accent:#fffaf3;
+  --ok:#3d6b37; --ok-soft:#ecf2e3; --ok-line:#c6dcbb;
+  --warn:#92610e; --warn-soft:#f9efd7; --warn-line:#e6cf9d;
+  --danger:#ab3527; --danger-soft:#fbe7e2; --danger-line:#eec2b8;
+  --info:#2b5a74; --info-soft:#e4edf2; --info-line:#bdd3df;
+  --scrim:#2a2018;
+  --sh1:0 1px 2px color-mix(in srgb,var(--scrim) 5%,transparent),0 1px 1px color-mix(in srgb,var(--scrim) 4%,transparent);
+  --sh2:0 4px 16px -4px color-mix(in srgb,var(--scrim) 12%,transparent),0 2px 4px color-mix(in srgb,var(--scrim) 5%,transparent);
+  --sh3:0 24px 48px -16px color-mix(in srgb,var(--scrim) 26%,transparent),0 8px 16px -8px color-mix(in srgb,var(--scrim) 12%,transparent);
+  --font:'Outfit','PingFang SC','Hiragino Sans GB','HarmonyOS Sans SC','MiSans','Microsoft YaHei',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r-sm:6px; --r-md:10px; --r-lg:14px;
+  --ease:cubic-bezier(.2,.7,.3,1); --dur:160ms;
+}
+[data-theme='dark']{
+  color-scheme:dark;
+  --canvas:#16120f; --panel:#1e1a14; --panel-2:#26201a; --panel-sunk:#2d2820;
+  --line-hair:#28251f; --line:#3a362c; --line-strong:#4a4538;
+  --ink:#f0ebe0; --ink-body:#c8c2b4; --ink-muted:#a39e8e; --ink-faint:#9a8b76;
+  --accent:#e9a63f; --accent-deep:#c4822e; --accent-soft:#372814; --accent-line:#4a3320; --on-accent:#1b1510;
+  --ok:#74b290; --ok-soft:#1f2e25; --ok-line:#2a4234;
+  --warn:#c89c3f; --warn-soft:#2f2817; --warn-line:#57451b;
+  --danger:#e8836f; --danger-soft:#33221d; --danger-line:#5a2f27;
+  --info:#6f9cc5; --info-soft:#1c2a38; --info-line:#24384a;
+  --scrim:#080503;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+html{scrollbar-gutter:stable}
+body{margin:0;background:var(--canvas);color:var(--ink-body);font-family:var(--font);font-size:15px;line-height:1.72;-webkit-font-smoothing:antialiased}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+::selection{background:var(--accent-soft);color:var(--ink)}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer;padding:0}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line-strong);border-radius:var(--r-sm);padding:7px 10px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent);width:15px;height:15px;padding:0;flex:none}
+input:disabled{opacity:.45;cursor:not-allowed}
+svg{display:block;flex:none}
+
+/* ---------- 布局 ---------- */
+#app{display:flex;flex-direction:column;height:100vh}
+#topbar{height:58px;flex:none;display:flex;align-items:center;gap:12px;padding:0 18px;background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:5}
+#brand{display:flex;align-items:center;gap:10px;min-width:0}
+.tile{width:30px;height:30px;border-radius:8px;background:linear-gradient(160deg,var(--accent),var(--accent-deep));color:var(--on-accent);display:grid;place-items:center;font-weight:600;font-size:14px}
+#brand b{color:var(--ink);font-size:15.5px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;display:block;line-height:1.3}
+#brand span{font-size:11.5px;color:var(--ink-muted);white-space:nowrap;display:block;line-height:1.3}
+#topbar .spacer{flex:1}
+#demobar{flex:none;background:var(--panel-2);border-bottom:1px solid var(--line-hair);color:var(--ink-muted);font-size:12px;padding:4px 18px;display:flex;gap:14px;align-items:center}
+#demobar .dot{width:6px;height:6px;border-radius:50%;background:var(--warn);flex:none}
+#frame{flex:1;display:flex;min-height:0}
+#side{width:216px;flex:none;background:var(--canvas);border-right:1px solid var(--line);padding:12px 10px 24px;overflow-y:auto}
+#side .grp{font-size:11px;color:var(--ink-faint);padding:12px 10px 4px}
+#side .grp:first-child{padding-top:2px}
+.nav{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 10px;border-radius:8px;color:var(--ink-muted);font-size:13.5px;position:relative;transition:background var(--dur) var(--ease),color var(--dur) var(--ease)}
+.nav:hover{background:var(--panel-2);color:var(--ink)}
+.nav[aria-current=true]{background:var(--accent-soft);color:var(--accent-deep);font-weight:500}
+.nav[aria-current=true]::before{content:'';position:absolute;left:0;top:7px;bottom:7px;width:2px;border-radius:2px;background:var(--accent)}
+.nav .cnt{margin-left:auto;font-size:11.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+.nav[aria-current=true] .cnt{color:var(--accent-deep)}
+#view{flex:1;min-width:0;overflow-y:auto;padding:26px 30px 80px}
+.vh h1{margin:0;font-size:25px;font-weight:600;letter-spacing:-.02em;color:var(--ink);line-height:1.25}
+.vh p{margin:4px 0 0;color:var(--ink-muted);font-size:13.5px;max-width:68ch}
+.vh .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sect{margin-top:22px}
+.sect>h2{margin:0 0 10px;font-size:16px;font-weight:600;color:var(--ink)}
+
+/* ---------- 组件 ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--sh1)}
+.card .hd{padding:11px 14px;border-bottom:1px solid var(--line-hair);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.card .hd h3{margin:0;font-size:13.5px;font-weight:600;color:var(--ink)}
+.card .hd .r{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.card .bd{padding:14px}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.g5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink-body);border-radius:var(--r-sm);padding:6px 12px;font-size:13px;transition:all var(--dur) var(--ease)}
+.btn:hover{background:var(--panel-2);border-color:var(--ink-faint)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent);box-shadow:var(--sh1)}
+.btn.pri:hover{background:var(--accent-deep);border-color:var(--accent-deep)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--ink-muted)}
+.btn.ghost:hover{background:var(--panel-2);color:var(--ink)}
+.btn.danger{background:var(--danger-soft);border-color:var(--danger-line);color:var(--danger)}
+.btn.danger:hover{background:var(--danger);border-color:var(--danger);color:var(--panel)}
+.btn.sm{padding:3px 8px;font-size:12px}
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;font-size:11px;line-height:1.7;padding:1px 9px;background:var(--panel-sunk);border:1px solid var(--line);color:var(--ink-muted);white-space:nowrap}
+.chip.c-ok{background:var(--ok-soft);border-color:var(--ok-line);color:var(--ok)}
+.chip.c-warn{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn)}
+.chip.c-danger{background:var(--danger-soft);border-color:var(--danger-line);color:var(--danger)}
+.chip.c-info{background:var(--info-soft);border-color:var(--info-line);color:var(--info)}
+.chip.c-accent{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-deep)}
+[data-theme='dark'] .chip.c-accent{color:var(--accent)}
+.tag{display:inline-block;border-radius:6px;font-size:11.5px;line-height:1.7;padding:0 7px;background:var(--panel-2);border:1px solid var(--line-hair);color:var(--ink-muted);white-space:nowrap}
+.tag.mono{font-family:var(--mono)}
+.note{border:1px solid;border-radius:var(--r-md);padding:10px 14px;font-size:13px}
+.note b{display:block;font-size:13px;margin-bottom:2px}
+.note.n-ok{background:var(--ok-soft);border-color:var(--ok-line);color:var(--ink-body)}
+.note.n-ok b{color:var(--ok)}
+.note.n-warn{background:var(--warn-soft);border-color:var(--warn-line);color:var(--ink-body)}
+.note.n-warn b{color:var(--warn)}
+.note.n-danger{background:var(--danger-soft);border-color:var(--danger-line);color:var(--ink-body)}
+.note.n-danger b{color:var(--danger)}
+.note.n-info{background:var(--info-soft);border-color:var(--info-line);color:var(--ink-body)}
+.note.n-info b{color:var(--info)}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font-size:11.5px;font-weight:500;color:var(--ink-faint);text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:8px 10px;border-bottom:1px solid var(--line-hair);vertical-align:top}
+.tbl tr:hover td{background:var(--panel-2)}
+.tbl .r{text-align:right;font-variant-numeric:tabular-nums}
+.tbl .mono{font-size:12px;word-break:break-all}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;box-shadow:var(--sh1)}
+.stat .k{font-size:12px;color:var(--ink-faint)}
+.stat .v{font-size:27px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.3}
+.stat .m{font-size:12px;color:var(--ink-muted)}
+.rows{border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;background:var(--panel)}
+.rows .row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line-hair);min-width:0;flex-wrap:wrap}
+.rows .row:last-child{border-bottom:none}
+.rows .row:hover{background:var(--panel-2)}
+.rows .row[aria-selected=true]{background:var(--accent-soft)}
+.seg{display:inline-flex;background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:2px;gap:2px;flex-wrap:wrap}
+.seg button{border-radius:5px;padding:4px 12px;font-size:12.5px;color:var(--ink-muted)}
+.seg button[aria-pressed=true]{background:var(--panel);color:var(--ink);box-shadow:var(--sh1);font-weight:500}
+.empty{border:1.5px dashed var(--line-strong);border-radius:var(--r-md);padding:26px;text-align:center;color:var(--ink-faint);font-size:13px}
+.empty .btn{margin-top:10px}
+.skel{background:var(--panel-2);border-radius:6px;height:12px;animation:pulse 1.1s var(--ease) infinite}
+.skel.w60{width:60%}.skel.w80{width:80%}.skel.w40{width:40%}
+@keyframes pulse{50%{opacity:.55}}
+pre.code{background:var(--panel-sunk);border:1px solid var(--line-hair);border-radius:var(--r-sm);padding:10px 12px;font-family:var(--mono);font-size:12px;line-height:1.7;overflow:auto;color:var(--ink-body);margin:0;white-space:pre-wrap;word-break:break-word}
+.cmd{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-sunk);font-family:var(--mono);font-size:12px;color:var(--ink-body)}
+.cmd code{flex:1;min-width:0;word-break:break-all}
+.cmd .btn{flex:none}
+
+/* ---------- 浮层 ---------- */
+#overlay{position:fixed;inset:0;background:color-mix(in srgb,var(--scrim) 40%,transparent);z-index:40;display:flex;align-items:center;justify-content:center;padding:24px}
+#overlay[hidden]{display:none}
+#toast[hidden]{display:none}
+#panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh3);width:min(880px,100%);max-height:min(84vh,900px);display:flex;flex-direction:column}
+#panel .ph{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line-hair)}
+#panel .ph h3{margin:0;font-size:15px;color:var(--ink);font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#panel .pb{padding:16px 18px;overflow-y:auto}
+#toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:var(--canvas);border-radius:999px;padding:8px 18px;font-size:13px;z-index:60;box-shadow:var(--sh2);max-width:min(92vw,640px)}
+
+/* ---------- 视图专属 ---------- */
+#lib-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;margin-top:14px;align-items:start}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fchip{border:1px solid var(--line);background:var(--panel-sunk);border-radius:999px;padding:2px 11px;font-size:12px;color:var(--ink-muted)}
+.fchip[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-deep)}
+.stagebar{display:flex;gap:6px;flex-wrap:wrap}
+.stagebar button{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 13px;font-size:12.5px;color:var(--ink-muted)}
+.stagebar button.done{border-color:var(--ok-line);background:var(--ok-soft);color:var(--ok)}
+.stagebar button.cur{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-deep);font-weight:500;box-shadow:var(--sh1)}
+.kan{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
+.kcol{background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-md);padding:10px}
+.kcol h4{margin:2px 4px 10px;font-size:12.5px;color:var(--ink-muted);display:flex;gap:8px;align-items:center}
+.kcol h4 .n{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--ink-faint)}
+.kcard{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-sm);padding:9px 11px;margin-bottom:8px;box-shadow:var(--sh1);display:flex;gap:8px;align-items:flex-start}
+.kcard .t{flex:1;min-width:0;font-size:13px;color:var(--ink)}
+.kcard .mv{display:flex;gap:3px}
+.kcard .mv .btn{padding:1px 6px;font-size:11px}
+.pipe{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.pstep .arrow{display:none}
+@media (min-width:1024px){.pstep{position:relative}.pstep .arrow{display:block;position:absolute;right:-14px;top:50%;transform:translateY(-50%);color:var(--ink-faint);z-index:2}}
+.md{font-size:14px;line-height:1.72;color:var(--ink);max-width:68ch}
+.md p{margin:6px 0}
+.diff{font-family:var(--mono);font-size:12px;line-height:1.7;border:1px solid var(--line-hair);border-radius:var(--r-sm);overflow:hidden}
+.diff div{padding:1px 10px;white-space:pre-wrap;word-break:break-word}
+.diff .add{background:var(--ok-soft);color:var(--ok)}
+.diff .del{background:var(--danger-soft);color:var(--danger)}
+.diff .ctx{color:var(--ink-muted)}
+.tabbar{display:inline-flex;background:var(--panel-2);border:1px solid var(--line);border-radius:var(--r-sm);padding:2px;gap:2px;flex-wrap:wrap;max-width:100%}
+.tabbar button{border-radius:5px;padding:4px 12px;font-size:12.5px;color:var(--ink-muted)}
+.tabbar button[aria-pressed=true]{background:var(--panel);color:var(--ink);box-shadow:var(--sh1);font-weight:500}
+.capbit{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:1px 8px;border-radius:999px;border:1px solid var(--line)}
+.capbit.t{background:var(--ok-soft);border-color:var(--ok-line);color:var(--ok)}
+.capbit.f{background:var(--panel-sunk);color:var(--ink-muted)}
+.capbit.u{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn)}
+.flyring{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.ring{width:148px;height:148px;flex:none}
+.ring .lbl{font-size:11px;fill:var(--ink-muted)}
+.ring .big{font-size:30px;font-weight:600;fill:var(--ink);font-variant-numeric:tabular-nums}
+.pro{display:none}
+body.expert .pro{display:revert}
+.why{font-size:12.5px;color:var(--ink-faint);display:inline-flex;gap:5px;align-items:center;cursor:pointer}
+.why:hover{color:var(--accent)}
+.spark{display:flex;align-items:flex-end;gap:6px;height:56px;padding-bottom:20px}
+.spark i{width:26px;background:var(--accent);opacity:.85;border-radius:3px 3px 0 0;position:relative;height:calc(var(--h)*1%)}
+.spark i span{position:absolute;bottom:-19px;left:50%;transform:translateX(-50%);font-size:10.5px;color:var(--ink-faint);font-variant-numeric:tabular-nums;white-space:nowrap}
+.spark i.alt{background:var(--info)}
+
+/* ---------- 响应式 ---------- */
+@media (max-width:1023px){
+  #frame{flex-direction:column}
+  #side{width:100%;display:flex;flex-wrap:wrap;gap:2px;padding:8px 12px;border-right:none;border-bottom:1px solid var(--line)}
+  #side .grp{display:none}
+  .nav{width:auto;padding:5px 10px}
+  .nav .cnt{display:none}
+  #lib-layout{grid-template-columns:1fr}
+  .g4,.g5{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pipe{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:767px){
+  #view{padding:18px 16px 80px}
+  .g2,.g3,.g4,.g5,.kan,.pipe{grid-template-columns:1fr}
+  .vh h1{font-size:21px}
+  .hide-sm{display:none}
+  #brand span{display:none}
+  #demobar .mono{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div id="brand">
+      <div class="tile">灵</div>
+      <div>
+        <b>OpenVibe 灵典</b>
+        <span>全功能交互 Demo C · 成长视角</span>
+      </div>
+    </div>
+    <span class="chip c-info" title="口径：docs/PRD-v0.2.5-v0.9-20261029.md · 2026-11-07 裁定 D-v25">v0.2.5 · v0.9 口径</span>
+    <div class="spacer"></div>
+    <button class="btn sm" data-act="map" title="全功能与需求覆盖地图（三份 Demo 共用同一数据）"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 3.5l4.5-1.5v11L1.5 14.5zM6 2l4.5 1.5v11L6 13zM10.5 3.5l4-1.2v11l-4 1.2"/></svg>覆盖地图</button>
+    <button class="btn sm" data-act="expert" id="btn-expert" aria-pressed="false" title="一键越级：显示全部高级块（渐进披露红线 4）"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8" cy="8" r="6.2"/><path d="M8 4.8v3.6l2.2 1.6"/></svg>专家视图</button>
+    <button class="btn sm" data-act="theme" id="btn-theme" aria-pressed="false" title="切换 暖纸 / 暖夜（全站唯一主题入口）"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8" cy="8" r="3.4"/><path d="M8 1.2v1.8M8 13v1.8M1.2 8H3M13 8h1.8M3.2 3.2l1.3 1.3M11.5 11.5l1.3 1.3M12.8 3.2l-1.3 1.3M4.5 11.5l-1.3 1.3"/></svg>暖夜</button>
+  </header>
+  <div id="demobar"><span class="dot"></span><span>交互演示：全部数据为演示样例，不读写任何真实目录；Web 只读展示项目状态，真正落盘只有 CLI（写盘唯一通道）。</span><span style="margin-left:auto" class="mono">覆盖地图口径 · 2026-11-07</span></div>
+  <div id="frame">
+    <nav id="side" aria-label="主导航"></nav>
+    <main id="view">
+      <section id="v-home" hidden></section>
+      <section id="v-guide" hidden></section>
+      <section id="v-library" hidden></section>
+      <section id="v-terms" hidden></section>
+      <section id="v-skills" hidden></section>
+      <section id="v-playbooks" hidden></section>
+      <section id="v-flows" hidden></section>
+      <section id="v-projects" hidden></section>
+      <section id="v-packs" hidden></section>
+      <section id="v-inject" hidden></section>
+      <section id="v-loading" hidden></section>
+      <section id="v-agent" hidden></section>
+      <section id="v-team" hidden></section>
+      <section id="v-learn" hidden></section>
+      <section id="v-growth" hidden></section>
+      <section id="v-settings" hidden></section>
+    </main>
+  </div>
+</div>
+<div id="overlay" hidden><div id="panel" role="dialog" aria-modal="true"><div class="ph"><h3 id="panel-title"></h3><div style="margin-left:auto"><button class="btn ghost sm" data-act="close-overlay" aria-label="关闭（Esc）"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg></button></div></div><div class="pb" id="panel-body"></div></div></div>
+<div id="toast" hidden></div>
+<noscript>本演示需要启用 JavaScript。</noscript>
+<script>
+'use strict';
+
+/* ================= 工具 ================= */
+var $=function(s){return document.querySelector(s)};
+var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s))};
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+var I={
+ok:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.2"/><path d="M5.2 8.3l1.9 1.9 3.7-4.4"/></svg>',
+half:'<svg width="12" height="12" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 3.4a4.6 4.6 0 0 1 0 9.2z" fill="currentColor"/></svg>',
+dash:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6.2" stroke-dasharray="2.4 2.8"/></svg>',
+ban:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="6.2"/><path d="M3.7 12.3l8.6-8.6"/></svg>',
+warn:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.2L14.4 13.4H1.6z"/><path d="M8 6.4v3.2M8 11.4v.4"/></svg>',
+err:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8" cy="8" r="6.2"/><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8"/></svg>',
+info:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="8" cy="8" r="6.2"/><path d="M8 7.4v3.4M8 5v.5"/></svg>',
+dot:'<svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="3" fill="currentColor"/></svg>',
+copy:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5h-7a1 1 0 0 0-1 1v7"/></svg>',
+chL:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 3.5L5 8l4.5 4.5"/></svg>',
+chR:'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5L11 8l-4.5 4.5"/></svg>',
+arrow:'<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8h11M9.5 4l4 4-4 4"/></svg>'
+};
+var STATUS={ok:{l:'已上线',i:'ok',c:'c-ok'},partial:{l:'后端/CLI 就绪',i:'half',c:'c-info'},design:{l:'设计稿',i:'dash',c:'c-warn'},no:{l:'裁定不做',i:'ban',c:'c-danger'}};
+function chip(tone,label){var ic=tone==='c-ok'?'ok':tone==='c-warn'?'warn':tone==='c-danger'?'err':tone==='c-info'?'info':'dot';return '<span class="chip '+(tone||'')+'">'+I[ic]+esc(label)+'</span>'}
+function sChip(s){var st=STATUS[s];return '<span class="chip '+st.c+'">'+I[st.i]+st.l+'</span>'}
+function toast(msg){var t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(function(){t.hidden=true},2800)}
+function openPanel(title,html){$('#panel-title').innerHTML=title;$('#panel-body').innerHTML=html;$('#overlay').hidden=false;$('#panel-body').scrollTop=0}
+function closePanel(){$('#overlay').hidden=true}
+function copyText(s,msg){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(s).then(function(){toast(msg||'已复制到剪贴板')},function(){toast('复制失败：请手动选择复制')})}else{toast('当前环境不支持剪贴板，请手动复制')}}
+var cur='home';
+/* ================= 覆盖地图数据（三份 Demo 共用同一份；口径 2026-11-07） ================= */
+var MAP=[
+{g:'M1 提示词库 · /library',rows:[
+ ['M1-1','提示词 CRUD 与双栏编辑器（版本快照 / diff / 回滚）','ok','routes/prompts.ts:119,129'],
+ ['M1-2','模板变量 {{var}}：复制时弹表单填值','ok','components/library/VariableFillModal.tsx'],
+ ['M1-3','标签 / 文件夹 / FTS 全文搜索','ok','packages/core（SQLite FTS5）'],
+ ['M1-4','平台适配标记与筛选（六 adapter）','ok','LibraryPage.tsx:137'],
+ ['M1-5','导入导出：JSON / Markdown / 规则文件反向导入','ok','routes/prompts.ts:66,140'],
+ ['M1-6','AI 测试场：多模型并行对比试跑','design','PRD M1 · P3（Phase 3）']]},
+{g:'M2 Skill 台账 · /skills',rows:[
+ ['M2-1','本机 skill 目录扫描与登记','ok','routes/skills.ts:75,83'],
+ ['M2-2','更新检测（树指纹比对）','ok','routes/skills.ts:126'],
+ ['M2-3','生态源导入（GitHub / SkillHub 检索与导入）','ok','routes/skills.ts:95,103'],
+ ['M2-4','多平台分发（symlink / copy、冲突变体）','design','repos/skillLibrary.ts:36 明文「不做」']]},
+{g:'M3 术语库 · /terms',rows:[
+ ['M3-1','词条 CRUD（中英名 / 别名 / 定义 / 示例 / 相关 / 来源）','ok','routes/terms.ts'],
+ ['M3-2','拼音与英文双序搜索','ok','routes/terms.ts:38'],
+ ['M3-3','多选生成 TERMS.md（alpha / 拼音 / 手动三种排序）','ok','routes/terms.ts:47']]},
+{g:'M4 技巧库 · /playbooks',rows:[
+ ['M4-1','技巧 CRUD 与 PLAYBOOKS.md 导出','ok','routes/playbooks.ts:24-61'],
+ ['M4-2','复盘回流草稿（带来源反链）','ok','components/projects/ReflowActions.tsx:16']]},
+{g:'M5 项目与流程 · /projects',rows:[
+ ['M5-1','阶段与检查清单','ok','routes/projects.ts:124,175'],
+ ['M5-2','任务看板（拖拽 / 键盘 / 按钮同效）','ok','components/projects/KanbanBoard.tsx:282'],
+ ['M5-3','开发日志（DEV / CHECK，编号递增 + 验证记录）','ok','routes/devlog.ts:20-44'],
+ ['M5-4','会话记录挂接（粘贴 AI 会话摘录为日志附件）','design','PRD M5 · P1'],
+ ['M5-5','复盘回流入口（日志 → 术语 / 提示词 / 技巧草稿）','ok','ReflowActions.tsx:16'],
+ ['M5-6','注入状态只读桥接（端口 / lock）','ok','routes/ports.ts:26']]},
+{g:'M6 标准包与注入 · /packs + CLI',rows:[
+ ['M6-1','五步组包向导（新建与编辑同源）','ok','components/packs/PackWizard.tsx:35'],
+ ['M6-2','预览即产物（与导出字节同源生成器）','ok','routes/packs.ts:84,91'],
+ ['M6-3','内容指纹（sha256 前 12 位）与漂移检测','ok','PackWizard.tsx:447'],
+ ['M6-4','体量与 token 估算（中文感知，超阈黄条不阻断）','ok','packages/core/src/pack/size.ts:28'],
+ ['M6-5','导出两通道（bundle JSON / 目录）与导出 / 注入历史','ok','routes/packs.ts:97-136'],
+ ['M6-6','冲突保护（diff 预览 + 强制备份 + 三选一）','ok','specs/m6-standard-pack.md FR-7.5'],
+ ['M6-7','CLI sync / diff / verify / clean（写盘唯一通道）','ok','apps/cli/src/commands/*'],
+ ['M6-8','包生命周期 update / rollback（D31 三层）','design','CLI 无 update 子命令（标记已预埋）'],
+ ['M6-9','块级合并（DRIFT 段级重写）','design','README 已知局限：整文件管理'],
+ ['M6-10','一项目多包叠加','design','P2（lock 为单包结构）'],
+ ['M6-11','双向同步（项目内改动回读比对）','design','PRD M6 · P1']]},
+{g:'M7 团队协作',rows:[
+ ['M7-1','多用户与角色（owner / member / reviewer）','design','P2；代码无实现（stage.ts:63 仅文案）'],
+ ['M7-2','变更评审流（PR 式先审后入团队标准）','design','P2'],
+ ['M7-3','团队共享库与成员使用统计','design','P2']]},
+{g:'M8 Agent 接入（bridge + panel）',rows:[
+ ['M8-1','项目上下文端点（fields 裁段 / budget 预算 / truncated 不静默截断）','ok','routes/agent.ts:101-108'],
+ ['M8-2','agent ingest 五类 kind 一律先落 pending、人工确认','ok','routes/agent.ts:78'],
+ ['M8-3','幂等冲突裁决（先到不改一字，裁决在 Web）','ok','PendingIngestList.tsx:114-158'],
+ ['M8-4','闭集外值整条 rejected（不自动扩闭集）','ok','specs/m8-agent-bridge.md'],
+ ['M8-5','MCP 只读工具面（project_context / search_assets / pack_diff）','ok','apps/cli/src/commands/mcp.ts（CLI 载体）'],
+ ['M8-6','command-run 本机台账','ok','routes/agent.ts:134']]},
+{g:'M9 开发能力 · /dev /resources',rows:[
+ ['M9-1','语言知识点站位图','ok','routes/langRoadmap.ts:165'],
+ ['M9-2','两门语言对照','ok','DevAbilityPage.tsx:53'],
+ ['M9-3','源码解读抽屉（AI 解读服务）','ok','components/dev/SourceDrawer.tsx:26'],
+ ['M9-4','学习资源清单（四维筛选 + 速成 / 精通标记）','ok','ResourcePage.tsx:22-55']]},
+{g:'成长 · /growth',rows:[
+ ['G-1','阶段向量 F0–F3 与一键越级','ok','GrowthPage.tsx:59'],
+ ['G-2','阶段自动判定（事件台账读端点 RF1-5）','design','GrowthPage.tsx:60「尚未开工」'],
+ ['G-3','毕业信号采集','design','GrowthPage.tsx:61 恒标「待采集」'],
+ ['G-4','遥测增长看板（对外公开页）','design','P2（现仅有本地飞轮卡片）']]},
+{g:'AI 能力（M10 + v0.2.3-d/e）',rows:[
+ ['AI-1','discuss 项目问答（逐段标注来源，只读）','ok','routes/extract.ts:49'],
+ ['AI-2','ask 确定性问答（七个闭集关键词，不接 LLM）','partial','仅 CLI（commands/ask.ts），Web 无入口'],
+ ['AI-3','日志提取候选（总闸 + 逐项目同意 + 成本台账 + 预算熔断）','ok','routes/extract.ts:68 · specs/v023-d'],
+ ['AI-4','AI 测试场（多模型并行试跑）','design','P3']]},
+{g:'v0.9 · 分层加载与规格面（S 批次）',rows:[
+ ['S0','m11 规格先行（spec v0.1 入库 + 探针固化）','ok','DEV-0157 · specs/m11-context-loading.md'],
+ ['S1','LoadPlan + L2 文件（RULES.md / REFS.md）+ adapter 能力位','design','D-v25-1 已裁：做、默认关、等 U10'],
+ ['S2','StageGate 阶段闸（硬拒 + 强制推进入口留痕）','design','D-v25-2 已裁：仅 spec_driven'],
+ ['S3','SpecRecord + requirement_links + 需求三面接通','design','D-v25-3 已裁可做'],
+ ['S4','FreshnessProbe + 资产↔代码锚点（三态不折叠）','design','依赖 S2 / R0 / R3'],
+ ['S5','反例来源接通（antiPractice + 主文档反例指针）','design','D-v25-4：与 S1 同批'],
+ ['U10-U14','五项验证实验（六平台读 L2 / 行为退化 / 闸拦截率 / 锚点命中 / 需求三面）','design','PRD v0.2.5 §7.2 · 全部未运行']]},
+{g:'上下文管理（CM，2026-11-03）',rows:[
+ ['CM-A1','平台「实际读入」文件清单单一出处','ok','context-management-requirements §CM-A1'],
+ ['CM-A2','注入作用域与估算清单逐文件一致','design','=FR-1 / A-1 待 owner 签收'],
+ ['CM-A3','字节 / token / 密度三读数口径','partial','=FR-2；密度分母待裁'],
+ ['CM-A4','单文件越阈指名告警（提示不阻断）','design','=R-1；m11 FR-4 已定义未实现'],
+ ['CM-A5','落盘可恢复（dry-run / 备份 / 原子写 / 并发锁）','ok','sync 用例族'],
+ ['CM-A6','四套文件状态词表语义映射表','design','=FR-3 / R-3'],
+ ['CM-A7','契约变更 A 级红线流程','ok','流程条款（人工执行）'],
+ ['CM-B1','LoadPlan = {required, referenced}','design','=m11 FR-2，同 S1'],
+ ['CM-B2','adapter 能力位三态（true / false / 未声明）','design','=m11 FR-3.1，同 S1'],
+ ['CM-B3','能力关闭时产物与今天逐字节相同（E-6）','design','=m11 FR-5.1 硬约束'],
+ ['CM-B4','L0 索引三要素 + L0↔L2 单向引用','design','=m11 FR-1.1/1.4/1.5'],
+ ['CM-B5','能力位真伪验证（U10 / U11 前不得置 true）','design','U10 阻塞'],
+ ['CM-C1','标记 / 清单 / 路径常量唯一出处，消费方零字面量','ok','context:check C-1/C-2'],
+ ['CM-C2','分层纪律机判（core / adapters / shared）','ok','context:check C-3'],
+ ['CM-C3','规格上下游闭合棘轮（只降不升）','ok','FR-4 已落地（v1.1）'],
+ ['CM-C4','漂移数字一律「复算命令 + 采样日期」','ok','docs:check FR-11'],
+ ['CM-C5','退役动作表与基线反向登记','design','=FR-5 登记态'],
+ ['CM-C6','本地与 CI 同源校验','ok','FR-6 已落地（钩子需安装 .git/hooks）'],
+ ['CM-D1','体量密度口径（归因 / 上脸 / 判级）','design','specs/context-density FR-1–6 全部未实现']]},
+{g:'治理与台账',rows:[
+ ['T-1','本机事件台账（23 类 kind，不出网，一次性清空）','ok','routes/localEvents.ts:44,78'],
+ ['T-2','匿名遥测（默认关、三类白名单、关闭零外联）','ok','routes/settings.ts:142,168'],
+ ['T-3','上下文治理面板（趋势 / 棘轮 / 合并清单）','ok','ContextGovernanceSection.tsx:203'],
+ ['T-4','docs:check / context:check / bundle:check 三道闸','ok','package.json scripts'],
+ ['T-5','CLI 体量展示（--dry-run 输出 ≈token）','design','R-2 产品决策待裁'],
+ ['T-6','整包足迹 footprint.bytes 展示','design','R-4 产品决策待裁']]},
+{g:'裁定不做（owner 裁定保留）',rows:[
+ ['S6','效能度量面（工时 / 缺陷 / 返工）','no','D-v25-5：单用户本机无分母'],
+ ['S8','团队级知识库、多项目复用与版本管理','no','D-v25-7：不改写单用户信任模型']]},
+{g:'设置与开箱 · /settings',rows:[
+ ['S-1','首启向导 ≤3 步可跳过（每步真实副作用）','ok','specs/onboarding.md'],
+ ['S-2','种子内容与重播幂等（术语 109 / 模板 7 / 提示词 21）','ok','routes/settings reseed'],
+ ['S-3','预置演示包 default@1.0.0 自动组装','ok','首启播种'],
+ ['S-4','解读服务多份配置','ok','routes/langSourceAi.ts:294,312'],
+ ['S-5','备份说明与数据目录展示','ok','SettingsSections']]}
+];
+
+/* ================= 演示数据（全部为演示样例） ================= */
+var PROMPTS=[
+{id:'p1',t:'规则遵守强化（防漂移）',st:'active',folder:'规则',tags:['通用','防漂移'],pf:['claude-code','cursor','通用'],use:'规则',vars:[],v:3,versions:[['v3','2026-11-05','收紧只读边界措辞'],['v2','2026-10-28','加入 diff 后审步骤'],['v1','2026-10-12','初稿']],content:['## 只读边界','- 受管文件以 .openvibe/pack.lock.json 为准；lock 之外的文件不在本轮任务范围。','- 出现「顺手改配置」的冲动时，先输出 diff 预览，等待确认。','## 漂移自检','- 每次写盘前对照 lock 指纹；不一致即停下报告 DRIFT，不静默重写。']},
+{id:'p2',t:'错误处理范式',st:'active',folder:'工程',tags:['通用'],pf:['通用'],use:'规则',vars:[],v:2,versions:[['v2','2026-10-30','补兑底分支'],['v1','2026-10-02','初稿']],content:['- 错误必须显式分类：参数错 422 / 状态冲突 409 / 内部错 500。','- 禁止吞错：catch 后必须至少记录并向上返回。']},
+{id:'p3',t:'安全底线（写文件与不可逆操作）',st:'active',folder:'安全',tags:['通用','红线'],pf:['claude-code','cursor','codebuddy','通用'],use:'规则',vars:[],v:2,versions:[['v2','2026-10-19','加删除二次确认'],['v1','2026-09-28','初稿']],content:['- 不可逆操作（删除 / 覆盖 / 退场）必须先展示影响范围，获得显式确认。','- 覆盖任何既有文件前先备份到 .openvibe/backup/<UTC 时间戳>/。']},
+{id:'p4',t:'提交信息规范',st:'active',folder:'工程',tags:['Git'],pf:['通用'],use:'规则',vars:[],v:1,versions:[['v1','2026-09-30','初稿']],content:['- 格式：类型: 一句话变更；正文写动机与验证方式。','- 禁止在一个提交里混入两件不相关的事。']},
+{id:'p5',t:'SQL 生成约束',st:'active',folder:'后端',tags:['数据'],pf:['cursor','通用'],use:'规则',vars:['table'],v:2,versions:[['v2','2026-10-25','加 WHERE 强制'],['v1','2026-10-08','初稿']],content:['- 只生成对 {{table}} 的语句；未知表先问，不猜列名。','- 禁止无 WHERE 的 UPDATE / DELETE。']},
+{id:'p6',t:'正则编写规范',st:'active',folder:'工程',tags:['通用'],pf:['通用'],use:'参考',vars:[],v:1,versions:[['v1','2026-09-26','初稿']],content:['- 复杂正则必须带注释与至少 2 个正例 1 个反例。']},
+{id:'p7',t:'日志与可观测性',st:'active',folder:'后端',tags:['运维'],pf:['通用'],use:'规则',vars:[],v:1,versions:[['v1','2026-10-03','初稿']],content:['- 关键路径打点：入口 / 分支 / 出口；日志不含敏感值。']},
+{id:'p8',t:'代码审查请求',st:'active',folder:'评审',tags:['通用'],pf:['claude-code','通用'],use:'参考',vars:['scope'],v:2,versions:[['v2','2026-11-01','加三步法'],['v1','2026-09-22','初稿']],content:['- 审查范围：{{scope}}；请按「正确性 → 边界 → 可读性」三步给意见。']},
+{id:'p9',t:'回归测试清单生成',st:'draft',folder:'测试',tags:['自建'],pf:['通用'],use:'参考',vars:[],v:1,versions:[['v1','2026-11-03','复盘回流草稿']],content:['- 依据 lock 与 golden 目录列出回归面；输出可勾选清单。']},
+{id:'p10',t:'README 起草框架',st:'draft',folder:'文档',tags:['自建'],pf:['通用'],use:'参考',vars:[],v:1,versions:[['v1','2026-11-04','复盘回流草稿']],content:['- 五段：是什么 / 解决什么 / 快速上手 / 边界 / 已知局限。']}
+];
+var TERMS=[
+{id:'t1',zh:'氛围编程',en:'vibe coding',py:'fenwei',alias:['vibe 编程'],def:'用自然语言与 AI 结对完成编码的开发方式。',ex:'「这段 vibe coding 的产物需要过一遍审查流。」',rel:['门禁'],src:'社区通用',tags:['核心']},
+{id:'t2',zh:'提示词',en:'prompt',py:'tishici',alias:['prompt'],def:'给模型的输入指令文本，OpenVibe 中为可版本化资产。',ex:'复制提示词时填写模板变量。',rel:['技能'],src:'M1',tags:['资产']},
+{id:'t3',zh:'技能',en:'skill',py:'jineng',alias:['SKILL'],def:'带 SKILL.md 的能力包，可扫描登记与分发。',ex:'skill get commit-lint 取回本机已有条目。',rel:['规则文件'],src:'M2',tags:['资产']},
+{id:'t4',zh:'规则文件',en:'rules file',py:'guize',alias:['rules'],def:'各 AI 助手读取的项目规则文件（CLAUDE.md 等）。',ex:'九个产物里有六个是规则文件。',rel:['规则漂移'],src:'M6',tags:['核心']},
+{id:'t5',zh:'上下文窗口',en:'context window',py:'shangxiawen',alias:['context'],def:'模型一次能读入的上下文长度上限。',ex:'体量估算提示：主文档已接近上下文窗口预算。',rel:['台账'],src:'术语种子',tags:['核心']},
+{id:'t6',zh:'规则漂移',en:'rule drift',py:'guizepiaoyi',alias:['drift'],def:'注入产物被手改后与包内容不一致的状态。',ex:'diff 报 CLAUDE.md 为 DRIFT。',rel:['规则文件'],src:'M6',tags:['状态']},
+{id:'t7',zh:'规格驱动开发',en:'spec-driven development',py:'guige',alias:['spec-driven'],def:'先定规格再实现的开发流程；OpenVibe 内置对应模板。',ex:'nebula 用 Spec 驱动流。',rel:['门禁'],src:'M5',tags:['流程']},
+{id:'t8',zh:'幻觉',en:'hallucination',py:'huanjue',alias:[],def:'模型编造不存在事实的现象。',ex:'幻觉接口名——见技巧库「AI 改了不该改的代码」篇。',rel:[],src:'术语种子',tags:['风险']},
+{id:'t9',zh:'门禁',en:'gate',py:'menjin',alias:['gate'],def:'阶段推进前必须通过的可判定前置条件。',ex:'实现→审查的闸：清单全勾 + 有评审记录。',rel:['规格驱动开发'],src:'v0.9 S2',tags:['设计稿']},
+{id:'t10',zh:'回流',en:'reflow',py:'huiliu',alias:['reflow'],def:'从复盘日志生成术语 / 提示词 / 技巧草稿的过程。',ex:'DEV-0104 生成了术语候选。',rel:[],src:'M5',tags:['流程']},
+{id:'t11',zh:'台账',en:'ledger',py:'taizhang',alias:['ledger'],def:'本机 SQLite 里只记 id 与枚举值的事件表。',ex:'台账与匿名遥测严格不同名。',rel:[],src:'v0.2.0 D29',tags:['治理']},
+{id:'t12',zh:'越级',en:'escalation',py:'yueji',alias:[],def:'从简化视图一键切到专家视图，按模块记住选择。',ex:'顶栏「专家视图」即一键越级。',rel:[],src:'v0.2.0 D28',tags:['成长']}
+];
+var SKILLS=[
+{id:'s1',name:'commit-lint',src:'本地扫描',fp:'9f86d081884c',upd:'最新',targets:['claude-code','cursor']},
+{id:'s2',name:'api-design-review',src:'手动登记',fp:'2c26b46b68ff',upd:'有更新',targets:['claude-code']},
+{id:'s3',name:'test-writer',src:'本地扫描',fp:'e3b0c44298f1',upd:'未建档',targets:[]},
+{id:'s4',name:'pr-describe',src:'GitHub',fp:'a591a6d40bf4',upd:'最新',targets:['claude-code','cursor','通用']},
+{id:'s5',name:'spec-checklist',src:'SkillHub',fp:'7f8a2b9c1d3e',upd:'检查失败',targets:[]},
+{id:'s6',name:'gate-keeper',src:'GitHub',fp:'4b1f0e8d6c2a',upd:'最新',targets:['claude-code']}
+];
+var FLOWS=[
+{id:'f1',name:'个人轻量流',kind:'内置',mode:'只读 · 可复制为自定义',n:'3 阶段 / 9 项',desc:'启动→开发→复盘',stages:[['启动',['上下文文件已注入','标准包已选定','验收标准草案']],['开发',['测试先行','受管文件零漂移','提交信息合规范','每日 DEV 日志']],['复盘',['CHECK 报告','回流候选确认']]]},
+{id:'f2',name:'Spec 驱动流',kind:'内置',mode:'只读 · 可复制为自定义',n:'7 阶段 / 14 项',desc:'需求→PRD→Spec→计划→实现→审查→复盘',stages:[['需求',['用户故事已确认','验收标准草案','边界与非目标']],['PRD',['PRD 定稿','开放问题清零']],['Spec',['数据模型定稿','接口契约冻结','边界用例清单']],['计划',['任务拆解','风险登记']],['实现',['上下文文件已注入','受管文件零漂移','测试先行']],['审查',['代码审查完成','golden 契约未触碰']],['复盘',['CHECK 报告','回流候选确认']]]},
+{id:'f3',name:'复盘流',kind:'内置',mode:'只读 · 可复制为自定义',n:'4 阶段 / 5 项',desc:'回收→归因→沉淀→跟进',stages:[['回收',['收集 DEV / CHECK 日志']],['归因',['区分根因与诱因']],['沉淀',['生成回流候选']],['跟进',['改进项登记']]]},
+{id:'f4',name:'发布闸问答',kind:'内置',mode:'问答运行',n:'4 阶段 / 8 项',desc:'发布前逐问确认',stages:[]},
+{id:'f5',name:'需求澄清到 PRD',kind:'内置',mode:'问答运行',n:'3 阶段 / 6 项',desc:'澄清→对齐→PRD',stages:[]},
+{id:'f6',name:'Bug 根因排查',kind:'内置',mode:'问答运行',n:'4 阶段 / 7 项',desc:'复现→定位→修复→验证',stages:[]},
+{id:'f7',name:'周度复盘问答',kind:'内置',mode:'问答运行',n:'3 阶段 / 4 项',desc:'每周 15 分钟',stages:[]},
+{id:'f8',name:'nebula 定制流',kind:'自定义',mode:'可裁剪',n:'6 阶段 / 12 项',desc:'复制自 Spec 驱动流，裁去 PRD 合并段',stages:[]},
+{id:'f9',name:'api-review-lite',kind:'自定义',mode:'可裁剪',n:'3 阶段 / 5 项',desc:'复制自 Spec 驱动流',stages:[]},
+{id:'f10',name:'weekly-check',kind:'自定义',mode:'可裁剪',n:'2 阶段 / 3 项',desc:'复制自周度复盘问答',stages:[]}
+];
+var PACKS=[
+{id:'pk1',name:'default',ver:'1.0.0',fp:'e3b0c44298f1',size:'21.4',tok:'5,780',desc:'预置演示包（首启自动组装）',mf:'精选提示词 8 · 术语 30 · 个人轻量流',exp:3,inj:3},
+{id:'pk2',name:'nebula-core',ver:'1.2.0',fp:'9f86d081884c',size:'38.6',tok:'9,860',desc:'nebula 项目主包（Spec 驱动流）',mf:'提示词 12 · 术语 58 · Skill 3 · Spec 驱动流',exp:5,inj:5},
+{id:'pk3',name:'web-rules',ver:'0.3.1',fp:'2c26b46b68ff',size:'27.9',tok:'7,320',desc:'前端规则合集',mf:'提示词 9 · 术语 24 · 个人轻量流',exp:2,inj:2},
+{id:'pk4',name:'retro-kit',ver:'1.0.0',fp:'a591a6d40bf4',size:'12.8',tok:'3,410',desc:'复盘工具包',mf:'技巧 5 · 术语 12 · 复盘流',exp:1,inj:1}
+];
+var FILES9=['CLAUDE.md','.cursor/rules/openvibe.mdc','AGENTS.md','CODEBUDDY.md','.trae/rules/openvibe.md','MINI.md','TERMS.md','CHECKLIST.md','.openvibe/pack.lock.json'];
+var ADAPTERS=[['claude-code','CLAUDE.md','t','true'],['cursor','.cursor/rules/openvibe.mdc','u','未声明'],['generic-agents','AGENTS.md','f','false'],['codebuddy','CODEBUDDY.md','u','未声明'],['trae','.trae/rules/openvibe.md','f','false'],['minicode','MINI.md','f','false']];
+var PROJECTS=[
+{id:'pr1',name:'nebula',st:'进行中',flow:'Spec 驱动流',pack:'nebula-core@1.2.0',path:'/Users/you/Code/nebula',stage:'实现',drift:1,health:'good',lastlog:'DEV-0106 · 昨天 21:40'},
+{id:'pr2',name:'sparrow-api',st:'进行中',flow:'个人轻量流',pack:'default@1.0.0',path:'/Users/you/Code/sparrow',stage:'开发',drift:0,health:'good',lastlog:'DEV-0041 · 3 天前'},
+{id:'pr3',name:'aurora-docs',st:'已暂停',flow:'复盘流',pack:'未注入',path:'/Users/you/Code/aurora',stage:'复盘',drift:0,health:'pause',lastlog:'CHECK-0007 · 2 周前'}
+];
+var STAGES=['需求','PRD','Spec','计划','实现','审查','复盘'];
+var STAGE_I=4;
+var CHECKS=[
+ [['用户故事已确认',true],['验收标准草案',true],['边界与非目标',false]],
+ [['PRD 定稿',true],['开放问题清零',false]],
+ [['数据模型定稿',true],['接口契约冻结',true],['边界用例清单',false]],
+ [['任务拆解',true],['风险登记',true]],
+ [['上下文文件已注入',true],['受管文件零漂移',false],['测试先行',true]],
+ [['代码审查完成',false],['golden 契约未触碰',false]],
+ [['CHECK 报告',false],['回流候选确认',false]]
+];
+var TASKS={todo:[['T-18','打包体积看板'],['T-19','文档同步脚本'],['T-20','回归探针补齐']],doing:[['T-14','注入冲突 UI'],['T-16','术语排序三态']],done:[['T-10','TERMS.md 生成器'],['T-11','lock 指纹比对'],['T-12','bundle 导出通道'],['T-13','目录导出通道']]};
+var LOGS=[
+{no:'DEV-0106',type:'DEV',ts:'2026-11-06 21:40',body:'注入冲突 UI：CONFLICT 场景按 RULES 只给两档（以包为准 / 跳过），并同屏标注 CLI 默认 overwrite。',ev:['apps/web/src/components/packs/ConflictPanel.tsx','pnpm test -- conflictpanel','18 例全过']},
+{no:'DEV-0105',type:'CHECK',ts:'2026-11-05 19:02',body:'第 40 轮检查：三道闸全绿；发现 PRD §1.1 数字过期，已按 CM-C4 补复算命令。',ev:['docs/PRD.md','pnpm docs:check && pnpm context:check','零 error']},
+{no:'DEV-0104',type:'DEV',ts:'2026-11-04 20:15',body:'术语排序三态收口：en-alpha / 拼音 / 手动。拼音走词典，无词典时回退首字母。',ev:['packages/core/src/terms/order.ts','pnpm test -- terms-order','12 例全过']},
+{no:'DEV-0103',type:'DEV',ts:'2026-11-03 22:48',body:'回流候选加入来源反链：reflow_origin 记日志号，草稿详情可跳回。',ev:['routes/devlog.ts:60','pnpm test -- reflow','7 例全过']},
+{no:'DEV-0102',type:'DEV',ts:'2026-11-02 18:33',body:'组包向导第 5 步补体量黄条：单文件越阈指名告警（提示不阻断）。',ev:['PackPreviewPane.tsx','pnpm bundle:check','入口 212kB / 最大 chunk 380kB']}
+];
+var PENDING=[
+{id:'ag1',kind:'dev_log',agent:'claude-code',ts:'2026-11-07 10:12',sum:'提议新增 DEV-0107：「导入去重改为 title+contentHash，冲突时跳过并列出重复」',st:'pending'},
+{id:'ag2',kind:'task_status',agent:'zcode',ts:'2026-11-07 09:47',sum:'提议 T-14（注入冲突 UI）→ done',st:'pending'},
+{id:'ag3',kind:'requirement',agent:'cursor',ts:'2026-11-07 09:31',sum:'提议新增需求：「包预览支持暗色打印样式」',st:'pending'},
+{id:'ag4',kind:'conflict',agent:'幂等冲突',ts:'2026-11-07 09:20',sum:'idempotency_key devlog-20261107-01 撞上两个不同载荷：a = claude-code（10:12）与 b = zcode（09:47）',st:'pending',conflict:true}
+];
+var CLIS=[
+['openvibe serve --port 8787 --open','起本地服务 + Web UI（只听 127.0.0.1，首启播种 + 组装预置包）'],
+['openvibe sync /Users/you/Code/nebula --pack nebula-core@1.2.0','注入标准包（默认先预览，覆盖前备份）'],
+['openvibe sync /Users/you/Code/nebula --dry-run','零写入预览：看会写哪九个文件'],
+['openvibe diff /Users/you/Code/nebula','产物 vs lock 比对（退出码 0 一致 / 2 漂移）'],
+['openvibe verify /Users/you/Code/nebula','三方一致性核验（包版本 / lock / 磁盘，只读）'],
+['openvibe clean /Users/you/Code/nebula --dry-run','退场计划预览：只删 lock 登记且未改动的受管文件'],
+['openvibe scan --skills','扫描本机 skill 目录并登记'],
+['openvibe skill get commit-lint','从库取回 skill（本机已有则只报路径）'],
+['openvibe discuss "nebula 的检查清单还剩什么" --project nebula','向 AI 问本项目（回答逐段标注来源）'],
+['openvibe ask "检查清单" --project nebula','确定性问答：七个闭集关键词，不接 LLM（仅 CLI）'],
+['openvibe mcp','stdio MCP 服务：project_context / search_assets / pack_diff（只读）'],
+['openvibe status /Users/you/Code/nebula','项目注入状态速览']
+];
+var GROWTHV=[['提示词库','F2','作者'],['术语库','F1','实践者'],['Skill 台账','F1','实践者'],['项目工作台','F2','作者'],['标准包','F3','定标者']];
+var SIGNALS=['团队共享（M7）或 ≥3 个项目共用同一包','术语月新增 ≥ 10 条','完整飞轮圈数 ≥ 5 圈'];
+var RESOURCES=[
+['TypeScript Handbook','文档','精通','typescriptlang.org'],
+['Rust by Example','文档','速成','doc.rust-lang.org'],
+['设计数据密集型应用','书','精通','DDIA'],
+['Web Dev for Beginners','视频','速成','Microsoft Learn'],
+['TypeScript Deep Dive','文档','精通','basarat.gitbook.io']
+];
+var PLAYBOOKS=[
+{id:'pb1',t:'AI 改了不该改的代码',scene:'让 AI 重构一个模块',prob:'它顺手改了相邻模块与配置文件',fix:'规则文件写明只读边界 + diff 预览后才执行；受管文件对照 lock 指纹',anti:'只在聊天里说「别乱改」',links:['规则遵守强化（防漂移）','规则文件 rules file']},
+{id:'pb2',t:'幻觉接口名',scene:'让 AI 调内部 SDK',prob:'编造了不存在的函数签名还写得很自信',fix:'把接口契约贴进上下文；要求给出处；不确定即标注',anti:'直接相信第一版输出',links:['幻觉 hallucination','代码审查请求']},
+{id:'pb3',t:'规则漂移被无声覆盖',scene:'升级标准包',prob:'手改过的 CLAUDE.md 被新包直接盖掉',fix:'sync 前先 diff；对 DRIFT 文件三选一；确认前必有备份',anti:'跳过预览直接 --yes',links:['规则漂移 rule drift']},
+{id:'pb4',t:'上下文超长被截断',scene:'大项目接 agent',prob:'context 端点返回的内容缺了日志段',fix:'按 fields 裁段 + 给足 budget；检查 truncated 数组，缺什么补什么',anti:'默认全量拉取不看出错',links:['上下文窗口 context window']},
+{id:'pb5',t:'提交信息风格漂移',scene:'团队多人协作',prob:'同一个仓库出现三种提交格式',fix:'提交信息规范进标准包；CHECKLIST 挂合并前检查项',anti:'靠口头约定',links:['提交信息规范']}
+];
+var NAV=[
+{g:'编译台',items:[{v:'pipeline',t:'编译台'}]},
+{g:'资产 · 沉淀',items:[{v:'library',t:'提示词库',c:'32'},{v:'terms',t:'术语库',c:'109'},{v:'skills',t:'Skill 台账',c:'9'},{v:'flows',t:'流程模板',c:'10'}]},
+{g:'编译与分发',items:[{v:'packs',t:'标准包',c:'4'},{v:'inject',t:'注入与漂移',c:'1 漂移',warn:1},{v:'loading',t:'加载协议',c:'设计稿',warn:1}]},
+{g:'回路',items:[{v:'projects',t:'项目',c:'3'},{v:'agent',t:'Agent 接入',c:'4 待确认',warn:1},{v:'playbooks',t:'技巧库',c:'12'}]},
+{g:'延伸',items:[{v:'learn',t:'学习与开发'},{v:'growth',t:'成长'},{v:'settings',t:'设置'}]}
+];
+function renderNav(){
+ var h='';
+ NAV.forEach(function(g){
+  h+='<div class="grp">'+esc(g.g)+'</div>';
+  g.items.forEach(function(it){
+   h+='<button class="nav" data-act="nav" data-view="'+it.v+'" aria-current="'+(cur===it.v)+'">'+esc(it.t)+(it.c?'<span class="cnt"'+(it.warn?' style="color:var(--warn)"':'')+'>'+esc(it.c)+'</span>':'')+'</button>';
+  });
+ });
+ $('#side').innerHTML=h;
+}
+function showView(v){
+ cur=v;
+ $$('main > section').forEach(function(s){s.hidden=s.id!=='v-'+v});
+ renderNav();
+ $('#view').scrollTop=0;
+}/* ================= 视图：提示词库 ================= */
+var libQ='',libSt='all',libPf='all',libCur='p1';
+function renderLibrary(){
+ var s=$('#v-library');
+ s.innerHTML='<div class="vh"><h1>提示词库</h1><p>双栏编辑器 + 版本历史 / diff / 回滚；{{变量}} 复制时填值；四形态导入导出。演示样例库共 '+PROMPTS.length+' 条。</p></div>'+
+  '<div class="filters" style="margin-top:14px"><input id="lib-q" placeholder="搜索标题与正文…" style="width:240px" value="'+esc(libQ)+'" />'+
+  '<span class="seg" id="lib-st"><button data-act="lib-st" data-v="all" aria-pressed="'+(libSt==='all')+'">全部</button><button data-act="lib-st" data-v="active" aria-pressed="'+(libSt==='active')+'">启用</button><button data-act="lib-st" data-v="draft" aria-pressed="'+(libSt==='draft')+'">草稿</button><button data-act="lib-st" data-v="deprecated" aria-pressed="'+(libSt==='deprecated')+'">已弃用</button></span>'+
+  '<span class="seg"><button data-act="lib-pf" data-v="all" aria-pressed="'+(libPf==='all')+'">全平台</button><button data-act="lib-pf" data-v="claude-code" aria-pressed="'+(libPf==='claude-code')+'">Claude Code</button><button data-act="lib-pf" data-v="cursor" aria-pressed="'+(libPf==='cursor')+'">Cursor</button><button data-act="lib-pf" data-v="通用" aria-pressed="'+(libPf==='通用')+'">通用</button></span>'+
+  '<button class="btn sm" data-act="lib-io">导入 / 导出</button></div>'+
+  '<div id="lib-layout"><div><div class="rows" id="lib-list"></div></div><div id="lib-detail"></div></div>';
+ libList();libDetail();
+}
+function libList(){
+ var rows=PROMPTS.filter(function(p){
+  if(libSt!=='all'&&p.st!==libSt)return false;
+  if(libPf!=='all'&&p.pf.indexOf(libPf)<0)return false;
+  if(libQ){var q=libQ.toLowerCase();if((p.t+p.content.join('')).toLowerCase().indexOf(q)<0)return false}
+  return true;
+ });
+ var h='';
+ if(!rows.length){h='<div class="empty">没有命中的提示词。<br/><button class="btn sm" data-act="lib-clear">清除筛选</button></div>'}
+ rows.forEach(function(p){
+  h+='<div class="row" aria-selected="'+(libCur===p.id)+'" data-act="lib-open" data-id="'+p.id+'" style="cursor:pointer">'+
+   '<span style="flex:1;min-width:0"><b style="color:var(--ink);font-size:13.5px">'+esc(p.t)+'</b><br/><span style="font-size:12px;color:var(--ink-faint)">'+esc(p.folder)+' · '+p.versions[0][1]+' · v'+p.v+'</span></span>'+
+   (p.vars.length?'<span class="tag mono">{{'+p.vars.join('}} {{')+'}}</span>':'')+
+   (p.st==='active'?'':chip(p.st==='draft'?'':'c-info',p.st==='draft'?'草稿':'已弃用'))+
+   '</div>';
+ });
+ $('#lib-list').innerHTML=h;
+}
+function libDetail(){
+ var p=PROMPTS.filter(function(x){return x.id===libCur})[0];if(!p)return;
+ var d=$('#lib-detail');
+ var h='<div class="card"><div class="hd"><h3>'+esc(p.t)+'</h3><div class="r">'+chip(p.st==='active'?'c-ok':'c-info',p.st==='active'?'启用':p.st==='draft'?'草稿':'已弃用')+chip('',p.use)+'</div></div><div class="bd">';
+ h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+p.pf.map(function(x){return '<span class="tag">'+esc(x)+'</span>'}).join('')+p.tags.map(function(x){return '<span class="tag">'+esc(x)+'</span>'}).join('')+'</div>';
+ h+='<div class="md">'+p.content.map(function(l){return l.indexOf('## ')?'<p>'+esc(l)+'</p>':'<h4>'+esc(l.slice(3))+'</h4>'}).join('')+'</div>';
+ h+='<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn pri sm" data-act="lib-copy" data-id="'+p.id+'">复制'+(p.vars.length?'（填变量）':'')+'</button><button class="btn sm" data-act="lib-edit">编辑</button></div>';
+ h+='<div class="sect" style="margin-top:16px"><b style="font-size:13px">版本历史（保存即快照）</b><div class="rows" style="margin-top:8px">';
+ p.versions.forEach(function(ver,i){
+  h+='<div class="row"><span class="tag mono">'+ver[0]+'</span><span style="flex:1;min-width:0;font-size:12.5px">'+esc(ver[2])+' · '+ver[1]+'</span>'+(i?'<button class="btn sm" data-act="lib-diff" data-id="'+p.id+'" data-v="'+ver[0]+'">diff</button><button class="btn sm" data-act="lib-restore" data-id="'+p.id+'" data-v="'+ver[0]+'">回滚</button>':'<span class="chip c-ok">'+I.ok+'当前</span>')+'</div>';
+ });
+ h+='</div><div id="lib-diffbox"></div></div>';
+ h+='</div></div>';
+ d.innerHTML=h;
+}
+function libDiff(id,vn){
+ var p=PROMPTS.filter(function(x){return x.id===id})[0];
+ var idx=p.versions.map(function(v){return v[0]}).indexOf(vn);
+ var oldV=p.versions[idx+1]?p.versions[idx+1][0]:null;
+ var box=$('#lib-diffbox');
+ var oldLines,newLines;
+ if(id==='p1'){oldLines=['## 只读边界','- 受管文件以 lock 为准；其他文件不在任务范围。','- 想改配置时直接改。','## 漂移自检','- 不一致时静默重写。'];newLines=p.content}
+ else{oldLines=p.content.slice();newLines=p.content.slice();newLines.push('- （v'+p.v+' 演示增量行）')}
+ var oset={};oldLines.forEach(function(l){oset[l]=1});
+ var nset={};newLines.forEach(function(l){nset[l]=1});
+ var h='<div style="margin-top:10px"><b style="font-size:12.5px">'+(oldV||'基准')+' → '+vn+'</b><div class="diff" style="margin-top:6px">';
+ oldLines.forEach(function(l){if(!nset[l])h+='<div class="del">- '+esc(l)+'</div>'});
+ newLines.forEach(function(l){if(oset[l])h+='<div class="ctx">  '+esc(l)+'</div>';else h+='<div class="add">+ '+esc(l)+'</div>'});
+ h+='</div><div class="note n-ok" style="margin-top:8px"><b>回滚 = 以旧版内容创建新版本</b>不会删除任何快照；当前内容自动成为上一版。</div></div>';
+ box.innerHTML=h;
+}
+function libCopy(id){
+ var p=PROMPTS.filter(function(x){return x.id===id})[0];
+ if(p.vars.length){
+  var h='<p style="font-size:13.5px">这条提示词带模板变量，填值后复制（演示：不写库）。</p>';
+  p.vars.forEach(function(v){h+='<label style="display:block;margin:10px 0 4px;font-size:13px">{{'+v+'}}</label><input id="vf-'+v+'" style="width:100%" placeholder="填 '+v+' 的值" />'});
+  h+='<div style="margin-top:14px"><button class="btn pri" data-act="lib-fill" data-id="'+id+'">填值并复制</button></div>';
+  openPanel('填写模板变量 · '+esc(p.t),h);
+ }else{copyText(p.content.join('\n'),'已复制「'+p.t+'」正文（演示，不写库）')}
+}
+function libFill(id){
+ var p=PROMPTS.filter(function(x){return x.id===id})[0];
+ var txt=p.content.join('\n');
+ p.vars.forEach(function(v){var el=document.getElementById('vf-'+v);txt=txt.split('{{'+v+'}}').join(el&&el.value?el.value:'<'+v+'>')});
+ copyText(txt,'已按变量填值并复制');closePanel();
+}
+/* ================= 视图：术语库 ================= */
+var termQ='',termSort='alpha',termSel={};
+function renderTerms(){
+ var s=$('#v-terms');
+ s.innerHTML='<div class="vh"><h1>术语库</h1><p>拼音与英文双序搜索；多选生成 TERMS.md（排序：英文 alpha / 拼音 / 手动）。TERMS.md 随标准包分发，不在此直接写盘。</p></div>'+
+  '<div class="filters" style="margin-top:14px"><input id="term-q" placeholder="搜中文 / 英文 / 别名…" style="width:240px" value="'+esc(termQ)+'" />'+
+  '<span class="seg"><button data-act="term-sort" data-v="alpha" aria-pressed="'+(termSort==='alpha')+'">英文 alpha</button><button data-act="term-sort" data-v="py" aria-pressed="'+(termSort==='py')+'">拼音</button><button data-act="term-sort" data-v="manual" aria-pressed="'+(termSort==='manual')+'">手动</button></span>'+
+  '<span id="term-selinfo" style="font-size:12.5px;color:var(--ink-muted)"></span><button class="btn pri sm" data-act="terms-generate">生成 TERMS.md</button></div>'+
+  '<div class="card" style="margin-top:14px;overflow-x:auto"><table class="tbl"><thead><tr><th style="width:34px"></th><th>中文名</th><th class="hide-sm">英文 / 别名</th><th class="hide-sm">定义</th><th class="hide-sm">来源</th><th>标签</th></tr></thead><tbody id="term-list"></tbody></table></div>';
+ termList();
+}
+function termList(){
+ var rows=TERMS.filter(function(t){
+  if(!termQ)return true;
+  var q=termQ.toLowerCase();
+  return (t.zh+t.en+t.py+(t.alias||[]).join('')).toLowerCase().indexOf(q)>=0;
+ });
+ rows.sort(function(a,b){
+  if(termSort==='alpha')return a.en<b.en?-1:a.en>b.en?1:0;
+  if(termSort==='py')return a.py<b.py?-1:a.py>b.py?1:0;
+  return 0;
+ });
+ var h='';
+ rows.forEach(function(t){
+  h+='<tr><td><input type="checkbox" data-act="term-sel" data-id="'+t.id+'" '+(termSel[t.id]?'checked':'')+' aria-label="选中 '+esc(t.zh)+'"/></td><td><b style="color:var(--ink)">'+esc(t.zh)+'</b></td><td class="hide-sm"><span class="mono" style="font-size:12px">'+esc(t.en)+'</span>'+(t.alias.length?' <span style="color:var(--ink-faint);font-size:11.5px">/ '+t.alias.map(esc).join(' / ')+'</span>':'')+'</td><td class="hide-sm" style="font-size:12.5px;color:var(--ink-muted)">'+esc(t.def)+'</td><td class="hide-sm"><span class="tag">'+esc(t.src)+'</span></td><td>'+t.tags.map(function(x){return '<span class="tag">'+esc(x)+'</span>'}).join('')+'</td></tr>';
+ });
+ $('#term-list').innerHTML=h||'<tr><td colspan="6"><div class="empty">没有命中的词条。</div></td></tr>';
+ termSelInfo();
+}
+function termSelInfo(){
+ var n=Object.keys(termSel).filter(function(k){return termSel[k]}).length;
+ $('#term-selinfo').textContent='已选 '+n+' 条';
+}
+function termsGenerate(){
+ var sel=TERMS.filter(function(t){return termSel[t.id]});
+ if(!sel.length){toast('先在表格里勾选要收录的词条');return}
+ if(termSort==='alpha')sel.sort(function(a,b){return a.en<b.en?-1:1});
+ if(termSort==='py')sel.sort(function(a,b){return a.py<b.py?-1:1});
+ var md='# TERMS · 术语表\n\n> 由 OpenVibe 生成 · 排序：'+(termSort==='alpha'?'英文 alpha':termSort==='py'?'拼音':'手动')+' · '+sel.length+' 条\n';
+ sel.forEach(function(t){
+  md+='\n## '+t.zh+'（'+t.en+'）\n';
+  if(t.alias.length)md+='别名：'+t.alias.join(' / ')+'\n';
+  md+='定义：'+t.def+'\n';
+  md+='示例：'+t.ex+'\n';
+  md+='来源：'+t.src+'\n';
+ });
+ openPanel('TERMS.md 预览（'+sel.length+' 条 · '+esc(termSort==='alpha'?'英文 alpha':termSort==='py'?'拼音':'手动')+'）',
+  '<pre class="code">'+esc(md)+'</pre><div class="note n-info" style="margin-top:10px"><b>预览即产物</b>生成走与导出相同的渲染器；这份文本经「标准包 → CLI sync」落到目标项目的 TERMS.md，Web 不直接写盘。</div>');
+}
+/* ================= 视图：Skill 台账 ================= */
+var skillBusy=false;
+function renderSkills(){
+ var s=$('#v-skills');
+ s.innerHTML='<div class="vh"><h1>Skill 台账</h1><p>扫描本机 skill 目录并登记；按树指纹检查更新；生态源导入。<span class="tag mono">repos/skillLibrary.ts:36「不做多平台分发」</span></p></div>'+
+  '<div class="filters" style="margin-top:14px"><button class="btn pri sm" data-act="skill-scan" id="skill-scanbtn">扫描本机 skill 目录</button><button class="btn sm" data-act="skill-remote">生态源导入…</button><span style="font-size:12.5px;color:var(--ink-muted)">演示样例库共 '+SKILLS.length+' 条</span></div>'+
+  '<div class="card" style="margin-top:14px;overflow-x:auto"><table class="tbl"><thead><tr><th>Skill</th><th class="hide-sm">来源</th><th>树指纹</th><th>更新状态</th><th class="hide-sm">已登记平台</th><th></th></tr></thead><tbody id="skill-list"></tbody></table></div>';
+ skillList();
+}
+function updChip(u){
+ if(u==='最新')return chip('c-ok','最新');
+ if(u==='有更新')return chip('c-warn','有更新');
+ if(u==='检查失败')return chip('c-danger','检查失败');
+ return chip('','未建档');
+}
+function skillList(){
+ var h='';
+ SKILLS.forEach(function(k){
+  h+='<tr><td><b style="color:var(--ink)">'+esc(k.name)+'</b></td><td class="hide-sm"><span class="tag">'+esc(k.src)+'</span></td><td class="mono" style="font-size:12px">'+k.fp+'</td><td>'+updChip(k.upd)+'</td><td class="hide-sm">'+(k.targets.length?k.targets.map(function(t){return '<span class="tag">'+esc(t)+'</span>'}).join(' '):'<span style="color:var(--ink-faint);font-size:12px">未分发</span>')+'</td><td style="white-space:nowrap"><button class="btn sm" data-act="skill-dist" data-id="'+k.id+'">分发…</button></td></tr>';
+ });
+ $('#skill-list').innerHTML=h;
+}
+function skillScan(){
+ if(skillBusy)return;skillBusy=true;
+ var btn=$('#skill-scanbtn');btn.disabled=true;
+ $('#skill-list').innerHTML='<tr><td colspan="6"><div class="skel w80"></div><div class="skel w60" style="margin-top:8px"></div><div class="skel w40" style="margin-top:8px"></div></td></tr>';
+ setTimeout(function(){
+  skillBusy=false;btn.disabled=false;skillList();
+  toast('扫描完成：新增 0 · 更新 0（演示样例库无变化）');
+ },900);
+}
+function skillDist(id){
+ var k=SKILLS.filter(function(x){return x.id===id})[0];
+ var h='<div class="note n-warn"><b>设计稿 · M2-4（未开发）</b>库内明文「不做多平台分发」（repos/skillLibrary.ts:36）。本面板为先行设计，不含可执行的写盘动作。</div>';
+ h+='<p style="font-size:13.5px;margin-top:12px">把 <b>'+esc(k.name)+'</b> 分发到目标平台（当前演示库登记：'+(k.targets.length?k.targets.join(' / '):'无')+'）：</p>';
+ h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">';
+ ['claude-code','cursor','generic-agents','codebuddy','trae','minicode'].forEach(function(a){h+='<label style="display:inline-flex;gap:6px;align-items:center;font-size:13px;border:1px solid var(--line);border-radius:999px;padding:3px 12px"><input type="checkbox" '+(k.targets.indexOf(a)>=0?'checked':'')+' disabled/>'+a+'</label>'});
+ h+='</div>';
+ h+='<div style="margin-top:14px"><span class="seg"><button aria-pressed="true">symlink</button><button aria-pressed="false">copy</button></span><span style="margin-left:10px;font-size:12.5px;color:var(--ink-muted)">同名不同指纹 → 生成变体 '+esc(k.name+'-'+k.fp.slice(0,4))+'</span></div>';
+ h+='<div class="note n-info" style="margin-top:14px"><b>为什么按钮是禁用的</b>写盘唯一通道是 CLI；此能力未实现前，界面不假装能执行。验收口径见 PRD M2 P1。</div>';
+ h+='<div style="margin-top:12px"><button class="btn pri" disabled>执行分发（未开发）</button> <button class="btn" data-act="close-overlay">关闭</button></div>';
+ openPanel('多平台分发 · '+esc(k.name),h);
+}
+/* ================= 视图：流程模板 ================= */
+var flowOpen={};
+function renderFlows(){
+ var s=$('#v-flows');
+ s.innerHTML='<div class="vh"><h1>流程模板</h1><p>七套内置模板只读，复制成自己的再裁剪；问答式模板可逐步运行。演示样例共 '+FLOWS.length+' 套（7 内置 + 3 自定义）。</p></div><div class="g2" id="flow-list" style="margin-top:14px"></div>';
+ flowList();
+}
+function flowList(){
+ var h='';
+ FLOWS.forEach(function(f){
+  h+='<div class="card"><div class="hd"><h3>'+esc(f.name)+'</h3><div class="r">'+chip(f.kind==='内置'?'c-info':'c-accent',f.kind)+'<span class="tag">'+esc(f.n)+'</span></div></div><div class="bd">'+
+   '<div style="font-size:13px;color:var(--ink-muted)">'+esc(f.desc)+'</div>'+
+   '<div style="margin-top:6px;font-size:12px;color:var(--ink-faint)">'+esc(f.mode)+'</div>';
+  if(f.stages.length){
+   h+='<div style="margin-top:10px"><button class="btn sm ghost" data-act="flow-toggle" data-id="'+f.id+'">'+(flowOpen[f.id]?'收起阶段与清单':'展开阶段与清单')+'</button>';
+   if(flowOpen[f.id]){
+    f.stages.forEach(function(st){
+     h+='<div style="margin-top:8px"><b style="font-size:13px">'+esc(st[0])+'</b><div style="font-size:12.5px;color:var(--ink-muted);margin-top:2px">'+st[1].map(esc).join(' · ')+'</div></div>';
+    });
+   }
+   h+='</div>';
+  }
+  h+='<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'+
+   (f.kind==='内置'?'<button class="btn sm" data-act="flow-copy" data-id="'+f.id+'">复制为自定义</button>':'<button class="btn sm" data-act="flow-edit">编辑</button>')+
+   '<button class="btn sm" data-act="flow-toproject" data-id="'+f.id+'">建项目</button>'+
+   (f.mode==='问答运行'?'<button class="btn sm" data-act="flow-run" data-id="'+f.id+'">问答运行</button>':'')+
+   '</div></div></div>';
+ });
+ $('#flow-list').innerHTML=h;
+}
+/* ================= 视图：标准包 + 五步向导 ================= */
+var wiz={step:1,name:'nebula-ext',flow:'f2',prompts:{p1:1,p3:1,p8:1},termN:58,skill:1,pb:2,pf:{'claude-code':1,cursor:1,'generic-agents':0,codebuddy:0,trae:0,minicode:0}};
+function wizFiles(){
+ var f=[];
+ if(wiz.pf['claude-code'])f.push('CLAUDE.md');
+ if(wiz.pf.cursor)f.push('.cursor/rules/openvibe.mdc');
+ if(wiz.pf['generic-agents'])f.push('AGENTS.md');
+ if(wiz.pf.codebuddy)f.push('CODEBUDDY.md');
+ if(wiz.pf.trae)f.push('.trae/rules/openvibe.md');
+ if(wiz.pf.minicode)f.push('MINI.md');
+ if(wiz.termN>0)f.push('TERMS.md');
+ if(wiz.flow)f.push('CHECKLIST.md');
+ f.push('.openvibe/pack.lock.json');
+ return f;
+}
+function wizSize(){
+ var per=wiz.pf,n=0;
+ ['claude-code','cursor','generic-agents','codebuddy','trae','minicode'].forEach(function(k){if(per[k])n+=3200});
+ var promptN=Object.keys(wiz.prompts).filter(function(k){return wiz.prompts[k]}).length;
+ var termsB=wiz.termN*180,mainB=n+promptN*900+wiz.skill*700+wiz.pb*600+(wiz.flow?1800:0);
+ return{main:mainB,terms:termsB,total:mainB+termsB,tok:Math.round((mainB+termsB)/3.7)};
+}
+function renderPacks(){
+ var s=$('#v-packs');
+ var h='<div class="vh"><h1>标准包</h1><p>预览即产物（与导出字节同源）；内容指纹；导出两通道；导出 / 注入历史不可变。演示样例共 '+PACKS.length+' 个包。</p></div>';
+ h+='<div class="filters" style="margin-top:14px"><button class="btn pri sm" data-act="wiz-open">新建标准包（五步向导）</button></div>';
+ h+='<div id="wiz-box" style="margin-top:14px"></div>';
+ h+='<div class="sect"><h2>包台账</h2><div class="g2">';
+ PACKS.forEach(function(p){
+  h+='<div class="card"><div class="hd"><h3>'+esc(p.name)+'@'+p.ver+'</h3><div class="r"><span class="tag mono">'+p.fp+'</span></div></div><div class="bd">'+
+   '<div style="font-size:13px;color:var(--ink-muted)">'+esc(p.desc)+'</div>'+
+   '<div style="margin-top:6px;font-size:12.5px">'+esc(p.mf)+'</div>';
+  h+='<div class="g3" style="margin-top:10px"><div class="stat" style="padding:8px 10px"><div class="k">体量</div><div class="v" style="font-size:18px">'+p.size+' kB</div><div class="m">≈'+p.tok+' tok</div></div><div class="stat" style="padding:8px 10px"><div class="k">导出</div><div class="v" style="font-size:18px">'+p.exp+'</div><div class="m">历史不可变</div></div><div class="stat" style="padding:8px 10px"><div class="k">注入</div><div class="v" style="font-size:18px">'+p.inj+'</div><div class="m">含 CLI 上报</div></div></div>';
+  h+='<div style="margin-top:10px"><button class="btn sm" data-act="pack-fp" data-id="'+p.id+'">指纹与历史</button></div>';
+  h+='</div></div>';
+ });
+ h+='</div></div>';
+ s.innerHTML=h;
+}
+function wizOpen(){
+ var b=$('#wiz-box');
+ var steps=['① 基本信息','② 流程模板','③ 资产挑选','④ 目标平台','⑤ 预览与导出'];
+ var h='<div class="card"><div class="hd"><h3>五步组包向导</h3><div class="r">';
+ steps.forEach(function(x,i){h+='<span class="tag'+(wiz.step===i+1?'" style="background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-deep)':'')+'">'+x+'</span>'});
+ h+='</div></div><div class="bd">';
+ if(wiz.step===1){
+  h+='<label style="display:block;font-size:13px;margin-bottom:4px">包名（发布后版本不可变）</label><input id="wiz-name" value="'+esc(wiz.name)+'" style="width:280px" />';
+  h+='<label style="display:block;font-size:13px;margin:12px 0 4px">版本</label><input value="0.1.0（新包）" disabled style="width:280px" />';
+ }
+ if(wiz.step===2){
+  h+='<div class="rows">';
+  FLOWS.slice(0,3).forEach(function(f){h+='<div class="row" style="cursor:pointer" data-act="wiz-flow" data-id="'+f.id+'" aria-selected="'+(wiz.flow===f.id)+'"><span style="flex:1">'+esc(f.name)+' · '+esc(f.n)+'</span><span class="tag">'+esc(f.kind)+'</span></div>'});
+  h+='</div><div style="font-size:12.5px;color:var(--ink-muted);margin-top:8px">选中的模板决定 CHECKLIST.md 的阶段与检查项；内置模板只读，这里引用不改原模板。</div>';
+ }
+ if(wiz.step===3){
+  h+='<b style="font-size:13px">精选提示词</b><div class="rows" style="margin-top:8px">';
+  PROMPTS.slice(0,6).forEach(function(p){h+='<label class="row" style="cursor:pointer"><input type="checkbox" data-act="wiz-prompt" data-id="'+p.id+'" '+(wiz.prompts[p.id]?'checked':'')+'/> <span style="flex:1">'+esc(p.t)+'</span><span class="tag">'+esc(p.folder)+'</span></label>'});
+  h+='</div>';
+  h+='<div style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap"><label style="font-size:13px">术语条数 <input id="wiz-termn" type="number" min="0" max="109" value="'+wiz.termN+'" style="width:90px;margin-left:6px"/></label><label style="font-size:13px">Skill <input id="wiz-skilln" type="number" min="0" max="9" value="'+wiz.skill+'" style="width:70px;margin-left:6px"/></label><label style="font-size:13px">技巧 <input id="wiz-pbn" type="number" min="0" max="12" value="'+wiz.pb+'" style="width:70px;margin-left:6px"/></label></div>';
+ }
+ if(wiz.step===4){
+  h+='<div class="rows">';
+  ADAPTERS.forEach(function(a){h+='<label class="row" style="cursor:pointer"><input type="checkbox" data-act="wiz-pf" data-id="'+a[0]+'" '+(wiz.pf[a[0]]?'checked':'')+'/> <span style="flex:1">'+a[0]+'</span><span class="tag mono">'+a[1]+'</span></label>'});
+  h+='</div><div style="font-size:12.5px;color:var(--ink-muted);margin-top:8px">zcode / Kimi 等经兼容矩阵读 AGENTS.md 产物；sync --target 可只写其中一部分。</div>';
+ }
+ if(wiz.step===5){
+  var sz=wizSize();
+  h+='<div class="g2"><div><b style="font-size:13px">产物文件树（预览即产物）</b><div class="rows" style="margin-top:8px">';
+  wizFiles().forEach(function(f){
+   var over=(f==='TERMS.md'&&sz.terms>8000);
+   h+='<div class="row"><span class="tag mono" style="flex:1">'+f+'</span>'+(over?chip('c-warn','单文件越阈'):'<span class="chip c-ok">'+I.ok+'就绪</span>')+'</div>';
+  });
+  h+='</div></div><div><div class="stat"><div class="k">整包体量</div><div class="v">'+(sz.total/1000).toFixed(1)+' kB</div><div class="m">≈'+sz.tok.toLocaleString()+' tok（中文感知系数，非计费口径）</div></div>';
+  if(sz.terms>8000)h+='<div class="note n-warn" style="margin-top:10px"><b>单文件越阈 · 指名告警（CM-A4 · 设计稿）</b>TERMS.md ≈'+(sz.terms/1000).toFixed(1)+' kB，超过单文件 8 kB 阈值——只亮黄条不阻断；可减词条或走 L2 分层（S1）。</div>';
+  h+='<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri sm" data-act="wiz-export" data-m="bundle">导出 bundle JSON</button><button class="btn sm" data-act="wiz-export" data-m="dir">目录导出</button><button class="btn sm" data-act="wiz-cmd">复制 sync 命令</button></div>';
+  h+='<div class="note n-ok" style="margin-top:10px"><b>预览即产物</b>本页字节 = 导出字节（同一生成器 renderPack）；指纹随导出计算并写入不可变历史。</div></div></div>';
+ }
+ h+='<div style="display:flex;gap:8px;margin-top:16px;justify-content:space-between"><button class="btn" data-act="wiz-nav" data-d="-1" '+(wiz.step===1?'disabled':'')+'>'+I.chL+'上一步</button><button class="btn pri" data-act="wiz-nav" data-d="1" '+(wiz.step===5?'disabled':'')+'>'+((wiz.step===5)?'完成（导出后关毕）':'下一步')+I.chR+'</button></div>';
+ h+='</div></div>';
+ b.innerHTML=h;
+}
+function wizSync(){
+ var el=document.getElementById('wiz-name');if(el)wiz.name=el.value.trim()||'my-pack';
+ var t=document.getElementById('wiz-termn');if(t)wiz.termN=Math.max(0,Math.min(109,+t.value||0));
+ var sk=document.getElementById('wiz-skilln');if(sk)wiz.skill=Math.max(0,Math.min(9,+sk.value||0));
+ var pb=document.getElementById('wiz-pbn');if(pb)wiz.pb=Math.max(0,Math.min(12,+pb.value||0));
+}
+function packFp(id){
+ var p=PACKS.filter(function(x){return x.id===id})[0];
+ openPanel('指纹与历史 · '+esc(p.name)+'@'+p.ver,
+  '<div class="stat" style="margin-bottom:12px"><div class="k">内容指纹（sha256 前 12 位）</div><div class="v mono" style="font-size:20px">'+p.fp+'</div><div class="m">同一输入 → 字节级相同产物；重跑 diff 判得出来</div></div>'+
+  '<b style="font-size:13px">导出历史（不可变）</b><div class="rows" style="margin-top:8px">'+
+  '<div class="row"><span class="tag mono">v'+p.ver+'</span><span style="flex:1">'+(p.exp)+' 次导出 · 最近 2026-11-05</span><span class="chip c-ok">'+I.ok+'不可变</span></div>'+
+  '<div class="row"><span class="tag mono">注入</span><span style="flex:1">'+(p.inj)+' 次 · 最近 /Users/you/Code/nebula</span><span class="tag">CLI 上报</span></div></div>'+
+  '<div class="note n-info" style="margin-top:10px"><b>注入历史从哪来</b>CLI 每次成功 sync 后向本机服务上报（POST /api/injections）；无网络监听，只进本机 SQLite。</div>');
+}
+/* ================= 视图：注入与漂移 ================= */
+var injScen='DRIFT',injChoice='保留本地';
+function renderInject(){
+ var s=$('#v-inject');
+ var files=[
+  ['CLAUDE.md','DRIFT','手改过：新增了一节团队约定'],
+  ['.cursor/rules/openvibe.mdc','IN_SYNC',''],['AGENTS.md','IN_SYNC',''],['CODEBUDDY.md','IN_SYNC',''],
+  ['.trae/rules/openvibe.md','IN_SYNC',''],['MINI.md','IN_SYNC',''],['TERMS.md','IN_SYNC',''],['CHECKLIST.md','IN_SYNC',''],
+  ['.openvibe/pack.lock.json','LOCK','台账：nebula-core@1.2.0 · '+PACKS[1].fp],
+  ['README.md','UNMANAGED','非受管文件，任何情况下不会被 clean 删除']
+ ];
+ var h='<div class="vh"><h1>注入与漂移</h1><p>nebula · /Users/you/Code/nebula · nebula-core@1.2.0 · '+PACKS[1].fp+'</p></div>';
+ h+='<div class="note n-info" style="margin-top:14px"><b>写盘边界</b>Web 只读展示项目状态，本应用不往你的项目目录写任何文件；真正落盘只有 CLI。</div>';
+ h+='<div class="sect"><h2>CLI 命令（写盘唯一通道）</h2><div class="rows">';
+ CLIS.forEach(function(c){h+='<div class="row"><span class="cmd" style="flex:1"><code>'+esc(c[0])+'</code></span><button class="btn sm" data-act="copy" data-copy="'+esc(c[0])+'">复制</button><span class="hide-sm" style="font-size:12px;color:var(--ink-faint);min-width:180px">'+esc(c[1])+'</span></div>'});
+ h+='</div></div>';
+ h+='<div class="sect"><h2>产物台账（九文件 + lock）</h2><div class="card"><table class="tbl"><thead><tr><th>文件</th><th>状态</th><th class="hide-sm">说明</th></tr></thead><tbody>';
+ files.forEach(function(f){
+  var c=f[1]==='DRIFT'?chip('c-warn','DRIFT 漂移'):f[1]==='IN_SYNC'?chip('c-ok','IN_SYNC 一致'):f[1]==='LOCK'?chip('c-info','LOCK 台账'):chip('','未纳管');
+  h+='<tr><td class="mono" style="font-size:12px">'+f[0]+'</td><td>'+c+'</td><td class="hide-sm" style="font-size:12.5px;color:var(--ink-muted)">'+esc(f[2])+'</td></tr>';
+ });
+ h+='</tbody></table></div></div>';
+ h+='<div class="sect"><h2>冲突处置（漂移 / 新增文件）</h2><div class="card"><div class="bd">'+
+  '<span class="seg" style="margin-right:12px"><button data-act="inj-scen" data-v="DRIFT" aria-pressed="'+(injScen==='DRIFT')+'">DRIFT（包曾拥有该文件）</button><button data-act="inj-scen" data-v="CONFLICT" aria-pressed="'+(injScen==='CONFLICT')+'">CONFLICT（包从未拥有）</button></span>';
+ var opts=injScen==='DRIFT'?['以包为准','保留本地','跳过']:['以包为准','跳过'];
+ h+='<div style="margin-top:12px"><span class="seg">';
+ opts.forEach(function(o){h+='<button data-act="inj-choice" data-v="'+o+'" aria-pressed="'+(injChoice===o)+'">'+o+'</button>'});
+ h+='</span></div>';
+ h+='<div id="inj-note" style="margin-top:12px"></div>';
+ h+='<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" data-act="inj-apply">应用（真实动作为复制 CLI 命令）</button><button class="btn" data-act="copy" data-copy="openvibe sync /Users/you/Code/nebula --strategy replace">复制对应 CLI 命令</button></div>';
+ h+='</div></div></div>';
+ h+='<div class="sect"><h2>一致性核验（verify 六态）与退场（clean）</h2><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">'+
+  chip('c-ok','CONSISTENT 三方一致')+chip('c-warn','PARTIAL 疑似中断')+chip('c-info','ORPHAN 有包无 lock')+chip('c-warn','DISK_DRIFT 磁盘漂移')+chip('c-warn','STALE_LOCK lock 过期')+chip('','UNMANAGED 未纳管')+'</div>'+
+  '<div style="margin-top:10px"><button class="btn sm" data-act="pack-cycle">包生命周期 update / rollback（设计稿）</button></div></div>';
+ s.innerHTML=h;injNote();
+}
+function injNote(){
+ var n=$('#inj-note');if(!n)return;
+ var txt='';
+ if(injScen==='CONFLICT'&&injChoice==='保留本地')txt='本包从未拥有该文件，「保留本地」无从成立——处置只给「以包为准 / 跳过」两档。';
+ else if(injScen==='CONFLICT')txt='本包从未拥有该文件（CONFLICT）：将以包内容写入；若目标已有同名文件，先备份到 .openvibe/backup/<UTC 时间戳>/。';
+ else if(injChoice==='以包为准')txt='将用包内容覆盖 CLAUDE.md；覆盖前自动备份原件到 .openvibe/backup/20261107T021500Z/。';
+ else if(injChoice==='保留本地')txt='保留你手改的 CLAUDE.md，本次跳过该文件；lock 仍记包版本。';
+ else txt='跳过该文件，不做任何改动。';
+ n.innerHTML='<div class="note '+(injScen==='CONFLICT'&&injChoice==='保留本地'?'n-warn':'n-ok')+'"><b>将执行什么</b>'+txt+'（演示说明，不在本页落盘）</div>';
+}
+function injApply(){
+ if(injScen==='CONFLICT'&&injChoice==='保留本地'){toast('CONFLICT 无此档：只有 以包为准 / 跳过（处置段数由数据给）');return}
+ toast('已按「'+injChoice+'」生成 CLI 预览（演示：零写入）；覆盖前会先备份到 .openvibe/backup/');
+}
+function packCycle(){
+ openPanel('包生命周期 update / rollback（D31 · 设计稿）',
+  '<div class="note n-warn"><b>设计稿 · M6-8（未开发）</b>CLI 无 update 子命令（标记已预埋）；D31 定义包三层生命周期（可用 / 停维护 / 退役）。本时间线为先行设计。</div>'+
+  '<div class="rows" style="margin-top:12px">'+
+  '<div class="row"><span class="tag mono">nebula-core@1.2.0</span><span style="flex:1">当前 · 2026-11-05</span><span class="chip c-ok">'+I.ok+'可用</span></div>'+
+  '<div class="row"><span class="tag mono">nebula-core@1.1.0</span><span style="flex:1">上一版 · 2026-10-22</span><button class="btn sm" disabled>rollback（未开发）</button></div>'+
+  '<div class="row"><span class="tag mono">nebula-core@1.0.0</span><span style="flex:1">首个版本 · 2026-09-30</span><button class="btn sm" disabled>rollback（未开发）</button></div></div>'+
+  '<div class="note n-info" style="margin-top:12px"><b>块级合并也在下一档</b>受管单位是整个产物文件；注入后你改过的段落（DRIFT）不会被自动重写——先 diff，再三选一。回滚靠 .openvibe/backup/。</div>');
+}
+/* ================= 视图：加载协议（设计稿集中地） ================= */
+var l2Tab='l0';
+function renderLoading(){
+ var s=$('#v-loading');
+ var h='<div class="vh"><h1>加载协议 <span class="chip c-warn">'+I.dash+'设计稿 · v0.9 S1</span></h1><p>分层加载：把「必读什么、引用什么」变成可回答的问题（LoadPlan = {required, referenced}）。已裁定要做（D-v25-1），等 U10 验证后默认关闭生效；本页全部为前端先行设计。</p></div>';
+ h+='<div class="sect"><h2>LoadPlan（nebula-core@1.2.0）</h2><div class="card"><div class="bd"><div class="g2">'+
+  '<div><b style="font-size:13px">required · 必读（随主文档内联）</b><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><span class="tag mono">CLAUDE.md</span><span class="tag mono">TERMS.md</span><span class="tag mono">CHECKLIST.md</span></div></div>'+
+  '<div><b style="font-size:13px">referenced · 引用（L0 索引行 → L2）</b><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap"><span class="tag mono">RULES.md · 规则段 ×4</span><span class="tag mono">REFS.md · CSV 导出 ×2</span></div></div></div>'+
+  '<div class="note n-info" style="margin-top:12px"><b>L0 索引行三要素（CM-B4）</b>指针（文件 + 锚）· 内容摘要 · 触发条件；L0↔L2 只允许单向引用，同一内容只出现一处。</div>'+
+  '</div></div></div>';
+ h+='<div class="sect"><h2>adapter 能力位（三态，CM-B2）</h2><div class="card"><table class="tbl"><thead><tr><th>adapter</th><th>主文档</th><th>能力位</th><th class="hide-sm">含义</th></tr></thead><tbody>';
+ ADAPTERS.forEach(function(a){
+  var cb='<span class="capbit '+a[2]+'">'+(a[2]==='t'?I.ok:a[2]==='u'?I.warn:I.dot)+a[3]+'</span>';
+  h+='<tr><td class="mono" style="font-size:12px">'+a[0]+'</td><td class="mono hide-sm" style="font-size:12px">'+a[1]+'</td><td>'+cb+'</td><td class="hide-sm" style="font-size:12.5px;color:var(--ink-muted)">'+(a[2]==='t'?'会读主文档指向的二级文件':a[2]==='u'?'未声明（与 false 同义，保守处理）':'不读，保持全内联')+'</td></tr>';
+ });
+ h+='</tbody></table><div class="bd" style="border-top:1px solid var(--line-hair)"><div class="note n-warn"><b>U10 未验证（CM-B5）</b>六个平台是否真的读二级文件，须探针实测；U10/U11 未跑之前能力位一律不得置 true——上表为设计示意。</div></div></div></div>';
+ h+='<div class="sect"><h2>L0 索引与 L2 文件</h2><div class="card"><div class="hd"><span class="tabbar"><button data-act="l2-tab" data-v="l0" aria-pressed="'+(l2Tab==='l0')+'">主文档 L0 索引</button><button data-act="l2-tab" data-v="rules" aria-pressed="'+(l2Tab==='rules')+'">L2 · RULES.md</button><button data-act="l2-tab" data-v="refs" aria-pressed="'+(l2Tab==='refs')+'">L2 · REFS.md</button></span><div class="r"><span class="tag mono">12.8 kB</span></div></div><div class="bd">';
+ if(l2Tab==='l0')h+='<pre class="code"># 项目规则（L0 索引）\n\n## 必读\n- 术语见 TERMS.md（随包分发）\n- 检查清单见 CHECKLIST.md\n\n## 按需加载（L2 索引行）\n- [RULES.md#sql] SQL 生成约束——写数据库语句前必读\n- [RULES.md#safety] 写文件与不可逆操作——执行删除/覆盖前必读\n- [REFS.md#csv] CSV 导出格式——实现导出功能时读\n- [REFS.md#i18n] 多语言键名约定——新增文案时读\n\n（索引行 = 指针 + 摘要 + 触发条件；同一内容只出现一处）</pre>';
+ if(l2Tab==='rules')h+='<pre class="code"># RULES.md（L2 · 按需加载）\n\n## sql\n- 只生成对已知表的语句；未知表先问，不猜列名。\n- 禁止无 WHERE 的 UPDATE / DELETE。\n\n## safety\n- 不可逆操作先展示影响范围，获得显式确认。\n- 覆盖前先备份到 .openvibe/backup/&lt;UTC 时间戳&gt;/。</pre>';
+ if(l2Tab==='refs')h+='<pre class="code"># REFS.md（L2 · 参考资料按需加载）\n\n## csv\nCSV 导出：UTF-8 + BOM；表头与列序见 CHECKLIST；\n数值列 tabular-nums；空值写空串不写 NULL 字面量。\n\n## i18n\n键名小写中划线；同义键合并；上线前跑文案扫描。</pre>';
+ h+='</div></div></div>';
+ h+='<div class="sect"><h2>体量三读数（CM-A3）</h2><div class="g3">'+
+  '<div class="stat"><div class="k">字节</div><div class="v">38,604</div><div class="m">落盘体积（多大型）</div></div>'+
+  '<div class="stat"><div class="k">≈ token</div><div class="v">9,860</div><div class="m">中文感知系数（多大窗口）</div></div>'+
+  '<div class="stat"><div class="k">密度</div><div class="v">0.31 <span style="font-size:13px">tok/字符</span></div><div class="m">'+chip('c-warn','分母待裁 · 资产条数 vs 渲染段数')+'</div></div></div>'+
+ '<div class="note n-info" style="margin-top:10px"><b>三个读数各回答一个问题</b>口径唯一可复算；密度一项等分母裁定后才能上脸（specs/context-density，全部未实现）。</div>';
+ h+='<div class="sect"><h2>单文件越阈告警（CM-A4 · 设计稿）</h2><div class="note n-warn"><b>RULES.md 12.8 kB &gt; 阈值 8 kB</b>指名告警，只提示不阻断；处置建议：减段或走 L2 分层。与组包向导第 5 步的黄条同一口径。</div></div>';
+ h+='<div class="sect"><h2>反例来源（S5 · 设计稿）</h2><div class="note n-info"><b>主文档规则块末行加反例指针</b>AI 提取候选新增 antiPractice 字段；规则块末行示意：「反例：只在聊天里说「别乱改」→ /playbooks pb1」——与 D-v25-4 同批落地。</div></div>';
+ s.innerHTML=h;
+}
+/* ================= 视图：项目（列表 + 详情） ================= */
+var projCur=null;
+function renderProjects(){
+ var s=$('#v-projects');
+ if(!projCur){
+  var h='<div class="vh"><h1>项目工作台</h1><p>项目列表 + 健康摘要（所处阶段、未完检查项、最近日志、注入状态）。</p></div><div class="rows" style="margin-top:14px">';
+  PROJECTS.forEach(function(p){
+   h+='<div class="row" style="cursor:pointer" data-act="proj-open" data-id="'+p.id+'"><span style="flex:1;min-width:0"><b style="color:var(--ink)">'+esc(p.name)+'</b> <span class="tag mono hide-sm">'+esc(p.path)+'</span><br/><span style="font-size:12px;color:var(--ink-faint)">'+esc(p.flow)+' · 当前阶段 '+esc(p.stage)+' · 最近 '+esc(p.lastlog)+'</span></span>'+
+    (p.pack==='未注入'?chip('','未注入'):(p.drift?chip('c-warn',p.drift+' 项漂移'):chip('c-ok','注入一致')))+
+    (p.st==='进行中'?chip('c-info','进行中'):chip('','已暂停'))+'</div>';
+  });
+  h+='</div>';
+  s.innerHTML=h;return;
+ }
+ var p=PROJECTS.filter(function(x){return x.id===projCur})[0];
+ var doneIdx=STAGE_I;
+ var h='<div class="vh"><div class="row"><button class="btn sm ghost" data-act="proj-back">'+I.chL+'返回列表</button></div><h1 style="margin-top:8px">'+esc(p.name)+'</h1><p>'+esc(p.flow)+' · '+esc(p.path)+' · '+(p.pack==='未注入'?'未注入标准包':'标准包 '+esc(p.pack)+' · '+PACKS[1].fp)+'</p></div>';
+ h+='<div class="sect"><h2>阶段条（Spec 驱动流）</h2><div class="stagebar">';
+ STAGES.forEach(function(st,i){h+='<button data-act="stage" data-i="'+i+'" class="'+(i<doneIdx?'done':i===doneIdx?'cur':'')+'">'+st+'</button>'});
+ h+='</div></div>';
+ var curChecks=CHECKS[STAGE_I],doneN=curChecks.filter(function(c){return c[1]}).length;
+ h+='<div class="g2 sect"><div class="card"><div class="hd"><h3>检查清单 · '+STAGES[STAGE_I]+'</h3><div class="r"><span class="tag num">'+doneN+' / '+curChecks.length+'</span></div></div><div class="bd" id="chk-list">';
+ curChecks.forEach(function(c,i){
+  h+='<label class="row" style="padding:6px 0;border-bottom:1px solid var(--line-hair)"><input type="checkbox" data-act="chk" data-i="'+i+'" '+(c[1]?'checked':'')+'/> <span style="flex:1;'+(c[1]?'color:var(--ink-faint);text-decoration:line-through':'')+'">'+esc(c[0])+'</span></label>';
+ });
+ h+='</div></div>';
+ h+='<div class="card"><div class="hd"><h3>任务看板（按钮与拖拽 / 键盘同效）</h3></div><div class="bd"><div class="kan">';
+ [['todo','待办'],['doing','进行中'],['done','已完成']].forEach(function(col){
+  var list=TASKS[col[0]];
+  h+='<div class="kcol"><h4>'+col[1]+'<span class="n">'+list.length+'</span></h4>';
+  list.forEach(function(t){
+   h+='<div class="kcard"><span class="t"><b style="font-size:12px;color:var(--ink-faint)">'+t[0]+'</b><br/>'+esc(t[1])+'</span><span class="mv">'+(col[0]!=='todo'?'<button class="btn sm" data-act="kan" data-id="'+t[0]+'" data-dir="-1" aria-label="左移" title="左移（键盘 ← 同效）">'+I.chL+'</button>':'')+(col[0]!=='done'?'<button class="btn sm" data-act="kan" data-id="'+t[0]+'" data-dir="1" aria-label="右移" title="右移（键盘 → 同效）">'+I.chR+'</button>':'')+'</span></div>';
+  });
+  h+='</div>';
+ });
+ h+='</div></div></div></div>';
+ h+='<div class="sect card"><div class="hd"><h3>阶段闸 StageGate <span class="chip c-warn">'+I.dash+'设计稿 · S2</span></h3><div class="r"><span class="tag">仅 spec_driven 模板</span></div></div><div class="bd"><div id="gate-out"></div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn pri sm" data-act="gate-run">推进到「'+STAGES[Math.min(STAGE_I+1,6)]+'」</button><button class="btn sm" disabled>强制推进（留痕入口 · 未开发）</button></div></div></div>';
+ h+='<div class="sect card"><div class="hd"><h3>开发日志（编号递增 + 验证记录）</h3><div class="r"><button class="btn pri sm" data-act="log-new">新建日志</button></div></div><div class="bd"><div class="rows" id="log-list"></div></div></div>';
+ h+='<div class="sect card"><div class="hd"><h3>规格与锚点 <span class="chip c-warn">'+I.dash+'设计稿 · S3 / S4</span></h3></div><div class="bd"><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm" data-act="spec-record">需求三面（SpecRecord）</button><button class="btn sm" data-act="anchors">资产↔代码锚点（FreshnessProbe）</button></div></div></div>';
+ s.innerHTML=h;logList();gateRender();
+}
+function logList(){
+ var h='';
+ LOGS.forEach(function(l){
+  h+='<div class="row" style="align-items:flex-start"><span class="tag mono">'+l.no+'</span>'+chip(l.type==='DEV'?'c-info':'c-accent',l.type)+'<span style="flex:1;min-width:0"><span style="font-size:13px">'+esc(l.body)+'</span><br/><span class="mono" style="font-size:11.5px;color:var(--ink-faint)">'+esc(l.ev[0])+' · '+esc(l.ev[1])+' → '+esc(l.ev[2])+' · '+l.ts+'</span></span>'+
+   '<span style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm ghost" data-act="reflow" data-no="'+l.no+'" data-k="term">生成术语候选</button><button class="btn sm ghost" data-act="reflow" data-no="'+l.no+'" data-k="prompt">生成提示词草稿</button></span></div>';
+ });
+ var el=$('#log-list');if(el)el.innerHTML=h;
+}
+function gateRender(){
+ var curChecks=CHECKS[STAGE_I];
+ var un=curChecks.filter(function(c){return !c[1]}).length;
+ var out=$('#gate-out');if(!out)return;
+ if(STAGE_I>=6){out.innerHTML='<div class="note n-ok"><b>已是最后阶段</b>复盘之后回到资产层：回流候选在下方日志区生成。</div>';return}
+ if(un){
+  out.innerHTML='<div class="note n-danger"><b>拒绝推进（可判前置不满足）</b>清单未完成 '+un+' 项：'+curChecks.filter(function(c){return !c[1]}).map(function(c){return esc(c[0])}).join('；')+'。闸的拒绝带 reason，非法推进 409 且不写任何 check_states。</div>';
+ }else{
+  out.innerHTML='<div class="note n-ok"><b>前置满足</b>当前阶段清单已全部完成；点「推进」模拟通过（真实实现将写入阶段迁移记录）。</div>';
+ }
+}
+function openLogNew(){
+ var nextNo='DEV-'+('010'+(parseInt(LOGS[0].no.slice(4),10)+1)).slice(-4);
+ openPanel('新建开发日志（模板预填）',
+  '<label style="display:block;font-size:13px;margin-bottom:4px">编号（自动递增）</label><input value="'+nextNo+'" disabled style="width:160px" class="mono"/>'+
+  '<label style="display:block;font-size:13px;margin:12px 0 4px">正文</label><textarea id="log-body" rows="3" style="width:100%"></textarea>'+
+  '<label style="display:block;font-size:13px;margin:12px 0 4px">关联文件</label><input id="log-file" style="width:100%" placeholder="apps/web/src/..." class="mono"/>'+
+  '<label style="display:block;font-size:13px;margin:12px 0 4px">验证记录</label><input id="log-cmd" style="width:100%" placeholder="pnpm test -- …" class="mono"/>'+
+  '<div style="margin-top:14px"><button class="btn pri" data-act="log-save">保存（演示：不写库）</button></div>');
+}
+function logSave(){
+ var no=document.querySelector('#panel-body input').value;
+ var body=($('#log-body').value||'（空日志）');
+ var f=($('#log-file').value||'-'),c=($('#log-cmd').value||'-');
+ var d=new Date();
+ LOGS.unshift({no:no,type:'DEV',ts:d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+' '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2),body:body,ev:[f,c,'待验证']});
+ closePanel();renderProjects();toast('已保存 '+no+'（演示：不写库）');
+}
+function specRecord(){
+ openPanel('需求三面（SpecRecord · S3 设计稿）',
+  '<div class="note n-warn"><b>设计稿 · S3（未开发）</b>requirements 现状半接线：三面零命中、status 恒 draft；S3 建关联表后需求→规格→任务正反向可查（D-v25-3 已裁可做）。</div>'+
+  '<div class="card" style="margin-top:12px"><div class="bd"><b style="font-size:13px">R-12 · 标准包导出 CSV</b> <span class="tag">status: active（不再恒 draft）</span><div class="rows" style="margin-top:10px">'+
+  '<div class="row"><span class="tag mono">spec</span><span style="flex:1">S-3「导出通道」§2 数据格式</span><span class="tag">正向</span></div>'+
+  '<div class="row"><span class="tag mono">tasks</span><span style="flex:1">T-21 导出器 · T-22 回归用例</span><span class="tag">反向可查</span></div>'+
+  '<div class="row"><span class="tag mono">tests</span><span style="flex:1">EXP-04 / EXP-05</span><span class="tag">验收映射</span></div></div></div></div>');
+}
+function anchors(){
+ openPanel('资产↔代码锚点（FreshnessProbe · S4 设计稿）',
+  '<div class="note n-warn"><b>设计稿 · S4（未开发）</b>三态不折叠：成立 / 已变 / 不可判定——「代码变了」有确定回答；无锚点 ⇒ UNDECIDABLE 而非 OK。</div>'+
+  '<div class="card" style="margin-top:12px"><table class="tbl"><thead><tr><th>资产</th><th>代码锚点</th><th>状态</th></tr></thead><tbody>'+
+  '<tr><td>SQL 生成约束</td><td class="mono" style="font-size:12px">packages/core/src/pack/render.ts</td><td>'+chip('c-warn','已变 · 2026-11-05 重构')+'</td></tr>'+
+  '<tr><td>提交信息规范</td><td class="mono" style="font-size:12px">.gitmessage（随包分发）</td><td>'+chip('c-ok','成立')+'</td></tr>'+
+  '<tr><td>正则编写规范</td><td class="mono" style="font-size:12px">（无锚点）</td><td>'+chip('c-info','不可判定 UNDECIDABLE')+'</td></tr>'+
+  '</tbody></table></div>');
+}
+/* ================= 视图：Agent 接入 ================= */
+function renderAgent(){
+ var s=$('#v-agent');
+ var h='<div class="vh"><h1>Agent 接入</h1><p>agent 帮的是回流和取上下文，不是替人做决定：能读、能写（一律先 pending）、不能删、不能自己裁决幂等冲突、不能扩充闭集。</p></div>';
+ h+='<div class="sect"><h2>待确认队列（人工确认才落业务表）</h2><div class="rows" id="ag-list"></div>';
+ h+='<div class="note n-info" style="margin-top:10px"><b>三条「不能做」</b>不能删（无 agent 通道）· 不能自己裁决幂等冲突（先到的一个字节都不改，裁决在 Web）· 不能扩充闭集（上报 tasks.status=blocked 整条 rejected，不会被顺手加进闭集）。</div></div>';
+ h+='<div class="sect"><h2>上下文端点演示（fields / budget / truncated）</h2><div class="card"><div class="bd">'+
+  '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px">'+
+  [['stages',380],['checklist',620],['tasks',940],['logs',5200],['assets',3800]].map(function(f){return '<label style="display:inline-flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" class="ctxf" value="'+f[0]+'" checked/> '+f[0]+' <span class="tag num">'+f[1]+' 字符</span></label>'}).join('')+
+  '</div><label style="font-size:13px">budget（字符预算）<input id="ctx-budget" type="number" value="6000" style="width:110px;margin-left:6px"/></label> <button class="btn sm pri" data-act="ctx-compute">计算</button>'+
+  '<div id="ctx-out" style="margin-top:12px"></div></div></div></div>';
+ h+='<div class="sect"><h2>MCP 工具面（openvibe mcp · 只读）</h2><div class="g3">'+
+  '<div class="card"><div class="bd"><b style="font-size:13px" class="mono">project_context</b><div style="font-size:12.5px;color:var(--ink-muted);margin-top:4px">全项目上下文（阶段 / 清单 / 任务 / 日志 / 漂移 / 资产）</div><div style="margin-top:8px">'+chip('c-ok','只读')+'</div></div></div>'+
+  '<div class="card"><div class="bd"><b style="font-size:13px" class="mono">search_assets</b><div style="font-size:12.5px;color:var(--ink-muted);margin-top:4px">FTS 搜索库内资产</div><div style="margin-top:8px">'+chip('c-ok','只读')+'</div></div></div>'+
+  '<div class="card"><div class="bd"><b style="font-size:13px" class="mono">pack_diff</b><div style="font-size:12.5px;color:var(--ink-muted);margin-top:4px">包内容 vs 项目产物比对</div><div style="margin-top:8px">'+chip('c-ok','只读')+'</div></div></div></div>'+
+  '<div class="note n-info" style="margin-top:10px"><b>边界</b>无网络监听；写操作不经 MCP 暴露。CLI 每次运行另记一条 cli_agent_command_run 台账。</div></div>';
+ s.innerHTML=h;agList();ctxCompute();
+}
+function agList(){
+ var h='';
+ PENDING.forEach(function(g){
+  h+='<div class="row" style="align-items:flex-start">'+
+   '<span class="tag mono">'+esc(g.kind)+'</span><span class="tag">'+esc(g.agent)+'</span>'+
+   '<span style="flex:1;min-width:0;font-size:13px">'+esc(g.sum)+'<br/><span style="font-size:11.5px;color:var(--ink-faint)" class="mono">'+g.ts+'</span></span>';
+  if(g.conflict){
+   h+='<span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label style="display:inline-flex;gap:5px;align-items:center;font-size:12.5px"><input type="radio" name="conf" value="a" checked/> 保留 a（claude-code）</label><label style="display:inline-flex;gap:5px;align-items:center;font-size:12.5px"><input type="radio" name="conf" value="b"/> 保留 b（zcode）</label>';
+   h+=(g.st==='pending'?'<button class="btn sm pri" data-act="conf-resolve">裁决</button>':'');
+   h+='</span>';
+  }
+  if(g.st==='pending'&&!g.conflict){
+   h+='<span style="display:flex;gap:6px"><button class="btn sm pri" data-act="ag-review" data-id="'+g.id+'" data-d="pub">确认 → published</button><button class="btn sm danger" data-act="ag-review" data-id="'+g.id+'" data-d="rej">拒绝</button></span>';
+  }
+  if(g.st==='published')h+='<span>'+chip('c-ok','已确认 published')+'</span>';
+  if(g.st==='rejected')h+='<span>'+chip('','已拒绝 rejected')+'</span>';
+  if(g.st==='resolved')h+='<span>'+chip('c-ok','已裁决')+'</span>';
+  h+='</div>';
+ });
+ $('#ag-list').innerHTML=h;
+}
+function agReview(id,d){
+ var g=PENDING.filter(function(x){return x.id===id})[0];
+ g.st=d==='pub'?'published':'rejected';
+ agList();
+ toast(d==='pub'?'已确认 → published：分发进业务表（一次确认 = 一次完整提交）':'已拒绝 → rejected：agent 的判断不作为事实源');
+}
+function confResolve(){
+ var g=PENDING.filter(function(x){return x.conflict})[0];
+ var v=document.querySelector('input[name=conf]:checked').value;
+ g.st='resolved';g.sum+='（裁决：保留 '+v+'，丢弃另一方载荷；键不改写先到记录）';
+ agList();toast('冲突已裁决：保留 '+v+'（服务层不提供自动策略，裁决留痕）');
+}
+function ctxCompute(){
+ var sizes={stages:380,checklist:620,tasks:940,logs:5200,assets:3800};
+ var order=['logs','assets','checklist','tasks','stages'];
+ var budget=+((document.getElementById('ctx-budget')||{}).value||6000);
+ var fields=[];$$('.ctxf').forEach(function(c){if(c.checked)fields.push(c.value)});
+ var inc=[],cut=[],sum=0;
+ order.forEach(function(k){
+  if(fields.indexOf(k)<0)return;
+  if(sum+sizes[k]<=budget){inc.push(k);sum+=sizes[k]}
+  else cut.push(k);
+ });
+ var h='<div class="rows">';
+ order.forEach(function(k){
+  if(fields.indexOf(k)<0)return;
+  var isIncut=cut.indexOf(k)>=0;
+  h+='<div class="row"><span class="tag mono">'+k+'</span><span class="tag num">'+sizes[k]+' 字符</span><span style="flex:1"></span>'+(isIncut?chip('c-warn','已裁段'):chip('c-ok','已包含'))+'</div>';
+ });
+ h+='</div>';
+ h+=cut.length?'<div class="note n-warn" style="margin-top:10px"><b>truncated（绝不静默截断）</b>按 logs → assets → checklist 顺序砍；每次砍都写进 truncated：['+cut.map(esc).join(' · ')+']。agent 不会拿到缺了什么也不知道的上下文。</div>':'<div class="note n-ok" style="margin-top:10px"><b>无截断</b>预算内全部包含；truncated 为空数组。</div>';
+ h+='<div style="font-size:12.5px;color:var(--ink-muted);margin-top:8px">fields 传非法值 → 422 并列出全部合法段名，不当作「全选」糊弄过去。</div>';
+ $('#ctx-out').innerHTML=h;
+}
+/* ================= 视图：技巧库 ================= */
+var pbQ='';
+function renderPlaybooks(){
+ var s=$('#v-playbooks');
+ s.innerHTML='<div class="vh"><h1>技巧库</h1><p>真实场景的做法与反例，关联资产可反链；导出 PLAYBOOKS.md。演示样例共 '+PLAYBOOKS.length+' 条。</p></div>'+
+  '<div class="filters" style="margin-top:14px"><input id="pb-q" placeholder="搜技巧 / 场景…" style="width:240px" value="'+esc(pbQ)+'" /><button class="btn pri sm" data-act="pb-md">导出 PLAYBOOKS.md</button></div>'+
+  '<div id="pb-list" style="margin-top:14px"></div>';
+ pbList();
+}
+function pbList(){
+ var rows=PLAYBOOKS.filter(function(p){return !pbQ||(p.t+p.scene+p.fix).toLowerCase().indexOf(pbQ.toLowerCase())>=0});
+ var h='';
+ if(!rows.length){h='<div class="empty">没有命中的技巧。<br/><button class="btn sm" data-act="pb-clear">清除筛选</button></div>'}
+ rows.forEach(function(p){
+  h+='<div class="card" style="margin-bottom:12px"><div class="hd"><h3>'+esc(p.t)+'</h3></div><div class="bd" style="font-size:13px">'+
+   '<div><span class="tag">场景</span> '+esc(p.scene)+'</div><div style="margin-top:6px"><span class="tag">问题</span> '+esc(p.prob)+'</div>'+
+   '<div style="margin-top:6px"><span class="tag">正确做法</span> '+esc(p.fix)+'</div><div style="margin-top:6px"><span class="tag">反例</span> <span style="color:var(--danger)">'+esc(p.anti)+'</span></div>'+
+   '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">'+p.links.map(function(l){return '<a href="javascript:void(0)" class="tag">'+esc(l)+' ↗</a>'}).join('')+'</div>'+
+   '</div></div>';
+ });
+ $('#pb-list').innerHTML=h;
+}
+function pbMd(){
+ var md='# PLAYBOOKS\n\n> 由 OpenVibe 生成 · '+PLAYBOOKS.length+' 条 · 演示样例\n';
+ PLAYBOOKS.forEach(function(p){
+  md+='\n## '+p.t+'\n场景：'+p.scene+'\n问题：'+p.prob+'\n正确做法：'+p.fix+'\n反例：'+p.anti+'\n关联：'+p.links.join(' / ')+'\n';
+ });
+ openPanel('PLAYBOOKS.md 预览','<pre class="code">'+esc(md)+'</pre><div class="note n-info" style="margin-top:10px"><b>预览即产物</b>与导出同一渲染器；随标准包分发或手动复制到团队仓库。</div>');
+}
+/* ================= 视图：学习与开发 ================= */
+var learnTab='map',resMode='全部',resType='全部',interpBusy=false;
+var LANGS=[['TypeScript','掌握','c-ok'],['Go','本项目用到过','c-accent'],['Rust','本项目未涉及',''],['JavaScript','本项目用到过','c-accent'],['Python','本项目未涉及','']];
+function renderLearn(){
+ var s=$('#v-learn');
+ var h='<div class="vh"><h1>学习与开发</h1><p>语言知识点站位图 ＋ 两门语言对照 ＋ 源码解读抽屉（M9）＋ 学习资源清单。</p></div>';
+ h+='<div style="margin-top:14px"><span class="tabbar"><button data-act="learn-tab" data-v="map" aria-pressed="'+(learnTab==='map')+'">站位图</button><button data-act="learn-tab" data-v="cmp" aria-pressed="'+(learnTab==='cmp')+'">两语言对照</button><button data-act="learn-tab" data-v="src" aria-pressed="'+(learnTab==='src')+'">源码解读</button><button data-act="learn-tab" data-v="res" aria-pressed="'+(learnTab==='res')+'">学习资源</button></span></div>';
+ h+='<div class="sect" id="learn-body"></div>';
+ s.innerHTML=h;learnBody();
+}
+function learnBody(){
+ var b=$('#learn-body');
+ if(learnTab==='map'){
+  var h='<div class="card"><div class="hd"><h3>语言站位图</h3></div><div class="bd"><div class="rows">';
+  LANGS.forEach(function(l){h+='<div class="row"><span style="flex:1;font-size:13.5px;color:var(--ink)">'+l[0]+'</span><span class="chip '+l[2]+'">'+(l[2]?I.dot+esc(l[1]):I.dot+esc(l[1]))+'</span></div>'});
+  h+='</div><div class="note n-info" style="margin-top:10px"><b>掌握度三态口径（只留一处）</b>文案取自 MASTERY_STATE_LABELS：本项目未涉及（中性）· 本项目用到过（强调）· 掌握（松绿）。这套推断只认得出「用过」——界面上不出现「你已掌握」。</div></div></div>';
+ }
+ if(learnTab==='cmp'){
+  var rows=[['错误处理','try / catch + 类型收窄','Result&lt;T, E&gt; 显式传播'],['包管理','pnpm workspace','cargo + crates.io'],['异步模型','事件循环 + async/await','无运行时阻塞，async/await'],['空值','null / undefined','Option&lt;T&gt; 强制处理'],['构建产物','bundle（入口 ≤300kB 闸）','二进制 + wasm']];
+  var h='<div class="card"><div class="hd"><h3>TypeScript ↔ Rust 对照</h3><div class="r"><span class="tag">模式驱动</span></div></div><table class="tbl"><thead><tr><th>模式</th><th>TypeScript</th><th>Rust</th></tr></thead><tbody>';
+  rows.forEach(function(r){h+='<tr><td><b style="color:var(--ink)">'+r[0]+'</b></td><td>'+r[1]+'</td><td>'+r[2]+'</td></tr>'});
+  h+='</tbody></table></div>';
+ }
+ if(learnTab==='src'){
+  var h='<div class="card"><div class="hd"><h3>源码解读抽屉</h3><div class="r">'+chip('c-info','解读服务：本地 Ollama · qwen2.5-coder:7b')+'</div></div><div class="bd">'+
+   '<label style="font-size:13px">选择源码片段</label><select id="src-pick" style="width:100%;margin-top:4px"><option>packages/core/src/pack/size.ts · estimateTokens</option><option>packages/core/src/inject/atomic-write.ts</option><option>apps/cli/src/commands/diff.ts</option></select>'+
+   '<pre class="code" style="margin-top:10px">export function estimateTokens(text: string): number {\n  // 中文感知系数：实测比 chars/4 更接近真机 token 数\n  const cjk = (text.match(/[\\u4e00-\\u9fff]/g) ?? []).length;\n  const rest = text.length - cjk;\n  return Math.ceil(cjk * 0.6 + rest / 4);\n}</pre>'+
+   '<div style="margin-top:10px"><button class="btn pri sm" data-act="interp" id="interp-btn">生成解读</button></div><div id="interp-out" style="margin-top:12px"></div>'+
+   '<div class="note n-info" style="margin-top:10px"><b>出网边界（M10）</b>解读服务逐份配置；每次真出网记成本台账（无正文容器）；总闸关闭时入口不渲染。</div></div></div>';
+ }
+ if(learnTab==='res'){
+  var h='<div class="filters" style="margin-bottom:12px"><span class="seg">'+['全部','速成','精通'].map(function(m){return '<button data-act="res-mode" data-v="'+m+'" aria-pressed="'+(resMode===m)+'">'+m+'</button>'}).join('')+'</span><span class="seg">'+['全部','文档','视频','书'].map(function(m){return '<button data-act="res-type" data-v="'+m+'" aria-pressed="'+(resType===m)+'">'+m+'</button>'}).join('')+'</span></div><div class="rows">';
+  RESOURCES.forEach(function(r){
+   if(resMode!=='全部'&&r[1]!==resMode)return;
+   if(resType!=='全部'&&r[2]!==resType)return;
+   h+='<div class="row"><span style="flex:1;font-size:13.5px;color:var(--ink)">'+esc(r[0])+'</span><span class="tag">'+esc(r[2])+'</span><span class="tag mono">'+esc(r[3])+'</span></div>';
+  });
+  h+='</div>';
+ }
+ b.innerHTML=h;
+}
+function doInterp(){
+ if(interpBusy)return;interpBusy=true;
+ var btn=$('#interp-btn');btn.disabled=true;
+ $('#interp-out').innerHTML='<div class="skel w80"></div><div class="skel w60" style="margin-top:8px"></div><div class="skel w40" style="margin-top:8px"></div>';
+ setTimeout(function(){
+  interpBusy=false;btn.disabled=false;
+  $('#interp-out').innerHTML='<div class="note n-ok"><b>解读（演示样例）</b>系数来自真机采样：中文按 0.6 token/字符、其余按 1/4；这就是组包第 5 步「≈tok」不是 chars/4 的原因。返回值向上取整保证不低估。</div><div style="margin-top:8px;font-size:12px;color:var(--ink-faint)">本次调用已计入成本台账：本地 Ollama · 0 元 · 212 tok（演示样例）</div>';
+ },1000);
+}
+/* ================= 视图：成长 ================= */
+function renderGrowth(){
+ var s=$('#v-growth');
+ var h='<div class="vh"><h1>成长与统计</h1><p>阶段向量（F0–F3，定义在「用户 × 资产类型 × 任务」上）＋ 越级 ＋ 毕业信号。信号未采集时如实标「待采集」。</p></div>';
+ h+='<div class="sect"><h2>阶段向量</h2><div class="card"><table class="tbl"><thead><tr><th>模块</th><th>阶段</th><th class="hide-sm">含义</th></tr></thead><tbody>';
+ GROWTHV.forEach(function(g){
+  var tone=g[1]==='F0'?'':g[1]==='F1'?'c-info':g[1]==='F2'?'c-accent':'c-ok';
+  var mean=g[1]==='F0'?'别让我选，告诉我做什么':g[1]==='F1'?'我想知道为什么':g[1]==='F2'?'我要写自己的标准':'我要定义别人怎么判断';
+  h+='<tr><td><b style="color:var(--ink)">'+g[0]+'</b></td><td><span class="chip '+tone+'">'+I.dot+g[1]+' '+g[2]+'</span></td><td class="hide-sm" style="font-size:12.5px;color:var(--ink-muted)">'+mean+'</td></tr>';
+ });
+ h+='</tbody></table><div class="bd" style="border-top:1px solid var(--line-hair)"><button class="btn pri sm" data-act="expert">一键越级：切到专家视图</button> <span style="font-size:12.5px;color:var(--ink-muted)">按模块记住选择（红线 4）</span></div></div></div>';
+ h+='<div class="g2 sect"><div class="card"><div class="hd"><h3>阶段自动判定 '+chip('c-warn','设计稿 · RF1-5')+'</h3></div><div class="bd"><div class="note n-warn"><b>尚未开工</b>判定将基于本机事件台账的读端点（23 类 kind）；当前阶段为手动维护。这一条在覆盖地图是 ○ 设计稿。</div></div></div>';
+ h+='<div class="card"><div class="hd"><h3>毕业信号 '+chip('c-warn','设计稿 · 采集能力')+'</h3></div><div class="bd"><div class="rows">';
+ SIGNALS.forEach(function(x){h+='<div class="row"><span style="flex:1;font-size:13px">'+esc(x)+'</span>'+chip('','待采集')+'</div>'});
+ h+='</div><div style="font-size:12.5px;color:var(--ink-muted);margin-top:8px">展示区块已在产品里，采集能力未开发——演示里不假装已采集。</div></div></div></div>';
+ h+='<div class="note n-info sect"><b>遥测增长看板（G-4 · 设计稿）</b>对外公开页属 P2；当前产品只有本地飞轮卡片（本 Demo 首屏那块）——不把计划中的页画成已上线。</div>';
+ s.innerHTML=h;
+}
+/* ================= 视图：设置 ================= */
+var telOn=false,telState='未询问';
+var LEDGER=[['pack_injected','nebula-core@1.2.0 → nebula','2026-11-05 21:44'],['flow_template_used','Spec 驱动流','2026-11-05 21:30'],['asset_created','term · 门禁','2026-11-05 20:58'],['cli_agent_command_run','openvibe diff','2026-11-05 19:02'],['check_state_toggled','实现 · 测试先行','2026-11-05 18:47']];
+var COSTS=[['日志提取','qwen2.5-coder:7b · 本地','0 元 · 1,842 tok','2026-11-04'],['源码解读','qwen2.5-coder:7b · 本地','0 元 · 212 tok','2026-11-05'],['项目问答','云端 · gpt-4o-mini','0.0031 USD · 1,204 tok','2026-11-03']];
+function renderSettings(){
+ var s=$('#v-settings');
+ var h='<div class="vh"><h1>设置</h1><p>服务信息 · 种子重播 · 匿名统计 · 本机事件台账 · 解读服务 · 成本台账 · 上下文治理 · 可读性自检 · 备份与向导。</p></div>';
+ h+='<div class="g2 sect"><div class="card"><div class="hd"><h3>服务信息</h3></div><div class="bd" style="font-size:13px">'+
+  '<div>版本 <span class="tag mono">v0.2.3</span> · 端口 <span class="tag mono">8787</span> · 只听 127.0.0.1</div><div style="margin-top:6px">数据目录 <span class="tag mono">~/.openvibe/</span> · SQLite（WAL）</div><div style="margin-top:6px;color:var(--ink-muted)">关掉进程就什么都不再动。</div></div></div>';
+ h+='<div class="card"><div class="hd"><h3>种子内容</h3></div><div class="bd"><div style="font-size:13px">术语 <b class="num">109</b> · 流程模板 <b class="num">7</b> · 精选提示词 <b class="num">21</b>（种子口径，门槛以 pnpm seed:check 现跑为准）</div><div style="margin-top:10px"><button class="btn sm" data-act="reseed">重播种子并重建预置包</button></div></div></div></div>';
+ h+='<div class="g2 sect"><div class="card"><div class="hd"><h3>匿名统计（遥测）</h3><div class="r">'+chip(telOn?'c-ok':'',telOn?'已开启':'默认关')+'</div></div><div class="bd"><div class="rows">'+
+  '<div class="row"><span style="flex:1;font-size:13px">状态</span>'+chip('',telState)+(telOn?'':'<span class="chip c-info">关闭即零外联（连入队都不发生）</span>')+'</div>'+
+  '<div class="row"><span style="flex:1;font-size:13px">发送测试事件</span><button class="btn sm" data-act="tel-test" '+(telOn?'':'disabled')+'>发送</button></div></div>'+
+  '<div style="margin-top:10px"><button class="btn sm" data-act="tel-toggle">'+(telOn?'关闭匿名统计':'开启匿名统计')+'</button></div>'+
+  '<div class="note n-info" style="margin-top:10px"><b>白名单只有三类</b>pack_injected / flow_template_used / project_active；固定五段，不含路径、文件名、资产内容与机器标识。关闭后连定时器都不创建。</div></div></div>';
+ h+='<div class="card"><div class="hd"><h3>本机事件台账</h3><div class="r"><button class="btn danger sm" data-act="ledger-clear">清空…</button></div></div><div class="bd">'+
+  '<div style="font-size:12.5px;color:var(--ink-muted)">无条件记录、不出网、与匿名遥测严格不同名；只记 id 与枚举值，payload 键走白名单。23 类 kind 以 LOCAL_EVENT_KINDS 为准。最近 5 条：</div><div class="rows" style="margin-top:8px">';
+ LEDGER.forEach(function(l){h+='<div class="row"><span class="tag mono">'+esc(l[0])+'</span><span style="flex:1;font-size:12.5px" class="mono">'+esc(l[1])+'</span><span class="hide-sm" style="font-size:11.5px;color:var(--ink-faint)" class="mono">'+l[2]+'</span></div>'});
+ h+='</div><div style="font-size:12px;color:var(--ink-faint);margin-top:8px">清空是一次性全删、不可撤销：DELETE FROM local_events，只动台账表，资产与项目不受影响。</div></div></div></div>';
+ h+='<div class="g2 sect"><div class="card"><div class="hd"><h3>解读服务配置</h3></div><div class="bd"><div class="rows">'+
+  '<div class="row"><span style="flex:1;font-size:13px">本地 Ollama（主用）</span><span class="tag mono">qwen2.5-coder:7b</span>'+chip('c-ok','启用')+'</div>'+
+  '<div class="row"><span style="flex:1;font-size:13px">云端（备用）</span><span class="tag mono">sk-****…9f2a</span>'+chip('','备用')+'</div></div>'+
+  '<div style="font-size:12.5px;color:var(--ink-muted);margin-top:8px">敏感 Key 本地 AES-256-GCM 加密，不外传；逐项目同意，可「记住本项目」（清除即删行）。</div></div></div>';
+ h+='<div class="card"><div class="hd"><h3>成本台账（AI 与出网）</h3></div><div class="bd"><table class="tbl"><thead><tr><th>能力</th><th class="hide-sm">模型</th><th>计费</th></tr></thead><tbody>';
+ COSTS.forEach(function(c){h+='<tr><td>'+esc(c[0])+'</td><td class="hide-sm mono" style="font-size:11.5px">'+esc(c[1])+'</td><td class="mono" style="font-size:11.5px">'+esc(c[2])+'</td></tr>'});
+ h+='</tbody></table><div style="font-size:12px;color:var(--ink-faint);margin-top:6px">9 键白名单：模型 / 端点 / 指纹 / 计数 / 结果——无正文容器。</div></div></div></div>';
+ h+='<div class="sect card"><div class="hd"><h3>上下文治理面板（pnpm context:check 的可见面）</h3></div><div class="bd"><div style="font-size:12.5px;color:var(--ink-muted);margin-bottom:8px">最近 5 轮主文档 token：</div><div class="spark">'+
+  [[62,'21k'],[55,'19k'],[64,'22k'],[52,'18k'],[48,'17k']].map(function(b){return '<i style="--h:'+b[0]+'"><span>'+b[1]+'</span></i>'}).join('')+'</div>'+
+  '<div class="rows" style="margin-top:14px">'+
+  '<div class="row"><span class="tag mono">棘轮</span><span style="flex:1;font-size:12.5px">docs:check 八判据 · 0 error；context:check C-1…C-6 全绿（2026-11-07 现跑）</span>'+chip('c-ok','未超上界')+'</div>'+
+  '<div class="row"><span class="tag mono">合并清单</span><span style="flex:1;font-size:12.5px">候选 2：README 五段框架 ×2 · 提交信息规范 ×2</span><button class="btn sm" data-act="merges">查看</button></div></div></div></div>';
+ h+='<div class="g2 sect"><div class="card"><div class="hd"><h3>可读性自检（运行时实算）</h3><div class="r"><span class="tag" id="contrast-theme">暖纸</span></div></div><div class="bd"><table class="tbl" id="contrast-tbl"><thead><tr><th>文字</th><th>底</th><th>实测</th><th>判定</th></tr></thead><tbody></tbody></table></div></div>';
+ h+='<div class="card"><div class="hd"><h3>备份与开箱向导</h3></div><div class="bd"><div class="note n-ok" style="margin-top:0"><b>备份 = 停服务后整目录复制</b>迁移机器同理。项目侧只有 .openvibe/（lock + 覆盖前备份），可随项目提交 git。</div>'+
+  '<div style="margin-top:12px"><button class="btn sm" data-act="ob-replay">重新显示开箱向导</button></div></div></div></div>';
+ s.innerHTML=h;renderContrast();
+}
+function hex2rgb(h){h=h.trim();if(h[0]==='#')h=h.slice(1);if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]}
+function lum(c){var v=hex2rgb(c).map(function(x){x/=255;return x<=0.03928?x/12.92:Math.pow((x+0.055)/1.055,2.4)});return 0.2126*v[0]+0.7152*v[1]+0.0722*v[2]}
+function ratio(a,b){var l1=lum(a),l2=lum(b);var hi=Math.max(l1,l2),lo=Math.min(l1,l2);return (hi+0.05)/(lo+0.05)}
+function renderContrast(){
+ var tb=$('#contrast-tbl tbody');if(!tb)return;
+ var cs=getComputedStyle(document.documentElement);
+ function v(n){return cs.getPropertyValue(n).trim()}
+ var pairs=[['ink','panel','浓墨 on 纸面'],['ink-body','panel-2','正文 on 次级容器'],['ink-muted','panel-2','次要 on 次级容器'],['ink-faint','panel-sunk','元信息 on 下沉容器'],['accent','canvas','强调 on 画布'],['on-accent','accent','实心按钮字']];
+ var h='';
+ pairs.forEach(function(p){
+  var r=ratio(v('--'+p[0]),v('--'+p[1]));
+  var g=r>=7?'AAA':r>=4.5?'AA':'&lt;AA';
+  h+='<tr><td class="mono" style="font-size:11.5px">--'+p[0]+'</td><td class="mono hide-sm" style="font-size:11.5px">--'+p[1]+'</td><td><span class="num">'+r.toFixed(2)+'</span> : 1</td><td>'+(r>=4.5?'<span class="chip c-ok">'+I.ok+g+'</span>':'<span class="chip c-danger">'+I.err+g+'</span>')+'</td></tr>';
+ });
+ tb.innerHTML=h;
+ var th=$('#contrast-theme');if(th)th.textContent=document.documentElement.getAttribute('data-theme')==='dark'?'暖夜':'暖纸';
+}
+var obStepN=1;
+function openOnboard(){
+ obStepN=1;
+ openPanel('开箱向导（可跳过 · 每步有真实副作用）','');
+ obDraw();
+}
+function obDraw(){
+  var step=obStepN;
+  var h='<div style="display:flex;gap:6px;margin-bottom:14px">';
+  for(var i=1;i<=3;i++)h+='<span class="tag'+(i===step?'" style="background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-deep)':'')+'">第 '+i+' 步 / 共 3 步</span>';
+  h+='</div>';
+  if(step===1)h+='<div class="note n-ok"><b>你的资产库已就位</b>精选提示词 21 条 / 术语 109 条 / 流程模板 7 套已播进本地库（真实计数来自接口，不是示意图）。</div>';
+  if(step===2)h+='<div class="note n-info"><b>看一个标准包长什么样</b>预置包 default@1.0.0 已自动组装；文件树渲染自预览接口，与导出字节同源。</div>';
+  if(step===3)h+='<div class="cmd"><code>npx openvibe-cli sync /Users/you/Code/sandbox --pack default</code><button class="btn sm" data-act="copy" data-copy="npx openvibe-cli sync /Users/you/Code/sandbox --pack default">复制</button></div><div id="ob-wait" style="margin-top:12px"><div class="note n-warn"><b>未检测到 lock</b>页面轮询 .openvibe/pack.lock.json；在终端运行上面的命令后点「我已运行」。</div><button class="btn sm" data-act="ob-done">我已在终端运行</button></div>';
+  h+='<div style="display:flex;gap:8px;margin-top:16px;justify-content:space-between"><button class="btn ghost" data-act="ob-skip">跳过</button><span style="display:flex;gap:8px">'+(step>1?'<button class="btn" data-act="ob-prev">上一步</button>':'')+(step<3?'<button class="btn pri" data-act="ob-next">下一步</button>':'')+'</span></div>';
+  $('#panel-body').innerHTML=h;
+}
+function obStep(d){obStepN=Math.max(1,Math.min(3,obStepN+d));obDraw()}
+function obDone(){
+ var w=$('#ob-wait');
+ w.innerHTML='<div class="skel w80"></div><div class="skel w60" style="margin-top:8px"></div>';
+ setTimeout(function(){
+  w.innerHTML='<div class="note n-ok"><b>检测到 .openvibe/pack.lock.json</b>注入成功。下一步：改一下 CLAUDE.md，再跑 openvibe diff 体验漂移检测（退出码 0 一致 / 2 漂移）。</div>';
+ },1200);
+}
+/* ================= 覆盖地图 ================= */
+function openMap(){
+ var legend=['ok','partial','design','no'].map(function(s){return sChip(s)}).join(' ');
+ var h='<div class="note n-info"><b>图例</b>'+legend+'<br/><span style="font-size:12px;color:var(--ink-muted)">口径 2026-11-07 代码盘点（92 行）；三份 Demo 共用同一份数据；复算沿 tmp/research/impl-status.md 的证据路径。</span></div>';
+ MAP.forEach(function(g){
+  h+='<div class="sect"><h2 style="font-size:13.5px">'+esc(g.g)+' <span class="tag num">'+g.rows.length+'</span></h2><div class="rows">';
+  g.rows.forEach(function(r){
+   h+='<div class="row"><span style="width:86px;flex:none">'+sChip(r[2])+'</span><span class="tag mono" style="width:92px;flex:none">'+esc(r[0])+'</span><span style="flex:1;min-width:0;font-size:12.5px">'+esc(r[1])+'</span><span class="hide-sm mono" style="font-size:11px;color:var(--ink-faint)">'+esc(r[3])+'</span></div>';
+  });
+  h+='</div></div>';
+ });
+ openPanel('覆盖地图 · 全功能与需求（92 项）',h);
+}
+/* ================= 事件委托 ================= */
+document.addEventListener('click',function(e){
+ var t=e.target.closest('[data-act]');
+ if(!t)return;
+ var act=t.getAttribute('data-act');
+ if(act==='nav'){showView(t.getAttribute('data-view'))}
+ else if(act==='theme'){var th=document.documentElement.getAttribute('data-theme');setTheme(th==='dark'?'paper':'dark')}
+ else if(act==='expert'){toggleExpert()}
+ else if(act==='map'){openMap()}
+ else if(act==='close-overlay'){closePanel()}
+ else if(act==='copy'){copyText(t.getAttribute('data-copy'))}
+ else if(act==='why-view'){whyView()}
+ else if(act==='intent'){intentCompile()}
+ else if(act==='lib-st'){libSt=t.getAttribute('data-v');renderLibrary()}
+ else if(act==='lib-pf'){libPf=t.getAttribute('data-v');renderLibrary()}
+ else if(act==='lib-clear'){libQ='';libSt='all';libPf='all';renderLibrary()}
+ else if(act==='lib-open'){libCur=t.getAttribute('data-id');libList();libDetail()}
+ else if(act==='lib-copy'){libCopy(t.getAttribute('data-id'))}
+ else if(act==='lib-fill'){libFill(t.getAttribute('data-id'))}
+ else if(act==='lib-diff'){libDiff(t.getAttribute('data-id'),t.getAttribute('data-v'))}
+ else if(act==='lib-restore'){toast('已回滚到 '+t.getAttribute('data-v')+'：以旧版内容创建新版本（演示不写库）')}
+ else if(act==='lib-edit'){toast('编辑器为受控演示：真实实现是双栏 CodeMirror 实时预览')}
+ else if(act==='lib-io'){openPanel('导入 / 导出','<div class="note n-info"><b>四形态</b>JSON / Markdown / .cursorrules 与规则文件反向导入；按 title+contentHash 去重。导出走同一渲染器，字节与包产物同源。</div>')}
+ else if(act==='term-sort'){termSort=t.getAttribute('data-v');renderTerms()}
+ else if(act==='terms-generate'){termsGenerate()}
+ else if(act==='skill-scan'){skillScan()}
+ else if(act==='skill-dist'){skillDist(t.getAttribute('data-id'))}
+ else if(act==='skill-remote'){openPanel('生态源导入','<div class="note n-info"><b>GitHub / SkillHub</b>检索 → 预览 → 导入登记；同名同指纹自动去重，不同指纹生成变体。</div><div class="rows" style="margin-top:10px">'+['commit-lint（GitHub · 412 星）','api-design-review（SkillHub）','repo-janitor（GitHub · 98 星）'].map(function(x){return '<div class="row"><span style="flex:1" class="mono" style="font-size:12px">'+esc(x)+'</span><button class="btn sm" data-act="skill-import">导入</button></div>'}).join('')+'</div>')}
+ else if(act==='skill-import'){toast('已导入登记（演示：不写库）');closePanel()}
+ else if(act==='flow-toggle'){var fid=t.getAttribute('data-id');flowOpen[fid]=!flowOpen[fid];flowList()}
+ else if(act==='flow-copy'){toast('已复制为自定义模板（内置只读，副本可裁剪）')}
+ else if(act==='flow-edit'){toast('自定义模板编辑：阶段与检查项可裁剪（演示）')}
+ else if(act==='flow-toproject'){showView('projects');toast('已带入模板「'+(FLOWS.filter(function(f){return f.id===t.getAttribute('data-id')})[0]||{}).name+'」（演示）')}
+ else if(act==='flow-run'){openPanel('问答运行（发布闸问答 · 演示）','<div class="note n-info"><b>第 1 问 / 共 8</b>这次发布是否包含 schema 变更？</div><textarea rows="2" style="width:100%;margin-top:8px" placeholder="你的回答"></textarea><div style="margin-top:10px"><button class="btn pri sm" data-act="ob-finish">提交并继续（演示）</button></div>')}
+ else if(act==='ob-finish'){closePanel();toast('问答运行：已记录回答并生成下一步问题（演示）')}
+ else if(act==='wiz-open'){wizOpen()}
+ else if(act==='wiz-nav'){wizSync();var d=+t.getAttribute('data-d');wiz.step=Math.max(1,Math.min(5,wiz.step+d));wizOpen()}
+ else if(act==='wiz-flow'){wiz.flow=t.getAttribute('data-id');wizOpen()}
+ else if(act==='wiz-export'){toast(t.getAttribute('data-m')==='bundle'?'bundle JSON 已生成（演示：不下载不落盘）':'目录导出到 ~/.openvibe/packs/'+wiz.name+'@0.1.0/（演示：不落盘）')}
+ else if(act==='wiz-cmd'){copyText('npx openvibe-cli sync <你的目录> --pack '+wiz.name+'@0.1.0','已复制 sync 命令')}
+ else if(act==='pack-fp'){packFp(t.getAttribute('data-id'))}
+ else if(act==='inj-scen'){injScen=t.getAttribute('data-v');if(injScen==='CONFLICT'&&injChoice==='保留本地')injChoice='以包为准';renderInject()}
+ else if(act==='inj-choice'){injChoice=t.getAttribute('data-v');injNote();$$('[data-act=inj-choice]').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-v')===injChoice)})}
+ else if(act==='inj-apply'){injApply()}
+ else if(act==='pack-cycle'){packCycle()}
+ else if(act==='l2-tab'){l2Tab=t.getAttribute('data-v');renderLoading()}
+ else if(act==='proj-open'){projCur=t.getAttribute('data-id');renderProjects()}
+ else if(act==='proj-back'){projCur=null;renderProjects()}
+ else if(act==='stage'){STAGE_I=+t.getAttribute('data-i');renderProjects()}
+ else if(act==='kan'){var id=t.getAttribute('data-id'),dir=+t.getAttribute('data-dir');kanMove(id,dir)}
+ else if(act==='log-new'){openLogNew()}
+ else if(act==='log-save'){logSave()}
+ else if(act==='reflow'){toast('已生成'+(t.getAttribute('data-k')==='term'?'术语候选':'提示词草稿')+'（draft）· 来源反链 '+t.getAttribute('data-no')+'（演示：待确认才入库）')}
+ else if(act==='gate-run'){gateRun()}
+ else if(act==='spec-record'){specRecord()}
+ else if(act==='anchors'){anchors()}
+ else if(act==='ag-review'){agReview(t.getAttribute('data-id'),t.getAttribute('data-d'))}
+ else if(act==='conf-resolve'){confResolve()}
+ else if(act==='ctx-compute'){ctxCompute()}
+ else if(act==='pb-md'){pbMd()}
+ else if(act==='pb-clear'){pbQ='';renderPlaybooks()}
+ else if(act==='learn-tab'){learnTab=t.getAttribute('data-v');renderLearn()}
+ else if(act==='interp'){doInterp()}
+ else if(act==='res-mode'){resMode=t.getAttribute('data-v');learnBody()}
+ else if(act==='res-type'){resType=t.getAttribute('data-v');learnBody()}
+ else if(act==='reseed'){toast('种子重播完成：幂等——用户改过的 3 条已跳过并说明（演示）')}
+ else if(act==='tel-toggle'){telOn=!telOn;telState=telOn?'已开启':'未询问';renderSettings();toast(telOn?'匿名统计已开启：三类白名单事件进入队列':'已关闭：连入队都不发生，零外联')}
+ else if(act==='tel-test'){toast('测试事件已入队（演示：不外联）')}
+ else if(act==='ledger-clear'){openPanel('清空本机事件台账','<div class="note n-danger"><b>一次性全删，不可撤销</b>DELETE FROM local_events：只动台账这张表；资产、标准包、项目本身都不受影响，但「用了多久、做了多少」的统计归零重新记，也没有回收站。</div><div style="margin-top:14px;display:flex;gap:8px"><button class="btn danger" data-act="ledger-clear-yes">确认清空</button><button class="btn" data-act="close-overlay">取消</button></div>')}
+ else if(act==='ledger-clear-yes'){closePanel();toast('台账已清空（演示：不写库）')}
+ else if(act==='merges'){openPanel('合并清单','<div class="rows"><div class="row"><span style="flex:1;font-size:13px">README 起草框架 ← 复盘回流 ×2</span><button class="btn sm" data-act="merge-do">合并</button></div><div class="row"><span style="flex:1;font-size:13px">提交信息规范 ← 种子 ×1 + 回流 ×1</span><button class="btn sm" data-act="merge-do">合并</button></div></div><div class="note n-info" style="margin-top:10px"><b>合并是人工决定</b>系统只列出重复候选；棘轮只降不升，消除一条自动提示下调基线。</div>')}
+ else if(act==='merge-do'){toast('已合并（演示：重复项收敛为一条）')}
+ else if(act==='ob-replay'){openOnboard()}
+ else if(act==='ob-next'){obStep(1)}
+ else if(act==='ob-prev'){obStep(-1)}
+ else if(act==='ob-skip'){closePanel();toast('已跳过：向导可随时在设置页重播')}
+ else if(act==='ob-done'){obDone()}
+});
+document.addEventListener('change',function(e){
+ var t=e.target;
+ if(!t.matches||!t.matches('[data-act],.ctxf'))return;
+ var act=t.getAttribute('data-act');
+ if(act==='chk'){CHECKS[STAGE_I][+t.getAttribute('data-i')][1]=t.checked;renderProjects()}
+ else if(act==='term-sel'){termSel[t.getAttribute('data-id')]=t.checked;termSelInfo()}
+ else if(act==='wiz-prompt'){wiz.prompts[t.getAttribute('data-id')]=t.checked?1:0}
+ else if(act==='wiz-pf'){wiz.pf[t.getAttribute('data-id')]=t.checked?1:0;wizOpen()}
+ else if(t.classList.contains('ctxf')){ctxCompute()}
+});
+document.addEventListener('input',function(e){
+ var t=e.target;
+ if(t.id==='lib-q'){libQ=t.value;libList()}
+ else if(t.id==='term-q'){termQ=t.value;termList()}
+ else if(t.id==='pb-q'){pbQ=t.value;pbList()}
+});
+document.addEventListener('keydown',function(e){
+ if(e.key==='Escape'){if(!$('#overlay').hidden)closePanel();return}
+ var k=e.target.closest?e.target.closest('.kcard'):null;
+ if(k&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){
+  var b=k.querySelector(e.key==='ArrowLeft'?'[data-dir="-1"]':'[data-dir="1"]');
+  if(b){b.click();e.preventDefault()}
+ }
+});
+function kanMove(id,dir){
+ var cols=['todo','doing','done'];
+ var from=-1,fi=-1,title='';
+ for(var i=0;i<cols.length;i++){
+  for(var j=0;j<TASKS[cols[i]].length;j++){
+   if(TASKS[cols[i]][j][0]===id){from=i;fi=j;title=TASKS[cols[i]][j][1];break}
+  }
+  if(from>=0)break;
+ }
+ if(from<0)return;
+ var to=Math.max(0,Math.min(2,from+dir));
+ if(to===from){toast('已是最'+(from===0?'左':from===2?'右':'侧')+'列');return}
+ TASKS[cols[from]].splice(fi,1);
+ TASKS[cols[to]].push([id,title]);
+ renderProjects();
+ toast('「'+id+'」已移到'+(to===0?'待办':to===1?'进行中':'已完成')+'（按钮与拖拽 / 键盘同效）');
+}
+function gateRun(){
+ var curChecks=CHECKS[STAGE_I];
+ var un=curChecks.filter(function(c){return !c[1]}).length;
+ if(un){toast('拒绝推进：清单未完成 '+un+' 项（可判前置，非法推进 409）');return}
+ if(STAGE_I>=6){toast('已是最后阶段');return}
+ STAGE_I++;renderProjects();toast('已推进到「'+STAGES[STAGE_I]+'」（演示）');
+}
+function toggleExpert(){
+ var on=document.body.classList.toggle('expert');
+ var b=$('#btn-expert');b.setAttribute('aria-pressed',on);
+ toast(on?'已越级：专家视图（按模块记住选择）':'已回到简化视图（「查看全部」仍可达）');
+}
+function setTheme(t){
+ document.documentElement.setAttribute('data-theme',t);
+ var b=$('#btn-theme');b.setAttribute('aria-pressed',t==='dark');
+ b.innerHTML=(t==='dark'?'暖纸':'暖夜');
+ renderContrast();
+}
+/* ================= C 复用：团队协作（设计稿 · M7 全量） ================= */
+var MEMBERS=[
+['duke（你）','owner','全部权限 · 遥测与出网裁定','本地'],
+['lin','member','提交变更进评审队列','已邀请'],
+['zhao','reviewer','审核提示词 / 术语变更','已加入']
+];
+var REVIEWS=[
+{id:'rv1',kind:'提示词变更',item:'规则遵守强化（防漂移） v3 → v4',by:'lin',st:'待审',sum:'收紧只读边界措辞；新增 diff 后审步骤'},
+{id:'rv2',kind:'术语变更',item:'门禁 gate · 补充验收要点',by:'zhao',st:'已合入',sum:'补「硬拒 + 强制推进入口留痕」一句'}
+];
+var SHAREDSTATS=[
+['共享库','提示词 32 · 术语 109 · 技巧 12（演示样例）'],
+['本月被引用最多','规则遵守强化（防漂移）· 14 次'],
+['团队共用同一包的项目','2 / 3（毕业信号 · 待采集）']
+];
+/* ================= 视图：团队协作（设计稿） ================= */
+function renderTeam(){
+ var s=$('#v-team');
+ var h='<div class="vh"><h1>团队协作 <span class="chip c-warn">'+I.dash+'设计稿 · M7（P2，未开发）</span></h1><p>多用户与角色、PR 式变更评审、团队共享库。代码零实现（成长页文案是唯一出处）；本页为先行设计，不含可执行动作。</p></div>';
+ h+='<div class="sect"><h2>成员台账</h2><div class="card"><table class="tbl"><thead><tr><th>成员</th><th>角色</th><th class="hide-sm">权限说明</th><th>状态</th></tr></thead><tbody>';
+ MEMBERS.forEach(function(m){
+  h+='<tr><td><b style="color:var(--ink)">'+esc(m[0])+'</b></td><td>'+chip(m[1]==='owner'?'c-accent':m[1]==='reviewer'?'c-info':'',m[1])+'</td><td class="hide-sm" style="font-size:12.5px;color:var(--ink-muted)">'+esc(m[2])+'</td><td>'+(m[3]==='已邀请'?chip('c-warn','已邀请'):chip('c-ok','已加入'))+'</td></tr>';
+ });
+ h+='</tbody></table><div class="bd" style="border-top:1px solid var(--line-hair)"><button class="btn sm" disabled>邀请成员（未开发）</button></div></div></div>';
+ h+='<div class="sect"><h2>变更评审队列（PR 式：先审后入团队标准）</h2><div class="rows">';
+ REVIEWS.forEach(function(r){
+  h+='<div class="row">'+chip('c-info',r.kind)+'<span style="flex:1;min-width:0"><b style="font-size:13px;color:var(--ink)">'+esc(r.item)+'</b><br/><span style="font-size:12px;color:var(--ink-muted)">'+esc(r.sum)+' · 提交人 '+esc(r.by)+'</span></span>'+(r.st==='待审'?'<button class="btn sm pri" data-act="rv-ok" data-id="'+r.id+'">通过并合入</button><button class="btn sm danger" data-act="rv-no" data-id="'+r.id+'">退回</button>':chip('c-ok',r.st))+'</div>';
+ });
+ h+='</div><div class="note n-info" style="margin-top:10px"><b>评审不是审批流</b>单用户本机没有分母与审批者；团队权限、审批流、LLM 密钥托管在 P2/P3 计划内（README 已知局限）。</div></div>';
+ h+='<div class="sect"><h2>共享库统计</h2><div class="rows">';
+ SHAREDSTATS.forEach(function(x){h+='<div class="row"><span style="width:150px;flex:none;font-size:12.5px;color:var(--ink-faint)">'+esc(x[0])+'</span><span style="flex:1;font-size:13px">'+esc(x[1])+'</span></div>'});
+ h+='</div></div>';
+ h+='<div class="note n-danger sect"><b>裁定不做的一侧（D-v25-7）</b>S8「团队级知识库、多项目复用与版本管理」已裁定永久不做——不改写「单用户本机」信任模型。本页设计不越过这条线：只做共享与评审的界面位，不引入云端账号体系。</div>';
+ s.innerHTML=h;
+}
+/* ================= 注入扩展（三个设计稿面板） ================= */
+function renderInjectPlus(){
+ var s=$('#v-inject');if(!s.innerHTML)return;
+ var h='<div class="sect"><h2>一项目多包叠加（设计稿）</h2><div class="note n-warn"><b>lock 是单包结构</b>一个目录同时只由一个标准包托管，换包即整包替换；叠加属 P2，须先改 pack.lock.json 契约（A 级，schemaVersion+1）。</div>'+
+  '<div class="rows" style="margin-top:10px"><div class="row"><span class="tag mono">nebula-core@1.2.0</span><span style="flex:1;font-size:12.5px">当前托管包（唯一）</span>'+chip('c-ok','生效')+'</div>'+
+  '<div class="row"><span class="tag mono">retro-kit@1.0.0</span><span style="flex:1;font-size:12.5px">若叠加：技巧与复盘流并入，规则文件仍单源</span>'+chip('c-warn','叠加位（未实现）')+'</div></div></div>';
+ h+='<div class="sect"><h2>双向同步（设计稿）</h2><div class="card"><div class="bd"><span class="seg"><button aria-pressed="true">以本地为准</button><button aria-pressed="false">以标准包为准</button></span>'+
+  '<div class="note n-info" style="margin-top:10px"><b>项目内改动回读比对（PRD M6 · P1）</b>方向二选一；比对单位是整个产物文件（无块级合并）。当前实现止步于 diff 报告，回写未开发。</div></div></div></div>';
+ h+='<div class="sect"><h2>块级合并（设计稿）</h2><div class="note n-warn"><b>受管单位 = 整个文件</b>DRIFT 的段落不会被自动重写；块级合并是「下一档要做的事」。示意：CLAUDE.md 第 3 段（团队约定，本地新增）保留，其余段以包为准——该语义未实现，此处仅说明边界。</div></div>';
+ s.innerHTML+=h;
+}
+/* ================= 视图：团队评审的小事件委托 ================= */
+document.addEventListener('click',function(e){
+ var t=e.target.closest('[data-act="rv-ok"],[data-act="rv-no"]');
+ if(!t)return;
+ var r=REVIEWS.filter(function(x){return x.id===t.getAttribute('data-id')})[0];
+ r.st=t.getAttribute('data-act')==='rv-ok'?'已合入':'已退回';
+ renderTeam();
+ toast(t.getAttribute('data-act')==='rv-ok'?'已合入团队标准（演示：不写库）':'已退回提交人（演示）');
+});
+/* ================= C 专属：导航（成长视角） ================= */
+/* openvibe-nav: growth-view
+   本份原型的 NAV 锚点；docs:check 的原型对照面按它定位，不靠「最后一次 var NAV=」的次序
+   （原型里另有一份 demo-B 的五组 NAV，见文件前段） */
+var NAV=[
+{g:'飞轮全景',items:[{v:'home',t:'飞轮全景'}]},
+{g:'跟随 · F0',items:[{v:'guide',t:'今日下一步'},{v:'projects',t:'项目工作台',c:'3'}]},
+{g:'实践 · F1',items:[{v:'terms',t:'术语库',c:'109'},{v:'playbooks',t:'技巧库',c:'12'},{v:'learn',t:'学习与开发'},{v:'agent',t:'Agent 接入',c:'4 待确认',warn:1}]},
+{g:'作者 · F2',items:[{v:'library',t:'提示词库',c:'32'},{v:'skills',t:'Skill 台账',c:'9'},{v:'flows',t:'流程模板',c:'10'},{v:'packs',t:'标准包',c:'4'}]},
+{g:'定标 · F3',items:[{v:'inject',t:'注入与漂移',c:'1 漂移',warn:1},{v:'loading',t:'加载协议',c:'设计稿',warn:1},{v:'team',t:'团队协作',c:'设计稿',warn:1},{v:'growth',t:'成长与判定'}]},
+{g:'系统',items:[{v:'settings',t:'设置'}]}
+];
+/* ================= 视图：飞轮全景（首屏） ================= */
+function renderHome(){
+ var s=$('#v-home');
+ var h='<div class="vh"><h1>飞轮全景</h1><p>北极星指标是「标准化飞轮完整走完的圈数」：沉淀资产 → 组装标准包 → 注入项目 → 按流程使用 → 复盘回流。点环上任一步直达对应工作区。</p></div>';
+ h+='<div class="sect card"><div class="bd flyring">'+
+  '<svg class="ring" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="var(--panel-sunk)" stroke-width="9"/>'+
+  '<circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="9" stroke-linecap="round" stroke-dasharray="151 251" transform="rotate(-90 50 50)"/>'+
+  '<text class="big" x="50" y="46" text-anchor="middle">3</text><text class="lbl" x="50" y="62" text-anchor="middle">完整圈数</text></svg>';
+ h+='<div style="flex:1;min-width:260px"><b style="font-size:13px">五步环（点步直达）</b><div class="rows" style="margin-top:8px">';
+ [['① 沉淀资产','提示词 32 · 术语 109 · 技巧 12 · Skill 9','library'],
+  ['② 组装标准包','4 个包 · 最近 nebula-core@1.2.0','packs'],
+  ['③ 注入项目','11 次 · 覆盖前必备份','inject'],
+  ['④ 按流程使用','3 个项目 · 阶段 / 清单 / 看板 / 日志','projects'],
+  ['⑤ 复盘回流','7 条候选 · 全部带来源反链','agent']].forEach(function(p){
+  h+='<div class="row" style="cursor:pointer" data-act="nav" data-view="'+p[2]+'"><span style="width:96px;flex:none;font-size:13px;color:var(--ink)">'+p[0]+'</span><span style="flex:1;font-size:12.5px;color:var(--ink-muted)">'+esc(p[1])+'</span><span style="color:var(--accent)">'+I.chR+'</span></div>';
+ });
+ h+='</div></div></div></div>';
+ h+='<div class="sect"><h2>圈数台账（飞轮怎么算一圈）</h2><div class="card"><table class="tbl"><thead><tr><th class="num">圈</th><th>项目</th><th class="hide-sm">口径（同项目去重）</th><th>达成日</th></tr></thead><tbody>'+[
+  ['1','nebula','有导出包 → 有注入记录 → ≥1 条回流资产','2026-10-18'],
+  ['2','sparrow','default@1.0.0 注入 + CHECK 回流 2 条','2026-10-29'],
+  ['3','nebula','nebula-core@1.2.0 注入 + 术语「门禁」回流','2026-11-05']
+ ].map(function(r){return '<tr><td class="num"><b>'+r[0]+'</b></td><td>'+esc(r[1])+'</td><td class="hide-sm" style="font-size:12.5px;color:var(--ink-muted)">'+esc(r[2])+'</td><td class="num">'+r[3]+'</td></tr>'}).join('')+'</tbody></table></div></div>';
+ h+='<div class="sect"><h2>阶段向量（F0–F3，按模块）</h2><div class="g5">';
+ GROWTHV.forEach(function(g){
+  var tone=g[1]==='F0'?'':g[1]==='F1'?'c-info':g[1]==='F2'?'c-accent':'c-ok';
+  h+='<div class="stat"><div class="k">'+g[0]+'</div><div class="v" style="font-size:20px">'+g[1]+'</div><div class="m"><span class="chip '+tone+'">'+I.dot+g[2]+'</span></div></div>';
+ });
+ h+='</div><div style="margin-top:10px"><button class="btn sm" data-act="nav" data-view="growth">看判定口径与毕业信号</button></div></div>';
+ h+='<div class="sect"><h2>你的下一步（按 F 阶段排序）</h2><div class="rows">';
+ [['F0','处置 nebula / CLAUDE.md 漂移','阶段闸卡在 实现→审查','inject'],
+  ['F0','确认 agent 的 DEV-0107 提议','不确认不落业务表','agent'],
+  ['F1','确认 3 条复盘回流候选','飞轮第 ⑤ 步的入口','projects'],
+  ['F2','组一版 nebula-ext 标准包','五步向导 · 预览即产物','packs'],
+  ['F3','盯住 U10 验证实验','S1 分层加载的前置','loading']].forEach(function(r){
+  h+='<div class="row"><span class="chip '+(r[0]==='F0'?'c-info':r[0]==='F1'?'c-accent':'c-ok')+'">'+I.dot+r[0]+'</span><span style="flex:1;font-size:13px">'+esc(r[1])+'</span><span class="hide-sm" style="font-size:12px;color:var(--ink-muted)">'+esc(r[2])+'</span><button class="btn sm" data-act="nav" data-view="'+r[3]+'">去</button></div>';
+ });
+ h+='</div></div>';
+ s.innerHTML=h;
+}
+/* ================= 视图：今日下一步（F0 引导 · 渐进披露的正面） ================= */
+function renderGuide(){
+ var s=$('#v-guide');
+ var h='<div class="vh"><h1>今日下一步</h1><p>F0 跟随者视角：「别让我选，告诉我做什么」。每一步都解释为什么；「查看全部」永远可达（红线 1、3）。</p><div class="row"><button class="why" data-act="why-view">这套引导的边界是什么？</button></div></div>';
+ var steps=[
+  ['1','处置 CLAUDE.md 漂移','nebula 的阶段闸卡在「实现 → 审查」，原因是「受管文件零漂移」未达成。三选一处置即可解锁。','inject','diff','5 分钟'],
+  ['2','确认 agent 提议（4 条）','agent 的判断不作为事实源：确认才落业务表，含 1 条幂等冲突需要你裁决保留谁的键。','agent','agent','3 分钟'],
+  ['3','确认复盘回流候选（3 条）','这是飞轮第 ⑤ 步：确认后术语 / 提示词草稿入库并带来源反链，下次组包自动更优。','projects','reflow','5 分钟'],
+  ['4','勾完「实现」阶段清单','当前 2/3；勾满后阶段闸放行（可判前置，不是感觉）。','projects','checklist','随做随勾']
+ ];
+ h+='<div class="g2" style="margin-top:14px">';
+ steps.forEach(function(x){
+  h+='<div class="card"><div class="hd"><h3>'+x[0]+'. '+esc(x[1])+'</h3><div class="r"><span class="tag">'+esc(x[5])+'</span></div></div><div class="bd">'+
+   '<div class="note n-info" style="margin-top:0"><b>为什么</b>'+esc(x[2])+'</div>'+
+   '<div style="margin-top:10px"><button class="btn pri sm" data-act="nav" data-view="'+x[3]+'">去处理</button> <span class="tag mono hide-sm">'+esc(x[4])+'</span></div></div></div>';
+ });
+ h+='</div>';
+ h+='<div class="note n-warn sect"><b>引导不等于替你决定</b>五条红线在此的落法：永不隐藏数据（查看全部按钮在每页）、永不隐藏错误（漂移 / 冲突 / 失败在台账墙常驻）、阶段可见可解释（每步带「为什么」）、一键越级（顶栏专家视图）、升级不打断（本页是卡片不是模态框）。</div>';
+ s.innerHTML=h;
+}
+function whyView(){
+ openPanel('为什么你现在看到这个视图？',
+  '<div class="note n-info"><b>渐进披露五条红线（v0.2.0 D28）</b>① 永不隐藏数据——「查看全部」永远一键可达；② 永不隐藏错误——漂移、冲突、失败在任何阶段都看得见；③ 阶段可见且可解释——就是本条说明；④ 一键越级——顶栏「专家视图」，按模块记住；⑤ 升级不打断——提示是一次性卡片，不是模态框。</div>'+
+  '<p style="font-size:13.5px;color:var(--ink-muted)">你当前在「编译台视角」：信息架构按「意图 → 编译 → 分发 → 回路」组织。同一套功能在另外两份 Demo（台账视角 / 成长视角）里有不同组织方式——三个视角覆盖完全相同的功能面。</p>');
+}
+/* ================= 启动（C） ================= */
+(function(){var orig=renderInject;renderInject=function(){orig();renderInjectPlus()};})();
+renderHome();renderGuide();renderLibrary();renderTerms();renderSkills();renderPlaybooks();renderFlows();renderProjects();renderPacks();renderInject();renderLoading();renderAgent();renderTeam();renderLearn();renderGrowth();renderSettings();
+renderNav();showView('home');
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+{
+  "note": "C-5（上下游未回指）的棘轮基线：上界只降不升。c5UpperBound 必须等于 c5Items 的条数与 c5History 末项的 value；上调/下调都必须往 c5History 追加一条（含日期与理由）。判据口径见 docs/specs/context-governance.md §7 与 scripts/context-check.ts 的 checkC5Ratchet。",
+  "c5UpperBound": 22,
+  "c5Items": [
+    "adapter-fixtures.md → m6-standard-pack.md",
+    "context-density.md → service-layer.md",
+    "context-governance.md → context-density.md",
+    "context-governance.md → m11-context-loading.md",
+    "context-governance.md → service-layer.md",
+    "context-management.md → context-density.md",
+    "context-management.md → m11-context-loading.md",
+    "context-management.md → m6-cli-injection.md",
+    "context-management.md → m6-standard-pack.md",
+    "growth-path.md → m1-prompt-library.md",
+    "growth-path.md → m2-skill-registry.md",
+    "growth-path.md → m3-glossary.md",
+    "growth-path.md → m4-playbook.md",
+    "growth-path.md → onboarding.md",
+    "m11-context-loading.md → adapter-fixtures.md",
+    "m11-context-loading.md → context-density.md",
+    "m11-context-loading.md → m6-standard-pack.md",
+    "m3-glossary.md → theme.md",
+    "m8-agent-panel.md → theme.md",
+    "m9-dev-language-roadmap.md → growth-path.md",
+    "m9-dev-language-roadmap.md → m3-terms-learning.md",
+    "output-validation.md → entry-budget.md"
+  ],
+  "c5History": [
+    {
+      "at": "2026-11-05",
+      "value": 23,
+      "reason": "棘轮首次建基线：23 条历史单向登记（采样自 2026-11-05 的 pnpm context:check；回指修复不在本轮，先钉住不恶化）"
+    },
+    {
+      "at": "2026-11-07",
+      "value": 22,
+      "reason": "C-7 引用形态修复后 C-5 计数下降：23 → 22。机制：`m6-standard-pack.md` 的头部补上了对 `m11-context-loading.md` 的上游行回指，该对从「未回指」名单消失。上界随计数下调（只降不升），条目集合同步刷新。"
+    }
+  ]
+}

@@ -7,12 +7,12 @@
     "platform": "darwin"
   },
   "script_sha256": "0960b565fc715e57366c059b6688f058ed1a0a891457dfd8bef1774f46b75d7e",
-  "classification": "observed_defect",
+  "classification": "characterization_failed",
   "summary": {
     "groups": 4,
-    "observed_defect_groups": 4,
-    "assertions": 56,
-    "failed_assertions": 0
+    "observed_defect_groups": 2,
+    "assertions": 41,
+    "failed_assertions": 2
   },
   "safety": {
     "fetch_attempts": 0,
@@ -185,48 +185,15 @@
             "entry_numbers": [],
             "all_rows_match_payload": true
           },
-          "first_error": null,
-          "after_first": {
-            "status": "published",
-            "business_rows": 0,
-            "entry_numbers": [],
-            "all_rows_match_payload": true
-          },
-          "after_retry": {
-            "status": "published",
-            "business_rows": 0,
-            "entry_numbers": [],
-            "all_rows_match_payload": true
-          }
-        },
-        "update_abort": {
-          "initial": {
-            "status": "pending",
-            "business_rows": 0,
-            "entry_numbers": [],
-            "all_rows_match_payload": true
-          },
-          "before_publish": {
-            "status": "pending",
-            "business_rows": 0,
-            "entry_numbers": [],
-            "all_rows_match_payload": true
-          },
           "first_error": {
-            "name": "SqliteError",
-            "code": "SQLITE_CONSTRAINT_TRIGGER",
-            "injected_status_failure": true
+            "name": "AppError",
+            "code": "INVALID_TRANSITION",
+            "injected_status_failure": false
           },
           "after_first": {
-            "status": "pending",
-            "business_rows": 1,
-            "entry_numbers": [1],
-            "all_rows_match_payload": true
-          },
-          "after_retry": {
-            "status": "published",
-            "business_rows": 2,
-            "entry_numbers": [1, 2],
+            "status": "rejected",
+            "business_rows": 0,
+            "entry_numbers": [],
             "all_rows_match_payload": true
           }
         }
@@ -294,72 +261,17 @@
         },
         {
           "name": "reject_first: first error identity",
-          "actual": [null, false],
+          "actual": ["INVALID_TRANSITION", false],
           "expected": [null, false],
-          "passed": true
-        },
-        {
-          "name": "reject_first: first state and business rows",
-          "actual": ["published", 0],
-          "expected": ["published", 0],
-          "passed": true
-        },
-        {
-          "name": "reject_first: retry state and row count",
-          "actual": ["published", 0, true],
-          "expected": ["published", 0, true],
-          "passed": true
-        },
-        {
-          "name": "reject_first: allocated entry numbers",
-          "actual": [],
-          "expected": [],
-          "passed": true
-        },
-        {
-          "name": "update_abort: fixture accepted",
-          "actual": 1,
-          "expected": 1,
-          "passed": true
-        },
-        {
-          "name": "update_abort: initial state",
-          "actual": ["pending", 0],
-          "expected": ["pending", 0],
-          "passed": true
-        },
-        {
-          "name": "update_abort: controlled precondition",
-          "actual": ["pending", 0],
-          "expected": ["pending", 0],
-          "passed": true
-        },
-        {
-          "name": "update_abort: first error identity",
-          "actual": ["SQLITE_CONSTRAINT_TRIGGER", true],
-          "expected": ["SQLITE_CONSTRAINT_TRIGGER", true],
-          "passed": true
-        },
-        {
-          "name": "update_abort: first state and business rows",
-          "actual": ["pending", 1],
-          "expected": ["pending", 1],
-          "passed": true
-        },
-        {
-          "name": "update_abort: retry state and row count",
-          "actual": ["published", 2, true],
-          "expected": ["published", 2, true],
-          "passed": true
-        },
-        {
-          "name": "update_abort: allocated entry numbers",
-          "actual": [1, 2],
-          "expected": [1, 2],
-          "passed": true
+          "passed": false
         }
       ],
-      "classification": "observed_defect"
+      "classification": "characterization_failed",
+      "error": {
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "injected_status_failure": false
+      }
     },
     {
       "id": "C_provider",
@@ -634,21 +546,10 @@
           "same_file_bytes": true,
           "lexical_inside": true,
           "real_target_outside": true,
-          "failure": null,
-          "line_count": 1,
-          "returned_sha256": "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
-          "marker_matches": true,
-          "lexical_escape_failure": "out_of_project"
-        },
-        "directory_symlink": {
-          "fixture_bytes": 38,
-          "same_file_bytes": true,
-          "lexical_inside": true,
-          "real_target_outside": true,
-          "failure": null,
-          "line_count": 1,
-          "returned_sha256": "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
-          "marker_matches": true,
+          "failure": "out_of_project",
+          "line_count": 0,
+          "returned_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "marker_matches": false,
           "lexical_escape_failure": "out_of_project"
         }
       },
@@ -702,10 +603,10 @@
         {
           "name": "file_symlink: snippet returned exact synthetic line",
           "actual": [
-            null,
-            1,
-            "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
-            true
+            "out_of_project",
+            0,
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            false
           ],
           "expected": [
             null,
@@ -713,50 +614,15 @@
             "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
             true
           ],
-          "passed": true
-        },
-        {
-          "name": "file_symlink: literal traversal blocked",
-          "actual": [null, "out_of_project"],
-          "expected": [null, "out_of_project"],
-          "passed": true
-        },
-        {
-          "name": "directory_symlink: same bytes and lexical boundary",
-          "actual": [true, true],
-          "expected": [true, true],
-          "passed": true
-        },
-        {
-          "name": "directory_symlink: realpath boundary",
-          "actual": true,
-          "expected": true,
-          "passed": true
-        },
-        {
-          "name": "directory_symlink: snippet returned exact synthetic line",
-          "actual": [
-            null,
-            1,
-            "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
-            true
-          ],
-          "expected": [
-            null,
-            1,
-            "00d4e74c61607cb4c7b2c14ba55faf6acfc42a57c5c28f5eca56df21c5fd21a7",
-            true
-          ],
-          "passed": true
-        },
-        {
-          "name": "directory_symlink: literal traversal blocked",
-          "actual": [null, "out_of_project"],
-          "expected": [null, "out_of_project"],
-          "passed": true
+          "passed": false
         }
       ],
-      "classification": "observed_defect"
+      "classification": "characterization_failed",
+      "error": {
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION",
+        "injected_status_failure": false
+      }
     }
   ],
   "not_run": [

@@ -20,10 +20,15 @@
 ②按权威实现 实现细节以 design.md 权威节为准（§6 API / §5 DDL / §7 契约 / §8 adapter）
 ③逐条验收  对照 §9 的「验收-测试映射表」，逐条跑用例或录屏，全绿才勾任务
 ④记录      每完成一个任务组（或组内完整功能）→ DEV_LOG 追加 DEV-NNNN（编号递增）
+⑤终止判定  第三段候选过 `CLAUDE.md`「任务循环管理」的 P1–P5：同源则合并、DoD 达则停、
+          连续 3 轮无产品改动则切换对象、超预算则进观察池 —— 通过后才允许成为下一轮任务；
+          判「进观察池」的**当轮必须写入** `PRD v0.2.4 §14.3`（登记处单源，不得只在对话里说）；
+          「本轮」= 自上次 DoD 复算的 DEV 号起（不复用会话轮次）
 ```
 
 - **完成判定**：映射表该任务所有行 = pass（自动化用例绿 / 人工项录屏归档）。部分通过 = 未完成，DEV_LOG 记「未实现」清单。
 - **反例（禁止）**：跳过映射表直接勾任务；实现时顺手改 spec 而不走 §0.3；用「实现现状」反向充当验收标准。
+- **第 ④ 步不是终点**（2026-11-13 立，见 `CLAUDE.md`「任务循环管理」）：收尾第三段的候选**必须先过 P1–P5 的终止判定**才允许成为下一轮任务。2026-11-13 实测 16 轮（DEV-0249…DEV-0264）全部为「文档一致性修补」、零产品代码改动 —— 第 ④ 步直接续命是第 ⑤ 步缺失的结果。**批次化执行**：同源候选（写法约定 / 口径总说明 / 编号形态 / 引用修正 / 快照回写）合并成一批一次做完，不得一个候选一轮。
 
 ### 0.2 Dogfooding：Spec 驱动流阶段映射
 
@@ -43,6 +48,7 @@ OpenVibe 自身开发按内置「Spec 驱动流」（seed-content §3.3 ②）�
   1. 逻辑一致性：实现与 spec FR/验收有无断链？数据流有无缺字段/缺通道？
   2. 批判性：有没有「物理不可行 / 过度前置」的实现选择？
   3. 第一性原理：这个任务交付物对「标准化飞轮」是否必要？有没有更小的等价实现？
+- **元层审查**（2026-11-13 补，与三维同批跑）：三维审查此前**只对代码生效，未对流程生效** —— 于是「文档一致性修补」连续 16 轮无人质疑。元层审查把三维指向**流程本身**：① 逻辑一致性：执行流程的步骤之间有无断链（第 ④ 步「记录」直接续命第 ⑤ 步「终止判定」就是断链）？② 批判性：这个流程有没有「物理不可行」的假设（如「文档不一致可以清完」—— 超线性增长，不可行）？③ 第一性原理：这轮任务对「标准化飞轮」是否必要 —— 答不出具体用户损失即不必要。
 - **节奏检查**：每 40 轮对话 → 生成 CHECK-NNNN 报告（维度：重复性 / 达达度 / 变更追踪 / 合规性 / 引用可靠性，对齐全局规范）。
 
 ### 0.3 变更控制分级（实现中发现 spec 缺陷 / 需求变化时）
@@ -65,7 +71,7 @@ OpenVibe 自身开发按内置「Spec 驱动流」（seed-content §3.3 ②）�
 ### 0.4 SPEC 编写规范（新增 / 修订 spec 时）
 
 1. **八段式固定结构**（与现有 specs 一致）：目标与用户价值 → 范围（In/Out 表）→ 数据与核心概念 → 功能需求 FR → 输入/输出 → 边界与异常 → 验收标准（pass/fail）→ 依赖。
-2. **FR 编号递增不重排**：修订插值用 `FR-N.M`（如 FR-4.2），删除保留编号并在该行标注「已删除（原因，日期）」。
+2. **FR 编号递增不重排**：修订插值用 `FR-N.M`（如 FR-4.2），删除保留编号并在该行标注「已删除（原因，日期）」。**引用写法（2026-11-13 立，观察池 O3 的关闭条件）**：① `FR-N.M` **只用于「在该 spec 内以 `FR-N.M` 显式标出的子条目」**；② 引用 FR 正文的**列表项**（无独立编号）写「**FR-N 第 M 条**」，**不得**写成 `FR-N.M`；③ **跨 spec 引用必须带 spec 名**（如 `write-selfproof.md` FR-5）——**每个 spec 有自己的 FR 编号空间**，裸 `FR-8.2` 在不同 spec 里指不同的东西（2026-11-13 实测：`FR-8.2` 在 **5** 份 spec 里各有定义，另有一次被误用于指 m6 的列表项，见 ㊸）。
 3. **验收标准必须可判定**：每条要么自动化（指明测试 ID 段），要么人工可录屏/截图归档；禁止「体验良好」类措辞。
 4. **No spec, no task**：P1.1/P2 功能进入开发前必须先有 spec 八段式 + 验收条目，才允许进 dev-plan 迭代版。
 5. 命名：`m<N>-<slug>.md`（模块号沿用 PRD 3.2）；横切能力用功能名（如 `onboarding.md`）。
@@ -198,9 +204,11 @@ openvibe/
 ├── scripts/seed-review.ts（pnpm seed:review 入口：按 git 基线摊开新增词条/提示词全文，供 owner 逐条审校，D14）
 ├── scripts/bundle-check.ts（pnpm bundle:check 入口：读 dist 产物断言入口/chunk 预算）
 ├── scripts/golden-update.ts（pnpm golden:update 入口：重新生成 tests/golden/** 契约快照）
+├── scripts/adapter-golden-update.ts（pnpm adapters:golden:update 入口：重新生成 tests/golden/adapters/** 六 adapter 夹具——adapter-fixtures.md FR-1/FR-2，队列 ㊺ 判 A；**A 级面，提交须 owner 显式放行 golden 闸**。2026-11-20 W-1·F-3 登记）
+├── scripts/adapter-matrix.ts（pnpm adapters:matrix:update / adapters:matrix:check 入口：COMPAT_MATRIX → docs/adapter-matrix.md 生成与校验不修复——adapter-fixtures.md FR-3，生成物住 docs/ 非 specs/（㊺ 待裁② (a)）。2026-11-20 W-1·F-3 登记）
 ├── scripts/failure-evidence.sh（pnpm evidence 入口：固化测试失败的现场——git 状态 + vitest 全量输出 + 两套 tsc 输出；用法 `pnpm evidence [<测试文件>] [-o 目录] [--dev DEV-NNNN]`，全绿自清、失败自动归档到 `docs/devlog-evidence/`（`--dev` 指定时归档到 `DEV-NNNN/evidence/`，`DEV-NNNN` 需为 DEV-+四位数字否则拒绝，`evidence/` 已存在时归档到 `evidence-<时间戳>/` 不覆盖且文件误建会明确报错；`-o` 指定目录时不归档，与 `--dev` 同传时打印冲突提示）；**报障约定：跑出失败后把脚本打印的证据目录路径原样贴出**）
-├── scripts/dev-all.mjs（pnpm dev / dev:all 入口：一条命令同时起 web 与 server，Ctrl-C 会清干净孙进程）
-├── scripts/dev-iso.mjs（pnpm dev:iso 入口：起一套**隔离**实例——自动生成临时数据目录与两个空闲端口，不碰真实 ~/.openvibe）
+├── scripts/dev-all.mjs（**pnpm dev 入口，2026-11-10 改造为生产形态**：先 `vite build` 构建 web 产物，再起 server（tsx watch）——**server 用 `@fastify/static` 托管 `apps/web/dist`**（design §4 步骤 7 / m6b D-1），故页面与 API **同端口同源**，不再起 vite dev server（无 HMR；需要 HMR 直接跑 `pnpm --filter @openvibe/web dev`）。支持 `--iso` 隔离实例（临时数据目录 + 自动挑端口 + 冲突重试）。Ctrl-C 按进程组清干净孙进程）
+├── scripts/dev-iso.mjs（**pnpm dev:iso 入口，2026-11-10 起为薄封装**：只把 `--iso` 传给 `dev-all.mjs` —— 隔离实现已折叠进 dev-all，避免两处各写一份重试逻辑；保留具名入口是因其为 `tests/isolated-home.test.ts` 与本节的登记口径）
 ├── scripts/collect-m9-sources.ts（pnpm m9:collect 入口：M9 素材采集，P1.9 收口）
 ├── scripts/collect-m9-github-sources.ts（pnpm m9:collect:github 入口：M9 另三源采集）
 ├── scripts/m9-content-fingerprint.ts（pnpm m9:fingerprint 入口：内容指纹，验「内容未变」）
@@ -210,6 +218,9 @@ openvibe/
 ├── scripts/mutation-run.ts（pnpm mutation:run 入口：变异测试执行器）
 ├── scripts/ownership-check.ts（pnpm ownership:check 入口：提交归属核验）
 ├── scripts/docs-check.ts（pnpm docs:check 入口：文档治理闸）
+├── scripts/docs-check-diff.ts（pnpm docs:diff 入口：本轮 vs 上轮 warning 差分；`--history` 落跨轮趋势；CI 用）
+├── scripts/context-check.ts（pnpm context:check 入口：上下文治理闸，判据见 docs/specs/context-governance.md；C-6 断 CM ↔ FR 追溯闭合）
+├── scripts/context-history-merge.ts（pnpm context:history:merge 入口：把 CI artifact 的历史按 at 去重合并进本机趋势）
 ├── scripts/section-ref-audit.ts（pnpm docs:refs 入口：§-引用解析器，判定引用三态并出对账表）
 ├── scripts/verify-matrix.ts（pnpm verify:matrix 入口：v0.2.3 批次 A FR-2 复验矩阵工具）
 ├── scripts/export-agent-memory.ts（pnpm memory:check / memory:verify 入口：把 agent 记忆目录导出进仓）
@@ -221,12 +232,20 @@ openvibe/
 ├── scripts/iso-ports.mjs（隔离实例的端口分配与冲突重试：`pickPortPair()` 探一组空闲端口，`detectPortConflict()` 认端口占用信号，`withPortRetry()` 撞端口就换一组重试（最多 2 次）——由 tests/iso-ports-guard.test.ts 判据）
 ├── scripts/test-summary.ts（pnpm test 入口：跑 vitest 并给出 passed / failed / skipped / todo 四数汇总——todo 单列不计入 passed；由 tests/test-summary.test.ts 判据）
 ├── scripts/sweep-stale-temps.ts（pnpm temps:sweep 入口：清掉超过保鲜期（默认 24 小时）的测试临时目录——兜底 SIGKILL 那类「exit 处理器救不了」的残留）
-├── scripts/machine-preflight.ts（pnpm preflight 入口：**跑测试前读机器内存压力**——可用内存 < 1 GB 或 swap 使用率 > 80% ⇒ 判定「扛不住」⇒ 把并发降到 1 并打印带具体数字的说明；判定逻辑是纯函数 decideWorkers()，由 tests/machine-preflight.test.ts 判据；**已作为 `pnpm test` 的前置**（scripts/test-summary.ts 调用它，扛不住时给 vitest 传 --maxWorkers=1）⇒ 假红时能立刻分辨「环境问题 vs 代码问题」）
-├── scripts/check-orphan-workers.ts（pnpm orphans:check 入口：查**孤儿 worker**——父进程已死（PPID=1，被 launchd 收养）且是 worker 候选（命令含 vitest 或同时含 tsx 与 scripts/）且**工作目录在本仓内**（用 lsof 取 cwd，避免误伤同机别人的 vitest）⇒ 报数；超过 5 个才提醒清理；`pnpm orphans:clean` 才动手（逐个确认 cwd 后发 SIGTERM，默认不杀）；由 tests/check-orphan-workers.test.ts 判据）
+├── scripts/machine-preflight.ts（pnpm preflight 入口：**跑测试前读机器内存压力** ⇒ 分三档（充裕/紧张/吃紧）给出并发建议并打印带具体数字的说明；判定逻辑是纯函数 decideWorkers() / decideTier()，由 tests/machine-preflight.test.ts 判据；**已作为 `pnpm test` 的前置**（scripts/test-summary.ts 调用它，吃紧时给 vitest 传 --maxWorkers=1）⇒ 假红时能立刻分辨「环境问题 vs 代码问题」；**结论同时落成机器可读产物** test-results/preflight.json（见 scripts/test-summary.ts 的 writePreflightReport）⇒ CI 的报告页/流水线摘要能直接引用，不必翻 stdout）
+├── scripts/preflight-sample.ts（pnpm preflight:sample 入口：**并发分级的数据采集**——采「机器状态 ↔ 实测耗时 ↔ 是否超时」三列，追加到 test-results/preflight-samples.jsonl（JSON Lines，可复算）；`--summary` 出分组汇总⇒ 分级表的边界应当落在「耗时开始劣化」的位置，不是拍脑袋）
+├── scripts/preflight-pressure-sample.ts（pnpm preflight:matrix 入口：**受控内存压力**下的并发对照采集——用「吃内存的临时夹具」把压力拉起来，逐档并发 × 逐档负载 ⇒ 与 preflight-sample.ts 同款样本格式；⚠️ 夹具必须落仓内（vitest 的 include 只扫仓内路径）且用完即删）
+├── scripts/migrate-temp-dir.ts（**一次性迁移脚本**：把测试夹具的 `mkdtempSync(join(tmpdir(), …))` 机械替换为统一出口 `tempDir(…)`——61 个文件 / 118 处；只改「创建」不改「清理」⇒ 各文件原有的 rmSync/afterEach 语义不变；⚠️ 无 npm 入口（迁移已完成，脚本留着是为了「可复算」与「将来新增文件可再跑一次」））
+├── scripts/check-orphan-workers.ts（pnpm orphans:check 入口：查**孤儿 worker**——父进程已死（PPID=1，被 launchd 收养）且是 worker 候选（命令含 vitest 或同时含 tsx 与 scripts/）且**工作目录在本仓内**⇒ 报数；超过 5 个才提醒清理；`pnpm orphans:clean` 才动手（逐个确认 cwd 后发 SIGTERM，默认不杀）；由 tests/check-orphan-workers.test.ts 判据。⚠️ **cwd 取法是双通道**：① **worker 自登记**（packages/core/src/test-support/worker-registry.ts，vitest setupFiles 每个 worker 启动时写下自己的 pid + cwd）⇒ **跨平台**；② 回落 `lsof`（macOS/Linux 有、Windows 没有）⇒ 两条都取不到时**如实报「无法判定」**，不静默报 0）
 ├── scripts/migrate-drill.ts（pnpm migrate:drill 入口：0019→0022 升级路径真库演练对账，行数/内容指纹/seed_hash 不回填三判据）
 ├── scripts/v023-preflight.ts（pnpm v023:preflight 入口：v0.2.3 提交清单对账——清单 vs 工作树差异 + 存在性，退出码判净）
+├── scripts/v0-probes/run.ts（pnpm v0:probes 入口：PRD §5.2 的 L1 真机探针——命令由 agent 注册表声明拼出（不另存 argv 映射），L1-1…L1-4 逐 agent 判定并出 ledger；工作区为 git 初始化的临时目录，失败必带退出码/stderr/超时标记）
+├── scripts/agent-registry-probe.ts（无 npm 入口，`pnpm exec tsx` 直接跑：把注册表「声明」与本机 CLI `--help` 对账（含子命令层，如 `codex exec --help`），不一致即非零退出。与 v0-probes 互补——它只对账 help 不派活，v0-probes 真派活）
 ├── scripts/vibe-retro-ingest.ts（pnpm vibe:retro 入口：复盘报告按节拆条回流 agent 桥 pending——docs/vibe-retro.md 协议）
 ├── scripts/ci-preview.ts（pnpm ci:preview 入口：workflow_dispatch 触发 ci.yml 同矩阵于任意 HEAD，push/publish 前的远端预演）
+├── scripts/verify-topbar-cdp.mjs（pnpm verify:topbar 入口：**顶栏按钮布局的 CDP 复算**——真浏览器量测 375/1440/触屏三档视口，断言「窄屏 ghost 按钮隐藏 + 主题按钮 ≥44px + 不横向溢出」。与 `tests/btn-display.test.ts` 互补：那条断源码文本（覆盖所有调用点、零环境），本条断渲染层（真 CSS、真盒模型）。⚠️ 需先构建并有服务在跑；判据取 `docClientWidth` 而非 `innerWidth`——`mobile:true` 会把布局视口撑开（实测 1213 vs 375）。**产物自检三道且先于量测**：① `index.html` 引用的资源是否都存在 ② 源码哈希与 `tests/ui-source-hashes.json` 是否一致（读**共享清单** `tests/ui-snapshot-targets.json`，读取与结构校验走 `scripts/ui-snapshot-targets.mjs`；`hashes` 段含 `AppShell.tsx` / `index.css` / `i18n/core.ts` / `useExpertMode.ts` / `CoverageMapDialog.tsx` / `ContextGovernanceSection.tsx` / `data/coverage.ts`；拦「源码改了但 dist 是旧的」这类静默测旧产物。清单解析失败或结构不对时报可读错误并 exit 2，不抛堆栈）③ `--url` 与 `--dist` 不同目录时提示（`--dist` 默认 `apps/web/dist`，测临时产物时需显式传）④ 受监视目录 = `hashes` 各条目的父目录（**不手写** `invariantDirs` 段，由 `readTargets()` 推导；清单里若残留该段则报红要求删除）：校验目录存在且非空，且目录下**未跟踪（新增）的非测试源码**必须已登记 `hashes`（`git ls-files --others`，非 git 环境跳过）—— 新增文件不登记即红，堵住「新增源码进产物却不在自检②范围内」）。⚠️ 读清单在 `parseArgs` **之后**：`--help` / 参数错误先短路，清单坏也救得回））
+├── scripts/snapshot-ui.mjs（pnpm ui:snapshot 入口：按**共享清单** `tests/ui-snapshot-targets.json` 维护两样东西 —— ① `snapshots` 段里「类组合单一出处」文件的**全文快照**（`tests/styles-ts.snapshot.txt` / `tests/layout-tsx.snapshot.txt`）② `hashes` 段里**影响渲染的源码**的哈希清单（`tests/ui-source-hashes.json`，含 `AppShell.tsx` / `index.css` / `i18n/core.ts` / `useExpertMode.ts`）；`--check` 只比对不写（不一致即非零退出）。与 `barrel:snapshot` 同构：闸是强闸，重新生成等于「显式审阅并签字」。⚠️ **清单的读取与结构校验都在 `scripts/ui-snapshot-targets.mjs`**（`readTargets(import.meta.url)` 是唯一入口）—— 新增文件只改 JSON，两处同时生效；此前两处各写一份读取与校验，结构再变漏改一处会让一侧静默失配）
+├── scripts/ui-snapshot-targets.mjs（共享清单 `tests/ui-snapshot-targets.json` 的**唯一读取口**：`readTargets(import.meta.url)` 返回 `{ snapshots, hashes, invariantDirs }`，校验 `fromUrl` 指向 `scripts/`、校验 `snapshots`/`hashes` 结构、拒绝残留的 `invariantDirs` 段（改为从 `hashes` 父目录推导），失败时打印可读错误并 `process.exit(2)`。`snapshot-ui.mjs` 与 `verify-topbar-cdp.mjs` 都 import 它 —— 不要在这两个脚本里另写 `JSON.parse(readFileSync(...))`）
 ├── scripts/skills-sync.ts（pnpm skills:sync / skills:check 入口：docs/skills 真源 ↔ ~/.agents/skills 部署位对账同步）
 ├── deploy/telemetry/{worker.js,adapter-node.mjs}（匿名统计接收端：一份 CF Worker 源码 + 一层 node:http 外壳，fail-closed 白名单）
 └── .github/workflows/ci.yml
@@ -542,6 +561,12 @@ const assign = db.transaction(() => {
 
 - 分页：`?page=1&size=50`（size ≤ 200）；列表响应统一 `{items, total, page}`。
 - 排序默认 `updatedAt DESC`（除特别标注）。
+- **同毫秒顺序口径**（2026-11-07，修 DEV-0202 登记的 OM-05 flaky）：`created_at` / `updated_at` 落库是 ISO **毫秒**字符串，同一毫秒内的多次写入在 `created_at DESC` 下**并列**；此时 tiebreak **必须用 `rowid DESC`**（普通 rowid 表的落库序），**不得用 `id`** —— `id` 是 nanoid 随机串，会让「最新」由随机数决定。违反即产生 flaky 用例（实测旧实现连跑 5 次红 3 次）。先例：`repos/skills.ts` 的 `versions()`。守护：`apps/server/test/om.api.test.ts` 的 OM-05b。
+- **批量文本替换三纪律**（2026-11-07，DEV-0207；工具 `scripts/batch-replace.ts`）：手写批量脚本在本仓翻过两次车（第一版「两轮替换」产出嵌套链接；第二版正则误匹配已链接形态，85 处过度替换且**改动了并行会话的未跟踪文件**）。故：
+  ① **白名单** —— 只碰显式列出的文件，不「扫目录全改」；
+  ② **单遍** —— 每行先产出全部 token 再一次性应用到**原文**，替换产物**永不二次入扫**（结构上排除嵌套）；
+  ③ **嵌套自检** —— 替换后复检产物（`[[` / 剥链后仍余 `](`），命中即**整个文件不落盘**（半改的文件比不改更难查）。
+  改写器与判据**同口径**：链接与 specs 文件名两条正则从 `scripts/context-check.ts` 导入，不另抄一份。本工具是 C-7 那次 34 处迁移的沉淀；落成后复跑 `docs/specs` 为 0 处（幂等）。
 - 错误体统一：`{ "code": "MACHINE_CODE", "message": "人读信息", "details"?: object }`。
 - **错误码总表**（shared/errors.ts）：
 
@@ -1431,7 +1456,7 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 
 ## §13 DoD（MVP 完成定义）
 
-1. specs 八份（m1/m2/m3/m5/m6a/m6b/seed/onboarding）验收标准**逐条**通过——核对法 = 本文 §9 各映射表全行 pass（人工项录屏/截图归档 DEV_LOG）。
+1. specs 全量（清单以 `docs/specs/` 实存为准；复算：`ls docs/specs/*.md | wc -l`，不抄写份数）验收标准**逐条**通过——核对法 = 本文 §9 各映射表全行 pass（人工项录屏/截图归档 DEV_LOG）。
 2. CI 五闸全绿：lint / unit / integration+cli / e2e / golden + seed:check + bundle:check。
 3. 干净环境 ≤3 条命令 / ≤5 分钟冷启动演练通过（W7D1 计时录屏）。
 4. 标准包契约与 adapter 清单与 design §7/§8 **零偏差**（golden 三夹具背书）。
@@ -1618,37 +1643,37 @@ export const COMPAT_MATRIX: { platform: string; reads: string; note?: string }[]
 
 ### 16.2 落点全量表（27 个编号项 ⇒ 23 项有规格落点 · 4 项无）
 
-| RF 项 | 动作（简称；判据去分析文 §7 读）                  | 落点                                                      | 落点里的位置                                       | 本轮态                                     |
-| ----- | ------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------ |
-| 0-1   | i18n 按命名空间懒加载（AD7 步 1）                 | `specs/entry-budget.md`                                   | FR-1／FR-2／FR-3                                   | v0.9 · 待裁 2                              |
-| 0-2   | `bundle:check` 升级为差值报告（AD7 步 2）         | 同上                                                      | FR-4／FR-5                                         | 同上                                       |
-| 0-3   | 常量单源 + `shared` 出口面拆分（AD10）            | 同上                                                      | FR-6／FR-7                                         | 同上                                       |
-| 0-4   | `docs:check` 脚本（AD11 的 11-b 最小集）          | `specs/docs-governance-check.md`                          | FR-1…FR-6、FR-9                                    | v0.9 · 待裁 3                              |
-| 0-5   | skill 扫描的失败隔离                              | `specs/m2-skill-registry.md`                              | §6.1 条 3／条 4                                    | **v1.2**（改既有）                         |
-| 1-1   | 薄服务层（AD9）                                   | `specs/service-layer.md`                                  | FR-1…FR-4                                          | v0.9 · 待裁 3                              |
-| 1-2   | `openvibe verify` + 三方一致性（AD3 的 L2）       | `specs/write-selfproof.md` ＋ `specs/m6-cli-injection.md` | 前者 FR-1／FR-3／FR-4；后者 FR-7（命令面与退出码） | v0.9（待裁 4）＋ **m6 v1.11**              |
-| 1-3   | 段级差异展示（AD4 的 4-a，**只读**）              | 同上两份                                                  | 前者 FR-5；后者 FR-8.2 的输入                      | 同上                                       |
-| 1-4   | adapter 产物夹具 + 矩阵生成（AD6）                | `specs/adapter-fixtures.md`                               | FR-1…FR-5                                          | v0.9 · 待裁 4，**判级未定**（16.5）        |
-| 1-5   | 本机事件台账 + 统计页（AD2 = PRD D29）            | `specs/local-event-ledger.md`                             | FR-1…FR-6                                          | v0.9 · 待裁 4                              |
-| 1-6   | 冲突处置的「为什么」层（AD3 的 L3）               | `specs/write-selfproof.md`                                | FR-6                                               | v0.9                                       |
-| 2-1   | 资产 `audience`／`freshness` 字段 + UI 语义       | `specs/growth-path.md`                                    | FR-1                                               | v0.9 · 待裁 6（RF2 整段共用）              |
-| 2-2   | 成长阶段机 C1                                     | 同上                                                      | FR-2／FR-3                                         | 同上                                       |
-| 2-3   | 渐进披露层 C3                                     | 同上                                                      | FR-5                                               | 同上                                       |
-| 2-4   | 成长面板 C6                                       | 同上 **＋** `specs/onboarding.md`                         | 前者 FR-6；后者 FR-5（**只给接入位，不改向导**）   | **onboarding v1.2** · 待裁 1（MT2 左端点） |
-| 2-5   | 推荐引擎 v0 C2                                    | `specs/growth-path.md`                                    | FR-7                                               | v0.9                                       |
-| 2-6   | 教学内容内嵌 C5                                   | 同上                                                      | FR-8                                               | 同上                                       |
-| 2-7   | 复盘候选确定性提取 C4                             | 同上                                                      | FR-9 ＋ CP4 边界行                                 | 同上                                       |
-| 3-1   | 有效上下文密度指标 + 面板（MT1）                  | `specs/context-density.md`                                | FR-1…FR-4                                          | v0.9 · 待裁 5                              |
-| 3-2   | `openvibe update`（变更集预览 + 段级应用）（AD5） | `specs/m6-cli-injection.md`                               | FR-8                                               | **v1.11** · 待裁②                          |
-| 3-3   | `openvibe rollback`（AD5）                        | 同上                                                      | FR-9 ＋ §6.12（同名异物登记）                      | **v1.11** · **整条阻在待裁①**              |
-| 3-4   | 出参三边界校验（AD8）                             | `specs/output-validation.md`                              | FR-1…FR-3                                          | v0.9 · 待裁 5                              |
-| 3-5   | A/B/C 判级自动化辅助（AD11 的 11-c／11-d）        | `specs/docs-governance-check.md`                          | FR-5／FR-6／FR-8                                   | v0.9                                       |
-| 4-1   | 段级受管标记进契约（AD4 的 4-c）＝ **A**          | **无落点**                                                | —                                                  | 不写规格：阻于 D32 待签（队列 ㉛）         |
-| 4-2   | `schemaVersion` 1→2 与队列 ㉘ 改名同批 ＝ **A**   | **无落点**                                                | —                                                  | 载体是 D25 的**落地笔**，不是规格文件      |
-| 4-3   | 用户盘迁移路径（旧 lock → 新契约）＝ **A**        | **无落点**                                                | —                                                  | 阻于 D33 待签                              |
-| 4-4   | 三层保证 L3 完整化（段级「为什么」）              | **无落点**                                                | —                                                  | 依赖 4-1；其只读半边已由 1-3／1-6 接住     |
-| RF5 ① | M7 的「使用统计」必须建在台账上                   | `specs/m7-team-collab.md`                                 | FR-5.3／FR-5.4                                     | **v1.1**                                   |
-| RF5 ② | 评审对象粒度建议为**变更集**                      | 同上                                                      | §8.2 待裁①（补 owner 侧建议值，**不代裁**）        | v1.1                                       |
+| RF 项 | 动作（简称；判据去分析文 §7 读）                  | 落点                                                      | 落点里的位置                                                                                                                | 本轮态                                                                                                                                                                      |
+| ----- | ------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0-1   | i18n 按命名空间懒加载（AD7 步 1）                 | `specs/entry-budget.md`                                   | FR-1／FR-2／FR-3                                                                                                            | v0.9 · **已实现**（2026-11-13 复测：i18n 已按命名空间分文件 —— `core`／`lane-agent`／`lane-assets`／`lane-engineering`／`lane-system`／`zh`）· spec 未升版（待裁 2 未闭合） |
+| 0-2   | `bundle:check` 升级为差值报告（AD7 步 2）         | 同上                                                      | FR-4／FR-5                                                                                                                  | v0.9 · **已实现**（2026-11-13 复测：`scripts/bundle-check.ts` 在跑）· spec 未升版（同上）                                                                                   |
+| 0-3   | 常量单源 + `shared` 出口面拆分（AD10）            | 同上                                                      | FR-6／FR-7                                                                                                                  | v0.9 · **已实现**（2026-11-13 复测：`packages/shared/src/index.ts` 出口面已拆）· spec 未升版（同上）                                                                        |
+| 0-4   | `docs:check` 脚本（AD11 的 11-b 最小集）          | `specs/docs-governance-check.md`                          | FR-1…FR-6、FR-9                                                                                                             | **v0.13** · **已实现**（2026-11-13 复测：`scripts/docs-check.ts` ＋ `pnpm docs:check` 在跑，判据 8 条）· spec 未升版（§8.2 三处待裁未闭合）                                 |
+| 0-5   | skill 扫描的失败隔离                              | `specs/m2-skill-registry.md`                              | §6.1 条 3／条 4                                                                                                             | **v1.2**（改既有）· **已实现**（M2 技巧库已上线，版本行含 v1.0→v1.1→v1.2 链）                                                                                               |
+| 1-1   | 薄服务层（AD9）                                   | `specs/service-layer.md`                                  | FR-1…FR-4                                                                                                                   | **v1.0**（2026-10-14 升版，§8.2 三待裁闭合）· **部分落地**（2026-11-13 复测：§7.8 f ✅ 已闭合／l ❌ 未达成且 routes 19→28／m 🟡 只采 macOS）                                |
+| 1-2   | `openvibe verify` + 三方一致性（AD3 的 L2）       | `specs/write-selfproof.md` ＋ `specs/m6-cli-injection.md` | 前者 FR-1／FR-3／FR-4；后者 FR-7（命令面与退出码）                                                                          | **v1.0**（2026-11-13 升版，§8.2 四待裁经 ㊷ 闭合）· **实现已落地**（DEV-0113/0114，11/11 绿）＋ **m6 v1.11**                                                                |
+| 1-3   | 段级差异展示（AD4 的 4-a，**只读**）              | 同上两份                                                  | 前者 FR-5；后者 **FR-8 第 2 条**的输入（2026-11-13 ㊸ 修：原写「FR-8.2」是条目编号不是 FR 编号，m6 的 FR 清单是 FR-1…FR-9） | **v1.0**（随 1-2 同批升版）· **实现已落地**（DEV-0139，`section-diff.ts`）                                                                                                  |
+| 1-4   | adapter 产物夹具 + 矩阵生成（AD6）                | `specs/adapter-fixtures.md`                               | FR-1…FR-5                                                                                                                   | v0.9 · 待裁 4，**判级未定**（16.5）· **未落地**（矩阵文档与 golden 夹具均未生成）                                                                                           |
+| 1-5   | 本机事件台账 + 统计页（AD2 = PRD D29）            | `specs/local-event-ledger.md`                             | FR-1…FR-6                                                                                                                   | **v1.0**（2026-10-14 升版，§8.2 四待裁闭合）· **部分落地**（§7 的 j/l 两条 🟡）                                                                                             |
+| 1-6   | 冲突处置的「为什么」层（AD3 的 L3）               | `specs/write-selfproof.md`                                | FR-6                                                                                                                        | **v1.0**（随 1-2 同批升版）· **实现已落地**                                                                                                                                 |
+| 2-1   | 资产 `audience`／`freshness` 字段 + UI 语义       | `specs/growth-path.md`                                    | FR-1                                                                                                                        | v0.9 · 待裁 6（RF2 整段共用）· **未见落地信号**（2026-11-13 复测：全仓 grep `audience`／`freshness` 命中 **0**）                                                            |
+| 2-2   | 成长阶段机 C1                                     | 同上                                                      | FR-2／FR-3                                                                                                                  | v0.9 · 待裁 6 · **已实现**（2026-11-13 复测：`GrowthPage.tsx` 的 `STAGES`／`stageDetail` 在跑，6 处命中）                                                                   |
+| 2-3   | 渐进披露层 C3                                     | 同上                                                      | FR-5                                                                                                                        | v0.9 · 待裁 6 · **部分实现**（2026-11-13 复测：`growth/stage.ts` ＋ `ProBlock` 组件在，未见完整渐进披露层）                                                                 |
+| 2-4   | 成长面板 C6                                       | 同上 **＋** `specs/onboarding.md`                         | 前者 FR-6；后者 FR-5（**只给接入位，不改向导**）                                                                            | **onboarding v1.1**（2026-11-13 复测版本行 v1.0→v1.1；**原写 v1.2 疑与 `seed-content v1.2` 混淆**）· 待裁 1（MT2 左端点）                                                   |
+| 2-5   | 推荐引擎 v0 C2                                    | `specs/growth-path.md`                                    | FR-7                                                                                                                        | v0.9 · **未见落地信号**（2026-11-13 复测：`pages/` 下无推荐引擎相关文件）                                                                                                   |
+| 2-6   | 教学内容内嵌 C5                                   | 同上                                                      | FR-8                                                                                                                        | v0.9 · **已实现**（2026-11-13 复测：`LearnPage.tsx` 存在，含站位图页签）                                                                                                    |
+| 2-7   | 复盘候选确定性提取 C4                             | 同上                                                      | FR-9 ＋ CP4 边界行                                                                                                          | v0.9 · **未见落地信号**（2026-11-13 复测）                                                                                                                                  |
+| 3-1   | 有效上下文密度指标 + 面板（MT1）                  | `specs/context-density.md`                                | FR-1…FR-4                                                                                                                   | v0.9 · 待裁 5                                                                                                                                                               |
+| 3-2   | `openvibe update`（变更集预览 + 段级应用）（AD5） | `specs/m6-cli-injection.md`                               | FR-8                                                                                                                        | **v1.11** · 待裁②                                                                                                                                                           |
+| 3-3   | `openvibe rollback`（AD5）                        | 同上                                                      | FR-9 ＋ §6.12（同名异物登记）                                                                                               | **v1.11** · **整条阻在待裁①**                                                                                                                                               |
+| 3-4   | 出参三边界校验（AD8）                             | `specs/output-validation.md`                              | FR-1…FR-3                                                                                                                   | v0.9 · 待裁 5                                                                                                                                                               |
+| 3-5   | A/B/C 判级自动化辅助（AD11 的 11-c／11-d）        | `specs/docs-governance-check.md`                          | FR-5／FR-6／FR-8                                                                                                            | v0.9                                                                                                                                                                        |
+| 4-1   | 段级受管标记进契约（AD4 的 4-c）＝ **A**          | **无落点**                                                | —                                                                                                                           | 不写规格：阻于 D32 待签（队列 ㉛）                                                                                                                                          |
+| 4-2   | `schemaVersion` 1→2 与队列 ㉘ 改名同批 ＝ **A**   | **无落点**                                                | —                                                                                                                           | 载体是 D25 的**落地笔**，不是规格文件                                                                                                                                       |
+| 4-3   | 用户盘迁移路径（旧 lock → 新契约）＝ **A**        | **无落点**                                                | —                                                                                                                           | 阻于 D33 待签                                                                                                                                                               |
+| 4-4   | 三层保证 L3 完整化（段级「为什么」）              | **无落点**                                                | —                                                                                                                           | 依赖 4-1；其只读半边已由 1-3／1-6 接住                                                                                                                                      |
+| RF5 ① | M7 的「使用统计」必须建在台账上                   | `specs/m7-team-collab.md`                                 | FR-5.3／FR-5.4                                                                                                              | **v1.1**                                                                                                                                                                    |
+| RF5 ② | 评审对象粒度建议为**变更集**                      | 同上                                                      | §8.2 待裁①（补 owner 侧建议值，**不代裁**）                                                                                 | v1.1                                                                                                                                                                        |
 
 **读数口径三条**：
 
@@ -1791,7 +1816,7 @@ golden 重基（排在改实现之前 —— §0.3 对 A 级的要求）
 
 - 0-1（i18n 拆分）**不许**顺手调阈值来「让门禁过」。它的出口判据就是「入口回落 ≥ 15 kB」，是**体积真的变小**，不是门禁让路。
 - 1-4 若被判 A 级，它动的是 golden 的**新增基线**，走 16.4 的链，不走「顺手加一个快照」。
-- `docs:check` 自己也要被管：规则条数 > 8 即触发分析文 §10 第 4 条的复审（「治理即代码变成第二个官僚层」），触发处置是撤回 11-a 只留 11-b 最小集。**口径必须写死，否则这条触发器会被误读成已经响过**：数的是**能红能绿的独立判据条数**。按 `docs-governance-check.md` 现规格逐条数：FR-1 编号连续唯一｜FR-2 队列枚举与计数自洽｜FR-3 单源可解析｜FR-4 版本链单调｜FR-5 登记五段齐备｜FR-6 A 级变更模板 = **6 条**，再加 **FR-9 的「冻结面零 diff」判据**（同一条 FR 里「进 CI」是接入动作、不是判据）= **共 7 条**；FR-7（MT4）与 FR-8（MT6）是**输出面**，各产一个数、不判红绿，不计入。**7 ≤ 8 ⇒ 未触发，但只剩一格余量**——下一轮再加任何判据都会当场触发，那时要先做的是按本条给出处置（撤回 11-a），不是把闸调松。另一种数法会立刻判它已越线：按 FR 号数是 9、按子条（FR-2 已拆到 2.1–2.5）数是 13，**所以本条不是措辞问题，是闸的启动条件本身**。**同日本笔补一条口径澄清，否则下一轮会误判已触发**：`docs-governance-check.md` 当日追加了 **FR-3.4（相对链接目标必须已入库）** 与 **FR-1.4（重号的补记除外规则 ＋ 当前基线违规）**，两条都是**子条**，判据数仍为 7——本口径的单位是「能红能绿的独立判据」，一个 FR 无论拆到几子条都只产出一道红绿。**反向的那笔账要写清**：「按子条数」这个替代数**不可写死**——本笔之前它被记为 13，本笔加两条子条后当场就变了，所以这里只给口径不给数（`grep -cE '^- FR-[0-9]+\.[0-9]+' docs/specs/docs-governance-check.md`），且该数**不构成 §10 第 4 条的触发判断**；把它当依据的写法每轮都会自己制造一次假触发。**7 ≤ 8 且余量仍是一格**，这条没有把它吃掉（吃掉它是 FR-3.4 被写成独立 FR 的后果，故当场选择挂到子条位）。这条已写进 `docs-governance-check.md` 的 FR-9 边界。
+- `docs:check` 自己也要被管：规则条数 > 8 即触发分析文 §10 第 4 条的复审（「治理即代码变成第二个官僚层」），触发处置是撤回 11-a 只留 11-b 最小集。**口径必须写死，否则这条触发器会被误读成已经响过**：数的是**能红能绿的独立判据条数**。按 `docs-governance-check.md` 现规格逐条数：FR-1 编号连续唯一｜FR-2 队列枚举与计数自洽｜FR-3 单源可解析｜FR-4 版本链单调｜FR-5 登记五段齐备｜FR-6 A 级变更模板 = **6 条**，再加 **FR-9 的「冻结面零 diff」判据**（同一条 FR 里「进 CI」是接入动作、不是判据）= **共 7 条**；FR-7（MT4）与 FR-8（MT6）是**输出面**，各产一个数、不判红绿，不计入。**7 ≤ 8 ⇒ 未触发，但只剩一格余量**——下一轮再加任何判据都会当场触发，那时要先做的是按本条给出处置（撤回 11-a），不是把闸调松。另一种数法会立刻判它已越线：按 FR 号数是 9、按子条（FR-2 已拆到 2.1–2.5）数是 13，**所以本条不是措辞问题，是闸的启动条件本身**。**同日本笔补一条口径澄清，否则下一轮会误判已触发**：`docs-governance-check.md` 当日追加了 **FR-3.4（相对链接目标必须已入库）** 与 **FR-1.4（重号的补记除外规则 ＋ 当前基线违规）**，两条都是**子条**，判据数仍为 7——本口径的单位是「能红能绿的独立判据」，一个 FR 无论拆到几子条都只产出一道红绿。**反向的那笔账要写清**：「按子条数」这个替代数**不可写死**——本笔之前它被记为 13，本笔加两条子条后当场就变了，所以这里只给口径不给数（`grep -cE '^- FR-[0-9]+\.[0-9]+' docs/specs/docs-governance-check.md`），且该数**不构成 §10 第 4 条的触发判断**；把它当依据的写法每轮都会自己制造一次假触发。**7 ≤ 8 且余量仍是一格**，这条没有把它吃掉（吃掉它是 FR-3.4 被写成独立 FR 的后果，故当场选择挂到子条位）。这条已写进 `docs-governance-check.md` 的 FR-9 边界。**2026-11-03 复核更正**：此后 FR-5 降级为只报数面、FR-6 撤回、FR-12 与 FR-13 接上，`scripts/docs-check.ts` 头注现测为 **8 条**（FR-1／2／3.4／4／9／11／12／13），余量为零；**条数的唯一出处自此改为代码头注**，上面这段推导保留为历史记录，不再逐轮复算。
 
 ### 16.11 两处无落点的缺口——登记，不自裁
 
@@ -1999,6 +2024,12 @@ grep -n '1[-]7' docs/dev-plan.md                 # → 0，v0.2.1 未侵占 RF �
 #   ⚠️ 本行的模式用字符组 '1[-]7' 而非裸串：裸串会被本检查自己扫成命中，口径自毁（此注刻意不复写那个裸串）
 ```
 
+> **2026-11-10 补（`[DEV-0234]`，owner 裁 ㊴「关闭，维持现状」）：把「指针在位」升格为清单项。**
+> 本节的三条命令就是 ㊴ 那项「双源风险」的缓解手段 —— 它们可核验「双向指针没断」。
+> 裁定的口径是：**这两份文件不是双源，是两条轨道**（v0.2.0 RF 线 vs v0.2.1 M8），
+> 故不做降格；残余风险（指针腐烂）由本清单覆盖。**跑法**：三条命令的输出都应为非零命中
+> （前两条 ≥1，第三条 = 0）；任一条不符即说明指针断裂或编号空间被侵占，按 §0.3 报回。
+
 ### 18.5 v0.2.4 / v0.2.5 的计划指针
 
 本文是「执行计划」主入口，但 v0.2.4（R0–R8）与 v0.2.5（S0–S8）两轮**尚未并入本文的迭代节**，其计划分别落在各自 PRD 内：[PRD-v0.2.4-v0.9-20261029.md](./PRD-v0.2.4-v0.9-20261029.md) 第 6 章（批次表）、[PRD-v0.2.5-v0.9-20261029.md](./PRD-v0.2.5-v0.9-20261029.md) 第 15 章（开发计划）。本节只做指路，不复制两轮的批次内容（数字单源规矩同本文头部）。owner 2026-10-30 裁定：v0.2.5 计划写入其 PRD 第 15 章，不另立计划文件。
@@ -2020,19 +2051,74 @@ grep -n '1[-]7' docs/dev-plan.md                 # → 0，v0.2.1 未侵占 RF �
 
 ⇒ 真正的杠杆是**内存**，不是核数 ⇒ 由此撤掉了一条旧口径：**「用数字而非百分比是为了跨机器可复算」是错的**（数字只反映核数，不反映内存）。`vitest.config.ts` 的 `maxWorkers: 2` 现在是**本机实测的保守值**，不是普适最优。
 
-### 19.2 已落地的三层
+### 19.2 已落地的五层（2026-11-02 扩充）
 
-1. **跑前自检**：`scripts/machine-preflight.ts`（`pnpm preflight`）读内存压力 ⇒ 扛不住就建议降并发并打印**带具体数字**的说明；已作为 `pnpm test` 的前置（`scripts/test-summary.ts` 调用它，扛不住时给 vitest 传 `--maxWorkers=1`；用户显式给了 `--maxWorkers` 则听用户的）。
-2. **孤儿体检**：`scripts/check-orphan-workers.ts`（`pnpm orphans:check`）查父进程已死（`PPID=1`）且工作目录在本仓内的 worker ⇒ 报数；超过 5 个才提醒；`pnpm orphans:clean` 才动手（逐个确认 cwd 后发 SIGTERM）。
-3. **临时目录自愈**：`scripts/sweep-stale-temps.ts`（`pnpm temps:sweep`）按年龄清残留（见 [DEV-0158](../DEV_LOG.md)）。
+1. **跑前自检（三路取最小）**：`scripts/machine-preflight.ts`（`pnpm preflight`）读内存压力 ⇒ 给出并发建议并打印**带具体数字**的说明。**并发不再是「固定三档拍脑袋决定」，而是三路上限取最小**（2026-11-03 第二轮调整）：① **比例线**（可用内存 < 总内存 1/8 ⇒ 上限 1，跨机器可缩放）；② **占用估算**（可用内存 ÷ 每 worker 估算占用 1 GiB = 养得起的个数）；③ **swap 线**（使用率 ≥ 85% ⇒ 上限 1）。**档位由并发结论反推**（扛不住默认并发 ⇒ 吃紧；维持默认但余量不足 ⇒ 紧张；其余 ⇒ 充裕）⇒ 不会出现「吃紧却给 2 个并发」。四个系数本轮全部调整：吃紧线 1/16 → **1/8**（本机 16 GB 上恰为 2 GB = 默认并发 2 × 1 GiB，两路口径不打架）、紧张线 25% **保留**（恰为吃紧线的两倍）、swap 紧张线 50% → **60%**、swap 吃紧线 80% → **85%**（实测换页事故 91% 仍能抓到，而本机常态 79% 不再被误判）。已作为 `pnpm test` 的前置（`scripts/test-summary.ts` 调用它，降级时给 vitest 传 `--maxWorkers=N`；用户显式给了 `--maxWorkers` 则听用户的）。
+2. **机器可读产物**：`test-results/preflight.json` —— 预检结论落盘（字段闭集：时刻 / 档位 / 并发 / 是否降级 / 理由 / 原始内存数字 / swap 是否取到）；四数汇总里**同屏**打出档位 ⇒ 只看报告页也能判断「这批红是环境问题还是代码问题」。
+3. **数据采集**：`scripts/preflight-sample.ts`（`pnpm preflight:sample`）+ `scripts/preflight-pressure-sample.ts`（`pnpm preflight:matrix`）⇒ 采「机器状态 ↔ 实测耗时 ↔ 是否超时」到 `test-results/preflight-samples.jsonl`（JSON Lines，可复算）⇒ 分级表的边界**有实测出处**。
+4. **孤儿体检（跨平台）**：`scripts/check-orphan-workers.ts`（`pnpm orphans:check`）查父进程已死（`PPID=1`）且工作目录在本仓内的 worker ⇒ 报数；超过 5 个才提醒；`pnpm orphans:clean` 才动手。cwd 取法是**双通道**：worker 自登记（跨平台）→ 回落 `lsof`；都取不到时**如实报「无法判定」**。**登记目录（2026-11-03 改布局）**：登记不再是「一个 JSON Lines 文件」，而是**一个目录、每条登记一个文件**（`<pid>-<毫秒时间戳>-<随机后缀>.json`）—— 起因是旧布局的**并发竞态**（追加 vs 读-改-写 ⇒ `rename` 覆盖掉刚追加的行 ⇒ 实测 360 条写出去只剩 199 条）。新布局下：登记 = **新建自己的文件**（先写 `tmp` 再 `rename` ⇒ 原子发布，读者不会看到半截 JSON）；回收 = **只删自己枚举到的文件** ⇒ 并发登记**结构上不可能被误删**。`pruneRegistry()` 做四件事 —— 同 pid 只留**最新**那条 + 剔除已死 pid + **剔除超龄行**（默认 7 天，`DEFAULT_MAX_AGE_MS`）+ 清坏文件与写了一半的残留（`tmp` 超过 60 秒才算残留，正在写的那份不碰）。回收**两处都会做**：① 体检末尾（每次体检都做）；② **worker 启动时**（`tests/setup-worker-registry.ts` 调 `maybePruneRegistry()`：**24h 限频**，靠目录里的 `.pruned-at` 标记 ⇒ **没跑过体检的机器**（只跑 vitest、或体检脚本没装到那台机器）也能清；⚠️ **不需要锁** ⇒ 回收只删自己枚举到的文件，两个回收进程同时跑也只是多删一次同一个文件）。**体检已挂到 `pnpm test` 收尾**（`scripts/test-summary.ts` 在 vitest 退出后调用 `main([])`；跑出汇总行与未取到汇总行两条路径都调用）；它是**体检报告不是门禁**，不改退出码。体检结论**落盘**到 `test-results/orphans.json`（与 `preflight.json` 并列，字段闭集：时刻 / 仓根 / 阈值 / 是否达阈值 / 孤儿 / 无法判定 / 回收数字；**写失败不阻断**）；两处 `ps` 调用带 **5 秒超时**（`PS_TIMEOUT_MS`）⇒ 系统负载极端时走既有的「取不到进程表」分支，不会把 `pnpm test` 的退出拖住。
+5. **临时目录自愈**：`scripts/sweep-stale-temps.ts`（`pnpm temps:sweep`）按年龄清残留 + **存量收敛完成**（61 个文件改走统一出口 `tempDir()`，判据升级为「残留调用 = 0」⇒ 新写的又漏会立刻变红）。⚠️ 扫描面只含 `.ts`/`.tsx`/`.mts`：`.mjs` 是纯 JS、由 `node` 直接跑（不经 tsx）⇒ import 不了 TS 模块 ⇒ 保留 `mkdtempSync`（如 `scripts/dev-all.mjs` 的 `--iso` 沙箱目录），不是漏改。
 
 ### 19.3 未闭合的待办（本节即登记处）
 
-| #   | 待办                                                            | 为什么还没做                                                                                                                    | 怎么验收                                                                                                    |
-| --- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| 1   | **`maxWorkers: 2` 未在 CI 上验证过**                            | CI runner 的核数与内存都不同于本机 ⇒ 这个数字在本机是「实测保守值」，在 CI 上只是「照抄」                                       | CI 上跑一轮全量 ⇒ 记下耗时与 `collect` 占比；若 CI 明显更宽裕，再评估是否调高（**调整需 owner 明确同意**）  |
-| 2   | **按「可用内存 ÷ 每 worker 估算占用」推导并发**                 | 现在是「扛不住就降到 1」的二值判断 ⇒ 机器只是**略微**紧张时也一律降到 1 ⇒ 慢得没必要                                            | 判定改成**分级**（如内存紧张度分三档 ⇒ 并发 2/1）⇒ 判据测试补边界值；且**分级表要有实测依据**，不能拍脑袋   |
-| 3   | **`scripts/check-orphan-workers.ts` 的「本仓」判定依赖 `lsof`** | `lsof` 是 macOS/Linux 通用工具但**非 POSIX 标准** ⇒ Windows 上没有 ⇒ 判据在 win32 runner 上会拿不到 cwd（表现为「孤儿数报 0」） | win32 runner 上验证一次；取不到 cwd 时**如实说「无法判定」**，不静默报 0（这条已实现，待真机验证）          |
-| 4   | **孤儿 worker 的「产生原因」尚未定位**                          | 本闸只**发现与清理**，没解释「为什么父进程死了 worker 还活着」⇒ 治标不治本                                                      | 用 `sample`/调用栈确认 vitest worker 的存活条件；若是 vitest 侧问题 ⇒ 升级上游或改跑法（如 `--pool=forks`） |
+| #   | 待办                                                            | 状态                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | 怎么验收                                                                                                                                                                                                                                                                                                                                  |
+| --- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **`maxWorkers: 2` 未在 CI 上验证过**                            | **机制已就位，数字待取** —— CI 里已加「收集 + 上传 `test-results/preflight.json`」两步（`.github/workflows/ci.yml`），下一次 CI 一跑就有三平台的实测档位与耗时；**本轮改动未 push ⇒ 触发不到**                                                                                                                                                                                                                                                                                                                                                                                                                 | CI 跑完看 artifact `preflight-<os>` ⇒ 三平台档位与耗时齐了 ⇒ 再评估是否调高（**调整需 owner 明确同意**）                                                                                                                                                                                                                                  |
+| 2   | **按「可用内存 ÷ 每 worker 估算占用」推导并发**                 | **已闭合（2026-11-03 以「三路取最小」落地）** —— 并发不再是「固定三档决定」，而是三路上限取最小：① **比例线**（可用 < 总内存 1/8 ⇒ 1）；② **占用估算**（可用 ÷ 每 worker 1 GiB = 养得起的个数，**绝对口径**）；③ **swap 线**（≥ 85% ⇒ 1）。**档位由并发结论反推** ⇒ 不会出现「吃紧却给 2 个并发」。四个系数同步调整（吃紧线 1/16 → 1/8；紧张线 25% 保留；swap 线 50% → 60%、80% → 85%）。⚠️ **分档依据不是「耗时劣化点」**：实测（`preflight:matrix`）并发 1/2/4 的耗时是 972/673/600ms（**并发高反而更快**）⇒ 说明本机当时 swap 已用 79%，**机器本来就在换页**，测不出并发的边际代价 ⇒ 改用**可计算的物理量** | 判据测试覆盖：三路上限各自的上限值与「取最小」、占用估算的可养个数（含养不起 1 个时按 1 算）、四个系数的登记值、「同一 4 GB 在 8 GB / 64 GB 机器上判定相反」（`tests/machine-preflight.test.ts`）；采集脚本可随时复跑补数据                                                                                                               |
+| 3   | **`scripts/check-orphan-workers.ts` 的「本仓」判定依赖 `lsof`** | **已闭合** —— 改为**双通道**：worker 自登记（`packages/core/src/test-support/worker-registry.ts` ＋ vitest `setupFiles`）⇒ **跨平台**，不依赖任何系统工具；`lsof` 降为回落通道；都取不到时**如实报「无法判定」**（不静默报 0）                                                                                                                                                                                                                                                                                                                                                                                 | 判据已覆盖「登记目录里有该 pid ⇒ 拿得到 cwd」「坏文件跳过」「目录不存在 ⇒ null」「主通道优先于 lsof」                                                                                                                                                                                                                                     |
+| 4   | **孤儿 worker 的「产生原因」尚未定位**                          | **已闭合（根因已定位）** —— 探针 `docs/devlog-evidence/DEV-0159/orphan-worker-probe.mjs` 实测复现：**主进程被 `kill -9`（SIGKILL）⇒ vitest worker 不会自杀 ⇒ 变 `PPID=1` 孤儿**；正常退出路径**不留残留**（跑完全量后 `orphans:check` 报「0 个 ⇒ 干净」）                                                                                                                                                                                                                                                                                                                                                      | 探针可复跑（每次复现 1 个孤儿）；结论已写进探针文件头与 DEV_LOG                                                                                                                                                                                                                                                                           |
+| 5   | **登记只按「pid 已死」判定 ⇒ pid 被复用时清不掉**               | **已闭合（2026-11-03）** —— `pruneRegistry()` 增加**年龄维度**（默认 7 天，`DEFAULT_MAX_AGE_MS`）：保留条件从「存活」改为「**存活且未超龄**」。`at` **解析不出来 ⇒ 不算过期**（保留，仍受存活判定约束）—— 理由同 preflight 的 swap 口径：「查不到 ≠ 不合法」。⚠️ 判据测试显式注入「当前时刻」，避免写死的日期过了 7 天后用例突然变红                                                                                                                                                                                                                                                                           | 判据覆盖「超龄登记被删（哪怕 pid 还活着）」「默认上限是 7 天」「`at` 解析不出来不算过期」「恰在上限之内保留」（`tests/check-orphan-workers.test.ts`）                                                                                                                                                                                     |
+| 6   | **从未跑体检的机器不回收登记**（DEV-0162 风险 ③ 遗留）          | **已闭合（2026-11-03）** —— worker 启动时（`tests/setup-worker-registry.ts`）调 `maybePruneRegistry()`：**24h 限频**（目录里的 `.pruned-at` 标记）⇒ **只跑 vitest、没装体检脚本的机器**也能清。⚠️ 当时用「独占锁」防并发回收，2026-11-03 改布局后**锁已不需要**（回收只删自己枚举到的文件 ⇒ 并发回收只是多删一次同一个文件）                                                                                                                                                                                                                                                                                   | 判据覆盖「没跑体检的机器也能回收」「限频窗口内跳过」「过了窗口又能回收」「setup 文件确实调了」（`tests/check-orphan-workers.test.ts`）                                                                                                                                                                                                    |
+| 7   | **登记与回收的并发竞态**（登记追加 vs 回收读-改-写 ⇒ 丢行）     | **已闭合（2026-11-03）** —— 根因：旧布局是「一个 JSON Lines 文件」⇒ 登记**追加**、回收**读-改-写 + `rename` 覆盖** ⇒ 两者撞上时**刚追加的那一行被覆盖消失**（实测 360 条写出去只剩 199–293 条，丢 19%–45%，随调度波动）。⇒ 改**存储布局**而非加锁：**目录 + 每条登记一个文件** ⇒ 登记 = 新建自己的文件（`tmp` → `rename` 原子发布）、回收 = 只删自己枚举到的文件 ⇒ **结构上不可能丢行**；连带的「写了一半被当成坏文件清掉」也一并消除（原子发布 ⇒ 读者只看到完整 JSON）                                                                                                                                        | ① 判据测试：「回收过程中新建的登记不会被删」（注入式复现那个时序）+「登记路径没有 `appendFileSync`」+「回收只删自己枚举到的文件」+「正在写的 `tmp` 不被碰」；② **真机并发压测探针** `docs/devlog-evidence/DEV-0165/registry-race-probe.mjs`：6 进程 × 60 条并发登记 + 并发回收 ⇒ 旧布局丢 67–161 条、新布局**每个写者的最新登记一条未丢** |
 
 ⚠️ **口径纪律**：本表的「怎么验收」列是**判据的来源** ⇒ 实现时直接把它翻成 `tests/` 里的用例，**不另写一套验收**。
+
+### 19.4 分级表的实测出处（可复算）
+
+采集脚本：`pnpm preflight:matrix`（受控压力）/ `pnpm preflight:sample`（自然状态）⇒ 产物 `test-results/preflight-samples.jsonl`。
+
+| 观测项                                    | 实测值（2026-11-02）                                                | 对分级表的影响                                                                                                                                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 压堆上限（2048/256/96 MB）                | 三档耗时全在 850–1020ms，**无区分度**                               | 堆上限只影响 GC 频率、不影响实际占用 ⇒ **不是**有效的压力轴                                                                                                                                              |
+| 内存重负载（每 worker 300–700 MB × 6 支） | 并发 1/2/4 ⇒ 972/673/600ms（**并发高更快**）                        | 本机当时 swap 已用 79%、可用内存 0.09 GB ⇒ **机器本来就在换页** ⇒ 测不出并发的边际代价 ⇒ 分档改用**可计算的物理量**                                                                                      |
+| 单支重负载 vs 六支重负载                  | 单支：471–512ms（无区分度）；六支：600–972ms                        | 并发只有在**有多支可并行**时才有意义 ⇒ 采集夹具必须造「多支」                                                                                                                                            |
+| 阈值口径换算（2026-11-02 增强）           | 本机 16 GB：1/16 × 16 GB = 1 GB；25% × 16 GB = 4 GB                 | 与改前的绝对字节阈值**逐位相等** ⇒ 本机行为不变，只补上「跨机器可缩放」这一维（绝对值在大机器上含义相反）                                                                                                |
+| 系数调整（2026-11-03 第二轮）             | 每 worker 实测占用 300–700 MB；换页事故 swap 91%；本机常态 swap 79% | 吃紧线 1/16 → **1/8**（本机 2 GB = 默认并发 2 × 1 GiB ⇒ 与占用估算同结论）；占用估算取 **1 GiB**（实测上界 700 MB + 余量）；swap 线 50% → **60%**、80% → **85%**（常态 79% 不再误降、事故 91% 仍能抓到） |
+
+⚠️ **这张表本身是「否证」的记录**：它否掉了「按耗时劣化点分档」这条路 ⇒ **别再重复试**（除非换一台**不常驻换页**的机器重采）。
+
+### 19.5 孤儿 worker 的后续（治标与治本的分界）
+
+⚠️ 待办 4 闭合的是「**根因已知**」，不是「**问题解决**」：
+
+| 手段                                                         | 性质 | 覆盖范围                                                          |
+| ------------------------------------------------------------ | ---- | ----------------------------------------------------------------- |
+| `pnpm orphans:check` / `orphans:clean`                       | 治标 | 发现并清理**已产生**的孤儿（默认只报数，动手前逐个确认 cwd）      |
+| 探针 `docs/devlog-evidence/DEV-0159/orphan-worker-probe.mjs` | 诊断 | 证明根因是「主进程被 SIGKILL ⇒ worker 不自杀」                    |
+| **根治**                                                     | 未做 | 需**上游**让 worker 监听父进程死亡（vitest 内部改动，本仓改不了） |
+
+⇒ 本仓能做的极致是「**减少强杀**」：CI 里不要 `kill -9` 掉 vitest 主进程（超时用 `SIGTERM`），本地 Ctrl-C 走 `SIGINT` ⇒ 正常退出路径实测**零残留**。
+⇒ 若 owner 认为需要根治 ⇒ 只能**升级 vitest 上游**或**换池模式**（如 `--pool=forks` 与 threads 的差异）⇒ **需 owner 明确同意**，不在本轮范围。
+
+## §20 Track N 执行线（新手 vibecoding 助手单轨 · 2026-11-15 开档）
+
+> **单源**：`docs/decisions.md` ㊻（`[DEV-0272]`，2026-11-14 owner 裁 N——新手单轨，Track N 全做）。本节只登记**执行线与各站状态**，各站的设计口径回指对应 spec，**不复制**。
+
+**批次顺序与 A 级标记**（decisions ㊻ 原文口径）：
+
+| 站  | 内容                                  | 级别     | 状态（2026-11-16）                                                  |
+| --- | ------------------------------------- | -------- | ------------------------------------------------------------------- |
+| N1  | 六平台二级文件加载探针（U10，纯证据） | 非 A 级  | **已完成**（结论在 `docs/devlog-evidence/N1-probe/conclusions.md`） |
+| N2  | slash 命令文件（独立产物线）          | 非 A 级  | **已落地**（2026-11-16，见下）                                      |
+| N3  | hooks 集成                            | **A 级** | 未开工（走 A 级链：裁定＋附录编号＋schemaVersion+1＋先改 golden）   |
+| N4  | m11 L0/L1 分层加载落地                | **A 级** | 未开工（同上）                                                      |
+
+**N2 落点速览**（口径单源 = [`docs/specs/n2-slash-commands.md`](./specs/n2-slash-commands.md) v1.0）：
+
+- **独立产物线**：slash 命令文件不进标准包 manifest、不经 adapter 产出，与主规则文件并列但互不耦合，**不触发 §7/§8 A 级链**。
+- **命令集**：完整集——`CLI_COMMANDS`（13 条）每条对应一个 slash 命令文件（`commands/ov-<name>.md`），命名统一 `ov-` 前缀。
+- **生成器**：`packages/core/src/slash/generate.ts` 的 `generateSlashCommands()`，确定性渲染（同输入字节级相同、码点序）。
+- **CLI 入口**：`openvibe commands export [dir]`（缺省 `./commands/`），纯本地。
+- **验收**：确定性 / 覆盖 / 一致性 / 契约不动 / CI 全绿——全量测试 3028 通过，仅剩 M9 既有基线失败（与本线无关）。
+
+**文档登记**：任务行已入 `docs/tasks.md` §2d；本条落档在 `DEV_LOG.md` `[DEV-0275]`。

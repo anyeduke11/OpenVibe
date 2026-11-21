@@ -20,11 +20,11 @@ npx openvibe-cli sync ~/your-project --pack default            # ② 把预置�
 npx openvibe-cli diff ~/your-project                           # ③ 看有没有漂移（0=一致，2=有改动）
 ```
 
-> **`openvibe-cli` 尚未在 npm 上线**（v0.1.0 发布的最后一步；registry 于 2026-10-22 复测仍 404）。
-> 上线前两条装法：① 从 [release v0.1.0](https://github.com/anyeduke11/OpenVibe/releases/tag/v0.1.0) 下载 `openvibe-cli-0.1.0.tgz`，`npm i -g ./openvibe-cli-0.1.0.tgz`（该资产的体积 / sha256 / 36 条清单见发布说明「测量口径」）；② 源码构建：`pnpm install && pnpm pkg:cli` → `cd apps/cli/pkg && npm pack` →
-> `npm i -g openvibe-cli-0.1.0.tgz`（cwd 仍在上一步的 `apps/cli/pkg`，故路径不带前缀）。之后命令同上（全局装过就不必每行带 `npx`）；**装后跑通五命令这件事未在干净机复验**，见发布说明「本版本未验证的事」。
+> **`openvibe-cli` 尚未在 npm 上线**（首发版本定为 **v0.2.3**，不另发 v0.1.0；registry 于 2026-10-22 复测仍 404）。
+> 上线前两条装法：① 从 [release v0.2.3](https://github.com/anyeduke11/OpenVibe/releases/tag/v0.2.3)（发布后）下载 `openvibe-cli-0.2.3.tgz`，`npm i -g ./openvibe-cli-0.2.3.tgz`（体积 / sha256 / 清单见 [v0.2.3 发布说明](https://github.com/anyeduke11/OpenVibe/blob/main/docs/release-notes/v0.2.3.md)「测量口径」）；② 源码构建：`pnpm install && pnpm pkg:cli` → `cd apps/cli/pkg && npm pack` →
+> `npm i -g openvibe-cli-0.2.3.tgz`（cwd 仍在上一步的 `apps/cli/pkg`，故路径不带前缀）。之后命令同上（全局装过就不必每行带 `npx`）；**装后跑通五命令这件事未在干净机复验**，见 [发布说明「本版本未验证的事」](https://github.com/anyeduke11/OpenVibe/blob/main/docs/release-notes/v0.2.3.md)。
 
-第 ① 步首启会把 **≥100 条术语 / 7 套流程模板 / 21 条精选提示词 / ≥10 条技巧**播进本地库，并自动组装出一个 `default` 标准包
+第 ① 步首启会把 **≥100 条术语 / 9 套流程模板 / 21 条精选提示词 / ≥10 条技巧**播进本地库，并自动组装出一个 `default` 标准包
 （条数是**门槛口径**，实际条数以 `pnpm seed:check` 的现跑为准）
 ——不用先建库再对着空界面发呆。第 ② 步默认先给预览表、要你确认，覆盖任何已有文件前会先备份。跑完你会得到：
 
@@ -65,20 +65,20 @@ npx openvibe-cli diff ~/your-project                           # ③ 看有没�
 
 **Web（`openvibe serve` 后打开）**
 
-| 路由         | 干什么                                                                                 |
-| ------------ | -------------------------------------------------------------------------------------- |
-| `/`          | 工作台：首启向导、标准化飞轮统计、本机自证层                                           |
-| `/library`   | 提示词库：文件夹树 + 过滤器 + 双栏编辑器，版本历史/diff/回滚，四形态导入导出           |
-| `/terms`     | 术语库：拼音与英文双序搜索、多选、`TERMS.md` 实时预览                                  |
-| `/dev`       | 开发能力：语言知识点站位图 ＋ 两门语言对照 ＋ 源码解读抽屉（M9）                       |
-| `/resources` | 学习资源：可筛选的资源清单，每条带模式标记（速成 / 精通）                              |
-| `/playbooks` | 技巧库：记录真实场景的做法与反例，导出 `PLAYBOOKS.md`                                  |
-| `/skills`    | Skill 台账：扫描本机 skill 目录与项目规则文件并登记                                    |
-| `/flows`     | 流程模板：七套内置模板只读，复制成自己的再裁剪阶段                                     |
-| `/projects`  | 项目工作台：阶段条 + 看板拖拽（键盘/按钮同效）+ 开发日志 + 回流入口 + 注入状态         |
-| `/packs`     | 标准包：五步向导组包、预览即产物（与导出字节一致）、导出历史与 bundle 下载             |
-| `/growth`    | 成长与统计：阶段向量、越级入口与毕业信号（信号未采集时如实标注「待采集」）             |
-| `/settings`  | 设置：数据目录、种子重播、备份说明、遥测开关、向导重播、解读服务多份配置、来源成本台账 |
+| 路由         | 干什么                                                                                                                                                          |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`          | 工作台：首启向导、标准化飞轮统计、本机自证层                                                                                                                    |
+| `/library`   | 提示词库：文件夹树 + 过滤器 + 双栏编辑器，版本历史/diff/回滚，四形态导入导出                                                                                    |
+| `/terms`     | 术语库：拼音与英文双序搜索、多选、`TERMS.md` 实时预览                                                                                                           |
+| `/dev`       | 开发能力：语言知识点站位图 ＋ 两门语言对照 ＋ 源码解读抽屉（M9）                                                                                                |
+| `/resources` | 学习资源：可筛选的资源清单，每条带模式标记（速成 / 精通）                                                                                                       |
+| `/playbooks` | 技巧库：记录真实场景的做法与反例，导出 `PLAYBOOKS.md`                                                                                                           |
+| `/skills`    | Skill 台账：扫描本机 skill 目录与项目规则文件并登记                                                                                                             |
+| `/flows`     | 流程模板：九套内置模板只读，复制成自己的再裁剪阶段                                                                                                              |
+| `/projects`  | 项目工作台：阶段条 + 看板拖拽（键盘/按钮同效）+ 开发日志 + 回流入口 + 注入状态                                                                                  |
+| `/packs`     | 标准包：六步向导组包（含钩子配置步）、预览即产物（与导出字节一致）、导出历史与 bundle 下载                                                                      |
+| `/growth`    | 成长与统计：阶段向量、越级入口与毕业信号（信号未采集时如实标注「待采集」）                                                                                      |
+| `/settings`  | 设置：数据目录、种子重播、备份说明、遥测开关、向导重播、解读服务多份配置、来源成本台账、上下文治理面板（趋势 / 棘轮 / 合并清单，`pnpm context:check` 的可见面） |
 
 **CLI**
 
@@ -86,6 +86,7 @@ npx openvibe-cli diff ~/your-project                           # ③ 看有没�
 openvibe serve [--port 8787] [--open]     本地 API + Web UI，首启生成配置与令牌
 openvibe sync <dir> [--pack <n[@v]>]      注入：--dry-run 零写入 / --file|--dir 离线注入 / --target 只写指定平台
 openvibe scan  [--skills | --project <d>] 扫描 skill 目录或项目规则文件并登记
+openvibe skill get <name>                从库取回 skill（远程条目下载落盘；本机已有则只报路径）
 openvibe diff  <dir>                      产物 vs lock 比对 + 是否有更新版本；退出码 0 一致 / 2 漂移
 openvibe verify <dir>                     三方一致性核验（包版本 / lock / 磁盘，只读）：CONSISTENT / PARTIAL
                                           （疑似注入中断）/ ORPHAN / DISK_DRIFT / STALE_LOCK / UNMANAGED；
@@ -259,10 +260,10 @@ npm / npx 用户走 `prebuild-install` 按平台与 Node ABI 取预编译包，�
 
 **Node 版本？** ≥ 22。macOS / Linux / Windows 三平台 CI 常跑。
 
-## 已知局限（v0.1.0）
+## 已知局限
 
 - **一项目一包**：`pack.lock.json` 是单包结构，一个目录同时只由一个标准包托管，换包即整包替换，不做多包叠加。
-- **整文件管理，无块级合并**：受管单位是整个产物文件；注入后你改过的段落（DRIFT）不会被自动重写。
+- **整文件管理，无块级合并**：受管单位是整个产物文件；注入后你改过的段落（DRIFT）不会被自动重写。（写入判定如此；`openvibe diff` 的段级报文会区分壳头/受管段/自由区——自由区差异属于你，永不触碰。）
   退场用 `clean`（默认只删未改动的受管文件，删除前一律先备份），回滚同理靠 `.openvibe/backup/`；
   没有 `update` 子命令（标记已预埋，块级合并是下一档要做的事）。
 - **验证面有边界**：三平台 CI 每轮跑全量用例，但 win32 腿会门控跳过 8 支 POSIX 语义用例（硬链接/目录链接），
@@ -287,6 +288,7 @@ pnpm lint && pnpm typecheck && pnpm test        # 四层：unit / integration / 
                                                   # 支数与文件数随提交变动，**以 pnpm test 的汇总行为准**
                                                   # （本仓 §13-8「记位置不记次数」的同款纪律：README 不写死任何一次的支数）
 pnpm seed:check && pnpm bundle:check            # 另两道门禁：种子数量与构成配额、Web 体积闸门（入口 ≤ 300 kB / 单 chunk ≤ 500 kB）
+pnpm docs:check && pnpm context:check           # 文档治理闸（八条判据）＋上下文治理闸（C-1…C-6，含 CM ↔ FR 追溯闭合）；CI 与 pre-commit 均强制
 pnpm pkg:cli                                    # 产出发布暂存目录 apps/cli/pkg/
 cd apps/cli/pkg && npm pack                     # → openvibe-cli-<版本>.tgz，可 npm i -g 它
 ```
@@ -311,13 +313,17 @@ docs/
     ├── m5-project-flow.md     m6-standard-pack.md    m6-cli-injection.md
     ├── m7-team-collab.md      m8-agent-bridge.md     m8-agent-panel.md
     ├── seed-content.md        onboarding.md          m4-playbook.md
-    └── m9-dev-language-roadmap.md  m9-dev-plan-2026-10.md   ← 开发能力线（M9）
+    ├── m9-dev-language-roadmap.md  m9-dev-plan-2026-10.md   ← 开发能力线（M9）
+    ├── m11-context-loading.md context-governance.md  ← 上下文分层加载（M11）＋上下文治理闸（`pnpm context:check` 判据）
+    ├── n3-hooks.md                                    ← 注入前/后钩子（N3：CLI 执行 + Web 配置，manifest `hooks` 字段）
+    └── context-management.md  context-density.md     ← 上下文管理需求（2026-11-03 治理件）＋体量口径
 ```
 
 里程碑：P0 文档定稿 → T1 脚手架 → T2 存储核心 → T3 提示词库 → T4 术语库 → T5 项目流程 →
 T6 组包导出 → T7 CLI 注入 → T8 种子全量 + 开箱体验 → T9 飞轮 E2E → v0.1.0 发布（2026-09）。
 其后是 v0.2.0 重构线（[PRD.md](https://github.com/anyeduke11/OpenVibe/blob/main/docs/PRD.md) 第 10 章 RF0–RF5）＋ M8 Agent 接入（第 11 章）＋
-M9 开发能力线（`docs/specs/m9-dev-language-roadmap.md`）；任务号与出口判据单源在
+M9 开发能力线（`docs/specs/m9-dev-language-roadmap.md`）＋ M11 上下文分层加载（`docs/specs/m11-context-loading.md`）；
+任务号与出口判据单源在
 `docs/dev-plan.md` 与 `docs/specs/m9-dev-plan-2026-10.md`。
 细节见 [DEV_LOG.md](https://github.com/anyeduke11/OpenVibe/blob/main/DEV_LOG.md)。
 

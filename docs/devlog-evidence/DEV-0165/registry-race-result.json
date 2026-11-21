@@ -1,0 +1,21 @@
+{
+  "at": "2026-11-03T03:14:02.466Z",
+  "writers": 6,
+  "perWriter": 60,
+  "old": {
+    "layout": "old",
+    "pruneRounds": 95,
+    "totalWritten": 360,
+    "recordsAtEnd": 293,
+    "lostRecords": 67
+  },
+  "new": {
+    "layout": "new",
+    "pruneRounds": 70,
+    "totalWritten": 360,
+    "recordsAtEnd": 9,
+    "writersMissingNewest": 0,
+    "missingNewestAt": []
+  },
+  "passed": true
+}

@@ -397,10 +397,8 @@ async function realClickWhenReady(expr, ms = 8_000, what = '按钮') {
   await waitForNode(expr, ms, what)
   await realClick(expr, what)
 }
-// 2026-11-14 对齐 HEAD UI：搜索框重构后 placeholder 变为「搜索…」（lane-assets.state），
-// 页面专属文案（「搜索标题 / …」「搜索中文名 / …」）落在 aria-label 上（AssetSearchBox 的 ariaLabel prop）
-const SEARCH_LIB = `document.querySelector('input[aria-label^="搜索标题"]')`
-const SEARCH_TERMS = `document.querySelector('input[aria-label^="搜索中文名"]')`
+const SEARCH_LIB = `document.querySelector('input[placeholder^="搜索标题"]')`
+const SEARCH_TERMS = `document.querySelector('input[placeholder^="搜索中文名"]')`
 
 let shotIndex = 0
 async function shot(name) {
@@ -600,9 +598,6 @@ try {
     await sleep(100)
   }
   check('SM-2b 中文检索真发出了 /api/terms/search 请求', req2 !== '', req2.slice(0, 120))
-  // 2026-11-14 对齐 HEAD UI：术语页默认「卡片」视图（owner 2026-10-18 裁定），勾选框
-  // 只在「表格」视图（TermsTable）⇒ 先真点击切到表格，再轮询等勾选框。
-  await realClick(btnExpr('表格'))
   // SM-2b 只证明检索请求「已发出」，响应渲染在其后。本腿原为单发探针 ⇒ run 36805907062 的 macos
   // 在响应到达前一瞬取到 0 就记 FAIL，而同 run 用轮询的 SM-2d 反而过（同族口径见本段「SM-2e 过了
   // 不等于预览已就绪」）。改轮询到 6 s：到点仍无即 FAIL，不把时差哄成通过、也不当产品缺陷误伤。
@@ -677,12 +672,8 @@ try {
 // ================= SM-3 向导三步（真点击推进 + sync 点亮 + 询问卡） =================
 say('\n== SM-3 开箱向导三步：全程真点击')
 try {
-  // 2026-11-14 对齐 HEAD UI：向导条（OnboardingBar）现挂在 WorkbenchPage（`/`），不在 /library；
-  // h2 可见文案为 sys.onboarding.title「首启向导」（「开箱三步」只存在于 aria-label）。
-  await go('/')
-  // 「首启向导」同时是 header「重开向导」按钮的常驻文案 ⇒ 用向导条独有的副标题判「在位」，
-  // 收起后副标题消失 ⇒ SM-3g 也能用它判「消失」。
-  check('SM-3a 顶栏向导条在位', await waitForText('每步都产生真实副作用', 10_000))
+  await go('/library')
+  check('SM-3a 顶栏向导条在位', await waitForText('开箱三步', 10_000))
   await realClick(btnExpr('下一步'))
   check('SM-3b 真点击推进到步②', await waitForText('看一个标准包长什么样', 8_000))
   await sleep(1_200)
@@ -744,7 +735,7 @@ try {
   await realClick(btnExpr('完成向导'))
   check('SM-3f 真点击「完成向导」出现一次性询问卡', await waitForText('开启匿名统计？', 10_000))
   await realClick(btnExpr('暂不'))
-  check('SM-3g 真点击「暂不」后向导条消失', await waitGoneText('每步都产生真实副作用', 8_000))
+  check('SM-3g 真点击「暂不」后向导条消失', await waitGoneText('开箱三步', 8_000))
   await go('/library')
   // 刷新与「暂不」之间刻意不 await —— 这两条腿测的正是「用户点完就走」会不会把选择弄丢。
   // 轮询只是给那个请求落地的时间：若它真被导航掐断，askState 会永远停在 unset，到点仍判

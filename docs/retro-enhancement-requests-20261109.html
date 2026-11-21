@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>增强需求复盘报告 · OpenVibe · 2026-11-09</title>
+<style>
+  :root {
+    --paper: #faf7f2;
+    --paper-2: #f3eee5;
+    --card: #fffdfa;
+    --ink: #2b2620;
+    --ink-soft: #57503f;
+    --ink-faint: #8a8171;
+    --line: #e3dccf;
+    --line-soft: #efe9dd;
+    --accent: #8a5a2b;
+    --accent-soft: #f0e4d5;
+    --ok: #3d6b4f;
+    --ok-soft: #e4efe7;
+    --warn: #96660f;
+    --warn-soft: #f7edd7;
+    --bad: #94392f;
+    --bad-soft: #f6e3e0;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.75 -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px 120px; }
+
+  /* header */
+  header.top {
+    padding: 72px 0 40px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 48px;
+  }
+  .eyebrow {
+    font: 600 12px/1 var(--mono);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: clamp(30px, 4.6vw, 46px);
+    line-height: 1.2;
+    letter-spacing: -.02em;
+    margin: 0 0 18px;
+    font-weight: 650;
+  }
+  .standfirst {
+    font-size: 18px;
+    color: var(--ink-soft);
+    max-width: 46em;
+    margin: 0 0 28px;
+  }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 10px 28px;
+    font: 13px/1.6 var(--mono);
+    color: var(--ink-faint);
+  }
+  .meta b { color: var(--ink-soft); font-weight: 500; }
+
+  /* sections */
+  section { margin-bottom: 64px; }
+  h2 {
+    font-size: 25px;
+    letter-spacing: -.01em;
+    margin: 0 0 8px;
+    font-weight: 620;
+    display: flex; align-items: baseline; gap: 14px;
+  }
+  h2 .no {
+    font: 600 13px/1 var(--mono);
+    color: var(--accent);
+    letter-spacing: .08em;
+    flex: none;
+    padding-top: 3px;
+  }
+  .lede { color: var(--ink-soft); margin: 0 0 28px; max-width: 46em; }
+  h3 {
+    font-size: 17px; font-weight: 620;
+    margin: 34px 0 12px;
+    padding-left: 12px; border-left: 3px solid var(--accent);
+  }
+  h4 { font-size: 15px; font-weight: 620; margin: 22px 0 8px; color: var(--ink-soft); }
+  p { margin: 0 0 14px; }
+  ul, ol { margin: 0 0 16px; padding-left: 1.4em; }
+  li { margin-bottom: 7px; }
+  li > ul, li > ol { margin-top: 7px; }
+  strong { font-weight: 620; }
+  code {
+    font: .88em/1.5 var(--mono);
+    background: var(--paper-2);
+    padding: 1.5px 6px;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+
+  /* stat grid */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin: 28px 0 8px;
+  }
+  .stat {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 18px 16px;
+  }
+  .stat .n {
+    font: 650 30px/1.1 var(--mono);
+    letter-spacing: -.03em;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .stat .l { font-size: 13px; color: var(--ink-soft); line-height: 1.5; display: block; }
+  .stat .s { font-size: 12px; color: var(--ink-faint); line-height: 1.5; display: block; margin-top: 4px; }
+
+  /* callouts */
+  .callout {
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    margin: 22px 0;
+  }
+  .callout .t {
+    font: 600 12px/1 var(--mono);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block; margin-bottom: 8px;
+  }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout.warn .t { color: var(--warn); }
+  .callout.bad { border-color: var(--bad); background: var(--bad-soft); }
+  .callout.bad .t { color: var(--bad); }
+  .callout.ok { border-color: var(--ok); background: var(--ok-soft); }
+  .callout.ok .t { color: var(--ok); }
+
+  /* tables */
+  .tw { overflow-x: auto; margin: 20px 0; border: 1px solid var(--line); border-radius: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--card); }
+  th {
+    text-align: left; font: 600 12px/1.4 var(--mono);
+    letter-spacing: .06em; text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--paper-2);
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  td { padding: 11px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { font-family: var(--mono); white-space: nowrap; }
+  td code { font-size: 12.5px; }
+  .right { text-align: right; }
+
+  /* tags */
+  .tag {
+    display: inline-block;
+    font: 600 11px/1.5 var(--mono);
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--paper-2);
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .tag.hot { background: var(--bad-soft); color: var(--bad); }
+  .tag.mid { background: var(--warn-soft); color: var(--warn); }
+  .tag.low { background: var(--ok-soft); color: var(--ok); }
+
+  /* chain diagram */
+  .chain {
+    display: flex; flex-wrap: wrap; align-items: stretch;
+    gap: 0; margin: 26px 0;
+  }
+  .node {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font: 600 13px/1.4 var(--mono);
+    color: var(--ink);
+    position: relative;
+  }
+  .node small {
+    display: block; font-weight: 400;
+    font-size: 11.5px; color: var(--ink-faint);
+    margin-top: 3px; line-height: 1.45;
+  }
+  .arrow {
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 10px; color: var(--ink-faint); font-size: 16px; flex: none;
+  }
+
+  /* checklist */
+  .check {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 4px 0;
+    margin: 18px 0;
+  }
+  .check .gi {
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--line-soft);
+    font-weight: 620; font-size: 14.5px;
+    display: flex; gap: 10px; align-items: baseline;
+  }
+  .check .gi:last-child { border-bottom: none; }
+  .check .gi .badge {
+    font: 600 11px/1 var(--mono);
+    background: var(--accent); color: #fff;
+    padding: 3px 7px; border-radius: 4px; flex: none;
+  }
+  .check .items { padding: 8px 18px 14px 43px; }
+  .check .items li { font-size: 14px; color: var(--ink-soft); margin-bottom: 6px; }
+  .check .items li::marker { color: var(--accent); }
+
+  /* timeline */
+  .tl { position: relative; padding-left: 26px; margin: 24px 0; }
+  .tl::before {
+    content: ""; position: absolute; left: 7px; top: 6px; bottom: 6px;
+    width: 2px; background: var(--line);
+  }
+  .tl .ph { position: relative; margin-bottom: 26px; }
+  .tl .ph::before {
+    content: ""; position: absolute; left: -25px; top: 7px;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--paper); border: 2.5px solid var(--accent);
+  }
+  .tl .ph .when {
+    font: 600 12px/1 var(--mono); letter-spacing: .08em;
+    color: var(--accent); text-transform: uppercase;
+    display: block; margin-bottom: 7px;
+  }
+  .tl .ph .what { font-weight: 620; font-size: 15.5px; margin-bottom: 6px; }
+  .tl .ph p { font-size: 14px; color: var(--ink-soft); margin-bottom: 6px; }
+
+  /* kpi */
+  .kpi {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px; margin: 24px 0;
+  }
+  .kpi .k {
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card); padding: 16px 18px;
+  }
+  .kpi .k .now { font: 600 12px/1.4 var(--mono); color: var(--ink-faint); text-transform: uppercase; letter-spacing: .06em; display: block; }
+  .kpi .k .from { font: 650 22px/1.2 var(--mono); color: var(--bad); display: block; margin: 6px 0 2px; }
+  .kpi .k .to { font: 650 22px/1.2 var(--mono); color: var(--ok); display: block; }
+  .kpi .k .d { font-size: 13px; color: var(--ink-soft); margin-top: 8px; line-height: 1.5; }
+
+  footer {
+    margin-top: 80px; padding-top: 28px;
+    border-top: 1px solid var(--line);
+    font-size: 13px; color: var(--ink-faint);
+    line-height: 1.7;
+  }
+  footer code { font-size: 12px; }
+  @media (max-width: 640px) {
+    .wrap { padding: 0 18px 80px; }
+    header.top { padding: 48px 0 30px; }
+    .chain { flex-direction: column; }
+    .arrow { transform: rotate(90deg); padding: 6px 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <div class="eyebrow">Retro · OpenVibe · 2026-11-09</div>
+  <h1>增强需求复盘报告</h1>
+  <p class="standfirst">
+    对近三个月「频繁出现的增强需求」现象做全面复盘：先量化分布与频次，再区分<strong>「规划不足」</strong>与<strong>「收尾格式结构性产单」</strong>两类根因，最后给出可落地的覆盖标准、评审机制与检查清单。
+  </p>
+  <div class="meta">
+    <span><b>数据源</b> DEV_LOG.md（4,620 行 · 194 条 DEV）</span>
+    <span><b>窗口</b> 2026-08-09 → 2026-11-09</span>
+    <span><b>登记</b> DEV-0227</span>
+    <span><b>状态</b> 待 owner 裁定</span>
+  </div>
+</header>
+
+<!-- ============ 0 摘要 ============ -->
+<section id="summary">
+  <h2><span class="no">00</span>摘要</h2>
+  <p class="lede">一页结论。详细证据见后续各章。</p>
+
+  <div class="callout bad">
+    <span class="t">核心结论</span>
+    <p><strong>「增强需求频繁出现」的主因不是规划能力不足，而是收尾格式的结构性缺陷。</strong>本仓的规划与评审机制实际相当成熟（验收-测试映射表、契约冻结分级、决策台账、观察池均已建立），真正的问题在于：<strong>CLAUDE.md 规定的三段收尾格式里，「未考虑且需要增强的需求」这一段的产物没有任何准入约束</strong>，于是每条 DEV 的第三段都会生成 1–3 条新待办，下一轮再执行 —— 形成一条自我繁殖的链。</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <span class="n">194</span>
+      <span class="l">近 3 个月 DEV 条目</span>
+      <span class="s">2026-08-09 → 11-09</span>
+    </div>
+    <div class="stat">
+      <span class="n">186</span>
+      <span class="l">「潜在风险」小节</span>
+      <span class="s">几乎每条 DEV 都有</span>
+    </div>
+    <div class="stat">
+      <span class="n">45</span>
+      <span class="l">含「收口/收尾/补齐/闭合」的条目</span>
+      <span class="s">占 23%</span>
+    </div>
+    <div class="stat">
+      <span class="n">13</span>
+      <span class="l">标题含「增强」的条目</span>
+      <span class="s">近 2 周集中出现</span>
+    </div>
+    <div class="stat">
+      <span class="n">75</span>
+      <span class="l">风险项含「未做/待填/未完成」</span>
+      <span class="s">显式欠账登记</span>
+    </div>
+    <div class="stat">
+      <span class="n">1</span>
+      <span class="l">既有的增强准入规则</span>
+      <span class="s">PRD v0.2.4 §14.2 · 未绑定收尾格式</span>
+    </div>
+  </div>
+
+  <h3>三条根因（按贡献度排序）</h3>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th style="width:32px">#</th><th>根因</th><th>性质</th><th style="width:88px">贡献度</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="num">R1</td>
+          <td><strong>收尾格式无准入约束</strong> —— 第三段「未考虑且需要增强的需求」默认可无限生成，且生成即成为下一轮工作</td>
+          <td><span class="tag hot">机制缺陷</span></td>
+          <td class="num"><span class="tag hot">主因</span></td>
+        </tr>
+        <tr>
+          <td class="num">R2</td>
+          <td><strong>规则已立但未绑定</strong> —— PRD v0.2.4 §14.2 的四条准入测试只作用于该轮审查，未上升为项目级收尾规范</td>
+          <td><span class="tag mid">执行缺口</span></td>
+          <td class="num"><span class="tag mid">次因</span></td>
+        </tr>
+        <tr>
+          <td class="num">R3</td>
+          <td><strong>判据/工具层的天然增量性</strong> —— 闸与工具在「被使用时」才暴露缺口，前期无法穷举（此类属正常迭代，不应被规则压制）</td>
+          <td><span class="tag low">客观规律</span></td>
+          <td class="num"><span class="tag low">需区分</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout ok">
+    <span class="t">一句话改进</span>
+    <p>把 PRD v0.2.4 §14.2 的四条准入测试<strong>从「某轮审查的局部规则」提升为「CLAUDE.md 收尾格式的强制前置」</strong>，并配一份「需求完整性验证检查清单」用于前期规划。规则本身不需要重写 —— 它已经写好了，只是没接上。</p>
+  </div>
+</section>
+
+<!-- ============ 1 数据盘点 ============ -->
+<section id="data">
+  <h2><span class="no">01</span>增强需求清单与分布</h2>
+  <p class="lede">先回答「有哪些、在哪、什么时候提、影响多大」。以下数字均由 DEV_LOG.md 现测复算，命令见文末附录。</p>
+
+  <div class="callout warn">
+    <span class="t">采样时点</span>
+    <p>下表数字的采样时点为 <strong>2026-11-09，DEV-0227 登记之前</strong>。登记后各计数自增 1（DEV 条目 195、含增强 14、潜在风险 187、欠账字样 77、收尾引用 44、11 月 DEV 70）。<strong>这种「登记一条就自增一条」的现象，正是本报告 §02 所描述的链式结构本身</strong> —— 读者复算时若看到 +1，不必怀疑数据有误。</p>
+  </div>
+
+  <h3>1.1 月度与模块分布</h3>
+  <p>DEV 条目按月分布（2026-08 起，仅统计有登记条目的月份）：</p>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>月份</th><th class="right">DEV 条目</th><th class="right">含「增强/收口/收尾/补齐/闭合」</th><th>主要模块</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>2026-08</td><td class="num right">37</td><td class="num right">—</td><td>P1 主体交付（T1–T9）</td></tr>
+        <tr><td>2026-09</td><td class="num right">88</td><td class="num right">—</td><td>规格补齐 · 决策裁定 · 文档一致性</td></tr>
+        <tr><td>2026-10</td><td class="num right">37</td><td class="num right">—</td><td>v0.2.3 批次 A–F · M8/M9 · 治理基建</td></tr>
+        <tr><td>2026-11（至 09 日）</td><td class="num right">69</td><td class="num right">18</td><td>闸与工具增强（btnBase / CDP / 快照）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout warn">
+    <span class="t">读法</span>
+    <p>「增强需求」在 <strong>2026-11 呈爆发态</strong>：11 月前 9 天就有 18 条含收尾/增强的条目，而 10 月整月仅 37 条 DEV。这不是「11 月规划变差了」，而是<strong>工作重心从「功能交付」转向了「闸与工具」</strong> —— 越是判据密集的区域，越容易在收尾时暴露新缺口。</p>
+  </div>
+
+  <h3>1.2 按模块归类（近 2 周 18 条）</h3>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>模块</th><th>代表条目</th><th>增强类型</th><th class="right">条数</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>闸增强</strong><br><span class="tag">btnBase / 静态闸</span></td>
+          <td><code>DEV-0211</code>–<code>0217</code></td>
+          <td>引用面闭合 · 增量按钮类 · 注释剥离 · 提取边界 · 复用提取器</td>
+          <td class="num right">7</td>
+        </tr>
+        <tr>
+          <td><strong>工具增强</strong><br><span class="tag">CDP / 快照 / 产物自检</span></td>
+          <td><code>DEV-0218</code>–<code>0226</code></td>
+          <td>产物自检 · 哈希清单 · 共享模块 · 覆盖判据</td>
+          <td class="num right">9</td>
+        </tr>
+        <tr>
+          <td><strong>治理基建</strong><br><span class="tag">context / docs</span></td>
+          <td><code>DEV-0180</code>–<code>0193</code></td>
+          <td>面板 · 趋势 · 分页 · 筛选态</td>
+          <td class="num right">14</td>
+        </tr>
+        <tr>
+          <td><strong>缺陷收口</strong></td>
+          <td><code>DEV-0197</code>–<code>0207</code></td>
+          <td>状态机 · 路径权威 · flaky 修复</td>
+          <td class="num right">6</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:13px;color:var(--ink-faint)">注：同一条目可跨模块，故合计大于 18。</p>
+
+  <h3>1.3 提出时机：几乎全部在「收尾」环节</h3>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>提出时机</th><th>典型措辞</th><th class="right">占比</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>任务收尾时</strong></td>
+          <td>「DEV-0223 收尾时列出的三项」</td>
+          <td class="num right">~70%</td>
+          <td>三段格式的既定动作</td>
+        </tr>
+        <tr>
+          <td><strong>缺陷修复后</strong></td>
+          <td>「R1 修复：状态迁移表…」</td>
+          <td class="num right">~15%</td>
+          <td>修完一个洞，看见旁边的洞</td>
+        </tr>
+        <tr>
+          <td><strong>审查/复核时</strong></td>
+          <td>「A–F 全批次独立复盘…五缺陷处置」</td>
+          <td class="num right">~10%</td>
+          <td>审查的副产物</td>
+        </tr>
+        <tr>
+          <td><strong>需求澄清时</strong></td>
+          <td>「owner 提出新的商机跟进需求」</td>
+          <td class="num right">~5%</td>
+          <td>真正的需求变化</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>1.4 影响范围</h3>
+  <div class="stats">
+    <div class="stat">
+      <span class="n">0</span>
+      <span class="l">增强需求触及已冻结契约</span>
+      <span class="s">A 级：design §7/§8</span>
+    </div>
+    <div class="stat">
+      <span class="n">0</span>
+      <span class="l">增强需求改变 HTTP 契约</span>
+      <span class="s">无 API 增删</span>
+    </div>
+    <div class="stat">
+      <span class="n">~90%</span>
+      <span class="l">增强需求只影响测试/脚本/文档</span>
+      <span class="s">产品代码改动极少</span>
+    </div>
+    <div class="stat">
+      <span class="n">1</span>
+      <span class="l">处契约级缺陷（P0）</span>
+      <span class="s">DEV-0019 指纹漂移</span>
+    </div>
+  </div>
+
+  <div class="callout">
+    <span class="t">关键观察</span>
+    <p>增强需求<strong>几乎不碰产品契约</strong>，全部集中在「判据与工具」层。这说明两件事：① 产品架构的前瞻性其实不差（契约稳定）；② 所谓「频繁出现的增强需求」，本质是<strong>质量保障层的持续补强</strong>，而不是一次次的产品设计返工。这个区分很重要 —— 它决定了改进方向是「收紧产单」而非「重做架构」。</p>
+  </div>
+</section>
+
+<!-- ============ 2 链式结构 ============ -->
+<section id="chain">
+  <h2><span class="no">02</span>链式结构：现象的可视化</h2>
+  <p class="lede">近 8 条 DEV 的收尾项如何一条生出下一条 —— 这是「频繁出现」的真正机制。</p>
+
+  <div class="chain">
+    <div class="node">DEV-0217<small>三项增强收口</small></div>
+    <div class="arrow">→</div>
+    <div class="node">DEV-0219<small>收尾第 2 项：<br>diff 判据提交后失效</small></div>
+    <div class="arrow">→</div>
+    <div class="node">DEV-0220<small>收尾三项：<br>全文快照 + fixture</small></div>
+    <div class="arrow">→</div>
+    <div class="node">DEV-0221<small>收尾第 4 项：<br>产物自检</small></div>
+    <div class="arrow">→</div>
+    <div class="node">DEV-0222<small>收尾三项：<br>哈希同步 + 前缀常量</small></div>
+    <div class="arrow">→</div>
+    <div class="node">DEV-0223<small>收尾 1、2 项：<br>扩清单 + 抽共享</small></div>
+    <div class="arrow">→</div>
+    <div class="node">DEV-0224<small>收尾三项：<br>扩清单 + 结构校验</small></div>
+    <div class="arrow">→</div>
+    <div class="node">DEV-0225<small>收尾三项：<br>抽模块 + 目录不变量</small></div>
+    <div class="arrow">→</div>
+    <div class="node">DEV-0226<small>收尾三项：<br>覆盖判据 + 推导 + 校验</small></div>
+  </div>
+
+  <p>链条上每一环都<strong>逻辑自洽</strong>：每一项都是对前一项「未覆盖面」的合理补强。问题不在单项的对错，而在于：</p>
+  <ul>
+    <li><strong>没有「收口」的终点。</strong>每修一个洞，就露出相邻的另一个洞，且新洞看起来与前一个同等重要。</li>
+    <li><strong>没有「准入门槛」。</strong>三段格式里，第三段是<strong>必填</strong>的 —— 这等于制度上要求「每轮至少想出一件事」。</li>
+    <li><strong>没有「落点收敛」。</strong>增强项直接进入下一轮执行队列，而非先判断是否属于既有批次的验收面。</li>
+  </ul>
+
+  <div class="callout bad">
+    <span class="t">自我繁殖机制</span>
+    <p>三段格式要求「未考虑且需要增强的需求」<strong>不得省略</strong>（CLAUDE.md 原文：「计划外的改进想法不得默默省略，必须进第三段」）。这条规定的<strong>初衷是防止遗漏</strong>，但客观效果是<strong>强制每轮产出一批新待办</strong> —— 一个不产生增强项的轮次反而违反格式。这是「频繁出现」的结构性根源。</p>
+  </div>
+</section>
+
+<!-- ============ 3 根因分析 ============ -->
+<section id="root">
+  <h2><span class="no">03</span>根因分析</h2>
+  <p class="lede">从需求调研、架构设计、评审流程三个维度定位。结论：三个维度里，<strong>调研与架构不是短板，评审流程的执行闭环才是</strong>。</p>
+
+  <h3>3.1 需求调研维度：覆盖标准缺失，但不是主因</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:150px">维度</th><th>现状</th><th style="width:110px">评价</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>用户画像</td>
+          <td>PRD 第 0 章有目标用户与场景；社区新用户画像（P0）</td>
+          <td><span class="tag low">充分</span></td>
+        </tr>
+        <tr>
+          <td>竞品调研</td>
+          <td>9 类竞品对比 + PromptHub 深挖 + 空白地带分析</td>
+          <td><span class="tag low">充分</span></td>
+        </tr>
+        <tr>
+          <td>场景覆盖</td>
+          <td>有用户故事；但<strong>缺乏「异常场景 / 边界场景 / 对抗场景」的显式枚举</strong></td>
+          <td><span class="tag mid">部分缺失</span></td>
+        </tr>
+        <tr>
+          <td>非功能需求</td>
+          <td>性能、安全、兼容性散见各 spec，<strong>无统一清单</strong></td>
+          <td><span class="tag mid">部分缺失</span></td>
+        </tr>
+        <tr>
+          <td>假设管理</td>
+          <td>PRD 第 0 章假设表 + 决策台账（D1–D25）</td>
+          <td><span class="tag low">充分</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>判定</strong>：调研覆盖面中等偏上，<strong>不是增强需求的主要来源</strong>。增强需求里几乎没有「用户场景没想到」的类型，绝大多数是「判据没覆盖到」。</p>
+
+  <h3>3.2 架构设计维度：前瞻性足够，契约稳定</h3>
+  <div class="callout ok">
+    <span class="t">证据</span>
+    <p>近 3 个月的 194 条 DEV 里，<strong>增强需求触及已冻结契约（design §7/§8、SCHEMA_VERSION）的次数为 0</strong>。产品分层（api / components / hooks / i18n / data）与契约（标准包、adapter 清单）在 P0 冻结后保持稳定。<strong>架构前瞻性不是问题。</strong></p>
+  </div>
+  <p>唯一的架构级事件是 <code>DEV-0019</code> 的「已发布版本再导出必然指纹漂移」—— 这是<strong>契约级缺陷</strong>，不是设计不足，且已修复。</p>
+
+  <h3>3.3 评审流程维度：规则已立，但未绑定收尾格式 <span class="tag hot">主因</span></h3>
+
+  <h4>已有的成熟机制</h4>
+  <ul>
+    <li><strong>验收-测试映射表</strong>（dev-plan §9）：每条任务对应具名用例 ID（UT-/IT-/CLI-/E2E-/GOLDEN-）</li>
+    <li><strong>契约变更分级</strong>（dev-plan §0.3）：A 冻结契约 / B 行为规格 / C 文档，三级各有处理流程</li>
+    <li><strong>决策台账</strong>（decisions.md）：每条裁定有编号、有状态、有落点</li>
+    <li><strong>增强准入规则</strong>（PRD v0.2.4 §14.2）：四条测试 + 三处落点 + 观察池</li>
+  </ul>
+
+  <h4>断点在哪</h4>
+  <div class="callout bad">
+    <span class="t">断点</span>
+    <p>PRD v0.2.4 §14.2 的四条准入测试，<strong>其适用范围被写死在该轮审查的上下文中</strong>（「本轮四条候选按此全部不构成新增强」）。它是一份<strong>局部规则</strong>，从未被提升为项目级收尾规范。而 CLAUDE.md 的三段收尾格式是<strong>项目级</strong>的 —— 两者没有连接。</p>
+    <p>结果：收尾时仍然可以「想到什么列什么」，四条测试形同虚设。</p>
+  </div>
+
+  <h4>验证：规则若生效，近 8 条里有多少会被拦下？</h4>
+  <p>按 §14.2 四条测试（来源 / 证据 / 去重 / 范围）逐条回测近 8 条 DEV 的收尾项：</p>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>收尾项</th><th>来源<br><span style="text-transform:none;font-weight:400">已声明未覆盖？</span></th><th>证据<br><span style="text-transform:none;font-weight:400">有 E0/E1？</span></th><th>去重<br><span style="text-transform:none;font-weight:400">已在验收里？</span></th><th>范围<br><span style="text-transform:none;font-weight:400">服务核心价值？</span></th><th>判定</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>diff 判据提交后失效</td><td>是</td><td>是</td><td>否</td><td>是</td><td><span class="tag low">通过</span></td></tr>
+        <tr><td>全文快照 + fixture</td><td>是</td><td>是</td><td>是</td><td>是</td><td><span class="tag mid">并入既有验收</span></td></tr>
+        <tr><td>产物自检</td><td>是</td><td>是</td><td>否</td><td>是</td><td><span class="tag low">通过</span></td></tr>
+        <tr><td>哈希同步 + 前缀常量</td><td>是</td><td>是</td><td>是</td><td>是</td><td><span class="tag mid">并入既有验收</span></td></tr>
+        <tr><td>扩哈希清单到布局源码</td><td>是</td><td>是</td><td>是</td><td>是</td><td><span class="tag mid">并入既有验收</span></td></tr>
+        <tr><td>两处清单抽共享</td><td>是</td><td>是</td><td>是</td><td>是</td><td><span class="tag mid">并入既有验收</span></td></tr>
+        <tr><td>清单结构校验</td><td>是</td><td>是</td><td>否</td><td>是</td><td><span class="tag low">通过</span></td></tr>
+        <tr><td>新增源码覆盖判据</td><td>是</td><td>是</td><td>否</td><td>是</td><td><span class="tag low">通过</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>回测结论</strong>：8 项中 <strong>4 项会被判「并入既有验收」</strong>（即：不另立增强条目，而是补进既有闸的验收标准），只有 4 项真正通过准入。<strong>若规则生效，产单量大约减半</strong> —— 且「并入既有验收」的那 4 项并非不做，而是<strong>换一种更省的登记方式</strong>。</p>
+
+  <div class="callout">
+    <span class="t">根因判定</span>
+    <p>这不是「规则缺失」，而是<strong>规则的适用范围没被提升</strong>。修复成本因此很低：不需要重新设计准入标准，只需要把它<strong>接到 CLAUDE.md 的收尾格式上</strong>，并配一份前期用的检查清单。</p>
+  </div>
+</section>
+
+<!-- ============ 4 改进方案 ============ -->
+<section id="fix">
+  <h2><span class="no">04</span>优化方案</h2>
+  <p class="lede">三件事：<strong>收紧产单口</strong>（收尾端）、<strong>前移覆盖检查</strong>（规划端）、<strong>给正常迭代留门</strong>（区分机制）。</p>
+
+  <h3>4.1 方案 A：增强需求准入规则上收为项目级规范</h3>
+  <p><strong>做什么</strong>：把 PRD v0.2.4 §14.2 的四条测试与三处落点，写进 CLAUDE.md 的收尾规范，作为第三段的<strong>强制前置</strong>。</p>
+  <p><strong>四条准入测试</strong>（候选必须同时通过，否则不得以增强名义登记）：</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:70px">测试</th><th>问题</th><th>不通过时的去向</th></tr></thead>
+      <tbody>
+        <tr><td><strong>来源</strong></td><td>是否落在某条已声明不变量 × 某个既有表面？是「已声明但未覆盖」的缺口？</td><td>新想法 → 非目标 / 观察池</td></tr>
+        <tr><td><strong>证据</strong></td><td>是否有可复现证据（实测 / 探针 / 日志）？</td><td>纯推测 → 观察池</td></tr>
+        <tr><td><strong>去重</strong></td><td>是否已是某批次的验收项？</td><td>并入该批次验收，不另立条目</td></tr>
+        <tr><td><strong>范围</strong></td><td>是否服务核心价值？</td><td>否 → 非目标</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>落点收敛为三处</strong>（「新增一个增强条目」不再是默认选项）：</p>
+  <ol>
+    <li><strong>既有批次的验收标准</strong> —— 最常见，成本最低</li>
+    <li><strong>决策台账</strong>（decisions.md）—— 需要 owner 裁定的</li>
+    <li><strong>观察池</strong> —— 有疑问但无证据的，登记不排期</li>
+  </ol>
+  <p><strong>格式配套修改</strong>：第三段标题从「未考虑且需要增强的需求」改为「<strong>计划外候选与准入判定</strong>」，并要求逐条写明「落点」与「未通过哪条测试」。<strong>允许该段为「本轮无候选」</strong> —— 取消「必填即必产」的隐含约束。</p>
+
+  <h3>4.2 方案 B：需求完整性验证检查清单（前期）</h3>
+  <p><strong>做什么</strong>：在批次/PRD 定稿前跑一份检查清单，把「异常场景 / 边界场景 / 非功能需求」从隐式变显式。详见配套文件 <code>docs/requirement-completeness-checklist.md</code>。</p>
+  <p><strong>清单分四组，共 21 条</strong>：</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:150px">组</th><th>覆盖什么</th><th class="right">条数</th></tr></thead>
+      <tbody>
+        <tr><td>A · 场景完整性</td><td>正常路径 / 异常路径 / 边界值 / 对抗输入 / 并发 / 幂等</td><td class="num right">6</td></tr>
+        <tr><td>B · 非功能需求</td><td>性能 / 安全 / 可访问性 / 兼容性 / 可观测性 / 容量</td><td class="num right">6</td></tr>
+        <tr><td>C · 契约稳定性</td><td>API 契约 / 数据契约 / 错误码 / 版本兼容 / 回滚路径</td><td class="num right">5</td></tr>
+        <tr><td>D · 可验证性</td><td>验收标准可测 / 判据不依赖实现细节 / 证据可复算</td><td class="num right">4</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>4.3 方案 C：顶层架构评审机制</h3>
+  <p><strong>做什么</strong>：为「契约级变更」设一道独立评审，避免局部修复侵蚀全局一致性。本仓已有 A/B/C 三级变更控制（dev-plan §0.3），需要补的是<strong>评审的触发与留痕</strong>。</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th style="width:110px">时机</th><th>评审内容</th><th>留痕</th></tr></thead>
+      <tbody>
+        <tr><td>批次开工前</td><td>本批次是否触及 A 级契约？若触及，先改 golden 快照基线</td><td>DEV_LOG 契约复核段</td></tr>
+        <tr><td>批次收尾时</td><td>本批次产生的判据是否与既有判据重复 / 冲突？</td><td>收尾第三段「去重」判定</td></tr>
+        <tr><td>契约升版时</td><td>升版段能否与 commit 一一对应？旧版是否可读？</td><td>spec 版本链 + 升版复核</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>4.4 方案 D：给「正常迭代」留门（区分机制）</h3>
+  <div class="callout warn">
+    <span class="t">重要</span>
+    <p>不是所有增强需求都该被消灭。闸与工具在「被使用时」才暴露缺口，这是<strong>客观规律</strong>，前期无法穷举。方案 A 的目的不是「零增强」，而是<strong>让每条增强都经过准入判定、有明确落点</strong> —— 把「无限产单」变成「受控登记」。</p>
+  </div>
+  <p><strong>区分标准</strong>：</p>
+  <ul>
+    <li><span class="tag low">应鼓励</span> 有证据、落在既有不变量上、能并入既有验收的 —— 这是质量投资</li>
+    <li><span class="tag hot">应收紧</span> 无证据、纯推测、与既有验收重复的 —— 这是产单噪音</li>
+  </ul>
+</section>
+
+<!-- ============ 5 时间表 ============ -->
+<section id="roadmap">
+  <h2><span class="no">05</span>落地时间表与预期效果</h2>
+  <p class="lede">四步走，每步都有可验证的产出。总量控制在 2 个工作日内。</p>
+
+  <div class="tl">
+    <div class="ph">
+      <span class="when">第 1 步 · 立即（0.5 天）</span>
+      <div class="what">把准入规则写进 CLAUDE.md 收尾规范</div>
+      <p>修改三段格式定义：第三段改为「计划外候选与准入判定」，加四条测试与三处落点，明确「允许本轮无候选」。</p>
+      <p><strong>验收</strong>：CLAUDE.md 更新后，任取一轮收尾按新格式产出，逐条标注落点与准入判定。</p>
+    </div>
+    <div class="ph">
+      <span class="when">第 2 步 · 立即（0.5 天）</span>
+      <div class="what">产出需求完整性验证检查清单</div>
+      <p>四组 21 条，落在 <code>docs/requirement-completeness-checklist.md</code>，并在 dev-plan §0.1 执行循环里加「定稿前跑清单」这一步。</p>
+      <p><strong>验收</strong>：下一个 PRD 定稿前跑一次清单，产出的候选按方案 A 判定落点。</p>
+    </div>
+    <div class="ph">
+      <span class="when">第 3 步 · 1 周内（0.5 天）</span>
+      <div class="what">既有 186 条「潜在风险」一次性归置</div>
+      <p>把 DEV_LOG 里散落的风险项按三处落点归类：已闭合的标注关闭条件、纯推测的进观察池、重复的并入既有验收。</p>
+      <p><strong>验收</strong>：每条风险项都有唯一去向；DEV_LOG 新增「风险归置表」。</p>
+    </div>
+    <div class="ph">
+      <span class="when">第 4 步 · 持续（0.5 天）</span>
+      <div class="what">建立「增强需求」度量与回顾</div>
+      <p>每 2 周统计：新增候选数、通过准入数、各落点分布、被否数。用数据判断规则是否在起作用。</p>
+      <p><strong>验收</strong>：产出第一份度量快照；连续两期「新增候选数」下降且「并入既有验收」占比上升。</p>
+    </div>
+  </div>
+
+  <h3>预期效果</h3>
+  <div class="kpi">
+    <div class="k">
+      <span class="now">增强需求新增量</span>
+      <span class="from">100%</span>
+      <span class="to">≤ 40%</span>
+      <span class="d">按 §14.2 回测：8 项中 4 项应并入既有验收，不另立条目</span>
+    </div>
+    <div class="k">
+      <span class="now">无证据候选占比</span>
+      <span class="from">未度量</span>
+      <span class="to">→ 0</span>
+      <span class="d">无证据一律进观察池，不排期</span>
+    </div>
+    <div class="k">
+      <span class="now">风险项归置率</span>
+      <span class="from">186 条散落</span>
+      <span class="to">100% 有去向</span>
+      <span class="d">每条风险有唯一落点，消除「既未闭合也未登记」的灰色态</span>
+    </div>
+    <div class="k">
+      <span class="now">批次定稿前检查</span>
+      <span class="from">无清单</span>
+      <span class="to">21 条四组</span>
+      <span class="d">异常/边界/非功能场景从隐式变显式</span>
+    </div>
+  </div>
+
+  <div class="callout ok">
+    <span class="t">判断标准</span>
+    <p>规则是否生效，看两个信号：① <strong>「新增候选数」下降</strong>（产单口收紧）；② <strong>「并入既有验收」占比上升</strong>（登记方式变省）。若两者同时出现，说明规则在起作用；若「新增候选数」下降但「观察池」同步膨胀，说明只是把待办换了个地方放，不算成功。</p>
+  </div>
+</section>
+
+<!-- ============ 6 附录 ============ -->
+<section id="appendix">
+  <h2><span class="no">06</span>附录：数据复算命令</h2>
+  <p class="lede">报告里每个数字都可复算。以下为现测命令（2026-11-09）。</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>指标</th><th>命令</th><th class="right">结果</th></tr></thead>
+      <tbody>
+        <tr><td>DEV 条目总数</td><td><code>grep -cE '^## \[DEV-' DEV_LOG.md</code></td><td class="num right">194</td></tr>
+        <tr><td>DEV_LOG 行数</td><td><code>wc -l DEV_LOG.md</code></td><td class="num right">4,620</td></tr>
+        <tr><td>含「增强」的条目</td><td><code>grep -E '^## \[DEV-' DEV_LOG.md | grep -c '增强'</code></td><td class="num right">13</td></tr>
+        <tr><td>含收尾类关键词</td><td><code>grep -E '^## \[DEV-' DEV_LOG.md | grep -cE '收口|收尾|补齐|闭合'</code></td><td class="num right">45</td></tr>
+        <tr><td>「潜在风险」小节</td><td><code>grep -c '^- \*\*潜在风险\*\*' DEV_LOG.md</code></td><td class="num right">186</td></tr>
+        <tr><td>含欠账字样的行</td><td><code>grep -c '未做\|待填\|未完成' DEV_LOG.md</code></td><td class="num right">75</td></tr>
+        <tr><td>「收尾第 N 项」引用</td><td><code>grep -cE '收尾第|收尾时列出|收尾列' DEV_LOG.md</code></td><td class="num right">43</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>口径说明</h3>
+  <ul>
+    <li><strong>窗口</strong>：2026-08-09 → 2026-11-09（「近 3 个月」）。月度分布只统计有登记条目的月份。</li>
+    <li><strong>增强需求</strong>：指收尾第三段列出的候选，以及 DEV_LOG 中标注「收尾第 N 项」的后续条目。</li>
+    <li><strong>§14.2 回测</strong>：由报告作者按四条测试人工判定，<strong>非脚本产出</strong>，属于分析判断而非机器统计。</li>
+    <li><strong>「贡献度」</strong>：基于证据链的主观排序（R1 有格式条款直接支撑；R2 有规则存在但未绑定的事实；R3 是客观规律）。</li>
+  </ul>
+</section>
+
+<footer>
+  <p><strong>OpenVibe · 增强需求复盘报告</strong> · 2026-11-09 · 登记 <code>DEV-0227</code></p>
+  <p>数据源 <code>DEV_LOG.md</code>（4,620 行）· 规则引用 <code>docs/PRD-v0.2.4-v0.9-20261029.md</code> §14.2 / §15 · 配套清单 <code>docs/requirement-completeness-checklist.md</code></p>
+  <p>本报告为分析类产物，不含产品代码改动。所有统计数字可复算；回测判定为人工分析，已在口径说明中标注。</p>
+</footer>
+
+</div>
+</body>
+</html>

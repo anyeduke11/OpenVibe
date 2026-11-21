@@ -1,0 +1,12 @@
+{
+  "note": "C-7（头部引用形态）的棘轮基线：上界只降不升。c7UpperBound 必须等于 c7Items 的条数与 c7History 末项的 value；上调/下调都必须往 c7History 追加一条（含日期与理由）。判据口径见 scripts/context-check.ts 的 checkC7Ratchet 与 reportNonLinkedRefs。本文件的 c7Items 由脚本生成（不手抄——手抄的条目在首次采样时就有 6 处与实测不符）。",
+  "c7UpperBound": 0,
+  "c7Items": [],
+  "c7History": [
+    {
+      "at": "2026-11-07",
+      "value": 0,
+      "reason": "C-7 首次建基线：0 处头部裸名引用（14 个 spec，由 reportNonLinkedRefs 直接导出）。存量一律是 `docs/specs/xxx.md` 带路径反引号形态，需分批改为 markdown 链接 [xxx.md](./xxx.md)；先钉住不恶化。"
+    }
+  ]
+}

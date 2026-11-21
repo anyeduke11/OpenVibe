@@ -39,6 +39,7 @@ import { TermsRepo } from '../../../packages/core/src/repos/terms.ts'
 import {
   ADAPTER_MAIN_PATH,
   coveredPlatforms,
+  l1Capability,
   planMainFiles,
 } from '../../../packages/adapters/src/index.ts'
 
@@ -174,7 +175,7 @@ function composeRulePack(db: SqliteDatabase, ids: string[]): RenderedPack {
     flows: new FlowTemplatesRepo(db),
   })
   return composePack(resolved, {
-    adapters: { planMainFiles, coveredPlatforms },
+    adapters: { planMainFiles, coveredPlatforms, l1Capability },
     exportedAt: FIXED_STAMP,
   })
 }
@@ -531,6 +532,7 @@ await probe(
         { path: 'NEWIDE.md' },
       ],
       coveredPlatforms: (targets: AdapterId[]) => coveredPlatforms(targets),
+      l1Capability: (id: AdapterId) => l1Capability(id),
     }
     const definition = {
       id: 'pk_probe',
@@ -630,7 +632,7 @@ await probe(
       },
     )
     const rendered = composePack(resolved, {
-      adapters: { planMainFiles, coveredPlatforms },
+      adapters: { planMainFiles, coveredPlatforms, l1Capability },
       exportedAt: FIXED_STAMP,
     })
     const main = rendered.files.find((f) => f.path === ADAPTER_MAIN_PATH['claude-code'])!

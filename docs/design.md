@@ -147,7 +147,7 @@ telemetry_events(id PK, event, value, day, os, app_version, queued_at, sent_at);
 
 分页默认 size=50；列表响应统一 `{items, total, page}`。鉴权规则见 §11。
 
-## 7. ★ 标准包文件契约（P0 冻结对象 v1；**v1.3** = 2026-09-21 D17 更名 OpenVibe：契约字符串更新——`openvibe.pack.json` / `.openvibe/` / marker `openvibe:pack` / bundle `openvibe-pack-*`，**结构不变**）
+## 7. ★ 标准包文件契约（P0 冻结对象 v1；**v1.3** = 2026-09-21 D17 更名 OpenVibe：契约字符串更新——`openvibe.pack.json` / `.openvibe/` / marker `openvibe:pack` / bundle `openvibe-pack-*`，**结构不变**；**v1.4** = 2026-11-17 N3 hooks：`schemaVersion` 1→2，manifest 新增可选 `hooks` 字段（`{pre,post}[]`，缺省空集，见 [n3-hooks.md](./specs/n3-hooks.md) §3.2），旧包按缺省空集兼容；**v1.5** = 2026-11-21 D32 段级受管标记（decisions ㊾）：主文件正文各节标题上方新增 `<!-- openvibe:section=<节名> -->`（节序恒定故段名可推导），**产物内容变化、manifest/lock 结构零变化**（lock 仍 schemaVersion 1，fingerprint 只盖文件内容故哈希随动）——壳外自由区/段级写入（4-b，㊷③ 不做）的语义见 §7.3 尾注）
 
 > 本节是全产品最核心的接口。冻结后任何变更必须升 `schemaVersion` 并保持旧版可读。CLI 与生成器（packages/core/pack）共同实现，**规范以本节为唯一权威**。
 
@@ -162,7 +162,7 @@ telemetry_events(id PK, event, value, day, os, app_version, queued_at, sent_at);
 
 ```jsonc
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "pack": {
     "id": "pk_x",
     "name": "default",
@@ -194,6 +194,7 @@ telemetry_events(id PK, event, value, day, os, app_version, queued_at, sent_at);
     { "name": "pdf", "description": "…", "skillDir": "~/.claude/skills/pdf", "versionLabel": "v3" },
   ],
   "files": [{ "path": "CLAUDE.md", "sha256": "…" }], // 渲染产物登记（7.4 的全集）
+  "hooks": { "pre": [], "post": [] }, // N3 hooks（v1.4）：缺省空集，旧包按空集兼容；见 specs/n3-hooks.md §3.2
   "fingerprint": "…", // 7.6
 }
 ```
@@ -204,27 +205,33 @@ manifest 内嵌资产**内容快照**（prompts 含全文、terms 全字段）�
 
 主文件正文（CLAUDE.md / AGENTS.md / CODEBUDDY.md / .mdc / .trae rules 共用同一正文模板）按**固定节序**组装，空节整体省略：
 
-```markdown
+```text
 <!-- openvibe:pack=<name>@<version> begin (regenerate: npx openvibe-cli sync) -->
-
 # OpenVibe 标准包：<name>@<version>
 
 > 本文件由 OpenVibe 生成。要修改标准，请回资产库改后重新注入；
 > 本地手改会被 `openvibe diff` 漂移检测发现。
 
+<!-- openvibe:section=工作流程 -->
 ## 工作流程 ← flow.stages 逐阶段：### 阶段名 + 清单 + 产物行
 
+<!-- openvibe:section=行为规则 -->
 ## 行为规则 ← prompts[useAs=rule]：#### 标题 + 正文
 
+<!-- openvibe:section=术语表 -->
 ## 术语表 ← 恒一行：「见 TERMS.md（N 条）」；未生成 TERMS.md 时内联同 7.4 表格
 
+<!-- openvibe:section=任务提示词参考 -->
 ## 任务提示词参考 ← prompts[useAs=reference]：#### 标题 + 正文（保留 {{变量}} 占位）
 
 <!-- openvibe:end -->
 ```
 
 - 排序键：prompts 按标题码点序（`toLowerCase` 后 code-unit 比较，全文一致）；terms 按 `(en||zh).toLowerCase()` 码点序；stages 保模板原序。
-- 首尾 HTML 注释 = **受管块标记**。MVP 按整文件管理（用户不得改此文件，改了算漂移）；标记为 P1「块级合并/双向同步」预留，现在就写入。
+- 首尾 HTML 注释 = **受管块标记**（begin/end，v1 起）；**节标题上方的 HTML 注释 = 段级受管标记**（v1.5 / D32 · 4-c）：`<!-- openvibe:section=<节名> -->`，节名即该节标题去井号（`PACK_SECTION_MARKER`，`pack-contract.ts`）。
+- ⚠️ 本模板围栏用 `text 而非 `markdown：prettier 会对 markdown 围栏内的 HTML 注释块后强插空行（2026-11-21 实测），使契约模板与产物字节失配（reviewer A/B 复核发现后修正）——**模板必须逐字节对应 composer 产物**，故锁死 text 围栏。
+- **区域模型（v1.5）**：`壳头`（begin 标记 → 首个段标记，含标题与引用块——契约字节）｜`受管段·<节名>`（段标记 → 下一标记/壳尾）｜`块外自由区`（begin 之前 / end 之后——用户的自由区）。空节连标记一起省略（与「空节整体省略」同口径）。
+- **写入判定不变**：planner/verify 仍按**整文件 sha** 五态判定（4-b 段级选择按 ㊷③ 不在本版）；段级标记当前消费方 = `diff` 的段级报文（`section-diff.ts`，v1 旧产物无段标记 ⇒ 退回「受管块」两分法，逐字节向后兼容）。**二级文件**（TERMS.md 等 §7.4）本版不加段标记——其漂移仍文件级归因（探针盲区实证，DEV-0277），段化留后续 A 级变更。
 
 ### 7.4 各产物文件格式
 

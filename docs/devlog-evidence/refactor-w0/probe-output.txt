@@ -1,0 +1,238 @@
+{
+  "meta": {
+    "dateUTC": "2026-11-19",
+    "classifier": "diffSections (packages/core/src/inject/section-diff.ts, RQ4)",
+    "inputs": [
+      "tests/golden/G1/files/CLAUDE.md",
+      "tests/golden/G1/files/AGENTS.md",
+      "tests/golden/G1/files/TERMS.md"
+    ],
+    "disclaimer": "合成样本仅验证机制，不构成真实用户漂移分布证据（真实样本现测 = 0）"
+  },
+  "scenarios": [
+    {
+      "id": "S1-managed-edit",
+      "desc": "受管块内改 1 行（包更新后内容过时，用户手改了某句）",
+      "realEquivalent": "用户在 AI 助手建议下改了受管正文的一行",
+      "files": [
+        {
+          "file": "CLAUDE.md",
+          "hasShell": true,
+          "scenarioApplicable": true,
+          "managedChanged": true,
+          "freeChanged": false,
+          "regions": [
+            "块外自由区: same (exp 1 行 / act 1 行)",
+            "受管块: changed (exp 26 行 / act 26 行)"
+          ],
+          "attributable": true
+        },
+        {
+          "file": "AGENTS.md",
+          "hasShell": true,
+          "scenarioApplicable": true,
+          "managedChanged": true,
+          "freeChanged": false,
+          "regions": [
+            "块外自由区: same (exp 1 行 / act 1 行)",
+            "受管块: changed (exp 26 行 / act 26 行)"
+          ],
+          "attributable": true
+        },
+        {
+          "file": "TERMS.md",
+          "hasShell": false,
+          "scenarioApplicable": true,
+          "managedChanged": false,
+          "freeChanged": true,
+          "regions": [
+            "块外自由区: changed (exp 13 行 / act 13 行)"
+          ],
+          "attributable": true
+        }
+      ],
+      "allAttributable": true
+    },
+    {
+      "id": "S2-free-append",
+      "desc": "块外自由区纯新增（用户在产物文件尾部写了自己的内容）",
+      "realEquivalent": "用户往 CLAUDE.md 尾部加自己的项目约定",
+      "files": [
+        {
+          "file": "CLAUDE.md",
+          "hasShell": true,
+          "scenarioApplicable": true,
+          "managedChanged": false,
+          "freeChanged": true,
+          "regions": [
+            "块外自由区: changed (exp 1 行 / act 4 行)",
+            "受管块: same (exp 26 行 / act 26 行)"
+          ],
+          "attributable": true
+        },
+        {
+          "file": "AGENTS.md",
+          "hasShell": true,
+          "scenarioApplicable": true,
+          "managedChanged": false,
+          "freeChanged": true,
+          "regions": [
+            "块外自由区: changed (exp 1 行 / act 4 行)",
+            "受管块: same (exp 26 行 / act 26 行)"
+          ],
+          "attributable": true
+        },
+        {
+          "file": "TERMS.md",
+          "hasShell": false,
+          "scenarioApplicable": true,
+          "managedChanged": false,
+          "freeChanged": true,
+          "regions": [
+            "块外自由区: changed (exp 13 行 / act 16 行)"
+          ],
+          "attributable": true
+        }
+      ],
+      "allAttributable": true
+    },
+    {
+      "id": "S3a-rewrite-with-shell",
+      "desc": "整文件重写但保留壳（AI 全量重写正文，标记仍在）",
+      "realEquivalent": "用户让 AI「重写整个 CLAUDE.md」，AI 保留了 openvibe 标记",
+      "files": [
+        {
+          "file": "CLAUDE.md",
+          "hasShell": true,
+          "scenarioApplicable": true,
+          "managedChanged": true,
+          "freeChanged": false,
+          "regions": [
+            "块外自由区: same (exp 1 行 / act 1 行)",
+            "受管块: changed (exp 26 行 / act 4 行)"
+          ],
+          "attributable": true
+        },
+        {
+          "file": "AGENTS.md",
+          "hasShell": true,
+          "scenarioApplicable": true,
+          "managedChanged": true,
+          "freeChanged": false,
+          "regions": [
+            "块外自由区: same (exp 1 行 / act 1 行)",
+            "受管块: changed (exp 26 行 / act 4 行)"
+          ],
+          "attributable": true
+        },
+        {
+          "file": "TERMS.md",
+          "hasShell": false,
+          "scenarioApplicable": true,
+          "managedChanged": false,
+          "freeChanged": true,
+          "regions": [
+            "块外自由区: changed (exp 13 行 / act 2 行)"
+          ],
+          "attributable": true
+        }
+      ],
+      "allAttributable": true
+    },
+    {
+      "id": "S3b-unshelled",
+      "desc": "用户删除标记（去壳）：受管块边界消失",
+      "realEquivalent": "用户嫌标记碍眼删掉了 openvibe 注释行",
+      "files": [
+        {
+          "file": "CLAUDE.md",
+          "hasShell": true,
+          "scenarioApplicable": true,
+          "managedChanged": true,
+          "freeChanged": true,
+          "regions": [
+            "受管块: changed/missing (exp 26 行 / act 0 行)",
+            "块外自由区: changed (exp 1 行 / act 25 行)"
+          ],
+          "attributable": true
+        },
+        {
+          "file": "AGENTS.md",
+          "hasShell": true,
+          "scenarioApplicable": true,
+          "managedChanged": true,
+          "freeChanged": true,
+          "regions": [
+            "受管块: changed/missing (exp 26 行 / act 0 行)",
+            "块外自由区: changed (exp 1 行 / act 25 行)"
+          ],
+          "attributable": true
+        },
+        {
+          "file": "TERMS.md",
+          "hasShell": false,
+          "scenarioApplicable": true,
+          "managedChanged": false,
+          "freeChanged": false,
+          "regions": [
+            "块外自由区: same (exp 13 行 / act 13 行)"
+          ],
+          "attributable": false
+        }
+      ],
+      "allAttributable": false
+    },
+    {
+      "id": "S4-mixed",
+      "desc": "并存：受管块内改 1 行 + 自由区加 1 行",
+      "realEquivalent": "最常见的真实形态：既有手改又有追加",
+      "files": [
+        {
+          "file": "CLAUDE.md",
+          "hasShell": true,
+          "scenarioApplicable": true,
+          "managedChanged": true,
+          "freeChanged": true,
+          "regions": [
+            "块外自由区: changed (exp 1 行 / act 3 行)",
+            "受管块: changed (exp 26 行 / act 26 行)"
+          ],
+          "attributable": true
+        },
+        {
+          "file": "AGENTS.md",
+          "hasShell": true,
+          "scenarioApplicable": true,
+          "managedChanged": true,
+          "freeChanged": true,
+          "regions": [
+            "块外自由区: changed (exp 1 行 / act 3 行)",
+            "受管块: changed (exp 26 行 / act 26 行)"
+          ],
+          "attributable": true
+        },
+        {
+          "file": "TERMS.md",
+          "hasShell": false,
+          "scenarioApplicable": true,
+          "managedChanged": false,
+          "freeChanged": true,
+          "regions": [
+            "块外自由区: changed (exp 13 行 / act 15 行)"
+          ],
+          "attributable": true
+        }
+      ],
+      "allAttributable": true
+    }
+  ],
+  "summary": {
+    "scenariosRun": 5,
+    "filesPerScenario": 3,
+    "allScenariosAttributable": false,
+    "shellFinding": "TERMS.md 冻结字节不含受管标记 ⇒ 其漂移只能自由区/文件级归因（D32 盲区实证）",
+    "realSampleCount": 0,
+    "realSampleCountBasis": "4 个登记项目（owner 库 projects 表）.openvibe/ 目录全缺 + injections 表 0 行（2026-11-20 现测）",
+    "distributionConclusion": "不出具（样本为 0）。真实样本触发条件：任一项目执行 openvibe sync 注入后，按本报告的 regions 字段逐项目复跑统计。"
+  }
+}
