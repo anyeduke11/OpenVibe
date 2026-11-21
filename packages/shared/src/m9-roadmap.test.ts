@@ -16,6 +16,7 @@ import {
   deriveCurrentStage,
   stageNoOf,
   stationCompleteness,
+  languageMastery,
   MASTERY_STATE_TONE,
   LANG_CODES,
   type RoadmapStation,
@@ -115,5 +116,47 @@ describe('M9 P3.2 · 三态的 chip 语气（口径只留一处）', () => {
 describe('M9 · 两门语言', () => {
   it('闭集是两门，不多不少', () => {
     expect(LANG_CODES).toEqual(['python', 'go'])
+  })
+})
+
+describe('M9 · 语言掌握度口径（原型 learn「站位图」页签）', () => {
+  it('全未涉及 ⇒ unused，lit=0', () => {
+    const m = languageMastery([topic(1, 0, 'unused'), topic(2, 1, 'unused')])
+    expect(m).toEqual({ state: 'unused', lit: 0, total: 2 })
+  })
+
+  it('有 active 无 mastered ⇒ active（最高档）', () => {
+    const m = languageMastery([topic(1, 0, 'active'), topic(2, 1, 'unused')])
+    expect(m.state).toBe('active')
+    expect(m.lit).toBe(1)
+  })
+
+  it('有 mastered ⇒ mastered，且盖过 active', () => {
+    const m = languageMastery([
+      topic(1, 0, 'active'),
+      topic(2, 1, 'mastered'),
+      topic(3, 2, 'unused'),
+    ])
+    expect(m.state).toBe('mastered')
+    expect(m.lit).toBe(2)
+    expect(m.total).toBe(3)
+  })
+
+  it('空路线 ⇒ unused / 0 / 0（不抛错、不返回 NaN）', () => {
+    expect(languageMastery([])).toEqual({ state: 'unused', lit: 0, total: 0 })
+  })
+
+  it('变异腿：把唯一的 active 改成 mastered ⇒ 汇总从 active 变 mastered（证明它读的是状态）', () => {
+    const topics = [topic(1, 0, 'active'), topic(2, 1, 'unused')]
+    expect(languageMastery(topics).state).toBe('active')
+    topics[0] = topic(1, 0, 'mastered')
+    expect(languageMastery(topics).state).toBe('mastered')
+  })
+
+  it('变异腿：点亮数随状态变化（证明 lit 不是常量）', () => {
+    const topics = [topic(1, 0, 'unused'), topic(2, 1, 'unused')]
+    expect(languageMastery(topics).lit).toBe(0)
+    topics[0] = topic(1, 0, 'active')
+    expect(languageMastery(topics).lit).toBe(1)
   })
 })

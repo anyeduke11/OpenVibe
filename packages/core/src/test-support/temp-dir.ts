@@ -38,7 +38,7 @@ import { join } from 'node:path'
  * ## 用法
  *
  * ```ts
- * import { tempDir } from '@openvibe/core/test-support/temp-dir'
+ * import { tempDir } from '@openvibe/core/test-support'
  *
  * const dir = tempDir('ov-my-test-')   // 退出时自动清理
  * ```

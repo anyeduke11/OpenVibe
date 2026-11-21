@@ -1,7 +1,83 @@
 import { z } from 'zod'
-import { ADAPTER_IDS, LIMITS, PLAYBOOK_STATUS, SCHEMA_VERSION, USE_AS } from '../constants'
+import {
+  ADAPTER_IDS,
+  BUNDLE_SCHEMA_VERSION,
+  HOOK_DEFAULT_TIMEOUT_MS,
+  HOOK_FAIL_POLICIES,
+  LIMITS,
+  PLAYBOOK_STATUS,
+  SCHEMA_VERSION,
+  USE_AS,
+} from '../constants'
 import { PACK_NAME_RE, SEMVER_RE, SHA256_HEX_RE, isValidPackRelativePath } from '../utils'
 import { StageSchema } from './flow'
+
+/**
+ * N3 HookDef 契约（docs/specs/n3-hooks.md §3.1 / FR-1）：manifest 与 selection 共用同一 schema。
+ * 校验：name 非空且不含控制字符、command 非空、timeoutMs 正数且不超上限、failPolicy 枚举。
+ * 默认值（FR-1.2）：timeoutMs=30000、failPolicy='continue'，配置缺省字段按默认补齐。
+ */
+export const HookDefSchema = z.object({
+  name: z
+    .string()
+    .min(1)
+    .refine((s) => !/[\u0000-\u001f\u007f]/.test(s), {
+      message: 'name 不得含控制字符（n3-hooks.md FR-1.3）',
+    }),
+  command: z.string().min(1, { message: 'command 不得为空' }),
+  timeoutMs: z
+    .number()
+    .int()
+    .positive()
+    .max(LIMITS.hooks.maxTimeoutMs, {
+      message: `timeoutMs 不得超过 LIMITS.hooks.maxTimeoutMs=${LIMITS.hooks.maxTimeoutMs}`,
+    })
+    .default(HOOK_DEFAULT_TIMEOUT_MS),
+  failPolicy: z.enum(HOOK_FAIL_POLICIES).default('continue'),
+})
+export type HookDef = z.infer<typeof HookDefSchema>
+
+/**
+ * N4 特性位部分记录（m11 FR-3.5）：键 ⊆ AdapterId、值 boolean。
+ * 用 partial object 而非 `z.record(z.enum(ADAPTER_IDS), z.boolean())`——
+ * zod v4 下该写法对空对象 `{}` 的校验行为不稳定（会要求所有枚举键存在），
+ * 与「仅声明能力位非 false 平台」的部分记录语义不符。
+ */
+const L1_PARTIAL = z
+  .object({
+    'claude-code': z.boolean(),
+    cursor: z.boolean(),
+    'generic-agents': z.boolean(),
+    codebuddy: z.boolean(),
+    trae: z.boolean(),
+    minicode: z.boolean(),
+  })
+  .partial()
+
+/**
+ * N3 hooks 分组（n3-hooks.md §3.2）：pre（注入前）/ post（注入后）两组。
+ * pre/post 各自独立命名空间（FR-1.3：pre 与 post 可重名），组内 name 包内唯一。
+ */
+export const HooksSchema = z
+  .object({
+    pre: z.array(HookDefSchema).default([]),
+    post: z.array(HookDefSchema).default([]),
+  })
+  .superRefine((hooks, ctx) => {
+    for (const phase of ['pre', 'post'] as const) {
+      const seen = new Set<string>()
+      for (const hook of hooks[phase]) {
+        if (seen.has(hook.name)) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `hooks.${phase} 内 name 重复：${hook.name}（包内唯一，FR-1.3）`,
+          })
+        }
+        seen.add(hook.name)
+      }
+    }
+  })
+export type Hooks = z.infer<typeof HooksSchema>
 
 export const PackSelection = z.object({
   promptIds: z.array(z.string()).default([]),
@@ -12,6 +88,17 @@ export const PackSelection = z.object({
   // 现语义见 docs/specs/m4-playbook.md FR-8（拆闸只影响此后新建/重导的版本，历史实例不回溯）。
   playbookIds: z.array(z.string()).default([]),
   flowTemplateId: z.string().nullable().default(null),
+  /**
+   * N3 钩子配置（n3-hooks.md FR-2.3）：Web 组包时配置。
+   * **可选**——缺省不写，由解析层（resolvePack）按空集补齐，避免对既有
+   * seed/repo 构造 selection 的调用点造成必填破坏（A 级链：旧形态兼容）。
+   */
+  hooks: HooksSchema.optional(),
+  /**
+   * N4 特性位（m11 FR-3.5）：平台级 L1 开关，`Record<AdapterId, boolean>`。
+   * **可选**——缺省 = 产品默认（claude-code=true，其余关），由解析层（resolvePack）补齐。
+   */
+  l1: L1_PARTIAL.optional(),
 })
 export type PackSelection = z.infer<typeof PackSelection>
 
@@ -122,7 +209,7 @@ export const SizeEstimateFile = z.object({
 })
 export type SizeEstimateFile = z.infer<typeof SizeEstimateFile>
 
-/** 某平台「实际读进上下文」的量：它的主文件 + TERMS.md + CHECKLIST.md + SKILLS.md */
+/** 某平台「实际读进上下文」的量：它的主文件 + `PACK_CONTEXT_AUX_FILES`（清单以契约层为准，此处不重复枚举） */
 export const SizeEstimatePerTarget = z.object({
   adapter: z.string(),
   files: z.array(SizeEstimateFile),
@@ -200,7 +287,12 @@ export type ManifestPlaybook = z.infer<typeof ManifestPlaybook>
 
 /** openvibe.pack.json（manifest，design §7.2） */
 export const PackManifestSchema = z.object({
-  schemaVersion: z.literal(SCHEMA_VERSION),
+  // ⚠️ 1 与 2 并收（decisions ㊾ / D33 兼容读 · docs/specs/n3-hooks.md FR-5.2）：
+  // pack-source.ts 的版本闸以「> 本 CLI 支持版才拒」声明「< 兼容（旧版可读）」，
+  // 若这里仍是 z.literal(SCHEMA_VERSION)=2，schemaVersion=1 的旧导出包会**过闸后被 schema 拒**
+  // ——闸的兼容声明与实现矛盾（DEV-0281 GAP-1）。1 的语义 = 旧包：hooks/l1 两字段缺省
+  // （两字段本就 .optional()，其余形状在 1→2 间零分叉），读侧无需归一。
+  schemaVersion: z.union([z.literal(1), z.literal(SCHEMA_VERSION)]),
   pack: z.object({
     id: z.string(),
     name: z.string().regex(PACK_NAME_RE),
@@ -228,13 +320,24 @@ export const PackManifestSchema = z.object({
       }),
     )
     .max(LIMITS.packFileCountMax),
+  /**
+   * N3 hooks（n3-hooks.md FR-2.1）：**可选**——无钩子包不写此字段，
+   * 与「写 hooks: { pre: [], post: [] }」在校验层等价（缺省 = 空集，兼容旧包）。
+   */
+  hooks: HooksSchema.optional(),
+  /**
+   * N4 特性位（m11 FR-3.5）：平台级 L1 开关，`Record<AdapterId, boolean>`。
+   * **可选**：缺省 = 产品默认（claude-code=true，其余关）。
+   * 只声明能力位非 false 的平台（能力位表在 adapters，schema 层只守形状）。
+   */
+  l1: L1_PARTIAL.optional(),
   fingerprint: z.string().regex(SHA256_HEX_RE),
 })
 export type PackManifest = z.infer<typeof PackManifestSchema>
 
 /** 单文件 bundle（design §7.1，CLI sync --file 直接消费） */
 export const PackBundleSchema = z.object({
-  bundleSchemaVersion: z.literal(1),
+  bundleSchemaVersion: z.literal(BUNDLE_SCHEMA_VERSION),
   manifest: PackManifestSchema,
   files: z.array(
     z.object({

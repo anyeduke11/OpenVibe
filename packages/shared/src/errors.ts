@@ -21,6 +21,14 @@ export const ERROR_CODES = [
    * 不是服务端资源态冲突。用 409 会让调用方按「重新 GET」处理，而正确处理是换键重试。
    */
   'IDEMPOTENCY_CONFLICT',
+  /**
+   * 状态迁移非法：`rejected → published` 之类（m8-agent-bridge.md FR-5.1，v0.2.4 F1）。
+   *
+   * 为什么用 409 不沿用 422：409 的语义是「资源当前状态不允许该操作」——
+   * 被拒过的记录要重新发布，正确做法是**重新 ingest**（新幂等键），不是重试同一条。
+   * 422 会让调用方以为是入参格式问题而反复改字段。
+   */
+  'INVALID_TRANSITION',
   'INTERNAL',
 ] as const
 export type ErrorCode = (typeof ERROR_CODES)[number]
@@ -37,6 +45,7 @@ export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   FORBIDDEN_ORIGIN: 403,
   REMOTE_UNREACHABLE: 502,
   IDEMPOTENCY_CONFLICT: 422,
+  INVALID_TRANSITION: 409,
   INTERNAL: 500,
 }
 

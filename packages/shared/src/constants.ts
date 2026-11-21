@@ -1,5 +1,19 @@
-/** 当前标准包契约 schemaVersion（design §7 v1.3，A 级变更红线） */
-export const SCHEMA_VERSION = 1 as const
+/**
+ * 当前标准包契约 schemaVersion（design §7 v1.5，A 级变更红线；v1.5 = D32 段级受管标记，只改产物内容不改本版本号）。
+ *
+ * ⚠️ **1 → 2（2026-11-16，N3/N4 A 级变更，decisions.md ㊼ / DEV-0276）**：
+ * manifest 新增 `hooks`（N3 注入前/后钩子，docs/specs/n3-hooks.md）与
+ * `l1`（N4 平台级 L1 特性位，docs/specs/m11-context-loading.md FR-3.5）两字段。
+ * 按 A 级链（D-v25-1 / D-v25-8）：先改 golden 再改实现；旧包（schemaVersion=1）
+ * 的 `hooks`/`l1` 均按可选字段兼容（缺省 = 空集 / 产品默认）。
+ */
+export const SCHEMA_VERSION = 2 as const
+
+/**
+ * bundle 容器版本（design §7.1）。bundle 结构（manifest 全文 + files）未因 N3/N4 变化，
+ * 故保持 1；manifest 契约版本见 SCHEMA_VERSION。CLI 以 `>` 判超前（旧版可读）。
+ */
+export const BUNDLE_SCHEMA_VERSION = 1 as const
 
 export const APP_NAME = 'openvibe' as const
 export const APP_ID = 'openvibe-cli' as const
@@ -486,7 +500,40 @@ export const LIMITS = {
   packTotalMaxBytes: 2 * 1024 * 1024,
   listPageSizeMax: 200,
   listPageSizeDefault: 50,
+  /**
+   * N3 hooks（docs/specs/n3-hooks.md FR-1.3/FR-4.4）：单钩子超时上限。
+   * 默认 30000ms（HOOK_DEFAULT_TIMEOUT_MS），上限 300000ms——超时即杀进程，绝不无限挂起。
+   */
+  hooks: {
+    maxTimeoutMs: 300000,
+  },
 } as const
+
+/** N3 hooks 默认值（docs/specs/n3-hooks.md FR-1.2）：配置缺省字段按默认补齐 */
+export const HOOK_DEFAULT_TIMEOUT_MS = 30000
+export const HOOK_FAIL_POLICIES = ['continue', 'block'] as const
+export type HookFailPolicy = (typeof HOOK_FAIL_POLICIES)[number]
+
+/**
+ * N4 能力位（docs/specs/m11-context-loading.md FR-3.1）：adapter 对 L1 引用的加载能力，四态。
+ * 具体值声明在 packages/adapters/src（能力位唯一出处）；core 经注入读取，不直接依赖 adapters（E-1）。
+ */
+export const L1_CAPABILITIES = ['auto-import', 'on-demand', 'module'] as const
+export type L1Capability = (typeof L1_CAPABILITIES)[number] | false
+
+/**
+ * N4 特性位默认值（m11 FR-3.5.2，owner 2026-11-16 裁）：
+ * **claude-code 默认开 L1**，cursor/codebuddy/trae 默认关；能力位 false 的平台（generic-agents/minicode）恒不生效。
+ * manifest.l1 未声明某平台时按此表补齐；仅对能力位非 false 的平台生效。
+ */
+export const L1_DEFAULT: Record<AdapterId, boolean> = {
+  'claude-code': true,
+  cursor: false,
+  codebuddy: false,
+  trae: false,
+  'generic-agents': false,
+  minicode: false,
+}
 
 /**
  * manifest.pack.generator（design §7.2）。刻意写死而非读 package.json：

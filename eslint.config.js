@@ -72,11 +72,16 @@ export default tseslint.config(
     // build/ 与 .zwork/ 已在 .gitignore 里，本机却会长期驻留临时脚本：ESLint 默认不受 gitignore
     // 约束，这些文件会把 pnpm lint 变成噪声闸（实测一次 228 条报错全来自它们）。dist 已经排除，
     // 同类的本机产物一并排除；CI 是干净 checkout，少不掉任何真实覆盖。
+    //
+    // ⚠️ 2026-11-07 补 `tmp/**`：它与 `.zwork/` 同类（本机临时产物，未跟踪），却一直漏在忽略表外
+    //   ⇒ `pnpm lint` 长期 309 红、且**全部来自 tmp/ 的 9 个文件，零条来自真实代码**。
+    //   一道长期红的闸等于没有闸（人只会加 --no-verify 绕过），与「过期禁区必须收敛」同一条理由。
     ignores: [
       '**/node_modules/**',
       '**/dist/**',
       'build/**',
       '.zwork/**',
+      'tmp/**',
       'coverage/**',
       'content/**',
       '**/*.md',

@@ -78,9 +78,16 @@ export interface ReportEndpointDeclaration {
  * 生成：`pnpm report:snapshot`；核对：`tests/report-endpoint-cache.test.ts`。
  */
 export const REPORT_ENDPOINT_SOURCES: readonly ReportEndpointDeclaration[] = [
+  { path: '/api/agents/registry', source: 'db' },
   { path: '/api/ai/adoption', source: 'db' },
   { path: '/api/ai/extract/usage', source: 'db' },
   { path: '/api/cli/commands', source: 'db' },
+  {
+    path: '/api/context-governance',
+    source: 'filesystem',
+    reason:
+      '结论读自 test-results/context-check.json ＋ test-results/context-check-history.json（每轮覆盖/追加）与 docs/context-check-baseline.json（棘轮上界）',
+  },
   { path: '/api/extract/consents', source: 'db' },
   { path: '/api/extract/gate', source: 'db' },
   { path: '/api/flow-templates', source: 'db' },
@@ -123,6 +130,11 @@ export const REPORT_ENDPOINT_SOURCES: readonly ReportEndpointDeclaration[] = [
   { path: '/api/projects/:id/context', source: 'db' },
   { path: '/api/projects/:id/devlog', source: 'db' },
   { path: '/api/projects/:id/devlog/export', source: 'db' },
+  {
+    path: '/api/projects/:id/injection-files',
+    source: 'mixed',
+    reason: '读 localPath 下的 lock 与每个登记文件的实算哈希 ⇒ 目录被删 / 文件被改即变',
+  },
   {
     path: '/api/projects/:id/injection-status',
     source: 'mixed',

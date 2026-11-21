@@ -15,8 +15,7 @@
 // DL-18 的原文：「捕获发往 AI 的入参，断言**只含勾选过的片段**且**不含本机绝对路径**」。
 // ⇒ 本文件用一个**假 runner**（进程内的函数）把入参截下来 ——
 //   界面骗得过，**入参骗不过**。
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
@@ -32,6 +31,7 @@ import { findDivergences } from './divergence'
 import { assembleInterpretRequest } from './assemble'
 import { redactAbsolutePaths, hasAbsolutePath } from './redact'
 import type { SourceInterpretRunner } from './runner'
+import { tempDir } from '../test-support/temp-dir'
 
 const dirs: string[] = []
 
@@ -44,7 +44,7 @@ afterEach(() => {
 
 /** 一个真实的项目目录（正文里**故意**放一条绝对路径 ⇒ 用来验脱敏）。 */
 function makeProject(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-m9-ai-'))
+  const dir = tempDir('ov-m9-ai-')
   dirs.push(dir)
   writeFileSync(
     join(dir, 'app.py'),

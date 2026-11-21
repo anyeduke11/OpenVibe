@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "note": "外部项目来源登记（G-1 批次，2026-11-13）。只登记「内容裁剪自哪里」；OpenVibe 不携带这些项目的原件，条目正文为裁剪改写后的中文版本。新增来源必须同步更新 LICENSES/ 下的许可证副本与 seed:check 的 SOURCE_LICENSES。",
+  "sources": [
+    {
+      "id": "spec-kit",
+      "name": "GitHub Spec Kit",
+      "url": "https://github.com/github/spec-kit",
+      "license": "MIT",
+      "copyright": "Copyright GitHub, Inc.",
+      "importedAt": "2026-11-13",
+      "evidence": "LICENSE 实取（raw.githubusercontent.com/github/spec-kit/main/LICENSE）；活跃度由 docs/competitive-analysis-20261112.md §4.2 记录（51,387★，最新提交 2026-11-11）",
+      "usedFor": ["Spec-Kit 流"],
+      "integration": "裁剪：specify → plan → tasks → implement 四阶段压缩为 4 个阶段，每阶段挂 Stage.prompt 问答模板"
+    },
+    {
+      "id": "openspec",
+      "name": "Fission-AI OpenSpec",
+      "url": "https://github.com/Fission-AI/OpenSpec",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2024 OpenSpec Contributors",
+      "importedAt": "2026-11-13",
+      "evidence": "LICENSE 实取（raw.githubusercontent.com/Fission-AI/OpenSpec/main/LICENSE）",
+      "usedFor": ["OpenSpec 变更流"],
+      "integration": "裁剪：proposal → apply → archive 三阶段压缩为 3 个阶段；保留其「只写变更内容、不复述全文」的 delta spec 纪律"
+    }
+  ]
+}

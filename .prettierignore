@@ -1,7 +1,10 @@
 # 种子词条一行一条：便于 owner 逐条审校与 diff，不接受 prettier 拆行
 content/seed/*.json
-# agent 会话工作目录（.gitignore 同规）：本地草稿，不进仓库契约，也不参与排版闸
-.trae/
+# ⚠️ 本地草稿目录（.trae/ .zwork/ tmp/）**不在此处**：它们由**根 .gitignore** 忽略，
+#   而 prettier 会读根 .gitignore（实测）⇒ 闸的视野与 git 对齐，无需第二份豁免。
+#   ⚠️ 别把它们加回来：`.prettierignore` 里的目录豁免是**手工维护的盲区** ——
+#     git 那侧一改（或文件被 -f 强加），这里就与真实入仓面脱节。
+#
 # golden 标准包快照：逐字节契约对象，任何格式化（含表格对齐）都会破坏 m6a §7.4 验收
 tests/golden/**/files/**
 tests/golden/**/openvibe.pack.json
@@ -16,6 +19,21 @@ docs/agent-memory/**
 # V1 原型归档快照：prettier 的 HTML 解析器无法解析（内嵌 script 契约 JSON 报
 # "Opening tag not terminated"），且归档件是历史存档，本就不应被重排
 docs/prototypes/archive/**
+# 三份「全功能 Demo」原型（2026-11-07，DEV-0236/0238/0240 的对照件）：
+# ⚠️ 与归档件同理但理由不同 —— 它们**能**被 prettier 解析，但排版即破坏：
+#   ① 内嵌 CSS/JS 的缩进与换行是 demo 版式的一部分，重排后 `<style>` 内的
+#      紧凑写法被展开（实测单份 6,748 行 diff），diff 淹没内容；
+#   ② 排版会动到 `/* openvibe-nav: growth-view */` 锚点附近的空白，
+#      而 docs:check 的原型对照面按锚点定位 ⇒ 排版与闸耦合。
+#   ⚠️ 只列这三份，不用 `docs/prototypes/*.html` 通配 —— 其余 16 份已跟踪原型
+#      **都是 prettier 合规的**（实测），通配会把它们从此后的排版闸里放走。
+docs/prototypes/灵典-全功能Demo-台账视角-20261107.html
+docs/prototypes/灵典-全功能Demo-成长视角-20261107.html
+docs/prototypes/灵典-全功能Demo-编译台视角-20261107.html
+# 复盘增强请求汇总（2026-11-09，未跟踪的本地件）：与上面三份同理 ——
+# HTML 重排会改动**内联元素之间的空白**（实测语义 diff 1,211 行，
+# 行数 807 → 1,408），而那正是渲染出来的字间距。版式即内容 ⇒ 不排版。
+docs/retro-enhancement-requests-20261109.html
 # v025 框架探针结果件：**逐字节契约**（由 framework-probes.mts 自己 writeFileSync 写盘，
 # PRD v0.2.5 附录 A 登记其 sha256 并要求「两次运行之间必须相等」）。prettier 的 JSON
 # 排版偏好（短数组折成一行）会改字节 ⇒ 登记的哈希失效；且脚本每次重跑都把文件覆写回

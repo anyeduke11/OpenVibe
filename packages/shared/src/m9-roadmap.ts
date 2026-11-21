@@ -137,3 +137,36 @@ export const MASTERY_STATE_TONE: Record<MasteryState, 'default' | 'accent' | 'ok
   active: 'accent',
   mastered: 'ok',
 }
+
+/** 一门语言的掌握度汇总（原型 learn「站位图」页签的口径）。 */
+export interface LanguageMastery {
+  /**
+   * 语言掌握度 = 该门全部知识点三态的**最高档**（`mastered` > `active` > `unused`）。
+   *
+   * ⚠️ 为什么取最高档而不是「平均」或「是否全掌握」：与 `readStates` 的
+   *   「跨项目取最高档」同一条纪律 —— 汇总只回答「这门语言在这台机器上最好到哪一步」，
+   *   不替用户下「学完没」的结论（§3.18 的「只给位置不给结论」）。
+   */
+  state: MasteryState
+  /** 已点亮（`state ≠ 'unused'`）的知识点数 */
+  lit: number
+  /** 知识点总数 */
+  total: number
+}
+
+/**
+ * 由一路线的知识点汇总语言掌握度。
+ *
+ * ⚠️ 口径只留这一处：文案取自 `MASTERY_STATE_LABELS`、语气取自 `MASTERY_STATE_TONE`，
+ *   界面不各自算一遍。
+ */
+export function languageMastery(topics: readonly RoadmapTopic[]): LanguageMastery {
+  let state: MasteryState = 'unused'
+  let lit = 0
+  for (const t of topics) {
+    if (t.state !== 'unused') lit += 1
+    if (t.state === 'mastered') state = 'mastered'
+    else if (t.state === 'active' && state !== 'mastered') state = 'active'
+  }
+  return { state, lit, total: topics.length }
+}

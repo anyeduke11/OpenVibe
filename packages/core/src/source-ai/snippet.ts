@@ -23,8 +23,9 @@
  *   但**读侧不能假设调用方守规矩** ⇒ 这里再兜一道（纵深防御）。
  */
 import { readFileSync, statSync } from 'node:fs'
-import { isAbsolute, join, resolve, sep } from 'node:path'
+import { isAbsolute } from 'node:path'
 import type { SnippetFailureReason } from '@openvibe/shared'
+import { resolveInside } from '../inject/security'
 
 /** 片段窗口（一段本地源码）。 */
 export interface SnippetWindow {
@@ -116,17 +117,12 @@ export function readSnippet(
   opts: { before?: number; after?: number } = {},
 ): SnippetReadResult {
   if (!isAbsolute(root)) return { window: null, failure: 'unreadable' }
-  if (relPath === '' || isAbsolute(relPath)) return { window: null, failure: 'out_of_project' }
-  // ⚠️ `..` 一律拒（越界读文件是最危险的形态）
-  if (relPath.split(/[\\/]/u).includes('..')) {
-    return { window: null, failure: 'out_of_project' }
-  }
-
-  const abs = resolve(join(root, relPath))
-  const rootNorm = root.endsWith(sep) ? root.slice(0, -1) : root
-  if (abs !== rootNorm && !abs.startsWith(rootNorm + sep)) {
-    return { window: null, failure: 'out_of_project' }
-  }
+  // ⚠️ 路径权威统一走 `resolveInside`（v0.2.4 F4 / R3）：词法 + realpath 双重校验。
+  // 此前此处只做词法校验，随后 statSync/readFileSync 跟随 symlink ⇒ 项目内一个指向
+  // 外部的 symlink 就能读到项目根外的内容（P-D 两臂实测）。
+  const check = resolveInside(root, relPath)
+  if (!check.ok) return { window: null, failure: 'out_of_project' }
+  const abs = check.absPath
 
   let stat
   try {

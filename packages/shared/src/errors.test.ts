@@ -41,6 +41,11 @@ describe('ERROR_CODES 闭集完整性', () => {
     expect(ERROR_HTTP_STATUS.IDEMPOTENCY_CONFLICT).toBe(422)
   })
 
+  it('INVALID_TRANSITION 存在且取 409（v0.2.4 F1：状态迁移非法，资源态冲突）', () => {
+    expect(ERROR_CODES).toContain('INVALID_TRANSITION')
+    expect(ERROR_HTTP_STATUS.INVALID_TRANSITION).toBe(409)
+  })
+
   it('台账 kind 与遥测三事件不同名 —— 与错误码闭集同属「无守护双源」家族', () => {
     // 同理：错误码闭集和遥测白名单都是「改了没人发现」的面，这里一并钉住。
     const overlap = LOCAL_EVENT_KINDS.filter((k) =>

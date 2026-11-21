@@ -16,9 +16,8 @@
 // 增强 4 的断言是「产物里没有绝对路径」—— 这种断言天然可能**恒真**
 // （脱敏函数根本没被调用时，产物里当然也没有绝对路径）。
 // ⇒ 本文件**先断言脏值确实含绝对路径**，再断言产物里没有 ⇒ 断言不是摆设。
-import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { chmodSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { join, relative } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   SOURCE_INTERPRET_SCHEMA_VERSION,
@@ -43,6 +42,7 @@ import {
 import { readSnippet, readSnippets, SNIPPET_MAX_FILES } from './snippet'
 import { formatInterpretMarkdown } from './export'
 import { CommandInterpretRunner, InterpretRunnerError, type SourceInterpretRunner } from './runner'
+import { tempDir } from '../test-support/temp-dir'
 
 const dirs: string[] = []
 
@@ -64,7 +64,7 @@ afterEach(() => {
 
 /** 一个真实目录（带一个小文件）。 */
 function makeProject(files: Record<string, string>): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-m9-enh-'))
+  const dir = tempDir('ov-m9-enh-')
   dirs.push(dir)
   for (const [name, content] of Object.entries(files)) {
     writeFileSync(join(dir, name), content)
@@ -185,9 +185,8 @@ describe('M9 增强 2 · 片段读取的失败原因（**六种，各自归对**
     expect(r.failure).toBe('too_large')
   })
 
-  it.skipIf(IS_ROOT || process.platform === 'win32')('⑤ 读不了（权限）⇒ `unreadable`', () => {
-    // ⚠️ **root 读不出权限错误** ⇒ 该分支在 root 下没有意义；windows 的 FS 权限模型
-    //   不认 chmod 000（读照常成功）⇒ 该分支在 windows 同样没有意义。
+  it.skipIf(IS_ROOT)('⑤ 读不了（权限）⇒ `unreadable`', () => {
+    // ⚠️ **root 读不出权限错误** ⇒ 该分支在 root 下没有意义
     // ⇒ 改用 `it.skipIf`（2026-10-31 R0）：报告里显式出现 skipped，
     //   而裸 `return` 会被计为 passed（环境缺失被读作覆盖率）。
     const dir = makeProject({ 'locked.py': 'secret\n' })
@@ -223,28 +222,83 @@ describe('M9 增强 2 · 片段读取的失败原因（**六种，各自归对**
   })
 })
 
+// ───────────────── R3：路径权威（symlink 不得越界） ─────────────────
+//
+// v0.2.4 F4 / R3：`readSnippet` 此前只做**词法**校验（`..` / 绝对路径），
+// 随后 `statSync`/`readFileSync` **跟随 symlink** ⇒ 项目内放一个指向外部的
+// symlink，提取读取就拿到项目根外的内容（P-D 探针两臂实测）。
+// 判据：三臂（普通 / 文件 symlink / 目录 symlink）里后两臂必须 `out_of_project`。
+describe('R3 · 路径权威（symlink 不得越出项目根）', () => {
+  const text = 'alpha\nsynthetic-boundary-marker\nomega\n'
+
+  /** 造 project/sibling 两层，返回 { project, sibling, file } */
+  function makeLayout(): { project: string; sibling: string; file: string } {
+    const base = tempDir('ov-m9-r3-')
+    dirs.push(base)
+    const project = join(base, 'project')
+    const sibling = join(base, 'sibling')
+    mkdirSync(project, { recursive: true })
+    mkdirSync(sibling)
+    const file = join(sibling, 'sample.txt')
+    writeFileSync(file, text)
+    return { project, sibling, file }
+  }
+
+  it('① 普通文件 ⇒ 正常读到（基线，证明判据不是恒拒）', () => {
+    const { project } = makeLayout()
+    mkdirSync(join(project, 'slot'), { recursive: true })
+    writeFileSync(join(project, 'slot', 'sample.txt'), text)
+    const r = readSnippet(project, 'slot/sample.txt', 2, { before: 0, after: 0 })
+    expect(r.failure).toBeNull()
+    expect(r.window?.lines[0]).toBe('synthetic-boundary-marker')
+  })
+
+  it('② 文件 symlink 指向项目外 ⇒ `out_of_project`', () => {
+    const { project, sibling } = makeLayout()
+    mkdirSync(join(project, 'slot'), { recursive: true })
+    symlinkSync(
+      relative(join(project, 'slot'), join(sibling, 'sample.txt')),
+      join(project, 'slot', 'sample.txt'),
+      'file',
+    )
+    const r = readSnippet(project, 'slot/sample.txt', 2, { before: 0, after: 0 })
+    expect(r.failure).toBe('out_of_project')
+    expect(r.window).toBeNull()
+  })
+
+  it('③ 目录 symlink 指向项目外 ⇒ `out_of_project`', () => {
+    const { project, sibling } = makeLayout()
+    symlinkSync(relative(project, sibling), join(project, 'slot'), 'dir')
+    const r = readSnippet(project, 'slot/sample.txt', 2, { before: 0, after: 0 })
+    expect(r.failure).toBe('out_of_project')
+    expect(r.window).toBeNull()
+  })
+
+  it('④ 词法 `../` 仍被拒（既有判据不被破坏）', () => {
+    const { project } = makeLayout()
+    const r = readSnippet(project, '../sibling/sample.txt', 2, { before: 0, after: 0 })
+    expect(r.failure).toBe('out_of_project')
+  })
+})
+
 // ───────────────── 增强 3：runner 契约带版本号 ─────────────────
 
 describe('M9 增强 3 · 契约版本号（**不兼容要有自己的失败原因**）', () => {
-  /** 造一个只输出固定 JSON 的假解释器（node 子进程形态——windows 无 shebang，spawn('.sh') 报 EFTYPE）。 */
-  function fakeInterpreter(payload: string): { cmd: string; args: string[] } {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-m9-ver-'))
+  /** 造一个只输出固定 JSON 的假解释器。 */
+  function fakeInterpreter(payload: string): string {
+    const dir = tempDir('ov-m9-ver-')
     dirs.push(dir)
-    const script = join(dir, 'fake.mjs')
-    writeFileSync(script, `process.stdout.write(${JSON.stringify(payload)})\n`)
-    return { cmd: process.execPath, args: [script] }
+    const script = join(dir, 'fake.sh')
+    writeFileSync(script, `#!/bin/sh\ncat > /dev/null\nprintf '%s' '${payload}'\n`)
+    chmodSync(script, 0o755)
+    return script
   }
 
   it('① 版本号**对得上** ⇒ 正常解析', async () => {
-    const fake = fakeInterpreter(
+    const script = fakeInterpreter(
       `{"schema_version":${String(SOURCE_INTERPRET_SCHEMA_VERSION)},"items":[],"model":"m","provider":"p"}`,
     )
-    const runner = new CommandInterpretRunner({
-      cmd: fake.cmd,
-      args: fake.args,
-      model: 'm',
-      provider: 'p',
-    })
+    const runner = new CommandInterpretRunner({ cmd: script, model: 'm', provider: 'p' })
     const result = await runner.interpret({
       schema_version: SOURCE_INTERPRET_SCHEMA_VERSION,
       fragments: [],
@@ -254,13 +308,8 @@ describe('M9 增强 3 · 契约版本号（**不兼容要有自己的失败原�
   })
 
   it('② 版本号**对不上** ⇒ `runner-version-mismatch`（**不是**泛化的「不合 schema」）', async () => {
-    const fake = fakeInterpreter('{"schema_version":0,"items":[],"model":"m","provider":"p"}')
-    const runner = new CommandInterpretRunner({
-      cmd: fake.cmd,
-      args: fake.args,
-      model: 'm',
-      provider: 'p',
-    })
+    const script = fakeInterpreter('{"schema_version":0,"items":[],"model":"m","provider":"p"}')
+    const runner = new CommandInterpretRunner({ cmd: script, model: 'm', provider: 'p' })
     // ⚠️ **归一到自己的原因**（能分清「工具坏了」与「契约变了」）
     let reason: string | undefined
     try {
@@ -276,13 +325,8 @@ describe('M9 增强 3 · 契约版本号（**不兼容要有自己的失败原�
   })
 
   it('③ **缺**版本号 ⇒ 同样是 `runner-version-mismatch`（缺也是不兼容）', async () => {
-    const fake = fakeInterpreter('{"items":[],"model":"m","provider":"p"}')
-    const runner = new CommandInterpretRunner({
-      cmd: fake.cmd,
-      args: fake.args,
-      model: 'm',
-      provider: 'p',
-    })
+    const script = fakeInterpreter('{"items":[],"model":"m","provider":"p"}')
+    const runner = new CommandInterpretRunner({ cmd: script, model: 'm', provider: 'p' })
     let reason: string | undefined
     try {
       await runner.interpret({

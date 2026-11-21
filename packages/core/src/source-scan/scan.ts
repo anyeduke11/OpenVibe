@@ -30,7 +30,6 @@ import {
   type SourcePattern,
   type SourceScanResult,
 } from '@openvibe/shared'
-import { spawnSync } from 'node:child_process'
 import { DEFAULT_MAX_FILES, listSourceFiles } from './files'
 import { detectGoToolchain, scanGoHeuristic, scanGoParser } from './go-scanner'
 import { parseNodeSpec, scanPython, SourceScanError } from './python-scanner'
@@ -105,21 +104,6 @@ function sortFindings(findings: readonly SourceFinding[]): SourceFinding[] {
  *
  * @param opts 入参
  */
-/**
- * 缺省 Python 解释器解析：显式指定优先；否则 `python3` → `python` 依次探测。
- * windows 只有 `python` 命令名（无 python3，CI windows 实证）⇒ 回退到 `python`
- * 才能让 P4 在三平台同样工作；都探测不到 ⇒ 维持 `python3`，让 scanPython 显式
- * 报 not-found（不许静默少扫——§3.8 第 3 条）。
- */
-function resolvePythonBin(explicit: string | undefined): string {
-  if (explicit !== undefined) return explicit
-  for (const candidate of ['python3', 'python'] as const) {
-    const probe = spawnSync(candidate, ['--version'], { encoding: 'utf8', timeout: 15_000 })
-    if (probe.error === undefined && probe.status === 0) return candidate
-  }
-  return 'python3'
-}
-
 export async function scanProjectSource(opts: ScanProjectOptions): Promise<SourceScanResult> {
   const maxFiles = opts.maxFiles ?? DEFAULT_MAX_FILES
   const scanId = opts.scanId ?? Date.now()
@@ -138,12 +122,7 @@ export async function scanProjectSource(opts: ScanProjectOptions): Promise<Sourc
     return { id: p.id, kind, cond }
   })
   try {
-    const out = await scanPython(
-      opts.root,
-      pyListing.files,
-      pySpecs,
-      resolvePythonBin(opts.pythonBin),
-    )
+    const out = await scanPython(opts.root, pyListing.files, pySpecs, opts.pythonBin ?? 'python3')
     const hits = out.hits as RawHit[]
     const pyFindings = toFindings(hits, pyPatterns, 'parser')
     findings = findings.concat(pyFindings)

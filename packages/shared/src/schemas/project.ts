@@ -57,3 +57,49 @@ export const InjectionStatusOut = z.object({
   error: z.string().optional(),
 })
 export type InjectionStatusOut = z.infer<typeof InjectionStatusOut>
+
+/**
+ * 注入文件状态（原型 inject「产物台账（九文件 + lock）」）。
+ *
+ * 前四态与 `verifyAgainstLock` 的 `CONSISTENCY_STATES` 逐字一致（service-layer FR-2 的单一词表）：
+ * - `IN_SYNC` 磁盘 == 声明
+ * - `DRIFT` 受管且磁盘 ≠ 声明（本地手改）
+ * - `ABSENT` 磁盘不存在
+ * - `FOREIGN` 未受管 / `.openvibe/` 内部条目（本包不据此下结论）
+ * `LOCK` 是**合成行**：lock 文件自身不是包产物，但台账要能看见它（原型把它单列一行）。
+ */
+export const INJECTION_FILE_STATES = ['IN_SYNC', 'DRIFT', 'ABSENT', 'FOREIGN', 'LOCK'] as const
+export type InjectionFileState = (typeof INJECTION_FILE_STATES)[number]
+
+export const InjectionFileRow = z.object({
+  path: z.string(),
+  state: z.enum(INJECTION_FILE_STATES),
+  /** 是否受本包管辖（`FOREIGN` 的定义即 `managed !== true`） */
+  managed: z.boolean(),
+  /** 声明侧哈希（lock 记的期望值），原样回传供核对 */
+  declaredSha256: z.string().optional(),
+  /** 磁盘实算哈希；`ABSENT` 为 null */
+  diskSha256: z.string().nullable().optional(),
+})
+export type InjectionFileRow = z.infer<typeof InjectionFileRow>
+
+/**
+ * 注入文件扫描出参（`GET /api/projects/:id/injection-files`）。
+ *
+ * ⚠️ 与 `InjectionStatusOut` 的分工：后者答「注入过没有、版本对不对」，
+ *   前者答「**每个文件现在对不对得上**」。两者都只读 lock，都不写盘。
+ */
+export const InjectionFileScanOut = z.object({
+  lockPresent: z.boolean(),
+  pack: z
+    .object({
+      name: z.string(),
+      version: z.string(),
+      fingerprint: z.string(),
+    })
+    .optional(),
+  injectedAt: z.string().optional(),
+  files: z.array(InjectionFileRow),
+  error: z.string().optional(),
+})
+export type InjectionFileScanOut = z.infer<typeof InjectionFileScanOut>

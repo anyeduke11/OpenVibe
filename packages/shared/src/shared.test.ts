@@ -54,8 +54,8 @@ describe('UT-EXAMPLE-01 · shared 基础能力', () => {
     for (const v of extractVariables(content)) expect(seg1).toContain(`- ${v} =`)
   })
 
-  it('契约常量：schemaVersion=1、六 adapter、八类受控词表', () => {
-    expect(SCHEMA_VERSION).toBe(1)
+  it('契约常量：schemaVersion=2、六 adapter、八类受控词表', () => {
+    expect(SCHEMA_VERSION).toBe(2)
     expect(ADAPTER_IDS).toHaveLength(6)
     expect(CONTROLLED_TAG_VOCAB).toHaveLength(8)
   })

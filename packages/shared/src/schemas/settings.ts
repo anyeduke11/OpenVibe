@@ -57,6 +57,22 @@ export const OnboardingToggleInput = z.object({
 })
 export type OnboardingToggleInput = z.infer<typeof OnboardingToggleInput>
 
+/** 圈数台账的一条：某个项目走完一圈的记录（FR-3.2 五条判定逐项目求值，与 loops 同源） */
+export const LoopLedgerEntry = z.object({
+  projectId: z.string(),
+  projectName: z.string(),
+  /** 达成时绑定的标准包名与版本（证据，不是第二份真相） */
+  packName: z.string(),
+  packVersion: z.string(),
+  /**
+   * 达成日：三条时间戳（该包最近导出 / 该项目最近注入 / 该项目最近一条回流日志）的**最大值**，
+   * 即「最后一条件达成」之日。⚠️ 不是「三条之和」也不是「最早」——
+   *   一圈的完成时刻由最晚那条决定。
+   */
+  completedAt: z.string(),
+})
+export type LoopLedgerEntry = z.infer<typeof LoopLedgerEntry>
+
 /** 飞轮统计五项（onboarding FR-3，T8b 新增 GET /api/stats；全本地 SQL 聚合，不参与遥测） */
 export const FlywheelStatsOut = z.object({
   /** 资产数：提示词(M1) + 术语(M3) + Skill(M2) 条目之和 */
@@ -69,6 +85,12 @@ export const FlywheelStatsOut = z.object({
   reflows: z.number().int(),
   /** 飞轮圈数：同项目「有导出包 → 有注入 → 有 ≥1 条回流」记 1 圈，按项目去重（FR-3.2） */
   loops: z.number().int(),
+  /**
+   * 圈数台账：与 `loops` **同源**的五条判定逐项目求值，按达成日升序（圈 1 = 最早）。
+   * ⚠️ 不新造第二个聚合端点（growth-path「取台账聚合，不新造第二个聚合端点」）——
+   *   数据来源、判定条件与 `loops` 完全一致，只是把「数项目」换成「列项目」。
+   */
+  loops_ledger: z.array(LoopLedgerEntry),
 })
 export type FlywheelStatsOut = z.infer<typeof FlywheelStatsOut>
 
@@ -88,34 +110,9 @@ export const OmDensityOut = z.object({
 export type OmDensityOut = z.infer<typeof OmDensityOut>
 
 /**
- * 采纳率快照的折叠形态（Phase 1 北极星补结果侧 · 1B 批次）：
- * `adoption_snapshots` 每 kind 的**最新一轮**（候选经人工裁决的窗口下限时间序列，
- * 迁移 0022 / M10 线）。`rate` 缺省为 null（published+rejected = 0 的轮次）；
- * `below` = 该轮是否低于门槛（0/1，QG1「连续 2 轮低于门槛」的原料）。
- */
-export const OmAdoptionRow = z.object({
-  kind: z.enum(['term_candidate', 'prompt_candidate', 'playbook_candidate']),
-  roundNo: z.number().int(),
-  published: z.number().int(),
-  rejected: z.number().int(),
-  rate: z.number().nullable(),
-  below: z.number().int(),
-})
-export type OmAdoptionRow = z.infer<typeof OmAdoptionRow>
-
-/** 核验通过率（7 天窗口）：`cli_agent_command_run` 且 command='verify' 的 exitCode=0 占比。 */
-export const OmVerifyRate = z.object({
-  total: z.number().int(),
-  passed: z.number().int(),
-  rate: z.number(),
-})
-export type OmVerifyRate = z.infer<typeof OmVerifyRate>
-
-/**
- * 输出侧度量（PRD-v0.2.3 RQ5 / OM1+OM2，GET /api/om；Phase 1 · 1B 批次补结果侧两段）。
+ * 输出侧度量两件（PRD-v0.2.3 RQ5 / OM1+OM2，GET /api/om）。
  * OM2 首次见效时间 = 首次本机事件（台账 MIN(created_at)，M8 起无条件记）→
  * 第一次注入（injections MIN(injected_at)）的墙钟差；任一端缺失为 null（面板显示「待采集」）。
- * `adoption` = 表空时 null；`verifyRate` = 窗口内无 verify 事件时 null（「待采集」语义）。
  */
 export const OmOut = z.object({
   density: OmDensityOut.nullable(),
@@ -124,8 +121,6 @@ export const OmOut = z.object({
     firstInjectionAt: z.string().nullable(),
     seconds: z.number().int().nullable(),
   }),
-  adoption: z.array(OmAdoptionRow).nullable(),
-  verifyRate: OmVerifyRate.nullable(),
 })
 export type OmOut = z.infer<typeof OmOut>
 
