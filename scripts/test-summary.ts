@@ -149,10 +149,17 @@ function main(): void {
   const vitestArgs = ['vitest', 'run', ...userArgs]
   if (preflight !== undefined) vitestArgs.push(`--maxWorkers=${String(preflight)}`)
 
-  const child = spawn('npx', vitestArgs, {
+  // windows 两层坑（CI windows 腿实证）：① spawn('npx') 不带 .cmd 后缀 ⇒ ENOENT；
+  // ② Node ≥20.12 起（CVE-2024-27980）spawn('.cmd') 不带 shell ⇒ EINVAL。
+  // ⇒ win32 取 npx.cmd 且开 shell；shell 仅在 win 开启（args 为内部构造 + 用户自传，无第三方注入面）。
+  //   （2026-11-21 收口：并行会话工作树曾把这段回退成裸 spawn('npx') ⇒ windows CI 必红，按 HEAD 恢复。）
+  const winSpawn = process.platform === 'win32'
+  const npxBin = winSpawn ? 'npx.cmd' : 'npx'
+
+  const child = spawn(npxBin, vitestArgs, {
     cwd: ROOT,
     stdio: ['inherit', 'pipe', 'pipe'],
-    shell: false,
+    shell: winSpawn,
   })
 
   let captured = ''
