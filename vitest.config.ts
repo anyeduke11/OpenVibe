@@ -28,6 +28,11 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
+          // 2026-11-02：每个 worker 启动时登记自己的 pid + cwd
+          // ⇒ `scripts/check-orphan-workers.ts` 据此判断「孤儿是不是本仓的」
+          // ⇒ **跨平台**（不依赖 `lsof` 这类非 POSIX 标准的工具）。
+          // ⚠️ 登记失败**不阻断测试**（它只是辅助线索）。
+          setupFiles: ['./tests/setup-worker-registry.ts'],
           include: ['packages/*/src/**/*.test.ts', 'tests/**/*.test.ts'],
           // 同 integration / cli 那条理由：默认 5s 是**闸口，不是功能红线**。
           // 本机常驻 Lark / usernoted 等进程，负载高峰（实测 load average 84）时
@@ -41,6 +46,7 @@ export default defineConfig({
         test: {
           name: 'integration',
           environment: 'node',
+          setupFiles: ['./tests/setup-worker-registry.ts'],
           include: ['apps/server/test/**/*.test.ts'],
           // 同 cli project 那条理由，win32 runner 上复现过一次：真实 SQLite 播种 + 导出落盘
           // 在 windows-latest 比本机慢 10–50 倍，run 36796390998 实测单支最高 7845ms（越过默认 5s 判超时），
@@ -52,6 +58,7 @@ export default defineConfig({
         test: {
           name: 'cli',
           environment: 'node',
+          setupFiles: ['./tests/setup-worker-registry.ts'],
           include: ['apps/cli/test/**/*.test.ts'],
           // CLI 用例要真起子进程（node --import tsx 冷启动）并真监听端口，
           // 与 unit/integration 并行抢占 CPU 时会越过 5s 默认值（默认值会掩盖成超时失败）
@@ -69,6 +76,7 @@ export default defineConfig({
           // jsdom 与 @testing-library/* 装在根 devDeps 而不是 apps/web：环境包由这份根配置解析，
           // 放进 app 下 vitest 找不到（owner 裁定 ⑪，2026-09-26）
           environment: 'jsdom',
+          setupFiles: ['./tests/setup-worker-registry.ts'],
           include: ['apps/web/src/**/*.test.{ts,tsx}'],
           // 同 unit / integration / cli 那条理由：组件用例靠 `waitFor` 等渲染与取数，
           // 机器负载高峰时它们会越过默认 5s 判**超时**（实测 4 支越界，单跑全绿 ⇒ 环境型红）。

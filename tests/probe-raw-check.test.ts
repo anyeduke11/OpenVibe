@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { parseConclusionVerdicts, runCheck } from '../scripts/probe-raw-check'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * `scripts/probe-raw-check.ts` 的结论段解析判据测试（2026-10-17）。
@@ -159,7 +160,7 @@ describe('parseConclusionVerdicts · 前置同名小标题不干扰', () => {
  * 其余轮次缺席，用来验证缺轮次的失败/忽略两种语义。
  */
 function fixtureDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'm8-check-'))
+  const dir = tempDir('m8-check-')
   const good = [
     '<!-- M8-PROBE platform=trae round=1 -->',
     '客户端：Fixture',
@@ -233,7 +234,7 @@ describe('runCheck · 缺轮次语义', () => {
 
 describe('runCheck · 已落盘轮次的坏项', () => {
   it('有坏项（缺机器索引头）即使忽略缺失轮也 exitCode=1', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'm8-bad-'))
+    const dir = tempDir('m8-bad-')
     writeFileSync(
       join(dir, 'trae-r1.md'),
       ['# 没有索引头', '## 四问结论', '- Q1 加载时机：支持', ''].join('\n'),

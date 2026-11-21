@@ -17,8 +17,7 @@
 //
 // ⚠️ **单测不联网** —— 真跑由 `pnpm m9:collect` 负责；单测只断纯函数面，
 //    否则 CI 会依赖第三方站点可用性。
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -41,6 +40,7 @@ import {
   type CollectOutcome,
   type SourceConfig,
 } from '../scripts/collect-m9-sources'
+import { tempDir } from '@openvibe/core/test-support'
 
 const REPO_ROOT = fileURLToPath(new URL('../', import.meta.url))
 const PROBE_DIR = join(REPO_ROOT, 'docs', 'devlog-evidence', 'M9-probe')
@@ -264,7 +264,7 @@ describe('M9 P1.9 · 已入库清单面（真文件）', () => {
     expect(go.counts.total).toBe(34)
   })
 
-  it('② 分段计数与条目一致（Python 基础 40 ＋ 高级 42；Go 基础 34）', () => {
+  it('② 分段计数与条目一致（Python 基础 40 ＋ 高级 44；Go 基础 34）', () => {
     expect(countSections(py.items)).toEqual({ 基础教程: 40, 高级教程: 42 })
     expect(countSections(go.items)).toEqual({ 基础教程: 34 })
   })
@@ -395,7 +395,7 @@ describe('M9 P1.9·CI · 退出码分层（「可复算」要当闸，就得能�
 describe('M9 P1.9·CI · 真跑面（--offline 临时目录，不联网）', () => {
   let dir = ''
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'm9-collect-'))
+    dir = tempDir('m9-collect-')
   })
   afterEach(() => {
     rmSync(dir, { recursive: true, force: true })

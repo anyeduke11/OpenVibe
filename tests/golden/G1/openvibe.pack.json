@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "pack": {
     "id": "pk_golden_g1",
     "name": "overseas",
@@ -88,16 +88,19 @@
   "files": [
     {
       "path": "AGENTS.md",
-      "sha256": "1f4e798e4e28a228febbef886c7b382624fe28a0ab296ac80175c55a716f45cb"
+      "sha256": "95a428b1d2471b45f00a281a51baa6abdce95edee1996cc3ae8cb2a46366ca35"
     },
     {
       "path": "CLAUDE.md",
-      "sha256": "1f4e798e4e28a228febbef886c7b382624fe28a0ab296ac80175c55a716f45cb"
+      "sha256": "ca9c9cc956065d3f90ee71e07baabe6d905ae2ec1636c1c5a009a0a1f56d5292"
     },
     {
       "path": "TERMS.md",
       "sha256": "fb76c471fc843f7f42a64a02ccee5d2c8458307721d8abd6e203d966791fe40f"
     }
   ],
-  "fingerprint": "5b2956438a048913abbd13963c97c61212d1d024ba6bb9e153b981dfa356b2bb"
+  "l1": {
+    "claude-code": true
+  },
+  "fingerprint": "50c31b75b2a0a501dd25d4f6a173741eba7de4fa8ef1ebfd3f52208e57d2759e"
 }

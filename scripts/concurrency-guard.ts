@@ -407,11 +407,57 @@ export function squashWhitespace(text: string): string {
 }
 
 /**
+ * 队列状态词的**语义豁免**（2026-11-07）。
+ *
+ * ## 为什么需要它
+ *
+ * `已裁已落` 是 `docs/decisions.md` 的**队列状态闭集取值之一**（`docs-check.ts` 的
+ * `QUEUE_STATES` 六值之一），而它同时被登记为回退标志（`DEFAULT_MARKERS`）——
+ * 两处**语义相反**：一处说「这是合法状态」，一处说「这是把状态退回旧措辞」。
+ *
+ * 规则 B 靠 `dropPreexistingMarkers` 的文件级豁免把它挡掉了（该文件 HEAD 已有该词）；
+ * 但**规则 C 是新增行口径**，新写一行队列记录仍会被判成回退 —— 实测：新增 ㊲ 那笔
+ * 被规则 C 拦下，而它其实是**正常使用状态词**。
+ *
+ * ## 判据：三个条件同时成立才豁免
+ *
+ * 1. 该行是**队列表格行**（行首 `| ①…㊿ |`）；
+ * 2. 命中字样出现在**状态列**（第 3 列，表头 `| # | 事项 | 状态 | …`）；
+ * 3. 该列文本包含 `QUEUE_STATE_WORDS` 里的某个取值。
+ *
+ * ⚠️ 三条缺一不可。只看枚举会把散文里的状态词一并放过（`## 净状态` 小节里
+ * 「已裁已落 20」是**计数**不是状态，那里出现回退字样仍应报）；只看列不看枚举
+ * 会把任意文本放过。
+ */
+const QUEUE_STATE_WORDS = ['待裁', '待签', '可做待排', '部分授权', '已裁待落', '已裁已落'] as const
+
+/** 队列行首的号位（①–㊿，与 docs-check 的 CIRCLED 同集） */
+const QUEUE_ROW_RE =
+  /^\|\s*[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿]\s*\|/
+
+/** 队列表格行里「命中标志的那一列」是否是状态列（第 3 列） */
+export function isQueueStateCell(line: string, marker: RegExp): boolean {
+  if (!QUEUE_ROW_RE.test(line)) return false
+  const cells = line.split('|')
+  // split 后 cells[0] 是行首空白；第 3 列 ⇒ cells[3]
+  const stateCell = cells[3] ?? ''
+  if (!marker.test(stateCell)) return false
+  return QUEUE_STATE_WORDS.some((w) => stateCell.includes(w))
+}
+
+/**
  * 规则 C 的判定核心（纯函数）。
  *
  * ## 判据
  *
  * 对每条新增行：**命中回退标志** 且 **去空白后在 HEAD 版该文件里查无此行** ⇒ 回退态。
+ *
+ * ## 判定优先级
+ *
+ * 1. 自引用豁免（`selfQuoting`）——判据文件按构造必须含标志字面量；
+ * 2. **队列状态词语义豁免**（`isQueueStateCell`）——`docs/decisions.md` 的队列行
+ *    在状态列里正常使用状态词，不是回退；
+ * 3. 标志命中 且 HEAD 无此行 ⇒ 回退。
  *
  * ## 为什么必须加「新增性」这一问
  *
@@ -451,6 +497,8 @@ export function detectRollbackInAddedLines(
     if (selfQuoting.some((p) => p.test(a.path))) continue
     const marker = markers.find((m) => m.test(a.text))
     if (!marker) continue
+    // ⚠️ 队列状态词的正常使用不是回退（见 isQueueStateCell 的三条件说明）
+    if (isQueueStateCell(a.text, marker)) continue
     // ⚠️ HEAD 里没有这个文件 ⇒ 整份都是新增 ⇒ 该行必然是新的 ⇒ 算回退
     const set = headSets.get(a.path)
     if (set && set.has(squashWhitespace(a.text))) continue

@@ -3,6 +3,7 @@ import {
   classify,
   DEFAULT_MARKERS,
   FORBIDDEN,
+  OWNED as REAL_OWNED,
   renderReport,
   SELF_QUOTING,
   type DirtyFile,
@@ -39,22 +40,44 @@ const classifyOne = (file: DirtyFile, owned = OWNED) =>
 
 describe('ownership-check · 判定顺序：禁区压过一切', () => {
   it('命中禁区 ⇒ hold，理由写明', () => {
-    const v = classifyOne(f({ path: 'apps/web/src/index.css' }))
+    const v = classifyOne(f({ path: 'docs/specs/m4-playbook.md' }))
     expect(v.verdict).toBe('hold')
-    expect(v.reason).toContain('并行会话')
+    expect(v.reason).toContain('回退')
   })
 
   it('⚠️ 同时命中禁区与 owned ⇒ 仍然 hold（禁区必须压过 owned）', () => {
     // 这条是本文件的第一条命门：若顺序写反，禁区文件会被标成可提交。
-    const v = classifyOne(f({ path: 'apps/web/src/index.css' }), [
-      { label: '本会话', reason: '自称本会话', pattern: /^apps\/web\// },
+    const v = classifyOne(f({ path: 'docs/specs/m4-playbook.md' }), [
+      { label: '本会话', reason: '自称本会话', pattern: /^docs\/specs\/m4-/ },
     ])
     expect(v.verdict).toBe('hold')
   })
 
-  it('M4 回退类文档命中禁区', () => {
-    for (const p of ['docs/dev-plan.md', 'docs/decisions.md', 'docs/specs/m4-playbook.md']) {
+  it('M4 回退类规格命中禁区', () => {
+    for (const p of ['docs/specs/m4-playbook.md', 'docs/specs/m6-standard-pack.md']) {
       expect(classifyOne(f({ path: p })).verdict, p).toBe('hold')
+    }
+  })
+
+  it('⚠️ 三份治理文档**不再是**禁区（2026-11-07 移除过期会话级禁区）', () => {
+    // 原禁区 `docs/(dev-plan|decisions|tasks).md` 是早期「并行会话未授权改」时留下的
+    // 会话级边界，此后三份文档一直是常规落点 ⇒ 留着会让闸对它们必然报 hold。
+    // 移除后它们应回到 owned（默认 OWNED 不含这三条路径 ⇒ 判 review，不是 commit）。
+    for (const p of ['docs/dev-plan.md', 'docs/decisions.md', 'docs/tasks.md']) {
+      const v = classifyOne(f({ path: p }))
+      expect(v.verdict, p).not.toBe('hold')
+      expect(v.label, p).not.toContain('禁区')
+    }
+  })
+
+  it('⚠️ apps/web **是本会话所有**，不是禁区（2026-11-08 owner 授权前端重构）', () => {
+    // 原禁区 `^apps/web/`（「并行会话禁区」）经 owner 在 AskUserQuestion 里显式裁定
+    // 「继续，禁区规则改为显式授权后可改」⇒ 转 OWNED。留着的后果是闸对**整个前端**
+    // 必然报 hold，而 owner 每轮都要绕过 —— 一道长期红的闸等于没有闸。
+    for (const p of ['apps/web/src/index.css', 'apps/web/src/pages/SettingsPage.tsx']) {
+      const v = classifyOne(f({ path: p }), REAL_OWNED)
+      expect(v.verdict, p).toBe('commit')
+      expect(v.label, p).toBe('本会话·前端')
     }
   })
 })
@@ -141,6 +164,21 @@ describe('ownership-check · 自引用豁免', () => {
     expect(r.files[0]!.exempt).toBe(false)
     expect(r.mixed).toEqual(['tests/other.test.ts'])
   })
+
+  it('⚠️ 队列状态闭集的定义处（decisions.md）与引用它的判据测试：命中属结构性常态', () => {
+    // decisions.md 的**正常措辞**里就有「已裁已落」（状态闭集取值 + 净状态计数），
+    // 每新立一项决策都会写 ⇒ 不豁免的话，每次授权改档都会让闸变红 ⇒ 长期红的闸等于没闸。
+    for (const path of ['docs/decisions.md', 'tests/concurrency-guard.test.ts']) {
+      const r = classify([f({ path, addedLines: ['| ㊲ | **已裁已落** |'] })], {
+        forbidden: FORBIDDEN,
+        owned: OWNED,
+        markers: DEFAULT_MARKERS,
+        selfQuoting: SELF_QUOTING,
+      })
+      expect(r.files[0]!.exempt, `${path} 应被豁免`).toBe(true)
+      expect(r.mixed, `${path} 豁免后不该进 mixed`).toEqual([])
+    }
+  })
 })
 
 describe('ownership-check · 未判定与计数', () => {
@@ -153,7 +191,7 @@ describe('ownership-check · 未判定与计数', () => {
   it('计数与 mixed 列表一致', () => {
     const r = classify(
       [
-        f({ path: 'apps/web/src/a.tsx' }),
+        f({ path: 'docs/specs/m4-playbook.md' }),
         f({ path: 'apps/cli/src/b.ts' }),
         f({ path: 'packages/shared/src/c.ts', addedLines: ['// 人日未估'] }),
       ],
@@ -170,7 +208,7 @@ describe('ownership-check · 未判定与计数', () => {
     const r = classify(
       [
         f({ path: 'apps/cli/src/z.ts' }),
-        f({ path: 'apps/web/src/a.tsx' }),
+        f({ path: 'docs/specs/m4-playbook.md' }),
         f({ path: 'apps/cli/src/y.ts', addedLines: ['// M4 未上'] }),
       ],
       { forbidden: FORBIDDEN, owned: OWNED, markers: DEFAULT_MARKERS },
@@ -189,7 +227,7 @@ describe('ownership-check · 报告渲染', () => {
   it('报告含三类计数与「不要整文件 add」的对策', () => {
     const r = classify(
       [
-        f({ path: 'apps/web/src/a.tsx' }),
+        f({ path: 'docs/specs/m4-playbook.md' }),
         f({ path: 'packages/shared/src/c.ts', addedLines: ['// 人日未估'] }),
       ],
       { forbidden: FORBIDDEN, owned: [], markers: DEFAULT_MARKERS },

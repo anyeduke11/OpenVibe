@@ -1,31 +1,52 @@
 #!/usr/bin/env node
 /**
- * dev:all —— 一条命令同时起 web 与 server（2026-10-19）。
+ * dev —— 一条命令起「**生产形态**」的本地环境（2026-11-10 改造）。
  *
- * ⚠️ **为什么不用 `a & b & wait`**：那是能用的最小写法，但它对本脚本要断的两件事都答不出来 ——
- *   ① `pnpm --filter … dev` 自己还要再 fork 一层 shell → vite/tsx 是**孙进程**。
- *      给 `pnpm` 发 SIGINT 不保证孙进程收到，于是 Ctrl-C 后端口仍被占，
- *      下一次启动就撞 `strictPort` 报错 —— 而报的是「端口被占」，**没人会想到是上一次没关干净**。
- *   ② 只想启动时先失败，没有「一方挂了就把另一方也收掉」的语义。
- *   这两件事都不是审美问题，是 Ctrl-C 后留孤儿进程，所以这里显式按**进程组**管理。
+ * ## 它起什么
  *
- * 零依赖（只用 node: 内建模块），与仓内其余脚本一致。
+ * ```
+ * pnpm dev          构建 web → 起 server（tsx watch）
+ * pnpm dev --iso    同上，但数据目录与端口都隔离（见下）
+ * ```
  *
- * 根 `package.json` 里的三个入口：
- * - `dev` / `dev:all` → 本脚本（默认就起全，`dev` 直接指过来是刻意的 ——
- *   `docs/specs/theme.md` 的走查路径写的就是 `pnpm dev`，留半截等于让文档继续骗人）
- * - `dev:each` → 原先的 `pnpm -r --if-present dev`。**它的毛病不是并行，是会卡住**：
- *   pnpm 按依赖序逐个跑，而 vite / tsx watch 都是常驻进程 ⇒ 跑到第一个就不动了，
- *   后面的包永远排不上。保留它是因为「只起某一个包」偶尔有用（`--filter` 配合），
- *   但**起完整环境不要用它**。
+ * **为什么不再起 vite dev server**：本仓的生产形态是 **server 自己托管 web 产物**
+ * （`apps/server/src/plugins/static.ts` 用 `@fastify/static` 注册 `apps/web/dist`，
+ * 依据 design §4 步骤 7 / m6b D-1）。API 与页面**同端口、同源**，
+ * 正合 R4 的「同源相对路径」约定（`apps/web/src/api/client.ts` 第一行）。
+ *
+ * 而 vite dev server 是**另一条链路**：它要单独占一个端口、要 `/api` 代理
+ * （`vite.config.ts` 的 `proxy` 只配在 `server` 下），与生产架构并不一致。
+ * ⇒ `pnpm dev` 改为构建后由 server 托管，**所见即生产**。
+ * 代价：**没有 HMR** —— 改前端需重新构建。需要 HMR 时直接跑
+ * `pnpm --filter @openvibe/web dev`（vite 仍在，只是不再由本脚本起）。
+ *
+ * ## 进程组管理（为什么不 `a & b & wait`）
+ *
+ * `pnpm --filter … dev` 自己还要再 fork 一层 shell → tsx 是**孙进程**。
+ * 给 `pnpm` 发 SIGINT 不保证孙进程收到，于是 Ctrl-C 后端口仍被占，
+ * 下一次启动就撞 `EADDRINUSE` —— 而报的是「端口被占」，
+ * **没人会想到是上一次没关干净**。故这里显式按进程组管理。
+ *
+ * ## `--iso`：隔离实例
+ *
+ * 折叠自原 `scripts/dev-iso.mjs`（2026-11-10 整合）：临时数据目录 + 自动挑空闲端口
+ * + 端口冲突自动换一组重试。`pnpm dev:iso` 是同一条命令的别名入口。
+ *
+ * 零依赖（只用 node: 内建模块 + 本仓两个脚本模块），与仓内其余脚本一致。
  */
 import { spawn } from 'node:child_process'
-import { readFileSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { mkdtempSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { detectPortConflict, pickPortPair, withPortRetry } from './iso-ports.mjs'
+import { isolatedEnv } from './isolated-home.mjs'
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const RULES = '─'.repeat(64)
+
+/** 本次是否隔离实例 */
+const ISO = process.argv.includes('--iso')
 
 /**
  * 两个端口的唯一出处是 `packages/shared/src/constants.ts`。
@@ -56,23 +77,23 @@ function readPorts() {
 }
 
 /**
- * dev 隔离实例的端口覆盖（2026-10-30）。
+ * 端口覆盖变量名（2026-10-30）。
  *
- * 起第二套实例时用：
- *
- * ```sh
- * OPENVIBE_HOME=/tmp/ov-sandbox OPENVIBE_API_PORT=8788 OPENVIBE_WEB_PORT=5145 pnpm dev
- * ```
- *
- * ⚠️ **变量名与 shared 的 `API_PORT_ENV` / `WEB_PORT_ENV` 同源但各自留一份字面量**：
+ * ⚠️ 变量名与 shared 的 `API_PORT_ENV` / `WEB_PORT_ENV` 同源但各自留一份字面量：
  *   理由同 `readPorts`（本文件引不了 shared 的 TS 源）⇒ 由 `tests/dev-ports.test.ts` 钉死一致。
  *
- * ⚠️ **非法值大声失败**：静默回落会让横幅显示一个没在跑的端口，
- *   而 vite 的 `strictPort` 会直接报错退出 ⇒ 两边对不上，人只会怀疑 vite。
+ * ⚠️ **`WEB_PORT` 现在只影响 vite dev 路径**（`pnpm --filter @openvibe/web dev`）——
+ *   本脚本不再起 vite，server 托管产物时页面与 API 同端口。仍保留解析是因为
+ *   ① `tests/dev-ports.test.ts` 钉住三处变量名单源；② `--iso` 仍会把它透传给子进程，
+ *   让人手工补起 vite 时端口一致。
  */
 const API_PORT_ENV = 'OPENVIBE_API_PORT'
 const WEB_PORT_ENV = 'OPENVIBE_WEB_PORT'
 
+/**
+ * 非法值大声失败：静默回落会让横幅显示一个没在跑的端口，
+ * 而 server 会直接 `EADDRINUSE` 退出 ⇒ 两边对不上，人只会怀疑 server。
+ */
 function resolvePort(raw, fallback, label) {
   if (raw === undefined || raw.trim() === '') return fallback
   const n = Number(raw)
@@ -83,75 +104,117 @@ function resolvePort(raw, fallback, label) {
 }
 
 function fail(msg) {
-  console.error(`[dev:all] ${msg}`)
+  console.error(`[dev] ${msg}`)
   process.exit(1)
 }
 
 const { api: apiDefault, web: webDefault } = readPorts()
-const api = resolvePort(process.env[API_PORT_ENV], apiDefault, API_PORT_ENV)
-const web = resolvePort(process.env[WEB_PORT_ENV], webDefault, WEB_PORT_ENV)
-const WEB_URL = `http://127.0.0.1:${web}`
-const API_URL = `http://127.0.0.1:${api}`
 
-console.log(`[dev:all] ${RULES}`)
-console.log(`[dev:all] 应用入口（浏览器打开这个）  ${WEB_URL}`)
-console.log(`[dev:all] API（脚本直连）            ${API_URL}`)
-console.log(`[dev:all] 浏览器走 Origin 白名单；脚本走 Bearer token。`)
-console.log(`[dev:all]   curl 经 web 代理要手动带头，否则 401：`)
-console.log(`[dev:all]     curl -H "Origin: ${WEB_URL}" ${WEB_URL}/api/terms`)
-if (api !== apiDefault || web !== webDefault) {
-  console.log(
-    `[dev:all] ⚠️ 这是**隔离实例**（端口被 ${API_PORT_ENV}=${api} / ${WEB_PORT_ENV}=${web} 覆盖）。`,
-  )
-  console.log(`[dev:all]   数据目录：${process.env.OPENVIBE_HOME ?? '~/.openvibe（未隔离！）'}`)
+/** 隔离实例的沙箱数据目录（真实 `~/.openvibe` 绝不能被动） */
+const isoHome = ISO ? mkdtempSync(join(tmpdir(), 'ov-iso-')) : null
+
+/**
+ * 构建 web 产物。**必须先构建**：server 托管的是 `apps/web/dist`，
+ * 产物缺失时它只会降级为「仅 API + 提示」（m6b D-1），页面全空。
+ */
+function buildWeb() {
+  return new Promise((resolveBuild) => {
+    console.log('[dev] 构建 web 产物（vite build）…')
+    const proc = spawn('pnpm --filter @openvibe/web build', {
+      cwd: ROOT,
+      detached: true,
+      shell: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, FORCE_COLOR: '1' },
+    })
+    for (const stream of [proc.stdout, proc.stderr]) {
+      let buf = ''
+      stream.on('data', (d) => {
+        buf += d.toString()
+        const lines = buf.split('\n')
+        buf = lines.pop() ?? ''
+        for (const l of lines) console.log(`[build] ${l}`)
+      })
+      stream.on('end', () => {
+        if (buf.trim()) console.log(`[build] ${buf}`)
+      })
+    }
+    proc.on('exit', (code) => {
+      if (code !== 0) fail(`web 构建失败（exit ${String(code)}）—— 不启动 server`)
+      console.log('[dev] web 构建完成')
+      resolveBuild()
+    })
+  })
 }
-console.log(`[dev:all] Ctrl-C 会同时停掉两个进程。`)
-console.log(`[dev:all] ${RULES}`)
+
+/**
+ * 起一次 server。
+ *
+ * @param {number} apiPort 实际监听端口
+ * @returns {Promise<{conflict: boolean, code?: number}>} 进程退出时回报；`conflict` = 输出里出现端口冲突信号
+ */
+function attemptServer(apiPort) {
+  return new Promise((resolveAttempt) => {
+    const webPort = resolvePort(process.env[WEB_PORT_ENV], webDefault, WEB_PORT_ENV)
+    const env = isoHome
+      ? isolatedEnv(isoHome, {
+          [API_PORT_ENV]: String(apiPort),
+          [WEB_PORT_ENV]: String(webPort),
+        })
+      : { ...process.env, [API_PORT_ENV]: String(apiPort) }
+
+    const proc = spawn('pnpm --filter @openvibe/server dev', {
+      cwd: ROOT,
+      detached: true,
+      shell: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...env, FORCE_COLOR: '1' },
+    })
+    children.set('server', proc)
+
+    let conflict = false
+    let tail = ''
+    const observe = (chunk) => {
+      if (conflict) return
+      if (detectPortConflict(tail + chunk)) conflict = true
+      tail = (tail + chunk).slice(-256)
+    }
+    for (const stream of [proc.stdout, proc.stderr]) {
+      let buf = ''
+      stream.on('data', (d) => {
+        observe(d.toString())
+        buf += d.toString()
+        const lines = buf.split('\n')
+        buf = lines.pop() ?? ''
+        for (const l of lines) console.log(`[server] ${l}`)
+      })
+      stream.on('end', () => {
+        if (buf.trim()) console.log(`[server] ${buf}`)
+      })
+    }
+    proc.on('exit', (code, sig) => {
+      children.delete('server')
+      if (shuttingDown) return
+      if (conflict && ISO) {
+        // 隔离模式下端口冲突 ⇒ 换一组端口重试（由 withPortRetry 决定）
+        resolveAttempt({ conflict: true, code: 1 })
+        return
+      }
+      if (conflict) {
+        console.error(`[dev] server 端口被占（:${String(apiPort)}），退出`)
+        shutdown(1)
+        return
+      }
+      console.error(`[dev] server 退出（code=${String(code)} signal=${String(sig)}）`)
+      shutdown(typeof code === 'number' && code !== 0 ? code : 1)
+      resolveAttempt({ conflict: false, code })
+    })
+  })
+}
 
 /** @type {Map<string, import('node:child_process').ChildProcess>} */
 const children = new Map()
 let shuttingDown = false
-
-function start(name, filter) {
-  /* ⚠️ `shell: true` 不是偷懒，是**必需**：homebrew 装的 `pnpm` 是一个**无 shebang 的文本
-     shim**（首行就是注释），Node 直接 spawn 它会 `ENOEXEC`（2026-10-19 实测）。
-     而走 shell 恰好就是我们要的语义 —— 用 shell 解析得到的是「用户在终端里会跑到的那个
-     pnpm」，而不是我们硬编码的一条路径（corepack / npm 安装 / Linux 下的形态都不同）。
-     ⚠️ 实测过「不经过 shell」这条看起来更干净的路：它在本机根本起不来。
-     两个实参都是本文件里的字面量，没有注入面。 */
-  // ⚠️ detached:true 让每个子进程自成**进程组组长**，于是能按组发信号 ——
-  //   否则 process.kill(-pid) 只会打到 pnpm 那一层，vite/tsx 留在原地占端口。
-  const proc = spawn(`pnpm --filter ${filter} dev`, {
-    cwd: ROOT,
-    detached: true,
-    shell: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, FORCE_COLOR: '1' },
-  })
-  children.set(name, proc)
-
-  // 按行加前缀；必须缓冲到换行才输出，否则半行会被拆成两条日志。
-  for (const stream of [proc.stdout, proc.stderr]) {
-    let buf = ''
-    stream.on('data', (d) => {
-      buf += d.toString()
-      const lines = buf.split('\n')
-      buf = lines.pop() ?? ''
-      for (const l of lines) console.log(`[${name}] ${l}`)
-    })
-    stream.on('end', () => {
-      if (buf.trim()) console.log(`[${name}] ${buf}`)
-    })
-  }
-
-  proc.on('exit', (code, sig) => {
-    if (shuttingDown) return
-    // 一方自己退了（多半是端口被占）⇒ 把另一方也收掉，别留半个环境。
-    console.error(`[dev:all] ${name} 退出（code=${code} signal=${sig}），正在停掉其余进程`)
-    shutdown(typeof code === 'number' && code !== 0 ? code : 1)
-  })
-  return proc
-}
 
 /** 按进程组停全部，再等它们真的退出后返回 —— 不等就是留下孤儿。 */
 function shutdown(code) {
@@ -168,11 +231,11 @@ function shutdown(code) {
         /* 已经没了 */
       }
     }
-    console.log(`[dev:all] 已向 ${name} 进程组发 SIGTERM（pid ${proc.pid}）`)
+    console.log(`[dev] 已向 ${name} 进程组发 SIGTERM（pid ${String(proc.pid)}）`)
   }
   const alive = [...children.values()].filter((p) => p.exitCode === null && p.signalCode === null)
   if (alive.length === 0) return process.exit(code)
-  // 兜底：3 秒后还没走的按组 SIGKILL —— vite/tsx 偶尔会卡在等 stdin。
+  // 兜底：3 秒后还没走的按组 SIGKILL —— tsx 偶尔会卡在等 stdin。
   const timer = setTimeout(() => {
     for (const proc of children.values()) {
       try {
@@ -207,12 +270,53 @@ process.on('exit', () => {
   }
 })
 
+const API_URL = `http://127.0.0.1:${String(resolvePort(process.env[API_PORT_ENV], apiDefault, API_PORT_ENV))}`
+
+console.log(`[dev] ${RULES}`)
+if (ISO) {
+  console.log('[dev] 隔离实例（数据与端口都不碰真实环境）')
+  console.log(`[dev]   数据目录：${isoHome ?? '(未创建)'}`)
+  console.log('[dev]   真实环境未受影响：~/.openvibe 与默认端口都保持原样')
+  console.log(`[dev]   沙箱不会自动清理（跑完要删就删：${isoHome ?? '(未创建)'}）`)
+  // ⚠️ 端口是**每次尝试现挑**的 ⇒ 此刻还不知道，绝不印一个默认值冒充
+  console.log('[dev] 应用入口：端口自动分配，以 server 启动横幅为准')
+} else {
+  console.log('[dev] 生产形态：server 托管构建产物，页面与 API 同端口同源')
+  console.log(`[dev]   数据目录：${process.env.OPENVIBE_HOME ?? '~/.openvibe（真实数据）'}`)
+  console.log(`[dev] 应用入口（浏览器打开这个）  ${API_URL}`)
+}
+console.log('[dev] 鉴权走两条通道：浏览器靠 Origin 白名单，脚本靠 Bearer token。')
+if (!ISO) {
+  console.log('[dev]   curl 直连 API 要手动带头，否则 401：')
+  console.log(`[dev]     curl -H "Origin: ${API_URL}" ${API_URL}/api/terms`)
+}
+console.log('[dev] 没有 HMR：改前端需重新构建（需要 HMR 就跑 pnpm --filter @openvibe/web dev）')
+console.log('[dev] Ctrl-C 会停掉所有子进程。')
+console.log(`[dev] ${RULES}`)
+
 try {
-  start('web', '@openvibe/web')
-  start('server', '@openvibe/server')
+  await buildWeb()
+
+  if (ISO) {
+    const result = await withPortRetry({
+      allocate: () => pickPortPair(),
+      attempt: (ports) => attemptServer(ports.api),
+      onRetry: ({ attempt: n, limit, ports }) => {
+        console.log(
+          `[dev] ⚠️ 端口被占用（API ${String(ports.api)}），换一组重试（${String(n)}/${String(limit)}）`,
+        )
+      },
+    })
+    if (result.exhausted) {
+      console.error(
+        `[dev] ✗ 连续 ${String(result.attempts)} 次都撞上端口被占 ⇒ 放弃（先停掉占着端口的进程）`,
+      )
+    }
+    process.exitCode = result.code ?? 0
+  } else {
+    await attemptServer(resolvePort(process.env[API_PORT_ENV], apiDefault, API_PORT_ENV))
+  }
 } catch (e) {
-  // ⚠️ 起不来也要收干净：让一个子进程抛异常就把另一个留在后台，
-  //   下次启动就会撞「端口被占」，而报错的进程是上一次那个已经消失的 dev:all。
-  console.error(`[dev:all] 启动失败：${e instanceof Error ? e.message : String(e)}`)
+  console.error(`[dev] 启动失败：${e instanceof Error ? e.message : String(e)}`)
   shutdown(1)
 }

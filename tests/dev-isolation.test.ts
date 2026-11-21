@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
- * dev 隔离实例的端到端判据（2026-10-30）。
+ * dev 隔离实例的端到端判据（2026-10-30；2026-11-21 随 tempDir 统一出口迁移收口入库）。
  *
  * ## 它钉的是哪一件事
  *
@@ -30,7 +30,7 @@ const SERVER_ENTRY = join(ROOT, 'apps', 'server', 'src', 'index.ts')
 const roots: string[] = []
 
 function tempHome(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-iso-'))
+  const dir = tempDir('ov-iso-')
   roots.push(dir)
   return dir
 }
@@ -46,32 +46,22 @@ async function startServer(env: Record<string, string>): Promise<{
   url: string
   token: string
   dbPath: string
-  stop: () => Promise<void>
+  stop: () => void
 }> {
   const { spawn } = await import('node:child_process')
-  // 2026-11-14：改走 node + tsx 的 js 入口（三平台统一，与 tests/m9-pi-runner.test.ts 同款）。
-  // 之前 win32 用 npx.cmd + shell:true——**kill('SIGTERM') 只杀 cmd.exe，node 孙进程存活**，
-  // 继续持有 openvibe.db 句柄 ⇒ afterEach 的 rmSync 撞 EBUSY（CI windows 实证）。
-  // 直接 spawn node.exe 无 shell ⇒ kill 干净；句柄随进程退出释放。
-  const tsxCli = join(ROOT, 'node_modules', 'tsx', 'dist', 'cli.mjs')
-  const proc = spawn(process.execPath, [tsxCli, SERVER_ENTRY], {
+  const proc = spawn('npx', ['tsx', SERVER_ENTRY], {
     cwd: ROOT,
     env: { ...process.env, ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   let buf = ''
-  const stop = () =>
-    new Promise<void>((resolveStop) => {
-      try {
-        proc.kill()
-      } catch {
-        /* 已退出 */
-      }
-      // 等进程真退出再回：windows 上 db 文件句柄随进程释放，afterEach 的 rmSync 依赖这一点
-      const done = () => resolveStop()
-      proc.once('exit', done)
-      setTimeout(done, 5_000)
-    })
+  const stop = () => {
+    try {
+      proc.kill('SIGTERM')
+    } catch {
+      /* 已退出 */
+    }
+  }
   return await new Promise((resolvePromise, reject) => {
     const timer = setTimeout(() => {
       stop()
@@ -117,7 +107,7 @@ describe('dev 隔离实例 · 端口与数据目录真隔离', () => {
       expect(srv.dbPath.startsWith(home)).toBe(true)
       expect(existsSync(join(home, 'data', 'openvibe.db'))).toBe(true)
     } finally {
-      await srv.stop()
+      srv.stop()
     }
   })
 
@@ -136,7 +126,7 @@ describe('dev 隔离实例 · 端口与数据目录真隔离', () => {
       // 沙箱实例刚建 ⇒ skill 台账是空的（真实库里有几百条）
       expect(before.total).toBe(0)
     } finally {
-      await srv.stop()
+      srv.stop()
     }
   })
 
@@ -146,8 +136,7 @@ describe('dev 隔离实例 · 端口与数据目录真隔离', () => {
     let code = 0
     let out = ''
     try {
-      execFileSync(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['tsx', SERVER_ENTRY], {
-        shell: process.platform === 'win32',
+      execFileSync('npx', ['tsx', SERVER_ENTRY], {
         cwd: ROOT,
         env: { ...process.env, OPENVIBE_HOME: tempHome(), OPENVIBE_API_PORT: 'abc' },
         encoding: 'utf8',

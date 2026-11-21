@@ -217,6 +217,18 @@ function collectOne(repoRoot: string, path: string, status: string): DirtyFile[]
  */
 export const OWNED: Rule[] = [
   {
+    // ⚠️ 2026-11-08 owner 裁定：apps/web 此前是「并行会话禁区」，本轮 owner 直接指令
+    //   「对整个前端进行重构」并在 AskUserQuestion 里显式选择「继续，禁区规则改为
+    //   显式授权后可改」⇒ 转为本会话所有。
+    //   转成 OWNED 而不是删掉这条登记：**留痕**比「假装没发生过」重要 ——
+    //   日后翻 DEV-0208 能知道这批改动是授权来的，不是悄悄混进去的。
+    //   ⚠️ 并行会话仍有未提交改动（AssetPicker / PackWizard / lane-system / zh 等），
+    //     与本会话改动**零文件重叠**；若将来出现重叠，以并行会话为先，本条须重新裁。
+    label: '本会话·前端',
+    reason: '2026-11-08 owner 授权的前端重构（版式原语 + 覆盖地图 + 专家视图）',
+    pattern: /^apps\/web\//,
+  },
+  {
     label: '本会话·CLI',
     reason: 'M8 CLI 命令与其测试（ask/status/session/requirement）',
     pattern: /^apps\/cli\/(src|test)\//,
@@ -260,17 +272,22 @@ export const OWNED: Rule[] = [
 ]
 
 export const FORBIDDEN: Rule[] = [
+  // ⚠️ 2026-11-08 移除 `^apps/web/` 一条：它原是「并行会话禁区」，而本轮 owner 直接指令
+  //   「对整个前端进行重构」并在 AskUserQuestion 里显式选择「继续，禁区规则改为显式授权后可改」。
+  //   处置同 DEV-0206 移除 docs 三份治理文档禁区：**禁区是会话级事实，必须随授权而收敛**；
+  //   留着的后果是 `ownership:check` 对 apps/web **必然报 hold** —— owner 每轮都要绕过，
+  //   等于把闸降级成提示。登记转去 `OWNED` 的「本会话·前端」条（留痕，不删除）。
   {
-    label: '禁区·并行会话前端',
-    reason: 'apps/web 60 个文件属并行会话，本会话未授权改动',
-    pattern: /^apps\/web\//,
-  },
-  {
+    // ⚠️ 2026-11-07 移除：本条原写 `docs/(dev-plan|decisions|tasks).md`，是早期
+    //   「并行会话未授权改这三个治理文档」时留下的**会话级禁区**。三份文档此后一直是
+    //   本会话的常规落点（DEV-0204/0205 的 spec 入库、队列 ㊲、任务卡 T14 都在其中），
+    //   留着的后果是 `ownership:check` 对这三份文件**必然报 hold** —— 而 owner 每轮都要
+    //   用「局部暂存」绕过它，等于把闸降级成提示。**禁区必须随会话结束而收敛，不能常驻。**
+    //   M4 回退那两条（`docs/specs/m[46]-`）**保留**：那是内容层面的回退判据，不是会话边界。
     label: '禁区·M4 回退',
     reason: '并行会话把已落地的 M4 文档回退，属他人改动',
-    pattern: /^docs\/(dev-plan|decisions|tasks)\.md$/,
+    pattern: /^docs\/specs\/m[46]-/,
   },
-  { label: '禁区·M4 回退', reason: '并行会话回退的 M4 规格', pattern: /^docs\/specs\/m[46]-/ },
   {
     label: '禁区·navCounts',
     reason: '并行会话的 navCounts 相关文件',
@@ -319,6 +336,15 @@ export const SELF_QUOTING: RegExp[] = [
   // 并发护栏同样**按构造**引用标志：它 import `DEFAULT_MARKERS` 并在注释里
   // 举实例说明各标志对应哪种回退 ⇒ 不豁免的话，护栏会把自己的注释判成回退态。
   /^scripts\/concurrency-guard\.ts$/,
+  // 护栏的判据测试同理：要造出「状态列含队列状态词」的样本，就得把 `已裁已落`
+  // 原样写进 fixture（同 `tests/docs-check.test.ts` 的理由）。
+  /^tests\/concurrency-guard\.test\.ts$/,
+  // `docs/decisions.md` 是**队列状态闭集的定义处**：`已裁已落` 是它的取值之一，
+  // 每新立一项决策、每更新一次净状态都要写这个词 ⇒ 命中属**结构性的常态**。
+  // ⚠️ 代价（如实登记）：本标志原本想抓的「把已改判退回旧措辞」在 decisions.md 里
+  //   表现为**删除** `已裁已落` 行、**新增** `已裁待落` 行 —— 而本检查只看新增行，
+  //   本来就读不到那种回退 ⇒ 豁免它**不损失**任何它实际能抓的信号。
+  /^docs\/decisions\.md$/,
 ]
 
 export function renderReport(r: OwnershipReport): string {

@@ -1,0 +1,24 @@
+{
+  "comment": "「类组合单一出处」文件的核对清单。由 scripts/snapshot-ui.mjs 与 scripts/verify-topbar-cdp.mjs 共用 —— 一处登记，两处生效。新增文件时只改这里。invariantDirs 不手写：由 readTargets() 从 hashes 的父目录推导（DEV-0226 收尾第 2 项）。",
+  "snapshots": [
+    {
+      "src": "apps/web/src/components/ui/styles.ts",
+      "snap": "tests/styles-ts.snapshot.txt"
+    },
+    {
+      "src": "apps/web/src/components/ui/layout.tsx",
+      "snap": "tests/layout-tsx.snapshot.txt"
+    }
+  ],
+  "hashes": [
+    "apps/web/src/components/ui/styles.ts",
+    "apps/web/src/components/ui/layout.tsx",
+    "apps/web/src/components/AppShell.tsx",
+    "apps/web/src/components/CoverageMapDialog.tsx",
+    "apps/web/src/components/settings/ContextGovernanceSection.tsx",
+    "apps/web/src/data/coverage.ts",
+    "apps/web/src/index.css",
+    "apps/web/src/i18n/core.ts",
+    "apps/web/src/hooks/useExpertMode.ts"
+  ]
+}

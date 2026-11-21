@@ -1,0 +1,4 @@
+---
+description: OpenVibe 标准包 default@1.0.0
+alwaysApply: true
+---

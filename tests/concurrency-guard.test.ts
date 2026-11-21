@@ -1,7 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   collectAddedLines,
@@ -10,6 +9,7 @@ import {
   detectStagedWorktreeDrift,
   dropPreexistingMarkers,
   firstDifferenceLine,
+  isQueueStateCell,
   judgeDrift,
   latestDate,
   runGuard,
@@ -19,6 +19,7 @@ import {
   type StagedBlob,
 } from '../scripts/concurrency-guard'
 import { DEFAULT_MARKERS } from '../scripts/ownership-check'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * `scripts/concurrency-guard.ts` 的判据测试（2026-10-24）。
@@ -253,7 +254,7 @@ describe('concurrency-guard · 规则 C：回退态（新增行口径）', () =>
 const repos: string[] = []
 
 function makeRepo(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'openvibe-guard-'))
+  const dir = tempDir('openvibe-guard-')
   repos.push(dir)
   execFileSync('git', ['init', '-q'], { cwd: dir })
   return dir
@@ -529,5 +530,54 @@ describe('concurrency-guard · 采集层', () => {
   it('纯函数不依赖 IO：注入内容即可判定（同一份事实两次判定结果一致）', () => {
     const blob: StagedBlob = { path: 'x.md', content: `命中：${SOME_MARKER}\n` }
     expect(detectRollbackMarkers([blob])).toEqual(detectRollbackMarkers([blob]))
+  })
+})
+
+/* ------------------------------------------------------------------ 队列状态词语义豁免 */
+
+describe('concurrency-guard · 队列状态词语义豁免（2026-11-07）', () => {
+  // 状态列的合法取值从 QUEUE_STATE_WORDS 派生，避免测试自造词与实现漂移
+  const closed = literalOf(DEFAULT_MARKERS[3]!) // /已裁已落/
+
+  it('队列行 + 状态列含合法状态词 ⇒ 豁免（正常使用状态词不是回退）', () => {
+    const line = `| ㊲ | 新立：M12 扫描设计 | **${closed}**（2026-11-07） | 落点 | 阻塞 |`
+    expect(isQueueStateCell(line, DEFAULT_MARKERS[3]!)).toBe(true)
+  })
+
+  it('⚠️ 非队列行（散文/计数行）含状态词 ⇒ 不豁免 —— 「已裁已落 20」是计数不是状态', () => {
+    const line = `- **${closed} 20**：③ ④ ⑤ …（净状态小节）`
+    expect(isQueueStateCell(line, DEFAULT_MARKERS[3]!)).toBe(false)
+  })
+
+  it('⚠️ 队列行但命中字样不在状态列 ⇒ 不豁免（真回退仍要报）', () => {
+    const line = `| ㊲ | 把该行改回 **${closed}** 旧措辞 | 待裁 | 落点 | 阻塞 |`
+    expect(isQueueStateCell(line, DEFAULT_MARKERS[3]!)).toBe(false)
+  })
+
+  it('⚠️ 队列行 + 状态列但字样不属于队列状态闭集 ⇒ 不豁免', () => {
+    // 「已裁已落」是标志，但换一个不在 QUEUE_STATE_WORDS 里的词就不该被语义豁免
+    const line = '| ㊲ | 事项 | 待定 | 落点 | 阻塞 |'
+    expect(isQueueStateCell(line, /待定/)).toBe(false)
+  })
+
+  it('端到端：新增队列行不报回退；把状态词写进事项列仍报', () => {
+    const head = new Map<string, string>([['docs/decisions.md', '# 队列\n']])
+    const queueLine = `| ㊲ | 新立：M12 扫描设计 | **${closed}**（2026-11-07） | 落点 | 阻塞 |`
+    expect(
+      detectRollbackInAddedLines(
+        [{ path: 'docs/decisions.md', line: 2, text: queueLine }],
+        head,
+        DEFAULT_MARKERS,
+      ),
+    ).toEqual([])
+
+    const realRollback = `| ㊲ | 把该行改回 **${closed}** 旧措辞 | 待裁 | 落点 | 阻塞 |`
+    expect(
+      detectRollbackInAddedLines(
+        [{ path: 'docs/decisions.md', line: 2, text: realRollback }],
+        head,
+        DEFAULT_MARKERS,
+      ),
+    ).toHaveLength(1)
   })
 })

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "pack": {
     "id": "pk_golden_g3",
     "name": "full",
@@ -126,15 +126,15 @@
   "files": [
     {
       "path": ".cursor/rules/openvibe.mdc",
-      "sha256": "54c222471d6e9e4e5341474b5737ecf2b6f93efbeaa7f2ca0290e302b3baf514"
+      "sha256": "849a48625fff323a68b2773df9653c935d82f6334c4166516602520bf164d8c0"
     },
     {
       "path": ".trae/rules/openvibe.md",
-      "sha256": "3914abd4fee8a02e6842d46caa24dfc0d83bbb004ca9044dbd52bb9cd00e925d"
+      "sha256": "7aff053b00118429ba4199860855b800577f8cc1a12ff024e939465d80ff42d6"
     },
     {
       "path": "AGENTS.md",
-      "sha256": "e8410e04da4863b3da64f0dabe02f9371fc6e12eacb6a2ae729f27abdc8a1462"
+      "sha256": "71c2d137ed138a8ed9ab5e3b162341f8d047fa51c6c058c01b0daf68bcb5eef2"
     },
     {
       "path": "CHECKLIST.md",
@@ -142,15 +142,15 @@
     },
     {
       "path": "CLAUDE.md",
-      "sha256": "e8410e04da4863b3da64f0dabe02f9371fc6e12eacb6a2ae729f27abdc8a1462"
+      "sha256": "e3b0d58610e001b39e3b61d693872f8c04870f6228e0975e00f718c3bbd6320d"
     },
     {
       "path": "CODEBUDDY.md",
-      "sha256": "e8410e04da4863b3da64f0dabe02f9371fc6e12eacb6a2ae729f27abdc8a1462"
+      "sha256": "71c2d137ed138a8ed9ab5e3b162341f8d047fa51c6c058c01b0daf68bcb5eef2"
     },
     {
       "path": "MINI.md",
-      "sha256": "e8410e04da4863b3da64f0dabe02f9371fc6e12eacb6a2ae729f27abdc8a1462"
+      "sha256": "71c2d137ed138a8ed9ab5e3b162341f8d047fa51c6c058c01b0daf68bcb5eef2"
     },
     {
       "path": "SKILLS.md",
@@ -161,5 +161,11 @@
       "sha256": "9a3fb77e81aaa46ff32f035d33220bc85dc45e0a047c48c347875e3c7ec3da0f"
     }
   ],
-  "fingerprint": "ffd02d5655bff1986bd8c2d1b3ffece7343f415cfe3521851da826bc78c898ac"
+  "l1": {
+    "claude-code": true,
+    "cursor": false,
+    "codebuddy": false,
+    "trae": false
+  },
+  "fingerprint": "2dcf643421811b26b501e291547d48fee774fbe53b2999889405da09087d2cb5"
 }

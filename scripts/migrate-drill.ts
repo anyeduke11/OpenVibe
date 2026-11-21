@@ -11,11 +11,11 @@
  * 退出码：0 对账通过；1 失配或库不可用。
  */
 import { createHash } from 'node:crypto'
-import { copyFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { copyFileSync, readFileSync, rmSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openDatabase } from '../packages/core/src/db'
+import { tempDir } from '@openvibe/core/test-support'
 
 const args = process.argv.slice(2)
 const dbFlag = args.indexOf('--db')
@@ -44,7 +44,7 @@ function main(): number {
     console.error(`库不可用：${source} — ${String(e)}`)
     return 1
   }
-  const dir = mkdtempSync(join(tmpdir(), 'ov-migrate-drill-'))
+  const dir = tempDir('ov-migrate-drill-')
   const copyPath = join(dir, 'drill.db')
   copyFileSync(source, copyPath)
 

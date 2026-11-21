@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   diagnosisFor,
@@ -10,6 +9,7 @@ import {
   stripAnsi,
   type MutationLeg,
 } from '../scripts/mutation-run'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * `scripts/mutation-run.ts` 自身的判据测试（2026-10-16）。
@@ -40,7 +40,7 @@ interface Fixture {
 }
 
 function fixture(content = 'const ok = 1\nconst drifted = null\n'): Fixture {
-  const root = mkdtempSync(join(tmpdir(), 'mutation-run-test-'))
+  const root = tempDir('mutation-run-test-')
   const abs = join(root, 'target.ts')
   writeFileSync(abs, content, 'utf8')
   return {

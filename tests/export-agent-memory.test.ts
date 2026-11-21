@@ -1,6 +1,5 @@
 import { describe, expect, it, afterEach } from 'vitest'
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   absolutePathHits,
@@ -14,6 +13,7 @@ import {
   sha256,
   EXPORT_MARKER,
 } from '../scripts/export-agent-memory'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * `tests/export-agent-memory.test.ts` —— 记忆导出脚本（`scripts/export-agent-memory.ts`）的判据。
@@ -32,7 +32,7 @@ import {
 const tmpDirs: string[] = []
 
 function mkSource(): { from: string } {
-  const from = mkdtempSync(join(tmpdir(), 'ov-mem-'))
+  const from = tempDir('ov-mem-')
   tmpDirs.push(from)
   mkdirSync(join(from, 'topics'), { recursive: true })
   writeFileSync(
@@ -102,7 +102,7 @@ describe('绝对路径检测', () => {
 describe('导出', () => {
   it('产出 README ＋ 索引 ＋ 全部 topic，且与源逐字节相同', () => {
     const { from } = mkSource()
-    const to = mkdtempSync(join(tmpdir(), 'ov-mem-out-'))
+    const to = tempDir('ov-mem-out-')
     tmpDirs.push(to)
     const res = exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })
 
@@ -120,7 +120,7 @@ describe('导出', () => {
 
   it('README 带来源 profile 与导出日，且零绝对路径', () => {
     const { from } = mkSource()
-    const to = mkdtempSync(join(tmpdir(), 'ov-mem-out-'))
+    const to = tempDir('ov-mem-out-')
     tmpDirs.push(to)
     exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })
 
@@ -155,7 +155,7 @@ describe('导出', () => {
       ].join('\n'),
       'utf8',
     )
-    const to = mkdtempSync(join(tmpdir(), 'ov-mem-out-'))
+    const to = tempDir('ov-mem-out-')
     tmpDirs.push(to)
     expect(() => exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })).toThrow(
       /topic-missing/,
@@ -164,7 +164,7 @@ describe('导出', () => {
 
   it('目标目录里有不认识的文件 ⇒ 拒绝清理（不越界删别人的东西）', () => {
     const { from } = mkSource()
-    const to = mkdtempSync(join(tmpdir(), 'ov-mem-out-'))
+    const to = tempDir('ov-mem-out-')
     tmpDirs.push(to)
     writeFileSync(join(to, 'keep-me.txt'), '别人的东西', 'utf8')
     expect(() => exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })).toThrow(
@@ -177,7 +177,7 @@ describe('导出', () => {
   it('空 topic 文件 ⇒ 报错', () => {
     const { from } = mkSource()
     writeFileSync(join(from, 'topics', 'topic-b.md'), '', 'utf8')
-    const to = mkdtempSync(join(tmpdir(), 'ov-mem-out-'))
+    const to = tempDir('ov-mem-out-')
     tmpDirs.push(to)
     expect(() => exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })).toThrow(
       /空文件/,
@@ -186,7 +186,7 @@ describe('导出', () => {
 
   it('重跑幂等：第二次导出与第一次逐字节相同', () => {
     const { from } = mkSource()
-    const to = mkdtempSync(join(tmpdir(), 'ov-mem-out-'))
+    const to = tempDir('ov-mem-out-')
     tmpDirs.push(to)
     exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })
     const first = readFileSync(join(to, 'README.md'), 'utf8')
@@ -220,7 +220,7 @@ describe('README 生成（纯函数）', () => {
 describe('清单模式：导出件与清单一致（可进 CI 的那一半）', () => {
   function mkExported(): { from: string; to: string } {
     const { from } = mkSource()
-    const to = mkdtempSync(join(tmpdir(), 'ov-mem-out-'))
+    const to = tempDir('ov-mem-out-')
     tmpDirs.push(to)
     exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })
     return { from, to }
@@ -276,7 +276,7 @@ describe('清单模式：导出件与清单一致（可进 CI 的那一半）', 
 describe('核对模式（只读）：导出件与源是否分叉', () => {
   function mkExported(): { from: string; to: string } {
     const { from } = mkSource()
-    const to = mkdtempSync(join(tmpdir(), 'ov-mem-out-'))
+    const to = tempDir('ov-mem-out-')
     tmpDirs.push(to)
     exportAgentMemory({ from, to, profile: 'demo', date: '2026-10-22' })
     return { from, to }

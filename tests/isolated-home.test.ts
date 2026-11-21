@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { assertIsolatedHome, isIsolatedHome, realHome } from '../scripts/isolated-home.mjs'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * 真机实测的隔离守卫（2026-10-31）。
@@ -25,8 +25,8 @@ import { assertIsolatedHome, isIsolatedHome, realHome } from '../scripts/isolate
 
 const dirs: string[] = []
 
-function tempDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-iso-guard-'))
+function makeTempDir(): string {
+  const dir = tempDir('ov-iso-guard-')
   dirs.push(dir)
   return dir
 }
@@ -53,7 +53,7 @@ describe('真机实测 · 隔离守卫', () => {
   })
 
   it('指向临时目录 ⇒ 隔离', () => {
-    expect(isIsolatedHome(tempDir())).toBe(true)
+    expect(isIsolatedHome(makeTempDir())).toBe(true)
   })
 
   it('守卫会拒绝不隔离的运行，并说清怎么修', () => {
@@ -64,13 +64,14 @@ describe('真机实测 · 隔离守卫', () => {
   })
 
   it('守卫对隔离的运行放行', () => {
-    expect(() => assertIsolatedHome(tempDir())).not.toThrow()
+    expect(() => assertIsolatedHome(makeTempDir())).not.toThrow()
   })
 })
 
-describe('隔离实例入口（pnpm dev:iso）', () => {
-  it('脚本存在且自动准备了三项覆盖值（数据目录 + 两个端口）', () => {
-    const script = resolve(__dirname, '..', 'scripts', 'dev-iso.mjs')
+describe('隔离实例入口（pnpm dev --iso）', () => {
+  it('隔离实现在 dev-all 里自动准备三项覆盖值（数据目录 + 两个端口）', () => {
+    // 2026-11-10：隔离能力折叠进 dev-all.mjs --iso，dev-iso.mjs 变为薄封装
+    const script = resolve(__dirname, '..', 'scripts', 'dev-all.mjs')
     expect(existsSync(script)).toBe(true)
     const src = execFileSync(
       'node',
@@ -86,7 +87,7 @@ describe('隔离实例入口（pnpm dev:iso）', () => {
     expect(src).not.toContain('homedir()')
   })
 
-  it('package.json 里有 dev:iso 入口', () => {
+  it('package.json 里有 dev:iso 入口（薄封装，实现只在 dev-all）', () => {
     const pkg = JSON.parse(
       execFileSync(
         'node',
@@ -98,6 +99,19 @@ describe('隔离实例入口（pnpm dev:iso）', () => {
       ),
     ) as { scripts: Record<string, string> }
     expect(pkg.scripts['dev:iso']).toBe('node scripts/dev-iso.mjs')
+  })
+
+  it('dev:iso 的实现在 dev-all（薄封装不重复造轮子）', () => {
+    const wrapper = resolve(__dirname, '..', 'scripts', 'dev-iso.mjs')
+    const src = execFileSync(
+      'node',
+      ['-e', `process.stdout.write(require('fs').readFileSync(${JSON.stringify(wrapper)},'utf8'))`],
+      { encoding: 'utf8' },
+    )
+    expect(src).toContain('--iso')
+    expect(src).toContain('dev-all.mjs')
+    // 重试逻辑只该有一份
+    expect(src).not.toContain('withPortRetry')
   })
 })
 

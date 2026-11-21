@@ -66,7 +66,7 @@
  * 因此本闸**不得**被引用来声称任何「治理成本次线性」结论。
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, normalize } from 'node:path'
 import {
   ALIAS_FILE,
@@ -85,6 +85,22 @@ import {
 
 export type Level = 'error' | 'warning'
 
+/**
+ * Finding 的**结构化定位**。
+ *
+ * ⚠️ **为什么要有它**：evidence 是**给人看的一行文本**（形态随判据而异：有的带行号、
+ * 有的带表级描述、有的整段是散文）⇒ 机器要拿「文件 ＋ 行号」只能**解析字符串**，
+ * 解析规则与文案耦合 ⇒ 文案一改解析就漂。
+ *
+ * 结构化字段把定位从文案内**剥离**：文案自由改，定位不动。
+ */
+export interface FindingLocation {
+  /** 仓库相对路径（如 `docs/dev-plan.md`；目录级判据给目录） */
+  path: string
+  /** 行号（1 起）；**表级/目录级定位没有单一行**时为 `undefined` */
+  line?: number
+}
+
 export interface Finding {
   /** 判据编号，如 FR-1.1 */
   rule: string
@@ -93,6 +109,13 @@ export interface Finding {
   message: string
   /** 可复算的凭据（命令或文件:位置） */
   evidence: string
+  /**
+   * 结构化定位（**可选**：不是每条判据都有可定位的文件位置）。
+   *
+   * 有它 ⇒ 工具（差分脚本、CI 注解）直接取 `path`／`line`，不必解析 evidence；
+   * 没有 ⇒ 工具退回解析 evidence（`docs-check-diff.ts` 的 `parseEvidenceLocation`）。
+   */
+  location?: FindingLocation
 }
 
 /* ════════════════════════════════════════════════════════ 判据各条的纯函数 */
@@ -111,11 +134,14 @@ export function checkDevNumbering(log: string): Finding[] {
   const nums = titles.map((m) => Number(m[1]))
   if (nums.length === 0) return out
 
-  const seen = new Map<number, string[]>()
+  // 每个标题的**行号**（1 起）：重号那条要指到具体某一笔登记，而不是整份日志。
+  const lineOf = (index: number): number => log.slice(0, index).split('\n').length
+
+  const seen = new Map<number, { title: string; line: number }[]>()
   for (const m of titles) {
     const n = Number(m[1])
     const arr = seen.get(n) ?? []
-    arr.push(m[2] ?? '')
+    arr.push({ title: m[2] ?? '', line: lineOf(m.index) })
     seen.set(n, arr)
   }
 
@@ -123,15 +149,18 @@ export function checkDevNumbering(log: string): Finding[] {
   // 更正只能另起一笔同号。判据因此是「**至多一条非补记**」：
   // DEV-0085（一条原始 + 补记 + 补记二）合规；若写成「必须全是补记」会把这条真合规的判红，
   // 若写成「有一个不是补记就放过」则两笔真重号会被放过。
-  for (const [n, titlesForN] of [...seen].sort((a, b) => a[0] - b[0])) {
-    if (titlesForN.length < 2) continue
-    const nonSupplement = titlesForN.filter((t) => !/补记/.test(t))
+  for (const [n, entriesForN] of [...seen].sort((a, b) => a[0] - b[0])) {
+    if (entriesForN.length < 2) continue
+    const nonSupplement = entriesForN.filter((e) => !/补记/.test(e.title))
     if (nonSupplement.length <= 1) continue
+    // 定位指到**第一条非补记**那条（即「原始登记」），读者从那儿往下看全部同名登记。
+    const first = entriesForN[0]
     out.push({
       rule: 'FR-1.1',
       level: 'error',
-      message: `DEV-${String(n).padStart(4, '0')} 出现 ${titlesForN.length} 次，其中 ${nonSupplement.length} 条不是「补记」形态（至多允许 1 条）`,
-      evidence: `DEV_LOG.md · 标题：${titlesForN.map((t) => t.slice(0, 40)).join(' ／ ')}`,
+      message: `DEV-${String(n).padStart(4, '0')} 出现 ${entriesForN.length} 次，其中 ${nonSupplement.length} 条不是「补记」形态（至多允许 1 条）`,
+      evidence: `DEV_LOG.md:${String(first?.line ?? 0)} · 重号 DEV-${String(n).padStart(4, '0')} 的标题：${entriesForN.map((e) => e.title.slice(0, 40)).join(' ／ ')}`,
+      location: { path: 'DEV_LOG.md', line: first?.line },
     })
   }
 
@@ -147,7 +176,10 @@ export function checkDevNumbering(log: string): Finding[] {
       rule: 'FR-1.2',
       level: 'warning',
       message: `号段 ${min}–${max} 有 ${gaps.length} 个断号：${gaps.join(', ')}`,
-      evidence: 'DEV_LOG.md · 回填等于替未登记的改动背书，故走基线不判红',
+      // 断号是**号段级**定位（无单一行的责任方）⇒ evidence 以 `DEV_LOG.md` 前缀起步，
+      // 定位给文件本身（不带行号）。
+      evidence: `DEV_LOG.md · 号段 ${String(min)}–${String(max)} 有 ${String(gaps.length)} 个断号（回填等于替未登记的改动背书，故走基线不判红）`,
+      location: { path: 'DEV_LOG.md' },
     })
   }
   return out
@@ -287,7 +319,10 @@ export function collectDevDates(log: string, refs: DevRef[]): Map<string, DevDat
   }
   for (const m of log.matchAll(/^## \[DEV-(\d{4})\] (.+)$/gm)) {
     const dm = /^\s*(20\d\d-\d\d-\d\d)/.exec(m[2] ?? '')
-    add(m[1] ?? '', dm?.[1], 'DEV_LOG.md', 0, (m[2] ?? '').trim().slice(0, 80))
+    // 标题的**真实行号**（1 起）：登记出处必须能落到具体一行，
+    // 否则 evidence 里出现 `DEV_LOG.md:0` 这种假行号（行 0 不存在）。
+    const line = log.slice(0, m.index).split('\n').length
+    add(m[1] ?? '', dm?.[1], 'DEV_LOG.md', line, (m[2] ?? '').trim().slice(0, 80))
   }
   for (const r of refs) {
     for (const d of r.dates) add(r.number, d, r.path, r.line, r.text)
@@ -311,15 +346,21 @@ export function checkDevCrossFileUniqueness(
   for (const [n, sites] of [...dates].sort((a, b) => a[0].localeCompare(b[0]))) {
     const distinct = [...new Set(sites.map((s) => s.date))].sort()
     if (distinct.length < 2) continue
-    const where = distinct.map((d) => {
+    // 命中点按日期排序，**第一个**作 evidence 前缀（`path:line`）⇒ 机器可解析；
+    // 其余命中点仍列在后面（人看全貌），不丢信息。
+    const hits = distinct.map((d) => {
       const hit = sites.find((s) => s.date === d)
-      return `${d} @ ${hit?.path ?? '?'}:${hit?.line ?? 0}`
+      return { date: d, path: hit?.path ?? '?', line: hit?.line ?? 0 }
     })
+    const first = hits[0]
     out.push({
       rule: 'FR-1.5',
       level: 'error',
       message: `DEV-${n} 在仓内对应 ${distinct.length} 个登记日期（${distinct.join(' / ')}）⇒ 编号跨文件不唯一`,
-      evidence: where.join(' ｜ '),
+      evidence:
+        `${first?.path ?? '?'}:${String(first?.line ?? 0)} · ` +
+        hits.map((h) => `${h.date} @ ${h.path}:${String(h.line)}`).join(' ｜ '),
+      location: { path: first?.path ?? '?', line: first?.line },
     })
   }
   return out
@@ -396,7 +437,8 @@ export function checkQueue(decisions: string): Finding[] {
         rule: 'FR-2.1',
         level: 'warning',
         message: '队列表头里找不到「状态」列，跳过状态枚举校验',
-        evidence: 'docs/decisions.md',
+        evidence: 'docs/decisions.md · 队列表头缺「状态」列',
+        location: { path: 'docs/decisions.md' },
       },
     ]
   }
@@ -413,6 +455,7 @@ export function checkQueue(decisions: string): Finding[] {
           level: 'error',
           message: `队列行首出现非闭集字符「${ch}」`,
           evidence: `docs/decisions.md:${i + 1}`,
+          location: { path: 'docs/decisions.md', line: i + 1 },
         })
       }
     }
@@ -427,6 +470,7 @@ export function checkQueue(decisions: string): Finding[] {
         level: 'error',
         message: `队列 ${r.id} 的状态「${r.state.slice(0, 24)}」不在合法枚举内`,
         evidence: `docs/decisions.md:${r.line}`,
+        location: { path: 'docs/decisions.md', line: r.line },
       })
     }
   }
@@ -434,11 +478,15 @@ export function checkQueue(decisions: string): Finding[] {
   // FR-2.2 净状态小节：bullet 首个粗体内的**结尾数字**求和，须等于队列行数。
   // 刻意取结尾数字而不是首个数字 —— 「可做待排（owner 手上，不需裁决）5」里
   // 中间就有数字，取首个会把括号里的内容当成计数。
-  const section = decisions.slice(decisions.indexOf('## 净状态'))
-  const sum = [...section.matchAll(/^-\s+\*\*([^*]+)\*\*/gm)]
-    .map((m) => Number((m[1] ?? '').match(/(\d+)\s*$/)?.[1] ?? Number.NaN))
-    .filter((n) => Number.isFinite(n))
-    .reduce((a, b) => a + b, 0)
+  const sectionStart = decisions.indexOf('## 净状态')
+  const section = decisions.slice(sectionStart)
+  const bullets = [...section.matchAll(/^-\s+\*\*([^*]+)\*\*/gm)].map((m) => ({
+    label: (m[1] ?? '').trim(),
+    count: Number((m[1] ?? '').match(/(\d+)\s*$/)?.[1] ?? Number.NaN),
+  }))
+  const sum = bullets.filter((b) => Number.isFinite(b.count)).reduce((a, b) => a + b.count, 0)
+  // 「## 净状态」小节的**行号**：求和对不上时，读者要能直接跳到那节去数。
+  const sectionLine = sectionStart < 0 ? 0 : decisions.slice(0, sectionStart).split('\n').length
 
   if (rows.length > 0) {
     if (section === '' || sum === 0) {
@@ -446,14 +494,30 @@ export function checkQueue(decisions: string): Finding[] {
         rule: 'FR-2.2',
         level: 'warning',
         message: '未找到「## 净状态」小节的 bullet 计数，跳过求和校验',
-        evidence: 'docs/decisions.md',
+        evidence: 'docs/decisions.md · 无「## 净状态」小节',
+        location: { path: 'docs/decisions.md' },
       })
     } else if (sum !== rows.length) {
+      // ⚠️ 2026-11-07 增强：只报「不等」等于让人自己算。这里直接给出差值、
+      //    **各 bullet 的现数**与最可能的修改方向——判据的价值在于「可照做」，
+      //    而不只是「可发现」。
+      const delta = rows.length - sum
+      const breakdown = bullets
+        .map((b) => (Number.isFinite(b.count) ? b.label : null))
+        .filter((s): s is string => s !== null)
+        .join('；')
+      const direction =
+        delta > 0
+          ? `**少算 ${String(delta)}** —— 新立的队列行还没进净状态计数：把差值加到对应状态的 bullet 上（或新增一条 bullet）`
+          : `**多算 ${String(-delta)}** —— 净状态计数比队列行数大：核对是否有行已移出队列但计数未减`
       out.push({
         rule: 'FR-2.2',
         level: 'error',
-        message: `净状态求和 ${sum} ≠ 队列行数 ${rows.length}`,
-        evidence: 'docs/decisions.md · 净状态小节 vs 表格行',
+        message:
+          `净状态求和 ${String(sum)} ≠ 队列行数 ${String(rows.length)}（差 ${String(delta)}）。` +
+          `各 bullet 现数：${breakdown || '（无）'}。${direction}`,
+        evidence: `docs/decisions.md:${String(sectionLine)} · 净状态小节 vs 表格行`,
+        location: { path: 'docs/decisions.md', line: sectionLine },
       })
     }
   }
@@ -482,11 +546,14 @@ export function checkRelativeLinks(
       if (!/\.[A-Za-z0-9]{1,5}(#.*)?$/.test(raw)) continue
       const target = normalize(join(dir, raw.split('#')[0] ?? raw))
       if (!exists(target)) {
+        // 断链的**行号**（链接所在行）：读者要能直接跳到那行，而不是整篇文件里找。
+        const line = f.content.slice(0, m.index).split('\n').length
         out.push({
           rule: 'FR-3.4',
           level: 'error',
           message: `相对链接指向不存在的目标：${raw}`,
-          evidence: f.path,
+          evidence: `${f.path}:${String(line)}`,
+          location: { path: f.path, line },
         })
       }
     }
@@ -531,7 +598,8 @@ export function checkSpecVersions(specs: { path: string; lines: string[] }[]): F
           rule: 'FR-4.2',
           level: 'error',
           message: `版本行渲染成 ${vCols} 列，而所在表头是 ${hCols} 列（正文里有未转义的竖线）`,
-          evidence: `${s.path} · 版本行所在表`,
+          evidence: `${s.path}:${String(idx + 1)} · 版本行所在表`,
+          location: { path: s.path, line: idx + 1 },
         })
       }
     }
@@ -560,7 +628,8 @@ export function checkSpecVersions(specs: { path: string; lines: string[] }[]): F
           rule: 'FR-4.3',
           level: 'error',
           message: `版本链非单调：v${Math.floor(b / 100)}.${b % 100} → v${Math.floor(a / 100)}.${a % 100} 未递增`,
-          evidence: `${s.path} · 版本行`,
+          evidence: `${s.path}:${String(idx + 1)} · 版本行`,
+          location: { path: s.path, line: idx + 1 },
         })
         break
       }
@@ -571,7 +640,9 @@ export function checkSpecVersions(specs: { path: string; lines: string[] }[]): F
       rule: 'FR-4.1',
       level: 'error',
       message: `${withVersion}/${specs.length} 份 spec 有版本行（缺 ${specs.length - withVersion} 份）`,
-      evidence: 'docs/specs/',
+      // 目录级判据：缺版本行的是**哪几份**由 message 给出，定位只到目录（无单一文件）。
+      evidence: 'docs/specs/ · 缺版本行的 spec 在此目录',
+      location: { path: 'docs/specs/' },
     })
   }
   return out
@@ -596,18 +667,70 @@ const RECOMPUTE_HINT =
  * **本项一律 warning，不判 error** —— FR-5.3 明写「CHECK 段是否必须存在按 §8.2 待裁③ 的
  * 裁定结果实现；**裁定前本闸对该项只报不判**，不静默放宽，也不假装已裁」。待裁③ 未闭合。
  */
+/**
+ * DEV 登记块 → **带 DEV 号与行号**的列表。
+ *
+ * 为什么不能直接 `split(/^## \[DEV-\d{4}\]/m)`：那个切法**把 DEV 号吃掉了**
+ * （分隔符被替换、捕获组没留）⇒ evidence 只剩标题前 40 字 ⇒
+ * ① 同一条 warning（FR-5.1「登记缺核心变更段」）在不同登记上**evidence 完全相同**，
+ *    人无法判断是哪一条登记缺段；② **grep DEV 号搜不到**（号根本不在输出里）；
+ * ③ 标题前 40 字截断会把两条长标题的前缀截成同一串。
+ *
+ * 现在每块带 `DEV-0166` 与**标题所在行号** ⇒ evidence 唯一、可 grep、可跳转。
+ */
+export interface DevBlock {
+  /** 登记号（如 `DEV-0166`） */
+  id: string
+  /** 登记标题（首行，非空） */
+  title: string
+  /** 登记标题在 `DEV_LOG.md` 里的**行号**（1 起） */
+  line: number
+  /** 登记正文（含标题行之后的部分） */
+  body: string
+}
+
+/** 从 DEV_LOG 全文切出登记块（保留号与行号） */
+export function splitDevBlocks(log: string): DevBlock[] {
+  const lines = log.split('\n')
+  const out: DevBlock[] = []
+  let current: DevBlock | null = null
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] ?? ''
+    const m = /^## \[(DEV-\d{4})\]\s*(.*)$/.exec(line)
+    if (m !== null) {
+      if (current !== null) out.push(current)
+      current = { id: m[1] ?? '', title: (m[2] ?? '').trim(), line: i + 1, body: '' }
+      continue
+    }
+    if (current !== null) current.body += `${line}\n`
+  }
+  if (current !== null) out.push(current)
+  return out
+}
+
+/** 登记块的 evidence 串：`DEV_LOG.md:<行号> · <DEV号> <标题前 40 字>`（唯一且可 grep） */
+function devEvidence(block: DevBlock): string {
+  return `DEV_LOG.md:${String(block.line)} · ${block.id} ${block.title.slice(0, 40)}`
+}
+
+/** 登记块的结构化定位（DEV_LOG.md 的真实行号） */
+function devLocation(block: DevBlock): FindingLocation {
+  return { path: 'DEV_LOG.md', line: block.line }
+}
+
 export function checkEntrySections(log: string): Finding[] {
   const out: Finding[] = []
-  const blocks = log.split(/^## \[DEV-\d{4}\]/m).slice(1)
-  for (const raw of blocks) {
-    const title = (raw.split('\n')[0] ?? '').trim()
+  const blocks = splitDevBlocks(log)
+  for (const block of blocks) {
+    const raw = block.body
     for (const sec of REQUIRED_ENTRY_SECTIONS) {
       if (!new RegExp(`\\*\\*${sec}`).test(raw)) {
         out.push({
           rule: 'FR-5.1',
           level: 'warning',
           message: `登记缺「${sec}」段`,
-          evidence: `DEV_LOG.md · ${title.slice(0, 40)}`,
+          evidence: devEvidence(block),
+          location: devLocation(block),
         })
       }
     }
@@ -622,7 +745,8 @@ export function checkEntrySections(log: string): Finding[] {
           rule: 'FR-5.2',
           level: 'warning',
           message: '「测试验证」段没有可复算命令',
-          evidence: `DEV_LOG.md · ${title.slice(0, 40)}`,
+          evidence: devEvidence(block),
+          location: devLocation(block),
         })
       }
     }
@@ -645,9 +769,8 @@ export function checkEntrySections(log: string): Finding[] {
  */
 export function checkReviewRecord(log: string): Finding[] {
   const out: Finding[] = []
-  const blocks = log.split(/^## \[DEV-\d{4}\]/m).slice(1)
-  for (const raw of blocks) {
-    const title = (raw.split('\n')[0] ?? '').trim()
+  for (const block of splitDevBlocks(log)) {
+    const raw = block.body
     // 触 A 面的判定：**先排掉自陈「未触」的**，再要求「宣告触」与 A 面的词同现。
     //
     // 本仓绝大多数提到「A 级」的登记恰恰是在说「**未触** A 级冻结契约」（附一句零 diff 凭据）。
@@ -662,7 +785,8 @@ export function checkReviewRecord(log: string): Finding[] {
         rule: 'FR-6.1',
         level: 'warning',
         message: '登记的「类型」行宣告触 A 契约，但正文未见复核记录',
-        evidence: `DEV_LOG.md · ${title.slice(0, 40)}`,
+        evidence: devEvidence(block),
+        location: devLocation(block),
       })
     }
   }
@@ -778,6 +902,7 @@ export function checkNegativeClaims(files: { path: string; lines: string[] }[]):
         level: 'error',
         message: `${hit.label}裸否定断言未附可复算凭据：「${line.trim().slice(0, 46)}」`,
         evidence: `${f.path}:${i + 1}`,
+        location: { path: f.path, line: i + 1 },
       })
     })
   }
@@ -884,6 +1009,7 @@ export function checkCredentialTargets(files: { path: string; lines: string[] }[
           level: 'error',
           message: `否定断言的凭据指向空处：本文件无 §${ref} ⇒ 该断言没有可复算落点`,
           evidence: `${f.path}:${i + 1}`,
+          location: { path: f.path, line: i + 1 },
         })
       }
       for (const m of window.matchAll(SELF_FR_RE)) {
@@ -895,6 +1021,7 @@ export function checkCredentialTargets(files: { path: string; lines: string[] }[
           level: 'error',
           message: `否定断言的凭据指向空处：本文件无 FR-${id} ⇒ 该断言没有可复算落点`,
           evidence: `${f.path}:${i + 1}`,
+          location: { path: f.path, line: i + 1 },
         })
       }
     })
@@ -966,6 +1093,7 @@ export function checkSectionRefs(
       level: 'error',
       message: danglingMessage(f.ref.target, f.ref.ref),
       evidence: `${f.ref.from}:${f.ref.line}`,
+      location: { path: f.ref.from, line: f.ref.line },
     })
   }
   // 已登记的存量：以 warning 出列 ⇒ 基线命中它；若它不再出现，基线的反向检查会报「该清理了」
@@ -975,6 +1103,7 @@ export function checkSectionRefs(
       level: 'warning',
       message: f.message,
       evidence: `${f.ref.from}:${f.ref.line}`,
+      location: { path: f.ref.from, line: f.ref.line },
     })
   }
 
@@ -1002,7 +1131,9 @@ export function checkSectionRefs(
       rule: 'FR-12.9',
       level: 'error',
       message: `别名表登记的目标文件不存在：${issue.key} → ${issue.target}`,
-      evidence: issue.target,
+      // 缺的是**目标文件**（不在仓内 ⇒ 无行号），定位给目标路径本身。
+      evidence: `${issue.target} · 别名表登记的目标文件不在仓内`,
+      location: { path: issue.target },
     })
   }
   return out
@@ -1070,7 +1201,9 @@ export function applyBaseline(
     rule: 'BASELINE',
     level: 'error',
     message: `基线里登记的「${k}」本轮没再出现 —— 该清理了（留着会让同类新问题混进去一起被放过）`,
-    evidence: BASELINE_PATH,
+    // 基线文件是 JSON（一条登记一行）⇒ 定位到**文件**，行号由读者自己 grep 该键。
+    evidence: `${BASELINE_PATH} · 该键在本轮未命中`,
+    location: { path: BASELINE_PATH },
   }))
   return { findings: [...out, ...staleFindings], staleBaselineKeys: stale }
 }
@@ -1095,6 +1228,29 @@ export interface Metrics {
    * 把「哪几份 spec 的裁决还没进队列」变成一个可见的数，消除「两处单源」的漂移张力。
    */
   rulingSync: { specs: string[]; synced: string[]; unsynced: string[] }
+  /**
+   * 原型对照面（2026-11-10 增设，只报数）：DESIGN.md 声明的「对照原型」是否与
+   * 实际原型文件的 NAV 分组一致。**不判红绿** —— 判据数已达 8 ＝ 上限
+   * （dev-plan §16.10），新增判据会当场触发「撤回而非调松」的复审。
+   * 这条面解决的是「拿错原型核对」的误判：两份原型并存后，信息架构口径在成长视角、
+   * 视觉口径在暖纸 V2，没有机器闸钉住「DESIGN.md 写的分组」与「原型实际的 NAV」是否同源。
+   */
+  prototypeParity: {
+    /** DESIGN.md 里声明的成长视角原型文件名 */
+    designRef: string | null
+    /** 原型文件里实际的 NAV 组名（按出现次序） */
+    navGroups: string[]
+    /** 原型文件是否存在于仓内 */
+    missing: boolean
+    /** 文件在但一个组名都抽不出 —— 原型改了写法（引号/结构），闸读不出来了 */
+    unparsed: boolean
+    /** 锚点 ID 原文（白名单外的 ID 也带出，便于在报告里看见「写错了」） */
+    anchorId: string | null
+    /** 锚点格式契约违规（FR-14.1）：ID 未独占首行 */
+    formatViolations: string[]
+    /** 白名单外的锚点 ID（FR-14.2）：双向一致的另一半 */
+    unknownAnchorIds: string[]
+  }
 }
 
 export function collectMetrics(repoRoot: string): Pick<Metrics, 'mt4' | 'mt6' | 'rulingSync'> {
@@ -1158,7 +1314,12 @@ export const JUDGMENT_RULES: { id: string; checks: string }[] = [
   // FR-5 已于 2026-10-24 按 dev-plan §16.10 的触线处置降级为「只报数的面」
   // （它本来就只报不判 ⇒ 零代价；检查仍在跑，见基线 withdrawalCandidates[0].executed）。
   { id: 'FR-12', checks: '§-引用必须落在目标文件真实存在的节上（限定型；裸引用只报数）' },
-  { id: 'FR-13', checks: 'package.json 引用的 scripts/* 必须登记在 dev-plan §1.5 目录树' },
+  // FR-13（§1.5 脚本登记）已于 2026-11-11 按 §16.10 撤回，腾名额给 FR-14（原型 NAV 锚点）。
+  // ⚠️ 检查仍在跑（checkScriptsRegistry 照常执行），只是不再计入判据数 —— 与 FR-5/FR-6 同款。
+  // 撤回理由：FR-13 的存量命中已清零（package.json 引用的 scripts/* 全部登记在 §1.5），
+  // 且 `scripts/` 引用面由 lint/import 边界覆盖；代价小于 FR-4（有真判红能力）与 FR-11（末位反对撤）。
+  // FR-14（2026-11-11 加）：原型 NAV 锚点的格式契约 + 白名单双向一致。
+  { id: 'FR-14', checks: '原型 NAV 锚点：格式契约（ID 独占首行）+ 白名单双向一致' },
 ]
 
 /** dev-plan §16.10 的触发线：「规则条数 > 8 即触发复审」 */
@@ -1198,7 +1359,8 @@ export function checkRuleBudget(
         rule: 'RULE-BUDGET',
         level: 'error',
         message: `判据数 ${rules.length} > 上限 ${limit}，而基线未登记任何候补撤回项 —— 按 dev-plan §16.10，触线的处置是撤回而非调松，需先补清单`,
-        evidence: BASELINE_PATH,
+        evidence: `${BASELINE_PATH} · 缺 withdrawalCandidates 候补清单`,
+        location: { path: BASELINE_PATH },
       },
     ]
   }
@@ -1206,7 +1368,8 @@ export function checkRuleBudget(
     rule: 'RULE-BUDGET',
     level: 'error' as Level,
     message: `判据数 ${rules.length} > 上限 ${limit} ⇒ 建议按清单撤回第 ${i + 1} 项：${c.id}（${c.what}）。理由：${c.why}`,
-    evidence: `${BASELINE_PATH} → withdrawalCandidates[${i}]`,
+    evidence: `${BASELINE_PATH} · withdrawalCandidates[${i}]`,
+    location: { path: BASELINE_PATH },
   }))
 }
 
@@ -1413,6 +1576,223 @@ export function checkProbeResults(repoRoot: string): {
   return { file, missing, unfilled }
 }
 
+/* ════════════════════════════════════════════════════════ 原型对照面（只报数） */
+
+/**
+ * 原型对照面（2026-11-10 增设，**只报数不判红绿**）。
+ *
+ * ## 它防什么
+ *
+ * DESIGN.md 现在同时引用两份原型：视觉层 → `暖系-暖纸V2-可读性交互Demo-20260929.html`，
+ * 信息架构 → `灵典-全功能Demo-成长视角-20261107.html`。两份原型的 NAV 分组**不同**
+ * （V2 demo 是四组「概览/资产/工程/系统」，成长视角是六组成长阶段）⇒ 拿错原型核对，
+ * 会得出「界面与文档不一致」的**误判**。这条面把「DESIGN.md 声明的分组」与
+ * 「原型文件里实际的 NAV」并成一个可见的对照，消除误判。
+ *
+ * ## 为什么只报数
+ *
+ * 判据数已达 **8 ＝ 上限**（dev-plan §16.10：超过即触发「撤回而非调松」的复审）。
+ * 新增判据会当场触发 `checkRuleBudget` ⇒ 本面登记为**只报数面**，与 FR-7/FR-8/probe 同列。
+ * 代价是它**不会让 CI 红** —— 这是有意的取舍，与既有「欠账可见」面同款。
+ *
+ * ## 判定口径
+ *
+ * - 从 DESIGN.md 的「对照原型」指引块里取成长视角原型文件名（正则 `docs/prototypes/…html`）；
+ * - 从该原型文件里抽 NAV 定义（`var NAV=[…]` 里的 `g:…` 字面量，按出现次序）；
+ * - 原型文件缺失 ⇒ 报 `missing`，组名空数组；
+ * - 文件在、但**一个组名都抽不出** ⇒ 报 `unparsed`（原型改了引号/写法，闸读不出来了）。
+ *
+ * ⚠️ **引号口径必须宽**（2026-11-11 加）：单引号 / 双引号 / 反引号三种都认。
+ *   只认单引号时，原型改一次引号闸就静默读出 0 组（`missing: false` + 空数组）——
+ *   与本仓最忌的「闸恒真」同类。放宽后由 `unparsed` 字段把「读不出」显式暴露。
+ *
+ * ⚠️ **锚点 ID 必须过白名单**（2026-11-11 加）：锚点形态是「openvibe-nav: <id>」注释，
+ *   ID 是自由文本 ⇒ 写错成 growth_view 闸也认，锚点就白写了。白名单登记在
+ *   NAV_ANCHOR_IDS；命中白名单才按锚点定位，否则**当作没写锚点**（回落最后一次），
+ *   并把 anchorId 原文带出，让「写错了 ID」在报告里可见。
+ */
+/** 原型 NAV 锚点的合法 ID 闭集 —— 新增锚点必须同时在这里登记，否则闸不认 */
+export const NAV_ANCHOR_IDS = ['growth-view'] as const
+
+/** 一条锚点的解析结果：ID 与它是否过了白名单 */
+interface AnchorHit {
+  id: string
+  /** 是否命中白名单（命中才按锚点定位） */
+  whitelisted: boolean
+  /** 格式是否合规（ID 独占首行；不合规 ⇒ 说明文字会被 ID 提取吞掉） */
+  formatOk: boolean
+}
+
+export function checkPrototypeParity(repoRoot: string): {
+  designRef: string | null
+  navGroups: string[]
+  missing: boolean
+  /** 文件在但一个组名都抽不出 —— 原型改了写法，闸读不出来了（静默失效的显式兜底） */
+  unparsed: boolean
+  /** 锚点 ID 原文（白名单外的 ID 也带出，便于在报告里看见「写错了」） */
+  anchorId: string | null
+  /**
+   * 锚点**格式契约**违规：写了 `openvibe-nav:` 但 ID 后不换行（说明文字与 ID 同处首行）。
+   * ⚠️ 机判理由：ID 提取用 `\S+`，格式错误时它仍可能读对（空格处停），属**宽松**；
+   *   机判把「格式契约」从约定升级为可判，格式错 ⇒ 报 violation（见 FR-14）。
+   */
+  formatViolations: string[]
+  /**
+   * 白名单外的锚点 ID（双向一致：白名单 ⇄ 原型锚点）。
+   * ⚠️ 机判理由：漏改白名单时锚点**静默失效**（回落最后一次仍读对，口径退化）；
+   *   报 violation 让「漏改」可见（见 FR-14）。
+   */
+  unknownAnchorIds: string[]
+} {
+  const designPath = join(repoRoot, 'DESIGN.md')
+  if (!existsSync(designPath)) {
+    return {
+      designRef: null,
+      navGroups: [],
+      missing: true,
+      unparsed: false,
+      anchorId: null,
+      formatViolations: [],
+      unknownAnchorIds: [],
+    }
+  }
+  const design = readFileSync(designPath, 'utf8')
+  // 取「对照原型」指引块里第一份 `docs/prototypes/…html`（块内第一份即成长视角）
+  const block = design.match(/> \*\*对照原型[\s\S]*?(?=\n\n|\n##|\n\|)/)
+  const ref =
+    block === null ? null : (block[0].match(/docs\/prototypes\/[^`\s)]+\.html/)?.[0] ?? null)
+  if (ref === null) {
+    return {
+      designRef: null,
+      navGroups: [],
+      missing: true,
+      unparsed: false,
+      anchorId: null,
+      formatViolations: [],
+      unknownAnchorIds: [],
+    }
+  }
+  const protoPath = join(repoRoot, ref)
+  if (!existsSync(protoPath)) {
+    return {
+      designRef: ref,
+      navGroups: [],
+      missing: true,
+      unparsed: false,
+      anchorId: null,
+      formatViolations: [],
+      unknownAnchorIds: [],
+    }
+  }
+  const proto = readFileSync(protoPath, 'utf8')
+
+  // ── 锚点：格式契约 + 白名单双向一致（FR-14） ────────────────────────────
+  // 形态：`/* openvibe-nav: <id>` 独占首行，说明文字续行（见 DEV-0241 的格式约定）。
+  // ⚠️ 两处机判都只在**原型写了锚点**时才有意义；没写锚点 ⇒ 两处都空（回落最后一次）。
+  const formatViolations: string[] = []
+  const unknownAnchorIds: string[] = []
+  const hits: AnchorHit[] = []
+  for (const m of proto.matchAll(/\/\*\s*openvibe-nav:([^\n*]*)/g)) {
+    const raw = (m[1] ?? '').trim()
+    if (raw === '') {
+      formatViolations.push('（空 ID）')
+      continue
+    }
+    // 格式契约：ID 独占首行 ⇒ 首行只该有一个 token（ID），其余说明文字必须续行
+    const tokens = raw.split(/\s+/)
+    const id = tokens[0] ?? raw
+    const formatOk = tokens.length === 1
+    if (!formatOk) formatViolations.push(id)
+    const whitelisted = (NAV_ANCHOR_IDS as readonly string[]).includes(id)
+    if (!whitelisted) unknownAnchorIds.push(id)
+    hits.push({ id, whitelisted, formatOk })
+  }
+  // 定位用**第一个过白名单且格式合规**的锚点；都没有则回落「最后一次 NAV」
+  const usable = hits.find((h) => h.whitelisted && h.formatOk) ?? null
+  const anchorId = hits.length > 0 ? (hits[0]?.id ?? null) : null
+  // 锚点注释的**完整块**用于定位「锚点之后」
+  const anchorBlock = usable !== null ? proto.match(/\/\*\s*openvibe-nav:[\s\S]*?\*\//) : null
+  const anchorEnd = anchorBlock !== null ? (anchorBlock.index ?? 0) + anchorBlock[0].length : 0
+  const searchFrom = anchorBlock !== null ? anchorEnd : 0
+  const navMatches = [...proto.slice(searchFrom).matchAll(/var NAV\s*=\s*\[/g)]
+  const groups: string[] = []
+  // 锚点之后取**第一次**；无锚点时取**最后一次**（回落行为）
+  const navMatch =
+    navMatches.length === 0
+      ? undefined
+      : anchorBlock !== null
+        ? navMatches[0]
+        : navMatches[navMatches.length - 1]
+  if (navMatch !== undefined) {
+    // matchAll 的 index 是相对 `proto.slice(searchFrom)` 的 ⇒ 加回 searchFrom 才是全文位置
+    const start = searchFrom + (navMatch.index ?? 0) + navMatch[0].length
+    // 只扫到 NAV 数组结束（`];`），避免把视图里的 `g:…` 也算进来
+    const rest = proto.slice(start)
+    const endIdx = rest.indexOf('];')
+    const body = endIdx < 0 ? rest : rest.slice(0, endIdx)
+    // 三种引号都认：`g:'…'` / `g:"…"` / `g:`…`` —— 原型改引号不该让闸静默读空
+    for (const m of body.matchAll(/\bg:\s*(['"`])([^'"`]+)\1/g)) {
+      const name = m[2]
+      if (name !== undefined) groups.push(name)
+    }
+  }
+  return {
+    designRef: ref,
+    navGroups: groups,
+    missing: false,
+    unparsed: groups.length === 0,
+    anchorId,
+    formatViolations,
+    unknownAnchorIds,
+  }
+}
+
+/**
+ * FR-14 · 原型 NAV 锚点的**格式契约** + **白名单双向一致**（2026-11-11）。
+ *
+ * ## 两条子判据
+ *
+ * - **FR-14.1 格式契约**：锚点形态是 `/* openvibe-nav: <id>` **独占首行**，说明文字续行。
+ *   ID 提取用 `\S+`，格式错时它**仍可能读对**（空格处停）⇒ 属宽松；本条把「格式契约」
+ *   从约定升级为可判：首行有多个 token ⇒ 报 violation。
+ * - **FR-14.2 白名单双向一致**：白名单外的锚点 ID ⇒ 报 violation。漏改白名单时锚点
+ *   **静默失效**（回落最后一次仍读对，口径退化）—— 本条让「漏改」可见。
+ *
+ * ## 判定口径
+ *
+ * 只在**原型写了锚点**时才有意义；没写锚点 ⇒ 两处都空（回落最后一次，不判）。
+ * ⚠️ 这是**判据**（能红能绿），按 §16.10 从 8 条上限里腾了一个名额（撤 FR-13）。
+ */
+export function checkAnchorContract(parity: {
+  designRef: string | null
+  missing: boolean
+  formatViolations: string[]
+  unknownAnchorIds: string[]
+}): Finding[] {
+  // 原型缺失 / DESIGN.md 未声明 ⇒ 没有锚点可判（不是违规，是「无从判」）
+  if (parity.missing || parity.designRef === null) return []
+  const out: Finding[] = []
+  for (const id of parity.formatViolations) {
+    out.push({
+      rule: 'FR-14.1',
+      level: 'error',
+      message: `原型 NAV 锚点格式违规：「${id}」的 ID 未独占首行（说明文字须续行）`,
+      evidence: `${parity.designRef} · 锚点首行含多个 token ⇒ ID 提取会吞掉说明文字`,
+      location: { path: parity.designRef },
+    })
+  }
+  for (const id of parity.unknownAnchorIds) {
+    out.push({
+      rule: 'FR-14.2',
+      level: 'error',
+      message: `原型 NAV 锚点 ID「${id}」不在白名单 ${NAV_ANCHOR_IDS.join('/')} 内`,
+      evidence: `${parity.designRef} · 漏改 NAV_ANCHOR_IDS 会让锚点静默失效（回落最后一次）`,
+      location: { path: parity.designRef },
+    })
+  }
+  return out
+}
+
 /* ════════════════════════════════════════════════════════ 装配与 CLI */
 
 function git(args: string[], cwd: string): string {
@@ -1440,7 +1820,9 @@ export function checkFrozenSurface(
         rule: 'FR-9.1',
         level: 'error',
         message: `冻结面 ${face} 有改动（${s.split('\n').length} 行）`,
-        evidence: `git status --porcelain -- ${face}`,
+        // 冻结面是**目录级**的（改动落在哪个文件由 git 输出给出）⇒ 定位到目录，无行号。
+        evidence: `${face} · git status --porcelain -- ${face}`,
+        location: { path: face },
       })
     }
   }
@@ -1473,12 +1855,16 @@ export function checkScriptsRegistry(pkgScriptsText: string, devPlanText: string
   const scripts = parsePackageScripts(pkgScriptsText)
   const section = devPlanText.match(/### 1\.5[\s\S]*?```[\s\S]*?```/)
   const tree = section ? section[0] : ''
+  // §1.5 小节的**行号**：登记漏了脚本，读者要能直接跳到那棵树去补。
+  const sectionIdx = devPlanText.indexOf('### 1.5')
+  const sectionLine = sectionIdx < 0 ? 0 : devPlanText.slice(0, sectionIdx).split('\n').length
   if (tree === '') {
     out.push({
       rule: 'FR-13.1',
       level: 'error',
       message: 'dev-plan 里找不到 §1.5 目录树代码块',
-      evidence: 'docs/dev-plan.md',
+      evidence: 'docs/dev-plan.md · 找不到 §1.5 目录树代码块',
+      location: { path: 'docs/dev-plan.md' },
     })
     return out
   }
@@ -1488,7 +1874,8 @@ export function checkScriptsRegistry(pkgScriptsText: string, devPlanText: string
         rule: 'FR-13.1',
         level: 'error',
         message: `package.json 引用 scripts/${file}，但 §1.5 目录树未登记`,
-        evidence: `docs/dev-plan.md §1.5`,
+        evidence: `docs/dev-plan.md:${String(sectionLine)} · §1.5 目录树未登记 scripts/${file}`,
+        location: { path: 'docs/dev-plan.md', line: sectionLine },
       })
     }
   }
@@ -1568,6 +1955,8 @@ export function runAll(repoRoot: string): { findings: Finding[]; metrics: Metric
       readFileSync(join(repoRoot, 'package.json'), 'utf8'),
       readFileSync(join(repoRoot, 'docs/dev-plan.md'), 'utf8'),
     ),
+    // FR-14：原型 NAV 锚点的格式契约 + 白名单双向一致（判据，能红能绿）
+    ...checkAnchorContract(checkPrototypeParity(repoRoot)),
     // ⚠️ 必须在 applyBaseline **之前**入列：基线的通配登记是按 `规则|*` 压命中项的，
     // 若先过基线，这条「判据集」层面的检查会被任何一条无关规则的通配压掉。
     ...checkRuleBudget(baseline),
@@ -1582,6 +1971,7 @@ export function runAll(repoRoot: string): { findings: Finding[]; metrics: Metric
       claimSample: sampleClaimCredentials(repoRoot, docFiles),
       probe: checkProbeResults(repoRoot),
       devShadow: collectDevShadowRegistrations(log, docFiles),
+      prototypeParity: checkPrototypeParity(repoRoot),
     },
   }
 }
@@ -1640,6 +2030,16 @@ export function render(result: { findings: Finding[]; metrics: Metrics }): strin
     .filter(Boolean)
     .join(' · ')
   out.push(`── 探针五问结果（不判红绿，只报数）：${probeState || '五问齐备'}`)
+
+  const pp = result.metrics.prototypeParity
+  // 锚点 ID 不在白名单 / 格式违规 ⇒ 已由 FR-14 判红，这里只报「读了什么」
+  const ppState =
+    pp.missing || pp.designRef === null
+      ? `DESIGN.md 未声明成长视角原型（或原型文件缺失）`
+      : pp.unparsed
+        ? `⚠️ ${pp.designRef} 在仓内，但**一个 NAV 组名都抽不出**（原型改了引号或结构）`
+        : `${pp.designRef} ⇒ NAV ${String(pp.navGroups.length)} 组：${pp.navGroups.join(' / ')}`
+  out.push(`── 原型对照面（不判红绿，只报数）：${ppState}`)
   return out.join('\n')
 }
 
@@ -1647,7 +2047,16 @@ function main(argv: string[]): number {
   const args = argv.slice(2)
   const repoRoot = process.cwd()
   const result = runAll(repoRoot)
-  if (args.includes('--json')) {
+  const jsonOut = args.indexOf('--json-out')
+  if (jsonOut >= 0 && args[jsonOut + 1] !== undefined) {
+    // `--json-out <path>`：一次运行同时给文本报告（stdout，CI 日志可读）
+    // 与 JSON 产物（供差分脚本吃）。文件由 Node 写 ⇒ 编码跨平台确定，
+    // 不依赖 shell 重定向（Windows pwsh 的 `>` 会把 stdout 写坏）。
+    const target = join(repoRoot, args[jsonOut + 1] ?? '')
+    mkdirSync(dirname(target), { recursive: true })
+    writeFileSync(target, `${JSON.stringify(result, null, 2)}\n`)
+    process.stdout.write(`${render(result)}\n`)
+  } else if (args.includes('--json')) {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`)
   } else {
     process.stdout.write(`${render(result)}\n`)

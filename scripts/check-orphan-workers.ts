@@ -32,10 +32,35 @@
  * ⚠️ 三条是**与**的关系：三者全中才算「本仓的孤儿 worker」。
  */
 import { execFileSync } from 'node:child_process'
-import { dirname, resolve } from 'node:path'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
+import {
+  DEFAULT_MAX_AGE_MS,
+  pruneRegistry,
+  readRegisteredCwd,
+  type PruneResult,
+} from '@openvibe/core/test-support/worker-registry'
+
+// ⚠️ **登记目录的读取走 core 里的同一份实现**（本脚本不再自己解析登记文件）：
+//   登记布局是「目录 + 每条登记一个文件」（2026-11-03 修并发竞态时改的）
+//   ⇒ 两处各写一份解析器必然漂移 ⇒ 这里直接复用并**转出**（对外形状不变）。
+export { readRegisteredCwd }
 
 /** 孤儿数超过此值就提醒清理（低于此值不算问题）。 */
 export const ORPHAN_WARN_THRESHOLD = 5
+
+/**
+ * 调 `ps` 的超时（毫秒）。
+ *
+ * ⚠️ **必须有超时**：体检挂在 `pnpm test` 收尾（DEV-0162）⇒ 若系统负载极端时
+ *   `ps` 挂住，一次「体检」就会把整条测试命令的退出拖住 ⇒ 报告反过来成了负担。
+ *   超时后 `execFileSync` 抛错 ⇒ 走既有的「取不到进程表」分支（打印后返回 1，
+ *   调用方 `test-summary.ts` 不读这个返回值 ⇒ 不影响测试结论）。
+ */
+export const PS_TIMEOUT_MS = 5000
+
+/** 体检结论的落盘路径（相对仓根）。 */
+export const ORPHAN_REPORT_FILE = 'test-results/orphans.json'
 
 /** 一条进程记录 */
 export interface ProcessRow {
@@ -94,10 +119,26 @@ export function isOrphan(row: ProcessRow): boolean {
 /**
  * 取进程的工作目录（取不到就返回 null）。
  *
+ * ⚠️ **两条通道，按跨平台性排序**：
+ *   ① **worker 自登记**（`packages/core/src/test-support/worker-registry.ts`）
+ *      —— worker 启动时（vitest `setupFiles`）把自己的 pid + cwd 写进登记目录
+ *      ⇒ **跨平台**（不依赖任何系统工具）⇒ **主通道**；
+ *   ② `lsof -a -p <pid> -d cwd -Fn` —— macOS/Linux 有，**Windows 没有**
+ *      ⇒ **回落通道**（登记目录里没有该 pid 时才用）。
+ *
  * ⚠️ 用 `lsof` 而非 `ps`：macOS 的 `ps` **不输出 cwd**，
  *   而 cwd 是区分「本仓的」与「别人项目的」的唯一可靠依据。
  */
 export function readCwd(pid: number): string | null {
+  const registered = readRegisteredCwd(pid)
+  if (registered !== null) return registered
+  return readCwdViaLsof(pid)
+}
+
+/**
+ * 用 `lsof` 查 cwd（macOS/Linux 的回落通道；Windows 上取不到 ⇒ 返回 null）。
+ */
+export function readCwdViaLsof(pid: number): string | null {
   try {
     const out = execFileSync('lsof', ['-a', '-p', String(pid), '-d', 'cwd', '-Fn'], {
       encoding: 'utf8',
@@ -254,7 +295,10 @@ export function buildReport(
 export function ancestorPids(): number[] {
   const pids: number[] = [process.pid]
   try {
-    const out = execFileSync('ps', ['-Ao', 'pid,ppid'], { encoding: 'utf8' })
+    const out = execFileSync('ps', ['-Ao', 'pid,ppid'], {
+      encoding: 'utf8',
+      timeout: PS_TIMEOUT_MS,
+    })
     const map = new Map<number, number>()
     for (const row of parsePsOutput(out)) map.set(row.pid, row.ppid)
     let cur = process.ppid
@@ -271,13 +315,69 @@ export function ancestorPids(): number[] {
   return pids
 }
 
+/** 体检结论的**机器可读**形态（落 `test-results/orphans.json`）。 */
+export interface OrphanReportFile {
+  at: string
+  repoRoot: string
+  threshold: number
+  warn: boolean
+  orphans: OrphanWorker[]
+  undetermined: { pid: number; command: string }[]
+  registry: PruneResult
+}
+
+/**
+ * 生成落盘用的体检结论。
+ *
+ * ⚠️ **为什么要落盘**：结论目前只打在 stdout ⇒ 终端滚动或 CI 日志截断后，
+ *   「那次测试结束时机器上有没有孤儿、回收了多少行」就查不回来了。
+ *   与 `preflight.json` 并列成 `orphans.json` ⇒ 报告页/流水线摘要能直接引用。
+ */
+export function buildPersistedReport(
+  scan: OrphanScan,
+  registry: PruneResult,
+  repoRoot: string,
+  threshold: number = ORPHAN_WARN_THRESHOLD,
+): OrphanReportFile {
+  return {
+    at: new Date().toISOString(),
+    repoRoot,
+    threshold,
+    warn: shouldWarn(scan.workers.length, threshold),
+    orphans: scan.workers,
+    undetermined: scan.undetermined,
+    registry,
+  }
+}
+
+/**
+ * 把体检结论写到指定路径（父目录不存在时创建）。
+ *
+ * ⚠️ **写失败不阻断**：与 `writePreflightReport` 同口径 —— 产物是辅助信息，
+ *   写不出来不该让体检或测试失败 ⇒ 返回 `null`，调用方据此跳过「已落盘」那行。
+ */
+export function writeReportFile(report: OrphanReportFile, path: string): string | null {
+  try {
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, `${JSON.stringify(report, null, 2)}\n`, 'utf8')
+    return path
+  } catch {
+    return null
+  }
+}
+
 /** 命令行入口。 */
 export function main(argv: string[]): number {
   const repoRoot = resolve(dirname(new URL(import.meta.url).pathname), '..')
   const kill = argv.includes('--kill')
   let rows: ProcessRow[] = []
   try {
-    rows = parsePsOutput(execFileSync('ps', ['-Ao', 'pid,ppid,command'], { encoding: 'utf8' }))
+    rows = parsePsOutput(
+      execFileSync('ps', ['-Ao', 'pid,ppid,command'], {
+        encoding: 'utf8',
+        timeout: PS_TIMEOUT_MS,
+      }),
+    )
   } catch (e) {
     console.error(`[orphans] 取不到进程表：${e instanceof Error ? e.message : String(e)}`)
     return 1
@@ -305,7 +405,24 @@ export function main(argv: string[]): number {
       `[orphans] （${String(scan.undetermined.length)} 个归属不明的候选**未动**：归属不明 ⇒ 不杀）`,
     )
   }
+
+  // 回收登记目录：**体检进程与 worker 启动时都会做**（互不干扰：只删自己枚举到的文件）。
+  // ⚠️ 无论 `--kill` 与否都回收：它清的是**已死 pid 与超龄行**，与「杀不杀孤儿」无关
+  //   ⇒ 不回收的话登记目录会无限长下去（每个 worker 一个文件，只增不减）。
+  const pruned = pruneRegistry()
+  if (pruned.before > 0) {
+    console.log(
+      `[orphans] 登记目录回收：${String(pruned.before)} 条 → ${String(pruned.after)} 条` +
+        `（删 ${String(pruned.removed)} 条；只留仍活着且未超 ${String(DEFAULT_MAX_AGE_MS / (24 * 60 * 60 * 1000))} 天的 pid）`,
+    )
+  }
   // ⚠️ 报告本身**不算失败** ⇒ 退出码 0（它是一份体检报告，不是门禁闸口）。
+  // 落盘放在回收之后：产物里的回收数字才与本次体检同源。
+  const saved = writeReportFile(
+    buildPersistedReport(scan, pruned, repoRoot),
+    join(repoRoot, ORPHAN_REPORT_FILE),
+  )
+  if (saved !== null) console.log(`[orphans] 体检结论已落盘：${ORPHAN_REPORT_FILE}`)
   return 0
 }
 

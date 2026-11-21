@@ -1,0 +1,6 @@
+{
+  "id": "cursor",
+  "mainPath": ".cursor/rules/openvibe.mdc",
+  "l1Capability": "on-demand",
+  "hasFrontmatter": true
+}

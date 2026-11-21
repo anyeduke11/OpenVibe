@@ -8,6 +8,7 @@ alwaysApply: true
 > 本文件由 OpenVibe 生成。要修改标准，请回资产库改后重新注入；
 > 本地手改会被 `openvibe diff` 漂移检测发现。
 
+<!-- openvibe:section=行为规则 -->
 ## 行为规则
 
 #### 需求拆解纪律

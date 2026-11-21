@@ -73,4 +73,14 @@ describe('test 四数汇总（R0 · F13 / X3）', () => {
     expect(src).toContain('skipped')
     expect(src).toContain('todo')
   })
+
+  it('⚠️ test 收尾跑孤儿体检（登记目录才会在每台跑过测试的机器上被回收）', () => {
+    // ⚠️ 为什么要判这条：回收只在体检进程里做 ⇒
+    //   体检不挂在 `pnpm test` 收尾，登记目录在大多数机器上就**永远不会被回收**。
+    const src = readFileSync(join(ROOT, 'scripts', 'test-summary.ts'), 'utf8')
+    expect(src).toContain("from './check-orphan-workers'")
+    expect(src).toContain('checkOrphans(')
+    // ⚠️ 体检是报告不是门禁 ⇒ 退出码仍只取 vitest 的
+    expect(src).toContain('process.exitCode = code ?? (signal !== null ? 1 : 0)')
+  })
 })

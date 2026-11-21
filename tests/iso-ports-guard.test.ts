@@ -182,15 +182,16 @@ describe('隔离实例 · 端口冲突重试', () => {
   })
 })
 
-describe('隔离实例 · dev:iso 入口', () => {
+describe('隔离实例 · dev --iso 入口', () => {
   it('脚本存在，且用了端口重试与守卫通道', () => {
-    const script = join(ROOT, 'scripts', 'dev-iso.mjs')
+    // 2026-11-10：隔离能力折叠进 dev-all.mjs --iso，dev-iso.mjs 变为薄封装
+    const script = join(ROOT, 'scripts', 'dev-all.mjs')
     const src = readFileSync(script, 'utf8')
     // 端口重试：必须走 withPortRetry（自己手写重试循环 ⇒ 判据看不见）
     expect(src).toContain('withPortRetry')
     expect(src).toContain('detectPortConflict')
     // home 的投递必须走守卫（手写 `OPENVIBE_HOME:` env ⇒ 断言与投递可能不一致）
-    expect(src).toContain('spawnIsolated')
+    expect(src).toContain('isolatedEnv')
     expect(src).not.toMatch(/OPENVIBE_HOME:/)
   })
 })

@@ -25,7 +25,17 @@
  *   （那会让「汇总脚本本身坏了」被读成「测试全绿」）。
  */
 import { spawn } from 'node:child_process'
-import { DEFAULT_WORKERS, decideWorkers, readMemoryPressure } from './machine-preflight'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import {
+  DEFAULT_WORKERS,
+  REPORT_FILE,
+  buildReport,
+  decideWorkers,
+  readMemoryPressure,
+  type PreflightReport,
+} from './machine-preflight'
+import { main as checkOrphans } from './check-orphan-workers'
 
 const ROOT = process.cwd()
 
@@ -73,7 +83,10 @@ export function parseSummary(output: string): {
  *
  * ⚠️ **用户显式给了 `--maxWorkers` 就听用户的**（显式意图 > 自动判断）。
  */
-function preflightWorkers(userArgs: string[]): number | undefined {
+function preflightWorkers(userArgs: string[]): {
+  workers: number | undefined
+  report: PreflightReport | null
+} {
   const explicit = userArgs.some(
     (a) =>
       a === '--maxWorkers' ||
@@ -81,68 +94,120 @@ function preflightWorkers(userArgs: string[]): number | undefined {
       a === '--max-workers' ||
       a.startsWith('--max-workers='),
   )
-  if (explicit) return undefined
+  if (explicit) return { workers: undefined, report: null }
 
   // 默认并发取自 `vitest.config.ts`（本仓是 2）⇒ **单源在配置文件**，这里只读不改。
-  const decision = decideWorkers(readMemoryPressure(), DEFAULT_WORKERS)
+  const pressure = readMemoryPressure()
+  const decision = decideWorkers(pressure, DEFAULT_WORKERS)
   console.log(`[preflight] ${decision.reason}`)
-  if (!decision.degraded) return undefined
+  const report = writePreflightReport(pressure, decision)
+  if (!decision.degraded) return { workers: undefined, report }
   console.log(
     '[preflight] ⚠️ 这是**环境问题**不是代码问题：机器内存吃紧时，超时闸会误判成「功能回归」。',
   )
-  return decision.workers
+  return { workers: decision.workers, report }
 }
 
-const userArgs = process.argv.slice(2)
-const preflight = preflightWorkers(userArgs)
-const vitestArgs = ['vitest', 'run', ...userArgs]
-if (preflight !== undefined) vitestArgs.push(`--maxWorkers=${String(preflight)}`)
-
-// windows 两层坑（CI windows 腿实证）：① spawn('npx') 不带 .cmd 后缀 ⇒ ENOENT；
-// ② Node ≥20.12 起（CVE-2024-27980）spawn('.cmd') 不带 shell ⇒ EINVAL。
-// ⇒ win32 取 npx.cmd 且开 shell；shell 仅在 win 开启（args 为内部构造 + 用户自传，无第三方注入面）。
-const winSpawn = process.platform === 'win32'
-const npxBin = winSpawn ? 'npx.cmd' : 'npx'
-
-const child = spawn(npxBin, vitestArgs, {
-  cwd: ROOT,
-  stdio: ['inherit', 'pipe', 'pipe'],
-  shell: winSpawn,
-})
-
-let captured = ''
-child.stdout.on('data', (d: Buffer) => {
-  const s = d.toString()
-  captured += s
-  process.stdout.write(d)
-})
-child.stderr.on('data', (d: Buffer) => {
-  const s = d.toString()
-  captured += s
-  process.stderr.write(d)
-})
-
-child.on('exit', (code, signal) => {
-  const summary = parseSummary(captured)
-  if (summary === null) {
-    console.error('⚠️ 未取到 vitest 的汇总行 ⇒ 四数汇总无法给出（测试本身的退出码见上）')
-    process.exitCode = code ?? (signal !== null ? 1 : 0)
-    return
+/**
+ * 把预检结论落成**机器可读**的产物（增强 E）。
+ *
+ * ⚠️ **为什么必须落文件**：预检说明只在 stdout 开头 ⇒ CI 里只看测试报告就看不到
+ *   ⇒ 假红时无法区分「环境问题 vs 代码问题」⇒ 这条增强就白做了。
+ *   ⇒ 落 `test-results/preflight.json` ⇒ 报告页/流水线摘要都能引用。
+ *
+ * ⚠️ **写失败不阻断测试**：产物是辅助信息，写不出来不该让测试失败
+ *   ⇒ 返回 null（汇总里那行就不打）。
+ */
+function writePreflightReport(
+  pressure: ReturnType<typeof readMemoryPressure>,
+  decision: ReturnType<typeof decideWorkers>,
+): PreflightReport | null {
+  try {
+    const report = buildReport(pressure, decision)
+    const path = join(ROOT, REPORT_FILE)
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, `${JSON.stringify(report, null, 2)}\n`, 'utf8')
+    return report
+  } catch {
+    // 产物写不出来 ⇒ 不阻断（测试本身更重要）
+    return null
   }
-  console.log('─'.repeat(64))
-  console.log(
-    `[test:summary] passed=${String(summary.passed)}  failed=${String(summary.failed)}  ` +
-      `skipped=${String(summary.skipped)}  todo=${String(summary.todo)}`,
-  )
-  // ⚠️ **todo 不计入 passed**（X3）：单独提示，避免「总数 = passed」被误读成全覆盖。
-  if (summary.todo > 0) {
-    console.log(`[test:summary] ⚠️ ${String(summary.todo)} 条 todo **未执行**（不计入 passed）`)
-  }
-  if (summary.skipped > 0) {
+}
+
+/**
+ * 入口：预检 ⇒ 跑 vitest ⇒ 四数汇总 ⇒ 孤儿体检。
+ *
+ * ⚠️ **必须在 `main` 里跑、只在直接执行时调用**：本模块被
+ *   `tests/test-summary.test.ts` **导入**（为了测 `parseSummary`）⇒
+ *   如果顶层直接执行，导入本身就会 spawn 一次 `npx vitest run`
+ *   ⇒ 每次 `pnpm test` 多起一整轮嵌套测试，且那个子进程在父进程结束后
+ *   多半会被 launchd 收养成孤儿（正是孤儿闸要抓的现象）。
+ */
+function main(): void {
+  const userArgs = process.argv.slice(2)
+  const { workers: preflight, report: preflightReport } = preflightWorkers(userArgs)
+  const vitestArgs = ['vitest', 'run', ...userArgs]
+  if (preflight !== undefined) vitestArgs.push(`--maxWorkers=${String(preflight)}`)
+
+  const child = spawn('npx', vitestArgs, {
+    cwd: ROOT,
+    stdio: ['inherit', 'pipe', 'pipe'],
+    shell: false,
+  })
+
+  let captured = ''
+  child.stdout.on('data', (d: Buffer) => {
+    const s = d.toString()
+    captured += s
+    process.stdout.write(d)
+  })
+  child.stderr.on('data', (d: Buffer) => {
+    const s = d.toString()
+    captured += s
+    process.stderr.write(d)
+  })
+
+  child.on('exit', (code, signal) => {
+    const summary = parseSummary(captured)
+    if (summary === null) {
+      console.error('⚠️ 未取到 vitest 的汇总行 ⇒ 四数汇总无法给出（测试本身的退出码见上）')
+      // ⚠️ 取不到汇总行往往意味着 vitest 没正常收尾 ⇒ 恰恰最可能留孤儿 worker
+      checkOrphans([])
+      process.exitCode = code ?? (signal !== null ? 1 : 0)
+      return
+    }
+    console.log('─'.repeat(64))
     console.log(
-      `[test:summary] ⚠️ ${String(summary.skipped)} 条 skipped（环境门控；报告里显式出现，未计入 passed）`,
+      `[test:summary] passed=${String(summary.passed)}  failed=${String(summary.failed)}  ` +
+        `skipped=${String(summary.skipped)}  todo=${String(summary.todo)}`,
     )
-  }
-  console.log('─'.repeat(64))
-  process.exitCode = code ?? (signal !== null ? 1 : 0)
-})
+    // ⚠️ **机器状态与四数同屏**（增强 E）：只看汇总行也能立刻判断
+    //   「这批红是环境问题还是代码问题」⇒ 不用去翻 stdout 开头那一行。
+    if (preflightReport !== null) {
+      console.log(
+        `[test:summary] 机器档位=${preflightReport.tier}  并发=${String(preflightReport.workers)}` +
+          `  已降级=${String(preflightReport.degraded)}  （详见 ${REPORT_FILE}）`,
+      )
+    }
+    // ⚠️ **todo 不计入 passed**（X3）：单独提示，避免「总数 = passed」被误读成全覆盖。
+    if (summary.todo > 0) {
+      console.log(`[test:summary] ⚠️ ${String(summary.todo)} 条 todo **未执行**（不计入 passed）`)
+    }
+    if (summary.skipped > 0) {
+      console.log(
+        `[test:summary] ⚠️ ${String(summary.skipped)} 条 skipped（环境门控；报告里显式出现，未计入 passed）`,
+      )
+    }
+    console.log('─'.repeat(64))
+    // 收尾：孤儿 worker 体检（2026-11-02）。
+    // ⚠️ 挂在这里的**唯一目的**是让登记文件在每个跑过测试的机器上被回收
+    //   （`checkOrphans` 内部会 `pruneRegistry()`）；没跑过 `pnpm test` 的机器不会回收。
+    // ⚠️ 它是**体检报告不是门禁**：不改退出码，也不因它而让测试失败。
+    checkOrphans([])
+    process.exitCode = code ?? (signal !== null ? 1 : 0)
+  })
+}
+
+if (process.argv[1] !== undefined && process.argv[1].endsWith('test-summary.ts')) {
+  main()
+}

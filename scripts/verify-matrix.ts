@@ -16,10 +16,10 @@
  */
 
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { CLI_COMMANDS } from '@openvibe/shared'
+import { tempDir } from '@openvibe/core/test-support'
 
 interface MatrixRow {
   command: string
@@ -85,8 +85,8 @@ if (mode === 'emit') {
 /* ────────────────────────── --run：可自动化子集 ────────────────────────── */
 
 const roots: string[] = []
-const tempDir = (prefix: string): string => {
-  const dir = mkdtempSync(join(tmpdir(), prefix))
+const makeTempDir = (prefix: string): string => {
+  const dir = tempDir(prefix)
   roots.push(dir)
   return dir
 }
@@ -151,8 +151,8 @@ async function waitForServe(child: ChildProcess, home: string): Promise<string |
 }
 
 async function run(): Promise<number> {
-  const home = tempDir('ov-matrix-home-')
-  const project = join(tempDir('ov-matrix-proj-'), 'proj')
+  const home = makeTempDir('ov-matrix-home-')
+  const project = join(makeTempDir('ov-matrix-proj-'), 'proj')
   mkdirSync(project, { recursive: true })
 
   const rows = baseRows()
@@ -193,10 +193,14 @@ async function run(): Promise<number> {
   check('sync', ['sync', project, '--pack', 'default', '--dry-run'], [0], 'dry-run 预览')
   check('sync', ['sync', project, '--pack', 'default'], [0], '真实注入')
   check('diff', ['diff', project], [0], '注入后应 clean')
-  // ⚠️ **2026-10-31 R0 语义变更**：`runCli` 强制 `OPENVIBE_SERVER=''`（离线）⇒
-  //   verify 判 `UNVERIFIED`（包侧未核）+ 退出码 2，不再是 CONSISTENT + 0。
-  //   ⇒ 这条断言改的是**期望值**，不是把实现改回旧语义。
-  check('verify', ['verify', project], [2], '离线 ⇒ 包侧未核，判 UNVERIFIED（退出码 2）')
+  // ⚠️ **2026-11-07 修正**：这里原先期望 `[2]`（离线 ⇒ UNVERIFIED），前提是
+  //   「`runCli` 强制 `OPENVIBE_SERVER=''` ⇒ 离线」——**该前提不成立**：
+  //   空串在配置链里是假值（`apps/cli/src/config.ts` 的 `else if (env.OPENVIBE_SERVER)`），
+  //   于是落到下一顺位 `config.json`；而上面那个 serve 正把真实 serverUrl + token
+  //   写进**同一个 OPENVIBE_HOME** ⇒ verify 实际是在线探测，判 `CONSISTENT` + 退 0。
+  //   ⇒ 期望值改为 `[0]`，并把「离线 ⇒ UNVERIFIED」的覆盖交回单元层
+  //   （`apps/cli/test/verify.test.ts` VERIFY-01/09、`packages/core/src/inject/verify.test.ts`）。
+  check('verify', ['verify', project], [0], '在线（serve 写 config.json）⇒ 三方一致，退 0')
   check('scan', ['scan', '--project', project], [0, 2], '项目规则文件登记')
   check('clean', ['clean', project, '--dry-run'], [0, 2], 'dry-run 退场计划')
 

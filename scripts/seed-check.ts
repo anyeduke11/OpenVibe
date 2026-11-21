@@ -1,12 +1,14 @@
 /**
  * seed:check —— content/seed 三文件门禁（seed-content FR-4 / §6，dev-plan §11.4）。
  * 校验：包络结构 + 条目 schema（复用 shared zod）+ 数量阈值 + 受控词表 + 附录 B 基线
- *      + 质量门槛（definition 长度、example 覆盖率、别名重复）+ TERMS.md 渲染后的表格完整性。
+ *      + 质量门槛（definition 长度、example 覆盖率、别名重复）+ TERMS.md 渲染后的表格完整性
+ *      + sources.json 的许可证副本核对（G1-3，2026-11-13）。
  * 阈值常量在下方 THRESHOLDS：T4 期 terms ≥60 / templates =3 / prompts =0；
  * T8 起为正式口径 terms ≥100 / templates =3 / prompts =20（dev-plan §11.4、DEV-0019）；
- * seed-content v1.2 起内置「开源发布脱敏与上传」一条 ⇒ prompts =21。
+ * seed-content v1.2 起内置「开源发布脱敏与上传」一条 ⇒ prompts =21；
+ * G-1 批次新增两套 SDD 裁剪模板 ⇒ templates =9。
  */
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -26,7 +28,7 @@ import {
 
 const THRESHOLDS = {
   termsMin: 100,
-  templatesExact: 7,
+  templatesExact: 9,
   promptsExact: 21,
   /** m4 FR-9.2：预置技巧门槛（裁定 ③） */
   playbooksMin: 10,
@@ -68,6 +70,9 @@ const FLOW_TEMPLATE_STAGES: Record<string, readonly string[]> = {
   '需求澄清到 PRD': ['需求访谈', '澄清与 PRD', '验收标准'],
   'Bug 根因排查': ['现象采集', '假设清单', '根因验证', '修复与回归'],
   周度复盘问答: ['事实采集', '模式分析', '改进决议'],
+  // G-1：SDD 开源项目裁剪模板（spec-kit / OpenSpec），2026-11-13 由 owner 指令集成
+  'Spec-Kit 流': ['需求规格', '方案计划', '任务拆解', '实现'],
+  'OpenSpec 变更流': ['提案', '应用', '归档'],
 }
 
 const TERM_ALLOWED_KEYS = ['zh', 'en', 'aliases', 'definition', 'example', 'tags'] as const
@@ -94,14 +99,16 @@ const EXPECTED_STAGE_COUNTS: Record<string, number> = {
   '需求澄清到 PRD': 3,
   'Bug 根因排查': 4,
   周度复盘问答: 3,
+  // G-1：与 FLOW_TEMPLATE_STAGES 同批扩（两条表必须同步，否则「阶段名逐字」与「阶段数」各说各话）
+  'Spec-Kit 流': 4,
+  'OpenSpec 变更流': 3,
 }
 /**
  * 只读覆盖口（T8g）：SCRIPT-SEED-01/02 要在临时副本上制造「删 5 条词条」「改一个阶段名」的负向样本，
  * 不能改仓库里的真种子。此处只读取，脚本全程不写 SEED_DIR。
  */
-const SEED_DIR =
-  process.env['OPENVIBE_SEED_DIR'] ??
-  join(dirname(fileURLToPath(import.meta.url)), '..', 'content', 'seed')
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+const SEED_DIR = process.env['OPENVIBE_SEED_DIR'] ?? join(REPO_ROOT, 'content', 'seed')
 
 const errors: string[] = []
 const notes: string[] = []
@@ -427,6 +434,57 @@ function checkTemplates(): void {
   )
 }
 
+/** G1-3：外部项目来源必须留许可证副本，且 id 与 sources.json 一致 */
+const SOURCE_LICENSE_FILES: Record<string, string> = {
+  'spec-kit': 'LICENSES/spec-kit-LICENSE.txt',
+  openspec: 'LICENSES/openspec-LICENSE.txt',
+}
+
+function checkSources(): void {
+  const file = 'sources.json'
+  // 来源登记与许可证副本住 content/（资产根），不在 content/seed/ ——
+  // 它们不是「种子条目」，不进 seed 导入管线（design §15）
+  let parsed: { schemaVersion?: unknown; sources?: unknown[] }
+  try {
+    parsed = JSON.parse(readFileSync(join(REPO_ROOT, 'content', file), 'utf8')) as typeof parsed
+  } catch (err) {
+    fail(file, '读取', `无法解析：${String(err)}`)
+    return
+  }
+  if (parsed.schemaVersion !== 1 || !Array.isArray(parsed.sources)) {
+    fail(file, '结构', '期望 {schemaVersion:1, sources:[]}')
+    return
+  }
+  const ids = new Set<string>()
+  for (const raw of parsed.sources) {
+    const s = raw as Record<string, unknown>
+    const id = s['id']
+    if (typeof id !== 'string' || id.length === 0) {
+      fail(file, String(id ?? '#'), 'id 缺失或非字符串')
+      continue
+    }
+    if (ids.has(id)) fail(file, id, 'id 重复')
+    ids.add(id)
+    for (const key of ['name', 'url', 'license'] as const) {
+      if (typeof s[key] !== 'string' || (s[key] as string).length === 0) {
+        fail(file, id, `${key} 缺失或为空`)
+      }
+    }
+    const licFile = SOURCE_LICENSE_FILES[id]
+    if (!licFile) continue
+    const path = join(REPO_ROOT, 'content', licFile)
+    if (!existsSync(path)) {
+      fail(file, id, `缺许可证副本 content/${licFile}`)
+      continue
+    }
+    const text = readFileSync(path, 'utf8')
+    if (!text.toLowerCase().includes(String(s['license']).toLowerCase())) {
+      fail(file, id, `许可证副本内容与 license 字段不一致（${String(s['license'])}）`)
+    }
+  }
+  notes.push(`来源登记 ${ids.size} 项（${[...ids].join(', ') || '无'}）`)
+}
+
 function checkPrompts(): void {
   const file = 'prompts.json'
   const items = itemsOf(file)
@@ -520,6 +578,7 @@ function main(): void {
   try {
     checkTerms()
     checkTemplates()
+    checkSources()
     checkPrompts()
     checkPlaybooks()
   } catch (err) {

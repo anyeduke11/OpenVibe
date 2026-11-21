@@ -225,3 +225,24 @@ export const GOLDEN_FIXTURES: GoldenFixture[] = [
     },
   },
 ]
+
+/** 夹具输入的 targets 声明序（ADAPTER_IDS 的镜像，避免 fixtures.ts 依赖 adapters 包形成环） */
+const ADAPTER_IDS_ORDER = ['claude-code', 'cursor', 'generic-agents', 'codebuddy', 'trae', 'minicode'] as const
+
+/**
+ * adapter 夹具的唯一输入（adapter-fixtures.md FR-1：**同一份最小 ResolvedPack**，
+ * 禁止每个夹具自带一套输入）。形状与 packages/adapters/src/adapters.test.ts 的
+ * pack() 构造同族，但真源在此——测试侧与生成脚本两侧都 import 这一份。
+ * 正文独立性由 ADP-FIX-01 守住：本输入的正文字段全空，壳字节因此与正文零耦合。
+ */
+export const ADAPTER_FIXTURE_INPUT: ResolvedPack = {
+  id: 'pk_golden_adapters',
+  name: 'default',
+  version: '1.0.0',
+  description: '',
+  targets: [...ADAPTER_IDS_ORDER],
+  flow: null,
+  prompts: [],
+  terms: [],
+  skills: [],
+}

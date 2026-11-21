@@ -1,0 +1,6 @@
+{
+  "id": "claude-code",
+  "mainPath": "CLAUDE.md",
+  "l1Capability": "auto-import",
+  "hasFrontmatter": false
+}

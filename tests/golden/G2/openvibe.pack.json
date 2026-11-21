@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "pack": {
     "id": "pk_golden_g2",
     "name": "domestic",
@@ -30,16 +30,20 @@
   "files": [
     {
       "path": ".trae/rules/openvibe.md",
-      "sha256": "b8ca39057fa4a48edb9310f6cb4b069cfc6d1c0220b2690f3b9eef090d7c9e92"
+      "sha256": "43dc343913f2ab2123b4cc8ae9356e2a0a08eb3e3c8c0c186d205ced9d64db82"
     },
     {
       "path": "CODEBUDDY.md",
-      "sha256": "fd7b900c35d6da5a5d402c25c2628d1534d5d08dc84e490e1f4c735ff1b9b30f"
+      "sha256": "35a38fc690f0a9316e71fbd4c13df6c5124e9c7bd7690786cb2a0cd997c87a1e"
     },
     {
       "path": "MINI.md",
-      "sha256": "fd7b900c35d6da5a5d402c25c2628d1534d5d08dc84e490e1f4c735ff1b9b30f"
+      "sha256": "35a38fc690f0a9316e71fbd4c13df6c5124e9c7bd7690786cb2a0cd997c87a1e"
     }
   ],
-  "fingerprint": "0491528335628904e427a787e5833f3226793579940945e6284ef2c554898d1a"
+  "l1": {
+    "codebuddy": false,
+    "trae": false
+  },
+  "fingerprint": "cc4ef4a1b46c44da4acf405565dbeb7149c0a21ec9a7fcfccef217d7ae6b71ee"
 }

@@ -24,9 +24,9 @@
  */
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { copyFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
+import { tempDir } from '@openvibe/core/test-support'
 
 export interface MutationLeg {
   /** 可定位的说明文字：人看报告时靠它判断这条腿在验什么 */
@@ -114,19 +114,11 @@ export function parseVitestSummary(stdout: string): { failed: number; passed: nu
 
 /** 默认执行器：真跑 vitest。`--no-color` 保证输出尾部人类可读（诊断报告要贴给人看） */
 const defaultRunner: LegRunner = (testCmd, repoRoot) => {
-  // windows 两层坑（与 scripts/test-summary.ts 同款口径）：spawn('npx') ENOENT +
-  // npx.cmd 不带 shell 在 Node ≥20.12 即 EINVAL ⇒ win32 用 npx.cmd 且开 shell。
-  const winSpawn = process.platform === 'win32'
-  const proc = spawnSync(
-    winSpawn ? 'npx.cmd' : 'npx',
-    ['vitest', 'run', '--no-color', ...testCmd],
-    {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      env: { ...process.env, CI: '1' },
-      shell: winSpawn,
-    },
-  )
+  const proc = spawnSync('npx', ['vitest', 'run', '--no-color', ...testCmd], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: { ...process.env, CI: '1' },
+  })
   return { stdout: `${proc.stdout ?? ''}\n${proc.stderr ?? ''}` }
 }
 
@@ -153,7 +145,7 @@ export function runLeg(
   // 又不必在测试套件里改动仓库文件（并行跑时改仓库文件会让别的用例读到中间态）。
   const abs = resolve(repoRoot, leg.file)
   const before = sha(abs)
-  const backupDir = mkdtempSync(join(tmpdir(), 'mutation-run-'))
+  const backupDir = tempDir('mutation-run-')
   const backup = join(backupDir, basename(leg.file))
   copyFileSync(abs, backup)
 

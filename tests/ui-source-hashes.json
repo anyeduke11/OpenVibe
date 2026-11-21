@@ -1,0 +1,11 @@
+{
+  "apps/web/src/components/ui/styles.ts": "29e6cc92aaaeda3c",
+  "apps/web/src/components/ui/layout.tsx": "dd4e5ebc60d69720",
+  "apps/web/src/components/AppShell.tsx": "5de279fd92141bb3",
+  "apps/web/src/components/CoverageMapDialog.tsx": "b8cfb8182f07d47f",
+  "apps/web/src/components/settings/ContextGovernanceSection.tsx": "634e1f2af75e22a7",
+  "apps/web/src/data/coverage.ts": "4c037f03ca7d2d84",
+  "apps/web/src/index.css": "affc09752f03342d",
+  "apps/web/src/i18n/core.ts": "d4b90a26af607f81",
+  "apps/web/src/hooks/useExpertMode.ts": "9009ed615012d00e"
+}

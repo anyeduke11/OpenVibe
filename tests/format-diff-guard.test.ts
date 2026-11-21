@@ -1,7 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   FORMAT_LINES_THRESHOLD,
@@ -12,6 +11,7 @@ import {
   renderCommitLevelHint,
   renderFormatHints,
 } from '../scripts/format-diff-guard'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * 排版差异占比闸（2026-10-30）。
@@ -37,7 +37,7 @@ import {
 const repos: string[] = []
 
 function makeRepo(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'openvibe-fmt-'))
+  const dir = tempDir('openvibe-fmt-')
   repos.push(dir)
   execFileSync('git', ['init', '-q'], { cwd: dir })
   return dir

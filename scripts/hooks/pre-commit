@@ -1,6 +1,6 @@
 #!/bin/sh
-# pre-commit —— 提交前的三道机械闸：① agent 记忆导出件与源分叉；② 并行写同一工作树的并发护栏；
-# ③ 本次暂存文件的排版（prettier）。
+# pre-commit —— 提交前的四道机械闸：① agent 记忆导出件与源分叉；② 并行写同一工作树的并发护栏；
+# ③ 本次暂存文件的排版（prettier）；④ 上下文治理（与 CI 同一条 `context:check` 入口）。
 #
 # ## 为什么需要它
 #
@@ -26,6 +26,7 @@
 # - 源与导出件不一致 ⇒ **拒绝提交**，并打印同步命令。
 # - 并发护栏命中 ⇒ **拒绝提交**，并打印规则、文件、原因与处置方式。
 # - 暂存文件排版不合 prettier ⇒ **拒绝提交**，并打印文件与修复命令。
+# - 上下文治理判据（C-1～C-6）不过 ⇒ **拒绝提交**，并打印判据编号、文件位置与处置入口。
 #
 # 覆盖：可用 `AGENT_MEMORY_DIR` 环境变量指定别的 profile 的记忆目录；
 # 并发护栏的规则 A 可用 `OPENVIBE_ALLOW_PARTIAL_STAGE=1` 显式放行（规则 B 不放行）。
@@ -83,6 +84,18 @@ if [ "$STAGED_COUNT" -gt 0 ]; then
   # ⇒ 这里补一只眼睛：算清这一笔里有多少比例是纯排版差异，占比过高就提示。
   # ⚠️ 提示失败**不得影响提交**（`|| true`）：它只是提示，闸三那步才是硬红线。
   npx tsx scripts/format-diff-guard.ts 2>/dev/null || true
+fi
+
+# ── 闸四：上下文治理（规格 context-management.md FR-6 的本地侧）──
+# 与 CI 的 `Context check` 步跑**同一个脚本、同一套判据**（不放宽、不用 continue-on-error 把红变黄）。
+# ⚠️ 它扫的是**全仓一致性**（395 个源文件），无法像排版闸那样只查暂存文件；
+#   实测约 1 s，代价可接受。失败时原样打印它的输出——判据编号（C-x）与文件位置都在里面。
+if ! CTX_OUT="$(npx tsx scripts/context-check.ts 2>&1)"; then
+  printf '%s\n' "$CTX_OUT"
+  echo "✗ 提交被拦：context:check 未通过（判据编号与文件位置见上）。"
+  echo "  处置：docs/specs/context-governance.md；棘轮基线与留痕：docs/context-check-baseline.json"
+  echo "  （只想跳过这一次：用 git commit --no-verify）"
+  exit 1
 fi
 
 exit 0

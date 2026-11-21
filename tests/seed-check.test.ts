@@ -1,9 +1,9 @@
 import { spawnSync } from 'node:child_process'
-import { copyFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { copyFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterAll, describe, expect, it } from 'vitest'
+import { tempDir } from '@openvibe/core/test-support'
 
 /**
  * seed:check 门禁自身的负向用例（dev-plan §9-T8 映射表 seed-1 / seed-3）。
@@ -17,6 +17,12 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SCRIPT = join(REPO_ROOT, 'scripts', 'seed-check.ts')
 const REAL_SEED_DIR = join(REPO_ROOT, 'content', 'seed')
 const SEED_FILES = ['terms.json', 'flow-templates.json', 'prompts.json', 'playbooks.json'] as const
+
+/** G-1 批次新增的两套 SDD 裁剪模板（阶段名逐字，与 seed-content §3.3 冻结对象同源） */
+const G1_TEMPLATES: Record<string, readonly string[]> = {
+  'Spec-Kit 流': ['需求规格', '方案计划', '任务拆解', '实现'],
+  'OpenSpec 变更流': ['提案', '应用', '归档'],
+}
 
 /**
  * 篡改后必然一起被点到的兜底错误，用于确认「负向探针没被别的报错抢先掩盖」。
@@ -52,7 +58,7 @@ function runSeedCheck(seedDir?: string): Run {
 
 /** 只读口验证：脚本对副本目录也只读不改写，所以篡改前跑一次即建立基线 */
 function sandbox(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'openvibe-seed-probe-'))
+  const dir = tempDir('openvibe-seed-probe-')
   for (const f of SEED_FILES) copyFileSync(join(REAL_SEED_DIR, f), join(dir, f))
   return dir
 }
@@ -89,7 +95,7 @@ describe('SCRIPT-SEED-00 · 正向基线 + 覆盖口只读', () => {
   it(
     '带 OPENVIBE_SEED_DIR 指向真种子的逐字节副本时同样通过，且脚本不改写副本',
     () => {
-      const dir = mkdtempSync(join(tmpdir(), 'openvibe-seed-copy-'))
+      const dir = tempDir('openvibe-seed-copy-')
       sandboxes.push(dir)
       const originals = SEED_FILES.map((f) => readFileSync(join(REAL_SEED_DIR, f)))
       for (const [i, f] of SEED_FILES.entries()) writeFileSync(join(dir, f), originals[i]!)
@@ -169,6 +175,94 @@ describe('SCRIPT-SEED-02 · seed-content §7.3 模板 3/7/4 阶段逐字一致',
       const run = runSeedCheck(dir)
       expect(run.status).not.toBe(0)
       expect(run.out).toContain('Spec 驱动流 — 阶段数期望 7，收到 6')
+    },
+    TEST_TIMEOUT,
+  )
+})
+
+describe('SCRIPT-SEED-03 · G-1 新增 SDD 模板（Spec-Kit 流 / OpenSpec 变更流）', () => {
+  it(
+    '两套模板的阶段数与阶段名逐字一致',
+    () => {
+      const dir = sandbox()
+      sandboxes.push(dir)
+      expect(runSeedCheck(dir).status, '篡改前必须先通过').toBe(0)
+
+      const items = itemsIn(dir, 'flow-templates.json')
+      for (const [name, stages] of Object.entries(G1_TEMPLATES)) {
+        const t = items.find((i) => i['name'] === name)
+        expect(t, `夹具前提：真种子须含模板「${name}」`).toBeDefined()
+        const got = ((t!['stages'] ?? []) as { name: string }[]).map((s) => s.name)
+        expect(got).toEqual(stages)
+      }
+    },
+    TEST_TIMEOUT,
+  )
+
+  it(
+    'Spec-Kit 流删掉一个阶段 → 非零并点名「阶段数期望 4，收到 3」',
+    () => {
+      const dir = sandbox()
+      sandboxes.push(dir)
+      expect(runSeedCheck(dir).status, '篡改前必须先通过').toBe(0)
+
+      const items = itemsIn(dir, 'flow-templates.json')
+      const specKit = items.find((i) => i['name'] === 'Spec-Kit 流')
+      expect(specKit).toBeDefined()
+      const stages = specKit!['stages'] as { name: string }[]
+      specKit!['stages'] = stages.slice(0, -1)
+      writeItems(dir, 'flow-templates.json', items)
+
+      const run = runSeedCheck(dir)
+      expect(run.status).not.toBe(0)
+      expect(run.out).toContain('Spec-Kit 流 — 阶段数期望 4，收到 3')
+    },
+    TEST_TIMEOUT,
+  )
+
+  it(
+    '缺一套 G-1 模板 → 非零并点名缺哪套',
+    () => {
+      const dir = sandbox()
+      sandboxes.push(dir)
+      expect(runSeedCheck(dir).status, '篡改前必须先通过').toBe(0)
+
+      const items = itemsIn(dir, 'flow-templates.json')
+      const kept = items.filter((i) => i['name'] !== 'OpenSpec 变更流')
+      writeItems(dir, 'flow-templates.json', kept)
+
+      const run = runSeedCheck(dir)
+      expect(run.status).not.toBe(0)
+      expect(run.out).toContain('缺模板「OpenSpec 变更流」')
+    },
+    TEST_TIMEOUT,
+  )
+})
+
+describe('SCRIPT-SEED-04 · G1-3 来源登记的许可证副本核对', () => {
+  it(
+    'sources.json 的 license 字段与 LICENSES/ 副本内容不一致 → 非零并点名该项目',
+    () => {
+      const sourcesPath = join(REPO_ROOT, 'content', 'sources.json')
+      const original = readFileSync(sourcesPath, 'utf8')
+      try {
+        const parsed = JSON.parse(original) as { sources: { id: string; license: string }[] }
+        for (const s of parsed.sources) {
+          if (s.id === 'spec-kit') s.license = 'Apache-2.0'
+        }
+        writeFileSync(sourcesPath, `${JSON.stringify(parsed, null, 2)}\n`, 'utf8')
+
+        const run = runSeedCheck()
+        expect(run.status).not.toBe(0)
+        expect(run.out).toContain(
+          'sources.json · spec-kit — 许可证副本内容与 license 字段不一致（Apache-2.0）',
+        )
+      } finally {
+        writeFileSync(sourcesPath, original, 'utf8')
+      }
+
+      // 复位后必须恢复通过，证明失败只来自这次篡改
+      expect(runSeedCheck().status, '篡改复位后应恢复通过').toBe(0)
     },
     TEST_TIMEOUT,
   )

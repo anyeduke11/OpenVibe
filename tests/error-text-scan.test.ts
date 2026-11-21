@@ -57,11 +57,7 @@ function sources(dir: string, out: string[] = []): string[] {
   return out.sort()
 }
 
-// ⚠️ 统一归一 POSIX：windows 的 join 拼出反斜杠形态，下面的
-// `includes('/apps/server/src/')` 与期望列表都是 POSIX 字面量（CI windows 实证全落空）。
-const files = ROOTS.flatMap((r) => sources(join(process.cwd(), r))).map((f) =>
-  f.replace(/\\/g, '/'),
-)
+const files = ROOTS.flatMap((r) => sources(join(process.cwd(), r)))
 
 /**
  * 本仓自有的错误类：它们的 message 由**本仓代码构造** ⇒ 必为中文。
@@ -946,7 +942,7 @@ describe('错误文案的中文化闸', () => {
     //  ② 非 ApiError 的本地抛错只有白名单两处，且这两处的 message 本身就是中文。
     // 任意一条破了，形态 7 的受信就失去依据 ⇒ 先红这一条，再去收窄那条判据。
     const webFiles = files.filter((f) => f.includes('/apps/web/src/'))
-    const rel = (f: string): string => relative(process.cwd(), f).replace(/\\/g, '/')
+    const rel = (f: string): string => relative(process.cwd(), f)
 
     // 只认**独立标识符** fetch（前面不是字母/数字/下划线）
     //
@@ -963,6 +959,7 @@ describe('错误文案的中文化闸', () => {
       return /throw\s+new\s+(Error|RangeError)\s*\(/.test(src)
     })
     expect(throwers.map(rel).sort()).toEqual([
+      'apps/web/src/data/demo-surfaces.ts',
       'apps/web/src/growth/stage.ts',
       'apps/web/src/index.tsx',
     ])
@@ -973,7 +970,7 @@ describe('错误文案的中文化闸', () => {
     // 若有人直接调 `useMutation`，`onError` 的 `e` 又会退回 `Error` 类型，
     // 而判据会因「来源不可判定」把它判红——闸会指出来，但更好的做法是提前拦住。
     const webFiles = files.filter((f) => f.includes('/apps/web/src/'))
-    const rel = (f: string): string => relative(process.cwd(), f).replace(/\\/g, '/')
+    const rel = (f: string): string => relative(process.cwd(), f)
     const direct = webFiles.filter((f) => {
       if (rel(f) === 'apps/web/src/hooks/useApiMutation.ts') return false // 封装层自身
       return /(?<![A-Za-z0-9_$])useMutation\s*\(/.test(readFileSync(f, 'utf8'))

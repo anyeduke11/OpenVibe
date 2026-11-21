@@ -1,4 +1,4 @@
-import { planMainFiles, coveredPlatforms } from '@openvibe/adapters'
+import { planMainFiles, coveredPlatforms, l1Capability } from '@openvibe/adapters'
 import { composePack, type RenderedPack } from '@openvibe/core'
 import type { ResolvedPack } from '@openvibe/shared'
 import { GOLDEN_EXPORTED_AT } from './fixtures'
@@ -9,7 +9,7 @@ import { GOLDEN_EXPORTED_AT } from './fixtures'
  */
 export function renderGolden(pack: ResolvedPack): RenderedPack {
   return composePack(pack, {
-    adapters: { planMainFiles, coveredPlatforms },
+    adapters: { planMainFiles, coveredPlatforms, l1Capability },
     exportedAt: GOLDEN_EXPORTED_AT,
   })
 }

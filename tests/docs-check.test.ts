@@ -1,6 +1,5 @@
 import { describe, expect, it, afterEach } from 'vitest'
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -19,6 +18,9 @@ import {
   classifyNegativeClaim,
   checkRuleBudget,
   checkScriptsRegistry,
+  checkPrototypeParity,
+  checkAnchorContract,
+  NAV_ANCHOR_IDS,
   checkSpecVersions,
   extractGrepClaims,
   JUDGMENT_RULES,
@@ -30,6 +32,7 @@ import {
   type Baseline,
   type Finding,
 } from '../scripts/docs-check'
+import { tempDir } from '@openvibe/core/test-support'
 
 /** 本仓根：几支腿要读真实基线文件与真实探针结果文件 */
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -152,6 +155,22 @@ describe('docs-check · FR-2 变异样本', () => {
     expect(fs.some((f) => f.rule === 'FR-2.2' && /求和 3 ≠ 队列行数 2/.test(f.message))).toBe(true)
   })
 
+  it('⚠️ 报错必须可直接照做：给出差值、各 bullet 现数与修改方向（2026-11-07 增强）', () => {
+    // 少算（队列行数 > 求和）：新立了一行但没进净状态
+    const missing = CLEAN_QUEUE.replace('- **已裁已落 1**：②', '')
+    const f1 = errorsOf(checkQueue(missing)).find((f) => f.rule === 'FR-2.2')
+    expect(f1).toBeDefined()
+    expect(f1!.message).toContain('差 1')
+    expect(f1!.message).toContain('少算 1')
+    expect(f1!.message).toContain('待裁 1')
+
+    // 多算（求和 > 队列行数）：行移出了但计数没减
+    const extra = CLEAN_QUEUE.replace('| ② | 事项二 | **已裁已落** | 说明 | 落点 | 无 |\n', '')
+    const f2 = errorsOf(checkQueue(extra)).find((f) => f.rule === 'FR-2.2')
+    expect(f2).toBeDefined()
+    expect(f2!.message).toContain('多算 1')
+  })
+
   it('⚠️ 状态写成枚举外的词 ⇒ 枚举校验必须报出', () => {
     const broken = CLEAN_QUEUE.replace('**待裁**', '**大概要裁**')
     expect(errorsOf(checkQueue(broken)).some((f) => f.rule === 'FR-2.1')).toBe(true)
@@ -190,10 +209,7 @@ describe('docs-check · FR-3.4 变异样本（相对链接）', () => {
   const files = [{ path: 'docs/a.md', content: '见 [分析文](./b.md)' }]
 
   it('目标存在 ⇒ 无 error', () => {
-    // ⚠️ 回调归一 POSIX 再比：windows 的相对链接解析产出反斜杠形态（CI windows 实证）
-    expect(
-      errorsOf(checkRelativeLinks(files, (p) => p.replace(/\\/g, '/') === 'docs/b.md')),
-    ).toEqual([])
+    expect(errorsOf(checkRelativeLinks(files, (p) => p === 'docs/b.md'))).toEqual([])
   })
 
   it('⚠️ 变异样本 r：目标不存在 ⇒ 报 1 违规', () => {
@@ -284,6 +300,52 @@ describe('docs-check · FR-5 变异样本（登记结构）', () => {
       '- **测试验证**: 手工点了几下，看着对。',
     )
     expect(checkEntrySections(broken).some((f) => /没有可复算命令/.test(f.message))).toBe(true)
+  })
+})
+
+/* -------------------------------------------------- FR-5 evidence 的可定位性 */
+
+describe('docs-check · FR-5 evidence 可定位（DEV 号与行号）', () => {
+  it('evidence 带 DEV 号 ⇒ 能按号 grep 到是哪一条登记', () => {
+    const broken = logWith().replace('- **潜在风险**: 风险\n', '')
+    const hit = checkEntrySections(broken).find((f) => /缺「潜在风险」段/.test(f.message))
+    expect(hit).toBeDefined()
+    expect(hit?.evidence).toContain('DEV-')
+    expect(hit?.evidence).toMatch(/DEV-\d{4}/)
+  })
+
+  it('evidence 带行号 ⇒ 能定位到 DEV_LOG.md 的具体位置', () => {
+    const broken = logWith().replace('- **潜在风险**: 风险\n', '')
+    const hit = checkEntrySections(broken).find((f) => /缺「潜在风险」段/.test(f.message))
+    expect(hit?.evidence).toMatch(/DEV_LOG\.md:\d+/)
+  })
+
+  it('同一条 warning 在不同登记上 evidence 互不相同（定位不歧义）', () => {
+    const broken = logWith().replace(/- \*\*潜在风险\*\*: 风险\n/g, '')
+    const evs = checkEntrySections(broken)
+      .filter((f) => /缺「潜在风险」段/.test(f.message))
+      .map((f) => f.evidence)
+    expect(evs.length).toBeGreaterThan(1)
+    expect(new Set(evs).size).toBe(evs.length)
+  })
+
+  it('标题前 40 字相同的两条登记，evidence 仍可区分（行号不同）', () => {
+    const long = 'x'.repeat(60)
+    const log = [
+      '# DEV_LOG',
+      '',
+      `## [DEV-0001] ${long}甲`,
+      '- **类型**: C 级',
+      '',
+      `## [DEV-0002] ${long}乙`,
+      '- **类型**: C 级',
+      '',
+    ].join('\n')
+    const evs = checkEntrySections(log)
+      .filter((f) => /缺「核心变更」段/.test(f.message))
+      .map((f) => f.evidence)
+    expect(evs.length).toBe(2)
+    expect(new Set(evs).size).toBe(2)
   })
 })
 
@@ -514,7 +576,7 @@ describe('docs-check · FR-12（§-引用必须落在真实存在的节上）', 
   const tmpRoots: string[] = []
 
   function mkRepo(files: Record<string, string>): string {
-    const root = mkdtempSync(join(tmpdir(), 'ov-refs-'))
+    const root = tempDir('ov-refs-')
     tmpRoots.push(root)
     mkdirSync(join(root, 'docs'), { recursive: true })
     for (const [rel, content] of Object.entries(files)) {
@@ -575,7 +637,7 @@ describe('docs-check · FR-12.9（别名表登记的目标文件必须还在）'
   const tmpRoots: string[] = []
 
   function mkRepo(files: Record<string, string>): string {
-    const root = mkdtempSync(join(tmpdir(), 'ov-alias-'))
+    const root = tempDir('ov-alias-')
     tmpRoots.push(root)
     mkdirSync(join(root, 'docs'), { recursive: true })
     for (const [rel, content] of Object.entries(files)) {
@@ -891,7 +953,7 @@ describe('docs-check · 探针五问结果文件（2026-10-17 owner 指令）', 
 
   /** 造一个只含探针结果文件的假仓根；`null` 表示不放任何文件 */
   const fakeRepo = (contents: string | null): string => {
-    const root = mkdtempSync(join(tmpdir(), 'docs-check-probe-'))
+    const root = tempDir('docs-check-probe-')
     tmpRoots.push(root)
     if (contents !== null) {
       const dir = join(root, 'docs', 'devlog-evidence', 'M8-probe')
@@ -944,6 +1006,189 @@ describe('docs-check · 探针五问结果文件（2026-10-17 owner 指令）', 
     const r = checkProbeResults(REPO_ROOT)
     expect(r.file).not.toBeNull()
     expect(r.missing).toEqual([])
+  })
+})
+
+/* ------------------------------------------------- 原型对照面（2026-11-10） */
+
+describe('docs-check · 原型对照面（只报数，2026-11-10）', () => {
+  const tmpRoots: string[] = []
+
+  /** 造一个只含 DESIGN.md 与可选原型文件的假仓根 */
+  const fakeRepo = (design: string, proto: string | null, protoName = 'p.html'): string => {
+    const root = tempDir('docs-check-proto-')
+    tmpRoots.push(root)
+    writeFileSync(join(root, 'DESIGN.md'), design, 'utf8')
+    if (proto !== null) {
+      const dir = join(root, 'docs', 'prototypes')
+      mkdirSync(dir, { recursive: true })
+      writeFileSync(join(dir, protoName), proto, 'utf8')
+    }
+    return root
+  }
+
+  const designWith = (ref: string) =>
+    `## Decisions Log\n\n> **对照原型（2026-11-10 起）**：\`${ref}\` —— 信息架构的口径出处。\n\n| Date | Decision |\n|---|---|\n`
+
+  afterEach(() => {
+    for (const d of tmpRoots.splice(0)) rmSync(d, { recursive: true, force: true })
+  })
+
+  it('⚠️ 变异样本：原型里 NAV 被定义两次 ⇒ 无锚点时取**最后一次**（回落行为）', () => {
+    // 成长视角原型的真实形态：先 demo-B 的五组，末尾重定义为六组（组名用单引号，同原型）
+    const proto = [
+      "var NAV=[{g:'编译台',items:[]},{g:'资产 · 沉淀',items:[]}];",
+      '/* 成长视角专属 */',
+      "var NAV=[{g:'飞轮全景',items:[]},{g:'跟随 · F0',items:[]},{g:'实践 · F1',items:[]},{g:'作者 · F2',items:[]},{g:'定标 · F3',items:[]},{g:'系统',items:[]}];",
+    ].join('\n')
+    const r = checkPrototypeParity(fakeRepo(designWith('docs/prototypes/p.html'), proto))
+    expect(r.missing).toBe(false)
+    expect(r.unparsed).toBe(false)
+    expect(r.anchorId).toBeNull()
+    expect(r.navGroups).toHaveLength(6)
+    expect(r.navGroups[0]).toBe('飞轮全景')
+  })
+
+  it('⚠️ 变异样本：有锚点 ⇒ 取**锚点之后第一次** NAV（不靠次序）', () => {
+    // 锚点把「哪份 NAV 是本份原型的」变成显式声明：即使成长视角写在**前面**也读对
+    const proto = [
+      '/* openvibe-nav: growth-view */',
+      "var NAV=[{g:'飞轮全景',items:[]},{g:'跟随 · F0',items:[]},{g:'实践 · F1',items:[]},{g:'作者 · F2',items:[]},{g:'定标 · F3',items:[]},{g:'系统',items:[]}];",
+      "var NAV=[{g:'编译台',items:[]},{g:'资产 · 沉淀',items:[]}];",
+    ].join('\n')
+    const r = checkPrototypeParity(fakeRepo(designWith('docs/prototypes/p.html'), proto))
+    expect(r.missing).toBe(false)
+    expect(r.unparsed).toBe(false)
+    expect(r.anchorId).toBe('growth-view')
+    expect(r.navGroups).toHaveLength(6)
+    expect(r.navGroups[0]).toBe('飞轮全景')
+  })
+
+  it('⚠️ 变异样本：锚点 ID 写错（不在白名单）⇒ 当作没写锚点，回落最后一次', () => {
+    // 白名单是 ['growth-view']：写成 growth_view 闸不认 ⇒ 走「最后一次 NAV」
+    // 样本里把成长视角写在**前面**，若无锚点会读成 demo-B（正是白名单要防的）
+    const proto = [
+      "var NAV=[{g:'飞轮全景',items:[]},{g:'跟随 · F0',items:[]},{g:'实践 · F1',items:[]},{g:'作者 · F2',items:[]},{g:'定标 · F3',items:[]},{g:'系统',items:[]}];",
+      '/* openvibe-nav: growth_view */',
+      "var NAV=[{g:'编译台',items:[]},{g:'资产 · 沉淀',items:[]}];",
+    ].join('\n')
+    const r = checkPrototypeParity(fakeRepo(designWith('docs/prototypes/p.html'), proto))
+    // 白名单外的 ID ⇒ 不认锚点 ⇒ 回落最后一次 ⇒ 读到 demo-B 的两组
+    expect(r.anchorId).toBe('growth_view')
+    expect(r.navGroups).toEqual(['编译台', '资产 · 沉淀'])
+    expect(r.unparsed).toBe(false)
+    // FR-14.2：白名单外 ID 报 violation
+    expect(r.unknownAnchorIds).toEqual(['growth_view'])
+    expect(r.formatViolations).toEqual([])
+    const fs = checkAnchorContract(r)
+    expect(fs).toHaveLength(1)
+    expect(fs[0]?.rule).toBe('FR-14.2')
+  })
+
+  it('⚠️ 变异样本：锚点格式违规（ID 未独占首行）⇒ 报 FR-14.1', () => {
+    // 说明文字与 ID 同处首行 ⇒ 格式契约违规（ID 提取会吞掉说明）
+    const proto = [
+      '/* openvibe-nav: growth-view 说明文字 */',
+      "var NAV=[{g:'飞轮全景',items:[]},{g:'系统',items:[]}];",
+    ].join('\n')
+    const r = checkPrototypeParity(fakeRepo(designWith('docs/prototypes/p.html'), proto))
+    expect(r.formatViolations).toEqual(['growth-view'])
+    expect(r.unknownAnchorIds).toEqual([])
+    const fs = checkAnchorContract(r)
+    expect(fs).toHaveLength(1)
+    expect(fs[0]?.rule).toBe('FR-14.1')
+  })
+
+  it('正向对照：真实原型锚点格式合规 + ID 过白名单 ⇒ FR-14 零违规', () => {
+    const r = checkPrototypeParity(REPO_ROOT)
+    expect(r.formatViolations).toEqual([])
+    expect(r.unknownAnchorIds).toEqual([])
+    expect(checkAnchorContract(r)).toEqual([])
+  })
+
+  it('⚠️ 变异样本：原型缺失 / 未声明 ⇒ FR-14 不判（无从判，不是违规）', () => {
+    expect(
+      checkAnchorContract({
+        designRef: null,
+        missing: true,
+        formatViolations: [],
+        unknownAnchorIds: [],
+      }),
+    ).toEqual([])
+    expect(
+      checkAnchorContract({
+        designRef: null,
+        missing: false,
+        formatViolations: ['x'],
+        unknownAnchorIds: ['y'],
+      }),
+    ).toEqual([])
+  })
+
+  it('⚠️ 变异样本：锚点之后没有 NAV ⇒ 报 unparsed（锚点指向空处）', () => {
+    const proto = '/* openvibe-nav: growth-view */\nvar OTHER=[];'
+    const r = checkPrototypeParity(fakeRepo(designWith('docs/prototypes/p.html'), proto))
+    expect(r.missing).toBe(false)
+    expect(r.unparsed).toBe(true)
+    expect(r.navGroups).toEqual([])
+  })
+
+  it('⚠️ 变异样本：原型改用**双引号** ⇒ 仍然读得出来（引号口径放宽，不静默读空）', () => {
+    // 2026-11-11 加：只认单引号时，原型改一次引号闸就静默读出 0 组
+    const proto = 'var NAV=[{g:"飞轮全景",items:[]},{g:"系统",items:[]}];'
+    const r = checkPrototypeParity(fakeRepo(designWith('docs/prototypes/p.html'), proto))
+    expect(r.missing).toBe(false)
+    expect(r.unparsed).toBe(false)
+    expect(r.navGroups).toEqual(['飞轮全景', '系统'])
+  })
+
+  it('⚠️ 变异样本：文件在但一个组名都抽不出 ⇒ 报 unparsed（静默失效的显式兜底）', () => {
+    // 原型改了写法（无引号字面量 / 变量引用）⇒ 闸读不出，但必须**显式报出来**
+    const proto = 'var NAV=[{g:GROUP_A,items:[]},{g:GROUP_B,items:[]}];'
+    const r = checkPrototypeParity(fakeRepo(designWith('docs/prototypes/p.html'), proto))
+    expect(r.missing).toBe(false)
+    expect(r.unparsed).toBe(true)
+    expect(r.navGroups).toEqual([])
+  })
+
+  it('⚠️ 变异样本：原型文件缺失 ⇒ 报 missing，组名空数组', () => {
+    const r = checkPrototypeParity(fakeRepo(designWith('docs/prototypes/p.html'), null))
+    expect(r.missing).toBe(true)
+    expect(r.unparsed).toBe(false)
+    expect(r.designRef).toBe('docs/prototypes/p.html')
+    expect(r.navGroups).toEqual([])
+  })
+
+  it('⚠️ 变异样本：DESIGN.md 未声明成长视角原型 ⇒ designRef 为 null', () => {
+    const r = checkPrototypeParity(fakeRepo('## Decisions Log\n\n没有对照原型指引。\n', null))
+    expect(r.designRef).toBeNull()
+    expect(r.missing).toBe(true)
+    expect(r.unparsed).toBe(false)
+  })
+
+  it('正向对照：真实仓的 DESIGN.md 与成长视角原型 ⇒ 六组且首组是「飞轮全景」', () => {
+    const r = checkPrototypeParity(REPO_ROOT)
+    expect(r.missing).toBe(false)
+    expect(r.unparsed).toBe(false)
+    expect(r.anchorId).toBe('growth-view')
+    expect(NAV_ANCHOR_IDS).toContain(r.anchorId)
+    expect(r.designRef).toContain('成长视角')
+    expect(r.navGroups).toEqual([
+      '飞轮全景',
+      '跟随 · F0',
+      '实践 · F1',
+      '作者 · F2',
+      '定标 · F3',
+      '系统',
+    ])
+  })
+
+  it('正向对照：真实原型带 openvibe-nav 锚点（锚点是本面定位口径的显式来源）', () => {
+    const r = checkPrototypeParity(REPO_ROOT)
+    // 锚点缺失时闸会回落「最后一次 var NAV=」，仍读对但口径依赖原型写法
+    expect(r.designRef).not.toBeNull()
+    const proto = readFileSync(join(REPO_ROOT, r.designRef ?? ''), 'utf8')
+    expect(proto).toMatch(/\/\*\s*openvibe-nav:/)
   })
 })
 
