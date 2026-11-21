@@ -5657,3 +5657,17 @@ owner 采纳本轮提出的三项增强，全部落地。三项里前两项同�
 - **测试验证**: 本地全量 3082/3082 绿、eslint 0、docs:check error 0 · warning 190、context:check 0；冒烟无头 SM-1/2/3 全过两轮实证；CI artifact 七件全产出（preflight×3 + docs-check×2 + context-check×2）。**CI 仍有尾红＝并行会话未加固的测试面**（windows 路径差 ×43、/api/lang/scan 20s 超时、docs-check/error-text-scan windows 文案差）——不是 RG1–RG3 判据面，归该工作线补加固（DEV-0284 登记为新债）。
 - **过程中的自我纠正**: ① langSourceAi 的回退判定错了——那 82 行 diff 里混着 tempDir 迁移（正当）与日期变化（触发规则 D），整文件被我按回退丢弃 ⇒ CI 抓到 mkdtempSync 后按其意图补齐；② 冒烟的修复走了弯路：先自己改选择器，后发现有 54f0811 已提交的完整对齐版（工作树回退把它埋了）——恢复+按当前文案校准 SM-3a（副标题在 lane-system 仍渲染，本地实证）；③ guard 规则 C 的 27 处 DEV_LOG 命中全部核验为叙述性引用（决策状态词合法用法，DEV-0205 时代已登记的同款误报类）后 --no-verify，点名记录在提交信息。
 - **潜在风险**: ① CI 尾红（并行会话债）会让 main 的 CI 持续红直到该线加固——push 决策已在 goal 指令内，红面归属已精确登记；② 冒烟脚本对 UI 文案的耦合（SM-3a 判 lane-system 副标题）仍是脆弱点——i18n 改词会再红，长期出路是给冒烟加 data-testid；③ 并行会话若仍在编辑同一工作线，其后续改动会基于已收口的 main——冲突面变小但 attribution 要重新对表。
+
+## [DEV-0285] 2026-11-21 · W-5 收官对账起草：RG1–RG3 出口判据全表复算 ＋ ㉝ 十条总复查 ＋ V 段交接 ＋ U-8 CI 半补齐
+
+- **时间**: 2026-11-21
+- **类型**: 重构线收官 · W-5 对账产物（owner-gated 项如实标注「待裁／待签收」，不用模糊语）
+- **关联文件**: `docs/devlog-evidence/refactor-w5/reconciliation-20261121.md`（新增，本轮主产物）、`.github/workflows/ci.yml`（Adapter matrix check 步＝U-8 CI 半补齐）、`DEV_LOG.md`（本条）
+- **核心变更**:
+  1. **RG1 全表**：② routes 调用点复算 = 4（全部为已点名除外项，按 spec §7.8 l 口径达标）✅；③ golden 夹具 6 + matrix check 闸 ✅——**U-8 的 CI 接线半补齐**（阻塞本是 ci.yml 并行脏文件，随分笔收口解除；`adapters:matrix:check` 步上 CI，本地 ✓ 7 行同源）；① dev-plan §16.2 六行翻转 ＝ owner 一行笔；④ l ✅ / j 待签收。
+  2. **RG2 全表**：①③④ ✅（D32/D33 按 ㊾ 形态闭合、兼容读达标、双 reviewer 落档）；② **重基次数 = 2 ≠ 判据的 1**——㊼ 先行分解的登记事实，待 owner 追认或改写（两种口径都已写明，无契约风险）。
+  3. **RG3 全表**：⑤ MT4 = 158/359 持平 ✅；④ §19.3-1 实质关闭（取数+评估完成，dev-plan 行翻转留 owner）；①②③ **全部 owner-gated**（⑤ 走查 / ④ 分母 / ①②+3-4）——每项的「答了解锁什么」列成清单（reconciliation §owner-gated，A–I 九项）。
+  4. **㉝ 十条总复查**：**无一触发**；§10-1 待证据（⑤）、§10-2 待样本、§10-3 待签收，其余七条未触发/履约中——每条带当前依据。
+  5. **V 段交接**：V-1 的 W-1 前置已满足；交接完成态 = owner 裁 ⑥ 即交接（重构线不是「关账后」才放行中台线）。
+- **测试验证**: adapters:matrix:check ✓（7 行同源）；docs:check error 0 · warning 190；全量回归 3082/3082（分笔收口基线，本笔仅文档 + CI 步无代码变更）。
+- **潜在风险**: ① reconciliation 的 RG2② 引用 ㊽㊼ 两个裁定号的张力——owner 追认口径若选「改写判据」，goal-plan（owner 文件）需同步；② owner-gated 清单 A–I 若长期不答，RG3 悬置会传导到 v0.3.0 线的开工叙事（两线在 ⑥ 上交汇）。
