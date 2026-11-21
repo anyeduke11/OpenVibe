@@ -40,3 +40,8 @@ docs/retro-enhancement-requests-20261109.html
 # 原样 ⇒ 排版成果必然被冲掉。与 docs/agent-memory/** 同理：契约件不排版。
 # （v024 的三个 JSON 不在此列：那些脚本只写 stdout、不写盘，排版不与重跑打架。）
 docs/devlog-evidence/v025-framework-20261029/framework-probes.json
+
+# adapter-matrix.md 是 scripts/adapter-matrix.ts 的生成物（tests/golden-adapters.test.ts
+# 的 ADP-FIX-04 以「现场重渲染 ≡ 磁盘字节」判）——prettier 的表格重排会改字节 ⇒ 与生成器
+# 打架。与上面 framework-probes.json 同理：契约件不排版。
+docs/adapter-matrix.md

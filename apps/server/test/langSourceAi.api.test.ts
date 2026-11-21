@@ -14,12 +14,11 @@
 // runner 的契约是「stdin 收 JSON、stdout 出 JSON」⇒ 那就得**真跑一次**，
 // 否则「契约」只是一句注释。⇒ 这里用 `/bin/sh` 脚本当假 runner：
 // 它把 stdin 抄进一个文件（证明**入参真的送到了**），再吐一份合法 JSON。
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { FastifyInstance } from 'fastify'
-import { newDb, type TestDbHandle } from '@openvibe/core/test-support'
+import { newDb, tempDir, type TestDbHandle } from '@openvibe/core/test-support'
 import {
   CommandInterpretRunner,
   memoryKeychainStore,
@@ -90,7 +89,7 @@ function put(h: Harness, url: string, payload: unknown) {
 
 /** 一个真实的项目目录（正文里**故意**放一条绝对路径）。 */
 function makeProject(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'ov-m9-ai-api-'))
+  const dir = tempDir('ov-m9-ai-api-')
   dirs.push(dir)
   writeFileSync(
     join(dir, 'app.py'),
@@ -540,7 +539,7 @@ describe('M9 P5 · POST /api/lang/interpret（DL-18 / DL-16）', () => {
 
 describe('M9 P5 · 命令适配器（stdin 收 JSON、stdout 出 JSON）', () => {
   it('⚠️ **真起一个子进程**：入参真的送到了，输出真的被解析', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-m9-runner-'))
+    const dir = tempDir('ov-m9-runner-')
     dirs.push(dir)
     const captured = join(dir, 'captured.json')
     // 2026-11-14：假 runner 从 /bin/sh 脚本改 node 脚本——windows 无 shebang 语义，spawn('.sh')
@@ -591,7 +590,7 @@ describe('M9 P5 · 命令适配器（stdin 收 JSON、stdout 出 JSON）', () =>
   })
 
   it('输出不合契约 ⇒ 归一成失败（不当成成功）', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-m9-runner-bad-'))
+    const dir = tempDir('ov-m9-runner-bad-')
     dirs.push(dir)
     const script = join(dir, 'bad-runner.mjs')
     // ⚠️ **版本号是对的** ⇒ 这一支断的才是「字段不合契约」（版本不对有单独一支）
@@ -616,7 +615,7 @@ describe('M9 P5 · 命令适配器（stdin 收 JSON、stdout 出 JSON）', () =>
   })
 
   it('⚠️ **版本号对不上** ⇒ 归一成「版本不匹配」（不是笼统的「不合契约」）', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ov-m9-runner-ver-'))
+    const dir = tempDir('ov-m9-runner-ver-')
     dirs.push(dir)
     const script = join(dir, 'old-runner.mjs')
     writeFileSync(
