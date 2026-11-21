@@ -47,6 +47,41 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # 2026-11-02：把**跑测试时的机器状态**落成 artifact（待办 1 的取数机制）。
+      #
+      # ⚠️ **为什么需要它**：`vitest.config.ts` 的 `maxWorkers: 2` 是**本机实测的保守值**，
+      #   **未在 CI 上验证过**（CI runner 的核数与内存都不同于本机）⇒
+      #   要判断「CI 上是不是可以放宽」，需要 CI 上的**实测数据**：
+      #   可用内存、swap 使用率、实际并发、跑了多久。
+      # ⇒ `pnpm test` 的前置预检已经把这些写进 `test-results/preflight.json`
+      #   ⇒ 这里只负责**上传**（顺带在 summary 里显示一行档位）。
+      #
+      # ⚠️ **不阻断**：这个 artifact 是**证据**，不是闸 ⇒ 上传失败也不该让 CI 红。
+      - name: Collect preflight evidence (machine state during tests)
+        if: always()
+        continue-on-error: true
+        run: |
+          set +e
+          echo "### 跑测试时的机器状态" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f test-results/preflight.json ]; then
+            cat test-results/preflight.json
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat test-results/preflight.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "（本轮没有产出 test-results/preflight.json —— 说明走了 \`--maxWorkers\` 显式指定路径或预检未执行）" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
+      - name: Upload preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: preflight-${{ matrix.os }}
+          path: test-results/preflight.json
+          if-no-files-found: ignore
+
       # T4 起生效（阈值 60/3/0 先行），T8a-1 切正式 100/3/20 并加 §3.4 构成配额（C-57）
       - name: Seed check
         run: pnpm seed:check
@@ -59,8 +94,153 @@ jobs:
       # 文档治理校验 —— DEV 编号、队列计数自洽、相对链接目标存在、spec 版本行形状、
       # 冻结面零 diff。当前仓库的未闭合项登记在 docs/docs-check-baseline.json，
       # 退出码只对基线外的违规为 1。
+      # `--json-out`：同一趟运行把 JSON 产物也写盘（供下面差分步骤吃），
+      # 文件由 Node 写 ⇒ 编码跨平台确定（Windows pwsh 的 `>` 重定向会写坏 stdout）。
       - name: Docs check
-        run: pnpm docs:check
+        run: pnpm docs:check --json-out test-results/docs-check.json
+
+      # 文档 warning 差分（本轮 vs 上轮，2026-11-04 落地）：`docs:check` 的 warning 是
+      # 「登记在基线里的历史存量」（error 才判红）⇒ 差分把它变成**可见信号**：
+      # 本轮新增的 warning 显示在 job summary 与 PR 注解上（`--annotation`），不阻断合入。
+      #
+      # ⚠️ 形态照抄上面的 context summary 步：`if: always()`（docs:check 判红那轮
+      #   的 JSON 也该归档）＋ `shell: bash`（矩阵含 windows，默认 pwsh 不认 set +e）＋
+      #   `continue-on-error`（差分是报告不是闸，网络抖动/首轮无上轮产物都不该让 CI 红）。
+      # ⚠️ 上轮产物走 GitHub API（`gh` runner 自带）：上一轮 = 同名 artifact 的最新一份，
+      #   每轮自己上传 ⇒ 下轮自取；首轮没有 ⇒ 降级为只报本轮计数。
+      # `--history`：本轮快照追加进 test-results/docs-diff-history.json（上轮有历史文件则
+      #   先拷来做底），随 docs-check.json 一并上传 ⇒ 跨轮趋势在 summary 可见。
+      - name: Docs check warning diff (this vs last run)
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          echo "### 文档 warning 差分（本轮 vs 上轮）" >> "$GITHUB_STEP_SUMMARY"
+          if [ ! -f test-results/docs-check.json ]; then
+            echo "（本轮没有 test-results/docs-check.json —— docs:check 没跑到写盘那步）" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          url=$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=docs-check-${{ matrix.os }}&per_page=5" --jq '.artifacts[0].archive_download_url' 2>/dev/null || true)
+          if [ -z "$url" ] || [ "$url" = "null" ]; then
+            echo "（没有上轮归档 —— 首轮运行，差分降级为只报本轮计数）" >> "$GITHUB_STEP_SUMMARY"
+            node -e "const j=require('./test-results/docs-check.json');console.log('仅本轮：warning', j.findings.filter(f=>f.level==='warning').length, '条')"
+            exit 0
+          fi
+          curl -sL -H "Authorization: Bearer ${GITHUB_TOKEN}" "$url" -o /tmp/docs-check-prev.zip
+          rm -rf /tmp/docs-check-prev
+          mkdir -p /tmp/docs-check-prev
+          unzip -oq /tmp/docs-check-prev.zip -d /tmp/docs-check-prev
+          prev=$(find /tmp/docs-check-prev -name 'docs-check.json' -print -quit)
+          if [ -z "$prev" ]; then
+            echo "（上轮归档里没有 docs-check.json —— 上轮 docs:check 未产出 JSON）" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # 历史趋势：上轮若有历史文件则拷来做底（脚本追加本轮并写回），否则脚本从头记。
+          prev_hist=$(find /tmp/docs-check-prev -name 'docs-diff-history.json' -print -quit)
+          if [ -n "$prev_hist" ]; then
+            cp "$prev_hist" test-results/docs-diff-history.json
+          fi
+          pnpm docs:diff -- --json1 "$prev" --json2 test-results/docs-check.json --annotation --history test-results/docs-diff-history.json | tee /tmp/docs-diff.txt
+          rc=${PIPESTATUS[0]}
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/docs-diff.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
+
+      - name: Upload docs check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: docs-check-${{ matrix.os }}
+          path: |
+            test-results/docs-check.json
+            test-results/docs-diff-history.json
+          if-no-files-found: ignore
+
+      # 跨机器趋势的**做底**步（2026-11-05）：`context:check` 每轮把计数追加进
+      # `test-results/context-check-history.json`，但 runner 每次都是全新机器 ⇒
+      # 不下载上轮历史的话，CI 侧永远只有「本轮一轮」。
+      # 本步把上一 run 的同名 artifact 里的历史文件放到目标路径，`Context check`
+      # 再追加本轮 ⇒ **artifact 自身就是跨 run 累积的历史**，下载一次即可合并多轮。
+      #
+      # ⚠️ 形态与 Docs check 的差分步一致：`if: always()` ＋ `shell: bash` ＋
+      #   `continue-on-error`（恢复是证据准备，不是闸；首轮没有 artifact 也不该红）。
+      - name: Restore context history (cross-run)
+        if: always()
+        continue-on-error: true
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          mkdir -p test-results
+          url=$(gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts?name=context-check-${{ matrix.os }}&per_page=5" --jq '.artifacts[0].archive_download_url' 2>/dev/null || true)
+          if [ -z "$url" ] || [ "$url" = "null" ]; then
+            echo "（没有上轮 context artifact —— 本轮从零开始记）"
+            exit 0
+          fi
+          curl -sL -H "Authorization: Bearer ${GITHUB_TOKEN}" "$url" -o /tmp/ctx-prev.zip
+          rm -rf /tmp/ctx-prev
+          mkdir -p /tmp/ctx-prev
+          unzip -oq /tmp/ctx-prev.zip -d /tmp/ctx-prev
+          prev=$(find /tmp/ctx-prev -name 'context-check-history.json' -print -quit)
+          if [ -n "$prev" ]; then
+            cp "$prev" test-results/context-check-history.json
+            count=$(node -e 'const fs=require("fs");const h=JSON.parse(fs.readFileSync("/tmp/ctx-prev/context-check-history.json","utf8"));console.log(h.runs.length)')
+            echo "已恢复上轮 context 历史：${count} 轮"
+          else
+            echo "（上轮 artifact 里没有历史文件）"
+          fi
+          exit 0
+
+      # 上下文治理闸（条文见 `docs/specs/context-governance.md` §7，脚本 `scripts/context-check.ts`）：
+      # 标记/辅助清单的单一出处、core/adapters/shared 的分层纪律、兼容矩阵与
+      # `ADAPTER_MAIN_PATH` 一致性（这三类可红），加一条上下游闭合的只报数面。
+      # 纯静态扫描、无网络、无平台差异 ⇒ 直接进三平台矩阵，不单开作业。
+      - name: Context check
+        run: pnpm context:check
+
+      # 上下文结论的**轮次归档**（2026-11-04 落地）：`context:check` 每轮把计数写
+      # `test-results/context-check.json`（同名覆盖 ⇒ 单机只留最近一轮）⇒ 跨轮比对
+      # `coAnchors`（共锚计数，趋势主指标）必须靠**按 run 存档**，本步把两个面补上：
+      # ① job summary 显示计数（连续两次 run 的 summary 页各看一眼即出差值）；
+      # ② 按 run 上传 JSON（差值要可复算，光看摘要不够，得拿得到文件）。
+      #
+      # ⚠️ 形态照抄上面的 preflight 证据步：`if: always()` —— **判红那一轮的结论最该存档**；
+      #   `continue-on-error` —— 归档是证据不是闸，摘要/上传失败不该让 CI 红。
+      # ⚠️ `shell: bash`：矩阵含 windows-latest，`run:` 默认 pwsh 不认 `set +e` ——
+      #   显式用 bash（runner 自带 Git Bash），三平台的摘要面才都写得出来。
+      - name: Context check summary (trend counts)
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          echo "### 上下文治理结论（趋势主指标 = coAnchors 计数）" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f test-results/context-check.json ]; then
+            cat test-results/context-check.json
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat test-results/context-check.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "（本轮没有产出 test-results/context-check.json —— context:check 没跑到写盘那步）" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
+      - name: Upload context check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        continue-on-error: true
+        with:
+          name: context-check-${{ matrix.os }}
+          path: |
+            test-results/context-check.json
+            test-results/context-check-history.json
+          if-no-files-found: ignore
 
       # §-引用判定（`文件.md §16.10` 断没断）**已并入上面那道 `docs:check`**（判据 FR-12）——
       # 2026-10-24 起不再单开一步：两处跑同一套判定，单开的那步只是把同一批断链数两遍。
@@ -209,10 +389,6 @@ jobs:
   # ⚠️ **只存摘要不存正文**（spec §3.2）—— 灰区处置见 scripts/m9-content-fingerprint.ts 文件头，
   #   补偿控制（字段闭集 ＋ hex 校验 ＋ 仍在扫描面内）由 packages/core/src/db/m9-external-content-scan.ts 钉住。
   m9-fingerprint:
-    # ⚠️ 仅手动触发（workflow_dispatch，ci:preview 同款通道）：runoob 对数据中心 IP
-    #   返回稳定不同的正文变体（run 406472/435498 两轮同批 6 篇实证），push 触发时
-    #   该闸在 CI 环境永远无法判定 ⇒ 跳过（本地 `pnpm m9:fingerprint` 判据照常在）。
-    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -249,3 +425,76 @@ jobs:
             echo "::error::内容指纹过期或取不到正文区（退出码 $RC）—— 跑 \`pnpm m9:fingerprint -- --write\` 刷新快照后提交"
             exit 1
           fi
+
+  # R6 · 交付验证：pack + 隔离安装 + dist 冒烟（v0.2.4 F9 / PRD 第 6 章 R6）。
+  #
+  # ⚠️ 为什么单开作业而不塞进 verify 矩阵：verify 跑的是**源码形态**（tsx 入口），
+  #   本作业跑的是**发布形态**（npm pack 出的 tarball 装进干净目录）。源码绿而包坏是
+  #   真实情形——files 漏项、bin 指向源码、原生依赖没进清单、打包后相对路径失效——
+  #   只有真装真跑才暴露。
+  # ⚠️ 平台范围跟随 D-e：Linux + macOS 必须，Windows 未纳入（R8 同名判定用例未补）。
+  # ⚠️ 失败即红、不设 allow_failure（F9 验收判据原文）。
+  pkg-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # 读取根 package.json 的 packageManager 字段
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build package (pkg:cli)
+        run: pnpm pkg:cli
+
+      - name: Pack tarball
+        id: pack
+        working-directory: apps/cli/pkg
+        run: |
+          name=$(npm pack --silent)
+          echo "打包产物：$name"
+          ls -lh "$name"
+          echo "tarball=$name" >> "$GITHUB_OUTPUT"
+
+      # 隔离安装：干净目录、只装 tarball。npm 12 起默认拦安装脚本 ⇒ 必须显式放行
+      # better-sqlite3（原生绑定只能由 prebuild-install 下载或 node-gyp 编译产出；
+      # 不放行就是「装得上但 serve 起不来」）。
+      - name: Isolated install
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          SMOKE="$(mktemp -d)"
+          cd "$SMOKE"
+          npm init -y >/dev/null 2>&1
+          printf 'allow-scripts=better-sqlite3\n' > .npmrc
+          npm install "${GITHUB_WORKSPACE}/apps/cli/pkg/${TARBALL}" --no-audit --no-fund
+          echo "隔离安装目录：${SMOKE}"
+          echo "SMOKE_DIR=${SMOKE}" >> "$GITHUB_ENV"
+
+      - name: 'Smoke: --version / --help'
+        env:
+          TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: |
+          BIN="${SMOKE_DIR}/node_modules/.bin/openvibe"
+          "$BIN" --help | grep -q 'serve' || { echo "::error::--help 未列出 serve"; exit 1; }
+          version=$("$BIN" --version)
+          expected="${TARBALL#openvibe-cli-}"
+          expected="${expected%.tgz}"
+          echo "装到的版本：${version}（tarball 期望 ${expected}）"
+          [ "$version" = "$expected" ] || { echo "::error::版本号与 tarball 不符"; exit 1; }
+
+      # serve 健康检查 + sync --dry-run + diff + verify + scan + clean：复用既有复验矩阵
+      # 工具（scripts/verify-matrix.ts）的 --bin 模式——它起临时 serve + 临时项目，
+      # 跑可自动化的本地子集，任一 fail 即退出码 1（manual 项如实标注未验证）。
+      - name: 'Smoke: serve health + sync --dry-run (verify-matrix --bin)'
+        run: pnpm verify:matrix --run --bin "${SMOKE_DIR}/node_modules/openvibe-cli/dist/cli.js"

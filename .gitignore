@@ -35,6 +35,15 @@ Thumbs.db
 .mimosa/
 # Trae 会话工作目录（计划草案）：内容以 PRD/decisions/tasks 为单源，此处只留本地草稿
 .trae/
+# 本地草稿目录：与 .trae/ 同规（内容零落仓，git 与 lint / 排版两道闸都跳过）。
+# ⚠️ 2026-11-11 补 `.zwork/` 与 `tmp/`：
+#   - `.zwork/` 此前只有**嵌套** `.zwork/.gitignore`（`*`），而 prettier **不读嵌套
+#     .gitignore**（实测）⇒ 它在排版闸里是露出的，只能靠 .prettierignore 单独豁免；
+#   - `tmp/` 则**根本没进任何 .gitignore** ⇒ 文件可入仓，却同时逃过 lint 与排版两道闸。
+#   两者一并提到根上：prettier 读**根** .gitignore（实测），闸的视野因此与 git 对齐 ——
+#   豁免面从 .prettierignore 收回，DEV-0244 里那条「本地与 CI 口径不一致」的噪声源随之消失。
+.zwork/
+tmp/
 
 # Env
 .env
@@ -44,3 +53,8 @@ Thumbs.db
 # ⚠️ **刻意不落仓** —— 备份的用途是「写错了能立刻恢复」，长期历史由 git 负责；
 #   两份都留就是两份真相。落仓的事实是清单本身（+ git diff 里有同一份信息）。
 docs/devlog-evidence/M9-probe/_backup/
+test-results/
+
+# 本地 agent 工具目录（2026-11-21 收口补登：工具会话产物，内容零落仓）
+.codebuddy/
+.trae-html-share-packages/
