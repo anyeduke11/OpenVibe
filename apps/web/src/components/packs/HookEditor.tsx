@@ -110,7 +110,9 @@ function HookRow(props: {
   onPatch: (patch: Partial<HookDef>) => void
   onRemove: () => void
 }) {
-  const { hook, onPatch, onRemove } = props
+  const { hook, onPatch } = props
+  // 正则的用途就是识别控制字符（FR-1.3：name 不得含控制字符）——no-control-regex 在此是误报
+  // eslint-disable-next-line no-control-regex
   const nameControlChar = /[\u0000-\u001f\u007f]/.test(hook.name)
 
   return (

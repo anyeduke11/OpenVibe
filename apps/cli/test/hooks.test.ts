@@ -1,6 +1,6 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import { HOOKS_RUN_REL } from '@openvibe/core'
 import type { HookDef } from '@openvibe/shared'
 import { runHooks, type HookRunRecord } from '../src/commands/hooks'

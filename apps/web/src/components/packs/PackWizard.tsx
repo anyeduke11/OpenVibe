@@ -47,10 +47,12 @@ const STEPS = [
 const EMPTY_STALE: AssetIds = { promptIds: [], termIds: [], skillIds: [], playbookIds: [] }
 
 /** N3 FR-3.3：校验一组钩子（pre/post 各自独立命名空间，组内 name 唯一、无控制字符） */
-function validateHookGroup(list: HookDef[], phase: 'pre' | 'post'): string | null {
+function validateHookGroup(list: HookDef[], _phase: 'pre' | 'post'): string | null {
   const seen = new Set<string>()
   for (const hook of list) {
     if (hook.name.trim() === '') return zh.packs.wizard.hooksNameRequired
+    // 正则的用途就是识别控制字符——no-control-regex 在此是误报
+    // eslint-disable-next-line no-control-regex
     if (/[\u0000-\u001f\u007f]/.test(hook.name)) return zh.packs.wizard.hooksDupName
     if (seen.has(hook.name)) return zh.packs.wizard.hooksNameDup
     seen.add(hook.name)

@@ -21,6 +21,8 @@ export const HookDefSchema = z.object({
   name: z
     .string()
     .min(1)
+    // 正则的用途就是拒绝控制字符（FR-1.3）——no-control-regex 在此是误报
+    // eslint-disable-next-line no-control-regex
     .refine((s) => !/[\u0000-\u001f\u007f]/.test(s), {
       message: 'name 不得含控制字符（n3-hooks.md FR-1.3）',
     }),

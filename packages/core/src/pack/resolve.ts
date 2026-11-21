@@ -2,7 +2,6 @@ import {
   AppError,
   L1_DEFAULT,
   type FlowTemplateOut,
-  type Hooks,
   type PackSelection,
   type PlaybookOut,
   type PromptOut,
